@@ -111,12 +111,12 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                 <li key={item.id}>
                   <button
                     onClick={() => toggleGroup(item.id)}
-                    className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                      hasActiveChild
-                        ? 'text-[#1d979e]'
-                        : 'text-foreground hover:bg-[hsl(var(--border-subtle))]'
-                    )}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+                        hasActiveChild
+                          ? 'text-[#1d979e] font-medium'
+                          : 'text-muted-foreground font-normal hover:bg-muted/50'
+                      )}
                   >
                     <Icon size={18} className="flex-shrink-0" />
                     <span className="flex-1 text-left">{item.label}</span>
