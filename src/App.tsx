@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Pages
+import { AppShell } from "./components/layout/AppShell";
 import Dashboard from "./pages/Dashboard";
 import Reserveringen from "./pages/Reserveringen";
 import MepTaken from "./pages/MepTaken";
@@ -35,37 +36,40 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Dashboard */}
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Navigate to="/" replace />} />
+            {/* Layout wrapper - persistent sidebar */}
+            <Route element={<AppShell />}>
+              {/* Dashboard */}
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Navigate to="/" replace />} />
+              
+              {/* Reserveringen */}
+              <Route path="/reserveringen" element={<Reserveringen />} />
+              
+              {/* Keuken */}
+              <Route path="/mep" element={<MepTaken />} />
+              <Route path="/halffabricaten" element={<Halffabricaten />} />
+              <Route path="/halffabricaten/:id" element={<HalffabricatenDetail />} />
+              <Route path="/recepten" element={<Recepten />} />
+              <Route path="/recepten/:id" element={<ReceptenDetail />} />
+              <Route path="/voorraad" element={<Ingredienten />} />
+              <Route path="/kostprijzen" element={<Kostprijzen />} />
+              <Route path="/inkoop" element={<Inkoop />} />
+              
+              {/* Kaartbeheer */}
+              <Route path="/kaartbeheer" element={<Kaartbeheer />} />
+              <Route path="/kaartbeheer/:id" element={<KaartbeheerDetail />} />
+              
+              {/* Service */}
+              <Route path="/taken" element={<Taken />} />
+              
+              {/* Settings */}
+              <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
+              <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
+              <Route path="/instellingen/inkoop" element={<SettingsInkoop />} />
+              <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
+            </Route>
             
-            {/* Reserveringen */}
-            <Route path="/reserveringen" element={<Reserveringen />} />
-            
-            {/* Keuken */}
-            <Route path="/mep" element={<MepTaken />} />
-            <Route path="/halffabricaten" element={<Halffabricaten />} />
-            <Route path="/halffabricaten/:id" element={<HalffabricatenDetail />} />
-            <Route path="/recepten" element={<Recepten />} />
-            <Route path="/recepten/:id" element={<ReceptenDetail />} />
-            <Route path="/voorraad" element={<Ingredienten />} />
-            <Route path="/kostprijzen" element={<Kostprijzen />} />
-            <Route path="/inkoop" element={<Inkoop />} />
-            
-            {/* Kaartbeheer */}
-            <Route path="/kaartbeheer" element={<Kaartbeheer />} />
-            <Route path="/kaartbeheer/:id" element={<KaartbeheerDetail />} />
-            
-            {/* Service */}
-            <Route path="/taken" element={<Taken />} />
-            
-            {/* Settings */}
-            <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
-            <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
-            <Route path="/instellingen/inkoop" element={<SettingsInkoop />} />
-            <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
-            
-            {/* Catch-all */}
+            {/* Catch-all outside layout */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
