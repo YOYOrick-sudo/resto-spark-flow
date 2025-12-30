@@ -11,7 +11,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
+    <div className="min-h-screen flex w-full bg-card">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-60 flex-shrink-0">
         <NestoSidebar />
@@ -37,7 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header */}
-        <header className="lg:hidden flex items-center h-14 px-4 border-b border-border bg-card">
+        <header className="lg:hidden flex items-center h-14 px-4 border-b border-border bg-secondary">
           <Button
             variant="ghost"
             size="icon"
