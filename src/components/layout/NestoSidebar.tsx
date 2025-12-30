@@ -179,7 +179,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     </Collapsible.Trigger>
                     
                     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-                      <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[1.5px] before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
+                      <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
                         <ul className="space-y-0.5">
                           {item.subItems.map((subItem) => {
                             const isSubActive = activeItemId === subItem.id;
