@@ -164,13 +164,13 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                         onClick={() => handleExpandableClick(item)}
                         className={cn(
                           'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
-                          'border border-transparent',
+                          'border',
                           hasActiveChild
-                            ? 'text-[#1d979e] font-medium'
-                            : 'text-muted-foreground font-normal hover:bg-muted'
+                            ? 'bg-card border-border text-foreground font-medium'
+                            : 'border-transparent text-muted-foreground font-normal hover:bg-muted'
                         )}
                       >
-                        <Icon size={18} className="flex-shrink-0" />
+                        <Icon size={18} className={cn("flex-shrink-0", hasActiveChild && "text-[#1d979e]")} />
                         <span className="flex-1 text-left">{item.label}</span>
                         <ChevronDown 
                           size={16} 
@@ -183,7 +183,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     </Collapsible.Trigger>
                     
                     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-                      <div className="ml-[27px] mt-0.5 border-l-2 border-border">
+                      <div className="ml-[23px] mt-1 border-l border-border/60 pl-3">
                         <ul className="space-y-0.5">
                           {item.subItems.map((subItem) => {
                             const isSubActive = activeItemId === subItem.id;
@@ -191,7 +191,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                             if (subItem.disabled) {
                               return (
                                 <li key={subItem.id}>
-                                  <div className="flex items-center gap-3 pl-[18px] pr-3 py-2 text-sm text-muted-foreground cursor-not-allowed border border-transparent">
+                                  <div className="flex items-center gap-3 pl-4 pr-3 py-2 text-sm text-muted-foreground cursor-not-allowed border border-transparent">
                                     <span>{subItem.label}</span>
                                     <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
                                       Soon
@@ -207,11 +207,11 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center pl-[18px] pr-3 py-2 text-sm transition-colors duration-150 rounded-lg',
+                                    'w-full flex items-center pl-4 pr-3 py-2 text-sm transition-colors duration-150 rounded-lg',
                                     'border border-transparent',
                                     isSubActive
-                                      ? 'bg-card border-border text-foreground font-medium'
-                                      : 'text-muted-foreground hover:bg-muted'
+                                      ? 'text-[#1d979e] font-medium'
+                                      : 'text-muted-foreground hover:text-foreground'
                                   )}
                                 >
                                   {subItem.label}
