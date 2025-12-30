@@ -16,22 +16,21 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   const navigate = useNavigate();
   const { theme, resolvedTheme } = useTheme();
   
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  // Initialize with correct group already expanded (no useEffect flash)
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
+    const group = getExpandedGroupFromPath(location.pathname);
+    return group ? [group] : [];
+  });
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const activeItemId = getActiveItemFromPath(location.pathname);
 
-  // Auto-expand group based on current route - only add, never remove
+  // Keep group expanded when navigating to a new sub-route
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
-    if (groupToExpand) {
-      setExpandedGroups((prev) => {
-        if (prev.includes(groupToExpand)) {
-          return prev; // Already expanded, no update needed
-        }
-        return [...prev, groupToExpand];
-      });
+    if (groupToExpand && !expandedGroups.includes(groupToExpand)) {
+      setExpandedGroups((prev) => [...prev, groupToExpand]);
     }
-  }, [location.pathname]);
+  }, [location.pathname, expandedGroups]);
 
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroups((prev) =>
@@ -119,11 +118,22 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
 
             // Expandable group
             if (item.expandable && item.subItems) {
+              // Keep open if expanded OR if it has an active child
+              const isOpen = isExpanded || hasActiveChild;
+              
               return (
                 <li key={item.id}>
                   <Collapsible.Root
-                    open={isExpanded}
-                    onOpenChange={() => toggleGroup(item.id)}
+                    open={isOpen}
+                    onOpenChange={(nextOpen) => {
+                      // Only allow closing if no active child
+                      if (!nextOpen && hasActiveChild) return;
+                      setExpandedGroups((prev) =>
+                        nextOpen
+                          ? prev.includes(item.id) ? prev : [...prev, item.id]
+                          : prev.filter((id) => id !== item.id)
+                      );
+                    }}
                   >
                     <Collapsible.Trigger asChild>
                       <button
@@ -148,7 +158,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                       </button>
                     </Collapsible.Trigger>
                     
-                    <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                    <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
                       <ul className="mt-0.5 space-y-0.5">
                         {item.subItems.map((subItem) => {
                           const isSubActive = activeItemId === subItem.id;
