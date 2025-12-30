@@ -163,7 +163,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                         type="button"
                         onClick={() => handleExpandableClick(item)}
                         className={cn(
-                          'group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
+                          'group w-full flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-sm transition-colors duration-150',
                           'border',
                           hasActiveChild
                             ? 'bg-card border-border text-foreground font-medium'
@@ -191,7 +191,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                             if (subItem.disabled) {
                               return (
                                 <li key={subItem.id}>
-                                  <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground cursor-not-allowed border border-transparent">
+                                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground cursor-not-allowed border border-transparent">
                                     <span>{subItem.label}</span>
                                     <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
                                       Soon
@@ -207,7 +207,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center px-3 py-2 text-sm transition-colors duration-150 rounded-lg',
+                                    'w-full flex items-center px-2.5 py-[7px] text-sm transition-colors duration-150 rounded-lg',
                                     'border border-transparent',
                                     isSubActive
                                       ? 'text-[#1d979e] font-medium hover:text-[#1d979e]'
@@ -231,7 +231,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
             if (item.disabled) {
               return (
                 <li key={item.id}>
-                  <div className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground cursor-not-allowed">
                     <Icon size={18} className="flex-shrink-0" />
                     <span>{item.label}</span>
                     <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
@@ -251,7 +251,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     if (item.path) handleNavigation(item.path);
                   }}
                   className={cn(
-                    'group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
+                    'group w-full flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-sm transition-colors duration-150',
                     'border border-transparent',
                     isActive
                       ? 'bg-card border-border text-foreground font-medium'
@@ -271,7 +271,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       <div className="px-3 py-3 border-t border-border">
         <div className="space-y-0.5">
           {/* Support Item - disabled */}
-          <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground cursor-not-allowed">
+          <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground cursor-not-allowed">
             <HelpCircle size={18} className="flex-shrink-0" />
             <span>Support</span>
             <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
@@ -280,7 +280,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
           </div>
           
           {/* Documentatie Item - disabled */}
-          <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground cursor-not-allowed">
+          <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground cursor-not-allowed">
             <BookOpen size={18} className="flex-shrink-0" />
             <span>Documentatie</span>
             <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
