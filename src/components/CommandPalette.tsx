@@ -9,7 +9,6 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
 
 interface SearchableItem {
   id: string;
@@ -90,10 +89,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 key={item.id}
                 value={item.label}
                 onSelect={() => handleSelect(item.path)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer',
-                  'data-[selected=true]:bg-accent'
-                )}
+                className="group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer"
               >
                 <Icon size={18} className="flex-shrink-0 text-muted-foreground" />
                 <span className="flex-1 text-sm">{item.label}</span>
