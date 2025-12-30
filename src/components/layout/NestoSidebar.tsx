@@ -167,7 +167,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                           'border',
                           hasActiveChild
                             ? 'bg-card border-border text-foreground font-medium'
-                            : 'border-transparent text-muted-foreground font-normal hover:text-foreground'
+                            : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
                         )}
                       >
                         <Icon size={18} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
@@ -211,7 +211,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                                     'border border-transparent',
                                     isSubActive
                                       ? 'text-[#1d979e] font-medium hover:text-[#1d979e]'
-                                      : 'text-muted-foreground hover:text-foreground'
+                                      : 'text-muted-foreground font-medium hover:text-foreground'
                                   )}
                                 >
                                   {subItem.label}
@@ -255,7 +255,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     'border border-transparent',
                     isActive
                       ? 'bg-card border-border text-foreground font-medium'
-                      : 'text-muted-foreground font-normal hover:text-foreground'
+                      : 'text-muted-foreground font-medium hover:text-foreground'
                   )}
                 >
                   <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
