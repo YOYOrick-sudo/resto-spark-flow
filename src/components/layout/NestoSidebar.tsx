@@ -153,8 +153,8 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                               className={cn(
                                 'w-full flex items-center pl-[42px] pr-3 py-2 text-sm transition-colors rounded-lg',
                                 isSubActive
-                                  ? 'bg-background border border-border text-[#1d979e] font-medium'
-                                  : 'text-muted-foreground hover:bg-[hsl(var(--border-subtle))]'
+                                  ? 'bg-card border border-border text-foreground font-medium'
+                                  : 'text-muted-foreground hover:bg-muted/50'
                               )}
                             >
                               {subItem.label}
@@ -192,13 +192,13 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     if (item.path) handleNavigation(item.path);
                   }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
                     isActive
-                      ? 'bg-background border border-border text-[#1d979e]'
-                      : 'text-foreground hover:bg-[hsl(var(--border-subtle))]'
+                      ? 'bg-card border border-border text-foreground font-medium'
+                      : 'text-muted-foreground font-normal hover:bg-muted/50'
                   )}
                 >
-                  <Icon size={18} className="flex-shrink-0" />
+                  <Icon size={18} className={cn("flex-shrink-0", isActive && "text-[#1d979e]")} />
                   <span>{item.label}</span>
                 </button>
               </li>
