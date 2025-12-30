@@ -23,7 +23,12 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
     if (groupToExpand) {
-      setExpandedGroups([groupToExpand]);
+      setExpandedGroups((prev) => {
+        if (prev.length === 1 && prev[0] === groupToExpand) {
+          return prev; // Geen update nodig, voorkom re-render
+        }
+        return [groupToExpand];
+      });
     }
   }, [location.pathname]);
 
@@ -127,8 +132,13 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     )}
                   </button>
                   
-                  {/* Sub-items */}
-                  {isExpanded && (
+                  {/* Sub-items with animation */}
+                  <div
+                    className={cn(
+                      'overflow-hidden transition-all duration-200 ease-in-out',
+                      isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                    )}
+                  >
                     <ul className="mt-0.5 space-y-0.5">
                       {item.subItems.map((subItem) => {
                         const isSubActive = activeItemId === subItem.id;
@@ -163,7 +173,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                         );
                       })}
                     </ul>
-                  )}
+                  </div>
                 </li>
               );
             }
