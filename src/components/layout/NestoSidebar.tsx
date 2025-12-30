@@ -57,11 +57,9 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
     onNavigate?.();
   }, [location.pathname, navigate, onNavigate]);
 
-  // Handle click on expandable parent: toggle + navigate to first sub-item
+  // Handle click on expandable parent: navigate to first sub-item
   const handleExpandableClick = useCallback((item: typeof menuItems[0]) => {
-    toggleGroup(item.id);
-    
-    // Find first non-disabled subitem
+    // Find first non-disabled subitem and navigate
     const firstActiveSubItem = item.subItems?.find(
       (sub) => !sub.disabled && sub.path
     );
@@ -70,7 +68,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       navigate(firstActiveSubItem.path);
       onNavigate?.();
     }
-  }, [toggleGroup, location.pathname, navigate, onNavigate]);
+  }, [location.pathname, navigate, onNavigate]);
 
   return (
     <div className="h-full w-60 flex flex-col bg-secondary border-r border-border">
@@ -149,8 +147,6 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                   <Collapsible.Root
                     open={isOpen}
                     onOpenChange={(nextOpen) => {
-                      // Only allow closing if no active child
-                      if (!nextOpen && hasActiveChild) return;
                       setExpandedGroups((prev) =>
                         nextOpen
                           ? prev.includes(item.id) ? prev : [...prev, item.id]
@@ -183,7 +179,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     </Collapsible.Trigger>
                     
                     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-                      <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-border before:opacity-80 dark:before:bg-muted-foreground dark:before:opacity-25">
+                      <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[1.5px] before:bg-border dark:before:bg-muted-foreground/40">
                         <ul className="space-y-0.5">
                           {item.subItems.map((subItem) => {
                             const isSubActive = activeItemId === subItem.id;
