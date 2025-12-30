@@ -41,7 +41,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   };
 
   return (
-    <div className="h-full w-60 flex flex-col bg-card border-r border-border">
+    <div className="h-full w-60 flex flex-col bg-secondary border-r border-border">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
@@ -187,7 +187,10 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => item.path && handleNavigation(item.path)}
+                  onClick={() => {
+                    setExpandedGroups([]); // Sluit alle expanded items
+                    if (item.path) handleNavigation(item.path);
+                  }}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                     isActive
