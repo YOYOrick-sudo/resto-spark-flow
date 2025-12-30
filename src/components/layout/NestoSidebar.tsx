@@ -15,23 +15,23 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   const navigate = useNavigate();
   const { theme, resolvedTheme } = useTheme();
   
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['kitchen']);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const activeItemId = getActiveItemFromPath(location.pathname);
 
   // Auto-expand group based on current route
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
-    if (groupToExpand && !expandedGroups.includes(groupToExpand)) {
-      setExpandedGroups((prev) => [...prev, groupToExpand]);
+    if (groupToExpand) {
+      setExpandedGroups([groupToExpand]);
     }
   }, [location.pathname]);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) =>
       prev.includes(groupId)
-        ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
+        ? []
+        : [groupId]
     );
   };
 
