@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronDown, Zap, PanelLeft, Sun, Moon, Monitor, HelpCircle, BookOpen } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import * as Collapsible from '@radix-ui/react-collapsible';
 
 interface NestoSidebarProps {
   onNavigate?: () => void;
@@ -19,31 +20,35 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const activeItemId = getActiveItemFromPath(location.pathname);
 
-  // Auto-expand group based on current route
+  // Auto-expand group based on current route - only add, never remove
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
     if (groupToExpand) {
       setExpandedGroups((prev) => {
-        if (prev.length === 1 && prev[0] === groupToExpand) {
-          return prev; // Geen update nodig, voorkom re-render
+        if (prev.includes(groupToExpand)) {
+          return prev; // Already expanded, no update needed
         }
-        return [groupToExpand];
+        return [...prev, groupToExpand];
       });
     }
   }, [location.pathname]);
 
-  const toggleGroup = (groupId: string) => {
+  const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroups((prev) =>
       prev.includes(groupId)
-        ? []
-        : [groupId]
+        ? prev.filter((id) => id !== groupId)
+        : [...prev, groupId]
     );
-  };
+  }, []);
 
-  const handleNavigation = (path: string) => {
+  const handleNavigation = useCallback((path: string) => {
+    // Guard: don't navigate if already on this path
+    if (location.pathname === path) {
+      return;
+    }
     navigate(path);
     onNavigate?.();
-  };
+  }, [location.pathname, navigate, onNavigate]);
 
   return (
     <div className="h-full w-60 flex flex-col bg-secondary border-r border-border">
@@ -67,6 +72,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
           <div className="flex items-center gap-1">
             {/* Zap button - Notifications */}
             <button
+              type="button"
               className={cn(
                 'w-8 h-8 flex items-center justify-center rounded-md transition-colors relative',
                 hoveredButton === 'zap' 
@@ -85,6 +91,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
             
             {/* PanelLeft button - Panel toggle */}
             <button
+              type="button"
               className={cn(
                 'w-8 h-8 flex items-center justify-center rounded-md transition-colors',
                 hoveredButton === 'panel' 
@@ -114,66 +121,72 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
             if (item.expandable && item.subItems) {
               return (
                 <li key={item.id}>
-                  <button
-                    onClick={() => toggleGroup(item.id)}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                        hasActiveChild
-                          ? 'text-[#1d979e] font-medium'
-                          : 'text-muted-foreground font-normal hover:bg-muted/50'
-                      )}
+                  <Collapsible.Root
+                    open={isExpanded}
+                    onOpenChange={() => toggleGroup(item.id)}
                   >
-                    <Icon size={18} className="flex-shrink-0" />
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {isExpanded ? (
-                      <ChevronDown size={16} className="text-muted-foreground transition-transform duration-200" />
-                    ) : (
-                      <ChevronRight size={16} className="text-muted-foreground transition-transform duration-200" />
-                    )}
-                  </button>
-                  
-                  {/* Sub-items with animation */}
-                  <div
-                    className={cn(
-                      'overflow-hidden transition-all duration-200 ease-in-out',
-                      isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                    )}
-                  >
-                    <ul className="mt-0.5 space-y-0.5">
-                      {item.subItems.map((subItem) => {
-                        const isSubActive = activeItemId === subItem.id;
-                        
-                        if (subItem.disabled) {
+                    <Collapsible.Trigger asChild>
+                      <button
+                        type="button"
+                        className={cn(
+                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
+                          'border border-transparent',
+                          hasActiveChild
+                            ? 'text-[#1d979e] font-medium'
+                            : 'text-muted-foreground font-normal hover:bg-muted/50'
+                        )}
+                      >
+                        <Icon size={18} className="flex-shrink-0" />
+                        <span className="flex-1 text-left">{item.label}</span>
+                        <ChevronDown 
+                          size={16} 
+                          className={cn(
+                            'text-muted-foreground transition-transform duration-200',
+                            isExpanded && 'rotate-180'
+                          )} 
+                        />
+                      </button>
+                    </Collapsible.Trigger>
+                    
+                    <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                      <ul className="mt-0.5 space-y-0.5">
+                        {item.subItems.map((subItem) => {
+                          const isSubActive = activeItemId === subItem.id;
+                          
+                          if (subItem.disabled) {
+                            return (
+                              <li key={subItem.id}>
+                                <div className="flex items-center gap-3 pl-[42px] pr-3 py-2 text-sm text-muted-foreground cursor-not-allowed border border-transparent">
+                                  <span>{subItem.label}</span>
+                                  <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
+                                    Soon
+                                  </span>
+                                </div>
+                              </li>
+                            );
+                          }
+
                           return (
                             <li key={subItem.id}>
-                              <div className="flex items-center gap-3 pl-[42px] pr-3 py-2 text-sm text-muted-foreground cursor-not-allowed">
-                                <span>{subItem.label}</span>
-                                <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
-                                  Soon
-                                </span>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => subItem.path && handleNavigation(subItem.path)}
+                                className={cn(
+                                  'w-full flex items-center pl-[42px] pr-3 py-2 text-sm transition-colors duration-150 rounded-lg',
+                                  'border border-transparent',
+                                  isSubActive
+                                    ? 'bg-card border-border text-foreground font-medium'
+                                    : 'text-muted-foreground hover:bg-muted/50'
+                                )}
+                              >
+                                {subItem.label}
+                              </button>
                             </li>
                           );
-                        }
-
-                        return (
-                          <li key={subItem.id}>
-                            <button
-                              onClick={() => subItem.path && handleNavigation(subItem.path)}
-                              className={cn(
-                                'w-full flex items-center pl-[42px] pr-3 py-2 text-sm transition-colors rounded-lg',
-                                isSubActive
-                                  ? 'bg-card border border-border text-foreground font-medium'
-                                  : 'text-muted-foreground hover:bg-muted/50'
-                              )}
-                            >
-                              {subItem.label}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
+                        })}
+                      </ul>
+                    </Collapsible.Content>
+                  </Collapsible.Root>
                 </li>
               );
             }
@@ -197,14 +210,15 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
             return (
               <li key={item.id}>
                 <button
+                  type="button"
                   onClick={() => {
-                    setExpandedGroups([]); // Sluit alle expanded items
                     if (item.path) handleNavigation(item.path);
                   }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
+                    'border border-transparent',
                     isActive
-                      ? 'bg-card border border-border text-foreground font-medium'
+                      ? 'bg-card border-border text-foreground font-medium'
                       : 'text-muted-foreground font-normal hover:bg-muted/50'
                   )}
                 >
