@@ -167,10 +167,10 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                           'border',
                           hasActiveChild
                             ? 'bg-card border-border text-foreground font-medium'
-                            : 'border-transparent text-muted-foreground font-normal hover:text-primary'
+                            : 'border-transparent text-muted-foreground font-normal hover:text-foreground'
                         )}
                       >
-                        <Icon size={18} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-primary")} />
+                        <Icon size={18} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
                         <span className="flex-1 text-left">{item.label}</span>
                         <ChevronDown 
                           size={16} 
@@ -255,10 +255,10 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     'border border-transparent',
                     isActive
                       ? 'bg-card border-border text-foreground font-medium'
-                      : 'text-muted-foreground font-normal hover:text-primary'
+                      : 'text-muted-foreground font-normal hover:text-foreground'
                   )}
                 >
-                  <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-primary")} />
+                  <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
                   <span>{item.label}</span>
                 </button>
               </li>
