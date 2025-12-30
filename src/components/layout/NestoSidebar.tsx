@@ -166,7 +166,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                           'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
                           'border',
                           hasActiveChild
-                            ? 'bg-card border-border text-foreground font-medium'
+                            ? 'bg-card border-border text-foreground font-medium hover:bg-card/80'
                             : 'border-transparent text-muted-foreground font-normal hover:bg-muted'
                         )}
                       >
@@ -183,7 +183,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     </Collapsible.Trigger>
                     
                     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-                      <div className="ml-[23px] mt-1 border-l border-border/60 pl-3">
+                      <div className="ml-[23px] mt-1 border-l border-border pl-3">
                         <ul className="space-y-0.5">
                           {item.subItems.map((subItem) => {
                             const isSubActive = activeItemId === subItem.id;
@@ -210,7 +210,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                                     'w-full flex items-center pl-4 pr-3 py-2 text-sm transition-colors duration-150 rounded-lg',
                                     'border border-transparent',
                                     isSubActive
-                                      ? 'text-[#1d979e] font-medium'
+                                      ? 'text-[#1d979e] font-medium hover:text-[#1d979e]'
                                       : 'text-muted-foreground hover:text-foreground'
                                   )}
                                 >
@@ -253,9 +253,9 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
                     'border border-transparent',
-                    isActive
-                      ? 'bg-card border-border text-foreground font-medium'
-                      : 'text-muted-foreground font-normal hover:bg-muted'
+                  isActive
+                    ? 'bg-card border-border text-foreground font-medium hover:bg-card/80'
+                    : 'text-muted-foreground font-normal hover:bg-muted'
                   )}
                 >
                   <Icon size={18} className={cn("flex-shrink-0", isActive && "text-[#1d979e]")} />
