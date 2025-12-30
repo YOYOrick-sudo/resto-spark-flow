@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Zap, PanelLeft, Sun, Moon, Monitor, HelpCircle, BookOpen } from 'lucide-react';
+import { ChevronRight, ChevronDown, Zap, PanelLeft, Sun, Moon, Monitor, HelpCircle, BookOpen, Search } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
-
+import { CommandPalette } from '@/components/CommandPalette';
 interface NestoSidebarProps {
   onNavigate?: () => void;
   unreadNotifications?: number;
@@ -22,7 +22,20 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
     return group ? [group] : [];
   });
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
   const activeItemId = getActiveItemFromPath(location.pathname);
+
+  // Global keyboard shortcut for command palette (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandOpen(true);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Sync expanded groups with current route - collapse others when navigating away
   useEffect(() => {
@@ -126,6 +139,21 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Search Trigger */}
+      <div className="px-3 py-2">
+        <button
+          type="button"
+          onClick={() => setCommandOpen(true)}
+          className="w-full flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg text-muted-foreground text-sm hover:text-foreground transition-colors"
+        >
+          <Search size={16} />
+          <span className="flex-1 text-left">Search...</span>
+          <kbd className="text-[11px] px-1.5 py-0.5 rounded bg-muted border border-border font-medium">
+            ⌘K
+          </kbd>
+        </button>
       </div>
 
       {/* Navigation */}
@@ -306,6 +334,9 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
           </span>
         )}
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
     </div>
   );
 }
