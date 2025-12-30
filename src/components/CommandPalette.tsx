@@ -81,7 +81,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
           Geen resultaten gevonden
         </CommandEmpty>
-        <CommandGroup heading="GO TO" className="px-2">
+        <CommandGroup heading="GO TO" className="px-3 pb-3">
           {searchableItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -89,12 +89,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 key={item.id}
                 value={item.label}
                 onSelect={() => handleSelect(item.path)}
-                className="group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer"
+                className="group flex items-center gap-4 px-3 py-3.5 rounded-lg cursor-pointer"
               >
-                <Icon size={18} className="flex-shrink-0 text-muted-foreground" />
-                <span className="flex-1 text-sm">{item.label}</span>
+                <Icon size={20} className="flex-shrink-0 text-muted-foreground" />
+                <span className="flex-1">{item.label}</span>
                 <CornerDownLeft 
-                  size={14} 
+                  size={16} 
                   className="text-muted-foreground opacity-0 group-data-[selected=true]:opacity-100 transition-opacity" 
                 />
               </CommandItem>
