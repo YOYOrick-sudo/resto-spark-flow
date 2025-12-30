@@ -163,14 +163,14 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                         type="button"
                         onClick={() => handleExpandableClick(item)}
                         className={cn(
-                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
+                          'group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
                           'border',
                           hasActiveChild
-                            ? 'bg-card border-border text-foreground font-medium hover:bg-muted'
-                            : 'border-transparent text-muted-foreground font-normal hover:bg-card/60 hover:text-foreground'
+                            ? 'bg-card border-border text-foreground font-medium'
+                            : 'border-transparent text-muted-foreground font-normal hover:text-primary'
                         )}
                       >
-                        <Icon size={18} className={cn("flex-shrink-0", hasActiveChild && "text-[#1d979e]")} />
+                        <Icon size={18} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-primary")} />
                         <span className="flex-1 text-left">{item.label}</span>
                         <ChevronDown 
                           size={16} 
@@ -251,14 +251,14 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     if (item.path) handleNavigation(item.path);
                   }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
+                    'group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
                     'border border-transparent',
                     isActive
-                      ? 'bg-card border-border text-foreground font-medium hover:bg-muted'
-                      : 'text-muted-foreground font-normal hover:bg-card/60 hover:text-foreground'
+                      ? 'bg-card border-border text-foreground font-medium'
+                      : 'text-muted-foreground font-normal hover:text-primary'
                   )}
                 >
-                  <Icon size={18} className={cn("flex-shrink-0", isActive && "text-[#1d979e]")} />
+                  <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-primary")} />
                   <span>{item.label}</span>
                 </button>
               </li>
