@@ -172,7 +172,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                           size={16} 
                           className={cn(
                             'text-muted-foreground transition-transform duration-200',
-                            isExpanded && 'rotate-180'
+                            isOpen && 'rotate-180'
                           )} 
                         />
                       </button>
