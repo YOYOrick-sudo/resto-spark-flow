@@ -1,26 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Bell, Grid, HelpCircle, Sun, Moon, Monitor } from 'lucide-react';
+import { ChevronRight, ChevronDown, Zap, PanelLeft, Sun, Moon, Monitor, HelpCircle, BookOpen } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath } from '@/lib/navigation';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 interface NestoSidebarProps {
   onNavigate?: () => void;
+  unreadNotifications?: number;
 }
 
-export function NestoSidebar({ onNavigate }: NestoSidebarProps) {
+export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['kitchen']);
+  const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const activeItemId = getActiveItemFromPath(location.pathname);
 
   // Auto-expand group based on current route
@@ -44,41 +40,52 @@ export function NestoSidebar({ onNavigate }: NestoSidebarProps) {
     onNavigate?.();
   };
 
-  const themeOptions = [
-    { value: 'light', label: 'Licht', icon: Sun },
-    { value: 'dark', label: 'Donker', icon: Moon },
-    { value: 'system', label: 'Systeem', icon: Monitor },
-  ] as const;
-
-  const currentTheme = themeOptions.find((opt) => opt.value === theme) || themeOptions[0];
-
   return (
     <div className="h-full w-60 flex flex-col bg-card border-r border-border">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           {/* Logo - text fallback until PNG is uploaded */}
-          <span className="text-2xl font-semibold text-primary">nesto</span>
+          <span 
+            className="text-2xl font-semibold text-primary"
+            style={{ height: '40px', display: 'flex', alignItems: 'center' }}
+          >
+            nesto
+          </span>
           
-          {/* Quick action buttons */}
+          {/* Quick action buttons - Zap + PanelLeft (Figma spec) */}
           <div className="flex items-center gap-1">
+            {/* Zap button - Notifications */}
             <button
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              className={cn(
+                'w-8 h-8 flex items-center justify-center rounded-md transition-colors relative',
+                hoveredButton === 'zap' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'text-muted-foreground'
+              )}
+              onMouseEnter={() => setHoveredButton('zap')}
+              onMouseLeave={() => setHoveredButton(null)}
               aria-label="Notificaties"
             >
-              <Bell size={18} />
+              <Zap size={18} />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
+              )}
             </button>
+            
+            {/* PanelLeft button - Panel toggle */}
             <button
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-              aria-label="Apps"
+              className={cn(
+                'w-8 h-8 flex items-center justify-center rounded-md transition-colors',
+                hoveredButton === 'panel' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'text-muted-foreground'
+              )}
+              onMouseEnter={() => setHoveredButton('panel')}
+              onMouseLeave={() => setHoveredButton(null)}
+              aria-label="Panel"
             >
-              <Grid size={18} />
-            </button>
-            <button
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-              aria-label="Help"
-            >
-              <HelpCircle size={18} />
+              <PanelLeft size={18} />
             </button>
           </div>
         </div>
@@ -102,8 +109,8 @@ export function NestoSidebar({ onNavigate }: NestoSidebarProps) {
                     className={cn(
                       'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                       hasActiveChild
-                        ? 'text-primary bg-[hsl(var(--selected-background))]'
-                        : 'text-foreground hover:bg-accent'
+                        ? 'text-[#1d979e]'
+                        : 'text-foreground hover:bg-[hsl(var(--border-subtle))]'
                     )}
                   >
                     <Icon size={18} className="flex-shrink-0" />
@@ -126,7 +133,7 @@ export function NestoSidebar({ onNavigate }: NestoSidebarProps) {
                             <li key={subItem.id}>
                               <div className="flex items-center gap-3 pl-[42px] pr-3 py-2 text-sm text-muted-foreground cursor-not-allowed">
                                 <span>{subItem.label}</span>
-                                <span className="ml-auto text-[10px] font-semibold text-pending bg-pending/10 px-1.5 py-0.5 rounded">
+                                <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
                                   Soon
                                 </span>
                               </div>
@@ -141,8 +148,8 @@ export function NestoSidebar({ onNavigate }: NestoSidebarProps) {
                               className={cn(
                                 'w-full flex items-center pl-[42px] pr-3 py-2 text-sm transition-colors rounded-lg',
                                 isSubActive
-                                  ? 'text-primary font-medium bg-[hsl(var(--selected-background))] border-l-[3px] border-primary ml-0 pl-[39px]'
-                                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                                  ? 'bg-background border border-border text-[#1d979e] font-medium'
+                                  : 'text-muted-foreground hover:bg-[hsl(var(--border-subtle))]'
                               )}
                             >
                               {subItem.label}
@@ -163,7 +170,7 @@ export function NestoSidebar({ onNavigate }: NestoSidebarProps) {
                   <div className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground cursor-not-allowed">
                     <Icon size={18} className="flex-shrink-0" />
                     <span>{item.label}</span>
-                    <span className="ml-auto text-[10px] font-semibold text-pending bg-pending/10 px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
                       Soon
                     </span>
                   </div>
@@ -179,8 +186,8 @@ export function NestoSidebar({ onNavigate }: NestoSidebarProps) {
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                     isActive
-                      ? 'text-primary bg-[hsl(var(--selected-background))] border-l-[3px] border-primary pl-[9px]'
-                      : 'text-foreground hover:bg-accent'
+                      ? 'bg-background border border-border text-[#1d979e]'
+                      : 'text-foreground hover:bg-[hsl(var(--border-subtle))]'
                   )}
                 >
                   <Icon size={18} className="flex-shrink-0" />
@@ -192,32 +199,48 @@ export function NestoSidebar({ onNavigate }: NestoSidebarProps) {
         </ul>
       </nav>
 
-      {/* Footer - Theme Toggle */}
-      <div className="p-3 border-t border-border">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
-              <currentTheme.icon size={18} />
-              <span>{currentTheme.label}</span>
-              <ChevronDown size={16} className="ml-auto" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[200px]">
-            {themeOptions.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onClick={() => setTheme(option.value)}
-                className={cn(
-                  'flex items-center gap-2',
-                  theme === option.value && 'bg-accent'
-                )}
-              >
-                <option.icon size={16} />
-                <span>{option.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Support & Documentation Section */}
+      <div className="px-3 py-3 border-t border-border">
+        <div className="space-y-0.5">
+          {/* Support Item - disabled */}
+          <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground cursor-not-allowed">
+            <HelpCircle size={18} className="flex-shrink-0" />
+            <span>Support</span>
+            <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
+              Soon
+            </span>
+          </div>
+          
+          {/* Documentatie Item - disabled */}
+          <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground cursor-not-allowed">
+            <BookOpen size={18} className="flex-shrink-0" />
+            <span>Documentatie</span>
+            <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
+              Soon
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer - Theme Indicator (NOT clickable) */}
+      <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 flex items-center justify-center rounded bg-muted">
+            {theme === 'light' && <Sun size={14} />}
+            {theme === 'dark' && <Moon size={14} />}
+            {theme === 'system' && <Monitor size={14} />}
+          </div>
+          <span className="text-[13px] text-muted-foreground">
+            {theme === 'light' ? 'Licht' : theme === 'dark' ? 'Donker' : 'Systeem'}
+          </span>
+        </div>
+        
+        {/* Show effective theme when system */}
+        {theme === 'system' && (
+          <span className="text-sm">
+            {resolvedTheme === 'dark' ? '🌙' : '☀️'}
+          </span>
+        )}
       </div>
     </div>
   );

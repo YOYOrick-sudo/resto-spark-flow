@@ -75,7 +75,6 @@ export const menuItems: MenuItem[] = [
       { id: 'kitchen-halffabricaten', label: 'Halffabricaten', path: '/halffabricaten' },
       { id: 'kitchen-recipes', label: 'Recepten', path: '/recepten' },
       { id: 'kitchen-voorraad', label: 'Ingrediënten', path: '/voorraad' },
-      { id: 'kitchen-inventory', label: 'Voorraad', disabled: true },
       { id: 'kitchen-kostprijzen', label: 'Kostprijzen', path: '/kostprijzen' },
       { id: 'kitchen-orders', label: 'Interne Bestellingen', path: '/inkoop' },
     ],
