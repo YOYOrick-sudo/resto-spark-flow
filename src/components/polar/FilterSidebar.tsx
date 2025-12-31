@@ -33,13 +33,13 @@ export function FilterSidebar({
   return (
     <div
       className={cn(
-        "bg-card border border-border rounded-2xl p-5 space-y-5",
+        "bg-secondary border border-border rounded-2xl p-5 space-y-5",
         className
       )}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
         {hasActiveFilters && onClear && (
           <button
             onClick={onClear}
