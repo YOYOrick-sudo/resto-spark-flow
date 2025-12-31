@@ -1,40 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Zap, PanelLeft, Sun, Moon, Monitor, HelpCircle, BookOpen, Search, X } from 'lucide-react';
+import { ChevronDown, Zap, PanelLeft, Sun, Moon, Monitor, HelpCircle, BookOpen } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
-import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem, SubMenuItem } from '@/lib/navigation';
+import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import { CommandPalette } from '@/components/CommandPalette';
 
 interface NestoSidebarProps {
   onNavigate?: () => void;
   unreadNotifications?: number;
-}
-
-// Filter menu items based on search query
-function filterMenuItems(items: MenuItem[], query: string): MenuItem[] {
-  if (!query.trim()) return items;
-  
-  const lowerQuery = query.toLowerCase();
-  
-  return items.reduce<MenuItem[]>((acc, item) => {
-    const topMatch = item.label.toLowerCase().includes(lowerQuery);
-    
-    const matchingSubItems = item.subItems?.filter(
-      (sub) => sub.label.toLowerCase().includes(lowerQuery)
-    );
-    
-    if (topMatch) {
-      // Parent match: include with all subitems
-      acc.push(item);
-    } else if (matchingSubItems && matchingSubItems.length > 0) {
-      // Subitem match only: include parent with only matching subitems
-      acc.push({ ...item, subItems: matchingSubItems });
-    }
-    
-    return acc;
-  }, []);
 }
 
 export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSidebarProps) {
@@ -42,29 +16,13 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   const navigate = useNavigate();
   const { theme, resolvedTheme } = useTheme();
   
-  // Sidebar search query state
-  const [sidebarQuery, setSidebarQuery] = useState('');
-  
   // Initialize with correct group already expanded (no useEffect flash)
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
     const group = getExpandedGroupFromPath(location.pathname);
     return group ? [group] : [];
   });
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
-  const [commandOpen, setCommandOpen] = useState(false);
   const activeItemId = getActiveItemFromPath(location.pathname);
-
-  // Global keyboard shortcut for command palette (Cmd+K / Ctrl+K)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setCommandOpen(true);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Sync expanded groups with current route - collapse others when navigating away
   useEffect(() => {
@@ -111,10 +69,6 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       onNavigate?.();
     }
   }, [location.pathname, navigate, onNavigate]);
-
-  // Filter items based on search query
-  const isSearchActive = sidebarQuery.trim().length > 0;
-  const filteredItems = filterMenuItems(menuItems, sidebarQuery);
 
   return (
     <div className="h-full w-60 flex flex-col bg-secondary border-r border-border">
@@ -174,60 +128,11 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
         </div>
       </div>
 
-      {/* Sidebar Search Input */}
-      <div className="px-3 py-2">
-        <div className="relative">
-          <Search 
-            size={16} 
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" 
-          />
-          <input
-            type="text"
-            value={sidebarQuery}
-            onChange={(e) => setSidebarQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Escape' && setSidebarQuery('')}
-            placeholder="Filter menu..."
-            className="w-full pl-9 pr-8 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-0"
-          />
-          {sidebarQuery && (
-            <button
-              type="button"
-              onClick={() => setSidebarQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear search"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Command Palette Trigger */}
-      <div className="px-3 pb-2">
-        <button
-          type="button"
-          onClick={() => setCommandOpen(true)}
-          className="w-full flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg text-muted-foreground text-sm hover:text-foreground transition-colors"
-        >
-          <Search size={16} />
-          <span className="flex-1 text-left">Search...</span>
-          <kbd className="text-[11px] px-1.5 py-0.5 rounded bg-muted border border-border font-medium">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2">
-        {/* No results message */}
-        {isSearchActive && filteredItems.length === 0 && (
-          <p className="px-5 py-2 text-xs text-muted-foreground">
-            Geen resultaten
-          </p>
-        )}
-        
         <ul className="space-y-0.5 px-2">
-          {filteredItems.map((item) => {
+          {menuItems.map((item) => {
             const Icon = item.icon;
             const isExpanded = expandedGroups.includes(item.id);
             const isActive = activeItemId === item.id;
@@ -235,22 +140,18 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
 
             // Expandable group
             if (item.expandable && item.subItems) {
-              // Force open during search, otherwise use normal expand logic
-              const isOpen = isSearchActive ? true : (isExpanded || hasActiveChild);
+              const isOpen = isExpanded || hasActiveChild;
               
               return (
                 <li key={item.id}>
                   <Collapsible.Root
                     open={isOpen}
                     onOpenChange={(nextOpen) => {
-                      // Only update expandedGroups when not in search mode
-                      if (!isSearchActive) {
-                        setExpandedGroups((prev) =>
-                          nextOpen
-                            ? prev.includes(item.id) ? prev : [...prev, item.id]
-                            : prev.filter((id) => id !== item.id)
-                        );
-                      }
+                      setExpandedGroups((prev) =>
+                        nextOpen
+                          ? prev.includes(item.id) ? prev : [...prev, item.id]
+                          : prev.filter((id) => id !== item.id)
+                      );
                     }}
                   >
                     <Collapsible.Trigger asChild>
@@ -406,8 +307,6 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
         )}
       </div>
 
-      {/* Command Palette */}
-      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
     </div>
   );
 }
