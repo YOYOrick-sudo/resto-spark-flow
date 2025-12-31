@@ -26,9 +26,9 @@ export default function Reserveringen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<ReservationFiltersState>({
-    status: "",
-    shift: "",
-    ticketType: "",
+    status: "all",
+    shift: "all",
+    ticketType: "all",
   });
 
   // Get formatted date for filtering
@@ -56,17 +56,17 @@ export default function Reserveringen() {
     }
 
     // Apply status filter
-    if (filters.status) {
+    if (filters.status && filters.status !== "all") {
       result = result.filter((r) => r.status === filters.status);
     }
 
     // Apply shift filter
-    if (filters.shift) {
+    if (filters.shift && filters.shift !== "all") {
       result = result.filter((r) => r.shift === filters.shift);
     }
 
     // Apply ticket type filter
-    if (filters.ticketType) {
+    if (filters.ticketType && filters.ticketType !== "all") {
       result = result.filter((r) => r.ticketType === filters.ticketType);
     }
 
