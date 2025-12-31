@@ -34,13 +34,13 @@ export function SearchBar({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        className={cn(
-          "w-full h-11 pl-11 pr-10 rounded-xl",
-          "bg-background border border-border",
-          "text-sm text-foreground placeholder:text-muted-foreground",
-          "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-          "transition-all duration-200"
-        )}
+      className={cn(
+        "w-full h-11 pl-11 pr-10 rounded-xl",
+        "bg-background border border-border",
+        "text-sm text-foreground placeholder:text-muted-foreground",
+        "focus:outline-none focus:ring-0 focus:!border-primary",
+        "transition-all duration-200"
+      )}
       />
       {value && (
         <button
