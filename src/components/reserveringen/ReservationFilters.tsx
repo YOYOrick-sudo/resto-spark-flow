@@ -17,7 +17,7 @@ interface ReservationFiltersProps {
 }
 
 const statusOptions: SelectOption[] = [
-  { value: "", label: "Alle statussen" },
+  { value: "all", label: "Alle statussen" },
   { value: "pending", label: "Pending" },
   { value: "confirmed", label: "Confirmed" },
   { value: "checked_in", label: "Checked in" },
@@ -28,13 +28,13 @@ const statusOptions: SelectOption[] = [
 ];
 
 const shiftOptions: SelectOption[] = [
-  { value: "", label: "Alle shifts" },
+  { value: "all", label: "Alle shifts" },
   { value: "ED", label: "Early Dinner (ED)" },
   { value: "LD", label: "Late Dinner (LD)" },
 ];
 
 const ticketTypeOptions: SelectOption[] = [
-  { value: "", label: "Alle types" },
+  { value: "all", label: "Alle types" },
   { value: "Regular", label: "Regular" },
   { value: "Chef's Table Experience", label: "Chef's Table Experience" },
   { value: "Celebration Package", label: "Celebration Package" },
@@ -57,7 +57,7 @@ export function ReservationFilters({
     });
   };
 
-  const hasActiveFilters = filters.status || filters.shift || filters.ticketType;
+  const hasActiveFilters = filters.status !== "all" || filters.shift !== "all" || filters.ticketType !== "all";
 
   return (
     <div className={cn("flex items-center gap-4 flex-wrap", className)}>
