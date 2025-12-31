@@ -39,11 +39,14 @@ export function FilterSidebar({
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
-        {hasActiveFilters && onClear && (
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {onClear && (
           <button
             onClick={onClear}
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className={cn(
+              "inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors",
+              !hasActiveFilters && "invisible"
+            )}
           >
             <X className="h-3.5 w-3.5" />
             <span>Wissen</span>
