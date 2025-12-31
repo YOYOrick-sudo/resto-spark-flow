@@ -66,7 +66,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
             id={id}
             className={cn(
               "h-10 w-full rounded-button border-[1.5px] border-border bg-card px-3 py-2.5 text-[15px]",
-              "focus:border-ring focus:ring-0 focus:ring-offset-0",
+              "focus:!border-primary focus:ring-0 focus:ring-offset-0",
               "data-[placeholder]:text-muted-foreground",
               error && "border-destructive focus:border-destructive",
               className
