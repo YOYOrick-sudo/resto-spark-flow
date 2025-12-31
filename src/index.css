@@ -4,171 +4,258 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========================================
-   Nesto Design System - Polar UI
-   All colors MUST be HSL for Tailwind compatibility
-   ======================================== */
+/* Import Polar UI Base System */
+@import './styles/polar-ui.css';
 
-@layer base {
-  :root {
-    /* Brand Colors */
-    --brand-primary: 177 70% 37%;
-    --brand-primary-light: 180 71% 94%;
-    
-    /* Text Colors */
-    --text-primary: 240 11% 10%;
-    --text-secondary: 220 3% 47%;
-    --text-tertiary: 220 4% 68%;
-    
-    /* Surface Colors */
-    --surface-default: 0 0% 100%;
-    --surface-subtle: 210 11% 96%;
-    
-    /* Border Colors */
-    --border-subtle: 180 4% 93%;
-    
-    /* Border Width Hierarchy */
-    --border-width-thin: 1px;
-    --border-width-standard: 1.5px;
-    --border-width-emphasis: 2px;
-    
-    /* Selected State System */
-    --selected-border: 177 70% 37% / 0.5;
-    --selected-background: 175 43% 97%;
-    --selected-color: 177 70% 37%;
-    
-    /* Focus State System */
-    --focus-border: 177 70% 37% / 0.7;
-    
-    /* Hover State System */
-    --hover-on-subtle: 0 0% 100%;
-    --hover-on-default: 210 11% 96%;
+@custom-variant dark (&:is(.dark *));
 
-    /* Typography */
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    
-    /* Text / H1 - Page Heading */
-    --text-h1-size: 28px;
-    --text-h1-line-height: 36px;
-    --text-h1-weight: 600;
-    
-    /* Text / H2 - Section Heading */
-    --text-h2-size: 20px;
-    --text-h2-line-height: 28px;
-    --text-h2-weight: 600;
-    
-    /* Text / Body */
-    --text-body-size: 15px;
-    --text-body-line-height: 22px;
-    --text-body-weight: 400;
-    
-    /* Text / Secondary */
-    --text-secondary-size: 14px;
-    --text-secondary-line-height: 20px;
-    --text-secondary-weight: 400;
-    
-    /* Text / Small */
-    --text-small-size: 13px;
-    --text-small-line-height: 18px;
-    --text-small-weight: 400;
+/* Responsive Design Variants */
+@custom-variant mobile (max-width: 767px);
+@custom-variant tablet (min-width: 768px) and (max-width: 1199px);
+@custom-variant desktop (min-width: 1200px);
+@custom-variant landscape (orientation: landscape);
+@custom-variant portrait (orientation: portrait);
 
-    /* Status Colors */
-    --success: 160 84% 39%;
-    --success-light: 141 76% 97%;
-    --pending: 36 100% 50%;
-    --pending-light: 36 100% 97%;
-    --warning: 0 74% 60%;
-    --warning-light: 0 86% 97%;
-    --error: 0 74% 60%;
-    --error-light: 0 86% 97%;
+:root {
+  /* ========================================
+     nesto Design System
+     Colors & Typography exactly as specified
+     ======================================== */
+  
+  /* Brand Colors */
+  --brand-primary: #1d979e;
+  --brand-primary-light: #E7F9FA;
+  
+  /* Text Colors */
+  --text-primary: #17171C;
+  --text-secondary: #36373A;
+  
+  /* Surface Colors */
+  --surface-default: #FFFFFF;
+  --surface-subtle: #F4F5F6;
+  
+  /* Border Colors */
+  --border-subtle: #ECEDED;
+  
+  /* ========================================
+     nesto Border Width Hierarchy
+     1px = search inputs (standaard)
+     1.5px = interactive elements, focus states
+     2px = belangrijke status indicators
+     ======================================== */
+  --border-width-thin: 1px;
+  --border-width-standard: 1.5px;
+  --border-width-emphasis: 2px;
+  
+  /* ========================================
+     nesto Selected State System
+     Consistent kleuren voor geselecteerde items
+     ======================================== */
+  --selected-border: rgba(29, 151, 158, 0.5);
+  --selected-background: #F0FAFA;
+  --selected-color: #1d979e;
+  
+  /* ========================================
+     nesto Focus State System
+     Zachte blauwe focus states voor inputs
+     ======================================== */
+  --focus-border: rgba(29, 151, 158, 0.7);
+  
+  /* ========================================
+     nesto Hover State System
+     Standaard hover backgrounds
+     ======================================== */
+  --hover-on-subtle: var(--surface-default);  /* Hover op #F4F5F6 → #FFFFFF */
+  --hover-on-default: var(--surface-subtle);  /* Hover op #FFFFFF → #F4F5F6 */
 
-    /* Tailwind/ShadCN Compatibility */
-    --background: 210 11% 96%;
-    --foreground: 240 11% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 11% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 11% 10%;
-    --primary: 177 70% 37%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 11% 96%;
-    --secondary-foreground: 240 11% 10%;
-    --muted: 210 11% 96%;
-    --muted-foreground: 220 3% 47%;
-    --accent: 210 11% 96%;
-    --accent-foreground: 240 11% 10%;
-    --destructive: 0 74% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 180 4% 93%;
-    --input: 180 4% 93%;
-    --ring: 177 70% 37%;
-    --radius: 0.5rem;
+  /* Typography Scale (Inter Only) */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  
+  /* Text / H1 */
+  --text-h1-size: 24px;
+  --text-h1-line-height: 32px;
+  --text-h1-weight: 600;
+  
+  /* Text / Body */
+  --text-body-size: 16px;
+  --text-body-line-height: 24px;
+  --text-body-weight: 400;
+  
+  /* Text / Secondary */
+  --text-secondary-size: 15px;
+  --text-secondary-line-height: 22px;
+  --text-secondary-weight: 400;
+  
+  /* Text / Small */
+  --text-small-size: 13px;
+  --text-small-line-height: 18px;
+  --text-small-weight: 400;
+  
+  /* ========================================
+     Extended Palette (for functionality)
+     ======================================== */
+  
+  /* Status Colors */
+  --success: #10b981;
+  --success-light: #f0fdf4;
+  --pending: #FF9800;
+  --pending-light: #FFF8F0;
+  --warning: #E64D4D;
+  --warning-light: #FEF5F5;
+  --error: #E64D4D;
+  --error-light: #FEF5F5;
+  
+  /* ========================================
+     Tailwind/ShadCN Compatibility
+     ======================================== */
+  
+  --background: #F4F5F6;
+  --foreground: #17171C;
+  --card: #FFFFFF;
+  --card-foreground: #17171C;
+  --popover: #FFFFFF;
+  --popover-foreground: #17171C;
+  --primary: #1d979e;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F4F5F6;
+  --secondary-foreground: #17171C;
+  --muted: #F4F5F6;
+  --muted-foreground: #36373A;
+  --accent: #F4F5F6;
+  --accent-foreground: #17171C;
+  --destructive: #E64D4D;
+  --destructive-foreground: #FFFFFF;
+  --border: #ECEDED;
+  --input: #ECEDED;
+  --ring: #1d979e;
+  --radius: 8px;
+  
+  /* Chart Colors */
+  --chart-1: #1d979e;
+  --chart-2: #36373A;
+  --chart-3: #10b981;
+  --chart-4: #FF9800;
+  --chart-5: #E64D4D;
+  
+  /* Sidebar */
+  --sidebar-background: #FFFFFF;
+  --sidebar-foreground: #17171C;
+  --sidebar-primary: #1d979e;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F4F5F6;
+  --sidebar-accent-foreground: #17171C;
+  --sidebar-border: #ECEDED;
+  --sidebar-ring: #1d979e;
+}
 
-    /* Chart Colors */
-    --chart-1: 177 70% 37%;
-    --chart-2: 220 3% 22%;
-    --chart-3: 160 84% 39%;
-    --chart-4: 36 100% 50%;
-    --chart-5: 0 74% 60%;
+.dark {
+  --background: #17171C;
+  --foreground: #FFFFFF;
+  --card: #23242A;
+  --card-foreground: #FFFFFF;
+  --popover: #23242A;
+  --popover-foreground: #FFFFFF;
+  --primary: #1d979e;
+  --primary-foreground: #FFFFFF;
+  --secondary: #2F3037;
+  --secondary-foreground: #FFFFFF;
+  --muted: #2F3037;
+  --muted-foreground: #9CA3AF;
+  --accent: #2F3037;
+  --accent-foreground: #FFFFFF;
+  --destructive: #E64D4D;
+  --destructive-foreground: #FFFFFF;
+  --border: #2F3037;
+  --input: #2F3037;
+  --ring: #1d979e;
+  
+  --text-primary: #FFFFFF;
+  --text-secondary: #9CA3AF;
+  --surface-default: #23242A;
+  --surface-subtle: #1A1B1F;
+  --border-subtle: #2F3037;
+  
+  /* Dark mode selected states */
+  --selected-background: rgba(29, 151, 158, 0.15);
+  
+  --sidebar-background: #23242A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #1d979e;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2F3037;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2F3037;
+  --sidebar-ring: #1d979e;
+}
 
-    /* Sidebar */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 11% 10%;
-    --sidebar-primary: 177 70% 37%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 11% 96%;
-    --sidebar-accent-foreground: 240 11% 10%;
-    --sidebar-border: 180 4% 93%;
-    --sidebar-ring: 177 70% 37%;
-  }
-
-  .dark {
-    /* Text Colors */
-    --text-primary: 0 0% 100%;
-    --text-secondary: 220 9% 64%;
-    --text-tertiary: 220 6% 50%;
-    
-    /* Surface Colors */
-    --surface-default: 225 7% 15%;
-    --surface-subtle: 228 8% 11%;
-    
-    /* Border Colors */
-    --border-subtle: 230 6% 20%;
-    
-    /* Selected State - Dark */
-    --selected-background: 177 70% 37% / 0.15;
-
-    /* Tailwind/ShadCN Dark Mode */
-    --background: 240 11% 10%;
-    --foreground: 0 0% 100%;
-    --card: 225 7% 15%;
-    --card-foreground: 0 0% 100%;
-    --popover: 225 7% 15%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 177 70% 37%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 230 6% 20%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 230 6% 20%;
-    --muted-foreground: 220 9% 64%;
-    --accent: 230 6% 20%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 74% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 230 6% 20%;
-    --input: 230 6% 20%;
-    --ring: 177 70% 37%;
-
-    /* Sidebar Dark */
-    --sidebar-background: 225 7% 15%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 177 70% 37%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 230 6% 20%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 230 6% 20%;
-    --sidebar-ring: 177 70% 37%;
-  }
+@theme inline {
+  /* Brand */
+  --color-brand-primary: var(--brand-primary);
+  
+  /* Text */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  
+  /* Surface */
+  --color-surface-default: var(--surface-default);
+  --color-surface-subtle: var(--surface-subtle);
+  
+  /* Border */
+  --color-border-subtle: var(--border-subtle);
+  
+  /* Tailwind Compatibility */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  /* Status Colors */
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-pending: var(--pending);
+  --color-pending-light: var(--pending-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 16px;
+  --radius-card: 16px;
+  --radius-button: 16px;
+  
+  /* Sidebar */
+  --color-sidebar: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
@@ -185,30 +272,134 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    
+    /* Polar-style: light background for content area */
+    background-color: var(--surface-subtle);
+    
+    /* PWA optimizations */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
+  /* PWA specific styles */
+  @media (display-mode: standalone) {
+    body {
+      overflow: hidden;
+    }
+    
+    .pwa-safe-top {
+      padding-top: env(safe-area-inset-top);
+    }
+    
+    .pwa-safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+
+  /* iOS specific PWA styles */
+  @supports (-webkit-touch-callout: none) {
+    .ios-bounce-fix {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+  }
+
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* Better touch targets for mobile */
+  @media (max-width: 767px) {
+    button, 
+    [role="button"], 
+    input[type="button"], 
+    input[type="submit"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Polar-style: Subtle, minimal transitions */
+  * {
+    transition-property: background-color, border-color, color, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+  
+  /* Remove transitions from transforms and shadows for Polar minimalism */
+  *:not(:hover) {
+    box-shadow: none;
+  }
+}
+
+/**
+ * nesto Typography System
+ * Using exact specifications from design tokens
+ */
+@layer base {
   h1 {
     font-size: var(--text-h1-size);
     line-height: var(--text-h1-line-height);
     font-weight: var(--text-h1-weight);
-    @apply text-foreground;
+    color: var(--text-primary);
   }
 
   h2 {
-    font-size: var(--text-h2-size);
-    line-height: var(--text-h2-line-height);
-    font-weight: var(--text-h2-weight);
-    @apply text-foreground;
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
   }
 
   h3 {
     font-size: 18px;
     line-height: 26px;
     font-weight: 600;
-    @apply text-foreground;
+    color: var(--text-primary);
   }
 
-  /* Input Focus System */
+  p {
+    font-size: var(--text-body-size);
+    line-height: var(--text-body-line-height);
+    font-weight: var(--text-body-weight);
+    color: var(--text-primary);
+  }
+
+  label {
+    font-size: var(--text-secondary-size);
+    line-height: var(--text-secondary-line-height);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  button {
+    font-size: var(--text-secondary-size);
+    line-height: var(--text-secondary-line-height);
+    font-weight: 500;
+  }
+
+  input, textarea {
+    font-size: var(--text-body-size);
+    line-height: var(--text-body-line-height);
+    font-weight: var(--text-body-weight);
+  }
+
+  /* ========================================
+     nesto Input Focus System
+     Consistent 1.5px borders with soft blue focus
+     ======================================== */
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -220,15 +411,23 @@
   input[type="time"],
   textarea,
   select {
-    border: 1.5px solid hsl(var(--border));
+    border: 1.5px solid var(--border-subtle);
     outline: none;
     transition: border-color 0.15s ease;
   }
 
-  input:focus,
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  input[type="search"]:focus,
+  input[type="tel"]:focus,
+  input[type="url"]:focus,
+  input[type="date"]:focus,
+  input[type="time"]:focus,
   textarea:focus,
   select:focus {
-    border-color: hsl(var(--ring));
+    border-color: var(--focus-border);
   }
 }
 
@@ -240,16 +439,16 @@
     font-weight: var(--text-h1-weight);
   }
   
-  .text-h2 {
-    font-size: var(--text-h2-size);
-    line-height: var(--text-h2-line-height);
-    font-weight: var(--text-h2-weight);
-  }
-  
   .text-body {
     font-size: var(--text-body-size);
     line-height: var(--text-body-line-height);
     font-weight: var(--text-body-weight);
+  }
+  
+  .text-secondary {
+    font-size: var(--text-secondary-size);
+    line-height: var(--text-secondary-line-height);
+    font-weight: var(--text-secondary-weight);
   }
   
   .text-small {
@@ -257,59 +456,309 @@
     line-height: var(--text-small-line-height);
     font-weight: var(--text-small-weight);
   }
+}
 
-  .text-label {
-    font-size: 13px;
+/* ========================================
+   nesto Component Baselines - Polar Style
+   Ultra-minimal, subtle but defined borders
+   ======================================== */
+@layer components {
+  /* Sidebar / Container - Polar: Pure white, minimal */
+  .nesto-sidebar-container {
+    padding: 24px 0;
+    background-color: var(--surface-default);
+    color: var(--text-secondary);
+    border-right: 1.5px solid var(--border-subtle);
+  }
+  
+  /* Card / Base - Polar: Defined border with subtle inset */
+  .nesto-card-base {
+    border-radius: 16px;
+    background-color: var(--surface-default);
+    border: 1.5px solid var(--border-subtle);
+    padding: 32px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  
+  /* Polar Card - Extra padding variant */
+  .polar-card-large {
+    border-radius: 16px;
+    background-color: var(--surface-default);
+    border: 1.5px solid var(--border-subtle);
+    padding: 48px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+  }
+  
+  /* Button / Primary - Polar: Minimal, no heavy effects */
+  .nesto-button-primary {
+    border-radius: 16px;
+    background-color: var(--brand-primary);
+    color: #FFFFFF;
+    padding: 12px 20px;
+    font-size: var(--text-secondary-size);
+    line-height: var(--text-secondary-line-height);
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+  }
+  
+  /* State: Hover - Subtle */
+  .nesto-button-primary:hover:not(:disabled) {
+    background-color: #156A6F;
+  }
+  
+  /* State: Active - Subtle */
+  .nesto-button-primary:active:not(:disabled) {
+    background-color: #125A5E;
+  }
+  
+  /* State: Disabled */
+  .nesto-button-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  /* Polar-specific utilities */
+  .polar-mega-metric {
+    font-size: 80px;
+    line-height: 1;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: -0.02em;
+  }
+  
+  .polar-large-metric {
+    font-size: 56px;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  
+  /* Polar spacing system */
+  .polar-section-spacing {
+    padding: 48px;
+  }
+  
+  .polar-card-spacing {
+    padding: 32px;
+  }
+  
+  /* Polar Input - with blue focus ring and defined border */
+  .polar-input {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    border: 1.5px solid #ECEDED;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    color: #17171C;
+    outline: none;
+    transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.01);
+  }
+  
+  .polar-input:focus {
+    border-color: #1d979e;
+  }
+  
+  .polar-input:read-only {
+    background-color: #F4F5F6;
+  }
+  
+  /* Polar Buttons - with proper hover states */
+  .polar-button-base {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  /* ========================================
+     nesto HOVER SYSTEM
+     Standaard hover kleuren voor consistentie
+     ======================================== 
+     
+     BELANGRIJKE REGEL:
+     - Hover van items op #F4F5F6 achtergronden MOET naar var(--surface-default) (#FFFFFF)
+     - NOOIT var(--surface-subtle) gebruiken als hover kleur (te weinig contrast)
+     - Dit geldt voor: CategorySidebar, navigatie items, list items, etc.
+     
+     VOORBEELDEN:
+     - CategorySidebar buttons: transparent → var(--surface-default)
+     - Outline buttons op witte achtergrond: transparent → var(--surface-subtle) 
+     - Ghost buttons: transparent → var(--surface-subtle)
+     
+     CSS VARIABELEN:
+     - var(--surface-default) = #FFFFFF (light) / #23242A (dark)
+     - var(--surface-subtle) = #F4F5F6 (light) / #1A1B1F (dark)
+     ======================================== */
+  
+  .polar-button-primary {
+    background-color: #1d979e;
+    color: #FFFFFF;
+  }
+  
+  .polar-button-primary:hover:not(:disabled) {
+    background-color: #2BB4BC;
+  }
+  
+  .polar-button-primary:active:not(:disabled) {
+    background-color: #1d979e;
+  }
+  
+  .polar-button-secondary {
+    background-color: #F4F5F6;
+    color: #17171C;
+  }
+  
+  .polar-button-secondary:hover:not(:disabled) {
+    background-color: #ECEDED;
+  }
+  
+  .polar-button-secondary:active:not(:disabled) {
+    background-color: #E0E1E2;
+  }
+  
+  .polar-button-ghost {
+    background-color: transparent;
+    color: #36373A;
+    border: 1px solid #ECEDED;
+  }
+  
+  .polar-button-ghost:hover:not(:disabled) {
+    background-color: #F4F5F6;
+  }
+  
+  .polar-button-ghost:active:not(:disabled) {
+    background-color: #ECEDED;
+  }
+  
+  .polar-button-link {
+    background-color: transparent;
+    color: #1d979e;
+    padding: 0;
+    min-height: auto;
+  }
+  
+  .polar-button-link:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+  
+  .polar-button-danger {
+    background-color: #E64D4D;
+    color: #FFFFFF;
+  }
+  
+  .polar-button-danger:hover:not(:disabled) {
+    background-color: #D43D3D;
+  }
+  
+  .polar-button-danger:active:not(:disabled) {
+    background-color: #E64D4D;
+  }
+  
+  .polar-button-base:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  /* Polar Skeleton Animations */
+  @keyframes polar-skeleton-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes polar-skeleton-wave {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  
+  /* Slide Down Animation for Collapsible Panels */
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      max-height: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      max-height: 500px;
+      transform: translateY(0);
+    }
   }
 }
 
-/* Component Baselines */
-@layer components {
-  .nesto-card-base {
-    @apply rounded-xl bg-card border border-border p-6;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
-  }
+html {
+  font-family: var(--font-family);
+  background-color: var(--background);
+}
 
-  .nesto-button-primary {
-    @apply rounded-lg bg-primary text-primary-foreground px-5 py-3 font-medium;
-    font-size: var(--text-secondary-size);
-    transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
 
-  .nesto-button-primary:hover {
-    @apply bg-primary/90;
+/* Optimize font rendering */
+@supports (font-variation-settings: normal) {
+  * {
+    font-variation-settings: normal;
   }
+}
 
-  .nesto-button-secondary {
-    @apply rounded-lg bg-card text-primary border border-primary px-5 py-3 font-medium;
-    font-size: var(--text-secondary-size);
-    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
+/* TipTap Editor Styles */
+.ProseMirror {
+  outline: none;
+}
 
-  .nesto-button-secondary:hover {
-    @apply bg-primary/10;
-  }
+.ProseMirror p {
+  margin: 0 0 8px 0;
+}
 
-  .nesto-button-ghost {
-    @apply rounded-lg bg-transparent text-muted-foreground px-5 py-3 font-medium;
-    font-size: var(--text-secondary-size);
-    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
+.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
 
-  .nesto-button-ghost:hover {
-    @apply bg-accent text-accent-foreground;
-  }
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 24px;
+  margin: 8px 0;
+}
 
-  .polar-input {
-    @apply rounded-lg bg-card border border-border px-3 py-2.5;
-    font-size: var(--text-body-size);
-    transition: border-color 0.15s ease;
-  }
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 24px;
+  margin: 8px 0;
+}
 
-  .polar-input:focus {
-    @apply border-ring outline-none;
-  }
+.ProseMirror li {
+  margin: 4px 0;
+}
+
+.ProseMirror strong {
+  font-weight: 600;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
+
+.ProseMirror u {
+  text-decoration: underline;
 }
