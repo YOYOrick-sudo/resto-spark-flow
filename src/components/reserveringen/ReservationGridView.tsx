@@ -20,22 +20,70 @@ interface ReservationGridViewProps {
   config?: GridTimeConfig;
 }
 
+// Constants
+const STICKY_COL_WIDTH = 80;
+
+// Grid lines component - renders vertical lines for hours and quarter hours
+function GridLines({ config }: { config: GridTimeConfig }) {
+  const hours = useMemo(() => {
+    const result = [];
+    for (let h = config.startHour; h <= config.endHour; h++) {
+      result.push(h);
+    }
+    return result;
+  }, [config.startHour, config.endHour]);
+
+  const hourWidth = 60 * config.pixelsPerMinute;
+  const quarterWidth = 15 * config.pixelsPerMinute;
+
+  return (
+    <div 
+      className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none"
+      style={{ left: `${STICKY_COL_WIDTH}px` }}
+    >
+      {hours.map((hour, hourIndex) => (
+        <div key={hour} className="absolute top-0 bottom-0">
+          {/* Hour line - darker */}
+          <div
+            className="absolute top-0 bottom-0 w-px bg-border"
+            style={{ left: `${hourIndex * hourWidth}px` }}
+          />
+          {/* Quarter hour lines - lighter */}
+          {[1, 2, 3].map((q) => (
+            <div
+              key={q}
+              className="absolute top-0 bottom-0 w-px bg-border/30"
+              style={{ left: `${hourIndex * hourWidth + q * quarterWidth}px` }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Timeline header with hour labels
 function TimelineHeader({ config }: { config: GridTimeConfig }) {
   const hourLabels = useMemo(() => getHourLabels(config), [config]);
-  const hourWidth = 60 * config.pixelsPerMinute; // 60 minutes * pixels per minute
+  const hourWidth = 60 * config.pixelsPerMinute;
 
   return (
-    <div className="sticky top-0 z-20 flex border-b border-border bg-muted/80 backdrop-blur-sm">
+    <div className="sticky top-0 z-20 flex border-b-2 border-border bg-card">
       {/* Empty cell for table column */}
-      <div className="sticky left-0 z-30 w-20 flex-shrink-0 bg-muted/80 border-r border-border" />
+      <div 
+        className="sticky left-0 z-30 flex-shrink-0 bg-card border-r-2 border-border h-10"
+        style={{ width: `${STICKY_COL_WIDTH}px` }}
+      />
       
       {/* Hour labels */}
-      <div className="flex">
+      <div className="flex h-10">
         {hourLabels.map((hour, index) => (
           <div
             key={hour}
-            className="text-xs font-medium text-muted-foreground flex items-center justify-start px-1 border-r border-border/30"
+            className={cn(
+              "text-sm font-semibold text-muted-foreground flex items-center pl-2 border-l border-border",
+              index === 0 && "border-l-0"
+            )}
             style={{ width: `${hourWidth}px` }}
           >
             {hour}
@@ -68,16 +116,19 @@ function SeatedCountRow({
   return (
     <div className="flex border-b border-border bg-muted/50">
       {/* Label cell */}
-      <div className="sticky left-0 z-10 w-20 flex-shrink-0 flex items-center justify-between px-2 py-1.5 bg-muted/50 border-r border-border">
-        <span className="text-xs font-medium text-muted-foreground">Seated</span>
+      <div 
+        className="sticky left-0 z-10 flex-shrink-0 flex items-center justify-between px-3 py-2 bg-muted/50 border-r-2 border-border"
+        style={{ width: `${STICKY_COL_WIDTH}px` }}
+      >
+        <span className="text-xs font-semibold text-muted-foreground">Seated</span>
         <button
           onClick={onToggle}
-          className="p-0.5 hover:bg-muted rounded"
+          className="p-0.5 hover:bg-muted rounded transition-colors"
         >
           {isExpanded ? (
-            <ChevronUp className="h-3 w-3 text-muted-foreground" />
+            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           )}
         </button>
       </div>
@@ -87,13 +138,16 @@ function SeatedCountRow({
         {seatedCounts.map((count, index) => (
           <div
             key={index}
-            className="text-xs font-medium text-center flex items-center justify-center border-r border-border/30"
+            className={cn(
+              "text-sm font-semibold flex items-center justify-center py-2 border-l border-border",
+              index === 0 && "border-l-0"
+            )}
             style={{ width: `${hourWidth}px` }}
           >
             <span
               className={cn(
-                "px-1.5 py-0.5 rounded",
-                count > 0 && "bg-primary/10 text-primary",
+                "min-w-6 text-center px-2 py-0.5 rounded-full text-xs",
+                count > 0 && "bg-primary/15 text-primary font-bold",
                 count === 0 && "text-muted-foreground"
               )}
             >
@@ -111,13 +165,16 @@ function ZoneHeader({ name, config }: { name: string; config: GridTimeConfig }) 
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
   
   return (
-    <div className="flex bg-secondary border-b border-border">
-      <div className="sticky left-0 z-10 w-20 flex-shrink-0 bg-secondary" />
+    <div className="flex bg-secondary/80 border-b border-t border-border">
+      <div 
+        className="sticky left-0 z-10 flex-shrink-0 bg-secondary/80 border-r-2 border-border"
+        style={{ width: `${STICKY_COL_WIDTH}px` }}
+      />
       <div
-        className="flex items-center px-3 py-1.5 flex-shrink-0"
+        className="flex items-center px-3 py-2 flex-shrink-0"
         style={{ width: `${gridWidth}px` }}
       >
-        <span className="text-xs font-semibold text-foreground">{name}</span>
+        <span className="text-xs font-bold text-foreground uppercase tracking-wide">{name}</span>
       </div>
     </div>
   );
@@ -152,24 +209,28 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
 
   if (position === null) return null;
 
+  const leftPos = STICKY_COL_WIDTH + position;
+
   return (
     <>
       {/* Subtle highlight band behind the line */}
       <div
-        className="absolute top-0 bottom-0 bg-destructive/5 pointer-events-none z-10"
+        className="absolute top-0 bottom-0 bg-destructive/8 pointer-events-none z-10"
         style={{ 
-          left: `${80 + position - 2}px`,
+          left: `${leftPos - 3}px`,
           width: '6px'
         }}
       />
       {/* Main red line */}
       <div
-        className="absolute top-0 bottom-0 w-0.5 bg-destructive z-30 pointer-events-none"
-        style={{ left: `${80 + position}px` }}
+        className="absolute top-0 bottom-0 w-[2px] bg-destructive z-30 pointer-events-none"
+        style={{ left: `${leftPos}px` }}
       >
-        {/* Sticky NU label at top */}
-        <div className="sticky top-0 -translate-x-1/2 bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-b shadow-sm whitespace-nowrap">
-          NU
+        {/* NU label at top - sticky */}
+        <div className="sticky top-1 -translate-x-1/2 w-fit">
+          <div className="bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded shadow-md whitespace-nowrap">
+            NU
+          </div>
         </div>
       </div>
     </>
@@ -189,6 +250,7 @@ export function ReservationGridView({
   const zones = useMemo(() => getActiveZones(), []);
   
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
+  const totalWidth = STICKY_COL_WIDTH + gridWidth;
 
   // Scroll to current time on mount
   useEffect(() => {
@@ -207,16 +269,19 @@ export function ReservationGridView({
   }, [config]);
 
   return (
-    <div className="relative h-full overflow-hidden">
+    <div className="relative h-full overflow-hidden border border-border rounded-lg bg-card">
       <div
         ref={containerRef}
         className="h-full overflow-auto"
       >
-        {/* Now indicator */}
-        <NowIndicator config={config} />
+        <div className="min-w-max relative" style={{ minWidth: `${totalWidth}px` }}>
+          {/* Grid lines - behind everything */}
+          <GridLines config={config} />
 
-        <div className="min-w-max">
-          {/* Timeline header */}
+          {/* Now indicator - above grid lines, below content */}
+          <NowIndicator config={config} />
+
+          {/* Timeline header - sticky top */}
           <TimelineHeader config={config} />
 
           {/* Seated count row */}

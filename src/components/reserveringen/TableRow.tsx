@@ -4,7 +4,6 @@ import {
   Table,
   Reservation,
   getReservationsForTable,
-  reservationStatusConfig,
   GridTimeConfig,
   defaultGridConfig,
 } from "@/data/reservations";
@@ -18,9 +17,11 @@ interface TableRowProps {
   isOdd?: boolean;
 }
 
+// Constants - must match ReservationGridView
+const STICKY_COL_WIDTH = 80;
+
 // Status dot for table availability
 function TableStatusDot({ reservations }: { reservations: Reservation[] }) {
-  // Determine current status based on reservations
   const now = new Date();
   const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
 
@@ -46,7 +47,7 @@ function TableStatusDot({ reservations }: { reservations: Reservation[] }) {
     }
   }
 
-  return <span className={cn("w-2 h-2 rounded-full", dotColor)} />;
+  return <span className={cn("w-2 h-2 rounded-full flex-shrink-0", dotColor)} />;
 }
 
 export function TableRow({
@@ -67,22 +68,34 @@ export function TableRow({
   return (
     <div
       className={cn(
-        "flex border-b border-border/50",
-        isOdd ? "bg-muted/30" : "bg-background"
+        "flex border-b border-border/50 h-14",
+        isOdd ? "bg-muted/20" : "bg-card"
       )}
     >
       {/* Sticky left column - Table info */}
-      <div className="sticky left-0 z-10 w-20 flex-shrink-0 flex flex-col items-center justify-center py-2 px-2 bg-inherit border-r border-border">
-        <span className="text-sm font-bold text-foreground">{table.number}</span>
-        <span className="text-[10px] text-muted-foreground">
-          {table.minCapacity}-{table.maxCapacity}
-        </span>
+      <div 
+        className={cn(
+          "sticky left-0 z-10 flex-shrink-0 flex items-center gap-2 px-3 border-r-2 border-border",
+          isOdd ? "bg-muted/20" : "bg-card"
+        )}
+        style={{ width: `${STICKY_COL_WIDTH}px` }}
+      >
+        {/* Table number - large and bold */}
+        <div className="flex flex-col items-start min-w-0">
+          <span className="text-base font-bold text-foreground leading-tight">
+            {table.number}
+          </span>
+          <span className="text-[10px] text-muted-foreground leading-tight">
+            {table.minCapacity}-{table.maxCapacity}p
+          </span>
+        </div>
+        {/* Status dot */}
         <TableStatusDot reservations={reservations} />
       </div>
 
       {/* Grid area for reservation blocks */}
       <div
-        className="relative h-10 flex-shrink-0"
+        className="relative flex-shrink-0"
         style={{ width: `${gridWidth}px` }}
       >
         {reservations
