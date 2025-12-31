@@ -85,3 +85,6 @@ export type {
   SpinnerProps,
   PageSkeletonProps,
 } from "./LoadingStates";
+
+// Re-export toast from sonner for easy access
+export { toast } from 'sonner';

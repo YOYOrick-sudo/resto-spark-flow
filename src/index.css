@@ -313,3 +313,63 @@
     @apply border-ring outline-none;
   }
 }
+
+/* ============================================================================
+   TOAST NOTIFICATIONS (Sonner) - Nesto Polar Styling
+   ============================================================================ */
+
+.nesto-toast {
+  @apply bg-card border border-border shadow-lg;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  font-family: var(--font-family) !important;
+}
+
+.nesto-toast-title {
+  @apply text-foreground;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  margin-bottom: 4px !important;
+}
+
+.nesto-toast-description {
+  @apply text-muted-foreground;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+/* Success Toast - Groen */
+.nesto-toast-success {
+  border-left: 3px solid hsl(160 84% 39%) !important;
+}
+
+.nesto-toast-success .nesto-toast-title {
+  color: hsl(160 84% 39%) !important;
+}
+
+/* Error Toast - Rood */
+.nesto-toast-error {
+  border-left: 3px solid hsl(0 74% 60%) !important;
+}
+
+.nesto-toast-error .nesto-toast-title {
+  color: hsl(0 74% 60%) !important;
+}
+
+/* Warning Toast - Oranje */
+.nesto-toast-warning {
+  border-left: 3px solid hsl(36 100% 50%) !important;
+}
+
+.nesto-toast-warning .nesto-toast-title {
+  color: hsl(36 100% 50%) !important;
+}
+
+/* Info Toast - Nesto Primary (Teal) */
+.nesto-toast-info {
+  border-left: 3px solid hsl(var(--primary)) !important;
+}
+
+.nesto-toast-info .nesto-toast-title {
+  color: hsl(var(--primary)) !important;
+}

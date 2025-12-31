@@ -33,7 +33,20 @@ const App = () => (
     <ThemeProvider defaultTheme="system" storageKey="nesto-theme">
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner 
+          position="top-right"
+          toastOptions={{
+            classNames: {
+              toast: 'nesto-toast',
+              title: 'nesto-toast-title',
+              description: 'nesto-toast-description',
+              success: 'nesto-toast-success',
+              error: 'nesto-toast-error',
+              warning: 'nesto-toast-warning',
+              info: 'nesto-toast-info',
+            },
+          }}
+        />
         <BrowserRouter>
           <Routes>
             {/* Layout wrapper - persistent sidebar */}
