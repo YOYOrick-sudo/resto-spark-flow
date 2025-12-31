@@ -32,3 +32,19 @@ export type { CategorySidebarProps, CategoryItem } from "./CategorySidebar";
 
 export { NestoBadge, badgeVariants } from "./NestoBadge";
 export type { NestoBadgeProps } from "./NestoBadge";
+
+// Layout Components (Phase 3)
+export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps } from "./PageHeader";
+
+export { DetailPageLayout } from "./DetailPageLayout";
+export type { DetailPageLayoutProps } from "./DetailPageLayout";
+
+export { StatCard } from "./StatCard";
+export type { StatCardProps } from "./StatCard";
+
+export { FormSection, FormField } from "./FormSection";
+export type { FormSectionProps, FormFieldProps } from "./FormSection";
+
+export { FilterSidebar } from "./FilterSidebar";
+export type { FilterSidebarProps, FilterDefinition } from "./FilterSidebar";
