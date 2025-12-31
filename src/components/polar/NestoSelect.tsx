@@ -55,7 +55,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
         {label && (
           <label
             htmlFor={id}
-            className="mb-2 block text-label text-muted-foreground"
+            className="mb-1.5 block text-xs text-muted-foreground"
           >
             {label}
           </label>
