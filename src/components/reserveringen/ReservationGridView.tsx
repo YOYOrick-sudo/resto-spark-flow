@@ -123,7 +123,7 @@ function ZoneHeader({ name, config }: { name: string; config: GridTimeConfig }) 
   );
 }
 
-// Now indicator line
+// Now indicator line - real-time red vertical line
 function NowIndicator({ config }: { config: GridTimeConfig }) {
   const [position, setPosition] = useState<number | null>(null);
 
@@ -138,7 +138,7 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
 
       if (currentTimeMinutes >= gridStartMinutes && currentTimeMinutes < gridEndMinutes) {
         const offset = (currentTimeMinutes - gridStartMinutes) * config.pixelsPerMinute;
-        setPosition(offset + 80); // +80 for sticky column width
+        setPosition(offset);
       } else {
         setPosition(null);
       }
@@ -153,14 +153,26 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
   if (position === null) return null;
 
   return (
-    <div
-      className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-30 pointer-events-none"
-      style={{ left: `${position}px` }}
-    >
-      <div className="absolute -top-1 -left-3 bg-red-500 text-white text-[9px] font-bold px-1 rounded">
-        NU
+    <>
+      {/* Subtle highlight band behind the line */}
+      <div
+        className="absolute top-0 bottom-0 bg-destructive/5 pointer-events-none z-10"
+        style={{ 
+          left: `${80 + position - 2}px`,
+          width: '6px'
+        }}
+      />
+      {/* Main red line */}
+      <div
+        className="absolute top-0 bottom-0 w-0.5 bg-destructive z-30 pointer-events-none"
+        style={{ left: `${80 + position}px` }}
+      >
+        {/* Sticky NU label at top */}
+        <div className="sticky top-0 -translate-x-1/2 bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-b shadow-sm whitespace-nowrap">
+          NU
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
