@@ -28,29 +28,17 @@ export function CategorySidebar({
   return (
     <aside
       className={cn(
-        "w-60 shrink-0 border-r border-border bg-card",
+        "w-60 shrink-0 bg-secondary border border-border rounded-2xl p-5",
         className
       )}
-      style={{
-        padding: "28px 24px",
-      }}
     >
       {title && (
-        <h4
-          className="mb-4 text-label text-muted-foreground"
-          style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
+        <h4 className="text-sm font-semibold text-foreground mb-4">
           {title}
         </h4>
       )}
       <nav
-        className="flex flex-col"
-        style={{ gap: "4px" }}
+        className="flex flex-col gap-1"
         role="listbox"
         aria-label={title}
       >
