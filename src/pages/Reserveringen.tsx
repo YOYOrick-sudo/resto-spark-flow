@@ -6,6 +6,7 @@ import { SearchBar } from "@/components/polar/SearchBar";
 import { ViewToggle, type ViewType } from "@/components/reserveringen/ViewToggle";
 import { DateNavigator } from "@/components/reserveringen/DateNavigator";
 import { ReservationListView } from "@/components/reserveringen/ReservationListView";
+import { ReservationGridView } from "@/components/reserveringen/ReservationGridView";
 import { ReservationFooter } from "@/components/reserveringen/ReservationFooter";
 import {
   ReservationFilters,
@@ -146,9 +147,11 @@ export default function Reserveringen() {
           )}
 
           {activeView === "grid" && (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              Grid weergave komt in Fase 4b
-            </div>
+            <ReservationGridView
+              selectedDate={selectedDate}
+              reservations={filteredReservations}
+              onReservationClick={handleReservationClick}
+            />
           )}
 
           {activeView === "calendar" && (

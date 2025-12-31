@@ -593,3 +593,98 @@ export function getShiftForTime(time: string): 'ED' | 'LD' {
   const edEnd = 18 * 60 + 30; // 18:30
   return timeMinutes < edEnd ? 'ED' : 'LD';
 }
+
+// --- Grid View Helper Functions ---
+
+export function getTablesByZone(zoneId: string): Table[] {
+  return mockTables
+    .filter(t => t.zoneId === zoneId && t.isActive)
+    .sort((a, b) => a.number - b.number);
+}
+
+export function getActiveZones(): Zone[] {
+  return mockZones
+    .filter(z => z.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function getReservationsForTable(date: string, tableId: string): Reservation[] {
+  return mockReservations.filter(
+    r => r.date === date && r.tableIds.includes(tableId)
+  );
+}
+
+export function getSeatedCountAtTime(date: string, time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  const checkTimeMinutes = hours * 60 + minutes;
+  
+  return mockReservations
+    .filter(r => {
+      if (r.date !== date) return false;
+      if (r.status === 'cancelled' || r.status === 'no_show') return false;
+      
+      const [startH, startM] = r.startTime.split(':').map(Number);
+      const [endH, endM] = r.endTime.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+      
+      return checkTimeMinutes >= startMinutes && checkTimeMinutes < endMinutes;
+    })
+    .reduce((sum, r) => sum + r.guests, 0);
+}
+
+export interface GridTimeConfig {
+  startHour: number; // e.g., 13 for 13:00
+  endHour: number;   // e.g., 25 for 01:00 next day (24 + 1)
+  intervalMinutes: number; // e.g., 15
+  pixelsPerMinute: number; // e.g., 2
+}
+
+export const defaultGridConfig: GridTimeConfig = {
+  startHour: 13,
+  endHour: 25, // 01:00 next day
+  intervalMinutes: 15,
+  pixelsPerMinute: 2,
+};
+
+export function calculateBlockPosition(
+  startTime: string,
+  endTime: string,
+  config: GridTimeConfig = defaultGridConfig
+): { left: number; width: number } {
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  
+  const startMinutesFromDayStart = startH * 60 + startM;
+  const endMinutesFromDayStart = endH * 60 + endM;
+  
+  const gridStartMinutes = config.startHour * 60;
+  
+  const leftMinutes = startMinutesFromDayStart - gridStartMinutes;
+  const durationMinutes = endMinutesFromDayStart - startMinutesFromDayStart;
+  
+  return {
+    left: leftMinutes * config.pixelsPerMinute,
+    width: durationMinutes * config.pixelsPerMinute,
+  };
+}
+
+export function getTimeSlots(config: GridTimeConfig = defaultGridConfig): string[] {
+  const slots: string[] = [];
+  for (let hour = config.startHour; hour < config.endHour; hour++) {
+    const displayHour = hour >= 24 ? hour - 24 : hour;
+    for (let minute = 0; minute < 60; minute += config.intervalMinutes) {
+      slots.push(`${displayHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+    }
+  }
+  return slots;
+}
+
+export function getHourLabels(config: GridTimeConfig = defaultGridConfig): string[] {
+  const hours: string[] = [];
+  for (let hour = config.startHour; hour < config.endHour; hour++) {
+    const displayHour = hour >= 24 ? hour - 24 : hour;
+    hours.push(`${displayHour.toString().padStart(2, '0')}:00`);
+  }
+  return hours;
+}
