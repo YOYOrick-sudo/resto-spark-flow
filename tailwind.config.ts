@@ -90,11 +90,10 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        // Nesto specific - exact values from source
-        button: "16px",
-        card: "16px",
+        // Nesto specific
+        button: "8px",
+        card: "12px",
         "card-lg": "16px",
-        input: "8px",
       },
       keyframes: {
         "accordion-down": {
