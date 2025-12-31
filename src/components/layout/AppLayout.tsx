@@ -51,7 +51,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 p-6 lg:p-8 overflow-auto">
+          <div className="flex-1 py-6 px-8 lg:py-8 lg:px-12 xl:px-16 overflow-auto">
             {children}
           </div>
         </main>
