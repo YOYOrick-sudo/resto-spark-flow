@@ -89,7 +89,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 key={item.id}
                 value={item.label}
                 onSelect={() => handleSelect(item.path)}
-                className="group flex items-center gap-3 cursor-pointer"
+                className="group flex items-center gap-3 px-3 py-2.5 cursor-pointer"
               >
                 <Icon size={16} className="flex-shrink-0 text-muted-foreground" />
                 <span className="flex-1">{item.label}</span>
