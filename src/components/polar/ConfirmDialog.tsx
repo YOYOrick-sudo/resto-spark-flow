@@ -1,0 +1,102 @@
+import * as React from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import { AlertTriangle, Trash2 } from "lucide-react";
+import { Spinner } from "./LoadingStates";
+
+export interface ConfirmDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  variant?: "default" | "destructive";
+  isLoading?: boolean;
+}
+
+export function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel = "Bevestigen",
+  cancelLabel = "Annuleren",
+  onConfirm,
+  variant = "default",
+  isLoading = false,
+}: ConfirmDialogProps) {
+  const handleConfirm = () => {
+    onConfirm();
+  };
+
+  const Icon = variant === "destructive" ? Trash2 : AlertTriangle;
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <div className="flex items-start gap-4">
+            <div
+              className={cn(
+                "flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full",
+                variant === "destructive"
+                  ? "bg-destructive/10"
+                  : "bg-warning/10"
+              )}
+            >
+              <Icon
+                className={cn(
+                  "h-6 w-6",
+                  variant === "destructive"
+                    ? "text-destructive"
+                    : "text-warning"
+                )}
+              />
+            </div>
+            <div className="flex-1 pt-1">
+              <AlertDialogTitle className="text-lg font-semibold">
+                {title}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="mt-2 text-sm text-muted-foreground">
+                {description}
+              </AlertDialogDescription>
+            </div>
+          </div>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="mt-6">
+          <AlertDialogCancel disabled={isLoading}>
+            {cancelLabel}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirm}
+            disabled={isLoading}
+            className={cn(
+              variant === "destructive" &&
+                "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            )}
+          >
+            {isLoading ? (
+              <>
+                <Spinner size="sm" className="mr-2" />
+                Bezig...
+              </>
+            ) : (
+              confirmLabel
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
