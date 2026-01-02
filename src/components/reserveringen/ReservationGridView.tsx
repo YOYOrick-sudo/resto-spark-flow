@@ -18,9 +18,12 @@ import {
   getPacingLimitForTime,
   GridTimeConfig,
   defaultGridConfig,
+  addReservation,
+  getShiftForTime,
 } from "@/data/reservations";
 import { TableRow, STICKY_COL_WIDTH } from "./TableRow";
 import { useToast } from "@/hooks/use-toast";
+import { QuickReservationPanel } from "./QuickReservationPanel";
 import {
   Tooltip,
   TooltipContent,
@@ -144,11 +147,13 @@ function SeatedCountRow({
   config,
   isExpanded,
   onToggle,
+  onSlotClick,
 }: {
   date: string;
   config: GridTimeConfig;
   isExpanded: boolean;
   onToggle: () => void;
+  onSlotClick?: (time: string) => void;
 }) {
   const hourLabels = useMemo(() => getHourLabels(config), [config]);
   const quarterWidth = 15 * config.pixelsPerMinute;
@@ -194,7 +199,7 @@ function SeatedCountRow({
         </button>
       </div>
       
-      {/* Seated counts per 15 minutes with tooltips */}
+      {/* Seated counts per 15 minutes with tooltips - clickable */}
       <div className="flex">
         {seatedData.map(({ time, count, limit }, index) => {
           const percentage = limit > 0 ? Math.round((count / limit) * 100) : 0;
@@ -202,8 +207,9 @@ function SeatedCountRow({
             <Tooltip key={index}>
               <TooltipTrigger asChild>
                 <div
+                  onClick={() => onSlotClick?.(time)}
                   className={cn(
-                    "text-xs flex items-center justify-center py-2 cursor-default",
+                    "text-xs flex items-center justify-center py-2 cursor-pointer transition-colors hover:bg-primary/10",
                     index % 4 === 0 ? "border-l border-border" : "border-l border-border/50",
                     index === 0 && "border-l-0"
                   )}
@@ -218,6 +224,8 @@ function SeatedCountRow({
                 <span className="font-semibold">{time}</span>
                 <br />
                 {count}/{limit} gasten ({percentage}%)
+                <br />
+                <span className="text-primary">Klik om toe te voegen</span>
               </TooltipContent>
             </Tooltip>
           );
@@ -327,6 +335,10 @@ export function ReservationGridView({
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
   const [, forceUpdate] = useState(0);
   const { toast } = useToast();
+  
+  // Quick reservation panel state
+  const [quickReservationOpen, setQuickReservationOpen] = useState(false);
+  const [quickReservationTime, setQuickReservationTime] = useState<string | null>(null);
   
   const dateString = format(selectedDate, "yyyy-MM-dd");
   const zones = useMemo(() => getActiveZones(), []);
@@ -491,6 +503,52 @@ export function ReservationGridView({
     }
   }, []);
 
+  // Handle slot click to open quick reservation panel
+  const handleSlotClick = useCallback((time: string) => {
+    setQuickReservationTime(time);
+    setQuickReservationOpen(true);
+  }, []);
+
+  // Handle quick reservation submit
+  const handleQuickReservationSubmit = useCallback((data: {
+    guestName: string;
+    time: string;
+    guests: number;
+    tableId: string;
+    duration: number;
+    notes?: string;
+    isWalkIn: boolean;
+  }) => {
+    const endTime = minutesToTime(timeToMinutes(data.time) + data.duration);
+    
+    addReservation({
+      guestFirstName: data.isWalkIn ? '' : data.guestName.split(' ')[0] || '',
+      guestLastName: data.isWalkIn ? '' : data.guestName.split(' ').slice(1).join(' ') || '',
+      salutation: '',
+      phone: '',
+      email: '',
+      countryCode: 'NL',
+      date: dateString,
+      startTime: data.time,
+      endTime,
+      guests: data.guests,
+      tableIds: [data.tableId],
+      shift: getShiftForTime(data.time),
+      status: data.isWalkIn ? 'seated' : 'confirmed',
+      notes: data.notes || '',
+      isVip: false,
+      isWalkIn: data.isWalkIn,
+      ticketType: '',
+    });
+
+    toast({
+      title: data.isWalkIn ? "Walk-in toegevoegd" : "Reservering aangemaakt",
+      description: `${data.isWalkIn ? 'Walk-in' : data.guestName} om ${data.time} voor ${data.guests} gasten`,
+    });
+
+    forceUpdate(n => n + 1);
+  }, [dateString, toast]);
+
   return (
     <DndContext 
       onDragEnd={handleDragEnd} 
@@ -512,12 +570,13 @@ export function ReservationGridView({
             {/* Timeline header - sticky top */}
             <TimelineHeader config={config} />
 
-            {/* Seated count row */}
+            {/* Seated count row - clickable to add reservation */}
             <SeatedCountRow
               date={dateString}
               config={config}
               isExpanded={seatedExpanded}
               onToggle={() => setSeatedExpanded(!seatedExpanded)}
+              onSlotClick={handleSlotClick}
             />
 
             {/* Zones with tables */}
@@ -555,6 +614,15 @@ export function ReservationGridView({
           <DraggedReservationOverlay reservation={activeReservation} />
         ) : null}
       </DragOverlay>
+
+      {/* Quick reservation panel */}
+      <QuickReservationPanel
+        open={quickReservationOpen}
+        onOpenChange={setQuickReservationOpen}
+        initialTime={quickReservationTime}
+        date={dateString}
+        onSubmit={handleQuickReservationSubmit}
+      />
     </DndContext>
   );
 }
