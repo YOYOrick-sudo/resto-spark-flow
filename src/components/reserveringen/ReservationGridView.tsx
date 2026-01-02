@@ -15,12 +15,17 @@ import {
   checkTimeConflict,
   timeToMinutes,
   minutesToTime,
-  getTotalMaxCapacity,
+  getPacingLimitForTime,
   GridTimeConfig,
   defaultGridConfig,
 } from "@/data/reservations";
 import { TableRow, STICKY_COL_WIDTH } from "./TableRow";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ReservationGridViewProps {
   selectedDate: Date;
@@ -125,12 +130,12 @@ function TimelineHeader({ config }: { config: GridTimeConfig }) {
 }
 
 // Seated count row
-// Helper function to get occupancy color based on capacity percentage
-function getOccupancyColor(count: number, capacity: number): string {
+// Helper function to get occupancy color based on pacing limit
+function getOccupancyColor(count: number, limit: number): string {
   if (count === 0) return "text-muted-foreground";
-  const percentage = (count / capacity) * 100;
-  if (percentage <= 50) return "text-success font-bold";
-  if (percentage <= 80) return "text-warning font-bold";
+  const percentage = (count / limit) * 100;
+  if (percentage <= 70) return "text-success font-bold";
+  if (percentage <= 100) return "text-warning font-bold";
   return "text-destructive font-bold";
 }
 
@@ -147,7 +152,6 @@ function SeatedCountRow({
 }) {
   const hourLabels = useMemo(() => getHourLabels(config), [config]);
   const quarterWidth = 15 * config.pixelsPerMinute;
-  const totalCapacity = useMemo(() => getTotalMaxCapacity(), []);
 
   // Generate 15-minute intervals for each hour
   const quarterSlots = useMemo(() => {
@@ -162,8 +166,12 @@ function SeatedCountRow({
     return slots;
   }, [hourLabels]);
 
-  const seatedCounts = useMemo(() => {
-    return quarterSlots.map((time) => getSeatedCountAtTime(date, time));
+  const seatedData = useMemo(() => {
+    return quarterSlots.map((time) => ({
+      time,
+      count: getSeatedCountAtTime(date, time),
+      limit: getPacingLimitForTime(time),
+    }));
   }, [date, quarterSlots]);
 
   return (
@@ -173,7 +181,7 @@ function SeatedCountRow({
         className="sticky left-0 z-30 flex-shrink-0 flex items-center justify-between px-3 py-2 bg-secondary border-r-2 border-border"
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       >
-        <span className="text-xs font-semibold text-muted-foreground">Seated</span>
+        <span className="text-xs font-semibold text-muted-foreground">Pacing</span>
         <button
           onClick={onToggle}
           className="p-0.5 hover:bg-muted rounded transition-colors"
@@ -186,23 +194,34 @@ function SeatedCountRow({
         </button>
       </div>
       
-      {/* Seated counts per 15 minutes */}
+      {/* Seated counts per 15 minutes with tooltips */}
       <div className="flex">
-        {seatedCounts.map((count, index) => (
-          <div
-            key={index}
-            className={cn(
-              "text-xs flex items-center justify-center py-2",
-              index % 4 === 0 ? "border-l border-border" : "border-l border-border/50",
-              index === 0 && "border-l-0"
-            )}
-            style={{ width: `${quarterWidth}px` }}
-          >
-            <span className={getOccupancyColor(count, totalCapacity)}>
-              {count}
-            </span>
-          </div>
-        ))}
+        {seatedData.map(({ time, count, limit }, index) => {
+          const percentage = limit > 0 ? Math.round((count / limit) * 100) : 0;
+          return (
+            <Tooltip key={index}>
+              <TooltipTrigger asChild>
+                <div
+                  className={cn(
+                    "text-xs flex items-center justify-center py-2 cursor-default",
+                    index % 4 === 0 ? "border-l border-border" : "border-l border-border/50",
+                    index === 0 && "border-l-0"
+                  )}
+                  style={{ width: `${quarterWidth}px` }}
+                >
+                  <span className={getOccupancyColor(count, limit)}>
+                    {count}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                <span className="font-semibold">{time}</span>
+                <br />
+                {count}/{limit} gasten ({percentage}%)
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
       </div>
     </div>
   );

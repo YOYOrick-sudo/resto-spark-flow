@@ -915,6 +915,65 @@ export function getTotalMaxCapacity(): number {
     .reduce((sum, table) => sum + table.maxCapacity, 0);
 }
 
+// ============= Pacing Settings =============
+
+export interface PacingSettings {
+  defaultLimitPerQuarter: number;
+  shiftOverrides?: {
+    lunch?: number;
+    dinner?: number;
+  };
+  shiftTimes?: {
+    lunch?: { start: string; end: string };
+    dinner?: { start: string; end: string };
+  };
+}
+
+export let mockPacingSettings: PacingSettings = {
+  defaultLimitPerQuarter: 12,
+  shiftOverrides: {
+    lunch: 10,
+    dinner: 14,
+  },
+  shiftTimes: {
+    lunch: { start: "11:00", end: "15:00" },
+    dinner: { start: "17:00", end: "23:00" },
+  },
+};
+
+export function updatePacingSettings(newSettings: PacingSettings): void {
+  mockPacingSettings = { ...newSettings };
+}
+
+export function getPacingLimitForTime(time: string): number {
+  const hour = parseInt(time.split(':')[0]);
+  const minute = parseInt(time.split(':')[1] || '0');
+  const timeMinutes = hour * 60 + minute;
+
+  const lunchStart = mockPacingSettings.shiftTimes?.lunch?.start || "11:00";
+  const lunchEnd = mockPacingSettings.shiftTimes?.lunch?.end || "15:00";
+  const dinnerStart = mockPacingSettings.shiftTimes?.dinner?.start || "17:00";
+  const dinnerEnd = mockPacingSettings.shiftTimes?.dinner?.end || "23:00";
+
+  const [lsH, lsM] = lunchStart.split(':').map(Number);
+  const [leH, leM] = lunchEnd.split(':').map(Number);
+  const [dsH, dsM] = dinnerStart.split(':').map(Number);
+  const [deH, deM] = dinnerEnd.split(':').map(Number);
+
+  const lunchStartMin = lsH * 60 + lsM;
+  const lunchEndMin = leH * 60 + leM;
+  const dinnerStartMin = dsH * 60 + dsM;
+  const dinnerEndMin = deH * 60 + deM;
+
+  if (timeMinutes >= lunchStartMin && timeMinutes < lunchEndMin && mockPacingSettings.shiftOverrides?.lunch) {
+    return mockPacingSettings.shiftOverrides.lunch;
+  }
+  if (timeMinutes >= dinnerStartMin && timeMinutes < dinnerEndMin && mockPacingSettings.shiftOverrides?.dinner) {
+    return mockPacingSettings.shiftOverrides.dinner;
+  }
+  return mockPacingSettings.defaultLimitPerQuarter;
+}
+
 export function getActiveZones(): Zone[] {
   return mockZones
     .filter(z => z.isActive)
