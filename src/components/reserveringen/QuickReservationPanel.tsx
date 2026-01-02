@@ -56,6 +56,7 @@ interface QuickReservationPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialTime: string | null;
+  initialTableId?: string | null;
   date: string;
   onSubmit: (data: {
     guestName: string;
@@ -115,6 +116,7 @@ export function QuickReservationPanel({
   open,
   onOpenChange,
   initialTime,
+  initialTableId,
   date,
   onSubmit,
 }: QuickReservationPanelProps) {
@@ -126,26 +128,26 @@ export function QuickReservationPanel({
       guestName: "",
       time: initialTime || "18:00",
       guests: 2,
-      tableId: "",
+      tableId: initialTableId || "",
       duration: 90,
       notes: "",
     },
   });
 
-  // Reset form when panel opens with new time
+  // Reset form when panel opens with new time/table
   useEffect(() => {
-    if (open && initialTime) {
+    if (open) {
       form.reset({
         guestName: "",
-        time: initialTime,
+        time: initialTime || "18:00",
         guests: 2,
-        tableId: "",
+        tableId: initialTableId || "",
         duration: 90,
         notes: "",
       });
       setIsWalkIn(false);
     }
-  }, [open, initialTime, form]);
+  }, [open, initialTime, initialTableId, form]);
 
   const watchedTime = form.watch("time");
   const watchedGuests = form.watch("guests");

@@ -164,7 +164,7 @@ export function ReservationBlock({
       {...(isResizing ? {} : listeners)}
       {...(isResizing ? {} : attributes)}
       className={cn(
-        "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] flex items-center gap-1.5 text-xs overflow-hidden transition-shadow select-none group",
+        "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] flex items-center gap-1.5 text-xs overflow-hidden transition-shadow select-none group pointer-events-auto",
         getBlockStyles(),
         isClickable && !isResizing && "cursor-grab hover:shadow-lg hover:scale-[1.02] hover:z-20",
         isDragging && "opacity-50 cursor-grabbing z-50 shadow-xl",
