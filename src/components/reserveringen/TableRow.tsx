@@ -16,6 +16,7 @@ interface TableRowProps {
   config?: GridTimeConfig;
   onReservationClick?: (reservation: Reservation) => void;
   onReservationResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
+  onEmptySlotClick?: (tableId: string, time: string) => void;
   isOdd?: boolean;
 }
 
@@ -32,12 +33,25 @@ function TableStatusDot({ table }: { table: Table }) {
   return <span className={cn("w-2 h-2 rounded-full flex-shrink-0", dotColor)} />;
 }
 
+// Generate quarter-hour slots for the grid
+function generateQuarterSlots(startHour: number, endHour: number): string[] {
+  const slots: string[] = [];
+  for (let hour = startHour; hour < endHour; hour++) {
+    for (let quarter = 0; quarter < 4; quarter++) {
+      const minutes = quarter * 15;
+      slots.push(`${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+    }
+  }
+  return slots;
+}
+
 export function TableRow({
   table,
   date,
   config = defaultGridConfig,
   onReservationClick,
   onReservationResize,
+  onEmptySlotClick,
   isOdd = false,
 }: TableRowProps) {
   const reservations = useMemo(
@@ -45,8 +59,15 @@ export function TableRow({
     [date, table.id]
   );
 
-  // Calculate grid width
+  // Calculate grid width and quarter width
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
+  const quarterWidth = 15 * config.pixelsPerMinute;
+  
+  // Generate all quarter-hour slots
+  const quarterSlots = useMemo(
+    () => generateQuarterSlots(config.startHour, config.endHour),
+    [config.startHour, config.endHour]
+  );
 
   // Make the grid area droppable
   const { setNodeRef, isOver } = useDroppable({
@@ -92,17 +113,36 @@ export function TableRow({
         )}
         style={{ width: `${gridWidth}px` }}
       >
-        {reservations
-          .filter((r) => r.status !== "cancelled" && r.status !== "no_show")
-          .map((reservation) => (
-            <ReservationBlock
-              key={reservation.id}
-              reservation={reservation}
-              config={config}
-              onClick={onReservationClick}
-              onResize={onReservationResize}
+        {/* Clickable quarter-hour cells (background layer) */}
+        <div className="absolute inset-0 flex">
+          {quarterSlots.map((time, index) => (
+            <div
+              key={time}
+              onClick={() => onEmptySlotClick?.(table.id, time)}
+              className={cn(
+                "h-full cursor-pointer transition-colors hover:bg-primary/10",
+                index % 4 === 0 ? "border-l border-border/50" : "border-l border-border/20"
+              )}
+              style={{ width: `${quarterWidth}px` }}
+              title={`Tafel ${table.number} om ${time} - Klik om toe te voegen`}
             />
           ))}
+        </div>
+        
+        {/* Reservation blocks (foreground layer with pointer-events) */}
+        <div className="relative z-10 pointer-events-none">
+          {reservations
+            .filter((r) => r.status !== "cancelled" && r.status !== "no_show")
+            .map((reservation) => (
+              <ReservationBlock
+                key={reservation.id}
+                reservation={reservation}
+                config={config}
+                onClick={onReservationClick}
+                onResize={onReservationResize}
+              />
+            ))}
+        </div>
       </div>
     </div>
   );

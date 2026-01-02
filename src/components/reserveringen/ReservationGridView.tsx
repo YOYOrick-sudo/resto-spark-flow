@@ -339,6 +339,7 @@ export function ReservationGridView({
   // Quick reservation panel state
   const [quickReservationOpen, setQuickReservationOpen] = useState(false);
   const [quickReservationTime, setQuickReservationTime] = useState<string | null>(null);
+  const [quickReservationTableId, setQuickReservationTableId] = useState<string | null>(null);
   
   const dateString = format(selectedDate, "yyyy-MM-dd");
   const zones = useMemo(() => getActiveZones(), []);
@@ -503,9 +504,17 @@ export function ReservationGridView({
     }
   }, []);
 
-  // Handle slot click to open quick reservation panel
+  // Handle slot click to open quick reservation panel (from pacing row)
   const handleSlotClick = useCallback((time: string) => {
     setQuickReservationTime(time);
+    setQuickReservationTableId(null); // No table preselected from pacing row
+    setQuickReservationOpen(true);
+  }, []);
+
+  // Handle empty slot click in table row
+  const handleEmptySlotClick = useCallback((tableId: string, time: string) => {
+    setQuickReservationTime(time);
+    setQuickReservationTableId(tableId);
     setQuickReservationOpen(true);
   }, []);
 
@@ -598,6 +607,7 @@ export function ReservationGridView({
                       config={config}
                       onReservationClick={onReservationClick}
                       onReservationResize={handleResize}
+                      onEmptySlotClick={handleEmptySlotClick}
                       isOdd={index % 2 === 1}
                     />
                   ))}
@@ -618,8 +628,12 @@ export function ReservationGridView({
       {/* Quick reservation panel */}
       <QuickReservationPanel
         open={quickReservationOpen}
-        onOpenChange={setQuickReservationOpen}
+        onOpenChange={(open) => {
+          setQuickReservationOpen(open);
+          if (!open) setQuickReservationTableId(null);
+        }}
         initialTime={quickReservationTime}
+        initialTableId={quickReservationTableId}
         date={dateString}
         onSubmit={handleQuickReservationSubmit}
       />
