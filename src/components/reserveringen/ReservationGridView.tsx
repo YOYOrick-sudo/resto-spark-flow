@@ -1,8 +1,18 @@
 import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
-import { DndContext, DragEndEvent, DragOverlay, pointerWithin } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, pointerWithin } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+
+// Ghost position type for drag preview
+interface GhostPosition {
+  tableId: string;
+  startTime: string;
+  endTime: string;
+  left: number;
+  width: number;
+  topOffset: number;
+}
 import {
   Reservation,
   getActiveZones,
@@ -324,6 +334,40 @@ function DraggedReservationOverlay({ reservation }: { reservation: Reservation }
   );
 }
 
+// Ghost preview component - shows where reservation will land
+function GhostPreview({ 
+  position, 
+  hasConflict 
+}: { 
+  position: GhostPosition;
+  hasConflict: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute rounded-md border-2 border-dashed pointer-events-none transition-all duration-75 flex items-center justify-center",
+        hasConflict 
+          ? "bg-destructive/20 border-destructive" 
+          : "bg-primary/20 border-primary"
+      )}
+      style={{
+        left: `${STICKY_COL_WIDTH + position.left}px`,
+        top: `${position.topOffset}px`,
+        width: `${position.width}px`,
+        height: '36px',
+        zIndex: 25
+      }}
+    >
+      <div className={cn(
+        "text-xs font-medium",
+        hasConflict ? "text-destructive" : "text-primary"
+      )}>
+        {position.startTime} - {position.endTime}
+      </div>
+    </div>
+  );
+}
+
 export function ReservationGridView({
   selectedDate,
   reservations,
@@ -333,6 +377,7 @@ export function ReservationGridView({
   const containerRef = useRef<HTMLDivElement>(null);
   const [seatedExpanded, setSeatedExpanded] = useState(true);
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
+  const [ghostPosition, setGhostPosition] = useState<GhostPosition | null>(null);
   const [, forceUpdate] = useState(0);
   const { toast } = useToast();
   
@@ -346,6 +391,31 @@ export function ReservationGridView({
   
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
   const totalWidth = STICKY_COL_WIDTH + gridWidth;
+
+  // Row heights for table position calculation
+  const HEADER_HEIGHT = 40; // TimelineHeader
+  const SEATED_ROW_HEIGHT = 36; // SeatedCountRow
+  const ZONE_HEADER_HEIGHT = 32; // ZoneHeader
+  const TABLE_ROW_HEIGHT = 44; // TableRow
+
+  // Calculate table positions for ghost preview
+  const tablePositions = useMemo(() => {
+    const positions: Record<string, number> = {};
+    let currentTop = HEADER_HEIGHT + SEATED_ROW_HEIGHT;
+    
+    zones.forEach(zone => {
+      const tables = getTablesByZone(zone.id);
+      if (tables.length === 0) return;
+      
+      currentTop += ZONE_HEADER_HEIGHT;
+      tables.forEach(table => {
+        positions[table.id] = currentTop + 4; // +4 for centering in row
+        currentTop += TABLE_ROW_HEIGHT;
+      });
+    });
+    
+    return positions;
+  }, [zones]);
 
   // Scroll to current time on mount
   useEffect(() => {
@@ -374,10 +444,73 @@ export function ReservationGridView({
     return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }, [config]);
 
+  // Handle drag move - update ghost preview position
+  const handleDragMove = useCallback((event: DragMoveEvent) => {
+    const { active, over } = event;
+    
+    if (!over || !active.data.current?.reservation || !containerRef.current) {
+      setGhostPosition(null);
+      return;
+    }
+
+    const reservation = active.data.current.reservation as Reservation;
+    const targetTableId = over.data.current?.tableId as string;
+    
+    if (!targetTableId || !tablePositions[targetTableId]) {
+      setGhostPosition(null);
+      return;
+    }
+
+    // Get container bounds and scroll position
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const scrollLeft = containerRef.current.scrollLeft;
+
+    // Use delta from dnd-kit to calculate position
+    const durationMinutes = timeToMinutes(reservation.endTime) - timeToMinutes(reservation.startTime);
+    const reservationWidth = durationMinutes * config.pixelsPerMinute;
+
+    // Calculate cursor position from the delta
+    const originalStartMinutes = timeToMinutes(reservation.startTime) - config.startHour * 60;
+    const originalLeft = originalStartMinutes * config.pixelsPerMinute;
+    
+    // Add delta to get new position, then snap to 15-minute intervals
+    const newLeft = originalLeft + (event.delta?.x || 0);
+    const snappedMinutes = Math.round(newLeft / config.pixelsPerMinute / 15) * 15;
+    const snappedLeft = snappedMinutes * config.pixelsPerMinute;
+    
+    const newStartTime = calculateTimeFromX(Math.max(0, snappedLeft));
+    const newEndTime = minutesToTime(timeToMinutes(newStartTime) + durationMinutes);
+
+    setGhostPosition({
+      tableId: targetTableId,
+      startTime: newStartTime,
+      endTime: newEndTime,
+      left: Math.max(0, snappedLeft),
+      width: reservationWidth,
+      topOffset: tablePositions[targetTableId],
+    });
+  }, [config, calculateTimeFromX, tablePositions]);
+
+  // Check if ghost has conflict
+  const ghostHasConflict = useMemo(() => {
+    if (!ghostPosition || !activeReservation) return false;
+    
+    const conflict = checkTimeConflict(
+      ghostPosition.tableId,
+      dateString,
+      ghostPosition.startTime,
+      ghostPosition.endTime,
+      activeReservation.id
+    );
+    
+    return conflict.hasConflict;
+  }, [ghostPosition, dateString, activeReservation]);
+
   // Handle drag end with collision detection - uses cursor position for precision
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over, activatorEvent } = event;
     setActiveReservation(null);
+    setGhostPosition(null); // Clear ghost
 
     if (!over || !active.data.current?.reservation) return;
 
@@ -562,6 +695,7 @@ export function ReservationGridView({
     <DndContext 
       onDragEnd={handleDragEnd} 
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       collisionDetection={pointerWithin}
     >
       <div className="relative h-full overflow-hidden border border-border rounded-lg bg-card">
@@ -614,6 +748,14 @@ export function ReservationGridView({
                 </div>
               );
             })}
+
+            {/* Ghost preview - shows where reservation will land */}
+            {ghostPosition && activeReservation && (
+              <GhostPreview 
+                position={ghostPosition}
+                hasConflict={ghostHasConflict}
+              />
+            )}
           </div>
         </div>
       </div>
