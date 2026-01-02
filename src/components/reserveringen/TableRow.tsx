@@ -58,14 +58,14 @@ export function TableRow({
     <div
       className={cn(
         "flex border-b border-border/50 h-14",
-        isOdd ? "bg-muted/20" : "bg-card"
+        isOdd ? "bg-secondary" : "bg-card"
       )}
     >
       {/* Sticky left column - Table info - horizontal layout */}
       <div 
         className={cn(
           "sticky left-0 z-30 flex-shrink-0 flex items-center justify-between px-3 border-r-2 border-border",
-          isOdd ? "bg-muted/20" : "bg-card"
+          isOdd ? "bg-secondary" : "bg-card"
         )}
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       >
