@@ -361,9 +361,9 @@ export function ReservationGridView({
     return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }, [config]);
 
-  // Handle drag end with collision detection
+  // Handle drag end with collision detection - uses cursor position for precision
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over, delta } = event;
+    const { active, over, activatorEvent } = event;
     setActiveReservation(null);
 
     if (!over || !active.data.current?.reservation) return;
@@ -373,12 +373,24 @@ export function ReservationGridView({
 
     if (!targetTableId) return;
 
-    // Calculate new start time based on drag delta and original position
-    const [startH, startM] = reservation.startTime.split(':').map(Number);
-    const originalMinutesFromGridStart = (startH * 60 + startM) - config.startHour * 60;
-    const originalX = originalMinutesFromGridStart * config.pixelsPerMinute;
-    const newX = Math.max(0, originalX + delta.x);
-    const newStartTime = calculateTimeFromX(newX);
+    // Get cursor position from the activator event (mouse position)
+    const mouseEvent = activatorEvent as MouseEvent;
+    if (!mouseEvent || !containerRef.current) return;
+
+    // Get container bounds and scroll position
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const scrollLeft = containerRef.current.scrollLeft;
+
+    // Calculate cursor X relative to the grid (after sticky column)
+    const cursorX = mouseEvent.clientX - containerRect.left - STICKY_COL_WIDTH + scrollLeft;
+
+    // Calculate reservation width (duration in pixels)
+    const durationMinutes = timeToMinutes(reservation.endTime) - timeToMinutes(reservation.startTime);
+    const reservationWidth = durationMinutes * config.pixelsPerMinute;
+
+    // Center the reservation on the cursor position
+    const startX = cursorX - (reservationWidth / 2);
+    const newStartTime = calculateTimeFromX(Math.max(0, startX));
 
     // Check if anything changed
     const isSameTable = reservation.tableIds.includes(targetTableId);
@@ -386,8 +398,7 @@ export function ReservationGridView({
 
     if (isSameTable && isSameTime) return;
 
-    // Calculate new end time
-    const durationMinutes = timeToMinutes(reservation.endTime) - timeToMinutes(reservation.startTime);
+    // Calculate new end time using already computed duration
     const newEndTime = minutesToTime(timeToMinutes(newStartTime) + durationMinutes);
 
     // Check for collision BEFORE updating
