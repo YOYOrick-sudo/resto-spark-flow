@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
-import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, pointerWithin } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragMoveEvent, pointerWithin } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 
 // Ghost position type for drag preview
@@ -322,47 +322,46 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
   );
 }
 
-// Drag overlay component - shows ghost of dragged reservation
-function DraggedReservationOverlay({ reservation }: { reservation: Reservation }) {
-  const guestName = getGuestDisplayName(reservation);
-  
-  return (
-    <div className="bg-primary/20 border-2 border-primary rounded-md px-3 py-2 shadow-xl flex items-center gap-2 text-sm cursor-grabbing">
-      <span className="font-bold">{reservation.guests}</span>
-      <span className="truncate">{guestName}</span>
-    </div>
-  );
-}
-
 // Ghost preview component - shows where reservation will land
 function GhostPreview({ 
   position, 
-  hasConflict 
+  hasConflict,
+  guestCount 
 }: { 
   position: GhostPosition;
   hasConflict: boolean;
+  guestCount: number;
 }) {
   return (
     <div
       className={cn(
-        "absolute rounded-md border-2 border-dashed pointer-events-none transition-all duration-75 flex items-center justify-center",
+        "absolute rounded-md pointer-events-none",
+        "shadow-lg",
         hasConflict 
-          ? "bg-destructive/20 border-destructive" 
-          : "bg-primary/20 border-primary"
+          ? "bg-destructive/25 border-2 border-destructive" 
+          : "bg-primary/25 border-2 border-primary"
       )}
       style={{
         left: `${STICKY_COL_WIDTH + position.left}px`,
         top: `${position.topOffset}px`,
         width: `${position.width}px`,
         height: '36px',
-        zIndex: 25
+        zIndex: 50
       }}
     >
-      <div className={cn(
-        "text-xs font-medium",
-        hasConflict ? "text-destructive" : "text-primary"
-      )}>
-        {position.startTime} - {position.endTime}
+      <div className="flex items-center justify-between h-full px-2.5">
+        <span className={cn(
+          "font-bold text-sm",
+          hasConflict ? "text-destructive" : "text-primary"
+        )}>
+          {guestCount}p
+        </span>
+        <span className={cn(
+          "text-xs font-medium",
+          hasConflict ? "text-destructive" : "text-primary"
+        )}>
+          {position.startTime}
+        </span>
       </div>
     </div>
   );
@@ -743,6 +742,7 @@ export function ReservationGridView({
                       onReservationResize={handleResize}
                       onEmptySlotClick={handleEmptySlotClick}
                       isOdd={index % 2 === 1}
+                      activeReservationId={activeReservation?.id}
                     />
                   ))}
                 </div>
@@ -754,18 +754,12 @@ export function ReservationGridView({
               <GhostPreview 
                 position={ghostPosition}
                 hasConflict={ghostHasConflict}
+                guestCount={activeReservation.guests}
               />
             )}
           </div>
         </div>
       </div>
-      
-      {/* Drag overlay */}
-      <DragOverlay>
-        {activeReservation ? (
-          <DraggedReservationOverlay reservation={activeReservation} />
-        ) : null}
-      </DragOverlay>
 
       {/* Quick reservation panel */}
       <QuickReservationPanel

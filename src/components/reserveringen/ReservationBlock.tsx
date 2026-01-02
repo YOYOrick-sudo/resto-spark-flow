@@ -17,6 +17,7 @@ interface ReservationBlockProps {
   config?: GridTimeConfig;
   onClick?: (reservation: Reservation) => void;
   onResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
+  isBeingDragged?: boolean; // True when this reservation is actively being dragged
 }
 
 export function ReservationBlock({
@@ -24,6 +25,7 @@ export function ReservationBlock({
   config = defaultGridConfig,
   onClick,
   onResize,
+  isBeingDragged = false,
 }: ReservationBlockProps) {
   const position = useMemo(
     () => calculateBlockPosition(reservation.startTime, reservation.endTime, config),
@@ -164,10 +166,12 @@ export function ReservationBlock({
       {...(isResizing ? {} : listeners)}
       {...(isResizing ? {} : attributes)}
       className={cn(
-        "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] flex items-center gap-1.5 text-xs overflow-hidden transition-shadow select-none group pointer-events-auto",
+        "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] flex items-center gap-1.5 text-xs overflow-hidden select-none group pointer-events-auto",
         getBlockStyles(),
         isClickable && !isResizing && "cursor-grab hover:shadow-lg hover:scale-[1.02] hover:z-20",
-        isDragging && "opacity-50 cursor-grabbing z-50 shadow-xl",
+        // When being dragged, show as faded placeholder (no transform applied)
+        isBeingDragged && "opacity-30 scale-[0.97] transition-all duration-150",
+        isDragging && !isBeingDragged && "opacity-50 cursor-grabbing z-50 shadow-xl",
         isResizing && "z-50 shadow-xl ring-2 ring-primary"
       )}
       style={style}
