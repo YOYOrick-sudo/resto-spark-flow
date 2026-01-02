@@ -20,7 +20,7 @@ interface TableRowProps {
 }
 
 // Constants - must match ReservationGridView
-const STICKY_COL_WIDTH = 100;
+const STICKY_COL_WIDTH = 140;
 
 // Status dot for table online bookability
 function TableStatusDot({ table }: { table: Table }) {
