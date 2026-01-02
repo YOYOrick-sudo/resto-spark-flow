@@ -171,7 +171,7 @@ function ZoneHeader({ name }: { name: string }) {
     <div className="flex bg-secondary border-b border-t border-border h-8">
       {/* Sticky zone label - blijft altijd zichtbaar bij horizontaal scrollen */}
       <div 
-        className="sticky left-0 z-20 flex-shrink-0 bg-secondary border-r-2 border-border flex items-center px-3"
+        className="sticky left-0 z-30 flex-shrink-0 bg-secondary border-r-2 border-border flex items-center px-3"
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       >
         <span className="text-xs font-bold text-foreground uppercase tracking-wide whitespace-nowrap">
