@@ -1,9 +1,10 @@
 import { useMemo } from "react";
+import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import {
   Table,
   Reservation,
-  getReservationsForTable,
+  getReservationsForTableMutable,
   GridTimeConfig,
   defaultGridConfig,
 } from "@/data/reservations";
@@ -18,35 +19,15 @@ interface TableRowProps {
 }
 
 // Constants - must match ReservationGridView
-const STICKY_COL_WIDTH = 80;
+const STICKY_COL_WIDTH = 100;
 
-// Status dot for table availability
-function TableStatusDot({ reservations }: { reservations: Reservation[] }) {
-  const now = new Date();
-  const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const currentReservation = reservations.find((r) => {
-    if (r.status === "cancelled" || r.status === "no_show" || r.status === "completed") {
-      return false;
-    }
-    const [startH, startM] = r.startTime.split(":").map(Number);
-    const [endH, endM] = r.endTime.split(":").map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-    return currentTimeMinutes >= startMinutes && currentTimeMinutes < endMinutes;
-  });
-
-  let dotColor = "bg-emerald-500"; // Available (green)
-  if (currentReservation) {
-    if (currentReservation.status === "seated" || currentReservation.status === "checked_in") {
-      dotColor = "bg-emerald-500"; // Occupied but active
-    } else if (currentReservation.status === "confirmed") {
-      dotColor = "bg-primary"; // Expected soon
-    } else if (currentReservation.status === "pending") {
-      dotColor = "bg-muted-foreground"; // Pending
-    }
-  }
-
+// Status dot for table online bookability
+function TableStatusDot({ table }: { table: Table }) {
+  // Green = online bookable, Red = offline
+  const dotColor = table.isOnlineBookable 
+    ? "bg-emerald-500"  // Online
+    : "bg-red-500";     // Offline
+  
   return <span className={cn("w-2 h-2 rounded-full flex-shrink-0", dotColor)} />;
 }
 
@@ -58,12 +39,18 @@ export function TableRow({
   isOdd = false,
 }: TableRowProps) {
   const reservations = useMemo(
-    () => getReservationsForTable(date, table.id),
+    () => getReservationsForTableMutable(date, table.id),
     [date, table.id]
   );
 
   // Calculate grid width
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
+
+  // Make the grid area droppable
+  const { setNodeRef, isOver } = useDroppable({
+    id: `table-${table.id}`,
+    data: { tableId: table.id, date },
+  });
 
   return (
     <div
@@ -72,30 +59,35 @@ export function TableRow({
         isOdd ? "bg-muted/20" : "bg-card"
       )}
     >
-      {/* Sticky left column - Table info */}
+      {/* Sticky left column - Table info - horizontal layout */}
       <div 
         className={cn(
-          "sticky left-0 z-10 flex-shrink-0 flex items-center gap-2 px-3 border-r-2 border-border",
+          "sticky left-0 z-10 flex-shrink-0 flex items-center justify-between px-3 border-r-2 border-border",
           isOdd ? "bg-muted/20" : "bg-card"
         )}
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       >
-        {/* Table number - large and bold */}
-        <div className="flex flex-col items-start min-w-0">
-          <span className="text-base font-bold text-foreground leading-tight">
-            {table.number}
+        {/* Table number - left side */}
+        <span className="text-sm font-semibold text-foreground">
+          {table.number}
+        </span>
+        
+        {/* Capacity + dot - right side */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground italic">
+            {table.minCapacity}-{table.maxCapacity}
           </span>
-          <span className="text-[10px] text-muted-foreground leading-tight">
-            {table.minCapacity}-{table.maxCapacity}p
-          </span>
+          <TableStatusDot table={table} />
         </div>
-        {/* Status dot */}
-        <TableStatusDot reservations={reservations} />
       </div>
 
-      {/* Grid area for reservation blocks */}
+      {/* Grid area for reservation blocks - droppable */}
       <div
-        className="relative flex-shrink-0"
+        ref={setNodeRef}
+        className={cn(
+          "relative flex-shrink-0 transition-colors",
+          isOver && "bg-primary/10"
+        )}
         style={{ width: `${gridWidth}px` }}
       >
         {reservations
@@ -112,3 +104,5 @@ export function TableRow({
     </div>
   );
 }
+
+export { STICKY_COL_WIDTH };

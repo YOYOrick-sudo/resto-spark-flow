@@ -1,6 +1,7 @@
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
+import { DndContext, DragEndEvent, DragOverlay, pointerWithin } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import {
   Reservation,
@@ -8,10 +9,13 @@ import {
   getTablesByZone,
   getSeatedCountAtTime,
   getHourLabels,
+  getGuestDisplayName,
+  updateReservationPosition,
   GridTimeConfig,
   defaultGridConfig,
 } from "@/data/reservations";
-import { TableRow } from "./TableRow";
+import { TableRow, STICKY_COL_WIDTH } from "./TableRow";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReservationGridViewProps {
   selectedDate: Date;
@@ -19,9 +23,6 @@ interface ReservationGridViewProps {
   onReservationClick?: (reservation: Reservation) => void;
   config?: GridTimeConfig;
 }
-
-// Constants
-const STICKY_COL_WIDTH = 80;
 
 // Grid lines component - renders vertical lines for hours and quarter hours
 function GridLines({ config }: { config: GridTimeConfig }) {
@@ -237,6 +238,18 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
   );
 }
 
+// Drag overlay component - shows ghost of dragged reservation
+function DraggedReservationOverlay({ reservation }: { reservation: Reservation }) {
+  const guestName = getGuestDisplayName(reservation);
+  
+  return (
+    <div className="bg-primary/20 border-2 border-primary rounded-md px-3 py-2 shadow-xl flex items-center gap-2 text-sm cursor-grabbing">
+      <span className="font-bold">{reservation.guests}</span>
+      <span className="truncate">{guestName}</span>
+    </div>
+  );
+}
+
 export function ReservationGridView({
   selectedDate,
   reservations,
@@ -245,6 +258,9 @@ export function ReservationGridView({
 }: ReservationGridViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [seatedExpanded, setSeatedExpanded] = useState(true);
+  const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
+  const [, forceUpdate] = useState(0);
+  const { toast } = useToast();
   
   const dateString = format(selectedDate, "yyyy-MM-dd");
   const zones = useMemo(() => getActiveZones(), []);
@@ -268,56 +284,124 @@ export function ReservationGridView({
     }
   }, [config]);
 
+  // Calculate time from drop position
+  const calculateTimeFromX = useCallback((x: number): string => {
+    // Snap to 15-minute intervals
+    const minutesFromStart = Math.round(x / config.pixelsPerMinute / 15) * 15;
+    const totalMinutes = config.startHour * 60 + minutesFromStart;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const displayHour = hours >= 24 ? hours - 24 : hours;
+    return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }, [config]);
+
+  // Handle drag end
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over, delta } = event;
+    setActiveReservation(null);
+
+    if (!over || !active.data.current?.reservation) return;
+
+    const reservation = active.data.current.reservation as Reservation;
+    const targetTableId = over.data.current?.tableId as string;
+
+    if (!targetTableId) return;
+
+    // Calculate new start time based on drag delta and original position
+    const [startH, startM] = reservation.startTime.split(':').map(Number);
+    const originalMinutesFromGridStart = (startH * 60 + startM) - config.startHour * 60;
+    const originalX = originalMinutesFromGridStart * config.pixelsPerMinute;
+    const newX = Math.max(0, originalX + delta.x);
+    const newStartTime = calculateTimeFromX(newX);
+
+    // Check if anything changed
+    const isSameTable = reservation.tableIds.includes(targetTableId);
+    const isSameTime = newStartTime === reservation.startTime;
+
+    if (isSameTable && isSameTime) return;
+
+    // Update reservation
+    const updated = updateReservationPosition(reservation.id, targetTableId, newStartTime);
+    
+    if (updated) {
+      toast({
+        title: "Reservering verplaatst",
+        description: `${getGuestDisplayName(reservation)} verplaatst naar tafel ${over.data.current?.tableId?.replace('table-', '')} om ${newStartTime}`,
+      });
+      // Force re-render to show updated positions
+      forceUpdate(n => n + 1);
+    }
+  }, [config, calculateTimeFromX, toast]);
+
+  const handleDragStart = useCallback((event: { active: { data: { current?: { reservation?: Reservation } } } }) => {
+    if (event.active.data.current?.reservation) {
+      setActiveReservation(event.active.data.current.reservation);
+    }
+  }, []);
+
   return (
-    <div className="relative h-full overflow-hidden border border-border rounded-lg bg-card">
-      <div
-        ref={containerRef}
-        className="h-full overflow-auto"
-      >
-        <div className="min-w-max relative" style={{ minWidth: `${totalWidth}px` }}>
-          {/* Grid lines - behind everything */}
-          <GridLines config={config} />
+    <DndContext 
+      onDragEnd={handleDragEnd} 
+      onDragStart={handleDragStart}
+      collisionDetection={pointerWithin}
+    >
+      <div className="relative h-full overflow-hidden border border-border rounded-lg bg-card">
+        <div
+          ref={containerRef}
+          className="h-full overflow-auto"
+        >
+          <div className="min-w-max relative" style={{ minWidth: `${totalWidth}px` }}>
+            {/* Grid lines - behind everything */}
+            <GridLines config={config} />
 
-          {/* Now indicator - above grid lines, below content */}
-          <NowIndicator config={config} />
+            {/* Now indicator - above grid lines, below content */}
+            <NowIndicator config={config} />
 
-          {/* Timeline header - sticky top */}
-          <TimelineHeader config={config} />
+            {/* Timeline header - sticky top */}
+            <TimelineHeader config={config} />
 
-          {/* Seated count row */}
-          <SeatedCountRow
-            date={dateString}
-            config={config}
-            isExpanded={seatedExpanded}
-            onToggle={() => setSeatedExpanded(!seatedExpanded)}
-          />
+            {/* Seated count row */}
+            <SeatedCountRow
+              date={dateString}
+              config={config}
+              isExpanded={seatedExpanded}
+              onToggle={() => setSeatedExpanded(!seatedExpanded)}
+            />
 
-          {/* Zones with tables */}
-          {zones.map((zone) => {
-            const tables = getTablesByZone(zone.id);
-            if (tables.length === 0) return null;
+            {/* Zones with tables */}
+            {zones.map((zone) => {
+              const tables = getTablesByZone(zone.id);
+              if (tables.length === 0) return null;
 
-            return (
-              <div key={zone.id}>
-                {/* Zone header */}
-                <ZoneHeader name={zone.name} config={config} />
+              return (
+                <div key={zone.id}>
+                  {/* Zone header */}
+                  <ZoneHeader name={zone.name} config={config} />
 
-                {/* Table rows */}
-                {tables.map((table, index) => (
-                  <TableRow
-                    key={table.id}
-                    table={table}
-                    date={dateString}
-                    config={config}
-                    onReservationClick={onReservationClick}
-                    isOdd={index % 2 === 1}
-                  />
-                ))}
-              </div>
-            );
-          })}
+                  {/* Table rows */}
+                  {tables.map((table, index) => (
+                    <TableRow
+                      key={table.id}
+                      table={table}
+                      date={dateString}
+                      config={config}
+                      onReservationClick={onReservationClick}
+                      isOdd={index % 2 === 1}
+                    />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+      
+      {/* Drag overlay */}
+      <DragOverlay>
+        {activeReservation ? (
+          <DraggedReservationOverlay reservation={activeReservation} />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
