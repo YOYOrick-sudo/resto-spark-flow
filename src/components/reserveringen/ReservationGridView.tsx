@@ -162,21 +162,21 @@ function SeatedCountRow({
 }
 
 // Zone header
-function ZoneHeader({ name, config }: { name: string; config: GridTimeConfig }) {
-  const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
-  
+function ZoneHeader({ name }: { name: string }) {
   return (
-    <div className="flex bg-secondary/80 border-b border-t border-border">
+    <div className="flex bg-secondary border-b border-t border-border h-8">
+      {/* Sticky zone label - blijft altijd zichtbaar bij horizontaal scrollen */}
       <div 
-        className="sticky left-0 z-10 flex-shrink-0 bg-secondary/80 border-r-2 border-border"
+        className="sticky left-0 z-20 flex-shrink-0 bg-secondary border-r-2 border-border flex items-center px-3"
         style={{ width: `${STICKY_COL_WIDTH}px` }}
-      />
-      <div
-        className="flex items-center px-3 py-2 flex-shrink-0"
-        style={{ width: `${gridWidth}px` }}
       >
-        <span className="text-xs font-bold text-foreground uppercase tracking-wide">{name}</span>
+        <span className="text-xs font-bold text-foreground uppercase tracking-wide">
+          {name}
+        </span>
       </div>
+      
+      {/* Rest van de rij (leeg, alleen voor grid-achtergrond) */}
+      <div className="flex-1" />
     </div>
   );
 }
@@ -376,7 +376,7 @@ export function ReservationGridView({
               return (
                 <div key={zone.id}>
                   {/* Zone header */}
-                  <ZoneHeader name={zone.name} config={config} />
+                  <ZoneHeader name={zone.name} />
 
                   {/* Table rows */}
                   {tables.map((table, index) => (
