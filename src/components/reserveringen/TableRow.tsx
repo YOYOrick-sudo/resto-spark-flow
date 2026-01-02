@@ -15,6 +15,7 @@ interface TableRowProps {
   date: string;
   config?: GridTimeConfig;
   onReservationClick?: (reservation: Reservation) => void;
+  onReservationResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
   isOdd?: boolean;
 }
 
@@ -36,6 +37,7 @@ export function TableRow({
   date,
   config = defaultGridConfig,
   onReservationClick,
+  onReservationResize,
   isOdd = false,
 }: TableRowProps) {
   const reservations = useMemo(
@@ -98,6 +100,7 @@ export function TableRow({
               reservation={reservation}
               config={config}
               onClick={onReservationClick}
+              onResize={onReservationResize}
             />
           ))}
       </div>
