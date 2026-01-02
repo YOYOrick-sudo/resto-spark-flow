@@ -745,18 +745,26 @@ export const mockReservations: Reservation[] = [
   },
 ];
 
-// Mutable copy for drag & drop updates
-let mutableReservations = [...mockReservations];
+// Mutable copy for drag & drop updates - lazy initialized
+let mutableReservations: Reservation[] | null = null;
+
+function getMutableReservations(): Reservation[] {
+  if (mutableReservations === null) {
+    mutableReservations = [...mockReservations];
+  }
+  return mutableReservations;
+}
 
 export function updateReservationPosition(
   reservationId: string,
   newTableId: string,
   newStartTime: string
 ): Reservation | null {
-  const resIndex = mutableReservations.findIndex(r => r.id === reservationId);
+  const reservations = getMutableReservations();
+  const resIndex = reservations.findIndex(r => r.id === reservationId);
   if (resIndex === -1) return null;
 
-  const reservation = mutableReservations[resIndex];
+  const reservation = reservations[resIndex];
   
   // Calculate duration to preserve it
   const [startH, startM] = reservation.startTime.split(':').map(Number);
@@ -778,13 +786,13 @@ export function updateReservationPosition(
     endTime: newEndTime,
   };
   
-  mutableReservations[resIndex] = updatedReservation;
+  reservations[resIndex] = updatedReservation;
   
   return updatedReservation;
 }
 
 export function getReservationsForTableMutable(date: string, tableId: string): Reservation[] {
-  return mutableReservations.filter(
+  return getMutableReservations().filter(
     r => r.date === date && r.tableIds.includes(tableId)
   );
 }
