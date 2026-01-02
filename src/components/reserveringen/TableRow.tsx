@@ -18,6 +18,7 @@ interface TableRowProps {
   onReservationResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
   onEmptySlotClick?: (tableId: string, time: string) => void;
   isOdd?: boolean;
+  activeReservationId?: string | null; // ID of reservation being dragged
 }
 
 // Constants - must match ReservationGridView
@@ -53,6 +54,7 @@ export function TableRow({
   onReservationResize,
   onEmptySlotClick,
   isOdd = false,
+  activeReservationId = null,
 }: TableRowProps) {
   const reservations = useMemo(
     () => getReservationsForTableMutable(date, table.id),
@@ -140,6 +142,7 @@ export function TableRow({
                 config={config}
                 onClick={onReservationClick}
                 onResize={onReservationResize}
+                isBeingDragged={reservation.id === activeReservationId}
               />
             ))}
         </div>
