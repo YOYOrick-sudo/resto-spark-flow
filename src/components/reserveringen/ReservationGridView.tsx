@@ -112,11 +112,24 @@ function SeatedCountRow({
   onToggle: () => void;
 }) {
   const hourLabels = useMemo(() => getHourLabels(config), [config]);
-  const hourWidth = 60 * config.pixelsPerMinute;
+  const quarterWidth = 15 * config.pixelsPerMinute;
+
+  // Generate 15-minute intervals for each hour
+  const quarterSlots = useMemo(() => {
+    const slots: string[] = [];
+    for (const hour of hourLabels) {
+      const h = parseInt(hour.split(':')[0]);
+      slots.push(`${h.toString().padStart(2, '0')}:00`);
+      slots.push(`${h.toString().padStart(2, '0')}:15`);
+      slots.push(`${h.toString().padStart(2, '0')}:30`);
+      slots.push(`${h.toString().padStart(2, '0')}:45`);
+    }
+    return slots;
+  }, [hourLabels]);
 
   const seatedCounts = useMemo(() => {
-    return hourLabels.map((hour) => getSeatedCountAtTime(date, hour));
-  }, [date, hourLabels]);
+    return quarterSlots.map((time) => getSeatedCountAtTime(date, time));
+  }, [date, quarterSlots]);
 
   return (
     <div className="flex border-b border-border bg-secondary">
@@ -138,21 +151,21 @@ function SeatedCountRow({
         </button>
       </div>
       
-      {/* Seated counts per hour */}
+      {/* Seated counts per 15 minutes */}
       <div className="flex">
         {seatedCounts.map((count, index) => (
           <div
             key={index}
             className={cn(
-              "text-sm font-semibold flex items-center justify-center py-2 border-l border-border",
+              "text-xs font-semibold flex items-center justify-center py-2",
+              index % 4 === 0 ? "border-l border-border" : "border-l border-border/30",
               index === 0 && "border-l-0"
             )}
-            style={{ width: `${hourWidth}px` }}
+            style={{ width: `${quarterWidth}px` }}
           >
             <span
               className={cn(
-                "min-w-6 text-center px-2 py-0.5 rounded-full text-xs",
-                count > 0 && "bg-primary/15 text-primary font-bold",
+                count > 0 && "text-foreground font-bold",
                 count === 0 && "text-muted-foreground"
               )}
             >
