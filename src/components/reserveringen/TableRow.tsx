@@ -64,7 +64,7 @@ export function TableRow({
       {/* Sticky left column - Table info - horizontal layout */}
       <div 
         className={cn(
-          "sticky left-0 z-10 flex-shrink-0 flex items-center justify-between px-3 border-r-2 border-border",
+          "sticky left-0 z-30 flex-shrink-0 flex items-center justify-between px-3 border-r-2 border-border",
           isOdd ? "bg-muted/20" : "bg-card"
         )}
         style={{ width: `${STICKY_COL_WIDTH}px` }}
