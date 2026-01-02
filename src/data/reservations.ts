@@ -791,6 +791,70 @@ export function updateReservationPosition(
   return updatedReservation;
 }
 
+// Update reservation duration (for resize)
+export function updateReservationDuration(
+  reservationId: string,
+  newStartTime: string,
+  newEndTime: string
+): Reservation | null {
+  const reservations = getMutableReservations();
+  const resIndex = reservations.findIndex(r => r.id === reservationId);
+  if (resIndex === -1) return null;
+
+  const reservation = reservations[resIndex];
+  
+  const updatedReservation: Reservation = {
+    ...reservation,
+    startTime: newStartTime,
+    endTime: newEndTime,
+  };
+  
+  reservations[resIndex] = updatedReservation;
+  return updatedReservation;
+}
+
+// Helper: Convert time string to minutes
+export function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+// Helper: Convert minutes to time string
+export function minutesToTime(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const displayHour = hours >= 24 ? hours - 24 : hours;
+  return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+// Check for time conflicts on a table
+export function checkTimeConflict(
+  tableId: string,
+  date: string,
+  startTime: string,
+  endTime: string,
+  excludeReservationId?: string
+): { hasConflict: boolean; conflictingReservation?: Reservation } {
+  const reservations = getReservationsForTableMutable(date, tableId)
+    .filter(r => r.id !== excludeReservationId)
+    .filter(r => r.status !== 'cancelled' && r.status !== 'no_show');
+
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
+
+  for (const res of reservations) {
+    const resStart = timeToMinutes(res.startTime);
+    const resEnd = timeToMinutes(res.endTime);
+
+    // Check overlap: two ranges overlap if start1 < end2 AND end1 > start2
+    if (startMinutes < resEnd && endMinutes > resStart) {
+      return { hasConflict: true, conflictingReservation: res };
+    }
+  }
+
+  return { hasConflict: false };
+}
+
 export function getReservationsForTableMutable(date: string, tableId: string): Reservation[] {
   return getMutableReservations().filter(
     r => r.date === date && r.tableIds.includes(tableId)

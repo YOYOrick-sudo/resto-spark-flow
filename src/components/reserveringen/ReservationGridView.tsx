@@ -11,6 +11,10 @@ import {
   getHourLabels,
   getGuestDisplayName,
   updateReservationPosition,
+  updateReservationDuration,
+  checkTimeConflict,
+  timeToMinutes,
+  minutesToTime,
   GridTimeConfig,
   defaultGridConfig,
 } from "@/data/reservations";
@@ -295,7 +299,7 @@ export function ReservationGridView({
     return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }, [config]);
 
-  // Handle drag end
+  // Handle drag end with collision detection
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over, delta } = event;
     setActiveReservation(null);
@@ -320,6 +324,28 @@ export function ReservationGridView({
 
     if (isSameTable && isSameTime) return;
 
+    // Calculate new end time
+    const durationMinutes = timeToMinutes(reservation.endTime) - timeToMinutes(reservation.startTime);
+    const newEndTime = minutesToTime(timeToMinutes(newStartTime) + durationMinutes);
+
+    // Check for collision BEFORE updating
+    const conflict = checkTimeConflict(
+      targetTableId,
+      reservation.date,
+      newStartTime,
+      newEndTime,
+      reservation.id
+    );
+
+    if (conflict.hasConflict) {
+      toast({
+        title: "Conflict gedetecteerd",
+        description: `Overlapt met reservering van ${getGuestDisplayName(conflict.conflictingReservation!)} (${conflict.conflictingReservation!.startTime} - ${conflict.conflictingReservation!.endTime})`,
+        variant: "destructive",
+      });
+      return; // Block the move
+    }
+
     // Update reservation
     const updated = updateReservationPosition(reservation.id, targetTableId, newStartTime);
     
@@ -332,6 +358,59 @@ export function ReservationGridView({
       forceUpdate(n => n + 1);
     }
   }, [config, calculateTimeFromX, toast]);
+
+  // Handle resize with collision detection
+  const handleResize = useCallback((
+    reservationId: string,
+    newStartTime: string,
+    newEndTime: string
+  ): boolean => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (!reservation) return false;
+
+    const tableId = reservation.tableIds[0];
+
+    // Validate minimum duration (15 minutes)
+    const startMins = timeToMinutes(newStartTime);
+    const endMins = timeToMinutes(newEndTime);
+    if (endMins - startMins < 15) {
+      toast({
+        title: "Te kort",
+        description: "Minimale duur is 15 minuten",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Check for collision
+    const conflict = checkTimeConflict(
+      tableId,
+      reservation.date,
+      newStartTime,
+      newEndTime,
+      reservationId
+    );
+
+    if (conflict.hasConflict) {
+      toast({
+        title: "Conflict gedetecteerd",
+        description: `Overlapt met reservering van ${getGuestDisplayName(conflict.conflictingReservation!)} (${conflict.conflictingReservation!.startTime} - ${conflict.conflictingReservation!.endTime})`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Update reservation
+    updateReservationDuration(reservationId, newStartTime, newEndTime);
+    
+    toast({
+      title: "Duur aangepast",
+      description: `${getGuestDisplayName(reservation)} nu van ${newStartTime} tot ${newEndTime}`,
+    });
+    
+    forceUpdate(n => n + 1);
+    return true;
+  }, [reservations, toast]);
 
   const handleDragStart = useCallback((event: { active: { data: { current?: { reservation?: Reservation } } } }) => {
     if (event.active.data.current?.reservation) {
@@ -386,6 +465,7 @@ export function ReservationGridView({
                       date={dateString}
                       config={config}
                       onReservationClick={onReservationClick}
+                      onReservationResize={handleResize}
                       isOdd={index % 2 === 1}
                     />
                   ))}
