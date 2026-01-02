@@ -27,6 +27,7 @@ export interface Table {
   minCapacity: number;
   maxCapacity: number;
   isActive: boolean;
+  isOnlineBookable: boolean;
 }
 
 export interface Reservation {
@@ -115,27 +116,27 @@ export const mockZones: Zone[] = [
 
 export const mockTables: Table[] = [
   // Binnen aan tafel (zone-1)
-  { id: 'table-1', number: 1, zoneId: 'zone-1', minCapacity: 2, maxCapacity: 2, isActive: true },
-  { id: 'table-2', number: 2, zoneId: 'zone-1', minCapacity: 2, maxCapacity: 4, isActive: true },
-  { id: 'table-3', number: 3, zoneId: 'zone-1', minCapacity: 4, maxCapacity: 6, isActive: true },
-  { id: 'table-4', number: 4, zoneId: 'zone-1', minCapacity: 2, maxCapacity: 2, isActive: true },
-  { id: 'table-5', number: 5, zoneId: 'zone-1', minCapacity: 6, maxCapacity: 8, isActive: true },
-  { id: 'table-6', number: 6, zoneId: 'zone-1', minCapacity: 2, maxCapacity: 4, isActive: true },
+  { id: 'table-1', number: 1, zoneId: 'zone-1', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: true },
+  { id: 'table-2', number: 2, zoneId: 'zone-1', minCapacity: 2, maxCapacity: 4, isActive: true, isOnlineBookable: true },
+  { id: 'table-3', number: 3, zoneId: 'zone-1', minCapacity: 4, maxCapacity: 6, isActive: true, isOnlineBookable: true },
+  { id: 'table-4', number: 4, zoneId: 'zone-1', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: false },
+  { id: 'table-5', number: 5, zoneId: 'zone-1', minCapacity: 6, maxCapacity: 8, isActive: true, isOnlineBookable: true },
+  { id: 'table-6', number: 6, zoneId: 'zone-1', minCapacity: 2, maxCapacity: 4, isActive: true, isOnlineBookable: true },
   // Chef's bar (zone-2)
-  { id: 'table-100', number: 100, zoneId: 'zone-2', minCapacity: 2, maxCapacity: 2, isActive: true },
-  { id: 'table-101', number: 101, zoneId: 'zone-2', minCapacity: 2, maxCapacity: 2, isActive: true },
-  { id: 'table-102', number: 102, zoneId: 'zone-2', minCapacity: 2, maxCapacity: 2, isActive: true },
-  { id: 'table-103', number: 103, zoneId: 'zone-2', minCapacity: 2, maxCapacity: 2, isActive: true },
+  { id: 'table-100', number: 100, zoneId: 'zone-2', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: true },
+  { id: 'table-101', number: 101, zoneId: 'zone-2', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: true },
+  { id: 'table-102', number: 102, zoneId: 'zone-2', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: false },
+  { id: 'table-103', number: 103, zoneId: 'zone-2', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: true },
   // Bar - voor het raam (zone-3)
-  { id: 'table-200', number: 200, zoneId: 'zone-3', minCapacity: 2, maxCapacity: 2, isActive: true },
-  { id: 'table-201', number: 201, zoneId: 'zone-3', minCapacity: 2, maxCapacity: 4, isActive: true },
-  { id: 'table-202', number: 202, zoneId: 'zone-3', minCapacity: 2, maxCapacity: 2, isActive: true },
+  { id: 'table-200', number: 200, zoneId: 'zone-3', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: true },
+  { id: 'table-201', number: 201, zoneId: 'zone-3', minCapacity: 2, maxCapacity: 4, isActive: true, isOnlineBookable: true },
+  { id: 'table-202', number: 202, zoneId: 'zone-3', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: false },
   // Terras (zone-4)
-  { id: 'table-300', number: 300, zoneId: 'zone-4', minCapacity: 2, maxCapacity: 4, isActive: true },
-  { id: 'table-301', number: 301, zoneId: 'zone-4', minCapacity: 4, maxCapacity: 6, isActive: true },
-  { id: 'table-302', number: 302, zoneId: 'zone-4', minCapacity: 2, maxCapacity: 2, isActive: true },
-  { id: 'table-303', number: 303, zoneId: 'zone-4', minCapacity: 2, maxCapacity: 4, isActive: true },
-  { id: 'table-304', number: 304, zoneId: 'zone-4', minCapacity: 6, maxCapacity: 8, isActive: true },
+  { id: 'table-300', number: 300, zoneId: 'zone-4', minCapacity: 2, maxCapacity: 4, isActive: true, isOnlineBookable: true },
+  { id: 'table-301', number: 301, zoneId: 'zone-4', minCapacity: 4, maxCapacity: 6, isActive: true, isOnlineBookable: true },
+  { id: 'table-302', number: 302, zoneId: 'zone-4', minCapacity: 2, maxCapacity: 2, isActive: true, isOnlineBookable: true },
+  { id: 'table-303', number: 303, zoneId: 'zone-4', minCapacity: 2, maxCapacity: 4, isActive: true, isOnlineBookable: true },
+  { id: 'table-304', number: 304, zoneId: 'zone-4', minCapacity: 6, maxCapacity: 8, isActive: true, isOnlineBookable: true },
 ];
 
 export const mockShifts: ShiftConfig[] = [
@@ -743,6 +744,50 @@ export const mockReservations: Reservation[] = [
     createdAt: '2024-12-28T19:00:00Z',
   },
 ];
+
+// Mutable copy for drag & drop updates
+let mutableReservations = [...mockReservations];
+
+export function updateReservationPosition(
+  reservationId: string,
+  newTableId: string,
+  newStartTime: string
+): Reservation | null {
+  const resIndex = mutableReservations.findIndex(r => r.id === reservationId);
+  if (resIndex === -1) return null;
+
+  const reservation = mutableReservations[resIndex];
+  
+  // Calculate duration to preserve it
+  const [startH, startM] = reservation.startTime.split(':').map(Number);
+  const [endH, endM] = reservation.endTime.split(':').map(Number);
+  const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+  
+  // Calculate new end time
+  const [newStartH, newStartM] = newStartTime.split(':').map(Number);
+  const newEndMinutes = newStartH * 60 + newStartM + durationMinutes;
+  const newEndH = Math.floor(newEndMinutes / 60);
+  const newEndM = newEndMinutes % 60;
+  const newEndTime = `${newEndH.toString().padStart(2, '0')}:${newEndM.toString().padStart(2, '0')}`;
+  
+  // Update reservation
+  const updatedReservation: Reservation = {
+    ...reservation,
+    tableIds: [newTableId],
+    startTime: newStartTime,
+    endTime: newEndTime,
+  };
+  
+  mutableReservations[resIndex] = updatedReservation;
+  
+  return updatedReservation;
+}
+
+export function getReservationsForTableMutable(date: string, tableId: string): Reservation[] {
+  return mutableReservations.filter(
+    r => r.date === date && r.tableIds.includes(tableId)
+  );
+}
 
 // --- Helper Functions ---
 

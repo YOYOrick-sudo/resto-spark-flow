@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useDraggable } from "@dnd-kit/core";
 import { Phone, Star, UserCheck, Footprints } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -27,6 +28,12 @@ export function ReservationBlock({
 
   const guestName = getGuestDisplayName(reservation);
 
+  // Make it draggable
+  const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({
+    id: reservation.id,
+    data: { reservation },
+  });
+
   // Status-based styling
   const getBlockStyles = () => {
     switch (reservation.status) {
@@ -50,18 +57,30 @@ export function ReservationBlock({
 
   const isClickable = reservation.status !== "cancelled" && reservation.status !== "completed";
 
+  const style = {
+    left: `${position.left}px`,
+    width: `${Math.max(position.width - 4, 50)}px`,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+  };
+
   return (
     <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
       className={cn(
-        "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] px-2 flex items-center gap-1.5 text-xs overflow-hidden transition-all",
+        "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] px-2 flex items-center gap-1.5 text-xs overflow-hidden transition-all select-none",
         getBlockStyles(),
-        isClickable && "cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:z-20"
+        isClickable && "cursor-grab hover:shadow-lg hover:scale-[1.02] hover:z-20",
+        isDragging && "opacity-50 cursor-grabbing z-50 shadow-xl"
       )}
-      style={{
-        left: `${position.left}px`,
-        width: `${Math.max(position.width - 4, 50)}px`,
+      style={style}
+      onClick={(e) => {
+        if (!isDragging && isClickable) {
+          e.stopPropagation();
+          onClick?.(reservation);
+        }
       }}
-      onClick={() => isClickable && onClick?.(reservation)}
       title={`${guestName} - ${reservation.guests}p - ${reservation.startTime}-${reservation.endTime}`}
     >
       {/* Seated/Walk-in icon */}
