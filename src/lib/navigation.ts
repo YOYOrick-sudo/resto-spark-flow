@@ -25,6 +25,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'service-tasks': '/taken',
   'settings-voorkeuren': '/instellingen/voorkeuren',
   'settings-keuken': '/instellingen/keuken',
+  'settings-reserveringen': '/instellingen/reserveringen',
   'settings-inkoop': '/instellingen/inkoop',
   'settings-leveranciers': '/instellingen/leveranciers',
 };
@@ -118,7 +119,7 @@ export const menuItems: MenuItem[] = [
     subItems: [
       { id: 'settings-voorkeuren', label: 'Voorkeuren', path: '/instellingen/voorkeuren' },
       { id: 'settings-keuken', label: 'Keuken', path: '/instellingen/keuken' },
-      { id: 'settings-reserveringen', label: 'Reserveringen', disabled: true },
+      { id: 'settings-reserveringen', label: 'Reserveringen', path: '/instellingen/reserveringen' },
       { id: 'settings-recepten', label: 'Recepten', disabled: true },
       { id: 'settings-labels', label: 'Labels & Printen', disabled: true },
       { id: 'settings-finance', label: 'Finance', disabled: true },

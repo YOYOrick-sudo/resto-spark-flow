@@ -22,6 +22,7 @@ import KaartbeheerDetail from "./pages/KaartbeheerDetail";
 import Taken from "./pages/Taken";
 import SettingsVoorkeuren from "./pages/SettingsVoorkeuren";
 import SettingsKeuken from "./pages/SettingsKeuken";
+import SettingsReserveringen from "./pages/SettingsReserveringen";
 import SettingsInkoop from "./pages/SettingsInkoop";
 import SettingsLeveranciers from "./pages/SettingsLeveranciers";
 import NotFound from "./pages/NotFound";
@@ -78,6 +79,7 @@ const App = () => (
               {/* Settings */}
               <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
               <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
+              <Route path="/instellingen/reserveringen" element={<SettingsReserveringen />} />
               <Route path="/instellingen/inkoop" element={<SettingsInkoop />} />
               <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
             </Route>
