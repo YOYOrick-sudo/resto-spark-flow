@@ -19,6 +19,7 @@ interface TableRowProps {
   onEmptySlotClick?: (tableId: string, time: string) => void;
   isOdd?: boolean;
   activeReservationId?: string | null; // ID of reservation being dragged
+  isDropTarget?: boolean; // True when ghost is hovering over this table
 }
 
 // Constants - must match ReservationGridView
@@ -55,6 +56,7 @@ export function TableRow({
   onEmptySlotClick,
   isOdd = false,
   activeReservationId = null,
+  isDropTarget = false,
 }: TableRowProps) {
   const reservations = useMemo(
     () => getReservationsForTableMutable(date, table.id),
@@ -80,8 +82,9 @@ export function TableRow({
   return (
     <div
       className={cn(
-        "flex border-b border-border/50 h-14",
-        isOdd ? "bg-secondary" : "bg-card"
+        "flex border-b border-border/50 h-14 transition-colors duration-100",
+        isOdd ? "bg-secondary" : "bg-card",
+        isDropTarget && "bg-primary/5"
       )}
     >
       {/* Sticky left column - Table info - horizontal layout */}
