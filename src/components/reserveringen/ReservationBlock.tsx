@@ -168,6 +168,8 @@ export function ReservationBlock({
       className={cn(
         "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] flex items-center gap-1.5 text-xs overflow-hidden select-none group pointer-events-auto",
         getBlockStyles(),
+        // Smooth fade transition for drag state
+        "transition-opacity duration-150",
         // When being dragged, show as faded placeholder
         isBeingDragged && "opacity-30 pointer-events-none",
         // Normal interactive states

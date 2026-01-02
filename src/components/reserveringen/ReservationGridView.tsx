@@ -9,7 +9,8 @@ interface GhostPosition {
   tableId: string;
   startTime: string;
   endTime: string;
-  left: number;
+  left: number;        // Exact cursor position (smooth)
+  snappedLeft: number; // Where it will snap to
   width: number;
   topOffset: number;
 }
@@ -322,7 +323,7 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
   );
 }
 
-// Ghost preview component - GPU accelerated for smooth rendering
+// Ghost preview component - GPU accelerated with smooth cursor following
 function GhostPreview({ 
   position, 
   hasConflict,
@@ -332,40 +333,59 @@ function GhostPreview({
   hasConflict: boolean;
   guestCount: number;
 }) {
+  const showSnapIndicator = Math.abs(position.left - position.snappedLeft) > 2;
+  
   return (
-    <div
-      className={cn(
-        "absolute rounded-md pointer-events-none will-change-transform",
-        "shadow-lg",
-        hasConflict 
-          ? "bg-destructive/30 border-2 border-destructive" 
-          : "bg-primary/30 border-2 border-primary"
-      )}
-      style={{
-        // Use transform for GPU acceleration
-        transform: `translate3d(${STICKY_COL_WIDTH + position.left}px, ${position.topOffset}px, 0)`,
-        width: `${position.width}px`,
-        height: '36px',
-        zIndex: 50,
-        left: 0,
-        top: 0,
-      }}
-    >
-      <div className="flex items-center justify-between h-full px-2.5">
-        <span className={cn(
-          "font-bold text-sm",
-          hasConflict ? "text-destructive" : "text-primary"
-        )}>
-          {guestCount}p
-        </span>
-        <span className={cn(
-          "text-xs font-medium",
-          hasConflict ? "text-destructive" : "text-primary"
-        )}>
-          {position.startTime}
-        </span>
+    <>
+      {/* Main ghost - follows cursor smoothly */}
+      <div
+        className={cn(
+          "absolute rounded-md pointer-events-none will-change-transform",
+          "shadow-lg animate-in fade-in-0 duration-150",
+          hasConflict 
+            ? "bg-destructive/40 border-2 border-destructive" 
+            : "bg-primary/40 border-2 border-primary"
+        )}
+        style={{
+          transform: `translate3d(${STICKY_COL_WIDTH + position.left}px, ${position.topOffset}px, 0)`,
+          width: `${position.width}px`,
+          height: '36px',
+          zIndex: 50,
+          left: 0,
+          top: 0,
+        }}
+      >
+        <div className="flex items-center justify-between h-full px-2.5">
+          <span className={cn(
+            "font-bold text-sm",
+            hasConflict ? "text-destructive" : "text-primary"
+          )}>
+            {guestCount}p
+          </span>
+          <span className={cn(
+            "text-xs font-medium",
+            hasConflict ? "text-destructive" : "text-primary"
+          )}>
+            {position.startTime}
+          </span>
+        </div>
       </div>
-    </div>
+      
+      {/* Snap indicator - shows where reservation will land */}
+      {showSnapIndicator && (
+        <div
+          className="absolute rounded-md pointer-events-none border-2 border-dashed border-primary/40 will-change-transform"
+          style={{
+            transform: `translate3d(${STICKY_COL_WIDTH + position.snappedLeft}px, ${position.topOffset}px, 0)`,
+            width: `${position.width}px`,
+            height: '36px',
+            zIndex: 45,
+            left: 0,
+            top: 0,
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -445,7 +465,7 @@ export function ReservationGridView({
     return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }, [config]);
 
-  // Handle drag move - update ghost preview position using delta
+  // Handle drag move - ghost follows cursor exactly, snap indicator shows landing
   const handleDragMove = useCallback((event: DragMoveEvent) => {
     const { active, over, delta } = event;
     
@@ -467,10 +487,14 @@ export function ReservationGridView({
     const reservationWidth = durationMinutes * config.pixelsPerMinute;
     const originalStartMinutes = timeToMinutes(reservation.startTime) - config.startHour * 60;
     const originalLeft = originalStartMinutes * config.pixelsPerMinute;
+    const maxLeft = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute - reservationWidth;
     
-    // Add delta to original position, snap to 15 min
-    const newLeft = originalLeft + (delta?.x || 0);
-    const snappedMinutes = Math.round(newLeft / config.pixelsPerMinute / 15) * 15;
+    // Ghost follows cursor EXACTLY (smooth, no snapping)
+    const exactLeft = originalLeft + (delta?.x || 0);
+    const clampedLeft = Math.max(0, Math.min(exactLeft, maxLeft));
+    
+    // Calculate where it WOULD snap (for indicator)
+    const snappedMinutes = Math.round(clampedLeft / config.pixelsPerMinute / 15) * 15;
     const clampedMinutes = Math.max(0, Math.min(snappedMinutes, (config.endHour - config.startHour) * 60 - durationMinutes));
     const snappedLeft = clampedMinutes * config.pixelsPerMinute;
     
@@ -481,7 +505,8 @@ export function ReservationGridView({
       tableId: targetTableId,
       startTime: newStartTime,
       endTime: newEndTime,
-      left: snappedLeft,
+      left: clampedLeft,        // Exact cursor position (smooth)
+      snappedLeft: snappedLeft, // Where it will snap
       width: reservationWidth,
       topOffset: tablePositions[targetTableId],
     });
@@ -622,11 +647,12 @@ export function ReservationGridView({
     }
   }, []);
 
-  // Sensor with activation constraint to prevent accidental drags
+  // Sensor with refined activation constraint
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Must move 8px before drag starts
+        distance: 5, // Lower threshold for quicker response
+        tolerance: 5,
       },
     })
   );
@@ -739,6 +765,7 @@ export function ReservationGridView({
                       onEmptySlotClick={handleEmptySlotClick}
                       isOdd={index % 2 === 1}
                       activeReservationId={activeReservation?.id}
+                      isDropTarget={ghostPosition?.tableId === table.id}
                     />
                   ))}
                 </div>
