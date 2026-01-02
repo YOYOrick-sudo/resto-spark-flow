@@ -1060,3 +1060,17 @@ export function getHourLabels(config: GridTimeConfig = defaultGridConfig): strin
   }
   return hours;
 }
+
+// Add a new reservation to the mutable list
+export function addReservation(
+  data: Omit<Reservation, 'id' | 'createdAt'>
+): Reservation {
+  const reservations = getMutableReservations();
+  const newReservation: Reservation = {
+    ...data,
+    id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    createdAt: new Date().toISOString(),
+  };
+  reservations.push(newReservation);
+  return newReservation;
+}
