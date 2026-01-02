@@ -119,10 +119,10 @@ function SeatedCountRow({
   }, [date, hourLabels]);
 
   return (
-    <div className="flex border-b border-border bg-muted/50">
+    <div className="flex border-b border-border bg-secondary">
       {/* Label cell */}
       <div 
-        className="sticky left-0 z-10 flex-shrink-0 flex items-center justify-between px-3 py-2 bg-muted/50 border-r-2 border-border"
+        className="sticky left-0 z-30 flex-shrink-0 flex items-center justify-between px-3 py-2 bg-secondary border-r-2 border-border"
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       >
         <span className="text-xs font-semibold text-muted-foreground">Seated</span>
