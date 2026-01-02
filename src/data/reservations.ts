@@ -909,6 +909,12 @@ export function getTablesByZone(zoneId: string): Table[] {
     .sort((a, b) => a.number - b.number);
 }
 
+export function getTotalMaxCapacity(): number {
+  return mockTables
+    .filter(t => t.isActive)
+    .reduce((sum, table) => sum + table.maxCapacity, 0);
+}
+
 export function getActiveZones(): Zone[] {
   return mockZones
     .filter(z => z.isActive)

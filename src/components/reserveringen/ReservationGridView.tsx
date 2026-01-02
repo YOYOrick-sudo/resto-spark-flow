@@ -15,6 +15,7 @@ import {
   checkTimeConflict,
   timeToMinutes,
   minutesToTime,
+  getTotalMaxCapacity,
   GridTimeConfig,
   defaultGridConfig,
 } from "@/data/reservations";
@@ -124,6 +125,15 @@ function TimelineHeader({ config }: { config: GridTimeConfig }) {
 }
 
 // Seated count row
+// Helper function to get occupancy color based on capacity percentage
+function getOccupancyColor(count: number, capacity: number): string {
+  if (count === 0) return "text-muted-foreground";
+  const percentage = (count / capacity) * 100;
+  if (percentage <= 50) return "text-success font-bold";
+  if (percentage <= 80) return "text-warning font-bold";
+  return "text-destructive font-bold";
+}
+
 function SeatedCountRow({
   date,
   config,
@@ -137,6 +147,7 @@ function SeatedCountRow({
 }) {
   const hourLabels = useMemo(() => getHourLabels(config), [config]);
   const quarterWidth = 15 * config.pixelsPerMinute;
+  const totalCapacity = useMemo(() => getTotalMaxCapacity(), []);
 
   // Generate 15-minute intervals for each hour
   const quarterSlots = useMemo(() => {
@@ -181,18 +192,13 @@ function SeatedCountRow({
           <div
             key={index}
             className={cn(
-              "text-xs font-semibold flex items-center justify-center py-2",
+              "text-xs flex items-center justify-center py-2",
               index % 4 === 0 ? "border-l border-border" : "border-l border-border/50",
               index === 0 && "border-l-0"
             )}
             style={{ width: `${quarterWidth}px` }}
           >
-            <span
-              className={cn(
-                count > 0 && "text-foreground font-bold",
-                count === 0 && "text-muted-foreground"
-              )}
-            >
+            <span className={getOccupancyColor(count, totalCapacity)}>
               {count}
             </span>
           </div>
