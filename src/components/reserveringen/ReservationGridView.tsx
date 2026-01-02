@@ -53,11 +53,11 @@ function GridLines({ config }: { config: GridTimeConfig }) {
             className="absolute top-0 bottom-0 w-px bg-border"
             style={{ left: `${hourIndex * hourWidth}px` }}
           />
-          {/* Quarter hour lines - lighter */}
+          {/* Quarter hour lines - more visible */}
           {[1, 2, 3].map((q) => (
             <div
               key={q}
-              className="absolute top-0 bottom-0 w-px bg-border/30"
+              className="absolute top-0 bottom-0 w-px bg-border/50"
               style={{ left: `${hourIndex * hourWidth + q * quarterWidth}px` }}
             />
           ))}
@@ -67,10 +67,12 @@ function GridLines({ config }: { config: GridTimeConfig }) {
   );
 }
 
-// Timeline header with hour labels
+// Timeline header with hour labels centered on lines (Formitable-style)
 function TimelineHeader({ config }: { config: GridTimeConfig }) {
   const hourLabels = useMemo(() => getHourLabels(config), [config]);
   const hourWidth = 60 * config.pixelsPerMinute;
+  const quarterWidth = 15 * config.pixelsPerMinute;
+  const totalWidth = hourLabels.length * hourWidth;
 
   return (
     <div className="sticky top-0 z-20 flex border-b-2 border-border bg-card">
@@ -80,18 +82,40 @@ function TimelineHeader({ config }: { config: GridTimeConfig }) {
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       />
       
-      {/* Hour labels */}
-      <div className="flex h-10">
+      {/* Timeline with quarter lines and centered hour labels */}
+      <div className="relative h-10" style={{ width: `${totalWidth}px` }}>
+        {/* Quarter hour vertical lines */}
+        {hourLabels.map((_, hourIndex) => (
+          <div key={hourIndex} className="absolute top-0 bottom-0">
+            {/* Hour line (thicker) */}
+            <div
+              className="absolute top-0 bottom-0 w-px bg-border"
+              style={{ left: `${hourIndex * hourWidth}px` }}
+            />
+            {/* Quarter lines (visible but lighter) */}
+            {[1, 2, 3].map((q) => (
+              <div
+                key={q}
+                className="absolute top-0 bottom-0 w-px bg-border/50"
+                style={{ left: `${hourIndex * hourWidth + q * quarterWidth}px` }}
+              />
+            ))}
+          </div>
+        ))}
+        
+        {/* Hour labels - centered on the hour lines */}
         {hourLabels.map((hour, index) => (
           <div
             key={hour}
-            className={cn(
-              "text-sm font-semibold text-muted-foreground flex items-center pl-2 border-l border-border",
-              index === 0 && "border-l-0"
-            )}
-            style={{ width: `${hourWidth}px` }}
+            className="absolute top-0 h-10 flex items-center justify-center"
+            style={{ 
+              left: `${index * hourWidth}px`,
+              transform: 'translateX(-50%)'
+            }}
           >
-            {hour}
+            <span className="text-sm font-semibold text-muted-foreground bg-card px-1.5">
+              {hour}
+            </span>
           </div>
         ))}
       </div>
@@ -158,7 +182,7 @@ function SeatedCountRow({
             key={index}
             className={cn(
               "text-xs font-semibold flex items-center justify-center py-2",
-              index % 4 === 0 ? "border-l border-border" : "border-l border-border/30",
+              index % 4 === 0 ? "border-l border-border" : "border-l border-border/50",
               index === 0 && "border-l-0"
             )}
             style={{ width: `${quarterWidth}px` }}
