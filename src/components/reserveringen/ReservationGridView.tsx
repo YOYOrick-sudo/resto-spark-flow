@@ -174,7 +174,7 @@ function ZoneHeader({ name }: { name: string }) {
         className="sticky left-0 z-20 flex-shrink-0 bg-secondary border-r-2 border-border flex items-center px-3"
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       >
-        <span className="text-xs font-bold text-foreground uppercase tracking-wide">
+        <span className="text-xs font-bold text-foreground uppercase tracking-wide whitespace-nowrap">
           {name}
         </span>
       </div>
