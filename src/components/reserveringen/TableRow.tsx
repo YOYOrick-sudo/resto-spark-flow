@@ -15,6 +15,7 @@ interface TableRowProps {
   date: string;
   config?: GridTimeConfig;
   onReservationClick?: (reservation: Reservation) => void;
+  onReservationCheckIn?: (reservation: Reservation) => void;
   onReservationResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
   onEmptySlotClick?: (tableId: string, time: string) => void;
   isOdd?: boolean;
@@ -55,6 +56,7 @@ export function TableRow({
   date,
   config = defaultGridConfig,
   onReservationClick,
+  onReservationCheckIn,
   onReservationResize,
   onEmptySlotClick,
   isOdd = false,
@@ -152,6 +154,7 @@ export function TableRow({
                 reservation={reservation}
                 config={config}
                 onClick={onReservationClick}
+                onCheckIn={onReservationCheckIn}
                 onResize={onReservationResize}
                 isBeingDragged={reservation.id === activeReservationId || (isDropAnimating && reservation.id === activeReservationId)}
               />

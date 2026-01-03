@@ -16,6 +16,7 @@ interface ReservationBlockProps {
   reservation: Reservation;
   config?: GridTimeConfig;
   onClick?: (reservation: Reservation) => void;
+  onCheckIn?: (reservation: Reservation) => void;
   onResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
   isBeingDragged?: boolean;
 }
@@ -25,6 +26,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
     reservation,
     config = defaultGridConfig,
     onClick,
+    onCheckIn,
     onResize,
     isBeingDragged = false,
   }, forwardedRef) {
@@ -80,6 +82,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
 
   const isClickable = reservation.status !== "cancelled" && reservation.status !== "completed";
   const canResize = isClickable && onResize;
+  const canCheckIn = (reservation.status === "confirmed" || reservation.status === "pending") && onCheckIn;
 
   // Calculate snapped time from pixel delta
   const calculateNewTimes = useCallback((side: 'left' | 'right', delta: number) => {
@@ -195,7 +198,15 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
           onClick?.(reservation);
         }
       }}
-      title={`${guestName} - ${reservation.guests}p - ${reservation.startTime}-${reservation.endTime}`}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        if (!isDragging && !isResizing && canCheckIn) {
+          onCheckIn?.(reservation);
+        }
+      }}
+      title={canCheckIn 
+        ? `${guestName} - ${reservation.guests}p - Dubbelklik om in te checken` 
+        : `${guestName} - ${reservation.guests}p - ${reservation.startTime}-${reservation.endTime}`}
     >
       {/* Left resize handle */}
       {canResize && (
