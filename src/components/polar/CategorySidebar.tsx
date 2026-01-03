@@ -53,19 +53,13 @@ export function CategorySidebar({
               role="option"
               aria-selected={isSelected}
               className={cn(
-                "flex w-full items-center justify-between text-left transition-all duration-150",
+                "flex w-full items-center justify-between text-left py-3 px-4 rounded-button text-[15px] transition-all duration-150 border-[1.5px]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isSelected
-                  ? "bg-accent text-foreground"
-                  : "bg-transparent text-muted-foreground hover:bg-accent",
+                  ? "bg-card border-primary text-primary font-medium"
+                  : "bg-transparent border-transparent text-muted-foreground hover:bg-accent/60",
                 item.disabled && "cursor-not-allowed opacity-50"
               )}
-              style={{
-                padding: "10px 12px",
-                borderRadius: "8px",
-                fontSize: "15px",
-                fontWeight: isSelected ? 500 : 400,
-              }}
             >
               <div className="flex items-center gap-2.5">
                 {item.icon && (
@@ -86,10 +80,9 @@ export function CategorySidebar({
                 {item.count !== undefined && (
                   <span
                     className={cn(
-                      "text-small font-semibold",
+                      "text-[13px] font-semibold",
                       isSelected ? "text-primary" : "text-muted-foreground"
                     )}
-                    style={{ fontSize: "13px" }}
                   >
                     {item.count}
                   </span>
