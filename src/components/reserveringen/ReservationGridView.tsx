@@ -325,16 +325,23 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
   );
 }
 
-// Ghost preview component - GPU accelerated with smooth cursor following
+// Ghost preview component - GPU accelerated with smooth cursor following + drop animation
 function GhostPreview({ 
   position, 
   hasConflict,
-  guestCount 
+  guestCount,
+  isDropAnimating = false,
+  finalDropPosition,
 }: { 
   position: GhostPosition;
   hasConflict: boolean;
   guestCount: number;
+  isDropAnimating?: boolean;
+  finalDropPosition?: GhostPosition | null;
 }) {
+  // Use final position during drop animation, otherwise use current position
+  const displayPosition = isDropAnimating && finalDropPosition ? finalDropPosition : position;
+  
   return (
     <div
       className={cn(
@@ -342,18 +349,23 @@ function GhostPreview({
         "shadow-xl",
         hasConflict 
           ? "bg-destructive/70 border-2 border-destructive" 
-          : "bg-primary/70 border-2 border-primary"
+          : "bg-primary/70 border-2 border-primary",
+        // Fade out during drop animation
+        isDropAnimating && "opacity-0"
       )}
       style={{
         // Use snappedLeft for direct grid alignment - precise snapping
-        transform: `translate3d(${STICKY_COL_WIDTH + position.snappedLeft}px, ${position.topOffset}px, 0)`,
-        width: `${position.width}px`,
+        transform: `translate3d(${STICKY_COL_WIDTH + displayPosition.snappedLeft}px, ${displayPosition.topOffset}px, 0)`,
+        width: `${displayPosition.width}px`,
         height: '36px',
         zIndex: 50,
         left: 0,
         top: 0,
-        // Subtle transition for smooth snap feeling between intervals
-        transition: 'transform 50ms ease-out',
+        // During drop: settle to final position then fade out
+        // Normal: subtle transition for smooth snap feeling
+        transition: isDropAnimating 
+          ? 'transform 100ms ease-out, opacity 150ms ease-out 100ms' 
+          : 'transform 50ms ease-out',
       }}
     >
       <div className="flex items-center justify-between h-full px-2.5">
@@ -367,7 +379,7 @@ function GhostPreview({
           "text-xs font-medium",
           hasConflict ? "text-destructive-foreground" : "text-primary-foreground"
         )}>
-          {position.startTime}
+          {displayPosition.startTime}
         </span>
       </div>
     </div>
@@ -386,6 +398,11 @@ export function ReservationGridView({
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
   const [ghostPosition, setGhostPosition] = useState<GhostPosition | null>(null);
   const [localRefreshKey, setLocalRefreshKey] = useState(0);
+  
+  // Drop animation states
+  const [isDropAnimating, setIsDropAnimating] = useState(false);
+  const [finalDropPosition, setFinalDropPosition] = useState<GhostPosition | null>(null);
+  const [animatingReservationId, setAnimatingReservationId] = useState<string | null>(null);
   const { toast } = useToast();
   
   // Quick reservation panel state
@@ -519,21 +536,29 @@ export function ReservationGridView({
     return conflict.hasConflict;
   }, [ghostPosition, dateString, activeReservation]);
 
-  // Handle drag end - use same delta-based calculation as handleDragMove
+  // Handle drag end - use same delta-based calculation as handleDragMove with smooth drop animation
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over, delta } = event;
-    setActiveReservation(null);
-    setGhostPosition(null);
 
-    if (!over || !active.data.current?.reservation) return;
+    if (!over || !active.data.current?.reservation) {
+      // Cancel drag - just reset states
+      setActiveReservation(null);
+      setGhostPosition(null);
+      return;
+    }
 
     const reservation = active.data.current.reservation as Reservation;
     const targetTableId = over.data.current?.tableId as string;
 
-    if (!targetTableId) return;
+    if (!targetTableId) {
+      setActiveReservation(null);
+      setGhostPosition(null);
+      return;
+    }
 
     // Use same calculation as handleDragMove for consistency
     const durationMinutes = timeToMinutes(reservation.endTime) - timeToMinutes(reservation.startTime);
+    const reservationWidth = durationMinutes * config.pixelsPerMinute;
     const originalStartMinutes = timeToMinutes(reservation.startTime) - config.startHour * 60;
     const originalLeft = originalStartMinutes * config.pixelsPerMinute;
     const newLeft = originalLeft + (delta?.x || 0);
@@ -541,6 +566,7 @@ export function ReservationGridView({
     // Snap to 15-minute intervals
     const snappedMinutes = Math.round(newLeft / config.pixelsPerMinute / 15) * 15;
     const clampedMinutes = Math.max(0, Math.min(snappedMinutes, (config.endHour - config.startHour) * 60 - durationMinutes));
+    const snappedLeft = clampedMinutes * config.pixelsPerMinute;
     const newStartTime = minutesToTime(config.startHour * 60 + clampedMinutes);
     const newEndTime = minutesToTime(timeToMinutes(newStartTime) + durationMinutes);
 
@@ -548,7 +574,11 @@ export function ReservationGridView({
     const isSameTable = reservation.tableIds.includes(targetTableId);
     const isSameTime = newStartTime === reservation.startTime;
 
-    if (isSameTable && isSameTime) return;
+    if (isSameTable && isSameTime) {
+      setActiveReservation(null);
+      setGhostPosition(null);
+      return;
+    }
 
     // Check for collision BEFORE updating
     const conflict = checkTimeConflict(
@@ -565,21 +595,56 @@ export function ReservationGridView({
         description: `Overlapt met reservering van ${getGuestDisplayName(conflict.conflictingReservation!)} (${conflict.conflictingReservation!.startTime} - ${conflict.conflictingReservation!.endTime})`,
         variant: "destructive",
       });
+      setActiveReservation(null);
+      setGhostPosition(null);
       return;
     }
 
-    // Update reservation
+    // Update reservation data
     const updated = updateReservationPosition(reservation.id, targetTableId, newStartTime);
     
     if (updated) {
+      // Remember which reservation is being animated
+      setAnimatingReservationId(reservation.id);
+      
+      // Start drop animation - ghost settles to final position then fades out
+      setFinalDropPosition({
+        tableId: targetTableId,
+        startTime: newStartTime,
+        endTime: newEndTime,
+        left: snappedLeft,
+        snappedLeft: snappedLeft,
+        width: reservationWidth,
+        topOffset: tablePositions[targetTableId] || 0,
+      });
+      setIsDropAnimating(true);
+      
+      // Phase 1 (0-100ms): Ghost settles to snap position
+      // Phase 2 (100-250ms): Ghost fades out while new data appears
+      setTimeout(() => {
+        // Refresh data to show new position
+        setLocalRefreshKey(k => k + 1);
+        
+        // After fade-out completes, cleanup
+        setTimeout(() => {
+          setActiveReservation(null);
+          setGhostPosition(null);
+          setFinalDropPosition(null);
+          setIsDropAnimating(false);
+          setAnimatingReservationId(null);
+        }, 150);
+      }, 100);
+
       toast({
         title: "Reservering verplaatst",
         description: `${getGuestDisplayName(reservation)} verplaatst naar tafel ${over.data.current?.tableId?.replace('table-', '')} om ${newStartTime}`,
       });
       onReservationUpdate?.();
-      setLocalRefreshKey(k => k + 1);
+    } else {
+      setActiveReservation(null);
+      setGhostPosition(null);
     }
-  }, [config, toast, onReservationUpdate]);
+  }, [config, toast, onReservationUpdate, tablePositions]);
 
   // Handle resize with collision detection
   const handleResize = useCallback((
@@ -784,10 +849,11 @@ export function ReservationGridView({
                       onReservationResize={handleResize}
                       onEmptySlotClick={handleEmptySlotClick}
                       isOdd={index % 2 === 1}
-                      activeReservationId={activeReservation?.id}
+                      activeReservationId={activeReservation?.id || animatingReservationId}
                       isDropTarget={ghostPosition?.tableId === table.id}
                       ghostStartTime={ghostPosition?.tableId === table.id ? ghostPosition.startTime : null}
                       refreshKey={localRefreshKey}
+                      isDropAnimating={isDropAnimating}
                     />
                   ))}
                 </div>
@@ -795,11 +861,13 @@ export function ReservationGridView({
             })}
 
             {/* Ghost preview - shows where reservation will land */}
-            {ghostPosition && activeReservation && (
+            {(ghostPosition || isDropAnimating) && (activeReservation || finalDropPosition) && (
               <GhostPreview 
-                position={ghostPosition}
+                position={ghostPosition || finalDropPosition!}
                 hasConflict={ghostHasConflict}
-                guestCount={activeReservation.guests}
+                guestCount={activeReservation?.guests || 0}
+                isDropAnimating={isDropAnimating}
+                finalDropPosition={finalDropPosition}
               />
             )}
           </div>
