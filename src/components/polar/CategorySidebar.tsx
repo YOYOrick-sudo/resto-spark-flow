@@ -56,7 +56,7 @@ export function CategorySidebar({
                 "flex w-full items-center justify-between text-left py-3 px-4 rounded-dropdown text-[15px] transition-all duration-150 border-[1.5px]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isSelected
-                  ? "bg-card border-selected-border text-primary font-medium"
+                  ? "bg-selected-bg border-selected-border text-primary font-semibold"
                   : "bg-transparent border-transparent text-muted-foreground hover:bg-accent/60",
                 item.disabled && "cursor-not-allowed opacity-50"
               )}
