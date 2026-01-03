@@ -20,6 +20,7 @@ interface TableRowProps {
   isOdd?: boolean;
   activeReservationId?: string | null; // ID of reservation being dragged
   isDropTarget?: boolean; // True when ghost is hovering over this table
+  ghostStartTime?: string | null; // Time where ghost will snap to (for highlighting drop target cell)
 }
 
 // Constants - must match ReservationGridView
@@ -57,6 +58,7 @@ export function TableRow({
   isOdd = false,
   activeReservationId = null,
   isDropTarget = false,
+  ghostStartTime = null,
 }: TableRowProps) {
   const reservations = useMemo(
     () => getReservationsForTableMutable(date, table.id),
@@ -126,7 +128,9 @@ export function TableRow({
               onClick={() => onEmptySlotClick?.(table.id, time)}
               className={cn(
                 "h-full cursor-pointer transition-colors hover:bg-primary/10",
-                index % 4 === 0 ? "border-l border-border/50" : "border-l border-border/20"
+                index % 4 === 0 ? "border-l border-border/50" : "border-l border-border/20",
+                // Highlight specific 15-min cell as drop target
+                isDropTarget && ghostStartTime === time && "bg-primary/20 ring-2 ring-primary ring-inset"
               )}
               style={{ width: `${quarterWidth}px` }}
               title={`Tafel ${table.number} om ${time} - Klik om toe te voegen`}
