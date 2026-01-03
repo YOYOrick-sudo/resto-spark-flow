@@ -56,7 +56,7 @@ export function NestoModal({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent
         className={cn(
-          "rounded-card border border-border bg-card p-0 gap-0",
+          "rounded-card border border-border bg-card p-0 gap-0 overflow-hidden",
           sizeClasses[size]
         )}
       >

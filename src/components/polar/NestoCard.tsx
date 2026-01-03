@@ -2,22 +2,27 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface NestoCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "large" | "subtle";
+  variant?: "default" | "large" | "subtle" | "small";
   hoverable?: boolean;
+  radius?: "default" | "small";
 }
 
 const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
-  ({ className, variant = "default", hoverable = false, ...props }, ref) => {
+  ({ className, variant = "default", hoverable = false, radius = "default", ...props }, ref) => {
+    const radiusClass = radius === "small" ? "rounded-card-sm" : "rounded-card";
+    
     return (
       <div
         ref={ref}
         className={cn(
           "bg-card text-card-foreground border border-border",
           "transition-all duration-200",
+          radiusClass,
           {
-            "rounded-card p-6": variant === "default",
-            "rounded-card-lg p-8": variant === "large",
-            "rounded-card p-6 bg-accent": variant === "subtle",
+            "p-6": variant === "default",
+            "p-8": variant === "large",
+            "p-6 bg-accent": variant === "subtle",
+            "p-4": variant === "small",
           },
           hoverable && "cursor-pointer hover:border-primary hover:shadow-md",
           className
