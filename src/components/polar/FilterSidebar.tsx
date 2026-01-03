@@ -39,7 +39,7 @@ export function FilterSidebar({
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <h4 className="text-sm font-semibold text-foreground mb-4">{title}</h4>
         {onClear && (
           <button
             onClick={onClear}
