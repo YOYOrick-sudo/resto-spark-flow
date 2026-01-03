@@ -334,59 +334,42 @@ function GhostPreview({
   hasConflict: boolean;
   guestCount: number;
 }) {
-  const showSnapIndicator = Math.abs(position.left - position.snappedLeft) > 2;
-  
   return (
-    <>
-      {/* Main ghost - follows cursor smoothly */}
-      <div
-        className={cn(
-          "absolute rounded-md pointer-events-none will-change-transform",
-          "shadow-lg animate-in fade-in-0 duration-150",
-          hasConflict 
-            ? "bg-destructive/40 border-2 border-destructive" 
-            : "bg-primary/40 border-2 border-primary"
-        )}
-        style={{
-          transform: `translate3d(${STICKY_COL_WIDTH + position.left}px, ${position.topOffset}px, 0)`,
-          width: `${position.width}px`,
-          height: '36px',
-          zIndex: 50,
-          left: 0,
-          top: 0,
-        }}
-      >
-        <div className="flex items-center justify-between h-full px-2.5">
-          <span className={cn(
-            "font-bold text-sm",
-            hasConflict ? "text-destructive" : "text-primary"
-          )}>
-            {guestCount}p
-          </span>
-          <span className={cn(
-            "text-xs font-medium",
-            hasConflict ? "text-destructive" : "text-primary"
-          )}>
-            {position.startTime}
-          </span>
-        </div>
-      </div>
-      
-      {/* Snap indicator - shows where reservation will land */}
-      {showSnapIndicator && (
-        <div
-          className="absolute rounded-md pointer-events-none border-2 border-dashed border-primary/40 will-change-transform"
-          style={{
-            transform: `translate3d(${STICKY_COL_WIDTH + position.snappedLeft}px, ${position.topOffset}px, 0)`,
-            width: `${position.width}px`,
-            height: '36px',
-            zIndex: 45,
-            left: 0,
-            top: 0,
-          }}
-        />
+    <div
+      className={cn(
+        "absolute rounded-md pointer-events-none will-change-transform",
+        "shadow-xl animate-in fade-in-0 duration-100",
+        hasConflict 
+          ? "bg-destructive/70 border-2 border-destructive" 
+          : "bg-primary/70 border-2 border-primary"
       )}
-    </>
+      style={{
+        // Use snappedLeft for direct grid alignment - precise snapping
+        transform: `translate3d(${STICKY_COL_WIDTH + position.snappedLeft}px, ${position.topOffset}px, 0)`,
+        width: `${position.width}px`,
+        height: '36px',
+        zIndex: 50,
+        left: 0,
+        top: 0,
+        // Subtle transition for smooth snap feeling between intervals
+        transition: 'transform 50ms ease-out',
+      }}
+    >
+      <div className="flex items-center justify-between h-full px-2.5">
+        <span className={cn(
+          "font-bold text-sm",
+          hasConflict ? "text-destructive-foreground" : "text-primary-foreground"
+        )}>
+          {guestCount}p
+        </span>
+        <span className={cn(
+          "text-xs font-medium",
+          hasConflict ? "text-destructive-foreground" : "text-primary-foreground"
+        )}>
+          {position.startTime}
+        </span>
+      </div>
+    </div>
   );
 }
 
