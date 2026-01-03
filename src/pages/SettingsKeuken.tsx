@@ -17,7 +17,6 @@ export default function SettingsKeuken() {
       sections={sections}
       activeSection={activeSection}
       onSectionChange={setActiveSection}
-      infoMessage="Eenheden worden volledig per halffabricaat ingesteld."
     >
       {activeSection === "mep-defaults" && (
         <div className="space-y-4">
