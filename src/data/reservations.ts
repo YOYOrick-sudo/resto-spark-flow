@@ -791,6 +791,24 @@ export function updateReservationPosition(
   return updatedReservation;
 }
 
+// Update reservation status (for check-in, seated, etc.)
+export function updateReservationStatus(
+  reservationId: string,
+  newStatus: ReservationStatus
+): Reservation | null {
+  const reservations = getMutableReservations();
+  const resIndex = reservations.findIndex(r => r.id === reservationId);
+  if (resIndex === -1) return null;
+
+  const updatedReservation: Reservation = {
+    ...reservations[resIndex],
+    status: newStatus,
+  };
+  
+  reservations[resIndex] = updatedReservation;
+  return updatedReservation;
+}
+
 // Update reservation duration (for resize)
 export function updateReservationDuration(
   reservationId: string,

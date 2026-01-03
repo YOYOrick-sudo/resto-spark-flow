@@ -23,6 +23,7 @@ import {
   getGuestDisplayName,
   updateReservationPosition,
   updateReservationDuration,
+  updateReservationStatus,
   checkTimeConflict,
   timeToMinutes,
   minutesToTime,
@@ -32,6 +33,7 @@ import {
   addReservation,
   getShiftForTime,
   getReservationsForDate,
+  getTableById,
 } from "@/data/reservations";
 import { TableRow, STICKY_COL_WIDTH } from "./TableRow";
 import { useToast } from "@/hooks/use-toast";
@@ -700,6 +702,21 @@ export function ReservationGridView({
     return true;
   }, [reservations, toast, onReservationUpdate]);
 
+  // Handle check-in (double-click)
+  const handleCheckIn = useCallback((reservation: Reservation) => {
+    const updated = updateReservationStatus(reservation.id, 'checked_in');
+    
+    if (updated) {
+      setLocalRefreshKey(k => k + 1);
+      const tableNumber = getTableById(reservation.tableIds[0])?.number || reservation.tableIds[0];
+      toast({
+        title: `${getGuestDisplayName(reservation)} is ingecheckt`,
+        description: `Tafel ${tableNumber} - ${reservation.guests} gasten`,
+      });
+      onReservationUpdate?.();
+    }
+  }, [toast, onReservationUpdate]);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (event.active.data.current?.reservation) {
       const reservation = event.active.data.current.reservation as Reservation;
@@ -846,6 +863,7 @@ export function ReservationGridView({
                       date={dateString}
                       config={config}
                       onReservationClick={onReservationClick}
+                      onReservationCheckIn={handleCheckIn}
                       onReservationResize={handleResize}
                       onEmptySlotClick={handleEmptySlotClick}
                       isOdd={index % 2 === 1}
