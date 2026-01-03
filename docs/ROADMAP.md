@@ -1,5 +1,5 @@
 # NESTO PROJECT ROADMAP
-Laatst bijgewerkt: 3 januari 2026
+Laatst bijgewerkt: 3 januari 2026 (avond)
 
 ## PROJECT OVERZICHT
 Nesto is een SaaS platform voor horeca management met modules voor reserveringen, keuken, kaartbeheer, en meer. Multi-tenant architectuur waarbij elke organization meerdere locations kan hebben, met per-location billing en module entitlements.
@@ -102,16 +102,26 @@ Status: Compleet (3 januari 2026)
 ---
 
 ### 4.2 Areas, Tables, TableGroups CRUD
-Status: Nog te starten
+Status: 🔄 In uitvoering
 
 **Doel:** Volledige tafelbeheer UI bouwen die de mock data vervangt
 
 **Database Schema:**
-- [ ] `areas` (vervangt mockZones) - Zones met sort order
-- [ ] `tables` - Tafels met min/max capacity, online bookable flag
-- [ ] `table_groups` - Combinaties van tafels die samen geboekt kunnen worden
+- [x] `areas` - Zones met sort order, fill_order, is_active
+- [x] `tables` - Tafels met min/max capacity, online bookable, is_joinable, priorities
+- [x] `table_groups` - Combinaties met auto-calculated capacities
+- [x] `table_group_members` - Koppeling met sort_order
 
-**Acceptance Criteria:**
+**Gedaan:**
+- [x] Database schema volledig (4 tabellen + RLS + triggers)
+- [x] `useAreasWithTables` hook geoptimaliseerd:
+  - Set-based filtering voor groupCounts (geen `tables!inner` dependency)
+  - O(n+m) mapping via tablesByArea Map i.p.v. O(n*m)
+  - includeInactive parameter werkt correct door Set filtering
+- [x] `useAreasForGrid` en `useAreasForSettings` convenience hooks
+- [x] Grid View haalt tafels uit database
+
+**Nog te doen:**
 - [ ] Settings pagina "Tafels & Zitplaatsen" met:
   - [ ] Areas CRUD (toevoegen, bewerken, verwijderen, volgorde aanpassen)
   - [ ] Tables CRUD per area (nummer, min/max capaciteit, online bookable toggle)
@@ -119,7 +129,8 @@ Status: Nog te starten
   - [ ] Multi-table reservations toggle per locatie
   - [ ] Fill order instelling per area
   - [ ] Auto-assign toggle
-- [ ] Grid View haalt tafels uit database in plaats van mockTables
+
+**Volgende stap:** Settings UI voor Areas CRUD bouwen
 
 ---
 
@@ -805,7 +816,15 @@ Menu items worden gefilterd op:
 
 ## SESSIE LOG
 
-### 3 januari 2026
+### 3 januari 2026 (avond)
+- Fase 4.2 gestart: Areas, Tables, TableGroups
+- `useAreasWithTables` hook geoptimaliseerd:
+  - Fix: Set-based filtering voor groupCounts (verwijdert `tables!inner` dependency)
+  - Fix: O(n+m) mapping via tablesByArea Map
+  - includeInactive werkt nu correct automatisch
+- Volgende sessie: Settings UI voor Areas CRUD
+
+### 3 januari 2026 (ochtend)
 - Fase 4.1 SaaS Foundation geïmplementeerd
 - 16 database tabellen aangemaakt
 - Complete RLS policies
