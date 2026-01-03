@@ -879,7 +879,7 @@ export function getTableNumbers(tableIds: string[]): string {
 }
 
 export function getReservationsForDate(date: string): Reservation[] {
-  return mockReservations.filter(r => r.date === date);
+  return getMutableReservations().filter(r => r.date === date);
 }
 
 export function getGuestDisplayName(reservation: Reservation): string {
