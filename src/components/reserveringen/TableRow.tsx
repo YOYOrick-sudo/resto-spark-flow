@@ -22,6 +22,7 @@ interface TableRowProps {
   isDropTarget?: boolean; // True when ghost is hovering over this table
   ghostStartTime?: string | null; // Time where ghost will snap to (for highlighting drop target cell)
   refreshKey?: number; // Force re-fetch of reservations when this changes
+  isDropAnimating?: boolean; // True during drop animation - keeps original hidden
 }
 
 // Constants - must match ReservationGridView
@@ -61,6 +62,7 @@ export function TableRow({
   isDropTarget = false,
   ghostStartTime = null,
   refreshKey = 0,
+  isDropAnimating = false,
 }: TableRowProps) {
   const reservations = useMemo(
     () => getReservationsForTableMutable(date, table.id),
@@ -151,7 +153,7 @@ export function TableRow({
                 config={config}
                 onClick={onReservationClick}
                 onResize={onReservationResize}
-                isBeingDragged={reservation.id === activeReservationId}
+                isBeingDragged={reservation.id === activeReservationId || (isDropAnimating && reservation.id === activeReservationId)}
               />
             ))}
         </div>
