@@ -31,6 +31,7 @@ import {
   defaultGridConfig,
   addReservation,
   getShiftForTime,
+  getReservationsForDate,
 } from "@/data/reservations";
 import { TableRow, STICKY_COL_WIDTH } from "./TableRow";
 import { useToast } from "@/hooks/use-toast";
@@ -384,7 +385,7 @@ export function ReservationGridView({
   const [seatedExpanded, setSeatedExpanded] = useState(true);
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
   const [ghostPosition, setGhostPosition] = useState<GhostPosition | null>(null);
-  const [, forceUpdate] = useState(0);
+  const [localRefreshKey, setLocalRefreshKey] = useState(0);
   const { toast } = useToast();
   
   // Quick reservation panel state
@@ -394,6 +395,11 @@ export function ReservationGridView({
   
   const dateString = format(selectedDate, "yyyy-MM-dd");
   const zones = useMemo(() => getActiveZones(), []);
+  
+  // Fetch reservations directly from data source, refreshing when localRefreshKey changes
+  const currentReservations = useMemo(() => {
+    return getReservationsForDate(dateString);
+  }, [dateString, localRefreshKey]);
   
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
   const totalWidth = STICKY_COL_WIDTH + gridWidth;
@@ -571,7 +577,7 @@ export function ReservationGridView({
         description: `${getGuestDisplayName(reservation)} verplaatst naar tafel ${over.data.current?.tableId?.replace('table-', '')} om ${newStartTime}`,
       });
       onReservationUpdate?.();
-      forceUpdate(n => n + 1);
+      setLocalRefreshKey(k => k + 1);
     }
   }, [config, toast, onReservationUpdate]);
 
@@ -581,7 +587,7 @@ export function ReservationGridView({
     newStartTime: string,
     newEndTime: string
   ): boolean => {
-    const reservation = reservations.find(r => r.id === reservationId);
+    const reservation = currentReservations.find(r => r.id === reservationId);
     if (!reservation) return false;
 
     const tableId = reservation.tableIds[0];
@@ -625,7 +631,7 @@ export function ReservationGridView({
     });
     
     onReservationUpdate?.();
-    forceUpdate(n => n + 1);
+    setLocalRefreshKey(k => k + 1);
     return true;
   }, [reservations, toast, onReservationUpdate]);
 
@@ -722,7 +728,7 @@ export function ReservationGridView({
     });
 
     onReservationUpdate?.();
-    forceUpdate(n => n + 1);
+    setLocalRefreshKey(k => k + 1);
   }, [dateString, toast, onReservationUpdate]);
 
   return (
@@ -781,6 +787,7 @@ export function ReservationGridView({
                       activeReservationId={activeReservation?.id}
                       isDropTarget={ghostPosition?.tableId === table.id}
                       ghostStartTime={ghostPosition?.tableId === table.id ? ghostPosition.startTime : null}
+                      refreshKey={localRefreshKey}
                     />
                   ))}
                 </div>
