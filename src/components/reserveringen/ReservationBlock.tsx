@@ -182,8 +182,8 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         getBlockStyles(),
         // Smooth fade transition for drag state
         "transition-opacity duration-150",
-        // When being dragged, show as faded placeholder
-        isBeingDragged && "opacity-30 pointer-events-none",
+        // When being dragged, show as faded placeholder with dashed border
+        isBeingDragged && "opacity-30 pointer-events-none border-dashed",
         // Normal interactive states
         !isBeingDragged && isClickable && !isResizing && "cursor-grab hover:shadow-lg hover:scale-[1.02] hover:z-20",
         isResizing && "z-50 shadow-xl ring-2 ring-primary"
