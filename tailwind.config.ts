@@ -25,6 +25,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -90,10 +91,13 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        // Nesto specific
-        button: "8px",
-        card: "12px",
-        "card-lg": "16px",
+        // Nesto Border Radius Hierarchy
+        'control': "6px",           // Badges, tags, mini controls
+        'button': "8px",            // Outline/secondary/danger buttons, inputs
+        'button-primary': "16px",   // Primary buttons (filled teal CTAs)
+        'dropdown': "12px",         // Menus, popovers, dropdown lists
+        'card': "16px",             // Cards, modals, panels (DEFAULT)
+        'card-sm': "12px",          // Kleine info boxes (override)
       },
       keyframes: {
         "accordion-down": {

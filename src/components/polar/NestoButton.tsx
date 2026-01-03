@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/90 rounded-button",
+          "bg-primary text-primary-foreground hover:bg-primary-hover rounded-button-primary",
         secondary:
           "bg-card text-primary border border-primary hover:bg-primary/10 rounded-button",
         ghost:

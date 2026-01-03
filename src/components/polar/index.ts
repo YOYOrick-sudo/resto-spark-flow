@@ -71,6 +71,9 @@ export type { DataTableProps, DataTableColumn, DataTablePagination } from "./Dat
 export { ConfirmDialog } from "./ConfirmDialog";
 export type { ConfirmDialogProps } from "./ConfirmDialog";
 
+export { NestoOutlineButtonGroup } from "./NestoOutlineButtonGroup";
+export type { NestoOutlineButtonGroupProps, OutlineButtonOption } from "./NestoOutlineButtonGroup";
+
 export {
   TableSkeleton,
   CardSkeleton,

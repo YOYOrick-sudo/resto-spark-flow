@@ -35,7 +35,7 @@ export function SearchBar({
         placeholder={placeholder}
         autoFocus={autoFocus}
       className={cn(
-        "w-full h-11 pl-11 pr-10 rounded-xl",
+        "w-full h-11 pl-11 pr-10 rounded-button",
         "bg-background border-[1.5px] border-border",
         "text-sm text-foreground placeholder:text-muted-foreground",
         "focus:outline-none focus:ring-0 focus:!border-primary",

@@ -74,7 +74,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
           >
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
-          <SelectContent className="rounded-card border border-border bg-card">
+          <SelectContent className="rounded-dropdown border border-border bg-card">
             {options.length > 0 &&
               options.map((option) => (
                 <SelectItem
