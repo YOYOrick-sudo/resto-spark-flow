@@ -23,7 +23,7 @@ import {
   getGuestDisplayName,
   updateReservationPosition,
   updateReservationDuration,
-  updateReservationStatus,
+  checkInReservation,
   checkTimeConflict,
   timeToMinutes,
   minutesToTime,
@@ -702,16 +702,20 @@ export function ReservationGridView({
     return true;
   }, [reservations, toast, onReservationUpdate]);
 
-  // Handle check-in (double-click)
+  // Handle check-in (double-click or long-press) - moves reservation to current time
   const handleCheckIn = useCallback((reservation: Reservation) => {
-    const updated = updateReservationStatus(reservation.id, 'checked_in');
+    const updated = checkInReservation(reservation.id, true); // moveToNow = true
     
     if (updated) {
       setLocalRefreshKey(k => k + 1);
       const tableNumber = getTableById(reservation.tableIds[0])?.number || reservation.tableIds[0];
+      const timeMoved = updated.startTime !== reservation.startTime;
+      
       toast({
         title: `${getGuestDisplayName(reservation)} is ingecheckt`,
-        description: `Tafel ${tableNumber} - ${reservation.guests} gasten`,
+        description: timeMoved 
+          ? `Tafel ${tableNumber} - ${reservation.guests} gasten - Verplaatst naar ${updated.startTime}`
+          : `Tafel ${tableNumber} - ${reservation.guests} gasten`,
       });
       onReservationUpdate?.();
     }
