@@ -48,8 +48,11 @@ export function useAreasWithTables(
       const { data: tables, error: tablesError } = await tablesQuery;
       if (tablesError) throw tablesError;
 
+      // Bouw Set van table IDs voor filtering (respecteert includeInactive automatisch)
+      const tableIds = new Set((tables as Table[]).map(t => t.id));
+
       // Query 3: group counts - ALLEEN ACTIEVE GROUPS + LOCATION SCOPE
-      let countMap = new Map<string, number>();
+      const countMap = new Map<string, number>();
       if (includeGroupCounts) {
         const { data: groupCounts, error: countsError } = await supabase
           .from('table_group_members')
@@ -60,19 +63,30 @@ export function useAreasWithTables(
         if (countsError) throw countsError;
 
         groupCounts?.forEach((m: { table_id: string }) => {
+          // Skip tafels die niet in onze result set zitten
+          if (!tableIds.has(m.table_id)) return;
           countMap.set(m.table_id, (countMap.get(m.table_id) || 0) + 1);
         });
       }
 
-      // Map tables to areas
+      // Pre-group tables by area_id voor O(1) lookup (behoudt sort_order van query)
+      const tablesByArea = new Map<string, Table[]>();
+      (tables as Table[])?.forEach(t => {
+        const enrichedTable = {
+          ...t,
+          group_count: includeGroupCounts ? (countMap.get(t.id) || 0) : undefined
+        };
+        
+        if (!tablesByArea.has(t.area_id)) {
+          tablesByArea.set(t.area_id, []);
+        }
+        tablesByArea.get(t.area_id)!.push(enrichedTable);
+      });
+
+      // Map areas met O(1) table lookup
       return (areas as Area[])?.map(area => ({
         ...area,
-        tables: (tables as Table[])
-          ?.filter(t => t.area_id === area.id)
-          .map(t => ({
-            ...t,
-            group_count: includeGroupCounts ? (countMap.get(t.id) || 0) : undefined
-          })) ?? []
+        tables: tablesByArea.get(area.id) ?? []
       })) ?? [];
     },
     enabled: !!locationId
