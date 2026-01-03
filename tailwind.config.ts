@@ -86,6 +86,8 @@ export default {
           4: "hsl(var(--chart-4))",
           5: "hsl(var(--chart-5))",
         },
+        // Selected state
+        "selected-border": "hsl(var(--selected-border))",
       },
       borderRadius: {
         lg: "var(--radius)",

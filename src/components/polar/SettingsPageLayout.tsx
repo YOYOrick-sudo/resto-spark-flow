@@ -80,7 +80,7 @@ export function SettingsPageLayout({
                       "w-full text-left py-3 px-4 rounded-dropdown text-[15px] transition-all duration-150 border-[1.5px]",
                       section.disabled && "opacity-50 cursor-not-allowed",
                       activeSection === section.id
-                        ? "text-primary font-medium bg-card border-primary/60"
+                        ? "text-primary font-medium bg-card border-selected-border"
                         : "text-muted-foreground bg-transparent border-transparent hover:bg-accent/60"
                     )}
                   >
