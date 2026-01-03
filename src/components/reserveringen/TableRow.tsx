@@ -21,6 +21,7 @@ interface TableRowProps {
   activeReservationId?: string | null; // ID of reservation being dragged
   isDropTarget?: boolean; // True when ghost is hovering over this table
   ghostStartTime?: string | null; // Time where ghost will snap to (for highlighting drop target cell)
+  refreshKey?: number; // Force re-fetch of reservations when this changes
 }
 
 // Constants - must match ReservationGridView
@@ -59,10 +60,11 @@ export function TableRow({
   activeReservationId = null,
   isDropTarget = false,
   ghostStartTime = null,
+  refreshKey = 0,
 }: TableRowProps) {
   const reservations = useMemo(
     () => getReservationsForTableMutable(date, table.id),
-    [date, table.id]
+    [date, table.id, refreshKey]
   );
 
   // Calculate grid width and quarter width
