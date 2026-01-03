@@ -631,9 +631,29 @@ export function ReservationGridView({
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (event.active.data.current?.reservation) {
-      setActiveReservation(event.active.data.current.reservation as Reservation);
+      const reservation = event.active.data.current.reservation as Reservation;
+      setActiveReservation(reservation);
+      
+      // Initialize ghost immediately at the original position to prevent "fly-in" effect
+      const tableId = reservation.tableIds[0];
+      if (tableId && tablePositions[tableId] !== undefined) {
+        const durationMinutes = timeToMinutes(reservation.endTime) - timeToMinutes(reservation.startTime);
+        const reservationWidth = durationMinutes * config.pixelsPerMinute;
+        const startMinutes = timeToMinutes(reservation.startTime) - config.startHour * 60;
+        const startLeft = startMinutes * config.pixelsPerMinute;
+        
+        setGhostPosition({
+          tableId: tableId,
+          startTime: reservation.startTime,
+          endTime: reservation.endTime,
+          left: startLeft,
+          snappedLeft: startLeft,
+          width: reservationWidth,
+          topOffset: tablePositions[tableId],
+        });
+      }
     }
-  }, []);
+  }, [tablePositions, config]);
 
   // Sensors for desktop (pointer) and mobile/tablet (touch)
   const sensors = useSensors(
