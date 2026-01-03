@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useMemo, useState, useCallback, useRef, forwardRef } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Phone, Star, UserCheck, Footprints } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,16 +17,17 @@ interface ReservationBlockProps {
   config?: GridTimeConfig;
   onClick?: (reservation: Reservation) => void;
   onResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
-  isBeingDragged?: boolean; // True when this reservation is actively being dragged
+  isBeingDragged?: boolean;
 }
 
-export function ReservationBlock({
-  reservation,
-  config = defaultGridConfig,
-  onClick,
-  onResize,
-  isBeingDragged = false,
-}: ReservationBlockProps) {
+export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps>(
+  function ReservationBlock({
+    reservation,
+    config = defaultGridConfig,
+    onClick,
+    onResize,
+    isBeingDragged = false,
+  }, forwardedRef) {
   const position = useMemo(
     () => calculateBlockPosition(reservation.startTime, reservation.endTime, config),
     [reservation.startTime, reservation.endTime, config]
@@ -45,6 +46,16 @@ export function ReservationBlock({
     data: { reservation },
     disabled: isResizing !== null,
   });
+
+  // Combine forwarded ref with dnd-kit ref
+  const combinedRef = useCallback((node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    if (typeof forwardedRef === 'function') {
+      forwardedRef(node);
+    } else if (forwardedRef) {
+      forwardedRef.current = node;
+    }
+  }, [setNodeRef, forwardedRef]);
 
   // Status-based styling
   const getBlockStyles = () => {
@@ -162,7 +173,7 @@ export function ReservationBlock({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={combinedRef}
       {...(isResizing || isBeingDragged ? {} : listeners)}
       {...(isResizing || isBeingDragged ? {} : attributes)}
       className={cn(
@@ -246,4 +257,4 @@ export function ReservationBlock({
       )}
     </div>
   );
-}
+});
