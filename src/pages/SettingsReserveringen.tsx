@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PageHeader } from "@/components/polar/PageHeader";
+import { SettingsPageLayout } from "@/components/polar/SettingsPageLayout";
 import { FormSection } from "@/components/polar/FormSection";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
@@ -7,7 +7,15 @@ import { NestoSelect } from "@/components/polar/NestoSelect";
 import { toast } from "sonner";
 import { mockPacingSettings, updatePacingSettings } from "@/data/reservations";
 
+const sections = [
+  { id: "pacing", label: "Pacing" },
+  { id: "tafels", label: "Tafelbeheer" },
+  { id: "shifts", label: "Shift Tijden" },
+  { id: "notificaties", label: "Notificaties" },
+];
+
 export default function SettingsReserveringen() {
+  const [activeSection, setActiveSection] = useState("pacing");
   const [settings, setSettings] = useState({
     defaultLimitPerQuarter: mockPacingSettings.defaultLimitPerQuarter,
     lunchLimit: mockPacingSettings.shiftOverrides?.lunch || mockPacingSettings.defaultLimitPerQuarter,
@@ -39,38 +47,45 @@ export default function SettingsReserveringen() {
   });
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Reserveringen"
-        description="Beheer pacing limits en reserveringsinstellingen"
-        actions={
-          <NestoButton onClick={handleSave}>Opslaan</NestoButton>
-        }
-      />
-
-      <div className="max-w-2xl space-y-6">
-        <FormSection
-          title="Pacing Limits"
-          description="Stel in hoeveel gasten je per kwartier wilt ontvangen. Deze limits bepalen de kleurindicatie in de Grid View."
-        >
-          <div className="space-y-4">
-            <NestoInput
-              label="Standaard pacing (gasten per 15 min)"
-              type="number"
-              min={1}
-              max={100}
-              value={settings.defaultLimitPerQuarter}
-              onChange={(e) =>
-                setSettings({ ...settings, defaultLimitPerQuarter: parseInt(e.target.value) || 1 })
-              }
-            />
-            
-            <div className="pt-4 border-t border-border">
-              <p className="text-sm font-medium mb-3">Shift Overrides (optioneel)</p>
-              <p className="text-xs text-muted-foreground mb-4">
-                Stel afwijkende limits in voor lunch en diner shifts.
+    <SettingsPageLayout
+      module="Reserveringen"
+      sections={sections}
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+    >
+      {activeSection === "pacing" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Pacing Limits</h2>
+              <p className="text-sm text-muted-foreground">
+                Stel in hoeveel gasten je per kwartier wilt ontvangen.
               </p>
-              
+            </div>
+            <NestoButton onClick={handleSave}>Opslaan</NestoButton>
+          </div>
+
+          <div className="max-w-2xl space-y-6">
+            <FormSection
+              title="Standaard Pacing"
+              description="Deze limits bepalen de kleurindicatie in de Grid View."
+            >
+              <NestoInput
+                label="Standaard pacing (gasten per 15 min)"
+                type="number"
+                min={1}
+                max={100}
+                value={settings.defaultLimitPerQuarter}
+                onChange={(e) =>
+                  setSettings({ ...settings, defaultLimitPerQuarter: parseInt(e.target.value) || 1 })
+                }
+              />
+            </FormSection>
+
+            <FormSection
+              title="Shift Overrides"
+              description="Stel afwijkende limits in voor lunch en diner shifts."
+            >
               <div className="grid grid-cols-2 gap-4">
                 <NestoInput
                   label="Lunch pacing"
@@ -93,17 +108,54 @@ export default function SettingsReserveringen() {
                   }
                 />
               </div>
-            </div>
-          </div>
-        </FormSection>
+            </FormSection>
 
-        <FormSection
-          title="Shift Tijden"
-          description="Definieer wanneer lunch en diner shifts beginnen en eindigen."
-        >
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-medium mb-2">Lunch</p>
+            <FormSection
+              title="Kleur Legenda"
+              description="Zo worden de kleuren weergegeven in de Grid View."
+            >
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="w-4 h-4 rounded bg-success" />
+                  <span className="text-muted-foreground">0-70% bezet — Ruimte beschikbaar</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="w-4 h-4 rounded bg-warning" />
+                  <span className="text-muted-foreground">71-100% bezet — Bijna vol</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="w-4 h-4 rounded bg-destructive" />
+                  <span className="text-muted-foreground">100%+ bezet — Over pacing limit</span>
+                </div>
+              </div>
+            </FormSection>
+          </div>
+        </div>
+      )}
+
+      {activeSection === "tafels" && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Tafelbeheer</h2>
+          <p className="text-sm text-muted-foreground">
+            Beheer areas, tafelgroepen en individuele tafels.
+          </p>
+          <div className="nesto-card-base p-6">
+            <p className="text-muted-foreground">Tafelbeheer configuratie komt hier.</p>
+          </div>
+        </div>
+      )}
+
+      {activeSection === "shifts" && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold">Shift Tijden</h2>
+            <p className="text-sm text-muted-foreground">
+              Definieer wanneer lunch en diner shifts beginnen en eindigen.
+            </p>
+          </div>
+
+          <div className="max-w-2xl space-y-6">
+            <FormSection title="Lunch">
               <div className="grid grid-cols-2 gap-4">
                 <NestoSelect
                   label="Start"
@@ -118,10 +170,9 @@ export default function SettingsReserveringen() {
                   options={timeOptions}
                 />
               </div>
-            </div>
-            
-            <div className="pt-4 border-t border-border">
-              <p className="text-sm font-medium mb-2">Diner</p>
+            </FormSection>
+
+            <FormSection title="Diner">
               <div className="grid grid-cols-2 gap-4">
                 <NestoSelect
                   label="Start"
@@ -136,30 +187,22 @@ export default function SettingsReserveringen() {
                   options={timeOptions}
                 />
               </div>
-            </div>
+            </FormSection>
           </div>
-        </FormSection>
+        </div>
+      )}
 
-        <FormSection
-          title="Kleur Legenda"
-          description="Zo worden de kleuren weergegeven in de Grid View."
-        >
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-3">
-              <span className="w-4 h-4 rounded bg-success" />
-              <span className="text-muted-foreground">0-70% bezet — Ruimte beschikbaar</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-4 h-4 rounded bg-warning" />
-              <span className="text-muted-foreground">71-100% bezet — Bijna vol</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-4 h-4 rounded bg-destructive" />
-              <span className="text-muted-foreground">100%+ bezet — Over pacing limit</span>
-            </div>
+      {activeSection === "notificaties" && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Notificaties</h2>
+          <p className="text-sm text-muted-foreground">
+            Configureer e-mail en push notificaties voor reserveringen.
+          </p>
+          <div className="nesto-card-base p-6">
+            <p className="text-muted-foreground">Notificatie instellingen komen hier.</p>
           </div>
-        </FormSection>
-      </div>
-    </div>
+        </div>
+      )}
+    </SettingsPageLayout>
   );
 }
