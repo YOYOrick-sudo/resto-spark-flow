@@ -1,6 +1,5 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-import { Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Breadcrumb,
@@ -22,7 +21,6 @@ export interface SettingsPageLayoutProps {
   sections: SettingsSection[];
   activeSection: string;
   onSectionChange: (id: string) => void;
-  infoMessage?: string;
   children: React.ReactNode;
 }
 
@@ -31,7 +29,6 @@ export function SettingsPageLayout({
   sections,
   activeSection,
   onSectionChange,
-  infoMessage,
   children,
 }: SettingsPageLayoutProps) {
   return (
@@ -55,16 +52,6 @@ export function SettingsPageLayout({
       <div className="flex gap-8">
         {/* Sidebar */}
         <div className="w-[240px] flex-shrink-0 space-y-4">
-          {/* Info Card */}
-          {infoMessage && (
-            <div className="bg-card border border-border rounded-card-sm p-4">
-              <div className="flex gap-3">
-                <Lightbulb className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-muted-foreground">{infoMessage}</p>
-              </div>
-            </div>
-          )}
-
           {/* Menu */}
           <nav className="bg-secondary rounded-card p-5">
             <h4 className="text-sm font-semibold text-foreground mb-4">
