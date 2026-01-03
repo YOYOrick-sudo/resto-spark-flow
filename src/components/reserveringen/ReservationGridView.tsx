@@ -338,7 +338,7 @@ function GhostPreview({
     <div
       className={cn(
         "absolute rounded-md pointer-events-none will-change-transform",
-        "shadow-xl animate-in fade-in-0 duration-100",
+        "shadow-xl",
         hasConflict 
           ? "bg-destructive/70 border-2 border-destructive" 
           : "bg-primary/70 border-2 border-primary"
