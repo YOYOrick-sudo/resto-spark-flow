@@ -169,6 +169,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
   const style = {
     left: `${displayPosition.left}px`,
     width: `${Math.max(displayPosition.width - 4, 50)}px`,
+    touchAction: 'none' as const, // Prevent browser touch handling
   };
 
   return (

@@ -134,8 +134,8 @@ export function TableRow({
           ))}
         </div>
         
-        {/* Reservation blocks (foreground layer with pointer-events) */}
-        <div className="absolute inset-0 z-10 pointer-events-none">
+        {/* Reservation blocks (foreground layer) */}
+        <div className="absolute inset-0 z-10">
           {reservations
             .filter((r) => r.status !== "cancelled" && r.status !== "no_show")
             .map((reservation) => (
