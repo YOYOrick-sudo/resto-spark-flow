@@ -88,6 +88,7 @@ export default {
         },
         // Selected state
         "selected-border": "hsl(var(--selected-border))",
+        "selected-bg": "hsl(var(--selected-background))",
       },
       borderRadius: {
         lg: "var(--radius)",
