@@ -90,7 +90,7 @@ export function TableRow({
   return (
     <div
       className={cn(
-        "flex border-b border-border/50 h-14 transition-colors duration-100",
+        "flex border-b border-border/50 h-12 transition-colors duration-100",
         isOdd ? "bg-secondary" : "bg-card",
         isDropTarget && "bg-primary/5"
       )}
