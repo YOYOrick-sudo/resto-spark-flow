@@ -67,6 +67,9 @@ export function SettingsPageLayout({
 
           {/* Menu */}
           <nav className="bg-secondary rounded-card p-5">
+            <h4 className="text-sm font-semibold text-foreground mb-4">
+              Categorieën
+            </h4>
             <ul className="space-y-1.5">
               {sections.map((section) => (
                 <li key={section.id}>
@@ -74,11 +77,11 @@ export function SettingsPageLayout({
                     onClick={() => !section.disabled && onSectionChange(section.id)}
                     disabled={section.disabled}
                     className={cn(
-                      "w-full text-left py-3 px-4 rounded-button text-[15px] transition-all duration-150 border-l-2",
+                      "w-full text-left py-3 px-4 rounded-button text-[15px] transition-all duration-150 border-[1.5px]",
                       section.disabled && "opacity-50 cursor-not-allowed",
                       activeSection === section.id
-                        ? "text-primary font-medium bg-primary/10 border-primary"
-                        : "text-muted-foreground hover:bg-accent/60 border-transparent"
+                        ? "text-primary font-medium bg-card border-primary"
+                        : "text-muted-foreground bg-transparent border-transparent hover:bg-accent/60"
                     )}
                   >
                     {section.label}
