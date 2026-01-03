@@ -809,6 +809,44 @@ export function updateReservationStatus(
   return updatedReservation;
 }
 
+// Check in a reservation and move to current time
+export function checkInReservation(
+  reservationId: string,
+  moveToNow: boolean = true
+): Reservation | null {
+  const reservations = getMutableReservations();
+  const resIndex = reservations.findIndex(r => r.id === reservationId);
+  if (resIndex === -1) return null;
+
+  const reservation = reservations[resIndex];
+  
+  // Calculate duration in minutes
+  const durationMinutes = timeToMinutes(reservation.endTime) - timeToMinutes(reservation.startTime);
+  
+  let newStartTime = reservation.startTime;
+  let newEndTime = reservation.endTime;
+  
+  if (moveToNow) {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    // Round to nearest 15 minutes
+    const roundedMinutes = Math.round(currentMinutes / 15) * 15;
+    
+    newStartTime = minutesToTime(roundedMinutes);
+    newEndTime = minutesToTime(roundedMinutes + durationMinutes);
+  }
+
+  const updatedReservation: Reservation = {
+    ...reservation,
+    status: 'checked_in',
+    startTime: newStartTime,
+    endTime: newEndTime,
+  };
+  
+  reservations[resIndex] = updatedReservation;
+  return updatedReservation;
+}
+
 // Update reservation duration (for resize)
 export function updateReservationDuration(
   reservationId: string,

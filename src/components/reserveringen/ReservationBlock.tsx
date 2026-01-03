@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, forwardRef } from "react";
+import { useMemo, useState, useCallback, useRef, forwardRef, useEffect } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Phone, Star, UserCheck, Footprints } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,42 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
   const [resizeDelta, setResizeDelta] = useState(0);
   const startPosRef = useRef({ x: 0, originalStart: 0, originalWidth: 0 });
 
+  // Long-press state for iPad check-in
+  const longPressTimerRef = useRef<number | null>(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const canCheckIn = (reservation.status === "confirmed" || reservation.status === "pending") && onCheckIn;
+
+  // Clear long-press timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Long-press handlers for iPad
+  const handlePressStart = useCallback((e: React.PointerEvent) => {
+    if (!canCheckIn || isResizing) return;
+    
+    // Only for touch events (iPad)
+    if (e.pointerType !== 'touch') return;
+    
+    setIsLongPressing(true);
+    longPressTimerRef.current = window.setTimeout(() => {
+      setIsLongPressing(false);
+      onCheckIn?.(reservation);
+    }, 500);
+  }, [canCheckIn, onCheckIn, reservation, isResizing]);
+
+  const handlePressEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    setIsLongPressing(false);
+  }, []);
+
   // Make it draggable (but not while resizing)
   const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({
     id: reservation.id,
@@ -82,7 +118,6 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
 
   const isClickable = reservation.status !== "cancelled" && reservation.status !== "completed";
   const canResize = isClickable && onResize;
-  const canCheckIn = (reservation.status === "confirmed" || reservation.status === "pending") && onCheckIn;
 
   // Calculate snapped time from pixel delta
   const calculateNewTimes = useCallback((side: 'left' | 'right', delta: number) => {
@@ -184,12 +219,14 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] flex items-center gap-1.5 text-xs overflow-hidden select-none group pointer-events-auto",
         getBlockStyles(),
         // Smooth fade transition for drag state
-        "transition-opacity duration-150",
+        "transition-all duration-150",
         // When being dragged, show as faded placeholder with dashed border
         isBeingDragged && "opacity-30 pointer-events-none border-dashed",
         // Normal interactive states
         !isBeingDragged && isClickable && !isResizing && "cursor-grab hover:shadow-lg hover:scale-[1.02] hover:z-20",
-        isResizing && "z-50 shadow-xl ring-2 ring-primary"
+        isResizing && "z-50 shadow-xl ring-2 ring-primary",
+        // Long-press visual feedback for iPad
+        isLongPressing && "scale-95 ring-2 ring-emerald-400 brightness-110"
       )}
       style={style}
       onClick={(e) => {
@@ -204,8 +241,12 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
           onCheckIn?.(reservation);
         }
       }}
+      onPointerDown={handlePressStart}
+      onPointerUp={handlePressEnd}
+      onPointerLeave={handlePressEnd}
+      onPointerCancel={handlePressEnd}
       title={canCheckIn 
-        ? `${guestName} - ${reservation.guests}p - Dubbelklik om in te checken` 
+        ? `${guestName} - ${reservation.guests}p - Dubbelklik of houd ingedrukt om in te checken` 
         : `${guestName} - ${reservation.guests}p - ${reservation.startTime}-${reservation.endTime}`}
     >
       {/* Left resize handle */}
