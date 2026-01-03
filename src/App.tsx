@@ -4,6 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { UserContextProvider } from "@/contexts/UserContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Pages
 import { AppShell } from "./components/layout/AppShell";
@@ -26,69 +29,81 @@ import SettingsReserveringen from "./pages/SettingsReserveringen";
 import SettingsInkoop from "./pages/SettingsInkoop";
 import SettingsLeveranciers from "./pages/SettingsLeveranciers";
 import NotFound from "./pages/NotFound";
+import AuthPage from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system" storageKey="nesto-theme">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner 
-          position="top-right"
-          toastOptions={{
-            classNames: {
-              toast: 'nesto-toast',
-              title: 'nesto-toast-title',
-              description: 'nesto-toast-description',
-              success: 'nesto-toast-success',
-              error: 'nesto-toast-error',
-              warning: 'nesto-toast-warning',
-              info: 'nesto-toast-info',
-            },
-          }}
-        />
-        <BrowserRouter>
-          <Routes>
-            {/* Layout wrapper - persistent sidebar */}
-            <Route element={<AppShell />}>
-              {/* Dashboard */}
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/dashboard" element={<Navigate to="/" replace />} />
-              
-              {/* Reserveringen */}
-              <Route path="/reserveringen" element={<Reserveringen />} />
-              
-              {/* Keuken */}
-              <Route path="/mep" element={<MepTaken />} />
-              <Route path="/halffabricaten" element={<Halffabricaten />} />
-              <Route path="/halffabricaten/:id" element={<HalffabricatenDetail />} />
-              <Route path="/recepten" element={<Recepten />} />
-              <Route path="/recepten/:id" element={<ReceptenDetail />} />
-              <Route path="/voorraad" element={<Ingredienten />} />
-              <Route path="/kostprijzen" element={<Kostprijzen />} />
-              <Route path="/inkoop" element={<Inkoop />} />
-              
-              {/* Kaartbeheer */}
-              <Route path="/kaartbeheer" element={<Kaartbeheer />} />
-              <Route path="/kaartbeheer/:id" element={<KaartbeheerDetail />} />
-              
-              {/* Service */}
-              <Route path="/taken" element={<Taken />} />
-              
-              {/* Settings */}
-              <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
-              <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
-              <Route path="/instellingen/reserveringen" element={<SettingsReserveringen />} />
-              <Route path="/instellingen/inkoop" element={<SettingsInkoop />} />
-              <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
-            </Route>
-            
-            {/* Catch-all outside layout */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <AuthProvider>
+        <UserContextProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner 
+              position="top-right"
+              toastOptions={{
+                classNames: {
+                  toast: 'nesto-toast',
+                  title: 'nesto-toast-title',
+                  description: 'nesto-toast-description',
+                  success: 'nesto-toast-success',
+                  error: 'nesto-toast-error',
+                  warning: 'nesto-toast-warning',
+                  info: 'nesto-toast-info',
+                },
+              }}
+            />
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/auth" element={<AuthPage />} />
+                
+                {/* Protected routes - Layout wrapper with persistent sidebar */}
+                <Route element={
+                  <ProtectedRoute>
+                    <AppShell />
+                  </ProtectedRoute>
+                }>
+                  {/* Dashboard */}
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Navigate to="/" replace />} />
+                  
+                  {/* Reserveringen */}
+                  <Route path="/reserveringen" element={<Reserveringen />} />
+                  
+                  {/* Keuken */}
+                  <Route path="/mep" element={<MepTaken />} />
+                  <Route path="/halffabricaten" element={<Halffabricaten />} />
+                  <Route path="/halffabricaten/:id" element={<HalffabricatenDetail />} />
+                  <Route path="/recepten" element={<Recepten />} />
+                  <Route path="/recepten/:id" element={<ReceptenDetail />} />
+                  <Route path="/voorraad" element={<Ingredienten />} />
+                  <Route path="/kostprijzen" element={<Kostprijzen />} />
+                  <Route path="/inkoop" element={<Inkoop />} />
+                  
+                  {/* Kaartbeheer */}
+                  <Route path="/kaartbeheer" element={<Kaartbeheer />} />
+                  <Route path="/kaartbeheer/:id" element={<KaartbeheerDetail />} />
+                  
+                  {/* Service */}
+                  <Route path="/taken" element={<Taken />} />
+                  
+                  {/* Settings */}
+                  <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
+                  <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
+                  <Route path="/instellingen/reserveringen" element={<SettingsReserveringen />} />
+                  <Route path="/instellingen/inkoop" element={<SettingsInkoop />} />
+                  <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
+                </Route>
+                
+                {/* Catch-all outside layout */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </UserContextProvider>
+      </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
