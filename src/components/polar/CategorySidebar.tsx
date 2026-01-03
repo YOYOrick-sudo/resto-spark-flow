@@ -53,10 +53,10 @@ export function CategorySidebar({
               role="option"
               aria-selected={isSelected}
               className={cn(
-                "flex w-full items-center justify-between text-left py-3 px-4 rounded-button text-[15px] transition-all duration-150 border-[1.5px]",
+                "flex w-full items-center justify-between text-left py-3 px-4 rounded-dropdown text-[15px] transition-all duration-150 border-[1.5px]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isSelected
-                  ? "bg-card border-primary text-primary font-medium"
+                  ? "bg-card border-primary/60 text-primary font-medium"
                   : "bg-transparent border-transparent text-muted-foreground hover:bg-accent/60",
                 item.disabled && "cursor-not-allowed opacity-50"
               )}

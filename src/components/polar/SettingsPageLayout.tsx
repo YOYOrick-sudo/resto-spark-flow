@@ -77,10 +77,10 @@ export function SettingsPageLayout({
                     onClick={() => !section.disabled && onSectionChange(section.id)}
                     disabled={section.disabled}
                     className={cn(
-                      "w-full text-left py-3 px-4 rounded-button text-[15px] transition-all duration-150 border-[1.5px]",
+                      "w-full text-left py-3 px-4 rounded-dropdown text-[15px] transition-all duration-150 border-[1.5px]",
                       section.disabled && "opacity-50 cursor-not-allowed",
                       activeSection === section.id
-                        ? "text-primary font-medium bg-card border-primary"
+                        ? "text-primary font-medium bg-card border-primary/60"
                         : "text-muted-foreground bg-transparent border-transparent hover:bg-accent/60"
                     )}
                   >
