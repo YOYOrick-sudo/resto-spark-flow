@@ -398,11 +398,11 @@ export function ReservationGridView({
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
   const totalWidth = STICKY_COL_WIDTH + gridWidth;
 
-  // Row heights for table position calculation
-  const HEADER_HEIGHT = 40; // TimelineHeader
-  const SEATED_ROW_HEIGHT = 36; // SeatedCountRow
-  const ZONE_HEADER_HEIGHT = 32; // ZoneHeader
-  const TABLE_ROW_HEIGHT = 44; // TableRow
+  // Row heights for table position calculation - MUST MATCH CSS
+  const HEADER_HEIGHT = 40;      // TimelineHeader: h-10 = 40px
+  const SEATED_ROW_HEIGHT = 44;  // SeatedCountRow: py-2 + content ≈ 44px
+  const ZONE_HEADER_HEIGHT = 32; // ZoneHeader: h-8 = 32px
+  const TABLE_ROW_HEIGHT = 56;   // TableRow: h-14 = 56px (3.5rem)
 
   // Calculate table positions for ghost preview
   const tablePositions = useMemo(() => {
@@ -415,7 +415,8 @@ export function ReservationGridView({
       
       currentTop += ZONE_HEADER_HEIGHT;
       tables.forEach(table => {
-        positions[table.id] = currentTop + 4; // +4 for centering in row
+        // Ghost is 36px, row is 56px, center: (56-36)/2 = 10px offset
+        positions[table.id] = currentTop + 10;
         currentTop += TABLE_ROW_HEIGHT;
       });
     });
@@ -759,6 +760,7 @@ export function ReservationGridView({
                       isOdd={index % 2 === 1}
                       activeReservationId={activeReservation?.id}
                       isDropTarget={ghostPosition?.tableId === table.id}
+                      ghostStartTime={ghostPosition?.tableId === table.id ? ghostPosition.startTime : null}
                     />
                   ))}
                 </div>
