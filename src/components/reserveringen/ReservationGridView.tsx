@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
-import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, pointerWithin, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, pointerWithin, useSensor, useSensors, PointerSensor, TouchSensor } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 
 // Ghost position type for drag preview
@@ -651,12 +651,17 @@ export function ReservationGridView({
     }
   }, []);
 
-  // Sensor with refined activation constraint
+  // Sensors for desktop (pointer) and mobile/tablet (touch)
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // Lower threshold for quicker response
-        tolerance: 5,
+        distance: 5, // Start drag after 5px movement
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,    // Hold 200ms before drag starts
+        tolerance: 5,  // Allow 5px movement during delay
       },
     })
   );
