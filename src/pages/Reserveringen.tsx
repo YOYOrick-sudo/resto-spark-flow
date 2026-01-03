@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { format } from "date-fns";
 import { NestoButton } from "@/components/polar/NestoButton";
@@ -34,11 +34,18 @@ export default function Reserveringen() {
 
   // Get formatted date for filtering
   const dateString = format(selectedDate, "yyyy-MM-dd");
+  
+  // Refresh key to force re-fetch after updates
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  const handleReservationUpdate = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
 
   // Filter reservations
   const reservationsForDate = useMemo(() => {
     return getReservationsForDate(dateString);
-  }, [dateString]);
+  }, [dateString, refreshKey]);
 
   const filteredReservations = useMemo(() => {
     let result = reservationsForDate;
@@ -151,6 +158,7 @@ export default function Reserveringen() {
               selectedDate={selectedDate}
               reservations={filteredReservations}
               onReservationClick={handleReservationClick}
+              onReservationUpdate={handleReservationUpdate}
             />
           )}
 

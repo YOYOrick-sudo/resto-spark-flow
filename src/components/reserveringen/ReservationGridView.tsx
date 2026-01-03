@@ -45,6 +45,7 @@ interface ReservationGridViewProps {
   selectedDate: Date;
   reservations: Reservation[];
   onReservationClick?: (reservation: Reservation) => void;
+  onReservationUpdate?: () => void;
   config?: GridTimeConfig;
 }
 
@@ -393,6 +394,7 @@ export function ReservationGridView({
   selectedDate,
   reservations,
   onReservationClick,
+  onReservationUpdate,
   config = defaultGridConfig,
 }: ReservationGridViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -584,9 +586,10 @@ export function ReservationGridView({
         title: "Reservering verplaatst",
         description: `${getGuestDisplayName(reservation)} verplaatst naar tafel ${over.data.current?.tableId?.replace('table-', '')} om ${newStartTime}`,
       });
+      onReservationUpdate?.();
       forceUpdate(n => n + 1);
     }
-  }, [config, toast]);
+  }, [config, toast, onReservationUpdate]);
 
   // Handle resize with collision detection
   const handleResize = useCallback((
@@ -637,9 +640,10 @@ export function ReservationGridView({
       description: `${getGuestDisplayName(reservation)} nu van ${newStartTime} tot ${newEndTime}`,
     });
     
+    onReservationUpdate?.();
     forceUpdate(n => n + 1);
     return true;
-  }, [reservations, toast]);
+  }, [reservations, toast, onReservationUpdate]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (event.active.data.current?.reservation) {
@@ -708,8 +712,9 @@ export function ReservationGridView({
       description: `${data.isWalkIn ? 'Walk-in' : data.guestName} om ${data.time} voor ${data.guests} gasten`,
     });
 
+    onReservationUpdate?.();
     forceUpdate(n => n + 1);
-  }, [dateString, toast]);
+  }, [dateString, toast, onReservationUpdate]);
 
   return (
     <DndContext 
