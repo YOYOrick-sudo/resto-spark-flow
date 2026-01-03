@@ -89,5 +89,8 @@ export type {
   PageSkeletonProps,
 } from "./LoadingStates";
 
+export { SettingsPageLayout } from "./SettingsPageLayout";
+export type { SettingsPageLayoutProps, SettingsSection } from "./SettingsPageLayout";
+
 // Re-export toast from sonner for easy access
 export { toast } from 'sonner';
