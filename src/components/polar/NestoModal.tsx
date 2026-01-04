@@ -59,6 +59,7 @@ export function NestoModal({
           "rounded-card border border-border bg-card p-0 gap-0 overflow-hidden",
           sizeClasses[size]
         )}
+        hideCloseButton
       >
         <DialogHeader className="p-6 pb-4">
           {steps && steps.length > 0 && (
