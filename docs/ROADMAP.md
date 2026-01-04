@@ -15,7 +15,10 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
 - ✅ Fase 4.1: SaaS Foundation
 
 ### IN UITVOERING
-- 🔄 Fase 4.2: Areas, Tables, TableGroups CRUD
+- 🔄 Fase 4.2: Areas, Tables, TableGroups
+  - ✅ 4.2.A CRUD UI - COMPLEET
+  - ⏳ 4.2.B Reorder UI - Volgende sessie
+  - ⏳ 4.2.C Availability Rules - Nog te starten
 
 ---
 
@@ -101,43 +104,138 @@ Status: Compleet (3 januari 2026)
 
 ---
 
-### 4.2 Areas, Tables, TableGroups CRUD
-Status: 🔄 In uitvoering
+### 4.2 Areas, Tables, TableGroups
+Status: Deels compleet
 
-**Doel:** Volledige tafelbeheer UI bouwen die de mock data vervangt
+---
 
-**Database Schema:**
+#### 4.2.A CRUD UI ✅ COMPLEET
+Status: Afgerond (4 januari 2026)
+
+**Database Schema (GELOCKED):**
 - [x] `areas` - Zones met sort order, fill_order, is_active
-- [x] `tables` - Tafels met min/max capacity, online bookable, is_joinable, priorities
+- [x] `tables` - Tafels met min/max capacity, online bookable, is_joinable
 - [x] `table_groups` - Combinaties met auto-calculated capacities
 - [x] `table_group_members` - Koppeling met sort_order
+- [x] Constraints: table_number uniek per location, display_label case-insensitive uniek
+- [x] Triggers: prevent_table_group_overlap, check_group_activation_overlap
 
-**Database Constraints (GELOCKED 4 jan 2026):**
-- [x] `table_number` uniek per location (niet per area)
-- [x] `display_label` case-insensitive uniek per location (alleen actieve)
-- [x] `trg_prevent_table_group_overlap` - Block overlap bij member insert/update
-- [x] `trg_check_group_activation_overlap` - Block overlap bij group activation
-- [x] System-generated groups uitgezonderd van overlap checks
+**Hooks:**
+- [x] `useAreasWithTables` (Set-based, O(n+m))
+- [x] `useAreasForGrid` en `useAreasForSettings`
+- [x] `useTableGroups` (met members optie)
+- [x] `useTableMutations` (create, update, archive, restore, swap, bulk)
+- [x] `useReservationSettings` met autosave
 
-**Gedaan:**
-- [x] Database schema volledig (4 tabellen + RLS + triggers)
-- [x] `useAreasWithTables` hook geoptimaliseerd:
-  - Set-based filtering voor groupCounts (geen `tables!inner` dependency)
-  - O(n+m) mapping via tablesByArea Map i.p.v. O(n*m)
-  - includeInactive parameter werkt correct door Set filtering
-- [x] `useAreasForGrid` en `useAreasForSettings` convenience hooks
-- [x] Grid View haalt tafels uit database
+**Settings UI Components:**
+- [x] `LocationSettingsCard` - autosave voor toggles en numerieke settings
+- [x] `AreasSection` - overzicht + add area + archived collapsible
+- [x] `AreaCard` - collapsible met tafels, fill order, up/down reorder, archive
+- [x] `AreaModal` - create/edit area met fill order
+- [x] `TableRow` - display, up/down reorder, edit, archive
+- [x] `TableModal` - create/edit (label, capacity, online bookable, joinable)
+- [x] `BulkTableModal` - meerdere tafels tegelijk toevoegen
+- [x] `RestoreTableModal` - restore met label conflict handling
+- [x] `TableGroupsSection` - overzicht + add group + archived collapsible
+- [x] `TableGroupCard` - display met members, edit, archive
+- [x] `TableGroupModal` - create/edit met multi-select members
 
-**Nog te doen:**
-- [ ] Settings pagina "Tafels & Zitplaatsen" met:
-  - [ ] Areas CRUD (toevoegen, bewerken, verwijderen, volgorde aanpassen)
-  - [ ] Tables CRUD per area (nummer, min/max capaciteit, online bookable toggle)
-  - [ ] TableGroups beheer (welke tafels mogen gecombineerd worden)
-  - [ ] Multi-table reservations toggle per locatie
-  - [ ] Fill order instelling per area
-  - [ ] Auto-assign toggle
+**Design System Fixes:**
+- [x] Toast notificaties: Nesto Polar styling (3px left-border, bottom-right)
+- [x] Modal close button: hideCloseButton prop
+- [x] Toast feedback strategie: inline voor autosave, toast voor expliciete acties
+- [x] Documentatie: `docs/design/TOAST_NOTIFICATIONS.md`
 
-**Volgende stap:** Settings UI voor Areas CRUD bouwen
+---
+
+#### 4.2.B Reorder UI ⏳ VOLGENDE SESSIE
+Status: Nog te starten
+
+**Doel:** Drag-and-drop reordering zoals Formitable, met up/down als fallback
+
+**Scope B1: Areas reorder**
+- [ ] Drag handle op AreaCard header
+- [ ] RPC: `reorder_areas(_location_id uuid, _area_ids uuid[])`
+  - Input: location_id, area_ids in gewenste volgorde
+  - Regels: owner/manager, alleen areas van die locatie
+  - sort_order wordt opnieuw gezet naar 10,20,30...
+- [ ] Hook: `useReorderAreas` mutation
+- [ ] Invalidate areas-with-tables na reorder
+- [ ] Up/down knoppen blijven als fallback
+
+**Scope B2: Tables reorder binnen area**
+- [ ] Drag handle op TableRow
+- [ ] RPC: `reorder_tables(_area_id uuid, _table_ids uuid[])`
+  - Input: area_id, table_ids in gewenste volgorde
+  - Regels: owner/manager, tables moeten binnen dezelfde area vallen
+  - sort_order wordt opnieuw gezet naar 10,20,30...
+- [ ] Hook: `useReorderTables` mutation
+- [ ] Geen cross-area drag in deze scope
+
+**Technische keuze:**
+- Library: @dnd-kit/core + @dnd-kit/sortable (al geinstalleerd)
+- Alleen handle draggable (geen hele row)
+- Keyboard support is nice-to-have
+
+**Acceptatiecriteria:**
+- [ ] Dragging werkt alleen op handle
+- [ ] Reorder is stabiel na refresh
+- [ ] Unauthorized role kan niet reorder
+- [ ] Geen dubbele sort_order ontstaat
+- [ ] Collapsed/expanded state blijft behouden tijdens drag
+
+**Wat expliciet NIET in Scope B zit:**
+- Tafels slepen tussen areas
+- Reorder van tafelgroepen of group members
+- Automatische "insert between" zonder RPC hernummering
+
+---
+
+#### 4.2.C Availability Rules per Tafel ⏳ NOG TE STARTEN
+Status: Nog te starten (pas starten als nodig voor online booking/auto-assign)
+
+**Doel:** Per tafel bepalen wanneer die beschikbaar is, bovenop openingstijden en shift rules
+
+**Scope C1: Datamodel**
+- [ ] `table_availability_rules` tabel:
+  - id, location_id, table_id
+  - rule_type: allow | block
+  - days_of_week int[]
+  - start_time, end_time
+  - start_date, end_date (nullable voor recurring)
+  - is_active
+  - created_at, updated_at
+
+**Scope C2: Engine gedrag**
+- [ ] Input: datum, tijdslot, tafel
+- [ ] Output: beschikbaar ja/nee
+- [ ] Regels:
+  1. Als actieve block rule matcht -> niet beschikbaar
+  2. Als allow rules bestaan -> alleen beschikbaar binnen allow windows
+  3. Als geen rules -> beschikbaar binnen openingstijden
+
+**Scope C3: UI in TableModal**
+- [ ] Toggle: "Gebruik specifieke beschikbaarheid voor deze tafel"
+- [ ] Rule list met add knop
+- [ ] Per rule: type (allow/block), dagen, tijd, optioneel datum range
+- [ ] Live preview is nice-to-have
+
+**Scope C4: Integratiepunten**
+- [ ] Online booking flow
+- [ ] Auto assign algoritme
+- [ ] Capacity search
+
+**Acceptatiecriteria:**
+- [ ] Rules CRUD werkt volledig
+- [ ] Engine respecteert rules in beschikbaarheid check
+- [ ] Default gedrag zonder rules blijft exact zoals nu
+- [ ] RLS: alleen users met location access kunnen rules beheren
+
+**Wat expliciet NIET in Scope C zit:**
+- Seasonality templates
+- Complexe priority stacks tussen meerdere allow rules
+- UI voor bulk apply rules over meerdere tafels
+- Availability rules per area (alleen per tafel)
 
 ---
 
@@ -822,6 +920,22 @@ Menu items worden gefilterd op:
 ---
 
 ## SESSIE LOG
+
+### 4 januari 2026
+- Fase 4.2.A COMPLEET: CRUD UI voor Areas, Tables, TableGroups
+- Settings UI componenten gebouwd:
+  - LocationSettingsCard met autosave (multi-table, auto-assign, duration, cutoff, buffer)
+  - AreasSection + AreaCard + AreaModal (met fill order, up/down reordering)
+  - TableRow + TableModal + BulkTableModal + RestoreTableModal
+  - TableGroupsSection + TableGroupCard + TableGroupModal
+- Design System fixes:
+  - Toast notificaties: Nesto Polar styling hersteld (3px left-border, bottom-right, unstyled: true)
+  - Modal close button: hideCloseButton prop toegevoegd aan DialogContent
+  - Toast feedback strategie: inline indicator voor autosave, toast voor expliciete acties
+  - Documentatie: docs/design/TOAST_NOTIFICATIONS.md aangemaakt
+- Volgende sessie: Fase 4.2.B - Reorder UI met drag-and-drop
+  - B1: Areas drag-and-drop + reorder_areas RPC
+  - B2: Tables drag-and-drop + reorder_tables RPC
 
 ### 3 januari 2026 (avond)
 - Fase 4.2 gestart: Areas, Tables, TableGroups
