@@ -6,6 +6,74 @@ Nesto is een multi-tenant SaaS platform voor horeca management. Dit document bes
 
 ---
 
+## Architecture Lock (Fase 4.1 + 4.2)
+
+**Gelocked op:** 4 januari 2026  
+**Status:** DEFINITIEF - Wijzigingen vereisen expliciete review
+
+### Scope Rules
+
+| Scope | Beschrijving | Eigenaar |
+|-------|--------------|----------|
+| **Platform** | Globale toegang, niet gebonden aan org/location | Nesto team |
+| **Organization** | Klantbedrijf wrapper, geen billing hier | Klant |
+| **Location** | Vestiging, ALLES is per location | Klant |
+
+### Onveranderlijke Principes
+
+1. **Billing is per Location** - Nooit per Organization
+2. **Entitlements zijn per Location** - Nooit per Organization  
+3. **Roles zijn per Location** - Via `user_location_roles`
+4. **Platform roles in `profiles.platform_role`** - Alleen `platform_admin` en `support`
+5. **`get_user_context()` is de Single Source of Truth** - Geen losse permission queries
+
+### Platform Role Capabilities
+
+| Capability | platform_admin | support |
+|------------|----------------|---------|
+| Read all data (SELECT) | YES | YES |
+| Mutate organizations | YES | NO |
+| Mutate locations | YES | NO |
+| Mutate subscriptions/entitlements | YES | NO |
+| Mutate user roles | YES | NO |
+| Bypass permission checks | YES | NO |
+
+**Support Role Toekomst:** Huidige `support` role is read-only platform-wide (MVP placeholder). 
+Toekomstige iteraties vervangen dit door expliciete grants of impersonation flow.
+
+---
+
+## Fase 4.2: Table Management Constraints
+
+### Uniqueness Rules
+
+| Entity | Scope | Case Sensitive | Constraint/Index |
+|--------|-------|----------------|------------------|
+| `areas.name` | Per location | Ja | `UNIQUE(location_id, name)` |
+| `tables.table_number` | Per location | N.v.t. | `UNIQUE(location_id, table_number)` |
+| `tables.display_label` | Per location (actief) | **Nee** | `idx_tables_display_label_active_ci` |
+| `table_groups.name` | Per location | Ja | `UNIQUE(location_id, name)` |
+
+### Table Group Overlap Policy
+
+**MVP Regel:** Een tafel kan NIET in meerdere actieve, niet-system-generated groups zitten.
+
+**Enforcement:**
+- `trg_prevent_table_group_overlap` op INSERT/UPDATE van members
+- `trg_check_group_activation_overlap` op UPDATE is_active van groups
+
+**System-generated groups zijn uitgezonderd.**
+
+### Auto-sync Behavior
+
+| Trigger | Actie |
+|---------|-------|
+| `trg_sync_table_location` | Sync tables.location_id van area |
+| `trg_update_table_group_caps` | Herbereken group capacities bij member changes |
+| `trg_recalc_groups_for_table` | Herbereken groups bij table capacity changes |
+
+---
+
 ## Tenant Structuur
 
 ```

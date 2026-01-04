@@ -1,5 +1,5 @@
 # NESTO PROJECT ROADMAP
-Laatst bijgewerkt: 3 januari 2026 (avond)
+Laatst bijgewerkt: 4 januari 2026
 
 ## PROJECT OVERZICHT
 Nesto is een SaaS platform voor horeca management met modules voor reserveringen, keuken, kaartbeheer, en meer. Multi-tenant architectuur waarbij elke organization meerdere locations kan hebben, met per-location billing en module entitlements.
@@ -111,6 +111,13 @@ Status: 🔄 In uitvoering
 - [x] `tables` - Tafels met min/max capacity, online bookable, is_joinable, priorities
 - [x] `table_groups` - Combinaties met auto-calculated capacities
 - [x] `table_group_members` - Koppeling met sort_order
+
+**Database Constraints (GELOCKED 4 jan 2026):**
+- [x] `table_number` uniek per location (niet per area)
+- [x] `display_label` case-insensitive uniek per location (alleen actieve)
+- [x] `trg_prevent_table_group_overlap` - Block overlap bij member insert/update
+- [x] `trg_check_group_activation_overlap` - Block overlap bij group activation
+- [x] System-generated groups uitgezonderd van overlap checks
 
 **Gedaan:**
 - [x] Database schema volledig (4 tabellen + RLS + triggers)
