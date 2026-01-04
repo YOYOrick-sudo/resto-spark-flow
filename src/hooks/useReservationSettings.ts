@@ -38,7 +38,7 @@ export function useUpsertReservationSettings() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['reservation-settings', data.location_id] });
-      toast.success('Instellingen opgeslagen');
+      // Geen toast - component toont inline "Opgeslagen" indicator
     },
     onError: (error: Error) => {
       toast.error(`Fout bij opslaan: ${error.message}`);

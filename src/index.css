@@ -321,60 +321,80 @@
 
 /* ============================================================================
    TOAST NOTIFICATIONS (Sonner) - Nesto Polar Styling
+   Configuratie: unstyled: true in sonner.tsx
    ============================================================================ */
 
 .nesto-toast {
-  @apply bg-card border border-border shadow-lg;
-  border-radius: 12px !important;
-  padding: 16px !important;
-  font-family: var(--font-family) !important;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  font-family: var(--font-family);
+  min-width: 320px;
+  max-width: 420px;
+  animation: toast-slide-in 0.2s ease-out;
 }
 
 .nesto-toast-title {
-  @apply text-foreground;
-  font-size: 15px !important;
-  font-weight: 500 !important;
-  margin-bottom: 4px !important;
+  color: hsl(var(--foreground));
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 2px;
 }
 
 .nesto-toast-description {
-  @apply text-muted-foreground;
-  font-size: 13px !important;
-  line-height: 1.5 !important;
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 /* Success Toast - Groen */
-.nesto-toast-success {
-  border-left: 3px solid hsl(160 84% 39%) !important;
+.nesto-toast.nesto-toast-success {
+  border-left: 3px solid hsl(160 84% 39%);
 }
 
-.nesto-toast-success .nesto-toast-title {
-  color: hsl(160 84% 39%) !important;
+.nesto-toast.nesto-toast-success .nesto-toast-title {
+  color: hsl(160 84% 39%);
 }
 
 /* Error Toast - Rood */
-.nesto-toast-error {
-  border-left: 3px solid hsl(0 74% 60%) !important;
+.nesto-toast.nesto-toast-error {
+  border-left: 3px solid hsl(0 74% 60%);
 }
 
-.nesto-toast-error .nesto-toast-title {
-  color: hsl(0 74% 60%) !important;
+.nesto-toast.nesto-toast-error .nesto-toast-title {
+  color: hsl(0 74% 60%);
 }
 
 /* Warning Toast - Oranje */
-.nesto-toast-warning {
-  border-left: 3px solid hsl(36 100% 50%) !important;
+.nesto-toast.nesto-toast-warning {
+  border-left: 3px solid hsl(36 100% 50%);
 }
 
-.nesto-toast-warning .nesto-toast-title {
-  color: hsl(36 100% 50%) !important;
+.nesto-toast.nesto-toast-warning .nesto-toast-title {
+  color: hsl(36 100% 50%);
 }
 
 /* Info Toast - Nesto Primary (Teal) */
-.nesto-toast-info {
-  border-left: 3px solid hsl(var(--primary)) !important;
+.nesto-toast.nesto-toast-info {
+  border-left: 3px solid hsl(var(--primary));
 }
 
-.nesto-toast-info .nesto-toast-title {
-  color: hsl(var(--primary)) !important;
+.nesto-toast.nesto-toast-info .nesto-toast-title {
+  color: hsl(var(--primary));
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
