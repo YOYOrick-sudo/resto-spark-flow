@@ -6,6 +6,8 @@ import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoSelect } from "@/components/polar/NestoSelect";
 import { toast } from "sonner";
 import { mockPacingSettings, updatePacingSettings } from "@/data/reservations";
+import { LocationSettingsCard, AreasSection, TableGroupsSection } from "@/components/settings/tables";
+import { useUserContext } from "@/contexts/UserContext";
 
 const sections = [
   { id: "pacing", label: "Pacing" },
@@ -15,6 +17,7 @@ const sections = [
 ];
 
 export default function SettingsReserveringen() {
+  const { currentLocation } = useUserContext();
   const [activeSection, setActiveSection] = useState("pacing");
   const [settings, setSettings] = useState({
     defaultLimitPerQuarter: mockPacingSettings.defaultLimitPerQuarter,
@@ -134,13 +137,20 @@ export default function SettingsReserveringen() {
       )}
 
       {activeSection === "tafels" && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Tafelbeheer</h2>
-          <p className="text-sm text-muted-foreground">
-            Beheer areas, tafelgroepen en individuele tafels.
-          </p>
-          <div className="nesto-card-base p-6">
-            <p className="text-muted-foreground">Tafelbeheer configuratie komt hier.</p>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Tafelbeheer</h2>
+              <p className="text-sm text-muted-foreground">
+                Beheer areas, tafels en tafelcombinaties.
+              </p>
+            </div>
+          </div>
+
+          <div className="max-w-4xl space-y-6">
+            <LocationSettingsCard locationId={currentLocation?.id} />
+            <AreasSection locationId={currentLocation?.id} />
+            <TableGroupsSection locationId={currentLocation?.id} />
           </div>
         </div>
       )}
