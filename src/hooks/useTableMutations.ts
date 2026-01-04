@@ -232,3 +232,67 @@ export function useRestoreTable() {
     }
   });
 }
+
+// ============================================
+// SORT ORDER MUTATIONS (Atomic swaps via RPC)
+// ============================================
+
+export function useSwapAreaSortOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ areaAId, areaBId }: { areaAId: string; areaBId: string }) => {
+      const { error } = await supabase.rpc('swap_area_sort_order', {
+        _area_a_id: areaAId,
+        _area_b_id: areaBId
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Fout bij herschikken: ${error.message}`);
+    }
+  });
+}
+
+export function useSwapTableSortOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ tableAId, tableBId }: { tableAId: string; tableBId: string }) => {
+      const { error } = await supabase.rpc('swap_table_sort_order', {
+        _table_a_id: tableAId,
+        _table_b_id: tableBId
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Fout bij herschikken: ${error.message}`);
+    }
+  });
+}
+
+// ============================================
+// NEXT SORT ORDER HELPERS
+// ============================================
+
+export async function getNextAreaSortOrder(locationId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('get_next_area_sort_order', {
+    _location_id: locationId
+  });
+  if (error) throw error;
+  return data ?? 10;
+}
+
+export async function getNextTableSortOrder(areaId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('get_next_table_sort_order', {
+    _area_id: areaId
+  });
+  if (error) throw error;
+  return data ?? 10;
+}

@@ -785,6 +785,11 @@ export type Database = {
         Args: { _table_group_id: string }
         Returns: string
       }
+      get_next_area_sort_order: {
+        Args: { _location_id: string }
+        Returns: number
+      }
+      get_next_table_sort_order: { Args: { _area_id: string }; Returns: number }
       get_user_context: {
         Args: { _location_id: string; _user_id: string }
         Returns: Json
@@ -806,6 +811,14 @@ export type Database = {
       restore_table: {
         Args: { _new_display_label?: string; _table_id: string }
         Returns: Json
+      }
+      swap_area_sort_order: {
+        Args: { _area_a_id: string; _area_b_id: string }
+        Returns: undefined
+      }
+      swap_table_sort_order: {
+        Args: { _table_a_id: string; _table_b_id: string }
+        Returns: undefined
       }
       user_has_location_access: {
         Args: { _location_id: string; _user_id: string }

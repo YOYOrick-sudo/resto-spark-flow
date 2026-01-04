@@ -72,6 +72,33 @@ Toekomstige iteraties vervangen dit door expliciete grants of impersonation flow
 | `trg_update_table_group_caps` | Herbereken group capacities bij member changes |
 | `trg_recalc_groups_for_table` | Herbereken groups bij table capacity changes |
 
+### Sort Order Strategy
+
+**Gelocked op:** 4 januari 2026
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| **Step size** | 10 | Ruimte voor toekomstige inserts tussen items |
+| **Start value** | 10 | Eerste item krijgt 10, niet 0 |
+| **Calculation** | `MAX(sort_order) + 10` | Via RPCs `get_next_area_sort_order`, `get_next_table_sort_order` |
+| **Swap mechanism** | Atomic RPC | `swap_area_sort_order`, `swap_table_sort_order` met auth check |
+
+**RPCs:**
+- `get_next_area_sort_order(_location_id)` - Volgende sort_order voor area
+- `get_next_table_sort_order(_area_id)` - Volgende sort_order voor table
+- `swap_area_sort_order(_area_a_id, _area_b_id)` - Atomaire swap, owner/manager auth
+- `swap_table_sort_order(_table_a_id, _table_b_id)` - Atomaire swap, owner/manager auth
+
+**Enforcement:**
+- Client MOET altijd RPC gebruiken voor next sort_order
+- Direct inserts met hardcoded sort_order zijn verboden
+- Swap RPCs hanteren autorisatie intern
+
+**Scope:**
+- `areas.sort_order` - per location
+- `tables.sort_order` - per area
+- `table_group_members.sort_order` - per group (toekomstig)
+
 ---
 
 ## Tenant Structuur

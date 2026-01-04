@@ -59,11 +59,20 @@ export function useTableGroups(
 // TABLE GROUP MUTATIONS
 // ============================================
 
+interface CreateTableGroupInput {
+  location_id: string;
+  name: string;
+  notes?: string | null;
+  is_online_bookable?: boolean;
+  table_ids?: string[];
+}
+
 export function useCreateTableGroup() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: Pick<TableGroup, 'location_id' | 'name'> & Partial<TableGroup>) => {
+    mutationFn: async ({ table_ids, ...data }: CreateTableGroupInput) => {
+      // Create group first
       const { data: group, error } = await supabase
         .from('table_groups')
         .insert(data)
@@ -71,6 +80,22 @@ export function useCreateTableGroup() {
         .single();
 
       if (error) throw error;
+      
+      // Add members if provided
+      if (table_ids && table_ids.length > 0) {
+        const members = table_ids.map((table_id, index) => ({
+          table_group_id: group.id,
+          table_id,
+          sort_order: (index + 1) * 10
+        }));
+        
+        const { error: memberError } = await supabase
+          .from('table_group_members')
+          .insert(members);
+        
+        if (memberError) throw memberError;
+      }
+      
       return group;
     },
     onSuccess: () => {
