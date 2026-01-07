@@ -174,8 +174,13 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   * {
     @apply border-border;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
