@@ -1,5 +1,5 @@
 # NESTO PROJECT ROADMAP
-Laatst bijgewerkt: 4 januari 2026
+Laatst bijgewerkt: 7 januari 2026
 
 ## PROJECT OVERZICHT
 Nesto is een SaaS platform voor horeca management met modules voor reserveringen, keuken, kaartbeheer, en meer. Multi-tenant architectuur waarbij elke organization meerdere locations kan hebben, met per-location billing en module entitlements.
@@ -16,8 +16,9 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
 
 ### IN UITVOERING
 - 🔄 Fase 4.2: Areas, Tables, TableGroups
-  - ✅ 4.2.A CRUD UI - COMPLEET
-  - ⏳ 4.2.B Reorder UI - Volgende sessie
+  - ✅ 4.2.A CRUD UI - COMPLEET (4 januari 2026)
+  - ✅ 4.2.B1 Areas Reorder - COMPLEET (7 januari 2026) - klaar voor test/polish
+  - ⏳ 4.2.B2 Tables Reorder - VOLGENDE
   - ⏳ 4.2.C Availability Rules - Nog te starten
 
 ---
@@ -148,41 +149,76 @@ Status: Afgerond (4 januari 2026)
 
 ---
 
-#### 4.2.B Reorder UI ⏳ VOLGENDE SESSIE
+#### 4.2.B Reorder UI
+Status: Deels compleet
+
+---
+
+##### 4.2.B1 Areas Reorder ✅ COMPLEET
+Status: Afgerond (7 januari 2026) - Klaar voor test/polish
+
+**Wat is gedaan:**
+- [x] Drag handle op AreaCard header (GripVertical icon)
+- [x] RPC: `reorder_areas(_location_id uuid, _area_ids uuid[])`
+  - Guards: auth check, concurrency lock, no duplicate IDs
+  - Guards: all active IDs present, idempotency check
+  - Atomic update via UNNEST WITH ORDINALITY
+- [x] Hook: `useReorderAreas` mutation
+  - ID-based optimistic updates across all query variants
+  - Rollback on error
+  - Toast feedback on failure
+- [x] Centralized query keys (`src/lib/queryKeys.ts`)
+- [x] DndContext + SortableContext met @dnd-kit
+- [x] SortableAreaCard component met inline drag
+- [x] Sensors: PointerSensor, TouchSensor, KeyboardSensor
+- [x] Modifiers: restrictToVerticalAxis, restrictToParentElement
+- [x] Expanded/collapsed state behouden tijdens drag
+- [x] Up/down knoppen blijven als fallback
+- [x] UX Polish: inline drag (geen overlay popup)
+
+**Nog te testen:**
+- [ ] Reorder is stabiel na refresh
+- [ ] Unauthorized role kan niet reordenen  
+- [ ] Geen dubbele sort_order ontstaat
+- [ ] Touch input werkt soepel op mobile
+
+**Technische keuzes:**
+- Library: @dnd-kit/core + @dnd-kit/sortable
+- Inline drag (item beweegt zelf, geen DragOverlay)
+- Handle-only dragging (GripVertical icon)
+- Keyboard support via KeyboardSensor
+
+---
+
+##### 4.2.B2 Tables Reorder binnen Area ⏳ VOLGENDE
 Status: Nog te starten
 
-**Doel:** Drag-and-drop reordering zoals Formitable, met up/down als fallback
+**Doel:** Tafels binnen een area herschikken via drag-and-drop
 
-**Scope B1: Areas reorder**
-- [ ] Drag handle op AreaCard header
-- [ ] RPC: `reorder_areas(_location_id uuid, _area_ids uuid[])`
-  - Input: location_id, area_ids in gewenste volgorde
-  - Regels: owner/manager, alleen areas van die locatie
-  - sort_order wordt opnieuw gezet naar 10,20,30...
-- [ ] Hook: `useReorderAreas` mutation
-- [ ] Invalidate areas-with-tables na reorder
-- [ ] Up/down knoppen blijven als fallback
-
-**Scope B2: Tables reorder binnen area**
+**Te bouwen:**
+- [ ] SortableTableRow component (analog aan SortableAreaCard)
 - [ ] Drag handle op TableRow
 - [ ] RPC: `reorder_tables(_area_id uuid, _table_ids uuid[])`
   - Input: area_id, table_ids in gewenste volgorde
-  - Regels: owner/manager, tables moeten binnen dezelfde area vallen
+  - Guards: auth, tables binnen zelfde area, concurrency lock
   - sort_order wordt opnieuw gezet naar 10,20,30...
 - [ ] Hook: `useReorderTables` mutation
+  - Optimistic updates met rollback
+  - Scoped invalidation via queryKeys
+- [ ] DndContext per expanded area (nested)
 - [ ] Geen cross-area drag in deze scope
-
-**Technische keuze:**
-- Library: @dnd-kit/core + @dnd-kit/sortable (al geinstalleerd)
-- Alleen handle draggable (geen hele row)
-- Keyboard support is nice-to-have
 
 **Acceptatiecriteria:**
 - [ ] Dragging werkt alleen op handle
 - [ ] Reorder is stabiel na refresh
-- [ ] Unauthorized role kan niet reorder
-- [ ] Geen dubbele sort_order ontstaat
-- [ ] Collapsed/expanded state blijft behouden tijdens drag
+- [ ] Alleen tables binnen zelfde area kunnen herschikt worden
+- [ ] Collapsed areas behouden hun internal sort order
+
+**Wat expliciet NIET in B2 scope:**
+- Tafels slepen tussen areas (cross-area drag)
+- Reorder van tafelgroepen of group members
+
+---
 
 **Wat expliciet NIET in Scope B zit:**
 - Tafels slepen tussen areas
@@ -920,6 +956,20 @@ Menu items worden gefilterd op:
 ---
 
 ## SESSIE LOG
+
+### 7 januari 2026
+- **B1 Areas Reorder COMPLEET** - klaar voor test/polish
+- Database RPC `reorder_areas` met volledige guards:
+  - Auth check, concurrency lock, no duplicate IDs
+  - All active IDs present check, idempotency check
+  - Atomic update via UNNEST WITH ORDINALITY
+- `useReorderAreas` hook met ID-based optimistic updates + rollback
+- Centralized query keys (`src/lib/queryKeys.ts`)
+- SortableAreaCard component met inline drag (geen DragOverlay)
+- DnD sensoren geconfigureerd (Pointer, Touch, Keyboard)
+- Modifiers: restrictToVerticalAxis, restrictToParentElement
+- UX polish: inline drag beweging, subtiele shadow tijdens drag
+- Volgende: B2 Tables Reorder binnen areas
 
 ### 4 januari 2026
 - Fase 4.2.A COMPLEET: CRUD UI voor Areas, Tables, TableGroups
