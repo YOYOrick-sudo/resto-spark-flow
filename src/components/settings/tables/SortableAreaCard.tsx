@@ -18,11 +18,14 @@ export function SortableAreaCard({ id, ...props }: SortableAreaCardProps) {
   } = useSortable({ id });
 
   const style: React.CSSProperties = {
-    // No transform on original - DragOverlay handles visual movement
+    // Item moves inline via transform
+    transform: CSS.Transform.toString(transform),
     transition,
-    // Hide completely during drag - overlay shows the item
-    opacity: isDragging ? 0 : 1,
-    visibility: isDragging ? 'hidden' : 'visible',
+    // Subtle visual feedback during drag
+    opacity: isDragging ? 0.95 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+    boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
+    position: 'relative',
   };
 
   const dragHandle = (

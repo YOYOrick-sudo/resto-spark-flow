@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   DndContext,
-  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -20,7 +19,6 @@ import {
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { SortableAreaCard } from "./SortableAreaCard";
-import { AreaDragOverlay } from "./AreaDragOverlay";
 import { AreaModal } from "./AreaModal";
 import { TableModal } from "./TableModal";
 import { BulkTableModal } from "./BulkTableModal";
@@ -103,11 +101,6 @@ export function AreasSection({ locationId }: AreasSectionProps) {
     })
   );
 
-  // Custom drop animation for smooth feel
-  const dropAnimationConfig = {
-    duration: 180,
-    easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-  };
 
   // Toggle expanded state for an area
   const toggleAreaExpanded = useCallback((areaId: string) => {
@@ -252,9 +245,6 @@ export function AreasSection({ locationId }: AreasSectionProps) {
           </div>
         </SortableContext>
 
-        <DragOverlay dropAnimation={dropAnimationConfig}>
-          {activeArea && <AreaDragOverlay area={activeArea} />}
-        </DragOverlay>
       </DndContext>
 
       {/* Archived Areas */}
