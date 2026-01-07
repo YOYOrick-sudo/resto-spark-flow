@@ -51,7 +51,7 @@ export function SettingsPageLayout({
       {/* Main Layout */}
       <div className="flex gap-8">
         {/* Sidebar */}
-        <div className="w-[240px] flex-shrink-0 space-y-4">
+        <div className="w-[240px] flex-shrink-0 space-y-4 sticky top-0 self-start">
           {/* Menu */}
           <nav className="bg-secondary rounded-card p-5">
             <h4 className="text-sm font-semibold text-foreground mb-4">
