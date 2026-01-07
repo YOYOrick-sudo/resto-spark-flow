@@ -137,13 +137,17 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
               for (const tableId of toRemove) {
                 const memberId = editingGroup.members?.find(m => m.table_id === tableId)?.id;
                 if (memberId) {
-                  removeMember(memberId);
+                  removeMember({ memberId, locationId: editingGroup.location_id });
                 }
               }
               
               // Add new members
               for (const tableId of toAdd) {
-                addMember({ table_group_id: editingGroup.id, table_id: tableId });
+                addMember({ 
+                  table_group_id: editingGroup.id, 
+                  table_id: tableId,
+                  locationId: editingGroup.location_id
+                });
               }
               
               toast.success('Groep bijgewerkt');

@@ -43,8 +43,8 @@ export function TableGroupsSection({ locationId }: TableGroupsSectionProps) {
     setModalOpen(true);
   };
 
-  const handleRestore = (groupId: string) => {
-    restoreGroup(groupId);
+  const handleRestore = (group: TableGroup) => {
+    restoreGroup({ groupId: group.id, locationId: group.location_id });
   };
 
   if (isLoading) {
@@ -113,7 +113,7 @@ export function TableGroupsSection({ locationId }: TableGroupsSectionProps) {
                 <NestoButton
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleRestore(group.id)}
+                  onClick={() => handleRestore(group)}
                   disabled={isRestoring}
                 >
                   Herstellen

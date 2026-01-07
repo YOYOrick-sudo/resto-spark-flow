@@ -20,7 +20,7 @@ export function TableGroupCard({ group, onEdit }: TableGroupCardProps) {
     .join(' + ') || 'Geen tafels';
 
   const handleArchive = () => {
-    archiveGroup(group.id);
+    archiveGroup({ groupId: group.id, locationId: group.location_id });
   };
 
   return (
