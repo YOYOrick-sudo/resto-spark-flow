@@ -808,6 +808,10 @@ export type Database = {
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       is_platform_user: { Args: { _user_id: string }; Returns: boolean }
+      reorder_areas: {
+        Args: { _area_ids: string[]; _location_id: string }
+        Returns: Json
+      }
       restore_table: {
         Args: { _new_display_label?: string; _table_id: string }
         Returns: Json

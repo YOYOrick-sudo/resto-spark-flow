@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TableGroup, TableGroupMember } from "@/types/reservations";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface UseTableGroupsOptions {
   includeInactive?: boolean;
@@ -15,7 +16,7 @@ export function useTableGroups(
   const { includeInactive = false, includeMembers = false } = options;
 
   return useQuery({
-    queryKey: ['table-groups', locationId, includeInactive, includeMembers],
+    queryKey: [...queryKeys.tableGroups(locationId!), includeInactive, includeMembers],
     queryFn: async (): Promise<TableGroup[]> => {
       if (!locationId) return [];
 
@@ -98,9 +99,15 @@ export function useCreateTableGroup() {
       
       return group;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.tableGroups(variables.location_id),
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(variables.location_id),
+        exact: false 
+      });
       toast.success('Tafelgroep aangemaakt');
     },
     onError: (error: Error) => {
@@ -124,17 +131,25 @@ export function useUpdateTableGroup() {
       if (error) throw error;
       return group;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-groups'] });
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.tableGroups(result.location_id),
+        exact: false 
+      });
     }
   });
+}
+
+interface ArchiveTableGroupParams {
+  groupId: string;
+  locationId: string;
 }
 
 export function useArchiveTableGroup() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (groupId: string) => {
+    mutationFn: async ({ groupId }: ArchiveTableGroupParams) => {
       const { error } = await supabase
         .from('table_groups')
         .update({ is_active: false })
@@ -142,19 +157,30 @@ export function useArchiveTableGroup() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.tableGroups(locationId),
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false 
+      });
       toast.success('Tafelgroep gearchiveerd');
     }
   });
+}
+
+interface RestoreTableGroupParams {
+  groupId: string;
+  locationId: string;
 }
 
 export function useRestoreTableGroup() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (groupId: string) => {
+    mutationFn: async ({ groupId }: RestoreTableGroupParams) => {
       const { error } = await supabase
         .from('table_groups')
         .update({ is_active: true })
@@ -162,9 +188,15 @@ export function useRestoreTableGroup() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.tableGroups(locationId),
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false 
+      });
       toast.success('Tafelgroep hersteld');
     }
   });
@@ -174,11 +206,18 @@ export function useRestoreTableGroup() {
 // TABLE GROUP MEMBER MUTATIONS
 // ============================================
 
+interface AddTableGroupMemberParams {
+  table_group_id: string;
+  table_id: string;
+  sort_order?: number;
+  locationId: string;
+}
+
 export function useAddTableGroupMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: Pick<TableGroupMember, 'table_group_id' | 'table_id'> & { sort_order?: number }) => {
+    mutationFn: async ({ locationId, ...data }: AddTableGroupMemberParams) => {
       const { data: member, error } = await supabase
         .from('table_group_members')
         .insert(data)
@@ -188,9 +227,15 @@ export function useAddTableGroupMember() {
       if (error) throw error;
       return member;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.tableGroups(locationId),
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false 
+      });
     },
     onError: (error: Error) => {
       toast.error(`Fout bij toevoegen: ${error.message}`);
@@ -198,11 +243,16 @@ export function useAddTableGroupMember() {
   });
 }
 
+interface RemoveTableGroupMemberParams {
+  memberId: string;
+  locationId: string;
+}
+
 export function useRemoveTableGroupMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (memberId: string) => {
+    mutationFn: async ({ memberId }: RemoveTableGroupMemberParams) => {
       const { error } = await supabase
         .from('table_group_members')
         .delete()
@@ -210,18 +260,30 @@ export function useRemoveTableGroupMember() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-groups'] });
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.tableGroups(locationId),
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false 
+      });
     }
   });
+}
+
+interface UpdateMemberSortOrderParams {
+  id: string;
+  sort_order: number;
+  locationId: string;
 }
 
 export function useUpdateMemberSortOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, sort_order }: { id: string; sort_order: number }) => {
+    mutationFn: async ({ id, sort_order }: UpdateMemberSortOrderParams) => {
       const { error } = await supabase
         .from('table_group_members')
         .update({ sort_order })
@@ -229,8 +291,11 @@ export function useUpdateMemberSortOrder() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['table-groups'] });
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.tableGroups(locationId),
+        exact: false 
+      });
     }
   });
 }

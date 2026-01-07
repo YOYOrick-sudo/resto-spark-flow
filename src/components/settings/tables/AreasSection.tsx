@@ -1,15 +1,35 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { NestoButton } from "@/components/polar/NestoButton";
-import { AreaCard } from "./AreaCard";
+import { SortableAreaCard } from "./SortableAreaCard";
+import { AreaDragOverlay } from "./AreaDragOverlay";
 import { AreaModal } from "./AreaModal";
 import { TableModal } from "./TableModal";
 import { BulkTableModal } from "./BulkTableModal";
 import { RestoreTableModal } from "./RestoreTableModal";
 import { useAreasForSettings } from "@/hooks/useAreasWithTables";
-import { useRestoreArea } from "@/hooks/useTableMutations";
+import { useRestoreArea, useReorderAreas } from "@/hooks/useTableMutations";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronRight, Plus, Loader2, Archive } from "lucide-react";
-import type { Area, Table } from "@/types/reservations";
+import type { Area, Table, AreaWithTables } from "@/types/reservations";
 
 interface AreasSectionProps {
   locationId: string | undefined;
@@ -18,6 +38,7 @@ interface AreasSectionProps {
 export function AreasSection({ locationId }: AreasSectionProps) {
   const { data: allAreas, isLoading } = useAreasForSettings(locationId);
   const { mutate: restoreArea, isPending: isRestoring } = useRestoreArea();
+  const { mutate: reorderAreas } = useReorderAreas();
   
   // Modals state
   const [areaModalOpen, setAreaModalOpen] = useState(false);
@@ -30,6 +51,10 @@ export function AreasSection({ locationId }: AreasSectionProps) {
   const [restoringTable, setRestoringTable] = useState<Table | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
 
+  // DnD state
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [expandedAreaIds, setExpandedAreaIds] = useState<Set<string>>(new Set());
+
   // Split active and archived client-side
   const activeAreas = useMemo(
     () => allAreas?.filter(a => a.is_active).sort((a, b) => a.sort_order - b.sort_order) ?? [],
@@ -39,6 +64,83 @@ export function AreasSection({ locationId }: AreasSectionProps) {
     () => allAreas?.filter(a => !a.is_active) ?? [],
     [allAreas]
   );
+
+  // Active dragging area for overlay
+  const activeArea = useMemo(
+    () => activeAreas.find(a => a.id === activeId),
+    [activeAreas, activeId]
+  );
+
+  // Initialize expanded state: expand first area by default, prune stale IDs
+  useEffect(() => {
+    if (activeAreas.length === 0) return;
+    
+    const validIds = new Set(activeAreas.map(a => a.id));
+    
+    setExpandedAreaIds(prev => {
+      // Prune stale IDs
+      const pruned = new Set([...prev].filter(id => validIds.has(id)));
+      
+      // If nothing expanded, expand first
+      if (pruned.size === 0 && activeAreas.length > 0) {
+        pruned.add(activeAreas[0].id);
+      }
+      
+      return pruned;
+    });
+  }, [activeAreas]);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Toggle expanded state for an area
+  const toggleAreaExpanded = useCallback((areaId: string) => {
+    setExpandedAreaIds(prev => {
+      const next = new Set(prev);
+      if (next.has(areaId)) {
+        next.delete(areaId);
+      } else {
+        next.add(areaId);
+      }
+      return next;
+    });
+  }, []);
+
+  // DnD handlers
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over || active.id === over.id || !locationId) return;
+
+    const oldIndex = activeAreas.findIndex(a => a.id === active.id);
+    const newIndex = activeAreas.findIndex(a => a.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(activeAreas, oldIndex, newIndex);
+    const areaIds = newOrder.map(a => a.id);
+
+    reorderAreas({ locationId, areaIds });
+  }, [activeAreas, locationId, reorderAreas]);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+  }, []);
 
   // Handlers
   const handleAddArea = () => {
@@ -101,31 +203,53 @@ export function AreasSection({ locationId }: AreasSectionProps) {
         </NestoButton>
       </div>
 
-      {/* Active Areas */}
-      <div className="space-y-3">
-        {activeAreas.map((area, index) => (
-          <AreaCard
-            key={area.id}
-            area={area}
-            allAreas={activeAreas}
-            index={index}
-            onEdit={() => handleEditArea(area)}
-            onAddTable={() => handleAddTable(area.id)}
-            onAddBulkTables={() => handleAddBulkTables(area.id)}
-            onEditTable={handleEditTable}
-            onRestoreTable={(table, areaArchived) => handleRestoreTable(table, areaArchived)}
-          />
-        ))}
-        {activeAreas.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
-            <p>Nog geen areas aangemaakt.</p>
-            <NestoButton variant="outline" size="sm" className="mt-2" onClick={handleAddArea}>
-              <Plus className="h-4 w-4 mr-1" />
-              Eerste area toevoegen
-            </NestoButton>
+      {/* Active Areas with DnD */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <SortableContext
+          items={activeAreas.map(a => a.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-3">
+            {activeAreas.map((area, index) => (
+              <SortableAreaCard
+                key={area.id}
+                id={area.id}
+                area={area}
+                allAreas={activeAreas}
+                index={index}
+                onEdit={() => handleEditArea(area)}
+                onAddTable={() => handleAddTable(area.id)}
+                onAddBulkTables={() => handleAddBulkTables(area.id)}
+                onEditTable={handleEditTable}
+                onRestoreTable={(table, areaArchived) => handleRestoreTable(table, areaArchived)}
+                isExpanded={expandedAreaIds.has(area.id)}
+                onToggleExpanded={() => toggleAreaExpanded(area.id)}
+                locationId={locationId}
+              />
+            ))}
+            {activeAreas.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
+                <p>Nog geen areas aangemaakt.</p>
+                <NestoButton variant="outline" size="sm" className="mt-2" onClick={handleAddArea}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Eerste area toevoegen
+                </NestoButton>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </SortableContext>
+
+        <DragOverlay>
+          {activeArea && <AreaDragOverlay area={activeArea} />}
+        </DragOverlay>
+      </DndContext>
 
       {/* Archived Areas */}
       {archivedAreas.length > 0 && (
