@@ -3,7 +3,9 @@
 
 export { LocationSettingsCard } from './LocationSettingsCard';
 export { AreasSection } from './AreasSection';
-export { AreaCard } from './AreaCard';
+export { AreaCard, type AreaCardProps } from './AreaCard';
+export { SortableAreaCard } from './SortableAreaCard';
+export { AreaDragOverlay } from './AreaDragOverlay';
 export { TableRow } from './TableRow';
 export { TableGroupsSection } from './TableGroupsSection';
 export { TableGroupCard } from './TableGroupCard';

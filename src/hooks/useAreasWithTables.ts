@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Area, Table, AreaWithTables } from "@/types/reservations";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface UseAreasWithTablesOptions {
   /** Include archived areas/tables (default: false) */
@@ -16,7 +17,8 @@ export function useAreasWithTables(
   const { includeInactive = false, includeGroupCounts = false } = options;
 
   return useQuery({
-    queryKey: ['areas-with-tables', locationId, includeInactive, includeGroupCounts],
+    // Base key from queryKeys, variants added as suffix for filtering
+    queryKey: [...queryKeys.areasWithTables(locationId!), includeInactive, includeGroupCounts],
     queryFn: async (): Promise<AreaWithTables[]> => {
       if (!locationId) return [];
 

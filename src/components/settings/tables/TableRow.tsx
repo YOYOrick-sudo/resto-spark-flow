@@ -10,9 +10,11 @@ interface TableRowProps {
   allTables: Table[];
   index: number;
   onEdit: () => void;
+  /** Location ID for scoped cache invalidation */
+  locationId: string;
 }
 
-export function TableRow({ table, allTables, index, onEdit }: TableRowProps) {
+export function TableRow({ table, allTables, index, onEdit, locationId }: TableRowProps) {
   const { mutate: archiveTable, isPending: isArchiving } = useArchiveTable();
   const { mutate: swapOrder, isPending: isSwapping } = useSwapTableSortOrder();
 
@@ -22,17 +24,17 @@ export function TableRow({ table, allTables, index, onEdit }: TableRowProps) {
   const handleMoveUp = () => {
     if (!canMoveUp || isSwapping) return;
     const prevTable = allTables[index - 1];
-    swapOrder({ tableAId: table.id, tableBId: prevTable.id });
+    swapOrder({ tableAId: table.id, tableBId: prevTable.id, locationId });
   };
 
   const handleMoveDown = () => {
     if (!canMoveDown || isSwapping) return;
     const nextTable = allTables[index + 1];
-    swapOrder({ tableAId: table.id, tableBId: nextTable.id });
+    swapOrder({ tableAId: table.id, tableBId: nextTable.id, locationId });
   };
 
   const handleArchive = () => {
-    archiveTable(table.id);
+    archiveTable({ tableId: table.id, locationId });
   };
 
   return (

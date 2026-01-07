@@ -3,10 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import type { 
   Area, 
   Table, 
+  AreaWithTables,
   ArchiveAreaResponse, 
   RestoreTableResponse 
 } from "@/types/reservations";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/queryKeys";
 
 // ============================================
 // AREA MUTATIONS
@@ -26,8 +28,11 @@ export function useCreateArea() {
       if (error) throw error;
       return area;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(variables.location_id),
+        exact: false 
+      });
       toast.success('Area aangemaakt');
     },
     onError: (error: Error) => {
@@ -51,8 +56,11 @@ export function useUpdateArea() {
       if (error) throw error;
       return area;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(result.location_id),
+        exact: false 
+      });
     }
   });
 }
@@ -62,12 +70,24 @@ export function useArchiveArea() {
 
   return useMutation({
     mutationFn: async (areaId: string) => {
+      // First get the area to know the location_id
+      const { data: areaData } = await supabase
+        .from('areas')
+        .select('location_id')
+        .eq('id', areaId)
+        .single();
+      
       const { data, error } = await supabase.rpc('archive_area', { _area_id: areaId });
       if (error) throw error;
-      return data as unknown as ArchiveAreaResponse;
+      return { result: data as unknown as ArchiveAreaResponse, locationId: areaData?.location_id };
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: ({ result, locationId }) => {
+      if (locationId) {
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.areasWithTables(locationId),
+          exact: false 
+        });
+      }
       if (result.archived_area) {
         toast.success(`Area gearchiveerd met ${result.archived_tables} tafel(s)`);
       } else {
@@ -85,15 +105,28 @@ export function useRestoreArea() {
 
   return useMutation({
     mutationFn: async (areaId: string) => {
+      // First get the area to know the location_id
+      const { data: areaData } = await supabase
+        .from('areas')
+        .select('location_id')
+        .eq('id', areaId)
+        .single();
+      
       const { error } = await supabase
         .from('areas')
         .update({ is_active: true })
         .eq('id', areaId);
 
       if (error) throw error;
+      return areaData?.location_id;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (locationId) => {
+      if (locationId) {
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.areasWithTables(locationId),
+          exact: false 
+        });
+      }
       toast.success('Area hersteld');
     }
   });
@@ -108,6 +141,13 @@ export function useCreateTable() {
 
   return useMutation({
     mutationFn: async (data: { area_id: string; table_number: number; min_capacity: number; max_capacity: number } & Partial<Omit<Table, 'id' | 'location_id' | 'created_at' | 'updated_at'>>) => {
+      // Get location_id from area for cache invalidation
+      const { data: areaData } = await supabase
+        .from('areas')
+        .select('location_id')
+        .eq('id', data.area_id)
+        .single();
+      
       // Note: location_id is set automatically by database trigger from area_id
       const { data: table, error } = await supabase
         .from('tables')
@@ -116,10 +156,15 @@ export function useCreateTable() {
         .single();
 
       if (error) throw error;
-      return table;
+      return { table, locationId: areaData?.location_id };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: ({ locationId }) => {
+      if (locationId) {
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.areasWithTables(locationId),
+          exact: false 
+        });
+      }
       toast.success('Tafel aangemaakt');
     },
     onError: (error: Error) => {
@@ -133,6 +178,15 @@ export function useCreateTablesBulk() {
 
   return useMutation({
     mutationFn: async (tables: Array<{ area_id: string; table_number: number; min_capacity: number; max_capacity: number }>) => {
+      if (tables.length === 0) throw new Error('No tables to create');
+      
+      // Get location_id from first table's area
+      const { data: areaData } = await supabase
+        .from('areas')
+        .select('location_id')
+        .eq('id', tables[0].area_id)
+        .single();
+      
       // location_id is set by trigger from area_id
       const { data, error } = await supabase
         .from('tables')
@@ -140,10 +194,15 @@ export function useCreateTablesBulk() {
         .select();
 
       if (error) throw error;
-      return data;
+      return { data, locationId: areaData?.location_id };
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: ({ data, locationId }) => {
+      if (locationId) {
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.areasWithTables(locationId),
+          exact: false 
+        });
+      }
       toast.success(`${data.length} tafel(s) aangemaakt`);
     },
     onError: (error: Error) => {
@@ -167,17 +226,25 @@ export function useUpdateTable() {
       if (error) throw error;
       return table;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(result.location_id),
+        exact: false 
+      });
     }
   });
+}
+
+interface ArchiveTableParams {
+  tableId: string;
+  locationId: string;
 }
 
 export function useArchiveTable() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (tableId: string) => {
+    mutationFn: async ({ tableId }: ArchiveTableParams) => {
       const { error } = await supabase
         .from('tables')
         .update({ is_active: false })
@@ -185,8 +252,11 @@ export function useArchiveTable() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false 
+      });
       toast.success('Tafel gearchiveerd');
     }
   });
@@ -202,6 +272,13 @@ export function useRestoreTable() {
 
   return useMutation({
     mutationFn: async ({ tableId, newLabel }: RestoreTableParams) => {
+      // Get table's location for cache invalidation
+      const { data: tableData } = await supabase
+        .from('tables')
+        .select('location_id')
+        .eq('id', tableId)
+        .single();
+      
       const { data, error } = await supabase.rpc('restore_table', {
         _table_id: tableId,
         _new_display_label: newLabel ?? null
@@ -218,10 +295,15 @@ export function useRestoreTable() {
         throw err;
       }
 
-      return result;
+      return { result, locationId: tableData?.location_id };
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: ({ result, locationId }) => {
+      if (locationId) {
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.areasWithTables(locationId),
+          exact: false 
+        });
+      }
       toast.success(`Tafel "${result.display_label}" hersteld`);
     },
     onError: (error: Error & { code?: string }) => {
@@ -237,19 +319,28 @@ export function useRestoreTable() {
 // SORT ORDER MUTATIONS (Atomic swaps via RPC)
 // ============================================
 
+interface SwapAreaSortOrderParams {
+  areaAId: string;
+  areaBId: string;
+  locationId: string;
+}
+
 export function useSwapAreaSortOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ areaAId, areaBId }: { areaAId: string; areaBId: string }) => {
+    mutationFn: async ({ areaAId, areaBId }: SwapAreaSortOrderParams) => {
       const { error } = await supabase.rpc('swap_area_sort_order', {
         _area_a_id: areaAId,
         _area_b_id: areaBId
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false 
+      });
     },
     onError: (error: Error) => {
       toast.error(`Fout bij herschikken: ${error.message}`);
@@ -257,23 +348,109 @@ export function useSwapAreaSortOrder() {
   });
 }
 
+interface SwapTableSortOrderParams {
+  tableAId: string;
+  tableBId: string;
+  locationId: string;
+}
+
 export function useSwapTableSortOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tableAId, tableBId }: { tableAId: string; tableBId: string }) => {
+    mutationFn: async ({ tableAId, tableBId }: SwapTableSortOrderParams) => {
       const { error } = await supabase.rpc('swap_table_sort_order', {
         _table_a_id: tableAId,
         _table_b_id: tableBId
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['areas-with-tables'] });
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false 
+      });
     },
     onError: (error: Error) => {
       toast.error(`Fout bij herschikken: ${error.message}`);
     }
+  });
+}
+
+// ============================================
+// REORDER AREAS (Drag & Drop)
+// ============================================
+
+interface ReorderAreasParams {
+  locationId: string;
+  areaIds: string[];
+}
+
+interface ReorderAreasResult {
+  success: boolean;
+  changed: boolean;
+  reason?: string;
+  count?: number;
+}
+
+export function useReorderAreas() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ locationId, areaIds }: ReorderAreasParams) => {
+      const { data, error } = await supabase.rpc('reorder_areas', {
+        _location_id: locationId,
+        _area_ids: areaIds
+      });
+      if (error) throw error;
+      return data as unknown as ReorderAreasResult;
+    },
+
+    onMutate: async ({ locationId, areaIds }) => {
+      const baseKey = queryKeys.areasWithTables(locationId);
+
+      // Cancel all in-flight queries for this location
+      await queryClient.cancelQueries({ queryKey: baseKey, exact: false });
+
+      // Get all query variants for this location
+      const queries = queryClient.getQueriesData<AreaWithTables[]>({ queryKey: baseKey });
+      const previousData = new Map(queries);
+
+      // ID-based optimistic update across ALL variants
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+
+        const areaMap = new Map(data.map(a => [a.id, a]));
+        const archived = data.filter(a => !a.is_active);
+
+        // Rebuild active list from new order
+        const newActive = areaIds
+          .map(id => areaMap.get(id))
+          .filter((a): a is AreaWithTables => !!a && a.is_active)
+          .map((area, idx) => ({ ...area, sort_order: (idx + 1) * 10 }));
+
+        queryClient.setQueryData(key, [...newActive, ...archived]);
+      });
+
+      return { previousData };
+    },
+
+    onError: (error: Error, variables, context) => {
+      // Rollback all variants
+      if (context?.previousData) {
+        context.previousData.forEach((data, key) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+      toast.error("Herschikken mislukt", { description: error.message });
+    },
+
+    onSettled: (_, __, { locationId }) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false
+      });
+    },
   });
 }
 

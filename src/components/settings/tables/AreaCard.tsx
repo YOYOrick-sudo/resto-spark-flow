@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoSelect } from "@/components/polar/NestoSelect";
@@ -8,9 +7,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronRight, ChevronDown, ChevronUp, MoreVertical, Plus, Archive } from "lucide-react";
 import { useUpdateArea, useArchiveArea, useSwapAreaSortOrder } from "@/hooks/useTableMutations";
-import type { Area, AreaWithTables, Table, FillOrderType } from "@/types/reservations";
+import type { AreaWithTables, Table, FillOrderType } from "@/types/reservations";
+import { useState } from "react";
 
-interface AreaCardProps {
+export interface AreaCardProps {
   area: AreaWithTables;
   allAreas: AreaWithTables[];
   index: number;
@@ -19,6 +19,14 @@ interface AreaCardProps {
   onAddBulkTables: () => void;
   onEditTable: (table: Table) => void;
   onRestoreTable: (table: Table, areaIsArchived: boolean) => void;
+  /** Controlled expanded state from parent */
+  isExpanded?: boolean;
+  /** Callback when expand toggle is clicked */
+  onToggleExpanded?: () => void;
+  /** Optional drag handle element */
+  dragHandle?: React.ReactNode;
+  /** Location ID for swap mutations */
+  locationId?: string;
 }
 
 const fillOrderOptions = [
@@ -37,8 +45,16 @@ export function AreaCard({
   onAddBulkTables,
   onEditTable,
   onRestoreTable,
+  isExpanded: controlledIsExpanded,
+  onToggleExpanded,
+  dragHandle,
+  locationId,
 }: AreaCardProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  // Support both controlled and uncontrolled modes
+  const [internalIsOpen, setInternalIsOpen] = useState(true);
+  const isOpen = controlledIsExpanded ?? internalIsOpen;
+  const handleToggle = onToggleExpanded ?? (() => setInternalIsOpen(!internalIsOpen));
+  
   const [archivedTablesOpen, setArchivedTablesOpen] = useState(false);
   
   const { mutate: updateArea } = useUpdateArea();
@@ -58,13 +74,13 @@ export function AreaCard({
   const handleMoveUp = () => {
     if (!canMoveUp || isSwapping) return;
     const prevArea = allAreas[index - 1];
-    swapOrder({ areaAId: area.id, areaBId: prevArea.id });
+    swapOrder({ areaAId: area.id, areaBId: prevArea.id, locationId: locationId ?? area.location_id });
   };
 
   const handleMoveDown = () => {
     if (!canMoveDown || isSwapping) return;
     const nextArea = allAreas[index + 1];
-    swapOrder({ areaAId: area.id, areaBId: nextArea.id });
+    swapOrder({ areaAId: area.id, areaBId: nextArea.id, locationId: locationId ?? area.location_id });
   };
 
   const handleFillOrderChange = (value: string) => {
@@ -78,8 +94,11 @@ export function AreaCard({
   return (
     <NestoCard className="overflow-hidden">
       {/* Header */}
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={isOpen} onOpenChange={handleToggle}>
         <div className="flex items-center gap-2 p-4 border-b bg-muted/30">
+          {/* Drag handle (if provided) */}
+          {dragHandle}
+          
           {/* Up/Down buttons */}
           <div className="flex flex-col gap-0.5">
             <button
@@ -156,6 +175,7 @@ export function AreaCard({
                 allTables={activeTables}
                 index={tableIndex}
                 onEdit={() => onEditTable(table)}
+                locationId={locationId ?? area.location_id}
               />
             ))}
             
