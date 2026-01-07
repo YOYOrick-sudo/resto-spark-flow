@@ -90,18 +90,24 @@ export function AreasSection({ locationId }: AreasSectionProps) {
     });
   }, [activeAreas]);
 
-  // DnD sensors
+  // DnD sensors - optimized for smooth input
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+      activationConstraint: { distance: 5 }, // Faster activation
     }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 150, tolerance: 5 },
+      activationConstraint: { delay: 100, tolerance: 8 }, // Shorter delay, more tolerance
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Custom drop animation for smooth feel
+  const dropAnimationConfig = {
+    duration: 180,
+    easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+  };
 
   // Toggle expanded state for an area
   const toggleAreaExpanded = useCallback((areaId: string) => {
@@ -246,7 +252,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
           </div>
         </SortableContext>
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={dropAnimationConfig}>
           {activeArea && <AreaDragOverlay area={activeArea} />}
         </DragOverlay>
       </DndContext>

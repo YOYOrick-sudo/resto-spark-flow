@@ -10,7 +10,10 @@ export function AreaDragOverlay({ area }: AreaDragOverlayProps) {
   const activeTableCount = (area.tables ?? []).filter(t => t.is_active).length;
 
   return (
-    <NestoCard className="pointer-events-none shadow-lg border-primary/20">
+    <NestoCard 
+      className="pointer-events-none shadow-lg border-primary/20 will-change-transform"
+      style={{ transform: 'translate3d(0, 0, 0)' }}
+    >
       <div className="flex items-center gap-3 p-4 bg-muted/30">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
         <span className="font-medium">{area.name}</span>
