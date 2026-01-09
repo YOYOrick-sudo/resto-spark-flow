@@ -54,7 +54,7 @@ export function SortableTableRow({ id, table, priority, isDragDisabled, onEdit, 
     <div 
       ref={setNodeRef} 
       style={style} 
-      className="grid grid-cols-[32px_40px_40px_1fr_80px_80px_32px] items-center gap-2 py-2 px-1 rounded-lg hover:bg-muted/50 transition-colors group"
+      className="grid grid-cols-[32px_40px_1fr_80px_80px_40px_32px] items-center gap-2 py-2 px-1 rounded-lg hover:bg-muted/50 transition-colors group"
     >
       {/* Drag handle with tooltip when disabled */}
       <TooltipProvider delayDuration={300}>
@@ -88,6 +88,19 @@ export function SortableTableRow({ id, table, priority, isDragDisabled, onEdit, 
         </span>
       </div>
 
+      {/* Naam */}
+      <span className="font-medium text-sm truncate">{table.display_label}</span>
+
+      {/* Min capacity */}
+      <span className="text-xs text-muted-foreground text-center">
+        {table.min_capacity}
+      </span>
+
+      {/* Max capacity */}
+      <span className="text-xs text-muted-foreground text-center">
+        {table.max_capacity}
+      </span>
+
       {/* Online toggle */}
       <div className="flex items-center justify-center">
         <Switch
@@ -97,25 +110,6 @@ export function SortableTableRow({ id, table, priority, isDragDisabled, onEdit, 
           className="h-4 w-7 data-[state=checked]:bg-success"
           aria-label="Online boekbaar"
         />
-      </div>
-
-      {/* Naam */}
-      <span className="font-medium text-sm truncate">{table.display_label}</span>
-
-      {/* Capacity */}
-      <span className="text-xs text-muted-foreground text-center">
-        {table.min_capacity}-{table.max_capacity} pers
-      </span>
-
-      {/* Groups */}
-      <div className="flex items-center justify-center">
-        {groupCount > 0 ? (
-          <NestoBadge variant="default" className="text-xs px-2 py-0.5">
-            {groupCount}
-          </NestoBadge>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
       </div>
 
       {/* Actions */}

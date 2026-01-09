@@ -292,13 +292,13 @@ export function AreaCard({
           <div className="p-4 space-y-2">
             {/* Table header row with sortable columns */}
             {activeTables.length > 0 && (
-              <div className="grid grid-cols-[32px_40px_40px_1fr_80px_80px_32px] items-center gap-2 px-1 pb-2 border-b text-xs text-muted-foreground">
+              <div className="grid grid-cols-[32px_40px_1fr_80px_80px_40px_32px] items-center gap-2 px-1 pb-2 border-b text-xs text-muted-foreground">
                 <div></div>
                 <SortableHeader label="Prio" column="priority" className="justify-center" />
-                <SortableHeader label="Online" column="online" className="justify-center" />
                 <SortableHeader label="Naam" column="name" />
                 <SortableHeader label="Min" column="min" className="justify-center" />
                 <SortableHeader label="Max" column="max" className="justify-center" />
+                <SortableHeader label="Online" column="online" className="justify-center" />
                 <div></div>
               </div>
             )}
