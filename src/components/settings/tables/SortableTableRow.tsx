@@ -3,9 +3,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, MoreVertical, Archive } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { StatusDot } from "@/components/polar/StatusDot";
+import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useArchiveTable } from "@/hooks/useTableMutations";
+import { useArchiveTable, useUpdateTable } from "@/hooks/useTableMutations";
 import type { Table } from "@/types/reservations";
 
 interface SortableTableRowProps {
@@ -18,6 +18,14 @@ interface SortableTableRowProps {
 export function SortableTableRow({ id, table, onEdit, locationId }: SortableTableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const { mutate: archiveTable, isPending: isArchiving } = useArchiveTable();
+  const { mutate: updateTable, isPending: isUpdating } = useUpdateTable();
+
+  const handleToggleOnline = (checked: boolean) => {
+    updateTable({ 
+      id: table.id, 
+      is_online_bookable: checked 
+    });
+  };
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -57,11 +65,14 @@ export function SortableTableRow({ id, table, onEdit, locationId }: SortableTabl
         {table.min_capacity}-{table.max_capacity} pers
       </span>
 
-      {/* Online status dot */}
+      {/* Online toggle */}
       <div className="flex items-center justify-center">
-        <StatusDot 
-          status={table.is_online_bookable ? "success" : "neutral"} 
-          size="md"
+        <Switch
+          checked={table.is_online_bookable}
+          onCheckedChange={handleToggleOnline}
+          disabled={isUpdating}
+          className="h-4 w-7 data-[state=checked]:bg-green-500"
+          aria-label="Online boekbaar"
         />
       </div>
 
