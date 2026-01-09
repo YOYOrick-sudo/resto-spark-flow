@@ -1,14 +1,33 @@
+import { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoSelect } from "@/components/polar/NestoSelect";
-import { TableRow } from "./TableRow";
+import { SortableTableRow } from "./SortableTableRow";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronRight, ChevronDown, ChevronUp, MoreVertical, Plus, Archive } from "lucide-react";
-import { useUpdateArea, useArchiveArea, useSwapAreaSortOrder } from "@/hooks/useTableMutations";
+import { ChevronRight, MoreVertical, Plus, Archive, GripVertical } from "lucide-react";
+import { useUpdateArea, useArchiveArea, useReorderTables } from "@/hooks/useTableMutations";
 import type { AreaWithTables, Table, FillOrderType } from "@/types/reservations";
-import { useState } from "react";
 
 export interface AreaCardProps {
   area: AreaWithTables;
@@ -25,7 +44,7 @@ export interface AreaCardProps {
   onToggleExpanded?: () => void;
   /** Optional drag handle element */
   dragHandle?: React.ReactNode;
-  /** Location ID for swap mutations */
+  /** Location ID for mutations */
   locationId?: string;
 }
 
@@ -56,32 +75,27 @@ export function AreaCard({
   const handleToggle = onToggleExpanded ?? (() => setInternalIsOpen(!internalIsOpen));
   
   const [archivedTablesOpen, setArchivedTablesOpen] = useState(false);
+  const [activeTableId, setActiveTableId] = useState<string | null>(null);
   
   const { mutate: updateArea } = useUpdateArea();
   const { mutate: archiveArea, isPending: isArchiving } = useArchiveArea();
-  const { mutate: swapOrder, isPending: isSwapping } = useSwapAreaSortOrder();
+  const { mutate: reorderTables } = useReorderTables();
 
   // Split tables
   const activeTables = (area.tables ?? [])
     .filter(t => t.is_active)
     .sort((a, b) => a.sort_order - b.sort_order);
   const archivedTables = (area.tables ?? []).filter(t => !t.is_active);
+  
+  const activeTable = activeTables.find(t => t.id === activeTableId);
+  const effectiveLocationId = locationId ?? area.location_id;
 
-  // Calculate position for up/down
-  const canMoveUp = index > 0;
-  const canMoveDown = index < allAreas.length - 1;
-
-  const handleMoveUp = () => {
-    if (!canMoveUp || isSwapping) return;
-    const prevArea = allAreas[index - 1];
-    swapOrder({ areaAId: area.id, areaBId: prevArea.id, locationId: locationId ?? area.location_id });
-  };
-
-  const handleMoveDown = () => {
-    if (!canMoveDown || isSwapping) return;
-    const nextArea = allAreas[index + 1];
-    swapOrder({ areaAId: area.id, areaBId: nextArea.id, locationId: locationId ?? area.location_id });
-  };
+  // Sensors for tables DnD
+  const tableSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const handleFillOrderChange = (value: string) => {
     updateArea({ id: area.id, fill_order: value as FillOrderType });
@@ -91,6 +105,32 @@ export function AreaCard({
     archiveArea(area.id);
   };
 
+  const handleTableDragStart = (event: DragStartEvent) => {
+    setActiveTableId(event.active.id as string);
+  };
+
+  const handleTableDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTableId(null);
+    
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = activeTables.findIndex(t => t.id === active.id);
+    const newIndex = activeTables.findIndex(t => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(activeTables, oldIndex, newIndex);
+    reorderTables({
+      areaId: area.id,
+      locationId: effectiveLocationId,
+      tableIds: newOrder.map(t => t.id)
+    });
+  };
+
+  const handleTableDragCancel = () => {
+    setActiveTableId(null);
+  };
+
   return (
     <NestoCard className="overflow-hidden">
       {/* Header */}
@@ -98,24 +138,6 @@ export function AreaCard({
         <div className="flex items-center gap-2 p-4 border-b bg-muted/30">
           {/* Drag handle (if provided) */}
           {dragHandle}
-          
-          {/* Up/Down buttons */}
-          <div className="flex flex-col gap-0.5">
-            <button
-              onClick={handleMoveUp}
-              disabled={!canMoveUp || isSwapping}
-              className="p-0.5 hover:bg-muted rounded disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronUp className="h-3 w-3" />
-            </button>
-            <button
-              onClick={handleMoveDown}
-              disabled={!canMoveDown || isSwapping}
-              className="p-0.5 hover:bg-muted rounded disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </div>
 
           {/* Collapse trigger */}
           <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-left">
@@ -167,17 +189,48 @@ export function AreaCard({
         {/* Content */}
         <CollapsibleContent>
           <div className="p-4 space-y-2">
-            {/* Active Tables */}
-            {activeTables.map((table, tableIndex) => (
-              <TableRow
-                key={table.id}
-                table={table}
-                allTables={activeTables}
-                index={tableIndex}
-                onEdit={() => onEditTable(table)}
-                locationId={locationId ?? area.location_id}
-              />
-            ))}
+            {/* Active Tables with DnD */}
+            <DndContext
+              sensors={tableSensors}
+              collisionDetection={closestCenter}
+              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+              onDragStart={handleTableDragStart}
+              onDragEnd={handleTableDragEnd}
+              onDragCancel={handleTableDragCancel}
+            >
+              <SortableContext items={activeTables.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                {activeTables.map((table) => (
+                  <SortableTableRow
+                    key={table.id}
+                    id={table.id}
+                    table={table}
+                    onEdit={() => onEditTable(table)}
+                    locationId={effectiveLocationId}
+                  />
+                ))}
+              </SortableContext>
+              
+              {/* Minimal DragOverlay - Notion-style */}
+              <DragOverlay 
+                dropAnimation={{
+                  duration: 200,
+                  easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+                }}
+              >
+                {activeTable && (
+                  <div 
+                    className="bg-card border rounded-lg px-4 py-2 shadow-lg ring-1 ring-primary/20 flex items-center gap-3"
+                    style={{ willChange: 'transform' }}
+                  >
+                    <GripVertical className="h-3 w-3 text-primary" />
+                    <span className="font-medium text-sm">{activeTable.display_label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {activeTable.min_capacity}-{activeTable.max_capacity} pers
+                    </span>
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
             
             {activeTables.length === 0 && (
               <div className="text-center py-4 text-sm text-muted-foreground">

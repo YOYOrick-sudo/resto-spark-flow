@@ -812,6 +812,10 @@ export type Database = {
         Args: { _area_ids: string[]; _location_id: string }
         Returns: Json
       }
+      reorder_tables: {
+        Args: { _area_id: string; _table_ids: string[] }
+        Returns: Json
+      }
       restore_table: {
         Args: { _new_display_label?: string; _table_id: string }
         Returns: Json

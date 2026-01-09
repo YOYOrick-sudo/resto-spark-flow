@@ -455,6 +455,83 @@ export function useReorderAreas() {
 }
 
 // ============================================
+// REORDER TABLES (Drag & Drop within Area)
+// ============================================
+
+interface ReorderTablesParams {
+  areaId: string;
+  locationId: string;
+  tableIds: string[];
+}
+
+export function useReorderTables() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ areaId, tableIds }: ReorderTablesParams) => {
+      const { data, error } = await supabase.rpc('reorder_tables', {
+        _area_id: areaId,
+        _table_ids: tableIds
+      });
+      if (error) throw error;
+      return data as unknown as ReorderAreasResult;
+    },
+
+    onMutate: async ({ areaId, locationId, tableIds }) => {
+      const baseKey = queryKeys.areasWithTables(locationId);
+
+      // Cancel all in-flight queries for this location
+      await queryClient.cancelQueries({ queryKey: baseKey, exact: false });
+
+      // Get all query variants for this location
+      const queries = queryClient.getQueriesData<AreaWithTables[]>({ queryKey: baseKey });
+      const previousData = new Map(queries);
+
+      // ID-based optimistic update: reorder tables within target area
+      queries.forEach(([key, data]) => {
+        if (!data) return;
+
+        const newData = data.map(area => {
+          if (area.id !== areaId) return area;
+
+          const tableMap = new Map(area.tables.map(t => [t.id, t]));
+          const archived = area.tables.filter(t => !t.is_active);
+
+          // Rebuild active list from new order
+          const newActive = tableIds
+            .map(id => tableMap.get(id))
+            .filter((t): t is Table => !!t && t.is_active)
+            .map((table, idx) => ({ ...table, sort_order: (idx + 1) * 10 }));
+
+          return { ...area, tables: [...newActive, ...archived] };
+        });
+
+        queryClient.setQueryData(key, newData);
+      });
+
+      return { previousData };
+    },
+
+    onError: (error: Error, _, context) => {
+      // Rollback all variants
+      if (context?.previousData) {
+        context.previousData.forEach((data, key) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+      toast.error("Herschikken mislukt", { description: error.message });
+    },
+
+    onSettled: (_, __, { locationId }) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.areasWithTables(locationId),
+        exact: false
+      });
+    },
+  });
+}
+
+// ============================================
 // NEXT SORT ORDER HELPERS
 // ============================================
 

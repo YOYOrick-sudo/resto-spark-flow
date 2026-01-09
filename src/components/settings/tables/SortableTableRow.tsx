@@ -1,30 +1,48 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, MoreVertical, Archive, Globe } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Archive, Globe } from "lucide-react";
 import { useArchiveTable } from "@/hooks/useTableMutations";
 import type { Table } from "@/types/reservations";
 
-interface TableRowProps {
+interface SortableTableRowProps {
+  id: string;
   table: Table;
   onEdit: () => void;
-  /** Location ID for scoped cache invalidation */
   locationId: string;
 }
 
-/**
- * Static table row (non-draggable) - used as fallback or in read-only contexts.
- * For draggable tables, use SortableTableRow instead.
- */
-export function TableRow({ table, onEdit, locationId }: TableRowProps) {
+export function SortableTableRow({ id, table, onEdit, locationId }: SortableTableRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const { mutate: archiveTable, isPending: isArchiving } = useArchiveTable();
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? 'none' : 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), opacity 150ms ease',
+    // SMOOTH: hide original completely during drag, but keep space
+    opacity: isDragging ? 0 : 1,
+    visibility: isDragging ? 'hidden' : 'visible',
+    zIndex: isDragging ? 10 : 'auto',
+  };
 
   const handleArchive = () => {
     archiveTable({ tableId: table.id, locationId });
   };
 
   return (
-    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+      {/* Drag handle - hover only */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+        aria-label="Versleep om te herschikken"
+      >
+        <GripVertical className="h-3 w-3 text-muted-foreground" />
+      </button>
+
       {/* Table info */}
       <div className="flex-1 flex items-center gap-3">
         <span className="font-medium text-sm min-w-24">{table.display_label}</span>
