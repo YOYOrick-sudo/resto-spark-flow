@@ -18,13 +18,14 @@ export function SortableAreaCard({ id, ...props }: SortableAreaCardProps) {
   } = useSortable({ id });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    // Smooth transition when not dragging, instant when dragging
-    transition: isDragging ? 'none' : 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), opacity 150ms ease',
-    // Notion-like: hide original completely, keep space
-    opacity: isDragging ? 0 : 1,
-    visibility: isDragging ? 'hidden' : 'visible',
-    zIndex: isDragging ? 10 : 'auto',
+    // When dragging: DON'T move the original - it stays as placeholder
+    transform: isDragging ? undefined : CSS.Transform.toString(transform),
+    // No transition during drag, smooth reorder animation after
+    transition: isDragging ? undefined : 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+    // Ghost placeholder: visible but faded
+    opacity: isDragging ? 0.3 : 1,
+    // Prevent interactions on placeholder
+    pointerEvents: isDragging ? 'none' : 'auto',
   };
 
   const dragHandle = (
