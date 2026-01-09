@@ -63,6 +63,9 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
     // Only for touch events (iPad)
     if (e.pointerType !== 'touch') return;
     
+    // Prevent drag from starting during long-press detection
+    e.stopPropagation();
+    
     setIsLongPressing(true);
     longPressTimerRef.current = window.setTimeout(() => {
       setIsLongPressing(false);
@@ -78,11 +81,11 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
     setIsLongPressing(false);
   }, []);
 
-  // Make it draggable (but not while resizing)
+  // Make it draggable (but not while resizing or long-pressing)
   const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({
     id: reservation.id,
     data: { reservation },
-    disabled: isResizing !== null,
+    disabled: isResizing !== null || isLongPressing,
   });
 
   // Combine forwarded ref with dnd-kit ref
