@@ -71,7 +71,7 @@ export function SortableTableRow({ id, table, onEdit, locationId }: SortableTabl
           checked={table.is_online_bookable}
           onCheckedChange={handleToggleOnline}
           disabled={isUpdating}
-          className="h-4 w-7 data-[state=checked]:bg-green-500"
+          className="h-4 w-7 data-[state=checked]:bg-success"
           aria-label="Online boekbaar"
         />
       </div>
