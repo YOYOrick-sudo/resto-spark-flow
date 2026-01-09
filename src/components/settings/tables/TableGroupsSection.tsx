@@ -56,8 +56,8 @@ export function TableGroupsSection({ locationId }: TableGroupsSectionProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <NestoCard className="p-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-medium">Tafelcombinaties</h3>
           <p className="text-sm text-muted-foreground">
@@ -80,19 +80,19 @@ export function TableGroupsSection({ locationId }: TableGroupsSectionProps) {
           />
         ))}
         {activeGroups.length === 0 && (
-          <NestoCard className="p-6 text-center">
-            <p className="text-muted-foreground">Nog geen tafelcombinaties aangemaakt.</p>
+          <div className="text-center py-6 text-muted-foreground">
+            <p>Nog geen tafelcombinaties aangemaakt.</p>
             <NestoButton variant="outline" size="sm" className="mt-2" onClick={handleAdd}>
               <Plus className="h-4 w-4 mr-1" />
               Eerste groep toevoegen
             </NestoButton>
-          </NestoCard>
+          </div>
         )}
       </div>
 
       {/* Archived Groups */}
       {archivedGroups.length > 0 && (
-        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen}>
+        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="mt-4">
           <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
             <ChevronRight className={`h-4 w-4 transition-transform ${archivedOpen ? 'rotate-90' : ''}`} />
             <Archive className="h-4 w-4" />
@@ -131,6 +131,6 @@ export function TableGroupsSection({ locationId }: TableGroupsSectionProps) {
         locationId={locationId}
         editingGroup={editingGroup}
       />
-    </div>
+    </NestoCard>
   );
 }
