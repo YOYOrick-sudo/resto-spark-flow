@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -24,7 +24,6 @@ import { NestoSelect } from "@/components/polar/NestoSelect";
 import { SortableTableRow } from "./SortableTableRow";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronRight, MoreVertical, Plus, Archive, GripVertical } from "lucide-react";
 import { useUpdateArea, useArchiveArea, useReorderTables } from "@/hooks/useTableMutations";
 import type { AreaWithTables, Table, FillOrderType } from "@/types/reservations";
@@ -37,7 +36,6 @@ export interface AreaCardProps {
   onAddTable: () => void;
   onAddBulkTables: () => void;
   onEditTable: (table: Table) => void;
-  onRestoreTable: (table: Table, areaIsArchived: boolean) => void;
   /** Controlled expanded state from parent */
   isExpanded?: boolean;
   /** Callback when expand toggle is clicked */
@@ -63,7 +61,6 @@ export function AreaCard({
   onAddTable,
   onAddBulkTables,
   onEditTable,
-  onRestoreTable,
   isExpanded: controlledIsExpanded,
   onToggleExpanded,
   dragHandle,
@@ -74,18 +71,25 @@ export function AreaCard({
   const isOpen = controlledIsExpanded ?? internalIsOpen;
   const handleToggle = onToggleExpanded ?? (() => setInternalIsOpen(!internalIsOpen));
   
-  const [archivedTablesOpen, setArchivedTablesOpen] = useState(false);
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
   
   const { mutate: updateArea } = useUpdateArea();
   const { mutate: archiveArea, isPending: isArchiving } = useArchiveArea();
   const { mutate: reorderTables } = useReorderTables();
 
-  // Split tables
-  const activeTables = (area.tables ?? [])
-    .filter(t => t.is_active)
-    .sort((a, b) => a.sort_order - b.sort_order);
-  const archivedTables = (area.tables ?? []).filter(t => !t.is_active);
+  // Only active tables (archived tables moved to parent)
+  const activeTables = useMemo(() => 
+    (area.tables ?? [])
+      .filter(t => t.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order),
+    [area.tables]
+  );
+  
+  // Calculate total capacity for summary
+  const totalCapacity = useMemo(() => 
+    activeTables.reduce((sum, t) => sum + t.max_capacity, 0),
+    [activeTables]
+  );
   
   const activeTable = activeTables.find(t => t.id === activeTableId);
   const effectiveLocationId = locationId ?? area.location_id;
@@ -139,12 +143,15 @@ export function AreaCard({
           {/* Drag handle (if provided) */}
           {dragHandle}
 
-          {/* Collapse trigger */}
+          {/* Collapse trigger with enhanced summary */}
           <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-left">
             <ChevronRight className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
             <span className="font-medium">{area.name}</span>
             <span className="text-sm text-muted-foreground">
-              ({activeTables.length} {activeTables.length === 1 ? 'tafel' : 'tafels'})
+              {isOpen 
+                ? `(${activeTables.length} ${activeTables.length === 1 ? 'tafel' : 'tafels'})`
+                : `${activeTables.length} tafels · ${totalCapacity} pers`
+              }
             </span>
           </CollapsibleTrigger>
 
@@ -189,6 +196,18 @@ export function AreaCard({
         {/* Content */}
         <CollapsibleContent>
           <div className="p-4 space-y-2">
+            {/* Table header row */}
+            {activeTables.length > 0 && (
+              <div className="grid grid-cols-[32px_1fr_80px_40px_80px_32px] items-center gap-2 px-1 pb-2 border-b text-xs text-muted-foreground">
+                <div></div>
+                <div>Naam</div>
+                <div className="text-center">Capacity</div>
+                <div className="text-center">Online</div>
+                <div className="text-center">Groepen</div>
+                <div></div>
+              </div>
+            )}
+
             {/* Active Tables with DnD */}
             <DndContext
               sensors={tableSensors}
@@ -211,12 +230,7 @@ export function AreaCard({
               </SortableContext>
               
               {/* Minimal DragOverlay - Notion-style */}
-              <DragOverlay 
-                dropAnimation={{
-                  duration: 200,
-                  easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-                }}
-              >
+              <DragOverlay dropAnimation={null}>
                 {activeTable && (
                   <div 
                     className="bg-card border rounded-lg px-4 py-2 shadow-lg ring-1 ring-primary/20 flex items-center gap-3"
@@ -249,51 +263,6 @@ export function AreaCard({
                 Meerdere
               </NestoButton>
             </div>
-
-            {/* Archived Tables */}
-            {archivedTables.length > 0 && (
-              <Collapsible open={archivedTablesOpen} onOpenChange={setArchivedTablesOpen}>
-                <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors pt-4 border-t mt-4">
-                  <ChevronRight className={`h-3 w-3 transition-transform ${archivedTablesOpen ? 'rotate-90' : ''}`} />
-                  <Archive className="h-3 w-3" />
-                  Gearchiveerde tafels ({archivedTables.length})
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2 space-y-1">
-                  {archivedTables.map(table => (
-                    <div
-                      key={table.id}
-                      className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm"
-                    >
-                      <div>
-                        <span>{table.display_label}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          ({table.min_capacity}-{table.max_capacity} pers)
-                        </span>
-                      </div>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>
-                            <NestoButton
-                              size="sm"
-                              variant="ghost"
-                              disabled={!area.is_active}
-                              onClick={() => onRestoreTable(table, !area.is_active)}
-                            >
-                              Herstellen
-                            </NestoButton>
-                          </span>
-                        </TooltipTrigger>
-                        {!area.is_active && (
-                          <TooltipContent>
-                            Herstel eerst de area voordat je tafels kunt herstellen
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </div>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-            )}
           </div>
         </CollapsibleContent>
       </Collapsible>
