@@ -255,7 +255,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
         >
           {activeArea && (
             <div
-              className="bg-card border rounded-card shadow-lg ring-1 ring-primary/20 overflow-hidden"
+              className="bg-card border rounded-card shadow-lg ring-1 ring-primary/20 overflow-hidden pointer-events-none select-none"
               style={{ willChange: 'transform' }}
             >
               {/* Match AreaCard header exactly */}
