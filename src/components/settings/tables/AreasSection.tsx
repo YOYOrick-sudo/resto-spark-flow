@@ -247,12 +247,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
         </SortableContext>
 
         {/* DragOverlay - matches collapsed AreaCard header */}
-        <DragOverlay
-          dropAnimation={{
-            duration: 200,
-            easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
-          }}
-        >
+        <DragOverlay dropAnimation={null}>
           {activeArea && (
             <div
               className="bg-card border rounded-card shadow-lg ring-1 ring-primary/20 overflow-hidden pointer-events-none select-none"
