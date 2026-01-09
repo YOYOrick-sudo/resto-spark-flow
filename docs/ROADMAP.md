@@ -1,5 +1,5 @@
 # NESTO PROJECT ROADMAP
-Laatst bijgewerkt: 7 januari 2026
+Laatst bijgewerkt: 9 januari 2026
 
 ## PROJECT OVERZICHT
 Nesto is een SaaS platform voor horeca management met modules voor reserveringen, keuken, kaartbeheer, en meer. Multi-tenant architectuur waarbij elke organization meerdere locations kan hebben, met per-location billing en module entitlements.
@@ -17,9 +17,9 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
 ### IN UITVOERING
 - 🔄 Fase 4.2: Areas, Tables, TableGroups
   - ✅ 4.2.A CRUD UI - COMPLEET (4 januari 2026)
-  - ✅ 4.2.B1 Areas Reorder - COMPLEET (7 januari 2026) - klaar voor test/polish
-  - ⏳ 4.2.B2 Tables Reorder - VOLGENDE
-  - ⏳ 4.2.C Availability Rules - Nog te starten
+  - ✅ 4.2.B1 Areas Reorder - COMPLEET (7 januari 2026)
+  - ✅ 4.2.B2 Tables Reorder - COMPLEET (9 januari 2026)
+  - ⏳ 4.2.C Availability Rules - VOLGENDE
 
 ---
 
@@ -190,29 +190,40 @@ Status: Afgerond (7 januari 2026) - Klaar voor test/polish
 
 ---
 
-##### 4.2.B2 Tables Reorder binnen Area ⏳ VOLGENDE
-Status: Nog te starten
+##### 4.2.B2 Tables Reorder binnen Area ✅ COMPLEET
+Status: Afgerond (9 januari 2026)
 
-**Doel:** Tafels binnen een area herschikken via drag-and-drop
+**Wat is gedaan:**
+- [x] SortableTableRow component (analog aan SortableAreaCard)
+- [x] Drag handle op TableRow (GripVertical icon)
+- [x] RPC: `reorder_tables(_area_id uuid, _table_ids uuid[])` (pre-existing)
+  - Guards: auth, concurrency lock, duplicate check
+  - Guards: all active IDs present, tables within area
+  - Atomic update via UNNEST WITH ORDINALITY
+- [x] Hook: `useReorderTables` mutation met optimistic updates
+- [x] DndContext per expanded area (nested in AreaCard)
+- [x] Sortable column headers (Prio, Naam, Min, Max, Online)
+- [x] DnD alleen actief bij "Prio asc" sortering
+- [x] Tooltip op disabled drag handle: "Sleepvolgorde bewerken kan alleen in Prioriteit sortering"
+- [x] Groepen kolom toegevoegd (badge met aantal gekoppelde tafelgroepen)
 
-**Te bouwen:**
-- [ ] SortableTableRow component (analog aan SortableAreaCard)
-- [ ] Drag handle op TableRow
-- [ ] RPC: `reorder_tables(_area_id uuid, _table_ids uuid[])`
-  - Input: area_id, table_ids in gewenste volgorde
-  - Guards: auth, tables binnen zelfde area, concurrency lock
-  - sort_order wordt opnieuw gezet naar 10,20,30...
-- [ ] Hook: `useReorderTables` mutation
-  - Optimistic updates met rollback
-  - Scoped invalidation via queryKeys
-- [ ] DndContext per expanded area (nested)
-- [ ] Geen cross-area drag in deze scope
+**Kolomvolgorde (definitief):**
+| Kolom | Breedte | Inhoud |
+|-------|---------|--------|
+| Drag | 32px | ≡ handle |
+| Prio | 40px | 1, 2, 3... (read-only) |
+| Naam | 1fr | Tafelnaam |
+| Min | 80px | Min capaciteit |
+| Max | 80px | Max capaciteit |
+| Online | 40px | Toggle switch |
+| Groepen | 48px | Badge met aantal of — |
+| Actions | 32px | ⋮ menu |
 
-**Acceptatiecriteria:**
-- [ ] Dragging werkt alleen op handle
-- [ ] Reorder is stabiel na refresh
-- [ ] Alleen tables binnen zelfde area kunnen herschikt worden
-- [ ] Collapsed areas behouden hun internal sort order
+**Design beslissingen:**
+- Geen up/down fallback knoppen (alleen DnD)
+- DnD expliciet uitgeschakeld bij andere sorteringen om verwarring te voorkomen
+- `assign_priority` veld niet in UI (sort_order bepaalt visuele volgorde)
+- Sortable headers voor flexibele weergave
 
 **Wat expliciet NIET in B2 scope:**
 - Tafels slepen tussen areas (cross-area drag)
@@ -956,6 +967,19 @@ Menu items worden gefilterd op:
 ---
 
 ## SESSIE LOG
+
+### 9 januari 2026
+- **B2 Tables Reorder COMPLEET**
+- SortableTableRow component met inline drag (hide-original pattern)
+- Sortable column headers: Prio, Naam, Min, Max, Online
+- DnD alleen actief bij "Prio asc" sortering (voorkomt verwarring)
+- Tooltip op disabled handle: expliciete feedback waarom drag niet werkt
+- Kolom herschikking:
+  - Online toggle verplaatst naar rechts (minder prominent)
+  - Groepen kolom hersteld (badge met aantal gekoppelde tafelgroepen)
+- Grid template: `[32px_40px_1fr_80px_80px_40px_48px_32px]`
+- Design beslissing: geen up/down fallback knoppen voor tables
+- Volgende: 4.2.C Availability Rules per Tafel
 
 ### 7 januari 2026
 - **B1 Areas Reorder COMPLEET** - klaar voor test/polish
