@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -26,7 +27,7 @@ import { RestoreTableModal } from "./RestoreTableModal";
 import { useAreasForSettings } from "@/hooks/useAreasWithTables";
 import { useRestoreArea, useReorderAreas } from "@/hooks/useTableMutations";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight, Plus, Loader2, Archive } from "lucide-react";
+import { ChevronRight, Plus, Loader2, Archive, GripVertical } from "lucide-react";
 import type { Area, Table, AreaWithTables } from "@/types/reservations";
 
 interface AreasSectionProps {
@@ -245,6 +246,26 @@ export function AreasSection({ locationId }: AreasSectionProps) {
           </div>
         </SortableContext>
 
+        {/* Notion-like DragOverlay */}
+        <DragOverlay
+          dropAnimation={{
+            duration: 200,
+            easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+          }}
+        >
+          {activeArea && (
+            <div
+              className="bg-card border rounded-card px-4 py-3 shadow-lg ring-1 ring-primary/20 flex items-center gap-3"
+              style={{ willChange: 'transform' }}
+            >
+              <GripVertical className="h-4 w-4 text-primary" />
+              <span className="font-medium">{activeArea.name}</span>
+              <span className="text-sm text-muted-foreground">
+                ({activeArea.tables?.filter(t => t.is_active).length ?? 0} tafels)
+              </span>
+            </div>
+          )}
+        </DragOverlay>
       </DndContext>
 
       {/* Archived Areas */}

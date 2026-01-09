@@ -18,21 +18,20 @@ export function SortableAreaCard({ id, ...props }: SortableAreaCardProps) {
   } = useSortable({ id });
 
   const style: React.CSSProperties = {
-    // Item moves inline via transform
     transform: CSS.Transform.toString(transform),
-    transition,
-    // Subtle visual feedback during drag
-    opacity: isDragging ? 0.95 : 1,
+    // Smooth transition when not dragging, instant when dragging
+    transition: isDragging ? 'none' : 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), opacity 150ms ease',
+    // Notion-like: hide original completely, keep space
+    opacity: isDragging ? 0 : 1,
+    visibility: isDragging ? 'hidden' : 'visible',
     zIndex: isDragging ? 10 : 'auto',
-    boxShadow: isDragging ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
-    position: 'relative',
   };
 
   const dragHandle = (
     <button
       {...attributes}
       {...listeners}
-      className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+      className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
       aria-label="Versleep om te herschikken"
     >
       <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -40,7 +39,7 @@ export function SortableAreaCard({ id, ...props }: SortableAreaCardProps) {
   );
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} className="group">
       <AreaCard {...props} dragHandle={dragHandle} />
     </div>
   );
