@@ -54,7 +54,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [expandedAreaIds, setExpandedAreaIds] = useState<Set<string>>(new Set());
 
-  // Split active and archived client-side
+  // Split active and archived areas
   const activeAreas = useMemo(
     () => allAreas?.filter(a => a.is_active).sort((a, b) => a.sort_order - b.sort_order) ?? [],
     [allAreas]
@@ -63,6 +63,23 @@ export function AreasSection({ locationId }: AreasSectionProps) {
     () => allAreas?.filter(a => !a.is_active) ?? [],
     [allAreas]
   );
+
+  // Collect ALL archived tables across ALL areas (including archived areas)
+  const allArchivedTables = useMemo(() => {
+    if (!allAreas) return [];
+    const tables: Array<Table & { areaName: string; areaIsArchived: boolean }> = [];
+    for (const area of allAreas) {
+      const archivedInArea = (area.tables ?? []).filter(t => !t.is_active);
+      for (const table of archivedInArea) {
+        tables.push({
+          ...table,
+          areaName: area.name,
+          areaIsArchived: !area.is_active,
+        });
+      }
+    }
+    return tables;
+  }, [allAreas]);
 
   // Active dragging area for overlay
   const activeArea = useMemo(
@@ -92,16 +109,15 @@ export function AreasSection({ locationId }: AreasSectionProps) {
   // DnD sensors - optimized for smooth input
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 }, // Faster activation
+      activationConstraint: { distance: 5 },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 100, tolerance: 8 }, // Shorter delay, more tolerance
+      activationConstraint: { delay: 100, tolerance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
 
   // Toggle expanded state for an area
   const toggleAreaExpanded = useCallback((areaId: string) => {
@@ -170,8 +186,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
     setTableModalOpen(true);
   };
 
-  const handleRestoreTable = (table: Table, areaIsArchived: boolean) => {
-    if (areaIsArchived) return; // Blocked in UI
+  const handleRestoreTable = (table: Table) => {
     setRestoringTable(table);
     setRestoreTableModalOpen(true);
   };
@@ -179,6 +194,9 @@ export function AreasSection({ locationId }: AreasSectionProps) {
   const handleRestoreArea = (areaId: string) => {
     restoreArea(areaId);
   };
+
+  // Check if any archived content exists
+  const hasArchivedContent = archivedAreas.length > 0 || allArchivedTables.length > 0;
 
   if (isLoading) {
     return (
@@ -228,7 +246,6 @@ export function AreasSection({ locationId }: AreasSectionProps) {
                 onAddTable={() => handleAddTable(area.id)}
                 onAddBulkTables={() => handleAddBulkTables(area.id)}
                 onEditTable={handleEditTable}
-                onRestoreTable={(table, areaArchived) => handleRestoreTable(table, areaArchived)}
                 isExpanded={expandedAreaIds.has(area.id)}
                 onToggleExpanded={() => toggleAreaExpanded(area.id)}
                 locationId={locationId}
@@ -271,36 +288,71 @@ export function AreasSection({ locationId }: AreasSectionProps) {
         </DragOverlay>
       </DndContext>
 
-      {/* Archived Areas */}
-      {archivedAreas.length > 0 && (
+      {/* Centralized Archived Section */}
+      {hasArchivedContent && (
         <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen}>
           <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
             <ChevronRight className={`h-4 w-4 transition-transform ${archivedOpen ? 'rotate-90' : ''}`} />
             <Archive className="h-4 w-4" />
-            Gearchiveerd ({archivedAreas.length})
+            Gearchiveerd ({archivedAreas.length} areas, {allArchivedTables.length} tafels)
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 space-y-2">
-            {archivedAreas.map(area => (
-              <div
-                key={area.id}
-                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-              >
-                <div>
-                  <span className="text-sm font-medium">{area.name}</span>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    ({area.tables?.length ?? 0} tafels)
-                  </span>
-                </div>
-                <NestoButton
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleRestoreArea(area.id)}
-                  disabled={isRestoring}
-                >
-                  Herstellen
-                </NestoButton>
+          <CollapsibleContent className="mt-3 space-y-4">
+            {/* Archived Areas */}
+            {archivedAreas.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Areas</h4>
+                {archivedAreas.map(area => (
+                  <div
+                    key={area.id}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  >
+                    <div>
+                      <span className="text-sm font-medium">{area.name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({area.tables?.length ?? 0} tafels)
+                      </span>
+                    </div>
+                    <NestoButton
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRestoreArea(area.id)}
+                      disabled={isRestoring}
+                    >
+                      Herstellen
+                    </NestoButton>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+
+            {/* Archived Tables */}
+            {allArchivedTables.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tafels</h4>
+                {allArchivedTables.map(table => (
+                  <div
+                    key={table.id}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  >
+                    <div>
+                      <span className="text-sm font-medium">{table.display_label}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({table.min_capacity}-{table.max_capacity} pers · {table.areaName})
+                      </span>
+                    </div>
+                    <NestoButton
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRestoreTable(table)}
+                      disabled={table.areaIsArchived}
+                      title={table.areaIsArchived ? "Herstel eerst de area" : undefined}
+                    >
+                      Herstellen
+                    </NestoButton>
+                  </div>
+                ))}
+              </div>
+            )}
           </CollapsibleContent>
         </Collapsible>
       )}
