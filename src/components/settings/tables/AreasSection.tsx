@@ -246,7 +246,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
           </div>
         </SortableContext>
 
-        {/* Notion-like DragOverlay */}
+        {/* DragOverlay - matches collapsed AreaCard header */}
         <DragOverlay
           dropAnimation={{
             duration: 200,
@@ -255,14 +255,22 @@ export function AreasSection({ locationId }: AreasSectionProps) {
         >
           {activeArea && (
             <div
-              className="bg-card border rounded-card px-4 py-3 shadow-lg ring-1 ring-primary/20 flex items-center gap-3"
+              className="bg-card border rounded-card shadow-lg ring-1 ring-primary/20 overflow-hidden"
               style={{ willChange: 'transform' }}
             >
-              <GripVertical className="h-4 w-4 text-primary" />
-              <span className="font-medium">{activeArea.name}</span>
-              <span className="text-sm text-muted-foreground">
-                ({activeArea.tables?.filter(t => t.is_active).length ?? 0} tafels)
-              </span>
+              {/* Match AreaCard header exactly */}
+              <div className="flex items-center gap-2 p-4 bg-muted/30">
+                <button className="cursor-grabbing p-1 hover:bg-muted rounded">
+                  <GripVertical className="h-4 w-4 text-primary" />
+                </button>
+                <div className="flex items-center gap-2 flex-1">
+                  <ChevronRight className="h-4 w-4" />
+                  <span className="font-medium">{activeArea.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({activeArea.tables?.filter(t => t.is_active).length ?? 0} tafels)
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </DragOverlay>
