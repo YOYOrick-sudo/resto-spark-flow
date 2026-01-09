@@ -37,7 +37,7 @@ export function SortableTableRow({ id, table, onEdit, locationId }: SortableTabl
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none transition-colors"
         aria-label="Versleep om te herschikken"
       >
         <GripVertical className="h-3 w-3 text-muted-foreground" />
