@@ -1,4 +1,3 @@
-import { useState, useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, MoreVertical, Archive } from "lucide-react";
@@ -6,49 +5,35 @@ import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useArchiveTable, useUpdateTable } from "@/hooks/useTableMutations";
+import { cn } from "@/lib/utils";
 import type { Table } from "@/types/reservations";
 
 interface SortableTableRowProps {
   id: string;
   table: Table;
+  /** 1-based priority position derived from sort_order */
+  priority: number;
+  /** When true, DnD is hard-disabled (not just visual) */
+  isDragDisabled: boolean;
   onEdit: () => void;
   locationId: string;
 }
 
-export function SortableTableRow({ id, table, onEdit, locationId }: SortableTableRowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+export function SortableTableRow({ id, table, priority, isDragDisabled, onEdit, locationId }: SortableTableRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
+    id,
+    disabled: isDragDisabled // Hard disable DnD
+  });
   const { mutate: archiveTable, isPending: isArchiving } = useArchiveTable();
   const { mutate: updateTable, isPending: isUpdating } = useUpdateTable();
-  
-  const [localPriority, setLocalPriority] = useState(table.assign_priority);
-  const priorityInputRef = useRef<HTMLInputElement>(null);
 
   const handleToggleOnline = (checked: boolean) => {
     updateTable({ 
       id: table.id, 
       is_online_bookable: checked 
     });
-  };
-
-  const handlePriorityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 0;
-    setLocalPriority(Math.max(0, value));
-  };
-
-  const handlePriorityBlur = () => {
-    if (localPriority !== table.assign_priority) {
-      updateTable({ 
-        id: table.id, 
-        assign_priority: localPriority 
-      });
-    }
-  };
-
-  const handlePriorityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      priorityInputRef.current?.blur();
-    }
   };
 
   const style: React.CSSProperties = {
@@ -71,29 +56,36 @@ export function SortableTableRow({ id, table, onEdit, locationId }: SortableTabl
       style={style} 
       className="grid grid-cols-[32px_40px_40px_1fr_80px_80px_32px] items-center gap-2 py-2 px-1 rounded-lg hover:bg-muted/50 transition-colors group"
     >
-      {/* Drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none transition-colors flex items-center justify-center"
-        aria-label="Versleep om te herschikken"
-      >
-        <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-      </button>
+      {/* Drag handle with tooltip when disabled */}
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              {...(isDragDisabled ? {} : { ...attributes, ...listeners })}
+              className={cn(
+                "p-1 rounded transition-colors flex items-center justify-center",
+                isDragDisabled 
+                  ? "opacity-30 cursor-not-allowed" 
+                  : "cursor-grab active:cursor-grabbing hover:bg-muted touch-none"
+              )}
+              aria-label="Versleep om te herschikken"
+            >
+              <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          </TooltipTrigger>
+          {isDragDisabled && (
+            <TooltipContent side="right" className="max-w-[200px]">
+              Sleepvolgorde bewerken kan alleen in Prioriteit sortering
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
 
-      {/* Prioriteit - inline editable */}
+      {/* Priority - read-only display */}
       <div className="flex items-center justify-center">
-        <input
-          ref={priorityInputRef}
-          type="number"
-          min={0}
-          value={localPriority}
-          onChange={handlePriorityChange}
-          onBlur={handlePriorityBlur}
-          onKeyDown={handlePriorityKeyDown}
-          className="w-8 h-6 text-sm text-center tabular-nums bg-transparent border-0 rounded focus:ring-1 focus:ring-primary focus:bg-background transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          aria-label="Prioriteit"
-        />
+        <span className="w-8 h-6 text-sm text-center tabular-nums text-muted-foreground flex items-center justify-center">
+          {priority}
+        </span>
       </div>
 
       {/* Online toggle */}

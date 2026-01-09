@@ -23,7 +23,6 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
   const [displayLabel, setDisplayLabel] = useState(editingTable?.display_label ?? '');
   const [minCapacity, setMinCapacity] = useState(editingTable?.min_capacity ?? 2);
   const [maxCapacity, setMaxCapacity] = useState(editingTable?.max_capacity ?? 4);
-  const [assignPriority, setAssignPriority] = useState(editingTable?.assign_priority ?? 0);
   const [isOnlineBookable, setIsOnlineBookable] = useState(editingTable?.is_online_bookable ?? true);
   const [isJoinable, setIsJoinable] = useState(editingTable?.is_joinable ?? true);
   const [error, setError] = useState('');
@@ -41,7 +40,6 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
       setDisplayLabel(editingTable?.display_label ?? '');
       setMinCapacity(editingTable?.min_capacity ?? 2);
       setMaxCapacity(editingTable?.max_capacity ?? 4);
-      setAssignPriority(editingTable?.assign_priority ?? 0);
       setIsOnlineBookable(editingTable?.is_online_bookable ?? true);
       setIsJoinable(editingTable?.is_joinable ?? true);
       setError('');
@@ -69,7 +67,6 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
             display_label: displayLabel.trim() || undefined,
             min_capacity: minCapacity,
             max_capacity: maxCapacity,
-            assign_priority: assignPriority,
             is_online_bookable: isOnlineBookable,
             is_joinable: isJoinable,
           },
@@ -92,7 +89,6 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
             display_label: displayLabel.trim() || undefined,
             min_capacity: minCapacity,
             max_capacity: maxCapacity,
-            assign_priority: assignPriority,
             is_online_bookable: isOnlineBookable,
             is_joinable: isJoinable,
             sort_order: sortOrder,
@@ -139,7 +135,7 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
           />
         </div>
         
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <NestoInput
             label="Min. capaciteit"
             type="number"
@@ -156,17 +152,7 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
             value={maxCapacity}
             onChange={(e) => setMaxCapacity(parseInt(e.target.value) || 1)}
           />
-          <NestoInput
-            label="Prioriteit"
-            type="number"
-            min={0}
-            value={assignPriority}
-            onChange={(e) => setAssignPriority(parseInt(e.target.value) || 0)}
-          />
         </div>
-        <p className="text-xs text-muted-foreground -mt-2">
-          Prioriteit: lager nummer = eerder online geboekt
-        </p>
         
         {error && !error.includes('tafelnummer') && !error.includes('label') && (
           <p className="text-sm text-destructive">{error}</p>
