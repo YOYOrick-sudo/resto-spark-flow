@@ -198,11 +198,12 @@ export function AreaCard({
           <div className="p-4 space-y-2">
             {/* Table header row */}
             {activeTables.length > 0 && (
-              <div className="grid grid-cols-[32px_1fr_80px_40px_80px_32px] items-center gap-2 px-1 pb-2 border-b text-xs text-muted-foreground">
+              <div className="grid grid-cols-[32px_40px_40px_1fr_80px_80px_32px] items-center gap-2 px-1 pb-2 border-b text-xs text-muted-foreground">
                 <div></div>
+                <div className="text-center">Prio</div>
+                <div className="text-center">Online</div>
                 <div>Naam</div>
                 <div className="text-center">Capacity</div>
-                <div className="text-center">Online</div>
                 <div className="text-center">Groepen</div>
                 <div></div>
               </div>
@@ -237,6 +238,7 @@ export function AreaCard({
                     style={{ willChange: 'transform' }}
                   >
                     <GripVertical className="h-3 w-3 text-primary" />
+                    <span className="text-xs text-muted-foreground tabular-nums">{activeTable.assign_priority}</span>
                     <span className="font-medium text-sm">{activeTable.display_label}</span>
                     <span className="text-xs text-muted-foreground">
                       {activeTable.min_capacity}-{activeTable.max_capacity} pers

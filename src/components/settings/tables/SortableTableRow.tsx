@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, MoreVertical, Archive } from "lucide-react";
@@ -19,12 +20,35 @@ export function SortableTableRow({ id, table, onEdit, locationId }: SortableTabl
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const { mutate: archiveTable, isPending: isArchiving } = useArchiveTable();
   const { mutate: updateTable, isPending: isUpdating } = useUpdateTable();
+  
+  const [localPriority, setLocalPriority] = useState(table.assign_priority);
+  const priorityInputRef = useRef<HTMLInputElement>(null);
 
   const handleToggleOnline = (checked: boolean) => {
     updateTable({ 
       id: table.id, 
       is_online_bookable: checked 
     });
+  };
+
+  const handlePriorityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value) || 0;
+    setLocalPriority(Math.max(0, value));
+  };
+
+  const handlePriorityBlur = () => {
+    if (localPriority !== table.assign_priority) {
+      updateTable({ 
+        id: table.id, 
+        assign_priority: localPriority 
+      });
+    }
+  };
+
+  const handlePriorityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      priorityInputRef.current?.blur();
+    }
   };
 
   const style: React.CSSProperties = {
@@ -45,7 +69,7 @@ export function SortableTableRow({ id, table, onEdit, locationId }: SortableTabl
     <div 
       ref={setNodeRef} 
       style={style} 
-      className="grid grid-cols-[32px_1fr_80px_40px_80px_32px] items-center gap-2 py-2 px-1 rounded-lg hover:bg-muted/50 transition-colors group"
+      className="grid grid-cols-[32px_40px_40px_1fr_80px_80px_32px] items-center gap-2 py-2 px-1 rounded-lg hover:bg-muted/50 transition-colors group"
     >
       {/* Drag handle */}
       <button
@@ -57,13 +81,20 @@ export function SortableTableRow({ id, table, onEdit, locationId }: SortableTabl
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
 
-      {/* Naam */}
-      <span className="font-medium text-sm truncate">{table.display_label}</span>
-
-      {/* Capacity */}
-      <span className="text-xs text-muted-foreground text-center">
-        {table.min_capacity}-{table.max_capacity} pers
-      </span>
+      {/* Prioriteit - inline editable */}
+      <div className="flex items-center justify-center">
+        <input
+          ref={priorityInputRef}
+          type="number"
+          min={0}
+          value={localPriority}
+          onChange={handlePriorityChange}
+          onBlur={handlePriorityBlur}
+          onKeyDown={handlePriorityKeyDown}
+          className="w-8 h-6 text-sm text-center tabular-nums bg-transparent border-0 rounded focus:ring-1 focus:ring-primary focus:bg-background transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          aria-label="Prioriteit"
+        />
+      </div>
 
       {/* Online toggle */}
       <div className="flex items-center justify-center">
@@ -75,6 +106,14 @@ export function SortableTableRow({ id, table, onEdit, locationId }: SortableTabl
           aria-label="Online boekbaar"
         />
       </div>
+
+      {/* Naam */}
+      <span className="font-medium text-sm truncate">{table.display_label}</span>
+
+      {/* Capacity */}
+      <span className="text-xs text-muted-foreground text-center">
+        {table.min_capacity}-{table.max_capacity} pers
+      </span>
 
       {/* Groups */}
       <div className="flex items-center justify-center">
