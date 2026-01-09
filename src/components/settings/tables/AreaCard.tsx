@@ -24,8 +24,9 @@ import { NestoSelect } from "@/components/polar/NestoSelect";
 import { SortableTableRow } from "./SortableTableRow";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronRight, MoreVertical, Plus, Archive, GripVertical } from "lucide-react";
+import { ChevronRight, ChevronUp, MoreVertical, Plus, Archive, GripVertical } from "lucide-react";
 import { useUpdateArea, useArchiveArea, useReorderTables } from "@/hooks/useTableMutations";
+import { cn } from "@/lib/utils";
 import type { AreaWithTables, Table, FillOrderType } from "@/types/reservations";
 
 export interface AreaCardProps {
@@ -53,6 +54,9 @@ const fillOrderOptions = [
   { value: 'custom', label: 'Handmatig' },
 ];
 
+type SortColumn = 'priority' | 'name' | 'min' | 'max' | 'online';
+type SortDirection = 'asc' | 'desc';
+
 export function AreaCard({
   area,
   allAreas,
@@ -72,6 +76,8 @@ export function AreaCard({
   const handleToggle = onToggleExpanded ?? (() => setInternalIsOpen(!internalIsOpen));
   
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn>('priority');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   
   const { mutate: updateArea } = useUpdateArea();
   const { mutate: archiveArea, isPending: isArchiving } = useArchiveArea();
@@ -79,11 +85,66 @@ export function AreaCard({
 
   // Only active tables (archived tables moved to parent)
   const activeTables = useMemo(() => 
-    (area.tables ?? [])
-      .filter(t => t.is_active)
-      .sort((a, b) => a.sort_order - b.sort_order),
+    (area.tables ?? []).filter(t => t.is_active),
     [area.tables]
   );
+
+  // orderedByPrio - always sorted by sort_order (source of truth for priority)
+  const orderedByPrio = useMemo(() => 
+    [...activeTables].sort(
+      (a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id)
+    ),
+    [activeTables]
+  );
+
+  // priorityMap - O(1) lookup, built on orderedByPrio
+  const priorityMap = useMemo(() => {
+    const map = new Map<string, number>();
+    orderedByPrio.forEach((table, idx) => {
+      map.set(table.id, idx + 1); // 1-based
+    });
+    return map;
+  }, [orderedByPrio]);
+
+  // sortedTables - with stable tiebreakers
+  const sortedTables = useMemo(() => {
+    const sorted = [...activeTables];
+    
+    sorted.sort((a, b) => {
+      let cmp = 0;
+      switch (sortColumn) {
+        case 'priority':
+          cmp = a.sort_order - b.sort_order;
+          break;
+        case 'name':
+          cmp = a.display_label.localeCompare(b.display_label);
+          break;
+        case 'min':
+          cmp = a.min_capacity - b.min_capacity;
+          break;
+        case 'max':
+          cmp = a.max_capacity - b.max_capacity;
+          break;
+        case 'online':
+          cmp = Number(b.is_online_bookable) - Number(a.is_online_bookable);
+          break;
+      }
+      
+      // Stable tiebreaker: sort_order, then id
+      if (cmp === 0) cmp = a.sort_order - b.sort_order;
+      if (cmp === 0) cmp = a.id.localeCompare(b.id);
+      
+      return sortDirection === 'desc' ? -cmp : cmp;
+    });
+    
+    return sorted;
+  }, [activeTables, sortColumn, sortDirection]);
+
+  // DnD is only enabled when sorted by priority ascending
+  const isDragEnabled = sortColumn === 'priority' && sortDirection === 'asc';
+  
+  // Use orderedByPrio for DnD, sortedTables otherwise
+  const dndItems = isDragEnabled ? orderedByPrio : sortedTables;
   
   // Calculate total capacity for summary
   const totalCapacity = useMemo(() => 
@@ -117,13 +178,16 @@ export function AreaCard({
     const { active, over } = event;
     setActiveTableId(null);
     
+    // Guard: only reorder when DnD is enabled (priority asc)
+    if (!isDragEnabled) return;
+    
     if (!over || active.id === over.id) return;
 
-    const oldIndex = activeTables.findIndex(t => t.id === active.id);
-    const newIndex = activeTables.findIndex(t => t.id === over.id);
+    const oldIndex = orderedByPrio.findIndex(t => t.id === active.id);
+    const newIndex = orderedByPrio.findIndex(t => t.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const newOrder = arrayMove(activeTables, oldIndex, newIndex);
+    const newOrder = arrayMove(orderedByPrio, oldIndex, newIndex);
     reorderTables({
       areaId: area.id,
       locationId: effectiveLocationId,
@@ -134,6 +198,36 @@ export function AreaCard({
   const handleTableDragCancel = () => {
     setActiveTableId(null);
   };
+
+  // Sortable header component
+  const SortableHeader = ({ label, column, className }: { 
+    label: string; 
+    column: SortColumn; 
+    className?: string;
+  }) => (
+    <button
+      onClick={() => {
+        if (sortColumn === column) {
+          setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+        } else {
+          setSortColumn(column);
+          setSortDirection('asc');
+        }
+      }}
+      className={cn(
+        "flex items-center gap-0.5 text-xs hover:text-foreground transition-colors",
+        className
+      )}
+    >
+      {label}
+      {sortColumn === column && (
+        <ChevronUp className={cn(
+          "h-3 w-3 transition-transform",
+          sortDirection === 'desc' && "rotate-180"
+        )} />
+      )}
+    </button>
+  );
 
   return (
     <NestoCard className="overflow-hidden">
@@ -196,15 +290,15 @@ export function AreaCard({
         {/* Content */}
         <CollapsibleContent>
           <div className="p-4 space-y-2">
-            {/* Table header row */}
+            {/* Table header row with sortable columns */}
             {activeTables.length > 0 && (
               <div className="grid grid-cols-[32px_40px_40px_1fr_80px_80px_32px] items-center gap-2 px-1 pb-2 border-b text-xs text-muted-foreground">
                 <div></div>
-                <div className="text-center">Prio</div>
-                <div className="text-center">Online</div>
-                <div>Naam</div>
-                <div className="text-center">Capacity</div>
-                <div className="text-center">Groepen</div>
+                <SortableHeader label="Prio" column="priority" className="justify-center" />
+                <SortableHeader label="Online" column="online" className="justify-center" />
+                <SortableHeader label="Naam" column="name" />
+                <SortableHeader label="Min" column="min" className="justify-center" />
+                <SortableHeader label="Max" column="max" className="justify-center" />
                 <div></div>
               </div>
             )}
@@ -218,12 +312,14 @@ export function AreaCard({
               onDragEnd={handleTableDragEnd}
               onDragCancel={handleTableDragCancel}
             >
-              <SortableContext items={activeTables.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                {activeTables.map((table) => (
+              <SortableContext items={dndItems.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                {dndItems.map((table) => (
                   <SortableTableRow
                     key={table.id}
                     id={table.id}
                     table={table}
+                    priority={priorityMap.get(table.id) ?? 0}
+                    isDragDisabled={!isDragEnabled}
                     onEdit={() => onEditTable(table)}
                     locationId={effectiveLocationId}
                   />
@@ -238,7 +334,7 @@ export function AreaCard({
                     style={{ willChange: 'transform' }}
                   >
                     <GripVertical className="h-3 w-3 text-primary" />
-                    <span className="text-xs text-muted-foreground tabular-nums">{activeTable.assign_priority}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">{priorityMap.get(activeTable.id) ?? '—'}</span>
                     <span className="font-medium text-sm">{activeTable.display_label}</span>
                     <span className="text-xs text-muted-foreground">
                       {activeTable.min_capacity}-{activeTable.max_capacity} pers
