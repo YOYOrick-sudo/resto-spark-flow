@@ -832,8 +832,13 @@ export function checkInReservation(
     // Round to nearest 15 minutes
     const roundedMinutes = Math.round(currentMinutes / 15) * 15;
     
-    newStartTime = minutesToTime(roundedMinutes);
-    newEndTime = minutesToTime(roundedMinutes + durationMinutes);
+    // Clamp to reasonable restaurant hours (10:00 - 23:45)
+    const MIN_TIME_MINUTES = 10 * 60;  // 10:00
+    const MAX_TIME_MINUTES = 23 * 60 + 45; // 23:45
+    const clampedStartMinutes = Math.max(MIN_TIME_MINUTES, Math.min(roundedMinutes, MAX_TIME_MINUTES - durationMinutes));
+    
+    newStartTime = minutesToTime(clampedStartMinutes);
+    newEndTime = minutesToTime(clampedStartMinutes + durationMinutes);
   }
 
   const updatedReservation: Reservation = {
