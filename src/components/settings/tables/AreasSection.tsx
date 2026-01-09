@@ -19,6 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { NestoButton } from "@/components/polar/NestoButton";
+import { NestoCard } from "@/components/polar/NestoCard";
 import { SortableAreaCard } from "./SortableAreaCard";
 import { AreaModal } from "./AreaModal";
 import { TableModal } from "./TableModal";
@@ -207,8 +208,8 @@ export function AreasSection({ locationId }: AreasSectionProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <NestoCard className="p-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-medium">Areas</h3>
           <p className="text-sm text-muted-foreground">
@@ -290,7 +291,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
 
       {/* Centralized Archived Section */}
       {hasArchivedContent && (
-        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen}>
+        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="mt-4">
           <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
             <ChevronRight className={`h-4 w-4 transition-transform ${archivedOpen ? 'rotate-90' : ''}`} />
             <Archive className="h-4 w-4" />
@@ -389,6 +390,6 @@ export function AreasSection({ locationId }: AreasSectionProps) {
           table={restoringTable}
         />
       )}
-    </div>
+    </NestoCard>
   );
 }
