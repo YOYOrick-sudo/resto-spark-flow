@@ -3,7 +3,7 @@ import { SettingsDetailLayout } from "@/components/settings/layouts";
 import { FormSection } from "@/components/polar/FormSection";
 import { NestoSelect } from "@/components/polar/NestoSelect";
 import { NestoButton } from "@/components/polar/NestoButton";
-import { SettingsContextPanel, InsightItem, HealthCheck } from "@/components/settings/context";
+import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/settings/context";
 import { toast } from "sonner";
 import { mockPacingSettings, updatePacingSettings } from "@/data/reservations";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
@@ -61,40 +61,25 @@ export default function SettingsReserveringenShiftTijden() {
   ];
 
   const checks: HealthCheck[] = useMemo(() => {
-    const result: HealthCheck[] = [];
-
+    // Risk: prioriteit error > warning > null
+    let riskCheck: HealthCheck | null = null;
+    
     if (gap < 0) {
-      result.push({
-        status: "error",
-        message: "Shifts overlappen! Dit kan dubbele boekingen veroorzaken.",
-      });
+      riskCheck = { status: "error", message: "Shifts overlappen." };
     } else if (gap === 0) {
-      result.push({
-        status: "warning",
-        message: "Geen gap tussen lunch en diner. Weinig reset-tijd voor personeel.",
-      });
-    } else {
-      result.push({
-        status: "ok",
-        message: "Geen overlap tussen shifts.",
-      });
+      riskCheck = { status: "warning", message: "Geen gap tussen shifts." };
+    } else if (lunchDuration < 2 && lunchDuration > 0) {
+      riskCheck = { status: "warning", message: "Korte lunch shift (<2 uur)." };
+    } else if (dinnerDuration > 8) {
+      riskCheck = { status: "warning", message: "Lange diner shift (>8 uur)." };
     }
 
-    if (lunchDuration < 2 && lunchDuration > 0) {
-      result.push({
-        status: "warning",
-        message: "Zeer korte lunch shift (<2 uur). Check of dit klopt.",
-      });
-    }
+    // OK: alleen als geen risk
+    const okCheck: HealthCheck | null = !riskCheck
+      ? { status: "ok", message: "Geen overlap tussen shifts." }
+      : null;
 
-    if (dinnerDuration > 8) {
-      result.push({
-        status: "warning",
-        message: "Zeer lange diner shift (>8 uur). Check of dit klopt.",
-      });
-    }
-
-    return result;
+    return [okCheck, riskCheck].filter(Boolean) as HealthCheck[];
   }, [gap, lunchDuration, dinnerDuration]);
 
   const context = useMemo(() => {
@@ -112,7 +97,7 @@ export default function SettingsReserveringenShiftTijden() {
       description="Definieer wanneer lunch en diner shifts beginnen en eindigen."
       breadcrumbs={breadcrumbs}
       actions={<NestoButton onClick={handleSave}>Opslaan</NestoButton>}
-      aside={<SettingsContextPanel insights={insights} checks={checks} context={context} />}
+      aside={<SettingsInsightPanel insights={insights} checks={checks} context={context} />}
     >
       <div className="max-w-2xl space-y-6">
         <FormSection title="Lunch">

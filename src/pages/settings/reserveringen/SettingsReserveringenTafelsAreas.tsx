@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { SettingsDetailLayout } from "@/components/settings/layouts";
 import { AreasSection } from "@/components/settings/tables";
-import { SettingsContextPanel, InsightItem, HealthCheck } from "@/components/settings/context";
+import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/settings/context";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAreasForSettings } from "@/hooks/useAreasWithTables";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
@@ -103,7 +103,7 @@ export default function SettingsReserveringenTafelsAreas() {
       breadcrumbs={breadcrumbs}
       aside={
         !isLoading && stats ? (
-          <SettingsContextPanel insights={insights} checks={checks} context={context} />
+          <SettingsInsightPanel insights={insights} checks={checks} context={context} />
         ) : undefined
       }
     >

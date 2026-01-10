@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { SettingsDetailLayout } from "@/components/settings/layouts";
 import { LocationSettingsCard } from "@/components/settings/tables";
-import { SettingsContextPanel, InsightItem, HealthCheck } from "@/components/settings/context";
+import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/settings/context";
 import { useUserContext } from "@/contexts/UserContext";
 import { useReservationSettings } from "@/hooks/useReservationSettings";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
@@ -32,54 +32,26 @@ export default function SettingsReserveringenTafelsLocatie() {
 
   const checks: HealthCheck[] = useMemo(() => {
     if (!settings) return [];
-    const result: HealthCheck[] = [];
 
-    // Auto-assign check
-    if (settings.auto_assign) {
-      result.push({
-        status: "ok",
-        message: "Auto-assign actief. Tafels worden automatisch toegewezen.",
-      });
-    } else {
-      result.push({
-        status: "warning",
-        message: "Auto-assign uit. Handmatige toewijzing vereist bij elke reservering.",
-      });
-    }
-
-    // Multi-table check
-    if (settings.allow_multi_table) {
-      result.push({
-        status: "ok",
-        message: "Multi-tafel boekingen toegestaan voor grote groepen.",
-      });
-    }
-
-    // Buffer check
+    // Risk: precies 1, hoogste prioriteit issue
+    let riskCheck: HealthCheck | null = null;
+    
     if (settings.default_buffer_minutes === 0) {
-      result.push({
-        status: "warning",
-        message: "Geen buffer tussen reserveringen. Risico op overlap bij uitloop.",
-      });
+      riskCheck = { status: "warning", message: "Geen buffer. Risico op overlap." };
+    } else if (settings.booking_cutoff_minutes < 30) {
+      riskCheck = { status: "warning", message: "Korte cutoff (<30 min)." };
+    } else if (settings.default_duration_minutes > 180) {
+      riskCheck = { status: "warning", message: "Lange reserveringsduur (>3 uur)." };
+    } else if (!settings.auto_assign) {
+      riskCheck = { status: "warning", message: "Auto-assign uit." };
     }
 
-    // Cutoff check
-    if (settings.booking_cutoff_minutes < 30) {
-      result.push({
-        status: "warning",
-        message: "Zeer korte cutoff (<30 min). Last-minute boekingen mogelijk.",
-      });
-    }
+    // OK: alleen als basisconfig ok (geen riskCheck)
+    const okCheck: HealthCheck | null = !riskCheck
+      ? { status: "ok", message: "Basisconfig in orde." }
+      : null;
 
-    // Duration check
-    if (settings.default_duration_minutes > 180) {
-      result.push({
-        status: "warning",
-        message: "Zeer lange reserveringsduur (>3 uur). Check of dit standaard moet zijn.",
-      });
-    }
-
-    return result;
+    return [okCheck, riskCheck].filter(Boolean) as HealthCheck[];
   }, [settings]);
 
   const context = useMemo(() => {
@@ -100,7 +72,7 @@ export default function SettingsReserveringenTafelsLocatie() {
       breadcrumbs={breadcrumbs}
       aside={
         !isLoading && settings ? (
-          <SettingsContextPanel insights={insights} checks={checks} context={context} />
+          <SettingsInsightPanel insights={insights} checks={checks} context={context} />
         ) : undefined
       }
     >

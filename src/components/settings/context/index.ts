@@ -1,6 +1,6 @@
-export { SettingsContextPanel } from "./SettingsContextPanel";
+export { SettingsInsightPanel } from "./SettingsInsightPanel";
 export type {
   InsightItem,
   HealthCheck,
-  SettingsContextPanelProps,
-} from "./SettingsContextPanel";
+  SettingsInsightPanelProps,
+} from "./SettingsInsightPanel";

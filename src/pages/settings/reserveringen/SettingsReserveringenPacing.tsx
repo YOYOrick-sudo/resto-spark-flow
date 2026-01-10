@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SettingsDetailLayout } from "@/components/settings/layouts";
 import {
-  SettingsContextPanel,
+  SettingsInsightPanel,
   InsightItem,
   HealthCheck,
 } from "@/components/settings/context";
@@ -131,7 +131,7 @@ export default function SettingsReserveringenPacing() {
       breadcrumbs={breadcrumbs}
       actions={<NestoButton onClick={handleSave}>Opslaan</NestoButton>}
       aside={
-        <SettingsContextPanel
+        <SettingsInsightPanel
           insights={insights}
           checks={checks}
           context={context}
