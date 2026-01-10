@@ -63,11 +63,11 @@ export function SettingsModuleLayout({ config }: SettingsModuleLayoutProps) {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                   {section.label}
                 </h3>
                 {section.description && (
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {section.description}
                   </p>
                 )}

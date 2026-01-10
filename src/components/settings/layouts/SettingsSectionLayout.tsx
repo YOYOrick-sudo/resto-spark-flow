@@ -85,7 +85,7 @@ export function SettingsSectionLayout({
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                    <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                       {subsection.label}
                     </h3>
                     {count !== undefined && (
@@ -95,7 +95,7 @@ export function SettingsSectionLayout({
                     )}
                   </div>
                   {subsection.description && (
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {subsection.description}
                     </p>
                   )}
