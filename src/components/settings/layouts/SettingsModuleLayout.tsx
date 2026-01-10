@@ -53,7 +53,7 @@ export function SettingsModuleLayout({ config }: SettingsModuleLayoutProps) {
               key={section.id}
               to={section.path}
               className={cn(
-                "group flex items-start gap-4 py-3 px-4 rounded-card border border-border",
+                "group flex items-center gap-4 py-3 px-4 rounded-card border border-border",
                 "bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer"
               )}
             >
