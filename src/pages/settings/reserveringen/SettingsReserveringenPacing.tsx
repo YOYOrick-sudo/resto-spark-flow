@@ -115,15 +115,14 @@ export default function SettingsReserveringenPacing() {
           Pacing Limits
           <TitleHelp title="Wat is pacing?">
             <p className="text-muted-foreground">
-              Bepaalt hoeveel gasten per 15 minuten online kunnen reserveren.
+              Beperkt hoeveel gasten per kwartier kunnen reserveren om de keuken niet te overbelasten.
             </p>
             <ul className="list-disc list-inside text-muted-foreground space-y-1">
-              <li>12 gasten/kwartier = max 48 gasten/uur</li>
               <li>Te hoog → keuken overbelast</li>
               <li>Te laag → gemiste omzet</li>
             </ul>
             <TitleHelpTip>
-              Start met 8-10 en verhoog na evaluatie.
+              Richtlijn: casual dining 0.5-1.0 turns/uur, fine dining 0.3 of lager. Check je waarde in het panel.
             </TitleHelpTip>
           </TitleHelp>
         </span>
