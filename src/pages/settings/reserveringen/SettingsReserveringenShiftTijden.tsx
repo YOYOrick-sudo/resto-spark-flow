@@ -4,6 +4,7 @@ import { FormSection } from "@/components/polar/FormSection";
 import { NestoSelect } from "@/components/polar/NestoSelect";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/settings/context";
+import { TitleHelp } from "@/components/polar/TitleHelp";
 import { toast } from "sonner";
 import { mockPacingSettings, updatePacingSettings } from "@/data/reservations";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
@@ -93,7 +94,18 @@ export default function SettingsReserveringenShiftTijden() {
 
   return (
     <SettingsDetailLayout
-      title="Shift Tijden"
+      title={
+        <span className="flex items-center gap-2">
+          Shift Tijden
+          <TitleHelp title="Shift Tijden">
+            <ul className="list-disc list-inside text-muted-foreground space-y-1">
+              <li>Wanneer lunch en diner boekbaar zijn.</li>
+              <li>Overlap en gaten beïnvloeden pacing en bezetting.</li>
+              <li>Shifts bepalen welke regels per moment gelden.</li>
+            </ul>
+          </TitleHelp>
+        </span>
+      }
       description="Definieer wanneer lunch en diner shifts beginnen en eindigen."
       breadcrumbs={breadcrumbs}
       actions={<NestoButton onClick={handleSave}>Opslaan</NestoButton>}
