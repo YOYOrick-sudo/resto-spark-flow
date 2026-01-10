@@ -5,6 +5,7 @@ import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/set
 import { useUserContext } from "@/contexts/UserContext";
 import { useReservationSettings } from "@/hooks/useReservationSettings";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
+import { TitleHelp } from "@/components/polar/TitleHelp";
 
 /**
  * Niveau 4: Location settings page
@@ -67,7 +68,18 @@ export default function SettingsReserveringenTafelsLocatie() {
 
   return (
     <SettingsDetailLayout
-      title="Locatie-instellingen"
+      title={
+        <span className="flex items-center gap-2">
+          Locatie-instellingen
+          <TitleHelp title="Locatie-instellingen">
+            <ul className="list-disc list-inside text-muted-foreground space-y-1">
+              <li>Standaard gedrag voor reserveringen op deze locatie.</li>
+              <li>Duur en buffer bepalen slotting en capaciteit.</li>
+              <li>Cutoff bepaalt tot wanneer online boeken kan.</li>
+            </ul>
+          </TitleHelp>
+        </span>
+      }
       description="Algemene reserveringsinstellingen voor deze locatie."
       breadcrumbs={breadcrumbs}
       aside={
