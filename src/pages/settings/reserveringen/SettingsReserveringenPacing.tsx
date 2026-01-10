@@ -8,7 +8,7 @@ import {
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
-import { TitleHelp } from "@/components/polar/TitleHelp";
+import { TitleHelp, TitleHelpTip } from "@/components/polar/TitleHelp";
 import { toast } from "sonner";
 import {
   mockPacingSettings,
@@ -113,24 +113,19 @@ export default function SettingsReserveringenPacing() {
       title={
         <span className="flex items-center gap-2">
           Pacing Limits
-          <TitleHelp 
-            content={
-              <>
-                <p className="font-medium">Wat is pacing?</p>
-                <p className="text-muted-foreground">
-                  Bepaalt hoeveel gasten per 15 minuten online kunnen reserveren.
-                </p>
-                <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                  <li>12 gasten/kwartier = max 48 gasten/uur</li>
-                  <li>Te hoog → keuken overbelast</li>
-                  <li>Te laag → gemiste omzet</li>
-                </ul>
-                <p className="text-xs text-muted-foreground/80 italic">
-                  💡 Tip: Start met 8-10 en verhoog na evaluatie.
-                </p>
-              </>
-            }
-          />
+          <TitleHelp title="Wat is pacing?">
+            <p className="text-muted-foreground">
+              Bepaalt hoeveel gasten per 15 minuten online kunnen reserveren.
+            </p>
+            <ul className="list-disc list-inside text-muted-foreground space-y-1">
+              <li>12 gasten/kwartier = max 48 gasten/uur</li>
+              <li>Te hoog → keuken overbelast</li>
+              <li>Te laag → gemiste omzet</li>
+            </ul>
+            <TitleHelpTip>
+              Start met 8-10 en verhoog na evaluatie.
+            </TitleHelpTip>
+          </TitleHelp>
         </span>
       }
       description="Stel in hoeveel gasten je per kwartier wilt ontvangen."

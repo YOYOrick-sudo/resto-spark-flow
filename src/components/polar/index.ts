@@ -92,8 +92,8 @@ export type {
 export { SettingsPageLayout } from "./SettingsPageLayout";
 export type { SettingsPageLayoutProps, SettingsSection } from "./SettingsPageLayout";
 
-export { TitleHelp } from "./TitleHelp";
-export type { TitleHelpProps } from "./TitleHelp";
+export { TitleHelp, TitleHelpTip } from "./TitleHelp";
+export type { TitleHelpProps, TitleHelpTipProps } from "./TitleHelp";
 
 // Re-export toast from sonner for easy access
 export { toast } from 'sonner';
