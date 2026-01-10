@@ -8,6 +8,7 @@ import {
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
+import { TitleHelp } from "@/components/polar/TitleHelp";
 import { toast } from "sonner";
 import {
   mockPacingSettings,
@@ -109,7 +110,12 @@ export default function SettingsReserveringenPacing() {
 
   return (
     <SettingsDetailLayout
-      title="Pacing Limits"
+      title={
+        <span className="flex items-center gap-2">
+          Pacing Limits
+          <TitleHelp content="Deze limiet bepaalt hoeveel gasten tegelijk online kunnen reserveren. Hogere waarden verhogen instroom, lagere waarden spreiden drukte." />
+        </span>
+      }
       description="Stel in hoeveel gasten je per kwartier wilt ontvangen."
       breadcrumbs={breadcrumbs}
       actions={<NestoButton onClick={handleSave}>Opslaan</NestoButton>}
