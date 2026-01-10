@@ -8,7 +8,7 @@ Navigation Cards zijn clickable cards die gebruikers naar een andere pagina navi
 - Module overzichten
 - Elke situatie waar je een lijst van navigeerbare items toont
 
-Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
+Dit patroon volgt een **Enterprise Compact** design (Stripe, Linear, Salesforce density).
 
 ---
 
@@ -18,14 +18,14 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 <Link
   to={path}
   className={cn(
-    // Layout
-    "group flex items-start gap-4 p-5",
+    // Layout - compact enterprise density
+    "group flex items-center gap-4 py-3 px-4",
     // Border & Shape
-    "rounded-card border-[1.5px] border-border",
-    // Background & Shadow
-    "bg-card shadow-sm",
-    // Hover States
-    "hover:shadow-md hover:border-primary/30",
+    "rounded-card border border-border",
+    // Background - no base shadow
+    "bg-card",
+    // Hover States - subtle elevation
+    "hover:bg-accent/50 hover:shadow-sm",
     // Transition
     "transition-all duration-200",
     // Cursor
@@ -36,12 +36,13 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 
 | Property | Waarde | Toelichting |
 |----------|--------|-------------|
-| Padding | `p-5` (20px) | Ruime klikbare area |
+| Padding | `py-3 px-4` (12px / 16px) | Compact maar klikbaar |
 | Gap | `gap-4` (16px) | Ruimte tussen elementen |
-| Border | `border-[1.5px] border-border` | Subtiele border |
+| Alignment | `items-center` | Verticaal gecentreerd |
+| Border | `border border-border` (1px) | Subtiele border |
 | Border radius | `rounded-card` (16px) | Card radius token |
-| Shadow | `shadow-sm` → `hover:shadow-md` | Elevation on hover |
-| Border hover | `hover:border-primary/30` | Teal accent on hover |
+| Shadow | Geen base → `hover:shadow-sm` | Minimal elevation |
+| Background hover | `hover:bg-accent/50` | Subtle highlight |
 | Transition | `transition-all duration-200` | Smooth 200ms |
 
 ---
@@ -49,17 +50,17 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 ## Icon Container
 
 ```tsx
-<div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-  <Icon className="h-5 w-5 text-primary" />
+<div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/5 flex items-center justify-center">
+  <Icon className="h-4 w-4 text-primary" />
 </div>
 ```
 
 | Property | Waarde | Toelichting |
 |----------|--------|-------------|
-| Container size | `w-10 h-10` (40px) | Consistente grootte |
-| Border radius | `rounded-lg` (8px) | Zacht maar niet rond |
-| Background | `bg-primary/10` | Subtiel teal accent |
-| Icon size | `h-5 w-5` (20px) | Proportioneel aan container |
+| Container size | `w-8 h-8` (32px) | Compact proportie |
+| Border radius | `rounded-md` (6px) | Subtiel afgerond |
+| Background | `bg-primary/5` | Zeer subtiel teal |
+| Icon size | `h-4 w-4` (16px) | Proportioneel aan container |
 | Icon color | `text-primary` | Teal kleur |
 
 ---
@@ -68,20 +69,29 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 
 ```tsx
 <div className="flex-1 min-w-0">
-  <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
-    {title}
-  </h3>
-  <p className="text-sm text-muted-foreground mt-0.5">
-    {description}
-  </p>
+  <div className="flex items-center gap-2">
+    <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+      {title}
+    </h3>
+    {count !== undefined && (
+      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-control">
+        {count}
+      </span>
+    )}
+  </div>
+  {description && (
+    <p className="text-xs text-muted-foreground mt-0.5">
+      {description}
+    </p>
+  )}
 </div>
 ```
 
 | Element | Classes | Toelichting |
 |---------|---------|-------------|
-| Title | `font-medium text-foreground` | Semi-bold, primaire kleur |
+| Title | `text-sm font-medium text-foreground` | 14px semi-bold |
 | Title hover | `group-hover:text-primary transition-colors` | Teal on hover |
-| Description | `text-sm text-muted-foreground mt-0.5` | Kleinere subtiele tekst |
+| Description | `text-xs text-muted-foreground mt-0.5` | 12px subtiele tekst |
 
 ---
 
@@ -89,7 +99,7 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 
 ```tsx
 {count !== undefined && (
-  <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-control font-medium">
+  <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-control">
     {count}
   </span>
 )}
@@ -97,14 +107,13 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 
 | Property | Waarde | Toelichting |
 |----------|--------|-------------|
-| Font size | `text-xs` | Klein maar leesbaar |
-| Color | `text-primary` | Teal tekst |
-| Background | `bg-primary/10` | Matcht icon container |
-| Padding | `px-2 py-0.5` | Compact |
+| Font size | `text-xs` (12px) | Klein maar leesbaar |
+| Color | `text-muted-foreground` | Gray metadata style |
+| Background | `bg-muted` | Neutrale achtergrond |
+| Padding | `px-1.5 py-0.5` | Zeer compact |
 | Border radius | `rounded-control` (6px) | Control radius token |
-| Font weight | `font-medium` | Semi-bold |
 
-**Let op:** Gebruik NIET `bg-muted` voor count badges in navigation cards.
+**Let op:** Gebruik `bg-muted` met `text-muted-foreground` voor metadata badges (count).
 
 ---
 
@@ -112,7 +121,7 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 
 ```tsx
 <ChevronRight className={cn(
-  "h-5 w-5 text-muted-foreground flex-shrink-0 self-center",
+  "h-4 w-4 text-muted-foreground flex-shrink-0",
   // Hover animation
   "group-hover:translate-x-0.5 group-hover:text-primary",
   // Transition
@@ -122,7 +131,7 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 
 | Property | Waarde | Toelichting |
 |----------|--------|-------------|
-| Size | `h-5 w-5` (20px) | Consistente grootte |
+| Size | `h-4 w-4` (16px) | Compact grootte |
 | Default color | `text-muted-foreground` | Subtiel grijs |
 | Hover color | `group-hover:text-primary` | Teal on hover |
 | Hover animation | `group-hover:translate-x-0.5` | Subtle slide right (2px) |
@@ -130,29 +139,50 @@ Dit patroon volgt enterprise design referenties (Stripe, Linear, Salesforce).
 
 ---
 
-## Layout Varianten
+## Layout Varianten per Niveau
 
-### Grid Layout (Module Overview)
-Gebruik voor niveau 2 pagina's met meerdere secties:
+### Level 2: Grid Layout (Module Overview)
+
+Gebruik voor module index pagina's met meerdere secties:
 
 ```tsx
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
-  {items.map(item => (
-    <NavigationCard key={item.id} {...item} />
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {sections.map(section => (
+    <NavigationCard key={section.id} {...section} />
   ))}
 </div>
 ```
 
-### Stacked Layout (Section Overview)
-Gebruik voor niveau 3 pagina's met subsecties:
+| Property | Waarde | Toelichting |
+|----------|--------|-------------|
+| Layout | `grid grid-cols-1 md:grid-cols-2` | 2 kolommen op desktop |
+| Gap | `gap-4` (16px) | Ruimte tussen cards |
+| Max width | Geen (volgt container) | Vult SettingsContainer |
+
+### Level 3: Stacked Layout (Section Overview)
+
+Gebruik voor sectie pagina's met subsecties:
 
 ```tsx
-<div className="space-y-4 max-w-2xl">
-  {items.map(item => (
-    <NavigationCard key={item.id} {...item} />
+<div className="space-y-3 max-w-2xl">
+  {subsections.map(subsection => (
+    <NavigationCard key={subsection.id} {...subsection} />
   ))}
 </div>
 ```
+
+| Property | Waarde | Toelichting |
+|----------|--------|-------------|
+| Layout | `space-y-3` | Verticaal gestapeld |
+| Spacing | 12px tussen cards | Compact spacing |
+| Max width | `max-w-2xl` (672px) | Beperkte breedte |
+
+### Visuele Vergelijking
+
+| Niveau | Layout | Card Breedte | Use Case |
+|--------|--------|--------------|----------|
+| Level 2 | Grid (2 col) | ~50% van 1024px = ~500px | Module secties |
+| Level 3 | Stacked | max 672px | Subsecties binnen sectie |
 
 ---
 
@@ -182,41 +212,77 @@ export function NavigationCard({
     <Link
       to={to}
       className={cn(
-        "group flex items-start gap-4 p-5 rounded-card border-[1.5px] border-border",
-        "bg-card shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer"
+        // Compact enterprise layout
+        "group flex items-center gap-4 py-3 px-4",
+        // Border & shape
+        "rounded-card border border-border",
+        // Background & hover
+        "bg-card hover:bg-accent/50 hover:shadow-sm",
+        // Transition
+        "transition-all duration-200 cursor-pointer"
       )}
     >
-      {/* Icon */}
+      {/* Icon - 32px container */}
       {Icon && (
-        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/5 flex items-center justify-center">
+          <Icon className="h-4 w-4 text-primary" />
         </div>
       )}
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+          <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
             {title}
           </h3>
           {count !== undefined && (
-            <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-control font-medium">
+            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-control">
               {count}
             </span>
           )}
         </div>
         {description && (
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {description}
           </p>
         )}
       </div>
 
-      {/* Chevron */}
-      <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 self-center group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-200" />
+      {/* Chevron - 16px */}
+      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-200" />
     </Link>
   );
 }
+```
+
+---
+
+## Implementatie in Settings Layouts
+
+### SettingsModuleLayout (Level 2)
+
+```tsx
+// src/components/settings/layouts/SettingsModuleLayout.tsx
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {config.sections.map((section) => (
+    <Link key={section.id} to={section.path} className="...">
+      {/* Card content */}
+    </Link>
+  ))}
+</div>
+```
+
+### SettingsSectionLayout (Level 3)
+
+```tsx
+// src/components/settings/layouts/SettingsSectionLayout.tsx
+<div className="space-y-3 max-w-2xl">
+  {section.subsections.map((subsection) => (
+    <Link key={subsection.id} to={subsection.path} className="...">
+      {/* Card content */}
+    </Link>
+  ))}
+</div>
 ```
 
 ---
@@ -225,16 +291,20 @@ export function NavigationCard({
 
 Bij het maken van nieuwe navigation cards, controleer:
 
-- [ ] Card heeft `p-5` padding
-- [ ] Card heeft `shadow-sm` base en `hover:shadow-md`
-- [ ] Card heeft `hover:border-primary/30` border accent
-- [ ] Icon container is `w-10 h-10` met `bg-primary/10`
-- [ ] Title heeft `group-hover:text-primary transition-colors`
-- [ ] Count badges gebruiken `bg-primary/10` (niet `bg-muted`)
+- [ ] Card heeft `py-3 px-4` padding (compact)
+- [ ] Card heeft `items-center` alignment
+- [ ] Card heeft `border border-border` (1px, geen 1.5px)
+- [ ] Card heeft geen base shadow, alleen `hover:shadow-sm`
+- [ ] Card heeft `hover:bg-accent/50` background
+- [ ] Icon container is `w-8 h-8` (32px) met `bg-primary/5`
+- [ ] Icon is `h-4 w-4` (16px)
+- [ ] Title is `text-sm font-medium` (14px)
+- [ ] Description is `text-xs` (12px)
+- [ ] Count badge gebruikt `bg-muted text-muted-foreground`
+- [ ] Chevron is `h-4 w-4` (16px)
 - [ ] Chevron heeft slide animation `group-hover:translate-x-0.5`
-- [ ] Chevron heeft `group-hover:text-primary`
-- [ ] Alle transitions zijn `duration-200`
-- [ ] Card gebruikt `group` class voor hover coordination
+- [ ] Level 2 gebruikt `grid grid-cols-1 md:grid-cols-2 gap-4`
+- [ ] Level 3 gebruikt `space-y-3 max-w-2xl`
 
 ---
 
@@ -243,3 +313,4 @@ Bij het maken van nieuwe navigation cards, controleer:
 - [BORDER_RADIUS.md](./BORDER_RADIUS.md) - Border radius tokens
 - [COLOR_PALETTE.md](./COLOR_PALETTE.md) - Kleur definities
 - [SETTINGS_MULTI_LEVEL_NAVIGATION.md](./SETTINGS_MULTI_LEVEL_NAVIGATION.md) - Settings navigatie structuur
+- [SETTINGS_PAGE_PATTERNS.md](./SETTINGS_PAGE_PATTERNS.md) - Settings page patterns
