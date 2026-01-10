@@ -1,13 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { Info } from "lucide-react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
+import { FieldHelp, FieldHelpExample } from "@/components/polar/FieldHelp";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAreasForSettings } from "@/hooks/useAreasWithTables";
 import { useTableGroups, useCreateTableGroup, useUpdateTableGroup, useAddTableGroupMember, useRemoveTableGroupMember } from "@/hooks/useTableGroups";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
@@ -328,28 +327,17 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
                 <Label htmlFor="extra_seats" className="text-sm text-muted-foreground">
                   Extra stoelen
                 </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button 
-                      type="button" 
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label="Meer informatie over extra stoelen"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent side="top" align="start" className="w-72 text-sm">
-                    <p className="text-muted-foreground">
-                      Corrigeer het aantal stoelen voor deze combinatie. 
-                      Negatief als er stoelen wegvallen door de opstelling. 
-                      Positief als je stoelen kunt bijzetten.
-                    </p>
-                    <div className="mt-2 pt-2 border-t border-border text-xs text-muted-foreground space-y-1">
-                      <p className="italic">2 + 2 met stoelen erbij: +2</p>
-                      <p className="italic">4 + 4 met verlies kopse kanten: -2</p>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <FieldHelp>
+                  <p className="text-muted-foreground">
+                    Corrigeer het aantal stoelen voor deze combinatie. 
+                    Negatief als er stoelen wegvallen door de opstelling. 
+                    Positief als je stoelen kunt bijzetten.
+                  </p>
+                  <FieldHelpExample>
+                    <p>2 + 2 met stoelen erbij: +2</p>
+                    <p>4 + 4 met verlies kopse kanten: -2</p>
+                  </FieldHelpExample>
+                </FieldHelp>
               </div>
               <input
                 id="extra_seats"

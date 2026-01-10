@@ -2,25 +2,35 @@
 
 ## Overview
 
-The Contextual Help pattern provides inline, non-intrusive help for complex settings without cluttering the UI. It uses a small info icon next to titles that reveals a popover with explanatory content.
+The Contextual Help pattern provides inline, non-intrusive help for complex settings without cluttering the UI. It uses a small info icon that reveals a popover with explanatory content.
 
-## Components
+There are **two variants**:
 
-### TitleHelp
+| Variant | Use Case | Has Header |
+|---------|----------|------------|
+| `TitleHelp` | Page/section titles | ✅ Yes |
+| `FieldHelp` | Form field labels | ❌ No |
 
-The main wrapper component that renders an info icon and popover.
+---
+
+## TitleHelp (for Page Titles)
+
+Used next to page or section titles. Features a header with title.
 
 ```tsx
 import { TitleHelp, TitleHelpTip } from "@/components/polar";
 
-<TitleHelp title="Wat is pacing?">
-  <p className="text-muted-foreground">
-    Beperkt hoeveel gasten per kwartier kunnen reserveren.
-  </p>
-  <TitleHelpTip>
-    Richtlijn: casual dining 0.5-1.0 turns/uur.
-  </TitleHelpTip>
-</TitleHelp>
+<span className="flex items-center gap-2">
+  Pacing Limits
+  <TitleHelp title="Wat is pacing?">
+    <p className="text-muted-foreground">
+      Beperkt hoeveel gasten per kwartier kunnen reserveren.
+    </p>
+    <TitleHelpTip>
+      Richtlijn: casual dining 0.5-1.0 turns/uur.
+    </TitleHelpTip>
+  </TitleHelp>
+</span>
 ```
 
 ### TitleHelpTip
@@ -33,7 +43,39 @@ Optional callout for actionable benchmarks or tips within the popover.
 </TitleHelpTip>
 ```
 
+---
+
+## FieldHelp (for Form Fields)
+
+Used next to form field labels. No header, more compact. Opens upward to avoid covering inputs.
+
+```tsx
+import { FieldHelp, FieldHelpExample } from "@/components/polar";
+
+<div className="flex items-center gap-1.5">
+  <Label htmlFor="extra_seats">Extra stoelen</Label>
+  <FieldHelp>
+    <p className="text-muted-foreground">
+      Corrigeer het aantal stoelen voor deze combinatie.
+      Negatief als er stoelen wegvallen door de opstelling.
+    </p>
+    <FieldHelpExample>
+      <p>2 + 2 met stoelen erbij: +2</p>
+      <p>4 + 4 met verlies kopse kanten: -2</p>
+    </FieldHelpExample>
+  </FieldHelp>
+</div>
+```
+
+### FieldHelpExample
+
+Optional styled example block with italic text and top border.
+
+---
+
 ## Visual Specifications
+
+### Shared Styling
 
 | Element | Value |
 |---------|-------|
@@ -42,88 +84,83 @@ Optional callout for actionable benchmarks or tips within the popover.
 | Popover width | 320px (`w-80`) |
 | Popover radius | `rounded-dropdown` (12px) |
 | Popover shadow | `shadow-md` |
+| Border | `border border-border` |
+| Body padding | `px-4 py-3` |
+
+### TitleHelp Specific
+
+| Element | Value |
+|---------|-------|
 | Header bg | `bg-muted/30` |
 | Header padding | `px-4 py-2.5` |
-| Body padding | `px-4 py-3` |
 | Tip bg | `bg-muted/50` |
 | Tip icon | `Lightbulb`, `text-warning` |
+| Position | `side="bottom" align="start"` |
+
+### FieldHelp Specific
+
+| Element | Value |
+|---------|-------|
+| Header | None |
+| Example border | `border-t border-border` |
+| Example text | `text-xs italic` |
+| Position | `side="top" align="start"` |
+
+---
 
 ## Positioning
 
+### TitleHelp
 ```tsx
-<PopoverContent
-  side="bottom"
-  align="start"
-  // ...
->
+<PopoverContent side="bottom" align="start">
 ```
+Opens **below** the trigger to avoid overlapping page headers.
 
-- **side="bottom"**: Opens below the trigger
-- **align="start"**: Aligns to the left edge
-
-This ensures visibility on tablets (iPad) and avoids overlapping page content.
-
-## Usage Pattern
-
-Place `TitleHelp` inline with section titles:
-
+### FieldHelp
 ```tsx
-<span className="flex items-center gap-2">
-  Section Title
-  <TitleHelp title="Section Title">
-    <p className="text-muted-foreground">
-      Explanation of what this section controls.
-    </p>
-    <ul className="list-disc list-inside text-muted-foreground space-y-1">
-      <li>Consequence of setting too high</li>
-      <li>Consequence of setting too low</li>
-    </ul>
-    <TitleHelpTip>
-      Actionable benchmark or industry standard.
-    </TitleHelpTip>
-  </TitleHelp>
-</span>
+<PopoverContent side="top" align="start">
 ```
+Opens **above** the trigger to avoid covering form inputs.
+
+---
 
 ## Content Guidelines
+
+### Structure
+
+1. **Opening paragraph**: What does this setting control? (1-2 sentences, ≤30 words)
+2. **TitleHelpTip / FieldHelpExample**: Practical benchmarks or examples
 
 ### Enterprise Quality Checklist
 
 | Aspect | ❌ Avoid | ✅ Use |
 |--------|---------|--------|
-| Language | Abstract numbers ("8-10") | Industry terms ("turns/uur") |
-| Benchmarks | One-size-fits-all | Segment-specific (casual vs fine dining) |
-| Action | Vague ("evaluate later") | Direct ("check panel rechts") |
-| Examples | Arbitrary ("12 gasten = 48/uur") | Omit if not adding value |
+| Language | Abstract numbers | Industry terms |
+| Benchmarks | One-size-fits-all | Segment-specific |
+| Examples | Arbitrary | Practical, relatable |
 
-### Structure
-
-1. **Opening paragraph**: What does this setting control? (1-2 sentences)
-2. **Consequences list**: What happens if too high/low? (max 3 items)
-3. **TitleHelpTip**: Actionable benchmark with industry context
-
-### Word Limits
-
-- Opening paragraph: ≤30 words
-- List items: ≤10 words each
-- Tip: ≤25 words
+---
 
 ## When to Use
 
 ✅ **Use for:**
 - Settings that affect operations (pacing, capacity, timing)
-- Terms that have industry-specific meaning
+- Terms with industry-specific meaning
 - Settings where wrong values cause visible problems
+- Complex calculations that need explanation
 
 ❌ **Don't use for:**
 - Self-explanatory fields (name, email)
 - Settings with inline validation
 - Every single input (clutters UI)
 
-## File Location
+---
 
-```
-src/components/polar/TitleHelp.tsx
-```
+## File Locations
 
-Exported via `src/components/polar/index.ts`.
+| Component | File |
+|-----------|------|
+| TitleHelp, TitleHelpTip | `src/components/polar/TitleHelp.tsx` |
+| FieldHelp, FieldHelpExample | `src/components/polar/FieldHelp.tsx` |
+
+Both exported via `src/components/polar/index.ts`.

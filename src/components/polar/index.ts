@@ -95,5 +95,8 @@ export type { SettingsPageLayoutProps, SettingsSection } from "./SettingsPageLay
 export { TitleHelp, TitleHelpTip } from "./TitleHelp";
 export type { TitleHelpProps, TitleHelpTipProps } from "./TitleHelp";
 
+export { FieldHelp, FieldHelpExample } from "./FieldHelp";
+export type { FieldHelpProps, FieldHelpExampleProps } from "./FieldHelp";
+
 // Re-export toast from sonner for easy access
 export { toast } from 'sonner';
