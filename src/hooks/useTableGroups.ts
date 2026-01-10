@@ -65,6 +65,7 @@ interface CreateTableGroupInput {
   name: string;
   notes?: string | null;
   is_online_bookable?: boolean;
+  extra_seats?: number;
   table_ids?: string[];
 }
 
@@ -72,11 +73,11 @@ export function useCreateTableGroup() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ table_ids, ...data }: CreateTableGroupInput) => {
+    mutationFn: async ({ table_ids, extra_seats = 0, ...data }: CreateTableGroupInput) => {
       // Create group first
       const { data: group, error } = await supabase
         .from('table_groups')
-        .insert(data)
+        .insert({ ...data, extra_seats })
         .select()
         .single();
 

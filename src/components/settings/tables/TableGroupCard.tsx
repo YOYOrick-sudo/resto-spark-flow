@@ -45,6 +45,11 @@ export function TableGroupCard({ group, onEdit }: TableGroupCardProps) {
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
               {group.combined_min_capacity}-{group.combined_max_capacity} pers
+              {group.extra_seats !== 0 && (
+                <span className="text-muted-foreground/70">
+                  ({group.extra_seats > 0 ? '+' : ''}{group.extra_seats})
+                </span>
+              )}
             </span>
             {group.notes && (
               <span className="truncate">{group.notes}</span>

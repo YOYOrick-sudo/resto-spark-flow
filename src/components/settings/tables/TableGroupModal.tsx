@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAreasForSettings } from "@/hooks/useAreasWithTables";
 import { useTableGroups, useCreateTableGroup, useUpdateTableGroup, useAddTableGroupMember, useRemoveTableGroupMember } from "@/hooks/useTableGroups";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
+import { getBaseCapacity, getCombinationCapacity, getMinExtraSeats, MAX_EXTRA_SEATS, validateExtraSeats } from "@/lib/tableCapacity";
 import { toast } from "sonner";
 import type { TableGroup } from "@/types/reservations";
 
@@ -24,6 +25,7 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
   const [notes, setNotes] = useState(editingGroup?.notes ?? '');
   const [isOnlineBookable, setIsOnlineBookable] = useState(editingGroup?.is_online_bookable ?? true);
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
+  const [extraSeats, setExtraSeats] = useState(editingGroup?.extra_seats ?? 0);
   const [error, setError] = useState('');
   
   const { data: allAreas } = useAreasForSettings(locationId);
@@ -44,6 +46,7 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
       setNotes(editingGroup?.notes ?? '');
       setIsOnlineBookable(editingGroup?.is_online_bookable ?? true);
       setSelectedTableIds(editingGroup?.members?.map(m => m.table_id) ?? []);
+      setExtraSeats(editingGroup?.extra_seats ?? 0);
       setError('');
     }
   }, [open, editingGroup]);
@@ -94,6 +97,26 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
     [allAreas]
   );
 
+  // Calculate selected tables for capacity calculation
+  const selectedTables = useMemo(() => 
+    selectableTables.filter(t => selectedTableIds.includes(t.id)),
+    [selectableTables, selectedTableIds]
+  );
+
+  // Capacity calculations
+  const baseCapacity = useMemo(() => getBaseCapacity(selectedTables), [selectedTables]);
+  const effectiveCapacity = useMemo(() => getCombinationCapacity(selectedTables, extraSeats), [selectedTables, extraSeats]);
+  const minExtraSeats = useMemo(() => getMinExtraSeats(baseCapacity), [baseCapacity]);
+
+  // Reset extraSeats when tables change to stay within valid range
+  useEffect(() => {
+    if (extraSeats < minExtraSeats) {
+      setExtraSeats(minExtraSeats);
+    } else if (extraSeats > MAX_EXTRA_SEATS) {
+      setExtraSeats(MAX_EXTRA_SEATS);
+    }
+  }, [minExtraSeats, extraSeats]);
+
   const toggleTable = (tableId: string) => {
     const state = tableStateMap.get(tableId);
     if (state?.disabled) return;
@@ -103,6 +126,17 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
         ? prev.filter(id => id !== tableId)
         : [...prev, tableId]
     );
+  };
+
+  const handleExtraSeatsChange = (value: string) => {
+    const num = parseInt(value, 10);
+    if (isNaN(num)) {
+      setExtraSeats(0);
+    } else {
+      // Clamp to valid range
+      const clamped = Math.max(minExtraSeats, Math.min(MAX_EXTRA_SEATS, num));
+      setExtraSeats(clamped);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,6 +149,13 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
       setError('Selecteer minimaal 2 tafels voor een groep.');
       return;
     }
+
+    // Validate extra seats
+    const validation = validateExtraSeats(selectedTables, extraSeats);
+    if (!validation.valid) {
+      setError(validation.message ?? 'Ongeldige extra stoelen waarde.');
+      return;
+    }
     
     try {
       if (isEditing) {
@@ -124,7 +165,8 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
             id: editingGroup.id, 
             name: name.trim(), 
             notes: notes.trim() || null,
-            is_online_bookable: isOnlineBookable 
+            is_online_bookable: isOnlineBookable,
+            extra_seats: extraSeats 
           },
           {
             onSuccess: async () => {
@@ -167,6 +209,7 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
             name: name.trim(),
             notes: notes.trim() || null,
             is_online_bookable: isOnlineBookable,
+            extra_seats: extraSeats,
             table_ids: selectedTableIds
           },
           {
@@ -267,6 +310,53 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
             )}
           </div>
         </div>
+
+        {/* Capacity section - only show when tables are selected */}
+        {selectedTableIds.length >= 2 && (
+          <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+            <Label className="text-sm font-medium">Capaciteit</Label>
+            
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Basis capaciteit</span>
+              <span className="font-medium">{baseCapacity} personen</span>
+            </div>
+            
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <Label htmlFor="extra_seats" className="text-sm text-muted-foreground">
+                  Extra stoelen
+                </Label>
+              </div>
+              <input
+                id="extra_seats"
+                type="number"
+                value={extraSeats}
+                onChange={(e) => handleExtraSeatsChange(e.target.value)}
+                min={minExtraSeats}
+                max={MAX_EXTRA_SEATS}
+                step={1}
+                className="w-20 h-9 px-3 rounded-md border border-input bg-background text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            
+            <div className="border-t border-border pt-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Effectieve capaciteit</span>
+                <span className="font-semibold text-primary">{effectiveCapacity} personen</span>
+              </div>
+            </div>
+            
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>
+                Corrigeer het aantal stoelen voor deze combinatie. 
+                Negatief als er stoelen wegvallen door de opstelling. 
+                Positief als je stoelen kunt bijzetten.
+              </p>
+              <p className="italic">2 + 2 met stoelen erbij: +2</p>
+              <p className="italic">4 + 4 met verlies kopse kanten: -2</p>
+            </div>
+          </div>
+        )}
         
         {error && (
           <p className="text-sm text-destructive">{error}</p>

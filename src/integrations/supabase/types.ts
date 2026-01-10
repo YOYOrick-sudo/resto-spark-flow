@@ -631,6 +631,7 @@ export type Database = {
           combined_max_capacity: number
           combined_min_capacity: number
           created_at: string
+          extra_seats: number
           id: string
           is_active: boolean
           is_online_bookable: boolean
@@ -644,6 +645,7 @@ export type Database = {
           combined_max_capacity?: number
           combined_min_capacity?: number
           created_at?: string
+          extra_seats?: number
           id?: string
           is_active?: boolean
           is_online_bookable?: boolean
@@ -657,6 +659,7 @@ export type Database = {
           combined_max_capacity?: number
           combined_min_capacity?: number
           created_at?: string
+          extra_seats?: number
           id?: string
           is_active?: boolean
           is_online_bookable?: boolean

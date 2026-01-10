@@ -52,8 +52,10 @@ export interface TableGroup {
   name: string;
   /** Read-only, berekend via trigger (alleen actieve tafels) */
   combined_min_capacity: number;
-  /** Read-only, berekend via trigger (alleen actieve tafels) */
+  /** Read-only, berekend via trigger: sum(max_capacity) + extra_seats */
   combined_max_capacity: number;
+  /** Netto correctie voor opstelling: negatief bij verlies, positief bij bijzetten */
+  extra_seats: number;
   is_active: boolean;
   is_online_bookable: boolean;
   is_system_generated: boolean;
