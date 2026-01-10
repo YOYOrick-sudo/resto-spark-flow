@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/popover";
 
 export interface TitleHelpProps {
-  content: string;
+  content: React.ReactNode;
 }
 
 export function TitleHelp({ content }: TitleHelpProps) {
@@ -24,9 +24,11 @@ export function TitleHelp({ content }: TitleHelpProps) {
       <PopoverContent
         side="bottom"
         align="start"
-        className="w-60 p-3 shadow-sm"
+        className="w-72 p-4 shadow-sm"
       >
-        <p className="text-sm">{content}</p>
+        <div className="text-sm space-y-2">
+          {content}
+        </div>
       </PopoverContent>
     </Popover>
   );
