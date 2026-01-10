@@ -1,0 +1,122 @@
+import { Link } from "react-router-dom";
+import { ArrowLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import type { SettingsModuleConfig, SettingsSection } from "@/lib/settingsRouteConfig";
+
+interface SettingsSectionLayoutProps {
+  config: SettingsModuleConfig;
+  section: SettingsSection;
+  /** Optional custom count to display on subsection cards */
+  counts?: Record<string, number>;
+  /** Optional children to render instead of subsection cards (for leaf sections) */
+  children?: React.ReactNode;
+}
+
+/**
+ * Layout for Niveau 3: Section page with subsection cards or custom content
+ */
+export function SettingsSectionLayout({
+  config,
+  section,
+  counts,
+  children,
+}: SettingsSectionLayoutProps) {
+  const hasSubsections = section.subsections && section.subsections.length > 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Back Button */}
+      <Link
+        to={config.basePath}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Terug naar {config.label}
+      </Link>
+
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/instellingen/voorkeuren">Settings</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to={config.basePath}>{config.label}</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{section.label}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-semibold">{section.label}</h1>
+        {section.description && (
+          <p className="text-sm text-muted-foreground mt-1">{section.description}</p>
+        )}
+      </div>
+
+      {/* Content: Subsection cards or children */}
+      {hasSubsections ? (
+        <div className="space-y-3 max-w-2xl">
+          {section.subsections!.map((subsection) => {
+            const Icon = subsection.icon;
+            const count = counts?.[subsection.id];
+
+            return (
+              <Link
+                key={subsection.id}
+                to={subsection.path}
+                className={cn(
+                  "group flex items-center gap-4 p-4 rounded-card border-[1.5px] border-border",
+                  "bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                )}
+              >
+                {Icon && (
+                  <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Icon className="h-4 w-4 text-primary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                      {subsection.label}
+                    </h3>
+                    {count !== undefined && (
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                  {subsection.description && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {subsection.description}
+                    </p>
+                  )}
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        children
+      )}
+    </div>
+  );
+}

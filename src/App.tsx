@@ -25,11 +25,22 @@ import KaartbeheerDetail from "./pages/KaartbeheerDetail";
 import Taken from "./pages/Taken";
 import SettingsVoorkeuren from "./pages/SettingsVoorkeuren";
 import SettingsKeuken from "./pages/SettingsKeuken";
-import SettingsReserveringen from "./pages/SettingsReserveringen";
 import SettingsInkoop from "./pages/SettingsInkoop";
 import SettingsLeveranciers from "./pages/SettingsLeveranciers";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
+
+// New multi-level settings pages
+import {
+  SettingsReserveringenIndex,
+  SettingsReserveringenPacing,
+  SettingsReserveringenTafels,
+  SettingsReserveringenTafelsLocatie,
+  SettingsReserveringenTafelsAreas,
+  SettingsReserveringenTafelsGroepen,
+  SettingsReserveringenShiftTijden,
+  SettingsReserveringenNotificaties,
+} from "./pages/settings/reserveringen";
 
 const queryClient = new QueryClient();
 
@@ -76,12 +87,21 @@ const App = () => (
                   {/* Service */}
                   <Route path="/taken" element={<Taken />} />
                   
-                  {/* Settings */}
+                  {/* Settings - Legacy */}
                   <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
                   <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
-                  <Route path="/instellingen/reserveringen" element={<SettingsReserveringen />} />
                   <Route path="/instellingen/inkoop" element={<SettingsInkoop />} />
                   <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
+                  
+                  {/* Settings - Reserveringen (Multi-level) */}
+                  <Route path="/instellingen/reserveringen" element={<SettingsReserveringenIndex />} />
+                  <Route path="/instellingen/reserveringen/pacing" element={<SettingsReserveringenPacing />} />
+                  <Route path="/instellingen/reserveringen/tafels" element={<SettingsReserveringenTafels />} />
+                  <Route path="/instellingen/reserveringen/tafels/locatie" element={<SettingsReserveringenTafelsLocatie />} />
+                  <Route path="/instellingen/reserveringen/tafels/areas" element={<SettingsReserveringenTafelsAreas />} />
+                  <Route path="/instellingen/reserveringen/tafels/tafelgroepen" element={<SettingsReserveringenTafelsGroepen />} />
+                  <Route path="/instellingen/reserveringen/shift-tijden" element={<SettingsReserveringenShiftTijden />} />
+                  <Route path="/instellingen/reserveringen/notificaties" element={<SettingsReserveringenNotificaties />} />
                 </Route>
                 
                 {/* Catch-all outside layout */}
