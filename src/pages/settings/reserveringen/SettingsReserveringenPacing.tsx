@@ -113,7 +113,24 @@ export default function SettingsReserveringenPacing() {
       title={
         <span className="flex items-center gap-2">
           Pacing Limits
-          <TitleHelp content="Deze limiet bepaalt hoeveel gasten tegelijk online kunnen reserveren. Hogere waarden verhogen instroom, lagere waarden spreiden drukte." />
+          <TitleHelp 
+            content={
+              <>
+                <p className="font-medium">Wat is pacing?</p>
+                <p className="text-muted-foreground">
+                  Bepaalt hoeveel gasten per 15 minuten online kunnen reserveren.
+                </p>
+                <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                  <li>12 gasten/kwartier = max 48 gasten/uur</li>
+                  <li>Te hoog → keuken overbelast</li>
+                  <li>Te laag → gemiste omzet</li>
+                </ul>
+                <p className="text-xs text-muted-foreground/80 italic">
+                  💡 Tip: Start met 8-10 en verhoog na evaluatie.
+                </p>
+              </>
+            }
+          />
         </span>
       }
       description="Stel in hoeveel gasten je per kwartier wilt ontvangen."
