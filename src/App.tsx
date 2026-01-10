@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 // Pages
 import { AppShell } from "./components/layout/AppShell";
 import Dashboard from "./pages/Dashboard";
+import Assistent from "./pages/Assistent";
 import Reserveringen from "./pages/Reserveringen";
 import MepTaken from "./pages/MepTaken";
 import Halffabricaten from "./pages/Halffabricaten";
@@ -66,6 +67,9 @@ const App = () => (
                   {/* Dashboard */}
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Navigate to="/" replace />} />
+                  
+                  {/* Assistent */}
+                  <Route path="/assistent" element={<Assistent />} />
                   
                   {/* Reserveringen */}
                   <Route path="/reserveringen" element={<Reserveringen />} />
