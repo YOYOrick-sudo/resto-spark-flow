@@ -17,25 +17,22 @@ interface BreadcrumbItemType {
 interface SettingsDetailLayoutProps {
   title: string;
   description?: string;
-  /** Breadcrumb items */
   breadcrumbs: BreadcrumbItemType[];
-  /** Optional action buttons for header */
   actions?: React.ReactNode;
+  aside?: React.ReactNode;
   children: React.ReactNode;
 }
 
-/**
- * Layout for Niveau 4: Detail/list pages with focused content
- */
 export function SettingsDetailLayout({
   title,
   description,
   breadcrumbs,
   actions,
+  aside,
   children,
 }: SettingsDetailLayoutProps) {
   return (
-    <SettingsContainer>
+    <SettingsContainer aside={aside}>
       <div className="space-y-4">
         {/* Breadcrumb - Enterprise pattern: single navigation source */}
         <Breadcrumb>
