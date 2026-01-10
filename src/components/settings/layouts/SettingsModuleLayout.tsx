@@ -54,11 +54,11 @@ export function SettingsModuleLayout({ config }: SettingsModuleLayoutProps) {
               to={section.path}
               className={cn(
                 "group flex items-start gap-4 py-3 px-4 rounded-card border border-border",
-                "bg-card hover:shadow-sm hover:border-primary/30 transition-all duration-200 cursor-pointer"
+                "bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer"
               )}
             >
               {Icon && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/5 flex items-center justify-center">
                   <Icon className="h-4 w-4 text-primary" />
                 </div>
               )}
