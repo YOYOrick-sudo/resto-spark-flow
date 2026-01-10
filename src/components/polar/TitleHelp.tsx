@@ -22,7 +22,7 @@ export function TitleHelp({ content }: TitleHelpProps) {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        side="right"
+        side="bottom"
         align="start"
         className="w-60 p-3 shadow-sm"
       >
