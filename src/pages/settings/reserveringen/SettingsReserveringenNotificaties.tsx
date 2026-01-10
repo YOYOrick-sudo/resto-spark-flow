@@ -12,8 +12,6 @@ export default function SettingsReserveringenNotificaties() {
     <SettingsDetailLayout
       title="Notificaties"
       description="Configureer e-mail en push notificaties voor reserveringen."
-      backTo="/instellingen/reserveringen"
-      backLabel="Reserveringen"
       breadcrumbs={breadcrumbs}
     >
       <div className="max-w-2xl">

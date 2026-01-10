@@ -14,8 +14,6 @@ export default function SettingsReserveringenTafelsGroepen() {
     <SettingsDetailLayout
       title="Tafelcombinaties"
       description="Groepeer tafels die samen geboekt kunnen worden."
-      backTo="/instellingen/reserveringen/tafels"
-      backLabel="Tafelbeheer"
       breadcrumbs={breadcrumbs}
     >
       <div className="max-w-3xl">

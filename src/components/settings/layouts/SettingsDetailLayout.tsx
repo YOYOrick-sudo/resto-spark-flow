@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,7 +8,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-interface BreadcrumbItem {
+interface BreadcrumbItemType {
   label: string;
   path?: string;
 }
@@ -17,12 +16,8 @@ interface BreadcrumbItem {
 interface SettingsDetailLayoutProps {
   title: string;
   description?: string;
-  /** Back navigation target */
-  backTo: string;
-  /** Label for back button (e.g., "Tafelbeheer") */
-  backLabel: string;
   /** Breadcrumb items */
-  breadcrumbs: BreadcrumbItem[];
+  breadcrumbs: BreadcrumbItemType[];
   /** Optional action buttons for header */
   actions?: React.ReactNode;
   children: React.ReactNode;
@@ -34,24 +29,13 @@ interface SettingsDetailLayoutProps {
 export function SettingsDetailLayout({
   title,
   description,
-  backTo,
-  backLabel,
   breadcrumbs,
   actions,
   children,
 }: SettingsDetailLayoutProps) {
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <Link
-        to={backTo}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Terug naar {backLabel}
-      </Link>
-
-      {/* Breadcrumb */}
+      {/* Breadcrumb - Enterprise pattern: single navigation source */}
       <Breadcrumb>
         <BreadcrumbList>
           {breadcrumbs.map((crumb, index) => {

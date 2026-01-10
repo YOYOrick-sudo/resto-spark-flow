@@ -39,8 +39,6 @@ export default function SettingsReserveringenShiftTijden() {
     <SettingsDetailLayout
       title="Shift Tijden"
       description="Definieer wanneer lunch en diner shifts beginnen en eindigen."
-      backTo="/instellingen/reserveringen"
-      backLabel="Reserveringen"
       breadcrumbs={breadcrumbs}
       actions={<NestoButton onClick={handleSave}>Opslaan</NestoButton>}
     >

@@ -34,8 +34,6 @@ export default function SettingsReserveringenPacing() {
     <SettingsDetailLayout
       title="Pacing Limits"
       description="Stel in hoeveel gasten je per kwartier wilt ontvangen."
-      backTo="/instellingen/reserveringen"
-      backLabel="Reserveringen"
       breadcrumbs={breadcrumbs}
       actions={<NestoButton onClick={handleSave}>Opslaan</NestoButton>}
     >
