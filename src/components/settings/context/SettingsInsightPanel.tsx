@@ -11,17 +11,17 @@ export interface HealthCheck {
   message: string;
 }
 
-export interface SettingsContextPanelProps {
+export interface SettingsInsightPanelProps {
   insights?: InsightItem[];
   checks?: HealthCheck[];
   context?: string[];
 }
 
-export function SettingsContextPanel({
+export function SettingsInsightPanel({
   insights,
   checks,
   context,
-}: SettingsContextPanelProps) {
+}: SettingsInsightPanelProps) {
   if (!insights?.length && !checks?.length && !context?.length) {
     return null;
   }
