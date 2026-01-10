@@ -14,8 +14,6 @@ export default function SettingsReserveringenTafelsLocatie() {
     <SettingsDetailLayout
       title="Locatie-instellingen"
       description="Algemene reserveringsinstellingen voor deze locatie."
-      backTo="/instellingen/reserveringen/tafels"
-      backLabel="Tafelbeheer"
       breadcrumbs={breadcrumbs}
     >
       <div className="max-w-2xl">

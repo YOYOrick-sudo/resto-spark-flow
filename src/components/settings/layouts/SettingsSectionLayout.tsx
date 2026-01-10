@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Breadcrumb,
@@ -33,16 +33,7 @@ export function SettingsSectionLayout({
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <Link
-        to={config.basePath}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Terug naar {config.label}
-      </Link>
-
-      {/* Breadcrumb */}
+      {/* Breadcrumb - Enterprise pattern: single navigation source */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

@@ -14,8 +14,6 @@ export default function SettingsReserveringenTafelsAreas() {
     <SettingsDetailLayout
       title="Areas"
       description="Beheer ruimtes en de tafels daarin."
-      backTo="/instellingen/reserveringen/tafels"
-      backLabel="Tafelbeheer"
       breadcrumbs={breadcrumbs}
     >
       <div className="max-w-4xl">

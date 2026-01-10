@@ -48,32 +48,39 @@ Dit document beschrijft het enterprise navigatie patroon voor settings pagina's.
 
 ### Niveau 3 - `/instellingen/{module}/{sectie}`
 - Breadcrumb: `Settings > {Module} > {Sectie}`
-- Back-knop naar Niveau 2
 - Lijst/grid van subsectie cards
 - Cards tonen: icon, titel, beschrijving, telling (bijv. "3 areas"), pijl →
 
 ### Niveau 4 - Detail/Lijst
 - Breadcrumb: volledig pad
-- Back-knop naar vorige niveau
 - Focus op 1 taak: lijst beheren of item bewerken
 - Modals voor create/edit operaties
 
 ---
 
-## Breadcrumb & Back Navigatie
+## Navigatie Regels (Enterprise)
+
+Dit volgt enterprise SaaS standaarden (Stripe, Linear, Salesforce).
+
+### Kernprincipes
+1. **Breadcrumbs zijn de ENIGE hiërarchische navigatie**
+2. Geen losse "Terug"-knoppen - deze zijn verboden
+3. Laatste breadcrumb = huidige pagina (niet klikbaar)
+4. Alle breadcrumb items behalve de laatste zijn klikbaar
+5. Er is exact één navigatiebron bovenaan elke pagina
+
+### Wat NIET is toegestaan
+- "← Terug naar ..." knoppen
+- Dubbele navigatie-elementen
+- Breadcrumbs + back button tegelijk
+- Paginatitels die navigatie herhalen
 
 ### Breadcrumb Regels
 1. Altijd zichtbaar op alle niveaus (behalve Niveau 1)
-2. Eerste item: "Settings" → `/instellingen`
+2. Eerste item: "Settings" → `/instellingen/voorkeuren`
 3. Volgende items uit route config
 4. Laatste item is current page (niet klikbaar)
-5. Truncate met "..." bij diepe nesting (max 4 items zichtbaar)
-
-### Back-knop Regels
-1. Aanwezig op Niveau 3 en 4
-2. Altijd 1 niveau terug
-3. Tekst: "← Terug naar {parent}"
-4. Positie: boven breadcrumb, links uitgelijnd
+5. Truncate met "..." bij diepe nesting (max 4-5 items zichtbaar)
 
 ---
 
@@ -86,12 +93,12 @@ Dit document beschrijft het enterprise navigatie patroon voor settings pagina's.
 
 ### `SettingsSectionLayout`
 - Props: `moduleConfig`, `sectionId`, `children`
-- Rendert: back-knop, breadcrumb, sectie header, subsectie cards of children
+- Rendert: breadcrumb, sectie header, subsectie cards of children
 - Gebruik: Niveau 3 pagina's
 
 ### `SettingsDetailLayout`
-- Props: `title`, `description`, `backTo`, `backLabel`, `actions`, `children`
-- Rendert: back-knop, breadcrumb, header met acties, content area
+- Props: `title`, `description`, `breadcrumbs`, `actions`, `children`
+- Rendert: breadcrumb, header met acties, content area
 - Gebruik: Niveau 4 pagina's (lijsten en details)
 
 ### `SettingsCard`
