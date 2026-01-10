@@ -1002,8 +1002,19 @@ export let mockPacingSettings: PacingSettings = {
   },
 };
 
-export function updatePacingSettings(newSettings: PacingSettings): void {
-  mockPacingSettings = { ...newSettings };
+export function updatePacingSettings(newSettings: Partial<PacingSettings>): void {
+  mockPacingSettings = { 
+    ...mockPacingSettings, 
+    ...newSettings,
+    shiftOverrides: {
+      ...mockPacingSettings.shiftOverrides,
+      ...newSettings.shiftOverrides,
+    },
+    shiftTimes: {
+      ...mockPacingSettings.shiftTimes,
+      ...newSettings.shiftTimes,
+    },
+  };
 }
 
 export function getPacingLimitForTime(time: string): number {
