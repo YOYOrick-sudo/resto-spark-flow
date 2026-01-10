@@ -66,7 +66,7 @@ export function SettingsSectionLayout({
 
         {/* Content: Subsection cards or children */}
         {hasSubsections ? (
-          <div className="space-y-4 max-w-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {section.subsections!.map((subsection) => {
               const Icon = subsection.icon;
               const count = counts?.[subsection.id];
@@ -76,36 +76,33 @@ export function SettingsSectionLayout({
                   key={subsection.id}
                   to={subsection.path}
                   className={cn(
-                    "group flex items-start gap-4 p-5",
-                    "rounded-card border-[1.5px] border-border",
-                    "bg-card shadow-sm",
-                    "hover:shadow-md hover:border-primary/30",
-                    "transition-all duration-200 cursor-pointer"
+                    "group flex items-center gap-4 py-3 px-4 rounded-card border border-border",
+                    "bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer"
                   )}
                 >
                   {Icon && (
-                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-primary" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/5 flex items-center justify-center">
+                      <Icon className="h-4 w-4 text-primary" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                      <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                         {subsection.label}
                       </h3>
                       {count !== undefined && (
-                        <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-control font-medium">
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-control">
                           {count}
                         </span>
                       )}
                     </div>
                     {subsection.description && (
-                      <p className="text-sm text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {subsection.description}
                       </p>
                     )}
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 self-center group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-200" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-200" />
                 </Link>
               );
             })}
