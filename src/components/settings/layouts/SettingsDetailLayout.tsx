@@ -15,7 +15,7 @@ interface BreadcrumbItemType {
 }
 
 interface SettingsDetailLayoutProps {
-  title: string;
+  title: React.ReactNode;
   description?: string;
   breadcrumbs: BreadcrumbItemType[];
   actions?: React.ReactNode;
