@@ -66,7 +66,7 @@ export function SettingsSectionLayout({
 
         {/* Content: Subsection cards or children */}
         {hasSubsections ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-3">
             {section.subsections!.map((subsection) => {
               const Icon = subsection.icon;
               const count = counts?.[subsection.id];
