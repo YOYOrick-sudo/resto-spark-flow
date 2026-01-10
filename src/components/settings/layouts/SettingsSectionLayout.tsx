@@ -64,7 +64,7 @@ export function SettingsSectionLayout({
 
       {/* Content: Subsection cards or children */}
       {hasSubsections ? (
-        <div className="space-y-3 max-w-2xl">
+        <div className="space-y-4 max-w-2xl">
           {section.subsections!.map((subsection) => {
             const Icon = subsection.icon;
             const count = counts?.[subsection.id];
@@ -74,13 +74,13 @@ export function SettingsSectionLayout({
                 key={subsection.id}
                 to={subsection.path}
                 className={cn(
-                  "group flex items-center gap-4 p-4 rounded-card border-[1.5px] border-border",
-                  "bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                  "group flex items-center gap-4 p-5 rounded-card border-[1.5px] border-border",
+                  "bg-card shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer"
                 )}
               >
                 {Icon && (
-                  <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Icon className="h-4 w-4 text-primary" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-primary" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -89,7 +89,7 @@ export function SettingsSectionLayout({
                       {subsection.label}
                     </h3>
                     {count !== undefined && (
-                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                      <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-control font-medium">
                         {count}
                       </span>
                     )}
@@ -100,7 +100,7 @@ export function SettingsSectionLayout({
                     </p>
                   )}
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-200" />
               </Link>
             );
           })}

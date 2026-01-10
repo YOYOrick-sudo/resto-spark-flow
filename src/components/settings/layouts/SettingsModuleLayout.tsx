@@ -53,8 +53,8 @@ export function SettingsModuleLayout({ config }: SettingsModuleLayoutProps) {
               key={section.id}
               to={section.path}
               className={cn(
-                "group flex items-start gap-4 p-4 rounded-card border-[1.5px] border-border",
-                "bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                "group flex items-start gap-4 p-5 rounded-card border-[1.5px] border-border",
+                "bg-card shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer"
               )}
             >
               {Icon && (
@@ -72,7 +72,7 @@ export function SettingsModuleLayout({ config }: SettingsModuleLayoutProps) {
                   </p>
                 )}
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 self-center" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 self-center group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-200" />
             </Link>
           );
         })}
