@@ -91,10 +91,10 @@ export default function SettingsReserveringenTafelsAreas() {
     return result;
   }, [stats]);
 
-  const examples = [
-    "Sleep areas om de volgorde in de reserveringsweergave aan te passen.",
-    "Gearchiveerde tafels blijven gekoppeld aan bestaande reserveringen.",
-  ];
+  const context = [
+    `${stats?.activeAreaCount || 0} actieve areas met ${stats?.totalTables || 0} tafels.`,
+    stats?.archivedTables ? `${stats.archivedTables} gearchiveerde tafels.` : "",
+  ].filter(Boolean);
 
   return (
     <SettingsDetailLayout
@@ -103,7 +103,7 @@ export default function SettingsReserveringenTafelsAreas() {
       breadcrumbs={breadcrumbs}
       aside={
         !isLoading && stats ? (
-          <SettingsContextPanel insights={insights} checks={checks} examples={examples} />
+          <SettingsContextPanel insights={insights} checks={checks} context={context} />
         ) : undefined
       }
     >

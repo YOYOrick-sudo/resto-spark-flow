@@ -97,14 +97,14 @@ export default function SettingsReserveringenShiftTijden() {
     return result;
   }, [gap, lunchDuration, dinnerDuration]);
 
-  const examples = useMemo(() => {
+  const context = useMemo(() => {
     const result: string[] = [];
     if (gap > 0) {
-      result.push(`Met ${gap} uur gap heb je tijd voor cleaning en mise en place.`);
+      result.push(`${gap} uur gap tussen lunch en diner.`);
     }
-    result.push("Pacing limits worden automatisch toegepast per shift tijdvenster.");
+    result.push(`Openingstijd: ${settings.lunchStart} – ${settings.dinnerEnd}.`);
     return result;
-  }, [gap]);
+  }, [gap, settings.lunchStart, settings.dinnerEnd]);
 
   return (
     <SettingsDetailLayout
@@ -112,7 +112,7 @@ export default function SettingsReserveringenShiftTijden() {
       description="Definieer wanneer lunch en diner shifts beginnen en eindigen."
       breadcrumbs={breadcrumbs}
       actions={<NestoButton onClick={handleSave}>Opslaan</NestoButton>}
-      aside={<SettingsContextPanel insights={insights} checks={checks} examples={examples} />}
+      aside={<SettingsContextPanel insights={insights} checks={checks} context={context} />}
     >
       <div className="max-w-2xl space-y-6">
         <FormSection title="Lunch">

@@ -14,15 +14,15 @@ export interface HealthCheck {
 export interface SettingsContextPanelProps {
   insights?: InsightItem[];
   checks?: HealthCheck[];
-  examples?: string[];
+  context?: string[];
 }
 
 export function SettingsContextPanel({
   insights,
   checks,
-  examples,
+  context,
 }: SettingsContextPanelProps) {
-  if (!insights?.length && !checks?.length && !examples?.length) {
+  if (!insights?.length && !checks?.length && !context?.length) {
     return null;
   }
 
@@ -46,7 +46,7 @@ export function SettingsContextPanel({
         </div>
       )}
 
-      {insights?.length && (checks?.length || examples?.length) ? (
+      {insights?.length && (checks?.length || context?.length) ? (
         <div className="border-t border-border/60 my-3" />
       ) : null}
 
@@ -84,22 +84,22 @@ export function SettingsContextPanel({
         </div>
       )}
 
-      {checks?.length && examples?.length ? (
+      {checks?.length && context?.length ? (
         <div className="border-t border-border/60 my-3" />
       ) : null}
 
-      {examples && examples.length > 0 && (
+      {context && context.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Voorbeelden
+            Context
           </h4>
           <ul className="space-y-1.5">
-            {examples.slice(0, 3).map((example, i) => (
+            {context.slice(0, 2).map((item, i) => (
               <li
                 key={i}
                 className="text-xs text-muted-foreground leading-relaxed"
               >
-                {example}
+                {item}
               </li>
             ))}
           </ul>

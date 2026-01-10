@@ -82,20 +82,14 @@ export default function SettingsReserveringenTafelsLocatie() {
     return result;
   }, [settings]);
 
-  const examples = useMemo(() => {
+  const context = useMemo(() => {
     if (!settings) return [];
     const duration = settings.default_duration_minutes;
     const buffer = settings.default_buffer_minutes;
-    const cutoff = settings.booking_cutoff_minutes;
-    const cutoffHours = Math.floor(cutoff / 60);
-    const cutoffMins = cutoff % 60;
-    const cutoffLabel = cutoffHours > 0 
-      ? `${cutoffHours} uur${cutoffMins > 0 ? ` ${cutoffMins} min` : ""}`
-      : `${cutoffMins} min`;
+    const effectiveSlot = duration + buffer;
 
     return [
-      `Met ${duration} min duur + ${buffer} min buffer = ${duration + buffer} min slot per reservering.`,
-      `Gasten kunnen tot ${cutoffLabel} voor aanvang nog boeken.`,
+      `Effectieve slot: ${effectiveSlot} min (${duration} + ${buffer}).`,
     ];
   }, [settings]);
 
@@ -106,7 +100,7 @@ export default function SettingsReserveringenTafelsLocatie() {
       breadcrumbs={breadcrumbs}
       aside={
         !isLoading && settings ? (
-          <SettingsContextPanel insights={insights} checks={checks} examples={examples} />
+          <SettingsContextPanel insights={insights} checks={checks} context={context} />
         ) : undefined
       }
     >

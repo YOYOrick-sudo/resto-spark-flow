@@ -37,67 +37,62 @@ export default function SettingsReserveringenPacing() {
   const maxHourly = Math.max(hourlyDefault, hourlyLunch, hourlyDinner);
   const turnsPerHour = seatCapacity > 0 ? maxHourly / seatCapacity : 0;
 
-  const insights: InsightItem[] = [
-    { label: "Zitcapaciteit", value: String(seatCapacity), unit: "stoelen" },
-    { label: "Max instroom/uur", value: String(maxHourly), unit: "gasten" },
-    { label: "Turns/uur", value: `${turnsPerHour.toFixed(1)}×` },
-    { label: "Lunch instroom/uur", value: String(hourlyLunch), unit: "gasten" },
-    { label: "Diner instroom/uur", value: String(hourlyDinner), unit: "gasten" },
-  ];
-
-  const checks: HealthCheck[] = [];
-
+  // Determine if shifts differ from each other
   const hasShiftOverrides =
     settings.lunchLimit !== settings.defaultLimitPerQuarter ||
     settings.dinnerLimit !== settings.defaultLimitPerQuarter;
 
-  checks.push({
-    status: hasShiftOverrides ? "ok" : "warning",
-    message: hasShiftOverrides
-      ? "Shift-specifieke pacing actief."
-      : "Geen shift-differentiatie. Vaak suboptimaal als lunch en diner andere flow hebben.",
-  });
+  // Operationeel: max 4 regels, geen duplicaten
+  const insights: InsightItem[] = [
+    { label: "Zitcapaciteit", value: String(seatCapacity), unit: "stoelen" },
+    { label: "Max instroom/uur", value: String(maxHourly), unit: "gasten" },
+    { label: "Turns/uur", value: `${turnsPerHour.toFixed(1)}×` },
+  ];
 
+  // Conditionele 4e regel: alleen als shifts verschillen en een shift afwijkt van max
+  if (hourlyLunch !== hourlyDinner) {
+    if (hourlyLunch < maxHourly) {
+      insights.push({ label: "Lunch instroom/uur", value: String(hourlyLunch), unit: "gasten" });
+    } else if (hourlyDinner < maxHourly) {
+      insights.push({ label: "Diner instroom/uur", value: String(hourlyDinner), unit: "gasten" });
+    }
+  }
+
+  // Signalen: hard cap met 2 expliciete variabelen
+  const okCheck: HealthCheck | null = hasShiftOverrides
+    ? { status: "ok", message: "Shift-specifieke pacing actief." }
+    : null;
+
+  let riskCheck: HealthCheck | null = null;
   if (turnsPerHour >= 2.0) {
-    checks.push({
+    riskCheck = {
       status: "error",
-      message: `${turnsPerHour.toFixed(1)}× turns/uur is te agressief voor de meeste horeca flows.`,
-    });
+      message: `Turns/uur (${turnsPerHour.toFixed(1)}×) boven operationele norm.`,
+    };
   } else if (turnsPerHour >= 1.5) {
-    checks.push({
+    riskCheck = {
       status: "warning",
-      message: `${turnsPerHour.toFixed(1)}× turns/uur vraagt strakke keuken en korte verblijftijd.`,
-    });
+      message: `Turns/uur (${turnsPerHour.toFixed(1)}×) vereist strakke doorloop.`,
+    };
   } else if (maxHourly > seatCapacity) {
-    checks.push({
+    riskCheck = {
       status: "warning",
-      message: `Instroom (${maxHourly}/uur) hoger dan zitcapaciteit (${seatCapacity}). Alleen haalbaar bij snelle doorloop.`,
-    });
+      message: `Instroom (${maxHourly}/uur) boven zitcapaciteit (${seatCapacity}).`,
+    };
   }
 
-  const examples: string[] = [];
+  const checks = [okCheck, riskCheck].filter(Boolean) as HealthCheck[];
 
-  if (turnsPerHour < 1.0) {
-    examples.push(
-      "Je pacing is lager dan zitcapaciteit. Dit is rustig en safe, maar mogelijk onderbenutte capaciteit."
-    );
-  } else if (turnsPerHour < 1.5) {
-    examples.push(
-      "Dit vraagt normale doorloop en goede timing. Standaard voor veel restaurants."
-    );
-  } else {
-    examples.push(
-      "Dit vraagt snelle doorloop, strakke keuken en voldoende buffers tussen reserveringen."
+  // Context: max 2 constateringen, geen coaching
+  const context: string[] = [
+    `Diner: ${hourlyDinner} gasten/uur bij ${seatCapacity} stoelen.`,
+  ];
+
+  if (!hasShiftOverrides) {
+    context.push(
+      `Lunch en diner gebruiken dezelfde pacing (${settings.defaultLimitPerQuarter}/kwartier).`
     );
   }
-
-  examples.push(
-    `Met diner pacing op ${settings.dinnerLimit}/kwartier stromen er ${hourlyDinner} gasten/uur binnen bij ${seatCapacity} stoelen.`
-  );
-
-  examples.push(
-    "Walk-ins volgen deze limieten niet. Gebruik pacing vooral om online instroom te sturen."
-  );
 
   const handleSave = () => {
     updatePacingSettings({
@@ -122,7 +117,7 @@ export default function SettingsReserveringenPacing() {
         <SettingsContextPanel
           insights={insights}
           checks={checks}
-          examples={examples}
+          context={context}
         />
       }
     >
