@@ -25,16 +25,15 @@ export function TitleHelp({ title, children }: TitleHelpProps) {
       <PopoverContent
         side="bottom"
         align="start"
-        className="w-80 p-0 shadow-lg border-l-[3px] border-l-primary overflow-hidden"
+        className="w-80 p-0 rounded-dropdown border border-border shadow-md overflow-hidden"
       >
-        {/* Header */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-primary/5 border-b border-border">
-          <Info className="h-4 w-4 text-primary flex-shrink-0" />
-          <span className="font-medium text-sm">{title}</span>
+        {/* Header - clean, geen dubbel icoon */}
+        <div className="px-4 py-2.5 border-b border-border bg-muted/30">
+          <span className="font-medium text-sm text-foreground">{title}</span>
         </div>
         
         {/* Body */}
-        <div className="px-4 py-3 text-sm space-y-3">
+        <div className="px-4 py-3 text-sm space-y-2">
           {children}
         </div>
       </PopoverContent>
