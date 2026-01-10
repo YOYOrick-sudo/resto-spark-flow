@@ -14,6 +14,7 @@ import {
 // Route mapping: sidebar ID → route
 export const ROUTE_MAP: Record<string, string> = {
   'dashboard': '/',
+  'assistent': '/assistent',
   'reservations': '/reserveringen',
   'kitchen-mep': '/mep',
   'kitchen-halffabricaten': '/halffabricaten',
@@ -58,7 +59,7 @@ export const menuItems: MenuItem[] = [
     id: 'assistent',
     label: 'Assistent',
     icon: Bot,
-    disabled: true,
+    path: '/assistent',
   },
   {
     id: 'reservations',
