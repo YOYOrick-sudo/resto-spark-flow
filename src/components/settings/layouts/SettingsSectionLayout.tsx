@@ -32,7 +32,7 @@ export function SettingsSectionLayout({
   const hasSubsections = section.subsections && section.subsections.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Breadcrumb - Enterprise pattern: single navigation source */}
       <Breadcrumb>
         <BreadcrumbList>
@@ -58,7 +58,7 @@ export function SettingsSectionLayout({
       <div>
         <h1 className="text-2xl font-semibold">{section.label}</h1>
         {section.description && (
-          <p className="text-sm text-muted-foreground mt-1">{section.description}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{section.description}</p>
         )}
       </div>
 
@@ -74,13 +74,13 @@ export function SettingsSectionLayout({
                 key={subsection.id}
                 to={subsection.path}
                 className={cn(
-                  "group flex items-center gap-4 p-5 rounded-card border-[1.5px] border-border",
-                  "bg-card shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer"
+                  "group flex items-center gap-4 py-3 px-4 rounded-card border border-border",
+                  "bg-card hover:shadow-sm hover:border-primary/30 transition-all duration-200 cursor-pointer"
                 )}
               >
                 {Icon && (
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Icon className="h-5 w-5 text-primary" />
+                  <div className="flex-shrink-0 w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -100,7 +100,7 @@ export function SettingsSectionLayout({
                     </p>
                   )}
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-200" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 group-hover:translate-x-0.5 group-hover:text-primary transition-all duration-200" />
               </Link>
             );
           })}

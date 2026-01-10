@@ -34,7 +34,7 @@ export function SettingsDetailLayout({
   children,
 }: SettingsDetailLayoutProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Breadcrumb - Enterprise pattern: single navigation source */}
       <Breadcrumb>
         <BreadcrumbList>
@@ -68,7 +68,7 @@ export function SettingsDetailLayout({
         <div>
           <h1 className="text-2xl font-semibold">{title}</h1>
           {description && (
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
           )}
         </div>
         {actions && <div className="flex-shrink-0">{actions}</div>}
