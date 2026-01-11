@@ -55,7 +55,7 @@ export function SortableShiftRow({
       <div
         ref={setNodeRef}
         style={style}
-        className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 py-2 px-1 rounded-lg hover:bg-muted/50 transition-colors group"
+        className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 py-2 px-1 rounded-dropdown hover:bg-accent/50 transition-colors group"
       >
         {/* Drag handle */}
         <TooltipProvider delayDuration={300}>
@@ -115,7 +115,7 @@ export function SortableShiftRow({
                 "px-1 py-0.5 text-[10px] rounded font-medium",
                 shift.days_of_week.includes(day)
                   ? "bg-primary/10 text-primary"
-                  : "bg-muted text-muted-foreground opacity-40"
+                  : "bg-muted/50 text-muted-foreground"
               )}
             >
               {DAY_LABELS[day]}

@@ -1,4 +1,4 @@
-import { Clock, Calendar, Timer, Ticket, Users, CheckCircle } from "lucide-react";
+import { Clock, Calendar, Timer, Ticket, MapPin, Users, CheckCircle } from "lucide-react";
 import { useShiftWizard, MOCK_TICKETS } from "../ShiftWizardContext";
 import { DAY_LABELS } from "@/types/shifts";
 import { cn } from "@/lib/utils";
@@ -45,16 +45,25 @@ export function ReviewStep() {
     interval,
     color,
     selectedTickets,
+    areasByTicket,
     isEditing,
   } = useShiftWizard();
 
   const formatTime = (time: string) => time.slice(0, 5);
-  const formatDays = (days: number[]) => days.map((d) => DAY_LABELS[d]).join(", ");
   const formatInterval = (mins: number) => (mins === 60 ? "1 uur" : `${mins} min`);
 
   const selectedTicketNames = MOCK_TICKETS
     .filter((t) => selectedTickets.includes(t.id))
     .map((t) => t.name);
+
+  // Get areas summary
+  const getAreasSummary = () => {
+    const customized = Object.entries(areasByTicket).filter(([, config]) => !config.allAreas);
+    if (customized.length === 0) {
+      return "Alle gebieden beschikbaar";
+    }
+    return `${customized.length} ticket(s) met aangepaste gebieden`;
+  };
 
   return (
     <div className="space-y-6">
@@ -66,9 +75,9 @@ export function ReviewStep() {
       </div>
 
       {/* Summary card */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="rounded-dropdown border border-border bg-card overflow-hidden">
         {/* Header with shift name and color */}
-        <div className="flex items-center gap-3 p-4 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-3 p-4 border-b border-border bg-secondary/50">
           <div
             className="w-4 h-4 rounded-full shrink-0"
             style={{ backgroundColor: color }}
@@ -100,7 +109,7 @@ export function ReviewStep() {
                       "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
                       isActive
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        : "bg-muted/50 text-muted-foreground"
                     )}
                   >
                     {DAY_LABELS[day]}
@@ -127,6 +136,13 @@ export function ReviewStep() {
             </div>
           </ReviewSection>
 
+          {/* Areas */}
+          <ReviewSection icon={MapPin} title="Gebieden">
+            <span className="text-sm text-muted-foreground">
+              {getAreasSummary()}
+            </span>
+          </ReviewSection>
+
           {/* Capacity */}
           <ReviewSection icon={Users} title="Capaciteit">
             <span className="text-sm text-muted-foreground">
@@ -137,7 +153,7 @@ export function ReviewStep() {
       </div>
 
       {/* Ready indicator */}
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20">
+      <div className="flex items-center gap-2 p-3 rounded-dropdown bg-success/10 border border-success/20">
         <CheckCircle className="w-5 h-5 text-success" />
         <span className="text-sm font-medium text-success">
           Shift klaar om {isEditing ? "op te slaan" : "aan te maken"}

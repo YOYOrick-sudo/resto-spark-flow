@@ -1,12 +1,13 @@
-import { Clock, Ticket, Users, CheckCircle, Check } from "lucide-react";
+import { Clock, Ticket, MapPin, Users, CheckCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useShiftWizard } from "./ShiftWizardContext";
+import { useShiftWizard, TOTAL_STEPS } from "./ShiftWizardContext";
 
 const STEPS = [
   { id: 0, label: "Tijden", icon: Clock },
   { id: 1, label: "Tickets", icon: Ticket },
-  { id: 2, label: "Capaciteit", icon: Users },
-  { id: 3, label: "Overzicht", icon: CheckCircle },
+  { id: 2, label: "Gebieden", icon: MapPin },
+  { id: 3, label: "Capaciteit", icon: Users },
+  { id: 4, label: "Overzicht", icon: CheckCircle },
 ];
 
 export function ShiftWizardSidebar() {
@@ -20,7 +21,7 @@ export function ShiftWizardSidebar() {
   };
 
   return (
-    <div className="w-48 shrink-0 border-r border-border bg-muted/30 p-4">
+    <div className="w-52 shrink-0 border-r border-border bg-secondary p-4">
       <nav className="space-y-1">
         {STEPS.map((step) => {
           const isActive = step.id === currentStep;
@@ -36,25 +37,30 @@ export function ShiftWizardSidebar() {
               onClick={() => handleStepClick(step.id)}
               disabled={!isClickable}
               className={cn(
-                "w-full text-left px-3 py-2.5 rounded-lg transition-all",
+                "w-full text-left px-3 py-2.5 rounded-dropdown transition-all",
                 "flex flex-col gap-0.5",
-                isActive && "bg-card border border-border shadow-sm",
-                !isActive && isClickable && "hover:bg-accent/50 cursor-pointer",
-                !isClickable && "opacity-50 cursor-not-allowed"
+                isActive && "bg-selected-bg border border-selected-border",
+                !isActive && isClickable && "hover:bg-accent/50 cursor-pointer border border-transparent",
+                !isClickable && "opacity-50 cursor-not-allowed border border-transparent"
               )}
             >
               <div className="flex items-center gap-2">
                 {(isCompleted || isPast) && !isActive ? (
-                  <div className="w-5 h-5 rounded-full bg-success flex items-center justify-center">
-                    <Check className="w-3 h-3 text-success-foreground" />
+                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                    <Check className="w-3 h-3 text-primary-foreground" />
                   </div>
                 ) : (
-                  <Icon
-                    className={cn(
-                      "w-4 h-4",
-                      isActive ? "text-primary" : "text-muted-foreground"
-                    )}
-                  />
+                  <div className={cn(
+                    "w-5 h-5 rounded-full flex items-center justify-center",
+                    isActive ? "bg-primary/10" : "bg-muted"
+                  )}>
+                    <Icon
+                      className={cn(
+                        "w-3.5 h-3.5",
+                        isActive ? "text-primary" : "text-muted-foreground"
+                      )}
+                    />
+                  </div>
                 )}
                 <span
                   className={cn(
@@ -65,7 +71,7 @@ export function ShiftWizardSidebar() {
                   {step.label}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground pl-7 truncate">
+              <span className="text-xs text-muted-foreground pl-7 truncate max-w-[140px]">
                 {stepSummaries[step.id]}
               </span>
             </button>

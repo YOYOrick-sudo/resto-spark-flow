@@ -29,8 +29,8 @@ export function TicketsStep() {
               onClick={() => !isDisabled && toggleTicket(ticket.id)}
               disabled={isDisabled}
               className={cn(
-                "w-full flex items-start gap-3 p-4 rounded-lg border transition-all text-left",
-                isSelected && !isDisabled && "border-primary bg-primary/5",
+                "w-full flex items-start gap-3 p-4 rounded-dropdown border transition-all text-left",
+                isSelected && !isDisabled && "border-selected-border bg-selected-bg",
                 !isSelected && !isDisabled && "border-border hover:border-primary/50 hover:bg-accent/30",
                 isDisabled && "border-border/50 bg-muted/30 opacity-60 cursor-not-allowed"
               )}

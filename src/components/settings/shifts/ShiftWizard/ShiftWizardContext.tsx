@@ -46,6 +46,12 @@ export const MOCK_TICKETS: MockTicket[] = [
   },
 ];
 
+// Areas per ticket state
+export interface TicketAreasConfig {
+  allAreas: boolean;
+  selectedAreaIds: string[];
+}
+
 export interface ShiftWizardState {
   // Step 1: Times (real data)
   name: string;
@@ -58,6 +64,9 @@ export interface ShiftWizardState {
   
   // Step 2: Tickets (mock)
   selectedTickets: string[];
+  
+  // Step 3: Areas per ticket (mock linking, real areas)
+  areasByTicket: Record<string, TicketAreasConfig>;
   
   // Wizard navigation
   currentStep: number;
@@ -84,6 +93,11 @@ interface ShiftWizardContextValue extends ShiftWizardState {
   // Setters for Step 2
   toggleTicket: (ticketId: string) => void;
   
+  // Setters for Step 3
+  setAreasForTicket: (ticketId: string, config: TicketAreasConfig) => void;
+  toggleAreaForTicket: (ticketId: string, areaId: string) => void;
+  setAllAreasForTicket: (ticketId: string, allAreas: boolean) => void;
+  
   // Navigation
   goToStep: (step: number) => void;
   nextStep: () => void;
@@ -104,12 +118,21 @@ interface ShiftWizardContextValue extends ShiftWizardState {
 const ShiftWizardContext = createContext<ShiftWizardContextValue | null>(null);
 
 const DEFAULT_COLOR = "#1d979e";
-const TOTAL_STEPS = 4;
+export const TOTAL_STEPS = 5;
 
 interface ShiftWizardProviderProps {
   children: ReactNode;
   locationId: string;
   editingShift: Shift | null;
+}
+
+// Create default areas config for all tickets
+function createDefaultAreasConfig(ticketIds: string[]): Record<string, TicketAreasConfig> {
+  const config: Record<string, TicketAreasConfig> = {};
+  ticketIds.forEach(id => {
+    config[id] = { allAreas: true, selectedAreaIds: [] };
+  });
+  return config;
 }
 
 export function ShiftWizardProvider({ children, locationId, editingShift }: ShiftWizardProviderProps) {
@@ -123,6 +146,7 @@ export function ShiftWizardProvider({ children, locationId, editingShift }: Shif
     interval: (editingShift?.arrival_interval_minutes ?? 15) as ArrivalInterval,
     color: editingShift?.color ?? DEFAULT_COLOR,
     selectedTickets: ["regular"], // Default ticket always enabled
+    areasByTicket: createDefaultAreasConfig(["regular"]),
     currentStep: 0,
     completedSteps: new Set<number>(),
     editingShift,
@@ -171,12 +195,61 @@ export function ShiftWizardProvider({ children, locationId, editingShift }: Shif
 
   // Step 2 setters
   const toggleTicket = useCallback((ticketId: string) => {
+    setState((prev) => {
+      const newSelectedTickets = prev.selectedTickets.includes(ticketId)
+        ? prev.selectedTickets.filter((t) => t !== ticketId)
+        : [...prev.selectedTickets, ticketId];
+      
+      // Initialize areas config for newly selected ticket
+      const newAreasByTicket = { ...prev.areasByTicket };
+      if (!prev.selectedTickets.includes(ticketId) && !newAreasByTicket[ticketId]) {
+        newAreasByTicket[ticketId] = { allAreas: true, selectedAreaIds: [] };
+      }
+      
+      return {
+        ...prev,
+        selectedTickets: newSelectedTickets,
+        areasByTicket: newAreasByTicket,
+      };
+    });
+  }, []);
+
+  // Step 3 setters
+  const setAreasForTicket = useCallback((ticketId: string, config: TicketAreasConfig) => {
     setState((prev) => ({
       ...prev,
-      selectedTickets: prev.selectedTickets.includes(ticketId)
-        ? prev.selectedTickets.filter((t) => t !== ticketId)
-        : [...prev.selectedTickets, ticketId],
+      areasByTicket: { ...prev.areasByTicket, [ticketId]: config },
     }));
+  }, []);
+
+  const toggleAreaForTicket = useCallback((ticketId: string, areaId: string) => {
+    setState((prev) => {
+      const current = prev.areasByTicket[ticketId] ?? { allAreas: true, selectedAreaIds: [] };
+      const newSelectedAreaIds = current.selectedAreaIds.includes(areaId)
+        ? current.selectedAreaIds.filter((id) => id !== areaId)
+        : [...current.selectedAreaIds, areaId];
+      
+      return {
+        ...prev,
+        areasByTicket: {
+          ...prev.areasByTicket,
+          [ticketId]: { ...current, selectedAreaIds: newSelectedAreaIds },
+        },
+      };
+    });
+  }, []);
+
+  const setAllAreasForTicket = useCallback((ticketId: string, allAreas: boolean) => {
+    setState((prev) => {
+      const current = prev.areasByTicket[ticketId] ?? { allAreas: true, selectedAreaIds: [] };
+      return {
+        ...prev,
+        areasByTicket: {
+          ...prev.areasByTicket,
+          [ticketId]: { ...current, allAreas },
+        },
+      };
+    });
   }, []);
 
   // Navigation
@@ -233,6 +306,7 @@ export function ShiftWizardProvider({ children, locationId, editingShift }: Shif
       interval: 15,
       color: DEFAULT_COLOR,
       selectedTickets: ["regular"],
+      areasByTicket: createDefaultAreasConfig(["regular"]),
       currentStep: 0,
       completedSteps: new Set<number>(),
       editingShift: null,
@@ -255,9 +329,11 @@ export function ShiftWizardProvider({ children, locationId, editingShift }: Shif
         );
       case 1: // Tickets step
         return state.selectedTickets.length > 0;
-      case 2: // Capacity step (always true, it's preview)
+      case 2: // Areas step (always true, defaults to all areas)
         return true;
-      case 3: // Review step
+      case 3: // Capacity step (always true, it's preview)
+        return true;
+      case 4: // Review step
         return true;
       default:
         return false;
@@ -267,6 +343,9 @@ export function ShiftWizardProvider({ children, locationId, editingShift }: Shif
   const stepSummaries = useMemo(() => {
     const formatTime = (time: string) => time.slice(0, 5);
     
+    // Count how many tickets have specific area selections
+    const areasConfigured = Object.values(state.areasByTicket).filter(c => !c.allAreas).length;
+    
     return {
       0: state.name
         ? `${formatTime(state.startTime)} – ${formatTime(state.endTime)}`
@@ -274,10 +353,13 @@ export function ShiftWizardProvider({ children, locationId, editingShift }: Shif
       1: state.selectedTickets.length > 0
         ? `${state.selectedTickets.length} geselecteerd`
         : "Geen",
-      2: "Coming soon",
-      3: state.name ? "Klaar" : "Wachten...",
+      2: areasConfigured > 0
+        ? `${areasConfigured} aangepast`
+        : "Alle gebieden",
+      3: "Standaard regels",
+      4: state.name ? "Klaar" : "Wachten...",
     };
-  }, [state.name, state.startTime, state.endTime, state.selectedTickets]);
+  }, [state.name, state.startTime, state.endTime, state.selectedTickets, state.areasByTicket]);
 
   const value: ShiftWizardContextValue = {
     ...state,
@@ -290,6 +372,9 @@ export function ShiftWizardProvider({ children, locationId, editingShift }: Shif
     setInterval,
     setColor,
     toggleTicket,
+    setAreasForTicket,
+    toggleAreaForTicket,
+    setAllAreasForTicket,
     goToStep,
     nextStep,
     prevStep,

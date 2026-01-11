@@ -1,5 +1,5 @@
 import { NestoButton } from "@/components/polar/NestoButton";
-import { useShiftWizard } from "./ShiftWizardContext";
+import { useShiftWizard, TOTAL_STEPS } from "./ShiftWizardContext";
 
 interface ShiftWizardFooterProps {
   onClose: () => void;
@@ -10,7 +10,7 @@ export function ShiftWizardFooter({ onClose, onSubmit }: ShiftWizardFooterProps)
   const { currentStep, canProceed, nextStep, prevStep, isSubmitting, isEditing } = useShiftWizard();
 
   const isFirstStep = currentStep === 0;
-  const isLastStep = currentStep === 3;
+  const isLastStep = currentStep === TOTAL_STEPS - 1;
 
   const handleNext = () => {
     if (isLastStep) {
@@ -30,7 +30,7 @@ export function ShiftWizardFooter({ onClose, onSubmit }: ShiftWizardFooterProps)
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <NestoButton variant="outline" onClick={onClose} disabled={isSubmitting}>
           Opslaan & sluiten
         </NestoButton>
