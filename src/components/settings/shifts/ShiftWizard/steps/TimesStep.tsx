@@ -7,16 +7,16 @@ import { useShiftWizard } from "../ShiftWizardContext";
 import { ALL_WEEKDAYS, DAY_LABELS, ARRIVAL_INTERVALS, type ArrivalInterval } from "@/types/shifts";
 import { cn } from "@/lib/utils";
 
-// Polar-based color palette - harmonious, muted tones
+// Polar-muted standard colors - recognizable but desaturated
 const SHIFT_COLORS = [
-  { value: "#1d979e", label: "Teal" },      // Primary brand
-  { value: "#5B8A72", label: "Sage" },       // Calm green
-  { value: "#9B8A7B", label: "Taupe" },      // Warm neutral
-  { value: "#B67E6A", label: "Terracotta" }, // Earthy orange
-  { value: "#8E7B9B", label: "Lavender" },   // Soft purple
-  { value: "#6B8E9B", label: "Slate" },      // Cool gray-blue
-  { value: "#A69573", label: "Sand" },       // Warm beige
-  { value: "#7B8E6B", label: "Olive" },      // Muted green
+  { value: "#1d979e", label: "Teal" },       // Primary brand
+  { value: "#C45C5C", label: "Rood" },       // Muted red
+  { value: "#CC8544", label: "Oranje" },     // Muted orange
+  { value: "#C4A94D", label: "Geel" },       // Muted gold
+  { value: "#5A9E6B", label: "Groen" },      // Muted green
+  { value: "#5B7FA6", label: "Blauw" },      // Muted blue
+  { value: "#8B6B9E", label: "Paars" },      // Muted purple
+  { value: "#B87A8E", label: "Roze" },       // Muted pink
 ];
 
 // Generate time options (00:00 to 23:30 in 30-min steps)
