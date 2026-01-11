@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calendar, Clock, Info, Loader2 } from "lucide-react";
+import { Calendar, Clock, Info, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoCard } from "@/components/polar";
 import { 
@@ -8,20 +8,43 @@ import {
   getDefaultActiveDay,
   formatTimeDisplay 
 } from "@/lib/shiftPreview";
+import { useAreasWithTables } from "@/hooks/useAreasWithTables";
 import type { Shift } from "@/types/shifts";
 
 interface ShiftsLivePreviewPanelProps {
   shifts: Shift[];
   isLoading: boolean;
+  locationId: string | undefined;
 }
 
 const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 export function ShiftsLivePreviewPanel({ 
   shifts, 
-  isLoading 
+  isLoading,
+  locationId
 }: ShiftsLivePreviewPanelProps) {
   const dayLabels = getIsoWeekdayLabels();
+  
+  // Fetch areas with tables for capacity calculation
+  const { data: areas = [] } = useAreasWithTables(locationId);
+  
+  // Calculate capacity stats
+  const capacityStats = useMemo(() => {
+    let totalTables = 0;
+    let totalMinCapacity = 0;
+    let totalMaxCapacity = 0;
+    
+    areas.forEach(area => {
+      area.tables.forEach(table => {
+        totalTables++;
+        totalMinCapacity += table.min_capacity;
+        totalMaxCapacity += table.max_capacity;
+      });
+    });
+    
+    return { totalTables, totalMinCapacity, totalMaxCapacity };
+  }, [areas]);
   
   // Local state for selected shift and day
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
@@ -190,11 +213,23 @@ export function ShiftsLivePreviewPanel({
         </div>
       )}
 
+      {/* Capacity indicator - subtle */}
+      {capacityStats.totalTables > 0 && (
+        <div className="flex items-center gap-3 text-xs text-muted-foreground py-2 px-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            <span>{capacityStats.totalMinCapacity}–{capacityStats.totalMaxCapacity} gasten</span>
+          </div>
+          <span className="text-border">|</span>
+          <span>{capacityStats.totalTables} tafels</span>
+        </div>
+      )}
+
       {/* Footer Info */}
       <div className="pt-2 border-t border-border/60">
         <p className="text-xs text-muted-foreground flex items-start gap-1.5">
           <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          <span>Preview toont aankomsttijden, niet de capaciteit.</span>
+          <span>Preview toont aankomsttijden op basis van shifts.</span>
         </p>
       </div>
     </NestoCard>
