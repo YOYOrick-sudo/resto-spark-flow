@@ -1,10 +1,23 @@
 import { useMemo } from "react";
+import { Check } from "lucide-react";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoSelect } from "@/components/polar/NestoSelect";
 import { InfoAlert } from "@/components/polar/InfoAlert";
 import { useShiftWizard } from "../ShiftWizardContext";
 import { ALL_WEEKDAYS, DAY_LABELS, ARRIVAL_INTERVALS, type ArrivalInterval } from "@/types/shifts";
 import { cn } from "@/lib/utils";
+
+// Polar-based color palette - harmonious, muted tones
+const SHIFT_COLORS = [
+  { value: "#1d979e", label: "Teal" },      // Primary brand
+  { value: "#5B8A72", label: "Sage" },       // Calm green
+  { value: "#9B8A7B", label: "Taupe" },      // Warm neutral
+  { value: "#B67E6A", label: "Terracotta" }, // Earthy orange
+  { value: "#8E7B9B", label: "Lavender" },   // Soft purple
+  { value: "#6B8E9B", label: "Slate" },      // Cool gray-blue
+  { value: "#A69573", label: "Sand" },       // Warm beige
+  { value: "#7B8E6B", label: "Olive" },      // Muted green
+];
 
 // Generate time options (00:00 to 23:30 in 30-min steps)
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
@@ -45,6 +58,8 @@ export function TimesStep() {
     toggleDay,
     interval,
     setInterval,
+    color,
+    setColor,
     error,
   } = useShiftWizard();
 
@@ -151,6 +166,35 @@ export function TimesStep() {
         </div>
         <p className="text-xs text-muted-foreground">
           Dit bepaalt met welke tussenpozen gasten kunnen aankomen (bijv. 12:00, 12:15, 12:30...).
+        </p>
+      </div>
+
+      <div className="border-t border-border" />
+
+      {/* Color section */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-muted-foreground">Kleur</h4>
+        <div className="flex gap-2">
+          {SHIFT_COLORS.map((preset) => (
+            <button
+              key={preset.value}
+              type="button"
+              onClick={() => setColor(preset.value)}
+              className={cn(
+                "w-9 h-9 rounded-full transition-all flex items-center justify-center",
+                color === preset.value && "ring-2 ring-offset-2 ring-primary"
+              )}
+              style={{ backgroundColor: preset.value }}
+              title={preset.label}
+            >
+              {color === preset.value && (
+                <Check className="w-4 h-4 text-white" />
+              )}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Deze kleur wordt gebruikt in het reserveringenoverzicht.
         </p>
       </div>
 
