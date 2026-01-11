@@ -56,6 +56,7 @@ export default function SettingsReserveringenShifts() {
         <ShiftsLivePreviewPanel
           shifts={activeShifts}
           isLoading={isLoading}
+          locationId={locationId}
         />
       }
     >
