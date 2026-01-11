@@ -1,17 +1,19 @@
 import { useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X } from "lucide-react";
-import { ShiftWizardProvider, useShiftWizard } from "./ShiftWizardContext";
+import { ShiftWizardProvider, useShiftWizard, TOTAL_STEPS } from "./ShiftWizardContext";
 import { ShiftWizardSidebar } from "./ShiftWizardSidebar";
 import { ShiftWizardFooter } from "./ShiftWizardFooter";
 import { TimesStep } from "./steps/TimesStep";
 import { TicketsStep } from "./steps/TicketsStep";
+import { AreasStep } from "./steps/AreasStep";
 import { CapacityStep } from "./steps/CapacityStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { useCreateShift, useUpdateShift, getNextShiftSortOrder, useAllShifts } from "@/hooks/useShifts";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
 import { checkShiftOverlap, formatOverlapError } from "@/lib/shiftValidation";
 import type { Shift } from "@/types/shifts";
+import { NestoButton } from "@/components/polar/NestoButton";
 
 interface ShiftWizardProps {
   open: boolean;
@@ -197,8 +199,10 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
       case 1:
         return <TicketsStep />;
       case 2:
-        return <CapacityStep />;
+        return <AreasStep />;
       case 3:
+        return <CapacityStep />;
+      case 4:
         return <ReviewStep />;
       default:
         return <TimesStep />;
@@ -206,20 +210,21 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[85vh]">
+    <div className="flex flex-col h-full max-h-[85vh] min-h-[520px]">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
         <h2 className="text-lg font-semibold">
           {editingShift ? "Shift bewerken" : "Nieuwe shift"}
         </h2>
-        <button
-          type="button"
+        <NestoButton
+          variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="rounded-sm opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-8 w-8"
         >
           <X className="h-5 w-5" />
           <span className="sr-only">Sluiten</span>
-        </button>
+        </NestoButton>
       </div>
 
       {/* Content */}
