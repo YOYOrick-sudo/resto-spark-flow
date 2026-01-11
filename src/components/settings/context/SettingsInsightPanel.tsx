@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { NestoCard } from "@/components/polar";
 
 export interface InsightItem {
   label: string;
@@ -27,7 +28,7 @@ export function SettingsInsightPanel({
   }
 
   return (
-    <div className="rounded-lg bg-muted/20 p-4 space-y-3">
+    <NestoCard className="p-4 space-y-3">
       {insights && insights.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -105,6 +106,6 @@ export function SettingsInsightPanel({
           </ul>
         </div>
       )}
-    </div>
+    </NestoCard>
   );
 }
