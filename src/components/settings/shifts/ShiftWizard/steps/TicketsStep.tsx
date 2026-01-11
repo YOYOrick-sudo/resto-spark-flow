@@ -8,13 +8,8 @@ export function TicketsStep() {
   const { selectedTickets, toggleTicket } = useShiftWizard();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Wat kunnen gasten reserveren?</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Selecteer welke tickets beschikbaar zijn in deze shift. Tickets bepalen wat gasten kunnen boeken.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <h3 className="text-base font-semibold">Wat kunnen gasten reserveren?</h3>
 
       {/* Tickets list */}
       <div className="space-y-2">
@@ -29,7 +24,7 @@ export function TicketsStep() {
               onClick={() => !isDisabled && toggleTicket(ticket.id)}
               disabled={isDisabled}
               className={cn(
-                "w-full flex items-start gap-3 p-4 rounded-dropdown border transition-all text-left",
+                "w-full flex items-start gap-3 p-3 rounded-dropdown border transition-all text-left",
                 isSelected && !isDisabled && "border-selected-border bg-selected-bg",
                 !isSelected && !isDisabled && "border-border hover:border-primary/50 hover:bg-accent/30",
                 isDisabled && "border-border/50 bg-muted/30 opacity-60 cursor-not-allowed"
@@ -38,21 +33,21 @@ export function TicketsStep() {
               {/* Checkbox */}
               <div
                 className={cn(
-                  "w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5",
+                  "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 mt-0.5",
                   isSelected && !isDisabled
                     ? "border-primary bg-primary"
                     : "border-muted-foreground/40"
                 )}
               >
                 {isSelected && !isDisabled && (
-                  <Check className="w-3 h-3 text-primary-foreground" />
+                  <Check className="w-2.5 h-2.5 text-primary-foreground" />
                 )}
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className={cn("font-medium", isDisabled && "text-muted-foreground")}>
+                  <span className={cn("text-sm font-medium", isDisabled && "text-muted-foreground")}>
                     {ticket.name}
                   </span>
                   {ticket.isDefault && (
@@ -66,14 +61,14 @@ export function TicketsStep() {
                     </NestoBadge>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {ticket.description}
                 </p>
               </div>
 
               {/* Icon */}
               <Ticket className={cn(
-                "w-5 h-5 shrink-0",
+                "w-4 h-4 shrink-0",
                 isSelected && !isDisabled ? "text-primary" : "text-muted-foreground/50"
               )} />
             </button>
@@ -81,17 +76,10 @@ export function TicketsStep() {
         })}
       </div>
 
-      {/* Info alert */}
-      <InfoAlert
-        variant="info"
-        title="Tickets configureren is binnenkort beschikbaar"
-        description="De standaard reservering is automatisch actief voor alle shifts."
-      />
-
-      {/* Selection summary */}
-      <div className="text-sm text-muted-foreground">
-        {selectedTickets.length} {selectedTickets.length === 1 ? "ticket" : "tickets"} geselecteerd
-      </div>
+      {/* Info + summary combined */}
+      <p className="text-xs text-muted-foreground">
+        {selectedTickets.length} {selectedTickets.length === 1 ? "ticket" : "tickets"} geselecteerd · Tickets configureren is binnenkort beschikbaar
+      </p>
     </div>
   );
 }

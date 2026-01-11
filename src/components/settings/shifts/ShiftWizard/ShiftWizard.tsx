@@ -233,7 +233,7 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
         <ShiftWizardSidebar />
 
         {/* Step content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-5">
           {renderStep()}
         </div>
       </div>

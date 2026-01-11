@@ -14,39 +14,28 @@ interface CapacityCardProps {
 
 function CapacityCard({ icon: Icon, title, description, linkText, linkTo, comingSoon }: CapacityCardProps) {
   return (
-    <div className="flex items-start gap-4 p-4 rounded-dropdown border border-border bg-card">
-      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <Icon className="w-5 h-5 text-primary" />
+    <div className="flex items-start gap-3 p-3 rounded-dropdown border border-border bg-card">
+      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-primary" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium">{title}</span>
+          <span className="text-sm font-medium">{title}</span>
           {comingSoon && (
             <NestoBadge variant="soon" className="text-xs">
               Coming soon
             </NestoBadge>
           )}
         </div>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {description}
-        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         {linkText && linkTo && !comingSoon && (
           <a
             href={linkTo}
-            className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
           >
             {linkText}
             <ExternalLink className="w-3 h-3" />
           </a>
-        )}
-        {comingSoon && (
-          <button
-            type="button"
-            disabled
-            className="text-sm text-muted-foreground mt-2 cursor-not-allowed"
-          >
-            Configureren
-          </button>
         )}
       </div>
     </div>
@@ -55,16 +44,11 @@ function CapacityCard({ icon: Icon, title, description, linkText, linkTo, coming
 
 export function CapacityStep() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Capaciteit & regels</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Geavanceerde capaciteitsregels en beperkingen voor deze shift. Deze instellingen kunnen later worden geconfigureerd.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <h3 className="text-base font-semibold">Capaciteit & regels</h3>
 
       {/* Capacity cards */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <CapacityCard
           icon={Clock}
           title="Reserveringsduur"
@@ -75,26 +59,23 @@ export function CapacityStep() {
         <CapacityCard
           icon={Users}
           title="Pacing limieten"
-          description="Maximum aantal gasten per tijdslot"
-          linkText="Naar pacing instellingen"
+          description="Maximum gasten per tijdslot"
+          linkText="Naar pacing"
           linkTo="/instellingen/reserveringen/pacing"
         />
 
         <CapacityCard
           icon={Grid3X3}
           title="Gebieden"
-          description="Alle gebieden zijn standaard beschikbaar"
-          linkText="Naar tafelinstellingen"
+          description="Alle gebieden beschikbaar"
+          linkText="Naar tafels"
           linkTo="/instellingen/reserveringen/tafels"
         />
       </div>
 
-      {/* Info */}
-      <InfoAlert
-        variant="info"
-        title="Geavanceerde configuratie"
-        description="Geavanceerde regels zoals reserveringsduur per ticket en shift-specifieke capaciteit kunnen later worden geconfigureerd in de shift detail pagina."
-      />
+      <p className="text-xs text-muted-foreground">
+        Geavanceerde regels kunnen later worden geconfigureerd.
+      </p>
     </div>
   );
 }

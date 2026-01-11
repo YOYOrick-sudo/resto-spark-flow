@@ -66,66 +66,51 @@ export function TimesStep() {
   const suggestedShortName = useMemo(() => generateShortName(name), [name]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Wanneer is deze shift actief?</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Definieer de basisinstellingen voor deze shift. Deze bepalen wanneer gasten kunnen reserveren.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <h3 className="text-base font-semibold">Wanneer is deze shift actief?</h3>
 
-      {/* Name section */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-medium text-muted-foreground">Naam en identificatie</h4>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2">
-            <NestoInput
-              label="Naam"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="bijv. Lunch, Diner, Brunch"
-              maxLength={50}
-            />
-          </div>
+      {/* Name + Times row */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="col-span-2">
           <NestoInput
-            label="Korte naam"
-            value={shortName}
-            onChange={(e) => setShortName(e.target.value.toUpperCase())}
-            placeholder={suggestedShortName || "LUN"}
-            maxLength={4}
+            label="Naam"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="bijv. Lunch, Diner"
+            maxLength={50}
           />
         </div>
+        <NestoInput
+          label="Korte naam"
+          value={shortName}
+          onChange={(e) => setShortName(e.target.value.toUpperCase())}
+          placeholder={suggestedShortName || "LUN"}
+          maxLength={4}
+        />
       </div>
 
-      <div className="border-t border-border" />
-
-      {/* Time section */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-medium text-muted-foreground">Tijden</h4>
-        <div className="grid grid-cols-2 gap-4">
-          <NestoSelect
-            label="Starttijd"
-            value={startTime}
-            onValueChange={setStartTime}
-            options={TIME_OPTIONS}
-          />
-          <NestoSelect
-            label="Eindtijd"
-            value={endTime}
-            onValueChange={setEndTime}
-            options={TIME_OPTIONS}
-          />
-        </div>
-        {startTime >= endTime && (
-          <p className="text-sm text-destructive">Eindtijd moet na starttijd liggen.</p>
-        )}
+      {/* Times row */}
+      <div className="grid grid-cols-2 gap-3">
+        <NestoSelect
+          label="Starttijd"
+          value={startTime}
+          onValueChange={setStartTime}
+          options={TIME_OPTIONS}
+        />
+        <NestoSelect
+          label="Eindtijd"
+          value={endTime}
+          onValueChange={setEndTime}
+          options={TIME_OPTIONS}
+        />
       </div>
+      {startTime >= endTime && (
+        <p className="text-sm text-destructive -mt-2">Eindtijd moet na starttijd liggen.</p>
+      )}
 
-      <div className="border-t border-border" />
-
-      {/* Days section */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium text-muted-foreground">Actieve dagen</h4>
+      {/* Days row */}
+      <div className="space-y-2">
+        <span className="text-sm font-medium text-muted-foreground">Actieve dagen</span>
         <div className="flex gap-1.5">
           {ALL_WEEKDAYS.map((day) => {
             const isSelected = daysOfWeek.includes(day);
@@ -135,7 +120,7 @@ export function TimesStep() {
                 type="button"
                 onClick={() => toggleDay(day)}
                 className={cn(
-                  "w-10 h-10 rounded-button text-sm font-medium transition-colors",
+                  "w-9 h-9 rounded-button text-sm font-medium transition-colors",
                   isSelected
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -151,57 +136,42 @@ export function TimesStep() {
         )}
       </div>
 
-      <div className="border-t border-border" />
-
-      {/* Interval section */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-medium text-muted-foreground">Aankomst interval</h4>
-        <div className="max-w-xs">
+      {/* Interval + Color row */}
+      <div className="grid grid-cols-2 gap-3 items-end">
+        <div className="max-w-[180px]">
           <NestoSelect
-            label="Interval"
+            label="Aankomst interval"
             value={interval.toString()}
             onValueChange={(v) => setInterval(parseInt(v) as ArrivalInterval)}
             options={INTERVAL_OPTIONS}
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Dit bepaalt met welke tussenpozen gasten kunnen aankomen (bijv. 12:00, 12:15, 12:30...).
-        </p>
-      </div>
-
-      <div className="border-t border-border" />
-
-      {/* Color section */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium text-muted-foreground">Kleur</h4>
-        <div className="flex gap-2">
-          {SHIFT_COLORS.map((preset) => (
-            <button
-              key={preset.value}
-              type="button"
-              onClick={() => setColor(preset.value)}
-              className={cn(
-                "w-9 h-9 rounded-full transition-all flex items-center justify-center",
-                color === preset.value && "ring-2 ring-offset-2 ring-primary"
-              )}
-              style={{ backgroundColor: preset.value }}
-              title={preset.label}
-            >
-              {color === preset.value && (
-                <Check className="w-4 h-4 text-white" />
-              )}
-            </button>
-          ))}
+        <div className="space-y-2">
+          <span className="text-sm font-medium text-muted-foreground">Kleur</span>
+          <div className="flex gap-1.5">
+            {SHIFT_COLORS.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                onClick={() => setColor(preset.value)}
+                className={cn(
+                  "w-7 h-7 rounded-full transition-all flex items-center justify-center",
+                  color === preset.value && "ring-2 ring-offset-1 ring-primary"
+                )}
+                style={{ backgroundColor: preset.value }}
+                title={preset.label}
+              >
+                {color === preset.value && (
+                  <Check className="w-3 h-3 text-white" />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Deze kleur wordt gebruikt in het reserveringenoverzicht.
-        </p>
       </div>
 
       {/* Error display */}
-      {error && (
-        <InfoAlert variant="error" title={error} />
-      )}
+      {error && <InfoAlert variant="error" title={error} />}
     </div>
   );
 }

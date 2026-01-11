@@ -38,62 +38,49 @@ export function AreasStep() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Welke gebieden zijn beschikbaar?</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Selecteer de gebieden waar gasten kunnen reserveren per ticket. Standaard zijn alle gebieden beschikbaar.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <h3 className="text-base font-semibold">Welke gebieden zijn beschikbaar?</h3>
 
       {/* Per ticket configuration */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {activeTickets.map(ticket => {
           const config = areasByTicket[ticket.id] ?? { allAreas: true, selectedAreaIds: [] };
           const isAllAreas = config.allAreas;
 
           return (
-            <NestoCard key={ticket.id} className="p-5">
+            <div key={ticket.id} className="rounded-dropdown border border-border bg-card p-4">
               {/* Ticket header */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{ticket.name}</span>
+                  <span className="text-sm font-medium">{ticket.name}</span>
                   {ticket.isDefault && (
                     <NestoBadge variant="outline" className="text-xs">
                       Standaard
                     </NestoBadge>
                   )}
                 </div>
-                <NestoBadge variant="success" className="text-xs">
-                  Actief
-                </NestoBadge>
               </div>
 
               {/* Radio options */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {/* All areas option */}
                 <button
                   type="button"
                   onClick={() => setAllAreasForTicket(ticket.id, true)}
                   className={cn(
-                    "w-full flex items-center gap-3 p-3 rounded-dropdown border transition-all text-left",
+                    "w-full flex items-center gap-2.5 p-2.5 rounded-button border transition-all text-left",
                     isAllAreas 
                       ? "border-selected-border bg-selected-bg" 
-                      : "border-border hover:border-primary/50 hover:bg-accent/30"
+                      : "border-border hover:border-primary/50"
                   )}
                 >
                   <div className={cn(
-                    "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                    "w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0",
                     isAllAreas ? "border-primary bg-primary" : "border-muted-foreground/40"
                   )}>
-                    {isAllAreas && <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />}
+                    {isAllAreas && <div className="w-1 h-1 rounded-full bg-primary-foreground" />}
                   </div>
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">Alle gebieden</span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      ({areas.length} gebieden)
-                    </span>
-                  </div>
+                  <span className="text-sm">Alle gebieden ({areas.length})</span>
                 </button>
 
                 {/* Specific areas option */}
@@ -101,28 +88,28 @@ export function AreasStep() {
                   type="button"
                   onClick={() => setAllAreasForTicket(ticket.id, false)}
                   className={cn(
-                    "w-full flex items-center gap-3 p-3 rounded-dropdown border transition-all text-left",
+                    "w-full flex items-center gap-2.5 p-2.5 rounded-button border transition-all text-left",
                     !isAllAreas 
                       ? "border-selected-border bg-selected-bg" 
-                      : "border-border hover:border-primary/50 hover:bg-accent/30"
+                      : "border-border hover:border-primary/50"
                   )}
                 >
                   <div className={cn(
-                    "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                    "w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0",
                     !isAllAreas ? "border-primary bg-primary" : "border-muted-foreground/40"
                   )}>
-                    {!isAllAreas && <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />}
+                    {!isAllAreas && <div className="w-1 h-1 rounded-full bg-primary-foreground" />}
                   </div>
-                  <span className="text-sm font-medium">Specifieke gebieden selecteren</span>
+                  <span className="text-sm">Specifieke gebieden</span>
                 </button>
               </div>
 
               {/* Area checkboxes (when specific selected) */}
               {!isAllAreas && (
-                <div className="mt-4 ml-7 space-y-2">
+                <div className="mt-3 ml-6 space-y-1.5">
                   {areas.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">
-                      Geen gebieden gevonden. Voeg eerst gebieden toe in de tafelinstellingen.
+                    <p className="text-xs text-muted-foreground py-1">
+                      Geen gebieden gevonden.
                     </p>
                   ) : (
                     areas.map(area => {
@@ -135,54 +122,41 @@ export function AreasStep() {
                           type="button"
                           onClick={() => toggleAreaForTicket(ticket.id, area.id)}
                           className={cn(
-                            "w-full flex items-center gap-3 p-3 rounded-button border transition-all text-left",
+                            "w-full flex items-center gap-2.5 p-2 rounded-button border transition-all text-left",
                             isSelected 
                               ? "border-primary bg-primary/5" 
                               : "border-border hover:border-primary/50"
                           )}
                         >
-                          {/* Checkbox */}
                           <div className={cn(
-                            "w-5 h-5 rounded border-2 flex items-center justify-center shrink-0",
+                            "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0",
                             isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
                           )}>
-                            {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                            {isSelected && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                           </div>
-
-                          {/* Area info */}
-                          <div className="flex-1 flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                            <span className="font-medium text-sm">{area.name}</span>
-                          </div>
-
-                          {/* Capacity info */}
+                          <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm flex-1">{area.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {tableCount} tafels · {seatCount} stoelen
+                            {tableCount}t · {seatCount}s
                           </span>
                         </button>
                       );
                     })
                   )}
 
-                  {/* Validation warning */}
                   {!isAllAreas && config.selectedAreaIds.length === 0 && areas.length > 0 && (
-                    <p className="text-sm text-warning mt-2">
-                      Selecteer minimaal één gebied.
-                    </p>
+                    <p className="text-xs text-warning">Selecteer minimaal één gebied.</p>
                   )}
                 </div>
               )}
-            </NestoCard>
+            </div>
           );
         })}
       </div>
 
-      {/* Info alert */}
-      <InfoAlert
-        variant="info"
-        title="Gebieden per ticket configureren"
-        description="Hiermee bepaal je in welke gebieden gasten kunnen reserveren met een specifiek ticket. Standaard zijn alle gebieden beschikbaar."
-      />
+      <p className="text-xs text-muted-foreground">
+        Standaard zijn alle gebieden beschikbaar voor elk ticket.
+      </p>
     </div>
   );
 }
