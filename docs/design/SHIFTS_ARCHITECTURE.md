@@ -1,0 +1,138 @@
+# Shifts Architecture
+
+## Overview
+
+Het shifts-systeem definieert wanneer een locatie open is voor reserveringen. 
+Dit document beschrijft de architectuur-beslissingen en invariants.
+
+---
+
+## Database Schema
+
+### Tables
+
+| Table | Purpose |
+|-------|---------|
+| `shifts` | Shift definities (naam, tijden, dagen) |
+| `shift_exceptions` | Datum-specifieke overrides |
+
+### Core RPC
+
+`get_effective_shift_schedule(location_id, date)` retourneert de effectieve shifts voor een specifieke datum, inclusief exception handling.
+
+---
+
+## Security Model
+
+### SECURITY DEFINER Functions
+
+**KRITIEK:** Alle `SECURITY DEFINER` functies MOETEN een expliciete access check bevatten:
+
+```sql
+IF NOT public.user_has_location_access(auth.uid(), _location_id) THEN
+  RAISE EXCEPTION 'Access denied to location %', _location_id;
+END IF;
+```
+
+Dit is vereist omdat `SECURITY DEFINER` RLS bypassed.
+
+### RLS Policies
+
+| Action | Check |
+|--------|-------|
+| SELECT | `user_has_location_access(auth.uid(), location_id)` |
+| INSERT/UPDATE/DELETE | `user_has_role_in_location(auth.uid(), location_id, ARRAY['owner','manager'])` |
+
+---
+
+## Conflict Resolution
+
+### Exception Prioriteit
+
+**Regel: Location-wide closed wint ALTIJD.**
+
+Prioriteit (hoog naar laag):
+1. Location-wide `closed` (shift_id IS NULL) → hele dag dicht
+2. Shift-specific `closed` → alleen die shift dicht
+3. Shift-specific `modified` → override tijden
+4. Shift-specific `special` → speciale markering, normale tijden
+5. Geen exception → standaard shift config
+
+### Implementatie
+
+De RPC `get_effective_shift_schedule` checkt eerst op location-wide closed:
+
+```sql
+IF EXISTS (
+  SELECT 1 FROM shift_exceptions
+  WHERE location_id = _location_id
+    AND shift_id IS NULL
+    AND exception_date = _date
+    AND exception_type = 'closed'
+) THEN
+  RETURN;  -- Empty set = closed
+END IF;
+```
+
+---
+
+## Invariants
+
+### DB-Enforced (via constraints)
+
+| Invariant | Enforcement |
+|-----------|-------------|
+| `start_time < end_time` | CHECK constraint op shifts |
+| `short_name` max 4 chars | CHECK constraint |
+| Unieke naam per actieve locatie | Partial unique index |
+| Modified exception vereist tijden | CHECK constraint op shift_exceptions |
+| `arrival_interval_minutes` ∈ {15,30,60} | CHECK constraint |
+
+### NOT DB-Enforced (UI/Engine verantwoordelijk)
+
+| Invariant | Waar afgedwongen |
+|-----------|------------------|
+| Shifts overlappen niet op zelfde dag | UI (ShiftModal), Engine (Fase 4.5) |
+| Geen reserveringen buiten shift tijden | Availability Engine (Fase 4.5) |
+| Pacing binnen shift capacity | Pacing Engine (Fase 4.6) |
+
+---
+
+## Future Migration Path
+
+### days_of_week → shift_rules
+
+Huidige implementatie:
+```sql
+days_of_week INTEGER[] DEFAULT '{1,2,3,4,5,6,7}'  -- ISO weekdays
+```
+
+Toekomstige uitbreiding (indien nodig):
+```sql
+CREATE TABLE shift_rules (
+  id UUID PRIMARY KEY,
+  shift_id UUID REFERENCES shifts(id),
+  rule_type TEXT,  -- 'weekday', 'date_range', 'nth_weekday', etc.
+  rule_config JSONB,
+  priority INTEGER
+);
+```
+
+Dit maakt complexe regels mogelijk zoals:
+- "Elke 2e zondag van de maand"
+- "Alleen tijdens zomerseizoen"
+- "Uitgezonderd schoolvakanties"
+
+**Migratie-strategie:** 
+1. Nieuwe `shift_rules` tabel toevoegen
+2. `days_of_week` migreren naar rules
+3. RPC aanpassen om beide te ondersteunen
+4. Na transitie: `days_of_week` deprecaten
+
+---
+
+## Related Documentation
+
+- [Database Schema](../../docs/DATABASE.md)
+- [Architecture Overview](../../docs/ARCHITECTURE.md)
+- [Settings Patterns](./SETTINGS_PAGE_PATTERNS.md)
