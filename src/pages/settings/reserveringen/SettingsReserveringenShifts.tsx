@@ -4,6 +4,7 @@ import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDeta
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
+import { TitleHelp, TitleHelpTip } from "@/components/polar/TitleHelp";
 import { ShiftsTable, ShiftWizard, ShiftsLivePreviewPanel } from "@/components/settings/shifts";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useAllShifts } from "@/hooks/useShifts";
@@ -25,14 +26,33 @@ export default function SettingsReserveringenShifts() {
 
   return (
     <SettingsDetailLayout
-      title="Shifts"
+      title={
+        <span className="flex items-center gap-2">
+          Shifts
+          <TitleHelp title="Wat zijn shifts?">
+            <p className="text-muted-foreground">
+              Shifts bepalen wanneer gasten kunnen reserveren en welke regels dan gelden.
+            </p>
+            <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
+              <li>Elke shift heeft eigen tijden, dagen en intervals</li>
+              <li>Volgorde bepaalt prioriteit bij overlapping</li>
+              <li>Live preview rechts toont wat gasten zien</li>
+            </ul>
+            <TitleHelpTip>
+              Tip: Start met 2 shifts (lunch + diner) en verfijn later met uitzonderingen.
+            </TitleHelpTip>
+          </TitleHelp>
+        </span>
+      }
       description="Beheer de shifts voor je restaurant. Shifts bepalen wanneer gasten kunnen reserveren."
       breadcrumbs={breadcrumbs}
       actions={
-        <NestoButton onClick={() => setWizardOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Nieuwe Shift
-        </NestoButton>
+        activeShifts.length > 0 ? (
+          <NestoButton onClick={() => setWizardOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Nieuwe Shift
+          </NestoButton>
+        ) : null
       }
       aside={
         <ShiftsLivePreviewPanel
