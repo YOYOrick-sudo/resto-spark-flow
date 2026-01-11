@@ -21,7 +21,7 @@ export function ShiftWizardSidebar() {
   };
 
   return (
-    <div className="w-52 shrink-0 border-r border-border bg-secondary p-4">
+    <div className="w-48 shrink-0 border-r border-border bg-secondary p-3">
       <nav className="space-y-1">
         {STEPS.map((step) => {
           const isActive = step.id === currentStep;
