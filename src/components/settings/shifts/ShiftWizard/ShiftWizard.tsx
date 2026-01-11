@@ -210,7 +210,7 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[85vh] min-h-[520px]">
+    <div className="flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
         <h2 className="text-lg font-semibold">
@@ -228,12 +228,12 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1">
         {/* Sidebar */}
         <ShiftWizardSidebar />
 
         {/* Step content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 p-6">
           {renderStep()}
         </div>
       </div>
