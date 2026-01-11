@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Calendar, Clock, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NestoButton } from "@/components/polar/NestoButton";
 import { 
   getIsoWeekdayLabels, 
   generateTimeSlots, 
@@ -13,15 +12,13 @@ import type { Shift } from "@/types/shifts";
 interface ShiftsLivePreviewPanelProps {
   shifts: Shift[];
   isLoading: boolean;
-  onOpenWizard: () => void;
 }
 
 const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 export function ShiftsLivePreviewPanel({ 
   shifts, 
-  isLoading, 
-  onOpenWizard 
+  isLoading 
 }: ShiftsLivePreviewPanelProps) {
   const dayLabels = getIsoWeekdayLabels();
   
@@ -94,9 +91,6 @@ export function ShiftsLivePreviewPanel({
               Maak een shift aan om de gastweergave te zien.
             </p>
           </div>
-          <NestoButton size="sm" onClick={onOpenWizard}>
-            Nieuwe Shift
-          </NestoButton>
         </div>
       </div>
     );
