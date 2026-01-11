@@ -7,7 +7,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { SettingsContainer } from "./SettingsContainer";
 
 interface BreadcrumbItemType {
   label: string;
@@ -32,50 +31,55 @@ export function SettingsDetailLayout({
   children,
 }: SettingsDetailLayoutProps) {
   return (
-    <SettingsContainer aside={aside}>
-      <div className="space-y-4">
-        {/* Breadcrumb - Enterprise pattern: single navigation source */}
-        <Breadcrumb>
-          <BreadcrumbList>
-            {breadcrumbs.map((crumb, index) => {
-              const isLast = index === breadcrumbs.length - 1;
-              return (
-                <BreadcrumbItem key={crumb.label}>
-                  {!isLast && crumb.path ? (
-                    <>
-                      <BreadcrumbLink asChild>
-                        <Link to={crumb.path}>{crumb.label}</Link>
-                      </BreadcrumbLink>
-                      <BreadcrumbSeparator />
-                    </>
-                  ) : !isLast ? (
-                    <>
-                      <span className="text-muted-foreground">{crumb.label}</span>
-                      <BreadcrumbSeparator />
-                    </>
-                  ) : (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                  )}
-                </BreadcrumbItem>
-              );
-            })}
-          </BreadcrumbList>
-        </Breadcrumb>
+    <div className="w-full max-w-5xl mx-auto space-y-4">
+      {/* Breadcrumb - Full width */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          {breadcrumbs.map((crumb, index) => {
+            const isLast = index === breadcrumbs.length - 1;
+            return (
+              <BreadcrumbItem key={crumb.label}>
+                {!isLast && crumb.path ? (
+                  <>
+                    <BreadcrumbLink asChild>
+                      <Link to={crumb.path}>{crumb.label}</Link>
+                    </BreadcrumbLink>
+                    <BreadcrumbSeparator />
+                  </>
+                ) : !isLast ? (
+                  <>
+                    <span className="text-muted-foreground">{crumb.label}</span>
+                    <BreadcrumbSeparator />
+                  </>
+                ) : (
+                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                )}
+              </BreadcrumbItem>
+            );
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
 
-        {/* Header with optional actions */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">{title}</h1>
-            {description && (
-              <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-            )}
-          </div>
-          {actions && <div className="flex-shrink-0">{actions}</div>}
+      {/* Header - Full width */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">{title}</h1>
+          {description && (
+            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+          )}
         </div>
-
-        {/* Content */}
-        <div>{children}</div>
+        {actions && <div className="flex-shrink-0">{actions}</div>}
       </div>
-    </SettingsContainer>
+
+      {/* Content + Aside Grid */}
+      {aside ? (
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 xl:items-start">
+          <div>{children}</div>
+          <aside>{aside}</aside>
+        </div>
+      ) : (
+        <div>{children}</div>
+      )}
+    </div>
   );
 }
