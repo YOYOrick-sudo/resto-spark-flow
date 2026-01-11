@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calendar, Clock, Info } from "lucide-react";
+import { Calendar, Clock, Info, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NestoCard } from "@/components/polar";
 import { 
   getIsoWeekdayLabels, 
   generateTimeSlots, 
@@ -63,27 +64,25 @@ export function ShiftsLivePreviewPanel({
   // Loading state
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-muted/20 p-4 space-y-4">
+      <NestoCard className="p-4 space-y-4">
         <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Live Preview
         </h4>
-        <div className="animate-pulse space-y-3">
-          <div className="h-8 bg-muted rounded w-2/3" />
-          <div className="h-8 bg-muted rounded w-full" />
-          <div className="h-20 bg-muted rounded" />
+        <div className="py-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-muted-foreground" />
         </div>
-      </div>
+      </NestoCard>
     );
   }
 
   // Empty state - no active shifts
   if (shifts.length === 0) {
     return (
-      <div className="rounded-lg bg-muted/20 p-4 space-y-4">
+      <NestoCard className="p-4 space-y-4">
         <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Live Preview
         </h4>
-      <div className="py-6 text-center space-y-3">
+        <div className="py-6 text-center space-y-3">
           <div className="flex items-center justify-center rounded-full bg-muted h-12 w-12 mx-auto">
             <Calendar className="h-6 w-6 text-muted-foreground" />
           </div>
@@ -94,12 +93,12 @@ export function ShiftsLivePreviewPanel({
             </p>
           </div>
         </div>
-      </div>
+      </NestoCard>
     );
   }
 
   return (
-    <div className="rounded-lg bg-muted/20 p-4 space-y-4">
+    <NestoCard className="p-4 space-y-4">
       {/* Header */}
       <div>
         <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -198,6 +197,6 @@ export function ShiftsLivePreviewPanel({
           <span>Preview toont aankomsttijden, niet de capaciteit.</span>
         </p>
       </div>
-    </div>
+    </NestoCard>
   );
 }
