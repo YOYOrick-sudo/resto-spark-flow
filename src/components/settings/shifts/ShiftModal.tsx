@@ -3,13 +3,12 @@ import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoSelect } from "@/components/polar/NestoSelect";
-import { FormSection } from "@/components/polar/FormSection";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { useCreateShift, useUpdateShift, getNextShiftSortOrder, useAllShifts } from "@/hooks/useShifts";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
 import { checkShiftOverlap, formatOverlapError } from "@/lib/shiftValidation";
 import { ALL_WEEKDAYS, DAY_LABELS, ARRIVAL_INTERVALS, type Shift, type ArrivalInterval } from "@/types/shifts";
+import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 interface ShiftModalProps {
   open: boolean;
@@ -32,6 +31,32 @@ const INTERVAL_OPTIONS = ARRIVAL_INTERVALS.map((v) => ({
 
 const DEFAULT_COLOR = "#1d979e";
 
+// Preset colors for shift selection
+const PRESET_COLORS = [
+  { value: "#1d979e", label: "Teal" },
+  { value: "#3B82F6", label: "Blauw" },
+  { value: "#8B5CF6", label: "Paars" },
+  { value: "#EC4899", label: "Roze" },
+  { value: "#F97316", label: "Oranje" },
+  { value: "#EAB308", label: "Geel" },
+  { value: "#22C55E", label: "Groen" },
+];
+
+// Generate short name suggestion from full name
+function generateShortName(name: string): string {
+  const trimmed = name.trim().toUpperCase();
+  if (!trimmed) return "";
+  if (trimmed.length <= 4) return trimmed;
+  
+  const words = trimmed.split(/\s+/);
+  if (words.length > 1) {
+    // Multiple words: take first letter of each (max 4)
+    return words.map(w => w[0]).join("").slice(0, 4);
+  }
+  // Single word: take first 3 characters
+  return trimmed.slice(0, 3);
+}
+
 export function ShiftModal({ open, onOpenChange, locationId, editingShift }: ShiftModalProps) {
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
@@ -48,6 +73,9 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
 
   const isEditing = !!editingShift;
   const isPending = isCreating || isUpdating;
+
+  // Auto-suggest short name based on name input
+  const suggestedShortName = useMemo(() => generateShortName(name), [name]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -87,7 +115,8 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
 
     // Validate required fields
     const trimmedName = name.trim();
-    const trimmedShortName = shortName.trim();
+    // Use manual input or fall back to suggestion
+    const finalShortName = shortName.trim() || suggestedShortName;
 
     if (!trimmedName) {
       setError("Naam is verplicht.");
@@ -97,11 +126,11 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
       setError("Naam mag maximaal 50 tekens zijn.");
       return;
     }
-    if (!trimmedShortName) {
+    if (!finalShortName) {
       setError("Korte naam is verplicht.");
       return;
     }
-    if (trimmedShortName.length > 4) {
+    if (finalShortName.length > 4) {
       setError("Korte naam mag maximaal 4 tekens zijn.");
       return;
     }
@@ -136,7 +165,7 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
           {
             id: editingShift.id,
             name: trimmedName,
-            short_name: trimmedShortName,
+            short_name: finalShortName,
             start_time: startTime,
             end_time: endTime,
             days_of_week: selectedDays,
@@ -157,7 +186,7 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
           {
             location_id: locationId,
             name: trimmedName,
-            short_name: trimmedShortName,
+            short_name: finalShortName,
             start_time: startTime,
             end_time: endTime,
             days_of_week: selectedDays,
@@ -186,77 +215,117 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
       onOpenChange={onOpenChange}
       title={isEditing ? "Shift bewerken" : "Nieuwe shift"}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Name fields */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Section: Naam en identificatie */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-muted-foreground">Naam en identificatie</h4>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <NestoInput
+                label="Naam"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="bijv. Lunch"
+                maxLength={50}
+              />
+            </div>
             <NestoInput
-              label="Naam"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="bijv. Lunch"
-              maxLength={50}
+              label="Korte naam"
+              value={shortName}
+              onChange={(e) => setShortName(e.target.value.toUpperCase())}
+              placeholder={suggestedShortName || "LUN"}
+              maxLength={4}
             />
           </div>
-          <NestoInput
-            label="Korte naam"
-            value={shortName}
-            onChange={(e) => setShortName(e.target.value)}
-            placeholder="LUN"
-            maxLength={4}
-          />
         </div>
 
-        {/* Time fields */}
-        <div className="grid grid-cols-2 gap-4">
-          <NestoSelect
-            label="Starttijd"
-            value={startTime}
-            onValueChange={setStartTime}
-            options={TIME_OPTIONS}
-          />
-          <NestoSelect
-            label="Eindtijd"
-            value={endTime}
-            onValueChange={setEndTime}
-            options={TIME_OPTIONS}
-          />
+        <div className="border-t border-border" />
+
+        {/* Section: Tijden */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-muted-foreground">Tijden</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <NestoSelect
+              label="Starttijd"
+              value={startTime}
+              onValueChange={setStartTime}
+              options={TIME_OPTIONS}
+            />
+            <NestoSelect
+              label="Eindtijd"
+              value={endTime}
+              onValueChange={setEndTime}
+              options={TIME_OPTIONS}
+            />
+          </div>
         </div>
 
-        {/* Days of week */}
-        <FormSection title="Actieve dagen">
-          <div className="flex flex-wrap gap-3">
-            {ALL_WEEKDAYS.map((day) => (
-              <label
-                key={day}
-                className="flex items-center gap-2 cursor-pointer select-none"
-              >
-                <Checkbox
-                  checked={selectedDays.includes(day)}
-                  onCheckedChange={() => toggleDay(day)}
-                />
-                <span className="text-sm">{DAY_LABELS[day]}</span>
+        <div className="border-t border-border" />
+
+        {/* Section: Actieve dagen - Toggle buttons */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-muted-foreground">Actieve dagen</h4>
+          <div className="flex gap-1.5">
+            {ALL_WEEKDAYS.map((day) => {
+              const isSelected = selectedDays.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  className={cn(
+                    "w-10 h-10 rounded-button text-sm font-medium transition-colors",
+                    isSelected
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  {DAY_LABELS[day]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="border-t border-border" />
+
+        {/* Section: Instellingen */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-muted-foreground">Instellingen</h4>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <NestoSelect
+              label="Aankomst interval"
+              value={interval.toString()}
+              onValueChange={(v) => setInterval(parseInt(v) as ArrivalInterval)}
+              options={INTERVAL_OPTIONS}
+            />
+            
+            {/* Preset color picker */}
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+                Kleur
               </label>
-            ))}
-          </div>
-        </FormSection>
-
-        {/* Settings row */}
-        <div className="grid grid-cols-2 gap-4">
-          <NestoSelect
-            label="Aankomst interval"
-            value={interval.toString()}
-            onValueChange={(v) => setInterval(parseInt(v) as ArrivalInterval)}
-            options={INTERVAL_OPTIONS}
-          />
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">Kleur</Label>
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="w-full h-9 rounded-md border border-input cursor-pointer"
-            />
+              <div className="flex gap-2 pt-1">
+                {PRESET_COLORS.map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => setColor(preset.value)}
+                    className={cn(
+                      "w-8 h-8 rounded-full transition-all flex items-center justify-center",
+                      color === preset.value && "ring-2 ring-offset-2 ring-primary"
+                    )}
+                    style={{ backgroundColor: preset.value }}
+                    title={preset.label}
+                  >
+                    {color === preset.value && (
+                      <Check className="w-4 h-4 text-white" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -268,7 +337,7 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex justify-end gap-2 pt-2">
           <NestoButton
             type="button"
             variant="outline"
