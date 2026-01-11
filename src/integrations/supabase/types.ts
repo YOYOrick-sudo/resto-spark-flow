@@ -939,6 +939,10 @@ export type Database = {
         Args: { _area_ids: string[]; _location_id: string }
         Returns: Json
       }
+      reorder_shifts: {
+        Args: { _location_id: string; _shift_ids: string[] }
+        Returns: Json
+      }
       reorder_tables: {
         Args: { _area_id: string; _table_ids: string[] }
         Returns: Json

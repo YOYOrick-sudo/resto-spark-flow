@@ -286,3 +286,66 @@ export function useRestoreShift() {
     },
   });
 }
+
+// ============================================
+// Reorder Hook
+// ============================================
+
+/**
+ * Reorder shifts via RPC
+ */
+export function useReorderShifts() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      locationId,
+      shiftIds,
+    }: {
+      locationId: string;
+      shiftIds: string[];
+    }) => {
+      const { data, error } = await supabase.rpc('reorder_shifts', {
+        _location_id: locationId,
+        _shift_ids: shiftIds,
+      });
+      if (error) throw error;
+      return data as { success: boolean; changed: boolean; count?: number };
+    },
+    onSuccess: (_, { locationId }) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.shifts(locationId),
+        exact: false,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Fout bij herschikken',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+// ============================================
+// Sort Order Helper
+// ============================================
+
+/**
+ * Get the next sort_order value for a new shift in a location.
+ * Returns max(active sort_order) + 10, or 10 if no shifts exist.
+ */
+export async function getNextShiftSortOrder(locationId: string): Promise<number> {
+  const { data } = await supabase
+    .from('shifts')
+    .select('sort_order')
+    .eq('location_id', locationId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .single();
+
+  return (data?.sort_order ?? 0) + 10;
+}
