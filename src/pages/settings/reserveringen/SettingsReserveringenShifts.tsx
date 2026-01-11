@@ -5,20 +5,19 @@ import { SettingsInsightPanel } from "@/components/settings/context/SettingsInsi
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { ShiftsTable } from "@/components/settings/shifts";
+import { ShiftsTable, ShiftWizard } from "@/components/settings/shifts";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useAllShifts } from "@/hooks/useShifts";
 import { useUserContext } from "@/contexts/UserContext";
 import { timeToMinutes } from "@/lib/shiftValidation";
 import { ALL_WEEKDAYS, DAY_LABELS } from "@/types/shifts";
 import { useState } from "react";
-import { ShiftModal } from "@/components/settings/shifts/ShiftModal";
 
 export default function SettingsReserveringenShifts() {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
   const { data: allShifts = [] } = useAllShifts(locationId);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   // Calculate insights
   const insights = useMemo(() => {
@@ -85,7 +84,7 @@ export default function SettingsReserveringenShifts() {
       description="Beheer de shifts voor je restaurant. Shifts bepalen wanneer gasten kunnen reserveren."
       breadcrumbs={breadcrumbs}
       actions={
-        <NestoButton onClick={() => setModalOpen(true)}>
+        <NestoButton onClick={() => setWizardOpen(true)}>
           <Plus className="h-4 w-4 mr-1" />
           Nieuwe Shift
         </NestoButton>
@@ -122,11 +121,11 @@ export default function SettingsReserveringenShifts() {
         </div>
       </NestoCard>
 
-      {/* Modal for creating new shift */}
+      {/* Wizard for creating new shift */}
       {locationId && (
-        <ShiftModal
-          open={modalOpen}
-          onOpenChange={setModalOpen}
+        <ShiftWizard
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
           locationId={locationId}
           editingShift={null}
         />
