@@ -590,6 +590,116 @@ export type Database = {
           },
         ]
       }
+      shift_exceptions: {
+        Row: {
+          created_at: string
+          exception_date: string
+          exception_type: Database["public"]["Enums"]["shift_exception_type"]
+          id: string
+          label: string | null
+          location_id: string
+          notes: string | null
+          override_end_time: string | null
+          override_start_time: string | null
+          shift_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          exception_date: string
+          exception_type: Database["public"]["Enums"]["shift_exception_type"]
+          id?: string
+          label?: string | null
+          location_id: string
+          notes?: string | null
+          override_end_time?: string | null
+          override_start_time?: string | null
+          shift_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          exception_date?: string
+          exception_type?: Database["public"]["Enums"]["shift_exception_type"]
+          id?: string
+          label?: string | null
+          location_id?: string
+          notes?: string | null
+          override_end_time?: string | null
+          override_start_time?: string | null
+          shift_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_exceptions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_exceptions_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          arrival_interval_minutes: number
+          color: string
+          created_at: string
+          days_of_week: number[]
+          end_time: string
+          id: string
+          is_active: boolean
+          location_id: string
+          name: string
+          short_name: string
+          sort_order: number
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          arrival_interval_minutes?: number
+          color?: string
+          created_at?: string
+          days_of_week?: number[]
+          end_time: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          name: string
+          short_name: string
+          sort_order?: number
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          arrival_interval_minutes?: number
+          color?: string
+          created_at?: string
+          days_of_week?: number[]
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          name?: string
+          short_name?: string
+          sort_order?: number
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_group_members: {
         Row: {
           id: string
@@ -779,6 +889,20 @@ export type Database = {
     }
     Functions: {
       archive_area: { Args: { _area_id: string }; Returns: Json }
+      get_effective_shift_schedule: {
+        Args: { _date: string; _location_id: string }
+        Returns: {
+          arrival_interval_minutes: number
+          color: string
+          end_time: string
+          exception_label: string
+          shift_id: string
+          shift_name: string
+          short_name: string
+          start_time: string
+          status: string
+        }[]
+      }
       get_employee_id: {
         Args: { _location_id: string; _user_id: string }
         Returns: string
@@ -864,6 +988,7 @@ export type Database = {
         | "marketing"
         | "settings"
       platform_role: "platform_admin" | "support"
+      shift_exception_type: "closed" | "modified" | "special"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1003,6 +1128,7 @@ export const Constants = {
         "settings",
       ],
       platform_role: ["platform_admin", "support"],
+      shift_exception_type: ["closed", "modified", "special"],
     },
   },
 } as const
