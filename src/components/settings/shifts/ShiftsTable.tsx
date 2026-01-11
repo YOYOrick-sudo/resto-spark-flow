@@ -20,7 +20,7 @@ import {
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { SortableShiftRow } from "./SortableShiftRow";
-import { ShiftModal } from "./ShiftModal";
+import { ShiftWizard } from "./ShiftWizard";
 import { useAllShifts, useArchiveShift, useRestoreShift, useReorderShifts } from "@/hooks/useShifts";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronRight, GripVertical, Loader2, Archive } from "lucide-react";
@@ -37,8 +37,8 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
   const { mutate: restoreShift, isPending: isRestoring } = useRestoreShift();
   const { mutate: reorderShifts } = useReorderShifts();
 
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
+  // Wizard state
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
 
@@ -100,7 +100,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
   // Handlers
   const handleEdit = (shift: Shift) => {
     setEditingShift(shift);
-    setModalOpen(true);
+    setWizardOpen(true);
   };
 
   const handleArchive = (shiftId: string) => {
@@ -113,7 +113,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
 
   const handleOpenCreate = () => {
     setEditingShift(null);
-    setModalOpen(true);
+    setWizardOpen(true);
   };
 
   // Format time for overlay
@@ -260,10 +260,10 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
         </Collapsible>
       )}
 
-      {/* Modal */}
-      <ShiftModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
+      {/* Wizard */}
+      <ShiftWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
         locationId={locationId}
         editingShift={editingShift}
       />
