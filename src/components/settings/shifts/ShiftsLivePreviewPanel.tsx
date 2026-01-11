@@ -83,8 +83,10 @@ export function ShiftsLivePreviewPanel({
         <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Live Preview
         </h4>
-        <div className="py-6 text-center space-y-3">
-          <Calendar className="h-10 w-10 mx-auto text-muted-foreground/50" />
+      <div className="py-6 text-center space-y-3">
+          <div className="flex items-center justify-center rounded-full bg-muted h-12 w-12 mx-auto">
+            <Calendar className="h-6 w-6 text-muted-foreground" />
+          </div>
           <div className="space-y-1">
             <p className="text-sm font-medium">Geen shifts geconfigureerd</p>
             <p className="text-xs text-muted-foreground">
