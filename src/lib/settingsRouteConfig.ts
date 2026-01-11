@@ -88,10 +88,17 @@ export const reserveringenConfig: SettingsModuleConfig = {
       ],
     },
     {
+      id: "shifts",
+      label: "Shifts",
+      path: "/instellingen/reserveringen/shifts",
+      description: "Beheer shifts en tijdvensters",
+      icon: Clock,
+    },
+    {
       id: "shift-tijden",
       label: "Shift Tijden",
       path: "/instellingen/reserveringen/shift-tijden",
-      description: "Lunch en diner tijden",
+      description: "Lunch en diner tijden (legacy)",
       icon: Clock,
     },
     {

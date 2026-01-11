@@ -6,3 +6,4 @@ export { default as SettingsReserveringenTafelsAreas } from "./SettingsReserveri
 export { default as SettingsReserveringenTafelsGroepen } from "./SettingsReserveringenTafelsGroepen";
 export { default as SettingsReserveringenShiftTijden } from "./SettingsReserveringenShiftTijden";
 export { default as SettingsReserveringenNotificaties } from "./SettingsReserveringenNotificaties";
+export { default as SettingsReserveringenShifts } from "./SettingsReserveringenShifts";
