@@ -1,5 +1,5 @@
 # NESTO PROJECT ROADMAP
-Laatst bijgewerkt: 9 januari 2026
+Laatst bijgewerkt: 11 januari 2026
 
 ## PROJECT OVERZICHT
 Nesto is een SaaS platform voor horeca management met modules voor reserveringen, keuken, kaartbeheer, en meer. Multi-tenant architectuur waarbij elke organization meerdere locations kan hebben, met per-location billing en module entitlements.
@@ -13,6 +13,7 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
 - ✅ Fase 2: Navigatie & Layout  
 - ✅ Fase 3: UI Patterns
 - ✅ Fase 4.1: SaaS Foundation
+- ✅ Fase 7.4.1: Nesto Assistant - Signals UI
 
 ### IN UITVOERING
 - 🔄 Fase 4.2: Areas, Tables, TableGroups
@@ -744,10 +745,320 @@ Status: Nog te starten
 - [ ] Integraties
 - [ ] Voorkeuren
 
-### 7.4 Assistent (AI)
-- [ ] AI chat interface
-- [ ] Recept suggesties
-- [ ] Vraag & antwoord
+### 7.4 Nesto Assistant (Signaal-gedreven Beslissingsondersteuner)
+Status: Fase 1 Compleet
+
+> Zie `docs/ASSISTANT_VISION.md` voor complete productvisie.
+
+**Kernprincipe:** De Assistant is een signaal-gedreven beslissingsondersteuner, 
+geen chatbot. Spreekt alleen bij impact + handelingsruimte + juiste timing.
+
+---
+
+#### Architectuur Lagen
+
+| Laag | Type | Bron | Logica |
+|------|------|------|--------|
+| 1 | Signals | Live data | Rule-based, deterministisch |
+| 2 | Insights | Gecombineerde signals | Weighted rules + thresholds |
+| 3 | Guidance | Insights + patronen | LLM met strikte constraints |
+
+---
+
+#### Assistant Modules
+
+| Module | Voorbeeld Signals | Voorbeeld Insights |
+|--------|-------------------|-------------------|
+| Reserveringen | Annuleringen, no-shows, wachtlijst | Overboeking risico, lege shift |
+| Keuken | MEP-taken open, voorraad laag | Keuken niet ready voor piek |
+| Revenue | Omzet vandaag, gemiddelde besteding | Revenue under target |
+| Configuratie | Tafels niet in area, lege tafelgroepen | Incomplete setup |
+
+---
+
+#### 7.4.1 Fase 1: Signals Only ✅ COMPLEET
+Status: Afgerond (10-11 januari 2026)
+
+**Wat is gedaan:**
+
+**Types & Model (`src/types/assistant.ts`):**
+- [x] `AssistantItem` interface met unified model:
+  - `id: string` - Unieke identifier
+  - `kind: 'signal' | 'insight'` - Type item
+  - `module: 'reserveringen' | 'keuken' | 'revenue' | 'configuratie'`
+  - `severity: 'error' | 'warning' | 'info' | 'ok'`
+  - `title: string` - Korte beschrijving
+  - `message?: string` - Optionele details
+  - `created_at: string` - ISO timestamp
+  - `action_path?: string` - Navigatie bij actie
+  - `source_ids?: string[]` - Voor insights: onderliggende signals
+  - `actionable?: boolean` - Expliciete actie-markering
+  - `priority?: number` - Sorteer prioriteit (laagste eerst)
+
+**Datetime Helper (`src/lib/datetime.ts`):**
+- [x] `formatDateTimeCompact(iso: string): string`
+  - Vandaag: "14:30"
+  - Gisteren: "Gisteren 14:30"
+  - Ouder: "8 jan 14:30"
+
+**Mock Data (`src/data/assistantMockData.ts`):**
+- [x] 10 voorbeelditems met variatie in:
+  - Severity (error, warning, info, ok)
+  - Module (alle 4)
+  - Kind (signal, insight)
+  - Actionable (true/false voor filter testing)
+  - Timestamps (variërend van 30 min tot 2 dagen geleden)
+
+**UI Components (`src/components/assistant/`):**
+- [x] `AssistantItemCard.tsx`:
+  - Severity iconen: AlertCircle (error), AlertTriangle (warning), Info (info), CheckCircle (ok)
+  - Icon achtergrond cirkels: `bg-destructive/10`, `bg-warning/10`, etc.
+  - Module badges met kleur per module:
+    - Reserveringen: `primary` (teal)
+    - Keuken: `warning` (oranje)
+    - Revenue: `success` (groen)
+    - Configuratie: `default` (grijs)
+  - Insight badge met Lightbulb icoon
+  - Clickable bij aanwezigheid `action_path`
+  - Timestamp via `formatDateTimeCompact()`
+- [x] `AssistantFilters.tsx`:
+  - Module filter pills (outline style, `bg-primary/10` active)
+  - "Alleen actie" toggle (filtert op `actionable === true`)
+  - Result counter: "X van Y signalen"
+  - Container met `bg-secondary/50`
+- [x] `index.ts`: Barrel exports
+
+**Assistent Pagina (`src/pages/Assistent.tsx`):**
+- [x] State management: `activeModule`, `onlyActionable`
+- [x] Sorting logica (in `useMemo`):
+  1. `priority` (laagste eerst, undefined naar einde)
+  2. `severity` (error=0, warning=1, info=2, ok=3)
+  3. `created_at` (newest first, DESC)
+- [x] Sectie headers:
+  - "Aandacht vereist" (actionable items)
+  - "Ter info" (informatieve items)
+- [x] EmptyState: "Alles onder controle"
+
+**Navigatie:**
+- [x] Route `/assistent` in `App.tsx`
+- [x] Menu enabled in `src/lib/navigation.ts`
+
+**Design Patterns:**
+- Enterprise calm density (p-4 padding)
+- Bestaande color tokens (geen custom border kleuren)
+- Consistent met rest van Nesto design system
+
+---
+
+#### 7.4.2 Fase 2: Live Signals ⏳ NOG TE STARTEN
+Status: Wacht op module data
+
+**Doel:** Rule-based signals genereren uit live data
+
+**Database (optioneel):**
+- [ ] `assistant_signals` tabel voor persistentie
+- [ ] Of: realtime berekening via hooks (geen persistentie)
+
+**Hooks per module:**
+- [ ] `useReservationSignals()`:
+  - Annuleringen vandaag (count > 2)
+  - No-show ratio deze week (> 10%)
+  - Wachtlijst entries (count > 0)
+  - Pacing vs capaciteit check
+- [ ] `useKitchenSignals()`:
+  - Open MEP-taken (count > 0 AND shift < 2h)
+  - Voorraad onder minimum
+  - Verlopen halffabricaten
+- [ ] `useConfigSignals()`:
+  - Tafels niet in area (unassigned > 0)
+  - Lege tafelgroepen (members = 0)
+  - Shift zonder pacing-limiet
+- [ ] `useRevenueSignals()`:
+  - Omzet vandaag
+  - Gemiddelde besteding
+  - Tafeltijd afwijking (> 15%)
+
+**Signal Rules Engine:**
+- [ ] Thresholds configureerbaar per locatie
+- [ ] Cooldown van 4 uur per signal type
+- [ ] Prioriteit berekening op basis van impact
+
+**Acceptance Criteria:**
+- [ ] Signals worden realtime berekend uit live data
+- [ ] Geen "noise" - alleen significante signalen
+- [ ] Cooldown voorkomt herhaalde dezelfde signals
+- [ ] Mock data vervangen door live hooks
+
+---
+
+#### 7.4.3 Fase 3: Insights ⏳ NOG TE STARTEN
+Status: Wacht op Fase 2
+
+**Doel:** Betekenis en impact door signals te combineren
+
+**Insight Derivation Logic:**
+```
+Signal: pacing > capacity
+Signal: shift = "diner"
+Signal: time_until_shift < 2h
+→ Insight: "Overboeking risico voor diner" (severity: error)
+```
+
+**Insight Types:**
+- [ ] Overboeking risico (pacing + capaciteit + tijd)
+- [ ] Keuken niet ready voor piek (MEP-taken + shift timing)
+- [ ] Lege shift warning (bookings < 30% capacity)
+- [ ] High no-show impact (no-shows × gemiddelde besteding)
+- [ ] Incomplete setup (blocking configuration issues)
+
+**UI Updates:**
+- [ ] Insights prominenter dan signals (visuele hiërarchie)
+- [ ] `source_ids` clickable (toon onderliggende signals)
+- [ ] Urgentie-classificatie met iconen en kleuren
+- [ ] Insight count in page header
+
+**Deduplicatie:**
+- [ ] Geen dubbele insights voor zelfde combinatie
+- [ ] Insight vervangt onderliggende signals in "Aandacht vereist"
+
+**Acceptance Criteria:**
+- [ ] Insights worden correct afgeleid uit signal combinaties
+- [ ] Weighted rules voor prioritering
+- [ ] Insights tonen gerelateerde signals
+- [ ] Aparte insight-only view optie
+
+---
+
+#### 7.4.4 Fase 4: Guidance (AI) ⏳ TOEKOMSTIG
+Status: Wacht op Fase 3 + voldoende data
+
+**Doel:** Optionele AI-suggesties bij high-impact insights
+
+**Strikte Regels:**
+- Alleen bij herhaalde patronen (3+ dagen)
+- Max 1 suggestie per insight
+- Nooit imperatief ("Doe X"), altijd optioneel ("Overweeg X")
+- Operator kan guidance permanent uitschakelen
+
+**Techniek:**
+- [ ] LLM integratie via Lovable AI (geen API key nodig)
+- [ ] Strikte prompt constraints
+- [ ] Context: insight + historische patronen
+- [ ] Max 1 zin output
+
+**Guidance per Module:**
+
+| Module | Guidance Toegestaan | Reden |
+|--------|---------------------|-------|
+| Reserveringen | Ja, bij herhaalde patronen (3+ dagen) | Operationeel advies mogelijk |
+| Keuken | Nee | Te context-specifiek, keuken kent eigen proces |
+| Revenue | Ja, bij 7+ dagen patroon | Financiële trends |
+| Configuratie | Nee | Setup is bewuste keuze van operator |
+
+**UI:**
+- [ ] Guidance als subtiele suggestie onder insight
+- [ ] "Negeer" en "Toegepast" feedback knoppen
+- [ ] Settings toggle: "Toon AI suggesties"
+
+**Acceptance Criteria:**
+- [ ] Guidance alleen bij gevalideerde insights
+- [ ] Opt-out per gebruiker in settings
+- [ ] Nooit automatische acties
+- [ ] Feedback loop (dismissed/acted) voor learning
+
+---
+
+#### 7.4.5 Fase 5: Learning & Personalisatie ⏳ TOEKOMSTIG
+Status: Wacht op 3+ maanden data
+
+**Doel:** Historische patronen en personalisatie
+
+**Voorwaarden:**
+- Minimaal 3 maanden operationele data
+- Gevalideerde baseline modellen
+- Opt-in voor peer comparison
+
+**Features:**
+- [ ] Historische trend analyse per locatie
+- [ ] Locatie-specifieke thresholds (leren van operator gedrag)
+- [ ] Dismissed signals tracking (niet meer tonen)
+- [ ] Acted-upon signals tracking (prioriteit verhogen)
+- [ ] Seizoenspatronen herkenning
+- [ ] Dag-van-de-week patronen
+
+**Peer Comparison (opt-in):**
+- [ ] Geanonimiseerde vergelijking met vergelijkbare locaties
+- [ ] "Boven/onder gemiddelde" indicators
+- [ ] Nooit specifieke concurrentie data
+
+**Acceptance Criteria:**
+- [ ] Learning alleen na opt-in
+- [ ] Duidelijke privacy disclosure
+- [ ] Operator kan learned thresholds resetten
+- [ ] Historische data exporteerbaar
+
+---
+
+#### UI & Presentatie
+
+**Waar de Assistant zichtbaar is:**
+
+| Locatie | Type | Inhoud |
+|---------|------|--------|
+| `/assistent` | Volledig overzicht | Alle signals en insights met filters |
+| Dashboard widget | Compact | Top 3 meest urgente items |
+| Module header | Inline signal | Badge met count (bijv. "3" in Reserveringen) |
+| Settings aside | Config signals | "2 tafels niet toegewezen" |
+
+**Visuele Hiërarchie:**
+
+| Severity | Kleur Token | Icoon | Betekenis |
+|----------|-------------|-------|-----------|
+| error | `text-destructive` / `bg-destructive/10` | AlertCircle | Actie vereist |
+| warning | `text-warning` / `bg-warning/10` | AlertTriangle | Let op |
+| info | `text-muted-foreground` | Info | Informatief |
+| ok | `text-success` / `bg-success/10` | CheckCircle | Alles goed |
+
+**Wanneer de Assistant STIL blijft:**
+- Alles op orde (geen nieuws is goed nieuws)
+- Buiten openingsuren
+- Geen handelingsruimte (te laat om iets te doen)
+- Recent getoond (4 uur cooldown per insight-type)
+- Operator heeft guidance uitgeschakeld
+
+---
+
+#### Wat de Assistant NIET doet
+
+**Expliciet buiten scope:**
+
+| Niet | Waarom |
+|------|--------|
+| Chatinterface | Horeca heeft geen tijd voor conversatie |
+| Proactieve tips | "Wist je dat..." is noise |
+| Uitleg hoe horeca werkt | Operator weet dit beter |
+| Automatische acties | Operator blijft in control |
+| Vergelijking met concurrentie | Geen externe data |
+| Voorspellingen zonder basis | Geen "AI denkt dat..." |
+
+**Bewust niet geautomatiseerd:**
+
+| Functie | Reden |
+|---------|-------|
+| Reserveringen afwijzen | Gastenrelatie is menselijk |
+| Personeel inroosteren | Te veel onzichtbare factoren |
+| Menu aanpassen | Creatieve keuze van kok |
+| Prijzen wijzigen | Strategische beslissing |
+
+---
+
+#### Gerelateerde Documentatie
+
+| Document | Inhoud |
+|----------|--------|
+| `docs/ASSISTANT_VISION.md` | Complete productvisie met voorbeelden |
+| `src/types/assistant.ts` | TypeScript interfaces |
+| `src/data/assistantMockData.ts` | Mock data voor development |
 
 ### 7.5 Takeaway
 - [ ] Online bestellen
@@ -967,6 +1278,29 @@ Menu items worden gefilterd op:
 ---
 
 ## SESSIE LOG
+
+### 10-11 januari 2026
+- **Fase 7.4.1 Nesto Assistant - Signals UI COMPLEET**
+- Productvisie document aangemaakt: `docs/ASSISTANT_VISION.md`
+- Types:
+  - `AssistantItem` interface met kind, severity, module, actionable, priority
+  - `AssistantSeverity`, `AssistantModule`, `AssistantKind` types
+- Datetime helper: `formatDateTimeCompact()` in `src/lib/datetime.ts`
+- Mock data: 10 items met variatie in severity, module, actionable
+- UI Components:
+  - `AssistantItemCard` met severity iconen, module badges, insight indicator
+  - `AssistantFilters` met module pills, "Alleen actie" toggle, result counter
+- Assistent pagina (`/assistent`):
+  - Sorting: priority → severity → newest
+  - Sectie headers: "Aandacht vereist" / "Ter info"
+  - EmptyState: "Alles onder controle"
+- Enterprise styling upgrade:
+  - Calm density (p-4 padding)
+  - Icon achtergrond cirkels (bg-{severity}/10)
+  - Module-specifieke badge kleuren
+  - Filter container met bg-secondary/50
+- Navigatie enabled in sidebar
+- Volgende: Dashboard insights widget of Fase 4.2.C Availability Rules
 
 ### 9 januari 2026
 - **B2 Tables Reorder COMPLEET**
