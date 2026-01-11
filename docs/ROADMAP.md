@@ -13,14 +13,16 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
 - ✅ Fase 2: Navigatie & Layout  
 - ✅ Fase 3: UI Patterns
 - ✅ Fase 4.1: SaaS Foundation
+- ✅ Fase 4.2: Areas, Tables, TableGroups
+- ✅ Fase 4.3.A: Shifts CRUD
+- ✅ Fase 4.3.B: Shifts Live Preview Panel
 - ✅ Fase 7.4.1: Nesto Assistant - Signals UI
 
 ### IN UITVOERING
-- 🔄 Fase 4.2: Areas, Tables, TableGroups
-  - ✅ 4.2.A CRUD UI - COMPLEET (4 januari 2026)
-  - ✅ 4.2.B1 Areas Reorder - COMPLEET (7 januari 2026)
-  - ✅ 4.2.B2 Tables Reorder - COMPLEET (9 januari 2026)
-  - ⏳ 4.2.C Availability Rules - VOLGENDE
+- 🔄 Fase 4.3: Shifts + Exceptions
+  - ✅ 4.3.A Shifts CRUD - COMPLEET (11 januari 2026)
+  - ✅ 4.3.B Live Preview Panel - COMPLEET (11 januari 2026)
+  - ⏳ 4.3.C Shift Exceptions UI - VOLGENDE
 
 ---
 
@@ -287,24 +289,90 @@ Status: Nog te starten (pas starten als nodig voor online booking/auto-assign)
 
 ---
 
-### 4.3 Shifts + Exceptions + Time Intervals
-Status: Nog te starten
+### 4.3 Shifts + Exceptions
+Status: Deels compleet
 
-**Doel:** Configureerbare shifts en tijdintervallen
+---
 
-**Database Schema:**
-- [ ] `shifts` - Shift definities met dagen en tijden
-- [ ] `shift_exceptions` - Gesloten datums, speciale events
-- [ ] `time_settings` - Interval configuratie (15/30/60 min)
+#### 4.3.A Shifts CRUD ✅ COMPLEET
+Status: Afgerond (11 januari 2026)
 
-**Acceptance Criteria:**
-- [ ] Settings pagina "Shifts" met:
-  - [ ] Shift CRUD (naam, dagen, start/eindtijd, kleur)
-  - [ ] Arrival interval per shift (15/30/60 min) - configureerbaar!
-  - [ ] Pacing per shift: max arrivals en max covers per interval
-  - [ ] Exceptions: gesloten datums, gesloten shifts, speciale events
-- [ ] Grid View respecteert gekozen interval (niet hardcoded 15 min)
-- [ ] Pacing row past zich aan aan shift settings
+**Database Schema (GELOCKED):**
+- [x] `shifts` tabel met alle velden:
+  - id, location_id, name, short_name
+  - start_time, end_time (TIME format)
+  - days_of_week (ISO: 1=Ma, 7=Zo)
+  - arrival_interval_minutes (15/30/60)
+  - color (HEX)
+  - sort_order, is_active
+- [x] `shift_exceptions` tabel:
+  - exception_date, exception_type (closed/modified/special)
+  - override tijden, label, notes
+  - shift_id nullable (null = location-wide)
+- [x] RPC: `get_effective_shift_schedule(_location_id, _date)`
+- [x] RPC: `reorder_shifts(_location_id, _shift_ids[])`
+- [x] RLS: owner/manager voor mutations
+
+**Hooks:**
+- [x] `useShifts` - Active shifts
+- [x] `useAllShifts` - Inclusief archived
+- [x] `useShift` - Single shift by ID
+- [x] `useEffectiveShiftSchedule` - RPC wrapper
+- [x] `useCreateShift`, `useUpdateShift`
+- [x] `useArchiveShift`, `useRestoreShift`
+- [x] `useReorderShifts`
+- [x] `useShiftExceptions` - Exception queries
+- [x] Exception mutations (create/update/delete)
+
+**UI Components:**
+- [x] `ShiftsTable` - Overzicht met drag-and-drop reorder
+- [x] `SortableShiftRow` - Sorteerbare rij
+- [x] `ShiftWizard` - 5-stappen wizard
+  - Step 1 (Tijden): Naam, tijden, dagen, interval, kleur
+  - Step 2 (Tickets): Mock ticket selectie
+  - Step 3 (Gebieden): Area toewijzing per ticket
+  - Step 4 (Capaciteit): Preview (placeholder)
+  - Step 5 (Overzicht): Review + save
+- [x] Overlap validatie in UI (ShiftWizard)
+- [x] Polar-muted kleuren palette (8 kleuren)
+
+**Documentatie:**
+- [x] `docs/design/SHIFTS_ARCHITECTURE.md`
+
+---
+
+#### 4.3.B Live Preview Panel ✅ COMPLEET
+Status: Afgerond (11 januari 2026)
+
+**Wat is gedaan:**
+- [x] `ShiftsLivePreviewPanel` component
+- [x] Visuele preview van shift tijdslots
+- [x] Capaciteit indicator (gasten + tafels)
+- [x] Shift kleuren weergave
+- [x] Integratie met `useAreasWithTables`
+
+---
+
+#### 4.3.C Shift Exceptions UI ⏳ NOG TE STARTEN
+Status: Volgende stap
+
+**Doel:** UI voor het beheren van shift exceptions (gesloten dagen, aangepaste tijden, speciale events)
+
+**Scope:**
+- [ ] Exceptions overzicht in settings (calendar of lijst view)
+- [ ] Exception modal (create/edit)
+  - Datum selectie (single of range)
+  - Type: Gesloten / Aangepaste tijden / Speciaal
+  - Shift selectie (of location-wide)
+  - Label en notities
+- [ ] Quick actions op kalender:
+  - "Sluiten" knop voor snelle dag afsluiting
+  - Copy exception to other dates
+- [ ] Bulk close voor vakantieperiodes
+- [ ] Integratie met Grid View (exception indicator op datum)
+
+**UI Locatie:**
+- Settings > Reserveringen > Shifts > Uitzonderingen tab (of aparte pagina)
 
 ---
 
@@ -329,7 +397,25 @@ Status: Nog te starten
   - [ ] CancelPolicy: free until X uur, refund window
   - [ ] NoShowPolicy: mark after X min, keep deposit
   - [ ] ReconfirmPolicy: off / ask at T-X / required
-  - [ ] SqueezePolicy: enabled, squeeze duration, max per shift
+
+**Nieuw: Booking Window (per Ticket)**
+
+Zie: [`docs/design/BOOKING_WINDOW.md`](./design/BOOKING_WINDOW.md)
+
+- [ ] `booking_min_advance_minutes` - Minimaal X min van tevoren
+- [ ] `booking_max_advance_days` - Maximaal X dagen vooruit
+- [ ] `booking_min_advance_large_party_minutes` - Override voor grote groepen
+- [ ] `large_party_threshold` - Drempel voor "grote groep"
+
+**Nieuw: Squeeze Policy (per Ticket)**
+
+Zie: [`docs/design/SQUEEZE_LOGIC.md`](./design/SQUEEZE_LOGIC.md)
+
+- [ ] `squeeze_enabled` - Squeeze activeren
+- [ ] `squeeze_duration_minutes` - Minimale duur bij squeeze
+- [ ] `squeeze_gap_minutes` - Buffer na squeeze
+- [ ] `squeeze_to_fixed_end_time` - Squeeze naar vaste eindtijd
+- [ ] `squeeze_limit_per_shift` - Max squeeze per shift
 
 ---
 

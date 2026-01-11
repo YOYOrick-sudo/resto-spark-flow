@@ -131,8 +131,52 @@ Dit maakt complexe regels mogelijk zoals:
 
 ---
 
+## Gerelateerde Concepten
+
+### Booking Window
+
+De Booking Window bepaalt het tijdsvenster waarbinnen online reserveringen mogelijk zijn.
+Dit is een **Ticket-level** setting, niet een Shift-level setting.
+
+Zie: [`BOOKING_WINDOW.md`](./BOOKING_WINDOW.md)
+
+### Squeeze
+
+Squeeze vult gaten in het schema met verkorte reserveringen.
+Dit is een **Ticket-level** setting, niet een Shift-level setting.
+
+Zie: [`SQUEEZE_LOGIC.md`](./SQUEEZE_LOGIC.md)
+
+### Waarom Ticket-level en niet Shift-level?
+
+- **Booking Window**: Verschillende tickets kunnen verschillende advance-tijden hebben
+  (bijv. Chef's Table vereist 1 week vooruit, Regular 1 uur)
+- **Squeeze**: Sommige tickets zijn niet geschikt voor squeeze (bijv. Tasting Menu)
+  terwijl Regular wel gesqueezed kan worden
+
+---
+
+## Implementatie Status
+
+| Component | Status | Fase |
+|-----------|--------|------|
+| `shifts` tabel | ✅ COMPLEET | 4.3.A |
+| `shift_exceptions` tabel | ✅ COMPLEET | 4.3.A |
+| `get_effective_shift_schedule` RPC | ✅ COMPLEET | 4.3.A |
+| `reorder_shifts` RPC | ✅ COMPLEET | 4.3.A |
+| Shifts CRUD UI | ✅ COMPLEET | 4.3.A |
+| ShiftWizard (5 stappen) | ✅ COMPLEET | 4.3.A |
+| Live Preview Panel | ✅ COMPLEET | 4.3.B |
+| Exceptions UI | ⏳ Gepland | 4.3.C |
+| Booking Window | ⏳ Gepland | 4.4 |
+| Squeeze | ⏳ Gepland | 4.4 |
+
+---
+
 ## Related Documentation
 
 - [Database Schema](../../docs/DATABASE.md)
 - [Architecture Overview](../../docs/ARCHITECTURE.md)
 - [Settings Patterns](./SETTINGS_PAGE_PATTERNS.md)
+- [Booking Window](./BOOKING_WINDOW.md)
+- [Squeeze Logic](./SQUEEZE_LOGIC.md)
