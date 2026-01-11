@@ -216,7 +216,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
             Beheer ruimtes en de tafels daarin.
           </p>
         </div>
-        <NestoButton onClick={handleAddArea} size="sm">
+        <NestoButton onClick={handleAddArea} size="sm" disabled={!locationId}>
           <Plus className="h-4 w-4 mr-1" />
           Nieuwe Area
         </NestoButton>

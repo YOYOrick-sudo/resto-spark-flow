@@ -47,7 +47,7 @@ export default function SettingsReserveringenShifts() {
       description="Beheer de shifts voor je restaurant. Shifts bepalen wanneer gasten kunnen reserveren."
       breadcrumbs={breadcrumbs}
       actions={
-        <NestoButton onClick={() => setWizardOpen(true)}>
+        <NestoButton onClick={() => setWizardOpen(true)} disabled={!locationId}>
           <Plus className="h-4 w-4 mr-1" />
           Nieuwe Shift
         </NestoButton>

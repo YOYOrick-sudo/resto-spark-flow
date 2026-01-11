@@ -45,7 +45,11 @@ export function AreaModal({ open, onOpenChange, locationId, editingArea }: AreaM
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!locationId || !name.trim()) return;
+    if (!locationId) {
+      setError('Geen locatie geselecteerd. Herlaad de pagina.');
+      return;
+    }
+    if (!name.trim()) return;
     
     setError('');
     
