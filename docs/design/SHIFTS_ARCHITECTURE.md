@@ -98,36 +98,63 @@ END IF;
 
 ---
 
-## Future Migration Path
+## Architectuurkeuze (Definitief)
 
-### days_of_week → shift_rules
+### Kernprincipes
 
-Huidige implementatie:
-```sql
-days_of_week INTEGER[] DEFAULT '{1,2,3,4,5,6,7}'  -- ISO weekdays
-```
+| Concept | Definitie |
+|---------|-----------|
+| **Shifts** | Structureel tijdsraam (start/end time, interval). Geen kalenderlogica. |
+| **Shift Exceptions** | ALLE datum-afwijkingen. Expliciet, auditbaar, AI-leesbaar. |
+| **Herhaling** | Generator die exception records aanmaakt, geen rules storage. |
 
-Toekomstige uitbreiding (indien nodig):
-```sql
-CREATE TABLE shift_rules (
-  id UUID PRIMARY KEY,
-  shift_id UUID REFERENCES shifts(id),
-  rule_type TEXT,  -- 'weekday', 'date_range', 'nth_weekday', etc.
-  rule_config JSONB,
-  priority INTEGER
-);
-```
+### Enterprise Regel: Data > Magie
 
-Dit maakt complexe regels mogelijk zoals:
-- "Elke 2e zondag van de maand"
-- "Alleen tijdens zomerseizoen"
-- "Uitgezonderd schoolvakanties"
+"Elke maandag gesloten in 2026" = 52 expliciete shift_exception records
 
-**Migratie-strategie:** 
-1. Nieuwe `shift_rules` tabel toevoegen
-2. `days_of_week` migreren naar rules
-3. RPC aanpassen om beide te ondersteunen
-4. Na transitie: `days_of_week` deprecaten
+Dit betekent:
+- Volledig transparant: elke uitzondering is zichtbaar in de database
+- Makkelijk te bewerken: gebruikers kunnen individuele records aanpassen
+- Auditbaar: volledige historie is beschikbaar
+- AI-leesbaar: geen verborgen logica, alles is data
+- Previewbaar: generatie toont precies wat er aangemaakt wordt
+
+---
+
+## Wat we bewust NIET bouwen
+
+| Concept | Reden |
+|---------|-------|
+| `shift_rules` tabel | Introduceert verborgen logica en complexiteit |
+| `closed_days` module | Redundant met shift_exceptions |
+| Impliciete herhalingslogica | Onvoorspelbaar gedrag, moeilijk te debuggen |
+| Server-side recurring engine | Magie achter de schermen, niet auditbaar |
+
+**Filosofie:** Nesto optimaliseert voor transparantie, controle en schaalbaarheid.
+Formitable optimaliseert voor eenvoud en verborgen defaults.
+
+---
+
+## Conflict Resolution (Invariant)
+
+Deze regels gelden overal en worden consequent toegepast:
+
+| Prioriteit | Regel |
+|------------|-------|
+| 1 (hoogst) | Location-wide `closed` exception wint ALTIJD |
+| 2 | Shift-specific exception wint van shift template |
+| 3 | Exceptions winnen altijd van structurele data |
+| 4 | Geen exception → shift template geldt |
+| 5 (laagst) | Geen shift op die dag → geen availability |
+
+### Scope-specifieke Conflict Detectie
+
+Database constraint: `UNIQUE (location_id, shift_id, exception_date)`
+
+Dit betekent:
+- Location-wide (`shift_id = NULL`) en shift-specific op dezelfde datum zijn **twee verschillende records**
+- Exact conflict = zelfde `shift_id` (incl. NULL) + zelfde datum
+- Functional warning = andere scope, bijv. location-wide closed terwijl shift-specific bestaat
 
 ---
 
