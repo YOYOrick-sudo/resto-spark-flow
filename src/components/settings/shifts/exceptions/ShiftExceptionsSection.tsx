@@ -172,7 +172,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
         </div>
 
         {/* Exceptions list */}
-        <div className="min-h-[200px]">
+        <div className="min-h-[200px] max-h-[400px] overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <span className="text-sm text-muted-foreground">Laden...</span>
@@ -184,7 +184,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
               description="Er zijn nog geen uitzonderingen voor deze maand. Klik op een dag of gebruik de knoppen hierboven."
             />
           ) : (
-            <div className="divide-y divide-border">
+            <div>
               {exceptions.map((exception) => (
                 <ExceptionListItem
                   key={exception.id}

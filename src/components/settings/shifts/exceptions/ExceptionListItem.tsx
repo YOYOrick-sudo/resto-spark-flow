@@ -41,9 +41,9 @@ export function ExceptionListItem({
   };
 
   return (
-    <div className="flex items-center gap-3 py-3 px-3 rounded-lg hover:bg-muted/30 transition-colors group">
-      {/* Content - truncates when needed */}
-      <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+    <div className="flex items-center justify-between py-3 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors group">
+      {/* Left: Content area */}
+      <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden px-3">
         {/* Date */}
         <span className="text-sm font-medium w-16 flex-shrink-0">
           {formattedDate}
@@ -77,8 +77,8 @@ export function ExceptionListItem({
         )}
       </div>
 
-      {/* Actions - always visible space, icons on hover */}
-      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Right: Actions - fixed width */}
+      <div className="flex items-center gap-1 px-3 w-20 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
         <NestoButton
           variant="ghost"
           size="sm"
