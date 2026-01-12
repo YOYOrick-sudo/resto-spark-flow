@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, XCircle, Clock, Sparkles } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -21,6 +21,22 @@ import {
   useUpdateShiftException,
 } from "@/hooks/useShiftExceptions";
 import type { Shift, ShiftException, ShiftExceptionType } from "@/types/shifts";
+
+// Icon and title mapping per exception type
+const TYPE_CONFIG: Record<ShiftExceptionType, { icon: React.ReactNode; title: string }> = {
+  closed: {
+    icon: <XCircle className="h-5 w-5 text-destructive" />,
+    title: "Dag sluiten",
+  },
+  modified: {
+    icon: <Clock className="h-5 w-5 text-orange-500" />,
+    title: "Aangepaste tijden",
+  },
+  special: {
+    icon: <Sparkles className="h-5 w-5 text-purple-500" />,
+    title: "Speciaal",
+  },
+};
 
 interface ShiftExceptionModalProps {
   open: boolean;
@@ -138,7 +154,8 @@ export function ShiftExceptionModal({
     <NestoModal
       open={open}
       onOpenChange={onOpenChange}
-      title={isEditing ? "Uitzondering bewerken" : "Nieuwe uitzondering"}
+      icon={TYPE_CONFIG[type].icon}
+      title={isEditing ? "Uitzondering bewerken" : TYPE_CONFIG[type].title}
       description="Dit zijn reserveringstijden, niet openingstijden."
       size="md"
       footer={
