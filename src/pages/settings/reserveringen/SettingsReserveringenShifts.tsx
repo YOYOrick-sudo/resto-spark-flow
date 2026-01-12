@@ -3,9 +3,8 @@ import { Plus } from "lucide-react";
 import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDetailLayout";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoButton } from "@/components/polar/NestoButton";
-import { NestoBadge } from "@/components/polar/NestoBadge";
 import { TitleHelp, TitleHelpTip } from "@/components/polar/TitleHelp";
-import { ShiftsTable, ShiftWizard, ShiftsLivePreviewPanel } from "@/components/settings/shifts";
+import { ShiftsTable, ShiftWizard, ShiftsLivePreviewPanel, ShiftExceptionsSection } from "@/components/settings/shifts";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useAllShifts } from "@/hooks/useShifts";
 import { useUserContext } from "@/contexts/UserContext";
@@ -75,20 +74,14 @@ export default function SettingsReserveringenShifts() {
           <p className="text-sm text-muted-foreground">Geen locatie geselecteerd.</p>
         )}
 
-        {/* Exceptions Placeholder */}
-        <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-dashed">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-medium">Shift Exceptions</span>
-            <NestoBadge variant="soon" className="text-xs">
-              Coming soon
-            </NestoBadge>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Binnenkort: beheer afwijkende dagen zoals feestdagen, speciale openingstijden, of
-            sluitingen per shift.
-          </p>
-        </div>
       </NestoCard>
+
+      {/* Shift Exceptions Section */}
+      {locationId && (
+        <div className="mt-6">
+          <ShiftExceptionsSection locationId={locationId} />
+        </div>
+      )}
 
       {/* Wizard for creating new shift */}
       {locationId && (
