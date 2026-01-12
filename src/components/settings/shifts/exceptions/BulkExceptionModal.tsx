@@ -1,14 +1,13 @@
 // ============================================
 // FASE 4.3.D: Bulk Exception Modal
 // Enterprise-grade bulk exception generator
-// Styled to match ShiftWizard (Polar UI)
+// Using NestoModal for consistent Polar styling
 // ============================================
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { format, addYears } from "date-fns";
 import { nl } from "date-fns/locale";
-import { CalendarIcon, Repeat, X } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { CalendarIcon, Repeat } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -16,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
+import { NestoButton, NestoInput, NestoSelect, NestoModal } from "@/components/polar";
 import { useShiftExceptions, useBulkCreateShiftExceptions } from "@/hooks/useShiftExceptions";
 import {
   generateDates,
@@ -295,8 +294,6 @@ export function BulkExceptionModal({
     );
   }, []);
 
-  const handleClose = () => onOpenChange(false);
-
   const handleSave = async () => {
     if (!canSave || !conflictResult) return;
 
@@ -338,346 +335,17 @@ export function BulkExceptionModal({
   // ============================================
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden rounded-card" hideCloseButton>
-        {/* Custom Header - matches ShiftWizard */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-card">
-          <h2 className="text-base font-semibold flex items-center gap-2">
-            <Repeat className="h-5 w-5 text-primary" />
-            Meerdere uitzonderingen aanmaken
-          </h2>
-          <NestoButton variant="ghost" size="icon" onClick={handleClose}>
-            <X className="h-5 w-5" />
-          </NestoButton>
-        </div>
-
-        {/* Content */}
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          
-          {/* Repeat Mode Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Herhalingspatroon</label>
-            <RadioGroup
-              value={repeatMode}
-              onValueChange={(v) => setRepeatMode(v as typeof repeatMode)}
-              className="flex gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="weekly" id="weekly" />
-                <label htmlFor="weekly" className="text-sm cursor-pointer">Wekelijks</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="monthly" id="monthly" />
-                <label htmlFor="monthly" className="text-sm cursor-pointer">Maandelijks</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="n-occurrences" id="n-occurrences" />
-                <label htmlFor="n-occurrences" className="text-sm cursor-pointer">Aantal keer</label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Pattern Configuration Block */}
-          <div className="bg-secondary/50 rounded-card p-4 space-y-4">
-            
-            {/* Weekly: Weekday selection (matches TimesStep w-9 h-9 buttons) */}
-            {(repeatMode === 'weekly' || (repeatMode === 'n-occurrences' && nOccBaseMode === 'weekly')) && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Weekdagen</label>
-                <div className="flex gap-1.5">
-                  {WEEKDAY_OPTIONS.map((day) => (
-                    <button
-                      key={day.value}
-                      type="button"
-                      onClick={() => toggleWeekday(day.value)}
-                      className={cn(
-                        "w-9 h-9 rounded-button text-sm font-medium transition-colors",
-                        selectedWeekdays.includes(day.value)
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      )}
-                    >
-                      {day.label.charAt(0).toUpperCase() + day.label.slice(1, 2)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Monthly type selection */}
-            {repeatMode === 'monthly' && (
-              <div className="space-y-3">
-                <RadioGroup
-                  value={monthlyType}
-                  onValueChange={(v) => setMonthlyType(v as typeof monthlyType)}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <RadioGroupItem value="day" id="monthly-day" />
-                    <label htmlFor="monthly-day" className="text-sm cursor-pointer flex items-center gap-2">
-                      Op dag
-                      <div className="w-20">
-                        <NestoSelect
-                          value={dayOfMonth.toString()}
-                          onValueChange={(v) => setDayOfMonth(parseInt(v))}
-                          options={DAY_OF_MONTH_OPTIONS}
-                          disabled={monthlyType !== 'day'}
-                        />
-                      </div>
-                      van de maand
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <RadioGroupItem value="nth" id="monthly-nth" />
-                    <label htmlFor="monthly-nth" className="text-sm cursor-pointer flex items-center gap-2">
-                      Op de
-                      <div className="w-24">
-                        <NestoSelect
-                          value={nth.toString()}
-                          onValueChange={(v) => setNth(v === 'last' ? 'last' : parseInt(v) as NthWeek)}
-                          options={NTH_SELECT_OPTIONS}
-                          disabled={monthlyType !== 'nth'}
-                        />
-                      </div>
-                      <div className="w-32">
-                        <NestoSelect
-                          value={nthWeekday.toString()}
-                          onValueChange={(v) => setNthWeekday(parseInt(v))}
-                          options={WEEKDAY_SELECT_OPTIONS}
-                          disabled={monthlyType !== 'nth'}
-                        />
-                      </div>
-                      van de maand
-                    </label>
-                  </div>
-                </RadioGroup>
-                {monthlyType === 'day' && dayOfMonth > 28 && (
-                  <p className="text-xs text-muted-foreground">
-                    Tip: Als dag {dayOfMonth} niet bestaat (bijv. 31 februari), wordt die maand overgeslagen.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* N-occurrences configuration */}
-            {repeatMode === 'n-occurrences' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-muted-foreground">Aantal:</label>
-                  <div className="w-24">
-                    <NestoInput
-                      type="number"
-                      min={1}
-                      max={500}
-                      value={occurrenceCount}
-                      onChange={(e) => setOccurrenceCount(Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
-                    />
-                  </div>
-                  <span className="text-sm text-muted-foreground">keer</span>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Gebaseerd op:</label>
-                  <RadioGroup
-                    value={nOccBaseMode}
-                    onValueChange={(v) => setNOccBaseMode(v as typeof nOccBaseMode)}
-                    className="space-y-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="weekly" id="nocc-weekly" />
-                      <label htmlFor="nocc-weekly" className="text-sm cursor-pointer">
-                        Wekelijks (selecteer weekdagen hierboven)
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="monthly-day" id="nocc-monthly-day" />
-                      <label htmlFor="nocc-monthly-day" className="text-sm cursor-pointer flex items-center gap-2">
-                        Maandelijks: dag
-                        <div className="w-20">
-                          <NestoSelect
-                            value={dayOfMonth.toString()}
-                            onValueChange={(v) => setDayOfMonth(parseInt(v))}
-                            options={DAY_OF_MONTH_OPTIONS}
-                            disabled={nOccBaseMode !== 'monthly-day'}
-                          />
-                        </div>
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="monthly-nth" id="nocc-monthly-nth" />
-                      <label htmlFor="nocc-monthly-nth" className="text-sm cursor-pointer flex items-center gap-2">
-                        Maandelijks:
-                        <div className="w-24">
-                          <NestoSelect
-                            value={nth.toString()}
-                            onValueChange={(v) => setNth(v === 'last' ? 'last' : parseInt(v) as NthWeek)}
-                            options={NTH_SELECT_OPTIONS}
-                            disabled={nOccBaseMode !== 'monthly-nth'}
-                          />
-                        </div>
-                        <div className="w-32">
-                          <NestoSelect
-                            value={nthWeekday.toString()}
-                            onValueChange={(v) => setNthWeekday(parseInt(v))}
-                            options={WEEKDAY_SELECT_OPTIONS}
-                            disabled={nOccBaseMode !== 'monthly-nth'}
-                          />
-                        </div>
-                      </label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
-                {repeatMode === 'n-occurrences' ? 'Startdatum' : 'Van'}
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <NestoButton
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(startDate, 'd MMMM yyyy', { locale: nl })}
-                  </NestoButton>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={(date) => date && setStartDate(date)}
-                    locale={nl}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {repeatMode !== 'n-occurrences' && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Tot</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <NestoButton
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(endDate, 'd MMMM yyyy', { locale: nl })}
-                    </NestoButton>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => date && setEndDate(date)}
-                      locale={nl}
-                      disabled={(date) => date < startDate}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )}
-          </div>
-
-          {/* Exception Details Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Type */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Type uitzondering</label>
-              <NestoSelect
-                value={exceptionType}
-                onValueChange={(v) => setExceptionType(v as ShiftExceptionType)}
-                options={EXCEPTION_TYPE_OPTIONS}
-              />
-            </div>
-
-            {/* Scope */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Scope</label>
-              <NestoSelect
-                value={shiftId === null ? "all" : shiftId}
-                onValueChange={(v) => setShiftId(v === "all" ? null : v)}
-                options={scopeOptions}
-              />
-            </div>
-          </div>
-
-          {/* Modified times */}
-          {exceptionType === 'modified' && (
-            <div className="grid grid-cols-2 gap-3">
-              <NestoSelect
-                label="Starttijd"
-                value={startTime}
-                onValueChange={setStartTime}
-                options={TIME_OPTIONS}
-              />
-              <NestoSelect
-                label="Eindtijd"
-                value={endTime}
-                onValueChange={setEndTime}
-                options={TIME_OPTIONS}
-              />
-              {!timesValid && (
-                <p className="col-span-2 text-sm text-destructive">
-                  Eindtijd moet na starttijd liggen.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Label */}
-          <NestoInput
-            label="Label (optioneel)"
-            placeholder="bijv. Elke maandag gesloten"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-          />
-
-          {/* Validation error */}
-          {!validation.valid && validation.error && (
-            <p className="text-sm text-destructive">{validation.error}</p>
-          )}
-
-          {/* Preview */}
-          {validation.valid && generatedDates.length > 0 && (
-            <BulkExceptionPreview
-              generatedDates={generatedDates}
-              conflictResult={conflictResult}
-              exceptionType={exceptionType}
-              shiftsMap={shiftsMap}
-              conflictResolution={conflictResolution}
-              onConflictResolutionChange={setConflictResolution}
-              countWarning={countWarning}
-            />
-          )}
-
-          {/* Progress indicator */}
-          {progress && (
-            <div className="rounded-card bg-muted/30 p-3">
-              <p className="text-sm text-muted-foreground">
-                Bezig met aanmaken... {progress.current}/{progress.total}
-              </p>
-              <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all"
-                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Custom Footer - matches ShiftWizard */}
-        <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-4 bg-card">
+    <NestoModal
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={<Repeat className="h-5 w-5 text-primary" />}
+      title="Meerdere uitzonderingen aanmaken"
+      size="lg"
+      footer={
+        <div className="flex justify-end gap-2 w-full">
           <NestoButton
             variant="outline"
-            onClick={handleClose}
+            onClick={() => onOpenChange(false)}
             disabled={bulkCreateMutation.isPending}
           >
             Annuleren
@@ -693,7 +361,328 @@ export function BulkExceptionModal({
             }
           </NestoButton>
         </div>
-      </DialogContent>
-    </Dialog>
+      }
+    >
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+        
+        {/* Repeat Mode Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">Herhalingspatroon</label>
+          <RadioGroup
+            value={repeatMode}
+            onValueChange={(v) => setRepeatMode(v as typeof repeatMode)}
+            className="flex gap-4"
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="weekly" id="weekly" />
+              <label htmlFor="weekly" className="text-sm cursor-pointer">Wekelijks</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="monthly" id="monthly" />
+              <label htmlFor="monthly" className="text-sm cursor-pointer">Maandelijks</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="n-occurrences" id="n-occurrences" />
+              <label htmlFor="n-occurrences" className="text-sm cursor-pointer">Aantal keer</label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Pattern Configuration Block */}
+        <div className="bg-secondary/50 rounded-card p-4 space-y-4">
+          
+          {/* Weekly: Weekday selection */}
+          {(repeatMode === 'weekly' || (repeatMode === 'n-occurrences' && nOccBaseMode === 'weekly')) && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Weekdagen</label>
+              <div className="flex gap-1.5">
+                {WEEKDAY_OPTIONS.map((day) => (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => toggleWeekday(day.value)}
+                    className={cn(
+                      "w-9 h-9 rounded-button text-sm font-medium transition-colors",
+                      selectedWeekdays.includes(day.value)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    {day.label.charAt(0).toUpperCase() + day.label.slice(1, 2)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Monthly type selection */}
+          {repeatMode === 'monthly' && (
+            <div className="space-y-3">
+              <RadioGroup
+                value={monthlyType}
+                onValueChange={(v) => setMonthlyType(v as typeof monthlyType)}
+                className="space-y-3"
+              >
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem value="day" id="monthly-day" />
+                  <label htmlFor="monthly-day" className="text-sm cursor-pointer flex items-center gap-2">
+                    Op dag
+                    <div className="w-20">
+                      <NestoSelect
+                        value={dayOfMonth.toString()}
+                        onValueChange={(v) => setDayOfMonth(parseInt(v))}
+                        options={DAY_OF_MONTH_OPTIONS}
+                        disabled={monthlyType !== 'day'}
+                      />
+                    </div>
+                    van de maand
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem value="nth" id="monthly-nth" />
+                  <label htmlFor="monthly-nth" className="text-sm cursor-pointer flex items-center gap-2">
+                    Op de
+                    <div className="w-24">
+                      <NestoSelect
+                        value={nth.toString()}
+                        onValueChange={(v) => setNth(v === 'last' ? 'last' : parseInt(v) as NthWeek)}
+                        options={NTH_SELECT_OPTIONS}
+                        disabled={monthlyType !== 'nth'}
+                      />
+                    </div>
+                    <div className="w-32">
+                      <NestoSelect
+                        value={nthWeekday.toString()}
+                        onValueChange={(v) => setNthWeekday(parseInt(v))}
+                        options={WEEKDAY_SELECT_OPTIONS}
+                        disabled={monthlyType !== 'nth'}
+                      />
+                    </div>
+                    van de maand
+                  </label>
+                </div>
+              </RadioGroup>
+              {monthlyType === 'day' && dayOfMonth > 28 && (
+                <p className="text-xs text-muted-foreground">
+                  Tip: Als dag {dayOfMonth} niet bestaat (bijv. 31 februari), wordt die maand overgeslagen.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* N-occurrences configuration */}
+          {repeatMode === 'n-occurrences' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-muted-foreground">Aantal:</label>
+                <div className="w-24">
+                  <NestoInput
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={occurrenceCount}
+                    onChange={(e) => setOccurrenceCount(Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground">keer</span>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Gebaseerd op:</label>
+                <RadioGroup
+                  value={nOccBaseMode}
+                  onValueChange={(v) => setNOccBaseMode(v as typeof nOccBaseMode)}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="weekly" id="nocc-weekly" />
+                    <label htmlFor="nocc-weekly" className="text-sm cursor-pointer">
+                      Wekelijks (selecteer weekdagen hierboven)
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="monthly-day" id="nocc-monthly-day" />
+                    <label htmlFor="nocc-monthly-day" className="text-sm cursor-pointer flex items-center gap-2">
+                      Maandelijks: dag
+                      <div className="w-20">
+                        <NestoSelect
+                          value={dayOfMonth.toString()}
+                          onValueChange={(v) => setDayOfMonth(parseInt(v))}
+                          options={DAY_OF_MONTH_OPTIONS}
+                          disabled={nOccBaseMode !== 'monthly-day'}
+                        />
+                      </div>
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="monthly-nth" id="nocc-monthly-nth" />
+                    <label htmlFor="nocc-monthly-nth" className="text-sm cursor-pointer flex items-center gap-2">
+                      Maandelijks:
+                      <div className="w-24">
+                        <NestoSelect
+                          value={nth.toString()}
+                          onValueChange={(v) => setNth(v === 'last' ? 'last' : parseInt(v) as NthWeek)}
+                          options={NTH_SELECT_OPTIONS}
+                          disabled={nOccBaseMode !== 'monthly-nth'}
+                        />
+                      </div>
+                      <div className="w-32">
+                        <NestoSelect
+                          value={nthWeekday.toString()}
+                          onValueChange={(v) => setNthWeekday(parseInt(v))}
+                          options={WEEKDAY_SELECT_OPTIONS}
+                          disabled={nOccBaseMode !== 'monthly-nth'}
+                        />
+                      </div>
+                    </label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Date Range */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">
+              {repeatMode === 'n-occurrences' ? 'Startdatum' : 'Van'}
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <NestoButton
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(startDate, 'd MMMM yyyy', { locale: nl })}
+                </NestoButton>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => date && setStartDate(date)}
+                  locale={nl}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {repeatMode !== 'n-occurrences' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Tot</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <NestoButton
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(endDate, 'd MMMM yyyy', { locale: nl })}
+                  </NestoButton>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(date) => date && setEndDate(date)}
+                    locale={nl}
+                    disabled={(date) => date < startDate}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
+
+        {/* Exception Details Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Type */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Type uitzondering</label>
+            <NestoSelect
+              value={exceptionType}
+              onValueChange={(v) => setExceptionType(v as ShiftExceptionType)}
+              options={EXCEPTION_TYPE_OPTIONS}
+            />
+          </div>
+
+          {/* Scope */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Scope</label>
+            <NestoSelect
+              value={shiftId === null ? "all" : shiftId}
+              onValueChange={(v) => setShiftId(v === "all" ? null : v)}
+              options={scopeOptions}
+            />
+          </div>
+        </div>
+
+        {/* Modified times */}
+        {exceptionType === 'modified' && (
+          <div className="grid grid-cols-2 gap-3">
+            <NestoSelect
+              label="Starttijd"
+              value={startTime}
+              onValueChange={setStartTime}
+              options={TIME_OPTIONS}
+            />
+            <NestoSelect
+              label="Eindtijd"
+              value={endTime}
+              onValueChange={setEndTime}
+              options={TIME_OPTIONS}
+            />
+            {!timesValid && (
+              <p className="col-span-2 text-sm text-destructive">
+                Eindtijd moet na starttijd liggen.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Label */}
+        <NestoInput
+          label="Label (optioneel)"
+          placeholder="bijv. Elke maandag gesloten"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+
+        {/* Validation error */}
+        {!validation.valid && validation.error && (
+          <p className="text-sm text-destructive">{validation.error}</p>
+        )}
+
+        {/* Preview */}
+        {validation.valid && generatedDates.length > 0 && (
+          <BulkExceptionPreview
+            generatedDates={generatedDates}
+            conflictResult={conflictResult}
+            exceptionType={exceptionType}
+            shiftsMap={shiftsMap}
+            conflictResolution={conflictResolution}
+            onConflictResolutionChange={setConflictResolution}
+            countWarning={countWarning}
+          />
+        )}
+
+        {/* Progress indicator */}
+        {progress && (
+          <div className="rounded-card bg-muted/30 p-3">
+            <p className="text-sm text-muted-foreground">
+              Bezig met aanmaken... {progress.current}/{progress.total}
+            </p>
+            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </NestoModal>
   );
 }

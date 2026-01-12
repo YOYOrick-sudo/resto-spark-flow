@@ -21,6 +21,7 @@ export interface NestoModalProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
+  icon?: React.ReactNode;
   title: string;
   description?: string;
   children: React.ReactNode;
@@ -42,6 +43,7 @@ export function NestoModal({
   open,
   onOpenChange,
   trigger,
+  icon,
   title,
   description,
   children,
@@ -67,7 +69,10 @@ export function NestoModal({
           )}
           <div className="flex items-start justify-between">
             <div>
-              <DialogTitle className="text-h2">{title}</DialogTitle>
+              <DialogTitle className="text-h2 flex items-center gap-2">
+                {icon}
+                {title}
+              </DialogTitle>
               {description && (
                 <DialogDescription className="mt-1.5 text-small text-muted-foreground">
                   {description}
