@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { startOfMonth, endOfMonth, addMonths, format } from "date-fns";
-import { Ban, Clock, Star } from "lucide-react";
+import { Ban, Clock, Star, Repeat } from "lucide-react";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { EmptyState } from "@/components/polar/EmptyState";
@@ -10,6 +10,7 @@ import { useShiftExceptions, useDeleteShiftException } from "@/hooks/useShiftExc
 import { ExceptionCalendar } from "./ExceptionCalendar";
 import { ExceptionListItem } from "./ExceptionListItem";
 import { ShiftExceptionModal } from "./ShiftExceptionModal";
+import { BulkExceptionModal } from "./BulkExceptionModal";
 import type { ShiftException, ShiftExceptionType, Shift } from "@/types/shifts";
 
 interface ShiftExceptionsSectionProps {
@@ -24,6 +25,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
   const [defaultType, setDefaultType] = useState<ShiftExceptionType | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [exceptionToDelete, setExceptionToDelete] = useState<ShiftException | null>(null);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
 
   // Fetch shifts for the location
   const { data: shifts = [] } = useShifts(locationId);
@@ -105,7 +107,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
             Beheer gesloten dagen, aangepaste tijden en speciale markeringen.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <NestoButton
             variant="outline"
             size="sm"
@@ -129,6 +131,14 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
           >
             <Star className="h-4 w-4 mr-1.5" />
             Speciaal
+          </NestoButton>
+          <NestoButton
+            variant="outline"
+            size="sm"
+            onClick={() => setBulkModalOpen(true)}
+          >
+            <Repeat className="h-4 w-4 mr-1.5" />
+            Periode / Herhaling
           </NestoButton>
         </div>
       </div>
@@ -200,6 +210,13 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
         defaultType={defaultType}
       />
 
+      {/* Bulk Exception Modal */}
+      <BulkExceptionModal
+        open={bulkModalOpen}
+        onOpenChange={setBulkModalOpen}
+        locationId={locationId}
+        shifts={shifts}
+      />
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={deleteDialogOpen}
