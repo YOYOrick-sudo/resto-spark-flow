@@ -41,8 +41,9 @@ export function ExceptionListItem({
   };
 
   return (
-    <div className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-muted/30 transition-colors group">
-      <div className="flex items-center gap-3 min-w-0 flex-1">
+    <div className="flex items-center gap-3 py-3 px-3 rounded-lg hover:bg-muted/30 transition-colors group">
+      {/* Content - truncates when needed */}
+      <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
         {/* Date */}
         <span className="text-sm font-medium w-16 flex-shrink-0">
           {formattedDate}
@@ -57,7 +58,7 @@ export function ExceptionListItem({
         </NestoBadge>
 
         {/* Scope */}
-        <span className="text-sm text-muted-foreground truncate">
+        <span className="text-sm text-muted-foreground truncate flex-shrink min-w-0">
           {scopeLabel}
         </span>
 
@@ -70,14 +71,14 @@ export function ExceptionListItem({
 
         {/* Label if present */}
         {exception.label && (
-          <span className="text-sm font-medium truncate">
+          <span className="text-sm font-medium truncate flex-shrink min-w-0">
             {exception.label}
           </span>
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Actions - always visible space, icons on hover */}
+      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <NestoButton
           variant="ghost"
           size="sm"

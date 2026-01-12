@@ -1,32 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
-import { Calendar as CalendarIcon, AlertTriangle } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Calendar as CalendarIcon, X } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoSelect } from "@/components/polar/NestoSelect";
 import { InfoAlert } from "@/components/polar/InfoAlert";
 import { cn } from "@/lib/utils";
 import {
@@ -49,7 +36,7 @@ interface ShiftExceptionModalProps {
 const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
   const hours = Math.floor(i / 4).toString().padStart(2, "0");
   const mins = ((i % 4) * 15).toString().padStart(2, "0");
-  return `${hours}:${mins}`;
+  return { value: `${hours}:${mins}`, label: `${hours}:${mins}` };
 });
 
 export function ShiftExceptionModal({
@@ -138,16 +125,32 @@ export function ShiftExceptionModal({
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  // Build scope options
+  const scopeOptions = [
+    { value: "all", label: "Alle shifts" },
+    ...shifts.filter((s) => s.is_active).map((shift) => ({
+      value: shift.id,
+      label: shift.name,
+    })),
+  ];
+
+  const handleClose = () => onOpenChange(false);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="sm:max-w-[480px] p-0 gap-0 overflow-hidden rounded-card" hideCloseButton>
+        {/* Custom Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
+          <h2 className="text-lg font-semibold">
             {isEditing ? "Uitzondering bewerken" : "Nieuwe uitzondering"}
-          </DialogTitle>
-        </DialogHeader>
+          </h2>
+          <NestoButton variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8">
+            <X className="h-5 w-5" />
+          </NestoButton>
+        </div>
 
-        <div className="space-y-5 py-4">
+        {/* Content */}
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Info text */}
           <p className="text-sm text-muted-foreground">
             Dit zijn reserveringstijden, niet openingstijden.
@@ -155,7 +158,7 @@ export function ShiftExceptionModal({
 
           {/* Date picker */}
           <div className="space-y-2">
-            <Label>Datum</Label>
+            <label className="text-sm font-medium text-muted-foreground">Datum</label>
             <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
               <PopoverTrigger asChild>
                 <NestoButton
@@ -186,7 +189,7 @@ export function ShiftExceptionModal({
 
           {/* Type selection */}
           <div className="space-y-3">
-            <Label>Type uitzondering</Label>
+            <label className="text-sm font-medium text-muted-foreground">Type uitzondering</label>
             <RadioGroup
               value={type}
               onValueChange={(v) => setType(v as ShiftExceptionType)}
@@ -194,43 +197,33 @@ export function ShiftExceptionModal({
             >
               <div className="flex items-center space-x-3">
                 <RadioGroupItem value="closed" id="type-closed" />
-                <Label htmlFor="type-closed" className="font-normal cursor-pointer">
+                <label htmlFor="type-closed" className="text-sm font-normal cursor-pointer">
                   Gesloten (hele dag geen reserveringen)
-                </Label>
+                </label>
               </div>
               <div className="flex items-center space-x-3">
                 <RadioGroupItem value="modified" id="type-modified" />
-                <Label htmlFor="type-modified" className="font-normal cursor-pointer">
+                <label htmlFor="type-modified" className="text-sm font-normal cursor-pointer">
                   Aangepaste tijden
-                </Label>
+                </label>
               </div>
               <div className="flex items-center space-x-3">
                 <RadioGroupItem value="special" id="type-special" />
-                <Label htmlFor="type-special" className="font-normal cursor-pointer">
+                <label htmlFor="type-special" className="text-sm font-normal cursor-pointer">
                   Speciaal (markering zonder wijziging)
-                </Label>
+                </label>
               </div>
             </RadioGroup>
           </div>
 
           {/* Scope selection */}
           {!isEditing && (
-            <div className="space-y-2">
-              <Label>Scope</Label>
-              <Select value={shiftId} onValueChange={setShiftId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle shifts</SelectItem>
-                  {shifts.filter((s) => s.is_active).map((shift) => (
-                    <SelectItem key={shift.id} value={shift.id}>
-                      {shift.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <NestoSelect
+              label="Scope"
+              value={shiftId}
+              onValueChange={setShiftId}
+              options={scopeOptions}
+            />
           )}
 
           {/* Location-wide closed warning */}
@@ -245,33 +238,21 @@ export function ShiftExceptionModal({
           {/* Time selection for modified type */}
           {type === "modified" && (
             <div className="space-y-2">
-              <Label>Reserveringstijden</Label>
+              <label className="text-sm font-medium text-muted-foreground">Reserveringstijden</label>
               <div className="flex items-center gap-3">
-                <Select value={startTime} onValueChange={setStartTime}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_OPTIONS.map((time) => (
-                      <SelectItem key={`start-${time}`} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-muted-foreground">tot</span>
-                <Select value={endTime} onValueChange={setEndTime}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_OPTIONS.map((time) => (
-                      <SelectItem key={`end-${time}`} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <NestoSelect
+                  value={startTime}
+                  onValueChange={setStartTime}
+                  options={TIME_OPTIONS}
+                  className="w-[120px]"
+                />
+                <span className="text-muted-foreground text-sm">tot</span>
+                <NestoSelect
+                  value={endTime}
+                  onValueChange={setEndTime}
+                  options={TIME_OPTIONS}
+                  className="w-[120px]"
+                />
               </div>
               {!timesValid && (
                 <p className="text-sm text-destructive">
@@ -282,18 +263,16 @@ export function ShiftExceptionModal({
           )}
 
           {/* Label */}
-          <div className="space-y-2">
-            <Label>Label (optioneel)</Label>
-            <NestoInput
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="bijv. Kerst, Verbouwing, Privé-event"
-            />
-          </div>
+          <NestoInput
+            label="Label (optioneel)"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="bijv. Kerst, Verbouwing, Privé-event"
+          />
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label>Notities (optioneel)</Label>
+            <label className="text-sm font-medium text-muted-foreground">Notities (optioneel)</label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -303,18 +282,15 @@ export function ShiftExceptionModal({
           </div>
         </div>
 
-        <DialogFooter>
-          <NestoButton
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-          >
+        {/* Custom Footer */}
+        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4 bg-card">
+          <NestoButton variant="outline" onClick={handleClose} disabled={isPending}>
             Annuleren
           </NestoButton>
           <NestoButton onClick={handleSave} disabled={!canSave || isPending}>
             {isPending ? "Opslaan..." : isEditing ? "Opslaan" : "Toevoegen"}
           </NestoButton>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
