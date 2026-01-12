@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
-import { Calendar as CalendarIcon, X } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -13,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoSelect } from "@/components/polar/NestoSelect";
 import { InfoAlert } from "@/components/polar/InfoAlert";
 import { cn } from "@/lib/utils";
@@ -134,164 +134,150 @@ export function ShiftExceptionModal({
     })),
   ];
 
-  const handleClose = () => onOpenChange(false);
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] p-0 gap-0 overflow-hidden rounded-card" hideCloseButton>
-        {/* Custom Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
-          <h2 className="text-lg font-semibold">
-            {isEditing ? "Uitzondering bewerken" : "Nieuwe uitzondering"}
-          </h2>
-          <NestoButton variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8">
-            <X className="h-5 w-5" />
-          </NestoButton>
-        </div>
-
-        {/* Content */}
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Info text */}
-          <p className="text-sm text-muted-foreground">
-            Dit zijn reserveringstijden, niet openingstijden.
-          </p>
-
-          {/* Date picker */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Datum</label>
-            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <NestoButton
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                  disabled={isEditing}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "d MMMM yyyy", { locale: nl }) : "Kies een datum"}
-                </NestoButton>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(d) => {
-                    setDate(d);
-                    setDatePickerOpen(false);
-                  }}
-                  locale={nl}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Type selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-muted-foreground">Type uitzondering</label>
-            <RadioGroup
-              value={type}
-              onValueChange={(v) => setType(v as ShiftExceptionType)}
-              className="space-y-2"
-            >
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="closed" id="type-closed" />
-                <label htmlFor="type-closed" className="text-sm font-normal cursor-pointer">
-                  Gesloten (hele dag geen reserveringen)
-                </label>
-              </div>
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="modified" id="type-modified" />
-                <label htmlFor="type-modified" className="text-sm font-normal cursor-pointer">
-                  Aangepaste tijden
-                </label>
-              </div>
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="special" id="type-special" />
-                <label htmlFor="type-special" className="text-sm font-normal cursor-pointer">
-                  Speciaal (markering zonder wijziging)
-                </label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Scope selection */}
-          {!isEditing && (
-            <NestoSelect
-              label="Scope"
-              value={shiftId}
-              onValueChange={setShiftId}
-              options={scopeOptions}
-            />
-          )}
-
-          {/* Location-wide closed warning */}
-          {isLocationWideClosed && (
-            <InfoAlert
-              variant="warning"
-              title="Let op"
-              description="Dit sluit alle reserveringsmogelijkheden voor de hele dag."
-            />
-          )}
-
-          {/* Time selection for modified type */}
-          {type === "modified" && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Reserveringstijden</label>
-              <div className="flex items-center gap-3">
-                <NestoSelect
-                  value={startTime}
-                  onValueChange={setStartTime}
-                  options={TIME_OPTIONS}
-                  className="w-[120px]"
-                />
-                <span className="text-muted-foreground text-sm">tot</span>
-                <NestoSelect
-                  value={endTime}
-                  onValueChange={setEndTime}
-                  options={TIME_OPTIONS}
-                  className="w-[120px]"
-                />
-              </div>
-              {!timesValid && (
-                <p className="text-sm text-destructive">
-                  Eindtijd moet na starttijd liggen.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Label */}
-          <NestoInput
-            label="Label (optioneel)"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="bijv. Kerst, Verbouwing, Privé-event"
-          />
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Notities (optioneel)</label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Extra informatie..."
-              rows={2}
-            />
-          </div>
-        </div>
-
-        {/* Custom Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4 bg-card">
-          <NestoButton variant="outline" onClick={handleClose} disabled={isPending}>
+    <NestoModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? "Uitzondering bewerken" : "Nieuwe uitzondering"}
+      description="Dit zijn reserveringstijden, niet openingstijden."
+      size="md"
+      footer={
+        <div className="flex justify-end gap-2 w-full">
+          <NestoButton variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
             Annuleren
           </NestoButton>
           <NestoButton onClick={handleSave} disabled={!canSave || isPending}>
             {isPending ? "Opslaan..." : isEditing ? "Opslaan" : "Toevoegen"}
           </NestoButton>
         </div>
-      </DialogContent>
-    </Dialog>
+      }
+    >
+      <div className="space-y-4">
+        {/* Date picker */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">Datum</label>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <NestoButton
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+                disabled={isEditing}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "d MMMM yyyy", { locale: nl }) : "Kies een datum"}
+              </NestoButton>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(d) => {
+                  setDate(d);
+                  setDatePickerOpen(false);
+                }}
+                locale={nl}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Type selection */}
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-muted-foreground">Type uitzondering</label>
+          <RadioGroup
+            value={type}
+            onValueChange={(v) => setType(v as ShiftExceptionType)}
+            className="space-y-2"
+          >
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="closed" id="type-closed" />
+              <label htmlFor="type-closed" className="text-sm font-normal cursor-pointer">
+                Gesloten (hele dag geen reserveringen)
+              </label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="modified" id="type-modified" />
+              <label htmlFor="type-modified" className="text-sm font-normal cursor-pointer">
+                Aangepaste tijden
+              </label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="special" id="type-special" />
+              <label htmlFor="type-special" className="text-sm font-normal cursor-pointer">
+                Speciaal (markering zonder wijziging)
+              </label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Scope selection */}
+        {!isEditing && (
+          <NestoSelect
+            label="Scope"
+            value={shiftId}
+            onValueChange={setShiftId}
+            options={scopeOptions}
+          />
+        )}
+
+        {/* Location-wide closed warning */}
+        {isLocationWideClosed && (
+          <InfoAlert
+            variant="warning"
+            title="Let op"
+            description="Dit sluit alle reserveringsmogelijkheden voor de hele dag."
+          />
+        )}
+
+        {/* Time selection for modified type */}
+        {type === "modified" && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Reserveringstijden</label>
+            <div className="flex items-center gap-3">
+              <NestoSelect
+                value={startTime}
+                onValueChange={setStartTime}
+                options={TIME_OPTIONS}
+                className="w-[120px]"
+              />
+              <span className="text-muted-foreground text-sm">tot</span>
+              <NestoSelect
+                value={endTime}
+                onValueChange={setEndTime}
+                options={TIME_OPTIONS}
+                className="w-[120px]"
+              />
+            </div>
+            {!timesValid && (
+              <p className="text-sm text-destructive">
+                Eindtijd moet na starttijd liggen.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Label */}
+        <NestoInput
+          label="Label (optioneel)"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="bijv. Kerst, Verbouwing, Privé-event"
+        />
+
+        {/* Notes */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">Notities (optioneel)</label>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Extra informatie..."
+            rows={2}
+          />
+        </div>
+      </div>
+    </NestoModal>
   );
 }
