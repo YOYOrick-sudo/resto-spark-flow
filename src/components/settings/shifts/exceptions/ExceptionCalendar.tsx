@@ -15,7 +15,7 @@ interface ExceptionCalendarProps {
 
 const TYPE_COLORS: Record<ShiftExceptionType, string> = {
   closed: "bg-destructive",
-  modified: "bg-warning",
+  modified: "bg-orange-500",
   special: "bg-purple-500",
 };
 

@@ -161,7 +161,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
               <span>Gesloten</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="w-2 h-2 rounded-full bg-warning" />
+              <div className="w-2 h-2 rounded-full bg-orange-500" />
               <span>Aangepaste tijden</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
