@@ -1,23 +1,14 @@
 // ============================================
 // FASE 4.3.D: Bulk Exception Modal
 // Enterprise-grade bulk exception generator
+// Styled to match ShiftWizard (Polar UI)
 // ============================================
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { format, addMonths, addYears } from "date-fns";
+import { format, addYears } from "date-fns";
 import { nl } from "date-fns/locale";
-import { CalendarIcon, Repeat } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { CalendarIcon, Repeat, X } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -25,13 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
 import { useShiftExceptions, useBulkCreateShiftExceptions } from "@/hooks/useShiftExceptions";
 import {
   generateDates,
@@ -71,10 +56,30 @@ interface BulkExceptionModalProps {
 const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
   const hours = Math.floor(i / 4);
   const minutes = (i % 4) * 15;
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+  const value = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+  return { value, label: value };
 });
 
-const DAY_OF_MONTH_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
+const DAY_OF_MONTH_OPTIONS = Array.from({ length: 31 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: (i + 1).toString(),
+}));
+
+const NTH_SELECT_OPTIONS = NTH_OPTIONS.map((n) => ({
+  value: n.value.toString(),
+  label: n.label,
+}));
+
+const WEEKDAY_SELECT_OPTIONS = WEEKDAY_OPTIONS.map((w) => ({
+  value: w.value.toString(),
+  label: w.label,
+}));
+
+const EXCEPTION_TYPE_OPTIONS = [
+  { value: "closed", label: "Gesloten" },
+  { value: "modified", label: "Aangepaste tijden" },
+  { value: "special", label: "Speciaal" },
+];
 
 // ============================================
 // Component
@@ -129,10 +134,8 @@ export function BulkExceptionModal({
   // Queries and Mutations
   // ============================================
   
-  // Fetch existing exceptions for conflict detection
   const dateRange = useMemo(() => {
     if (repeatMode === 'n-occurrences') {
-      // For n-occurrences, estimate a large range
       return {
         from: format(startDate, 'yyyy-MM-dd'),
         to: format(addYears(startDate, 3), 'yyyy-MM-dd'),
@@ -145,11 +148,10 @@ export function BulkExceptionModal({
   }, [startDate, endDate, repeatMode]);
 
   const { data: existingExceptions = [] } = useShiftExceptions(locationId, dateRange);
-
   const bulkCreateMutation = useBulkCreateShiftExceptions();
 
   // ============================================
-  // Build shift map
+  // Build shift map and scope options
   // ============================================
   
   const shiftsMap = useMemo(() => {
@@ -158,32 +160,28 @@ export function BulkExceptionModal({
     return map;
   }, [shifts]);
 
+  const scopeOptions = useMemo(() => [
+    { value: "all", label: "Alle shifts (locatie-breed)" },
+    ...shifts.filter((s) => s.is_active).map((shift) => ({
+      value: shift.id,
+      label: shift.name,
+    })),
+  ], [shifts]);
+
   // ============================================
   // Generate pattern configuration
   // ============================================
   
   const generatorPattern = useMemo((): GeneratorPattern | null => {
     if (repeatMode === 'weekly') {
-      return {
-        mode: 'weekly',
-        weekdays: selectedWeekdays,
-      };
+      return { mode: 'weekly', weekdays: selectedWeekdays };
     }
     
     if (repeatMode === 'monthly') {
       if (monthlyType === 'day') {
-        return {
-          mode: 'monthly-day',
-          dayOfMonth,
-          everyNMonths: 1,
-        };
+        return { mode: 'monthly-day', dayOfMonth, everyNMonths: 1 };
       } else {
-        return {
-          mode: 'monthly-nth',
-          nth,
-          weekday: nthWeekday,
-          everyNMonths: 1,
-        };
+        return { mode: 'monthly-nth', nth, weekday: nthWeekday, everyNMonths: 1 };
       }
     }
     
@@ -221,7 +219,6 @@ export function BulkExceptionModal({
   
   const validation = useMemo(() => {
     if (!generatorPattern) return { valid: false, error: 'Selecteer een patroon' };
-    
     return validateGeneratorConfig({
       pattern: generatorPattern,
       startDate,
@@ -235,7 +232,6 @@ export function BulkExceptionModal({
   
   const generatedDates = useMemo((): GeneratedDate[] => {
     if (!generatorPattern || !validation.valid) return [];
-    
     return generateDates({
       pattern: generatorPattern,
       startDate,
@@ -249,40 +245,17 @@ export function BulkExceptionModal({
   
   const conflictResult = useMemo((): ConflictCheckResult | null => {
     if (generatedDates.length === 0) return null;
-    
-    return detectConflicts(
-      generatedDates,
-      existingExceptions,
-      shiftId,
-      exceptionType
-    );
+    return detectConflicts(generatedDates, existingExceptions, shiftId, exceptionType);
   }, [generatedDates, existingExceptions, shiftId, exceptionType]);
 
-  // ============================================
-  // Count warning
-  // ============================================
-  
-  const countWarning = useMemo(() => {
-    return getCountWarning(generatedDates.length);
-  }, [generatedDates.length]);
+  const countWarning = useMemo(() => getCountWarning(generatedDates.length), [generatedDates.length]);
 
-  // ============================================
-  // Times validation (for modified type)
-  // ============================================
-  
   const timesValid = useMemo(() => {
     if (exceptionType !== 'modified') return true;
     return startTime < endTime;
   }, [exceptionType, startTime, endTime]);
 
-  // ============================================
-  // Can save?
-  // ============================================
-  
-  const canSave = validation.valid && 
-    generatedDates.length > 0 && 
-    timesValid && 
-    !bulkCreateMutation.isPending;
+  const canSave = validation.valid && generatedDates.length > 0 && timesValid && !bulkCreateMutation.isPending;
 
   // ============================================
   // Reset form on close
@@ -311,7 +284,7 @@ export function BulkExceptionModal({
   }, [open]);
 
   // ============================================
-  // Toggle weekday
+  // Handlers
   // ============================================
   
   const toggleWeekday = useCallback((day: number) => {
@@ -322,14 +295,11 @@ export function BulkExceptionModal({
     );
   }, []);
 
-  // ============================================
-  // Handle save
-  // ============================================
-  
+  const handleClose = () => onOpenChange(false);
+
   const handleSave = async () => {
     if (!canSave || !conflictResult) return;
 
-    // Determine which dates to create
     const datesToCreate = conflictResolution === 'skip'
       ? conflictResult.newDates
       : [...conflictResult.newDates, ...conflictResult.exactConflicts.map((c) => ({
@@ -339,7 +309,6 @@ export function BulkExceptionModal({
           dayOfWeek: '',
         }))];
 
-    // Build exception inputs
     const exceptions: CreateShiftExceptionInput[] = datesToCreate.map((d) => ({
       location_id: locationId,
       exception_date: d.formattedDate,
@@ -350,12 +319,8 @@ export function BulkExceptionModal({
       override_end_time: exceptionType === 'modified' ? `${endTime}:00` : null,
     }));
 
-    // Determine replace conflicts
     const replaceConflicts = conflictResolution === 'replace' && conflictResult.exactConflicts.length > 0
-      ? {
-          dates: conflictResult.exactConflicts.map((c) => c.date),
-          shiftId,
-        }
+      ? { dates: conflictResult.exactConflicts.map((c) => c.date), shiftId }
       : undefined;
 
     await bulkCreateMutation.mutateAsync({
@@ -374,21 +339,24 @@ export function BulkExceptionModal({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Repeat className="h-5 w-5" />
+      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden rounded-card" hideCloseButton>
+        {/* Custom Header - matches ShiftWizard */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-card">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Repeat className="h-5 w-5 text-primary" />
             Meerdere uitzonderingen aanmaken
-          </DialogTitle>
-          <DialogDescription>
-            Genereer meerdere uitzonderingen op basis van een herhalingspatroon.
-          </DialogDescription>
-        </DialogHeader>
+          </h2>
+          <NestoButton variant="ghost" size="icon" onClick={handleClose}>
+            <X className="h-5 w-5" />
+          </NestoButton>
+        </div>
 
-        <div className="space-y-6 py-4">
+        {/* Content */}
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          
           {/* Repeat Mode Selection */}
-          <div className="space-y-3">
-            <Label>Herhalingspatroon</Label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Herhalingspatroon</label>
             <RadioGroup
               value={repeatMode}
               onValueChange={(v) => setRepeatMode(v as typeof repeatMode)}
@@ -396,36 +364,37 @@ export function BulkExceptionModal({
             >
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="weekly" id="weekly" />
-                <Label htmlFor="weekly" className="font-normal cursor-pointer">Wekelijks</Label>
+                <label htmlFor="weekly" className="text-sm cursor-pointer">Wekelijks</label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="monthly" id="monthly" />
-                <Label htmlFor="monthly" className="font-normal cursor-pointer">Maandelijks</Label>
+                <label htmlFor="monthly" className="text-sm cursor-pointer">Maandelijks</label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="n-occurrences" id="n-occurrences" />
-                <Label htmlFor="n-occurrences" className="font-normal cursor-pointer">Aantal keer</Label>
+                <label htmlFor="n-occurrences" className="text-sm cursor-pointer">Aantal keer</label>
               </div>
             </RadioGroup>
           </div>
 
-          {/* Pattern Configuration */}
-          <div className="rounded-lg border border-border p-4 space-y-4">
-            {/* Weekly: Weekday selection */}
+          {/* Pattern Configuration Block */}
+          <div className="bg-secondary/50 rounded-card p-4 space-y-4">
+            
+            {/* Weekly: Weekday selection (matches TimesStep w-9 h-9 buttons) */}
             {(repeatMode === 'weekly' || (repeatMode === 'n-occurrences' && nOccBaseMode === 'weekly')) && (
               <div className="space-y-2">
-                <Label>Weekdagen</Label>
-                <div className="flex flex-wrap gap-2">
+                <label className="text-sm font-medium text-muted-foreground">Weekdagen</label>
+                <div className="flex gap-1.5">
                   {WEEKDAY_OPTIONS.map((day) => (
                     <button
                       key={day.value}
                       type="button"
                       onClick={() => toggleWeekday(day.value)}
                       className={cn(
-                        "px-3 py-1.5 text-sm rounded-md border transition-colors",
+                        "w-9 h-9 rounded-button text-sm font-medium transition-colors",
                         selectedWeekdays.includes(day.value)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background border-border hover:bg-muted"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
                       )}
                     >
                       {day.label.charAt(0).toUpperCase() + day.label.slice(1, 2)}
@@ -445,65 +414,41 @@ export function BulkExceptionModal({
                 >
                   <div className="flex items-center gap-3">
                     <RadioGroupItem value="day" id="monthly-day" />
-                    <Label htmlFor="monthly-day" className="font-normal cursor-pointer flex items-center gap-2">
+                    <label htmlFor="monthly-day" className="text-sm cursor-pointer flex items-center gap-2">
                       Op dag
-                      <Select
-                        value={dayOfMonth.toString()}
-                        onValueChange={(v) => setDayOfMonth(parseInt(v))}
-                        disabled={monthlyType !== 'day'}
-                      >
-                        <SelectTrigger className="w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DAY_OF_MONTH_OPTIONS.map((d) => (
-                            <SelectItem key={d} value={d.toString()}>
-                              {d}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="w-20">
+                        <NestoSelect
+                          value={dayOfMonth.toString()}
+                          onValueChange={(v) => setDayOfMonth(parseInt(v))}
+                          options={DAY_OF_MONTH_OPTIONS}
+                          disabled={monthlyType !== 'day'}
+                        />
+                      </div>
                       van de maand
-                    </Label>
+                    </label>
                   </div>
                   <div className="flex items-center gap-3">
                     <RadioGroupItem value="nth" id="monthly-nth" />
-                    <Label htmlFor="monthly-nth" className="font-normal cursor-pointer flex items-center gap-2">
+                    <label htmlFor="monthly-nth" className="text-sm cursor-pointer flex items-center gap-2">
                       Op de
-                      <Select
-                        value={nth.toString()}
-                        onValueChange={(v) => setNth(v === 'last' ? 'last' : parseInt(v) as NthWeek)}
-                        disabled={monthlyType !== 'nth'}
-                      >
-                        <SelectTrigger className="w-24">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {NTH_OPTIONS.map((n) => (
-                            <SelectItem key={n.value.toString()} value={n.value.toString()}>
-                              {n.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={nthWeekday.toString()}
-                        onValueChange={(v) => setNthWeekday(parseInt(v))}
-                        disabled={monthlyType !== 'nth'}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {WEEKDAY_OPTIONS.map((w) => (
-                            <SelectItem key={w.value} value={w.value.toString()}>
-                              {w.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="w-24">
+                        <NestoSelect
+                          value={nth.toString()}
+                          onValueChange={(v) => setNth(v === 'last' ? 'last' : parseInt(v) as NthWeek)}
+                          options={NTH_SELECT_OPTIONS}
+                          disabled={monthlyType !== 'nth'}
+                        />
+                      </div>
+                      <div className="w-32">
+                        <NestoSelect
+                          value={nthWeekday.toString()}
+                          onValueChange={(v) => setNthWeekday(parseInt(v))}
+                          options={WEEKDAY_SELECT_OPTIONS}
+                          disabled={monthlyType !== 'nth'}
+                        />
+                      </div>
                       van de maand
-                    </Label>
+                    </label>
                   </div>
                 </RadioGroup>
                 {monthlyType === 'day' && dayOfMonth > 28 && (
@@ -518,20 +463,21 @@ export function BulkExceptionModal({
             {repeatMode === 'n-occurrences' && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Label>Aantal:</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={occurrenceCount}
-                    onChange={(e) => setOccurrenceCount(Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
-                    className="w-24"
-                  />
+                  <label className="text-sm font-medium text-muted-foreground">Aantal:</label>
+                  <div className="w-24">
+                    <NestoInput
+                      type="number"
+                      min={1}
+                      max={500}
+                      value={occurrenceCount}
+                      onChange={(e) => setOccurrenceCount(Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
+                    />
+                  </div>
                   <span className="text-sm text-muted-foreground">keer</span>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Gebaseerd op:</Label>
+                  <label className="text-sm font-medium text-muted-foreground">Gebaseerd op:</label>
                   <RadioGroup
                     value={nOccBaseMode}
                     onValueChange={(v) => setNOccBaseMode(v as typeof nOccBaseMode)}
@@ -539,69 +485,45 @@ export function BulkExceptionModal({
                   >
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="weekly" id="nocc-weekly" />
-                      <Label htmlFor="nocc-weekly" className="font-normal cursor-pointer">
+                      <label htmlFor="nocc-weekly" className="text-sm cursor-pointer">
                         Wekelijks (selecteer weekdagen hierboven)
-                      </Label>
+                      </label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="monthly-day" id="nocc-monthly-day" />
-                      <Label htmlFor="nocc-monthly-day" className="font-normal cursor-pointer flex items-center gap-2">
+                      <label htmlFor="nocc-monthly-day" className="text-sm cursor-pointer flex items-center gap-2">
                         Maandelijks: dag
-                        <Select
-                          value={dayOfMonth.toString()}
-                          onValueChange={(v) => setDayOfMonth(parseInt(v))}
-                          disabled={nOccBaseMode !== 'monthly-day'}
-                        >
-                          <SelectTrigger className="w-20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {DAY_OF_MONTH_OPTIONS.map((d) => (
-                              <SelectItem key={d} value={d.toString()}>
-                                {d}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Label>
+                        <div className="w-20">
+                          <NestoSelect
+                            value={dayOfMonth.toString()}
+                            onValueChange={(v) => setDayOfMonth(parseInt(v))}
+                            options={DAY_OF_MONTH_OPTIONS}
+                            disabled={nOccBaseMode !== 'monthly-day'}
+                          />
+                        </div>
+                      </label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="monthly-nth" id="nocc-monthly-nth" />
-                      <Label htmlFor="nocc-monthly-nth" className="font-normal cursor-pointer flex items-center gap-2">
+                      <label htmlFor="nocc-monthly-nth" className="text-sm cursor-pointer flex items-center gap-2">
                         Maandelijks:
-                        <Select
-                          value={nth.toString()}
-                          onValueChange={(v) => setNth(v === 'last' ? 'last' : parseInt(v) as NthWeek)}
-                          disabled={nOccBaseMode !== 'monthly-nth'}
-                        >
-                          <SelectTrigger className="w-24">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {NTH_OPTIONS.map((n) => (
-                              <SelectItem key={n.value.toString()} value={n.value.toString()}>
-                                {n.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select
-                          value={nthWeekday.toString()}
-                          onValueChange={(v) => setNthWeekday(parseInt(v))}
-                          disabled={nOccBaseMode !== 'monthly-nth'}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {WEEKDAY_OPTIONS.map((w) => (
-                              <SelectItem key={w.value} value={w.value.toString()}>
-                                {w.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Label>
+                        <div className="w-24">
+                          <NestoSelect
+                            value={nth.toString()}
+                            onValueChange={(v) => setNth(v === 'last' ? 'last' : parseInt(v) as NthWeek)}
+                            options={NTH_SELECT_OPTIONS}
+                            disabled={nOccBaseMode !== 'monthly-nth'}
+                          />
+                        </div>
+                        <div className="w-32">
+                          <NestoSelect
+                            value={nthWeekday.toString()}
+                            onValueChange={(v) => setNthWeekday(parseInt(v))}
+                            options={WEEKDAY_SELECT_OPTIONS}
+                            disabled={nOccBaseMode !== 'monthly-nth'}
+                          />
+                        </div>
+                      </label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -610,18 +532,20 @@ export function BulkExceptionModal({
           </div>
 
           {/* Date Range */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>{repeatMode === 'n-occurrences' ? 'Startdatum' : 'Van'}</Label>
+              <label className="text-sm font-medium text-muted-foreground">
+                {repeatMode === 'n-occurrences' ? 'Startdatum' : 'Van'}
+              </label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
+                  <NestoButton
                     variant="outline"
                     className="w-full justify-start text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {format(startDate, 'd MMMM yyyy', { locale: nl })}
-                  </Button>
+                  </NestoButton>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
@@ -636,16 +560,16 @@ export function BulkExceptionModal({
 
             {repeatMode !== 'n-occurrences' && (
               <div className="space-y-2">
-                <Label>Tot</Label>
+                <label className="text-sm font-medium text-muted-foreground">Tot</label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
+                    <NestoButton
                       variant="outline"
                       className="w-full justify-start text-left font-normal"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {format(endDate, 'd MMMM yyyy', { locale: nl })}
-                    </Button>
+                    </NestoButton>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
@@ -661,62 +585,44 @@ export function BulkExceptionModal({
             )}
           </div>
 
-          {/* Exception Type */}
-          <div className="space-y-3">
-            <Label>Type uitzondering</Label>
-            <RadioGroup
-              value={exceptionType}
-              onValueChange={(v) => setExceptionType(v as ShiftExceptionType)}
-              className="flex gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="closed" id="type-closed" />
-                <Label htmlFor="type-closed" className="font-normal cursor-pointer">Gesloten</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="modified" id="type-modified" />
-                <Label htmlFor="type-modified" className="font-normal cursor-pointer">Aangepaste tijden</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="special" id="type-special" />
-                <Label htmlFor="type-special" className="font-normal cursor-pointer">Speciaal</Label>
-              </div>
-            </RadioGroup>
+          {/* Exception Details Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Type */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Type uitzondering</label>
+              <NestoSelect
+                value={exceptionType}
+                onValueChange={(v) => setExceptionType(v as ShiftExceptionType)}
+                options={EXCEPTION_TYPE_OPTIONS}
+              />
+            </div>
+
+            {/* Scope */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Scope</label>
+              <NestoSelect
+                value={shiftId === null ? "all" : shiftId}
+                onValueChange={(v) => setShiftId(v === "all" ? null : v)}
+                options={scopeOptions}
+              />
+            </div>
           </div>
 
           {/* Modified times */}
           {exceptionType === 'modified' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Starttijd</Label>
-                <Select value={startTime} onValueChange={setStartTime}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_OPTIONS.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Eindtijd</Label>
-                <Select value={endTime} onValueChange={setEndTime}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_OPTIONS.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <NestoSelect
+                label="Starttijd"
+                value={startTime}
+                onValueChange={setStartTime}
+                options={TIME_OPTIONS}
+              />
+              <NestoSelect
+                label="Eindtijd"
+                value={endTime}
+                onValueChange={setEndTime}
+                options={TIME_OPTIONS}
+              />
               {!timesValid && (
                 <p className="col-span-2 text-sm text-destructive">
                   Eindtijd moet na starttijd liggen.
@@ -725,36 +631,13 @@ export function BulkExceptionModal({
             </div>
           )}
 
-          {/* Scope */}
-          <div className="space-y-2">
-            <Label>Scope</Label>
-            <Select
-              value={shiftId === null ? "all" : shiftId}
-              onValueChange={(v) => setShiftId(v === "all" ? null : v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecteer scope" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle shifts (locatie-breed)</SelectItem>
-                {shifts.filter((s) => s.is_active).map((shift) => (
-                  <SelectItem key={shift.id} value={shift.id}>
-                    {shift.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Label */}
-          <div className="space-y-2">
-            <Label>Label (optioneel)</Label>
-            <Input
-              placeholder="bijv. Elke maandag gesloten"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-            />
-          </div>
+          <NestoInput
+            label="Label (optioneel)"
+            placeholder="bijv. Elke maandag gesloten"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+          />
 
           {/* Validation error */}
           {!validation.valid && validation.error && (
@@ -776,7 +659,7 @@ export function BulkExceptionModal({
 
           {/* Progress indicator */}
           {progress && (
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="rounded-card bg-muted/30 p-3">
               <p className="text-sm text-muted-foreground">
                 Bezig met aanmaken... {progress.current}/{progress.total}
               </p>
@@ -790,24 +673,26 @@ export function BulkExceptionModal({
           )}
         </div>
 
-        <DialogFooter>
-          <Button
+        {/* Custom Footer - matches ShiftWizard */}
+        <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-4 bg-card">
+          <NestoButton
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={bulkCreateMutation.isPending}
           >
             Annuleren
-          </Button>
-          <Button
+          </NestoButton>
+          <NestoButton
             onClick={handleSave}
             disabled={!canSave}
+            isLoading={bulkCreateMutation.isPending}
           >
             {generatedDates.length > 0 
               ? `${generatedDates.length} uitzondering${generatedDates.length !== 1 ? 'en' : ''} aanmaken`
               : 'Aanmaken'
             }
-          </Button>
-        </DialogFooter>
+          </NestoButton>
+        </div>
       </DialogContent>
     </Dialog>
   );
