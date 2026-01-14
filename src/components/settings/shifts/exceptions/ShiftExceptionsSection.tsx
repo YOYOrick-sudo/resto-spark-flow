@@ -172,30 +172,52 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
         </div>
 
         {/* Exceptions list */}
-        <div className="min-h-[200px] max-h-[400px] overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <span className="text-sm text-muted-foreground">Laden...</span>
-            </div>
-          ) : exceptions.length === 0 ? (
-            <EmptyState
-              icon={Ban}
-              title="Geen uitzonderingen"
-              description="Er zijn nog geen uitzonderingen voor deze maand. Klik op een dag of gebruik de knoppen hierboven."
-            />
-          ) : (
-            <div>
-              {exceptions.map((exception) => (
-                <ExceptionListItem
-                  key={exception.id}
-                  exception={exception}
-                  shiftsMap={shiftsMap}
-                  onEdit={handleEdit}
-                  onDelete={handleDeleteClick}
-                />
-              ))}
+        <div className="flex flex-col">
+          {/* List header with count */}
+          {exceptions.length > 0 && (
+            <div className="flex items-center justify-between px-3 py-2 border border-b-0 bg-muted/30 rounded-t-card">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Lijst
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {exceptions.length} {exceptions.length === 1 ? 'item' : 'items'}
+              </span>
             </div>
           )}
+          
+          {/* Scrollable list container */}
+          <div className={`relative ${exceptions.length > 0 ? 'border rounded-b-card' : ''}`}>
+            <div className={`min-h-[160px] max-h-[280px] overflow-y-auto bg-secondary/30 ${exceptions.length === 0 ? 'border rounded-card' : ''}`}>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <span className="text-sm text-muted-foreground">Laden...</span>
+                </div>
+              ) : exceptions.length === 0 ? (
+                <EmptyState
+                  icon={Ban}
+                  title="Geen uitzonderingen"
+                  description="Er zijn nog geen uitzonderingen voor deze maand. Klik op een dag of gebruik de knoppen hierboven."
+                />
+              ) : (
+                <div>
+                  {exceptions.map((exception) => (
+                    <ExceptionListItem
+                      key={exception.id}
+                      exception={exception}
+                      shiftsMap={shiftsMap}
+                      onEdit={handleEdit}
+                      onDelete={handleDeleteClick}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Scroll fade indicator */}
+            {exceptions.length > 5 && (
+              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-secondary/60 to-transparent pointer-events-none rounded-b-card" />
+            )}
+          </div>
         </div>
       </div>
 
