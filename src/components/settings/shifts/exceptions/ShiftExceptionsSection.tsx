@@ -175,7 +175,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
         <div className="flex flex-col">
           {/* List header with count */}
           {exceptions.length > 0 && (
-            <div className="flex items-center justify-between px-3 py-2 border border-b-0 bg-muted/30 rounded-t-card">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Lijst
               </span>
@@ -186,8 +186,8 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
           )}
           
           {/* Scrollable list container */}
-          <div className={`relative ${exceptions.length > 0 ? 'border rounded-b-card' : ''}`}>
-            <div className={`min-h-[160px] max-h-[280px] overflow-y-auto bg-secondary/30 ${exceptions.length === 0 ? 'border rounded-card' : ''}`}>
+          <div className="relative">
+            <div className="min-h-[160px] max-h-[280px] overflow-y-auto">
               {isLoading ? (
                 <div className="flex items-center justify-center h-32">
                   <span className="text-sm text-muted-foreground">Laden...</span>
@@ -215,7 +215,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
             
             {/* Scroll fade indicator */}
             {exceptions.length > 5 && (
-              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-secondary/60 to-transparent pointer-events-none rounded-b-card" />
+              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent pointer-events-none" />
             )}
           </div>
         </div>
