@@ -201,98 +201,95 @@ export function ShiftExceptionModal({
           </Popover>
         </div>
 
-        {/* Type selection */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-muted-foreground">Type uitzondering</label>
-          <RadioGroup
-            value={type}
-            onValueChange={(v) => setType(v as ShiftExceptionType)}
-            className="space-y-2"
-          >
-            <div className="flex items-center space-x-3">
-              <RadioGroupItem value="closed" id="type-closed" />
-              <label htmlFor="type-closed" className="text-sm font-normal cursor-pointer">
-                Gesloten (hele dag geen reserveringen)
-              </label>
+        {/* Configuration block */}
+        <div className="bg-secondary/50 rounded-card p-4 space-y-4">
+          {/* Type selection - horizontal */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Type</label>
+            <RadioGroup
+              value={type}
+              onValueChange={(v) => setType(v as ShiftExceptionType)}
+              className="flex gap-4"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="closed" id="type-closed" />
+                <label htmlFor="type-closed" className="text-sm cursor-pointer">Gesloten</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="modified" id="type-modified" />
+                <label htmlFor="type-modified" className="text-sm cursor-pointer">Aangepaste tijden</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="special" id="type-special" />
+                <label htmlFor="type-special" className="text-sm cursor-pointer">Speciaal</label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Scope selection */}
+          {!isEditing && (
+            <NestoSelect
+              label="Scope"
+              value={shiftId}
+              onValueChange={setShiftId}
+              options={scopeOptions}
+            />
+          )}
+
+          {/* Time selection for modified type */}
+          {type === "modified" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Reserveringstijden</label>
+              <div className="flex items-center gap-3">
+                <NestoSelect
+                  value={startTime}
+                  onValueChange={setStartTime}
+                  options={TIME_OPTIONS}
+                  className="w-[120px]"
+                />
+                <span className="text-muted-foreground text-sm">tot</span>
+                <NestoSelect
+                  value={endTime}
+                  onValueChange={setEndTime}
+                  options={TIME_OPTIONS}
+                  className="w-[120px]"
+                />
+              </div>
+              {!timesValid && (
+                <p className="text-sm text-destructive">
+                  Eindtijd moet na starttijd liggen.
+                </p>
+              )}
             </div>
-            <div className="flex items-center space-x-3">
-              <RadioGroupItem value="modified" id="type-modified" />
-              <label htmlFor="type-modified" className="text-sm font-normal cursor-pointer">
-                Aangepaste tijden
-              </label>
-            </div>
-            <div className="flex items-center space-x-3">
-              <RadioGroupItem value="special" id="type-special" />
-              <label htmlFor="type-special" className="text-sm font-normal cursor-pointer">
-                Speciaal (markering zonder wijziging)
-              </label>
-            </div>
-          </RadioGroup>
+          )}
+
+          {/* Location-wide closed warning */}
+          {isLocationWideClosed && (
+            <InfoAlert
+              variant="warning"
+              title="Let op"
+              description="Dit sluit alle reserveringsmogelijkheden voor de hele dag."
+            />
+          )}
         </div>
 
-        {/* Scope selection */}
-        {!isEditing && (
-          <NestoSelect
-            label="Scope"
-            value={shiftId}
-            onValueChange={setShiftId}
-            options={scopeOptions}
+        {/* Optional fields block */}
+        <div className="bg-secondary/50 rounded-card p-4 space-y-4">
+          <NestoInput
+            label="Label (optioneel)"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="bijv. Kerst, Verbouwing, Privé-event"
           />
-        )}
-
-        {/* Location-wide closed warning */}
-        {isLocationWideClosed && (
-          <InfoAlert
-            variant="warning"
-            title="Let op"
-            description="Dit sluit alle reserveringsmogelijkheden voor de hele dag."
-          />
-        )}
-
-        {/* Time selection for modified type */}
-        {type === "modified" && (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Reserveringstijden</label>
-            <div className="flex items-center gap-3">
-              <NestoSelect
-                value={startTime}
-                onValueChange={setStartTime}
-                options={TIME_OPTIONS}
-                className="w-[120px]"
-              />
-              <span className="text-muted-foreground text-sm">tot</span>
-              <NestoSelect
-                value={endTime}
-                onValueChange={setEndTime}
-                options={TIME_OPTIONS}
-                className="w-[120px]"
-              />
-            </div>
-            {!timesValid && (
-              <p className="text-sm text-destructive">
-                Eindtijd moet na starttijd liggen.
-              </p>
-            )}
+            <label className="text-sm font-medium text-muted-foreground">Notities (optioneel)</label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Extra informatie..."
+              rows={2}
+            />
           </div>
-        )}
-
-        {/* Label */}
-        <NestoInput
-          label="Label (optioneel)"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="bijv. Kerst, Verbouwing, Privé-event"
-        />
-
-        {/* Notes */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">Notities (optioneel)</label>
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Extra informatie..."
-            rows={2}
-          />
         </div>
       </div>
     </NestoModal>
