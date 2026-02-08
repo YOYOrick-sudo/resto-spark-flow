@@ -1,21 +1,18 @@
 
 
-## Sidebar navigatie-items iets kleiner maken
+## Verticale spacing verkleinen
 
-De menu-items in de sidebar worden subtiel kleiner: zowel de tekst als de iconen schalen mee.
+Nu de tekst en iconen kleiner zijn, is de verticale padding per item te ruim. De `py-[7px]` wordt verlaagd naar `py-[5px]` op alle navigatie-items.
 
 ### Wijzigingen in `src/components/layout/NestoSidebar.tsx`
 
-**Iconen bij hoofditems** — van `size={18}` naar `size={16}`:
-- Expandable group items (regel 149)
-- Disabled items (regel 193)
-- Regular link items (regel 201)
+Alle `py-[7px]` worden `py-[5px]` op de volgende plekken:
 
-**Tekst bij alle items** — van `text-sm` naar `text-[13px]`:
-- Expandable group button (regel 145)
-- Sub-items (regels 166, 175)
-- Disabled items (regel 192)
-- Regular link items (regel 198)
+- **Regel 160** — Expandable group button
+- **Regel 188** — Disabled sub-item
+- **Regel 201** — Active/normal sub-item
+- **Regel 219** — Disabled hoofditem
+- **Regel 229** — Regular link item
 
-Dit houdt de verhouding icoon-tekst consistent en maakt de navigatie net iets compacter.
+Dit maakt de navigatie compacter en beter in verhouding met de kleinere tekst en iconen.
 
