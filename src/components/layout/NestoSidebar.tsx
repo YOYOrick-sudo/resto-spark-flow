@@ -83,7 +83,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
               className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0 relative"
               aria-label="Notificaties"
             >
-              <Zap size={20} strokeWidth={1.5} color="#17171C" fill="currentColor" />
+              <Zap size={20} strokeWidth={0} fill="#17171C" />
               {unreadNotifications > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
               )}
