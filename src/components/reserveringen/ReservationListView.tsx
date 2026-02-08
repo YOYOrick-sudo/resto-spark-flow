@@ -181,13 +181,17 @@ function ReservationRow({ reservation, onClick, onStatusChange }: ReservationRow
       </NestoBadge>
 
       {/* Status badge */}
-      <NestoBadge
-        variant={statusConfig.badgeVariant}
-        size="sm"
-        className="min-w-[90px] justify-center uppercase"
-      >
+      <span className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium min-w-[90px] justify-center",
+        statusConfig.textClass,
+        statusConfig.bgClass,
+        statusConfig.borderClass,
+      )}>
+        {statusConfig.showDot && (
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusConfig.dotColor }} />
+        )}
         {statusConfig.label}
-      </NestoBadge>
+      </span>
 
       {/* Actions menu */}
       <DropdownMenu>
