@@ -1,61 +1,36 @@
 
 
-## Reserveringen Tile — Chart & Dag-labels Fix
+## Fix Reserveringen Chart — Label Afsnijding & Edge-to-Edge
 
-### Huidige situatie
+### Probleem 1: Laatste dag-label "Z" wordt afgesneden
 
-De ReservationsTile heeft nu een chart die niet tot de rand loopt en dag-labels die via een custom `renderDayTick` functie worden gerenderd. De card gebruikt `!p-0` met handmatige padding per sectie.
+De `renderDayTick` functie gebruikt `textAnchor="middle"` voor alle labels, maar het laatste datapunt zit tegen de rechterrand waardoor de tekst buiten de SVG valt. 
+
+**Oplossing**: In `renderDayTick`, als het de laatste index is (`index === mockData.length - 1`), gebruik `textAnchor="end"` in plaats van `"middle"`.
+
+### Probleem 2: Chart edges — volle breedte
+
+De card gebruikt al `!p-0` en de content sections hebben eigen padding (`px-6 pt-6` en `px-6 mt-1`). De chart wrapper div (`mt-4`) heeft echter geen negatieve margins en ook geen expliciete breedte-compensatie.
+
+**Oplossing**: De chart wrapper div krijgt geen extra margins nodig omdat de card al `p-0` is. Maar we moeten controleren dat er geen onzichtbare padding zit. De `AreaChart` margin is al `{ top: 0, right: 0, bottom: 0, left: 0 }`. De `NestoCard` heeft al `overflow-hidden`. De chart wrapper `mt-4` wordt vervangen door `mt-4` zonder extra padding — dit is al correct.
+
+Het echte probleem is dat `XAxis` met `height={28}` ruimte inneemt onderaan, maar de chart area zelf stopt daarboven. Om de gradient tot de onderkant van de card te laten lopen, moeten we de XAxis **over** de chart heen laten zweven. Dit doen we door de XAxis `height` te verkleinen en de labels als overlay te positioneren.
+
+**Aanpak**: Geef de `AreaChart` een kleine `margin.right` van `4` zodat het laatste label niet wordt afgesneden, terwijl de linkerkant `0` blijft voor edge-to-edge.
 
 ### Wijzigingen in `src/components/dashboard/ReservationsTile.tsx`
 
-**1. Mock data aanpassen**
+1. **`renderDayTick` functie** — Voeg conditie toe voor het laatste label:
+   - `textAnchor="end"` wanneer `index === mockData.length - 1`
+   - `textAnchor="start"` wanneer `index` het eerste zichtbare label is (index 7)
+   - `textAnchor="middle"` voor alle tussenliggende labels
 
-Vervang de huidige data array door 14 objecten met een `day` veld. De eerste 7 items krijgen `day: ''`, de laatste 7 krijgen `'M', 'D', 'W', 'D', 'V', 'Z', 'Z'`. Verwijder de huidige `dayLabels` array en de `.map()` die `dayLabel`/`isToday` toevoegt.
+2. **`AreaChart` margin** — Wijzig naar `{ top: 0, right: 8, bottom: 0, left: 0 }` om ruimte te maken voor het laatste label aan de rechterkant. Links blijft 0 voor edge-to-edge aansluiting.
 
-```text
-{ date: '26 jan', day: '', count: 8 },
-{ date: '27 jan', day: '', count: 12 },
-...
-{ date: '7 feb', day: 'Z', count: 32 },
-{ date: '8 feb', day: 'Z', count: 20 },
-```
+3. **Bevestig bestaande setup** — De card heeft al `!p-0` en `overflow-hidden`, de content secties hebben eigen padding. Geen verdere wijzigingen nodig aan de card structuur.
 
-**2. XAxis met custom tick**
-
-Vervang de huidige `renderDayTick` functie door een nieuw `renderDayTick` die:
-- Alleen tekst toont als `payload.value` niet leeg is
-- Het laatste datapunt (index 13) krijgt `fontWeight: 600` en `fill: "#1d979e"`
-- Alle andere labels krijgen `fill: "#ACAEB3"`
-- `fontSize: 11`, `dy: 8`
-
-XAxis config:
-- `dataKey="day"`
-- `axisLine={false}`, `tickLine={false}`
-- `tick={renderDayTick}`
-- `interval={0}`
-- `height={28}` (ruimte voor labels + dy)
-
-**3. CustomDot aanpassen**
-
-De dot op het laatste punt krijgt:
-- `fill="#1d979e"`
-- `r={4}`
-- `stroke="#fff"`
-- `strokeWidth={2}`
-
-**4. Tooltip styling**
-
-Update de `renderTooltip` functie:
-- Container classes: `bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg`
-- Toont datum en "X reserveringen"
-- Geen border
-
-**5. Chart wrapper edge-to-edge**
-
-De card gebruikt al `!p-0` en de chart `margin={{ top: 0, right: 0, bottom: 0, left: 0 }}`. De `ResponsiveContainer` height wordt `160` om ruimte te bieden voor de XAxis labels (140 chart + 28 labels, maar ResponsiveContainer rekent inclusief XAxis mee).
-
-### Samenvatting van bestanden
+### Samenvatting
 
 | Bestand | Actie |
 |---|---|
-| `src/components/dashboard/ReservationsTile.tsx` | Bewerken |
+| `src/components/dashboard/ReservationsTile.tsx` | Bewerken: renderDayTick textAnchor fix + AreaChart margin.right |
