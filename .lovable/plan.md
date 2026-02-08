@@ -1,55 +1,77 @@
 
 
-## Density toggle verplaatsen naar de footer bar
+## Fix: Sticky tijdlijn header en pacing rij bij scrollen
 
-De density toggle blijft bestaan maar verhuist van de toolbar naar de footer bar (onderaan), waar het minder prominent is en niet concurreert met de view toggles.
+### Probleem
 
----
+De `TimelineHeader` en `SeatedCountRow` hebben al `sticky top-0` en `sticky top-[40px]`, maar sticky werkt niet omdat het verkeerde element scrollt.
 
-### Visuele aanpak
+De huidige structuur:
 
-De toggle komt rechts in de footer bar, naast de "Open/Gesloten" status. Geen achtergrondkleur of border -- gewoon twee subtiele iconen waarvan de actieve iets donkerder is:
-
-- **Actief**: `text-foreground`
-- **Inactief**: `text-muted-foreground/50 hover:text-muted-foreground`
-- Geen `bg-secondary`, geen `rounded-lg p-1` container -- puur twee losse iconen met een kleine gap
-
-Dit maakt het een "utility control" in plaats van een primaire actie.
-
----
-
-### Wijzigingen per bestand
-
-#### `src/pages/Reserveringen.tsx`
-
-- Verwijder `<DensityToggle ... />` uit de toolbar (regel 111)
-- Geef `density` en `onDensityChange` door als props aan `ReservationFooter`
-
-#### `src/components/reserveringen/ReservationFooter.tsx`
-
-- Accepteer `density` en `onDensityChange` props
-- Render de twee density iconen (Rows4 / Rows3) rechts naast de Open/Gesloten status, gescheiden door een divider
-- Styling: kleine iconen (`h-3.5 w-3.5`), geen container-achtergrond, alleen kleurverschil actief/inactief
-
-#### `src/components/reserveringen/DensityToggle.tsx`
-
-- Blijft bestaan voor de `useDensity` hook en het `DensityType` type
-- De visuele component zelf wordt niet meer los gebruikt (de iconen worden inline in de footer gerenderd), maar het bestand kan behouden blijven voor de hook
-
----
-
-### Footer layout (nieuw)
-
-```
-[Notities] | [63 gasten vandaag | 12 wachtend] | [Open ●] | [⊞ ≡]
-                                                              ↑ density icons
+```text
+div.flex-1.overflow-auto  <-- DIT scrollt (pagina-niveau)
+  div.overflow-hidden     <-- card wrapper, geen vaste hoogte
+    ReservationGridView
+      div.overflow-hidden
+        div.overflow-auto  <-- DIT zou moeten scrollen, maar doet het niet
+          TimelineHeader (sticky top-0)
+          SeatedCountRow (sticky top-[40px])
+          ...rows
 ```
 
-### Bestanden overzicht
+Omdat de buitenste `overflow-auto` scrollt en niet de binnenste, hebben de sticky elementen geen werkende scroll-context.
+
+### Oplossing
+
+De grid view moet de volledige beschikbare hoogte innemen zodat de **interne** scroll container daadwerkelijk scrollt.
+
+---
+
+### Wijzigingen
+
+#### `src/pages/Reserveringen.tsx` (regel 140-141)
+
+De content area wrapper en de card wrapper moeten de hoogte doorgeven aan de grid:
+
+- Regel 140: wijzig `overflow-auto p-4 pt-2` naar `overflow-hidden p-4 pt-2` (voorkom dubbel scrollen)
+- Regel 141: voeg `h-full` toe aan de card wrapper, zodat de hoogte doorstroomt
+
+Maar alleen voor de grid view -- de list view en calendar view moeten nog normaal scrollen. Daarom:
+
+- Conditioneel: als `activeView === "grid"`, gebruik `overflow-hidden` op de content area. Anders `overflow-auto`.
+- De card wrapper krijgt conditioneel `h-full` als grid actief is.
+
+Concreet:
+
+```
+Regel 140: className={cn("flex-1 p-4 pt-2", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}
+Regel 141: className={cn("bg-card border border-border rounded-2xl overflow-hidden", activeView === "grid" && "h-full")}
+```
+
+#### `src/components/reserveringen/ReservationGridView.tsx` (geen wijziging nodig)
+
+De grid view heeft al `h-full overflow-hidden` op de outer div en `h-full overflow-auto` op de scroll container. Zodra de parent een vaste hoogte doorgeeft, werkt sticky automatisch.
+
+---
+
+### Resultaat
+
+Na de fix:
+
+```text
+div.flex-1.overflow-hidden  <-- scrollt NIET meer (grid modus)
+  div.overflow-hidden.h-full
+    ReservationGridView
+      div.overflow-hidden.h-full
+        div.overflow-auto.h-full  <-- DIT scrollt nu WEL
+          TimelineHeader (sticky top-0) -- WERKT
+          SeatedCountRow (sticky top-[40px]) -- WERKT
+          ...rows
+```
+
+### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/Reserveringen.tsx` | Toggle uit toolbar, density props naar footer |
-| `src/components/reserveringen/ReservationFooter.tsx` | Density iconen toevoegen rechts |
-| `src/components/reserveringen/DensityToggle.tsx` | Behouden (hook + type) |
+| `src/pages/Reserveringen.tsx` | Conditioneel overflow/height op content wrappers |
 
