@@ -83,7 +83,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
               className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0 relative"
               aria-label="Notificaties"
             >
-              <Zap size={20} strokeWidth={0} fill="#17171C" />
+              <Zap size={20} strokeWidth={0} className="fill-muted-foreground" />
               {unreadNotifications > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
               )}
@@ -93,7 +93,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
               className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0"
               aria-label="Panel"
             >
-              <PanelLeft size={20} strokeWidth={1.5} color="#17171C" />
+              <PanelLeft size={20} strokeWidth={1.5} className="text-muted-foreground" />
             </button>
           </div>
         </div>
