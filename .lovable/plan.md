@@ -1,64 +1,30 @@
 
 
-## "+ Nieuwe Area" button verplaatsen naar page header
+## NestoCard: border verwijderen, shadow-only stijl (Polar.sh patroon)
+
+### Keuze
+
+De borderless variant met een sterkere shadow geeft het cleanste, modernste resultaat. De huidige border (#ECEDED) heeft te weinig contrast met zowel de card (wit) als de page achtergrond (#F4F5F6). Een donkerdere border zou werken, maar de shadow-only aanpak sluit beter aan bij het Polar.sh design system waar Nesto naar verwijst.
 
 ### Wat verandert er
 
-De "+ Nieuwe Area" button wordt verplaatst van binnen de NestoCard naar de page-level header via de `actions` prop van `SettingsDetailLayout`.
+**Bestand: `src/components/polar/NestoCard.tsx`**
 
-### Aanpassingen
-
-**1. `src/pages/settings/reserveringen/SettingsReserveringenTafelsAreas.tsx`**
-
-- Importeer `Plus` uit lucide-react en `NestoButton` uit polar
-- Voeg een `handleAddArea` state/callback toe (of gebruik een ref/state die doorgegeven wordt aan AreasSection)
-- Geef de button door via de `actions` prop van `SettingsDetailLayout`:
-
-```tsx
-<SettingsDetailLayout
-  title="Areas"
-  description="Beheer ruimtes en de tafels daarin."
-  breadcrumbs={breadcrumbs}
-  actions={
-    <NestoButton onClick={handleAddArea} size="sm" disabled={!currentLocation?.id}>
-      <Plus className="h-4 w-4 mr-1" />
-      Nieuwe Area
-    </NestoButton>
-  }
-  aside={...}
->
-```
-
-- Om de modal in AreasSection te openen vanuit de parent, wordt een `externalAddTrigger` pattern gebruikt: een state counter in de parent die als prop naar AreasSection gaat. Elke keer dat de button geklikt wordt, wordt de counter verhoogd, en AreasSection reageert met een useEffect.
-
-**2. `src/components/settings/tables/AreasSection.tsx`**
-
-- Nieuwe prop: `externalAddTrigger?: number`
-- useEffect die luistert naar changes in `externalAddTrigger` en de area modal opent
-- Verwijder de `<div className="flex justify-end mb-4">` wrapper met de button erin
+- Verwijder `border border-border` uit de className
+- Verhoog de base shadow van `0 1px 2px rgba(0, 0, 0, 0.04)` naar `0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)`
+- Hover shadow blijft `0 2px 8px rgba(0, 0, 0, 0.06)`
+- Hoverable cards verliezen ook `hover:border-primary` (geen border meer om te highlighten)
+- Nested cards: shadow blijft `none` (geen verandering)
 
 ### Technisch detail
 
-Parent (page):
-```tsx
-const [addTrigger, setAddTrigger] = useState(0);
-const handleAddArea = () => setAddTrigger(t => t + 1);
-```
+Regel 19: `"bg-card text-card-foreground"` (border classes verwijderd)
 
-AreasSection:
-```tsx
-interface AreasSectionProps {
-  locationId: string | undefined;
-  externalAddTrigger?: number;
-}
+Regel 28: `hoverable && !nested && "cursor-pointer hover:-translate-y-px"` (hover:border-primary verwijderd)
 
-// Inside component:
-useEffect(() => {
-  if (externalAddTrigger && externalAddTrigger > 0) {
-    setEditingArea(null);
-    setAreaModalOpen(true);
-  }
-}, [externalAddTrigger]);
-```
+Regel 36: shadow wordt `"0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)"`
 
-Dit houdt de modal-logica binnen AreasSection (waar de AreaModal al leeft) terwijl de trigger vanuit de page header komt.
+Hover shadow (regel 40): wordt ook verhoogd naar `"0 4px 12px rgba(0, 0, 0, 0.08)"` voor meer contrast bij hover.
+
+Leave shadow (regel 44): matcht de nieuwe base shadow.
+
