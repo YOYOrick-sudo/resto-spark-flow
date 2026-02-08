@@ -32,8 +32,10 @@ const renderTooltip = ({ active, payload }: any) => {
 
 function CustomDot(props: any) {
   const { cx, cy, index } = props;
-  if (index !== mockData.length - 1) return null;
-  return <circle cx={cx} cy={cy} r={4} fill="#1d979e" stroke="#fff" strokeWidth={2} />;
+  if (index === mockData.length - 1) {
+    return <circle cx={cx} cy={cy} r={4} fill="#1d979e" stroke="#fff" strokeWidth={2} />;
+  }
+  return <circle cx={cx} cy={cy} r={2.5} fill="#ACAEB3" />;
 }
 
 export function ReservationsTile({ todayCount }: ReservationsTileProps) {
