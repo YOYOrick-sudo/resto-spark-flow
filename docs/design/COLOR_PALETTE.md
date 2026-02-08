@@ -175,3 +175,22 @@ Alle klikbare tabelrijen in de app gebruiken hetzelfde hover-patroon:
 | Cursor | pointer | `cursor-pointer` |
 
 Dit geldt voor reserveringsrijen, ingrediënten, recepten, en alle andere klikbare rijen.
+
+---
+
+## **DISABLED NAVIGATION ITEMS**
+
+Niet-beschikbare menu-items worden subtiel gedempt weergegeven, zonder badges of tekst.
+
+| Property | Waarde | Tailwind Class |
+|----------|--------|----------------|
+| Opacity | 40% | `opacity-40` |
+| Cursor | default | `cursor-default` |
+| Klikbaar | Nee | — |
+
+### Regels
+
+- **Nooit** "Soon", "Coming soon", of vergelijkbare badges gebruiken in navigatie
+- Niet-beschikbare items: `opacity-40` + `cursor-default`
+- Items met een echte pagina (beperkte functionaliteit) blijven normaal zichtbaar
+- Lege waarden in tabellen worden leeg gelaten, niet gevuld met "Geen" of "N/A" badges

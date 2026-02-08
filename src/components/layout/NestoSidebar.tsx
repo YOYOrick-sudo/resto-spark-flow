@@ -188,11 +188,8 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                             if (subItem.disabled) {
                               return (
                                 <li key={subItem.id}>
-                                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground cursor-not-allowed border border-transparent">
+                                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default border border-transparent">
                                     <span>{subItem.label}</span>
-                                    <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
-                                      Soon
-                                    </span>
                                   </div>
                                 </li>
                               );
@@ -228,12 +225,9 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
             if (item.disabled) {
               return (
                 <li key={item.id}>
-                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default">
                     <Icon size={18} className="flex-shrink-0" />
                     <span>{item.label}</span>
-                    <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
-                      Soon
-                    </span>
                   </div>
                 </li>
               );
@@ -271,21 +265,15 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       <div className="px-3 py-3 border-t border-border">
         <div className="space-y-0.5">
           {/* Support Item - disabled */}
-          <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground cursor-not-allowed">
+          <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default">
             <HelpCircle size={18} className="flex-shrink-0" />
             <span>Support</span>
-            <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
-              Soon
-            </span>
           </div>
           
           {/* Documentatie Item - disabled */}
-          <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground cursor-not-allowed">
+          <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default">
             <BookOpen size={18} className="flex-shrink-0" />
             <span>Documentatie</span>
-            <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
-              Soon
-            </span>
           </div>
         </div>
       </div>
