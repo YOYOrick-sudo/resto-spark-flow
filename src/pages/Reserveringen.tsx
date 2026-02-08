@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { SearchBar } from "@/components/polar/SearchBar";
@@ -137,8 +138,8 @@ export default function Reserveringen() {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 overflow-auto p-4 pt-2">
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className={cn("flex-1 p-4 pt-2", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}>
+        <div className={cn("bg-card border border-border rounded-2xl overflow-hidden", activeView === "grid" && "h-full")}>
           {activeView === "list" && (
             <ReservationListView
               reservations={filteredReservations}
