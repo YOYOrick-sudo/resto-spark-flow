@@ -39,6 +39,17 @@
 
 ---
 
+## **CARD STYLING**
+
+Cards gebruiken **geen border** maar shadow als primaire visuele afbakening. Zie `docs/design/CARD_SHADOWS.md` voor de volledige specificatie.
+
+| Property | Waarde |
+|----------|--------|
+| Base shadow | `0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)` |
+| Border | Geen (top-level) / `border-border/40` (nested) |
+
+---
+
 ## **STATUS COLORS**
 
 | Status | Color | HEX | HSL | Light BG |
