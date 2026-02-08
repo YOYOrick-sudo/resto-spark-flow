@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { SearchBar } from "@/components/polar/SearchBar";
 import { ViewToggle, type ViewType } from "@/components/reserveringen/ViewToggle";
+import { DensityToggle, useDensity } from "@/components/reserveringen/DensityToggle";
 import { DateNavigator } from "@/components/reserveringen/DateNavigator";
 import { ReservationListView } from "@/components/reserveringen/ReservationListView";
 import { ReservationGridView } from "@/components/reserveringen/ReservationGridView";
@@ -26,6 +27,7 @@ export default function Reserveringen() {
   const [activeView, setActiveView] = useState<ViewType>("list");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
+  const [density, setDensity] = useDensity();
   const [filters, setFilters] = useState<ReservationFiltersState>({
     status: "all",
     shift: "all",
@@ -50,7 +52,6 @@ export default function Reserveringen() {
   const filteredReservations = useMemo(() => {
     let result = reservationsForDate;
 
-    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter((r) => {
@@ -63,17 +64,14 @@ export default function Reserveringen() {
       });
     }
 
-    // Apply status filter
     if (filters.status && filters.status !== "all") {
       result = result.filter((r) => r.status === filters.status);
     }
 
-    // Apply shift filter
     if (filters.shift && filters.shift !== "all") {
       result = result.filter((r) => r.shift === filters.shift);
     }
 
-    // Apply ticket type filter
     if (filters.ticketType && filters.ticketType !== "all") {
       result = result.filter((r) => r.ticketType === filters.ticketType);
     }
@@ -87,33 +85,30 @@ export default function Reserveringen() {
     (r) => r.status === "pending" || r.status === "confirmed"
   ).length;
 
-  // Check if currently open (simple logic: between 16:00 and 23:00)
   const currentHour = new Date().getHours();
   const isOpen = currentHour >= 16 && currentHour < 23;
 
   // Handlers
   const handleReservationClick = (reservation: Reservation) => {
     toast.info(`Reservering: ${getGuestDisplayName(reservation)}`);
-    // TODO: Open reservation detail sheet
   };
 
   const handleStatusChange = (reservation: Reservation, newStatus: Reservation["status"]) => {
     toast.success(`Status gewijzigd naar: ${newStatus}`);
-    // TODO: Update reservation status
   };
 
   const handleNewReservation = () => {
     toast.info("Nieuwe reservering maken...");
-    // TODO: Open new reservation form
   };
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex flex-col gap-4 p-4 pb-0">
-        {/* Top row: View toggle, date navigator, search, new button */}
+        {/* Top row: View toggle, density toggle, date navigator, search, new button */}
         <div className="flex items-center gap-4 flex-wrap">
           <ViewToggle activeView={activeView} onViewChange={setActiveView} />
+          <DensityToggle density={density} onDensityChange={setDensity} />
           
           <DateNavigator
             selectedDate={selectedDate}
@@ -150,6 +145,7 @@ export default function Reserveringen() {
               reservations={filteredReservations}
               onReservationClick={handleReservationClick}
               onStatusChange={handleStatusChange}
+              density={density}
             />
           )}
 
@@ -159,6 +155,7 @@ export default function Reserveringen() {
               reservations={filteredReservations}
               onReservationClick={handleReservationClick}
               onReservationUpdate={handleReservationUpdate}
+              density={density}
             />
           )}
 

@@ -12,6 +12,8 @@ import {
   defaultGridConfig,
 } from "@/data/reservations";
 
+import type { DensityType } from "./DensityToggle";
+
 interface ReservationBlockProps {
   reservation: Reservation;
   config?: GridTimeConfig;
@@ -19,6 +21,7 @@ interface ReservationBlockProps {
   onCheckIn?: (reservation: Reservation) => void;
   onResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
   isBeingDragged?: boolean;
+  density?: DensityType;
 }
 
 export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps>(
@@ -29,7 +32,9 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
     onCheckIn,
     onResize,
     isBeingDragged = false,
+    density = "compact",
   }, forwardedRef) {
+  const isCompact = density === "compact";
   const position = useMemo(
     () => calculateBlockPosition(reservation.startTime, reservation.endTime, config),
     [reservation.startTime, reservation.endTime, config]
@@ -219,7 +224,8 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
       {...(isResizing || isBeingDragged ? {} : listeners)}
       {...(isResizing || isBeingDragged ? {} : attributes)}
       className={cn(
-        "absolute top-1.5 bottom-1.5 rounded-md border-[1.5px] flex items-center gap-1.5 text-xs overflow-hidden select-none group pointer-events-auto",
+        "absolute rounded-md border-[1.5px] flex items-center gap-1.5 text-xs overflow-hidden select-none group pointer-events-auto",
+        isCompact ? "top-0.5 bottom-0.5" : "top-1.5 bottom-1.5",
         getBlockStyles(),
         // Smooth fade transition for drag state
         "transition-all duration-150",
@@ -261,7 +267,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
       )}
 
       {/* Content with horizontal padding to account for resize handles */}
-      <div className="flex items-center gap-1.5 px-2.5 min-w-0 flex-1">
+      <div className={cn("flex items-center min-w-0 flex-1", isCompact ? "gap-1 px-1.5" : "gap-1.5 px-2.5")}>
         {/* Seated/Walk-in icon */}
         {reservation.isWalkIn ? (
           <Footprints className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -270,12 +276,12 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         ) : null}
 
         {/* Guest count - prominent */}
-        <span className="text-foreground font-bold flex-shrink-0 text-sm">
+        <span className={cn("text-foreground font-bold flex-shrink-0", isCompact ? "text-xs" : "text-sm")}>
           {reservation.guests}
         </span>
 
         {/* Guest name - truncated */}
-        <span className="truncate text-foreground/80 font-medium min-w-0 text-xs">
+        <span className={cn("truncate text-foreground/80 font-medium min-w-0", isCompact ? "text-[11px]" : "text-xs")}>
           {guestName}
         </span>
 
