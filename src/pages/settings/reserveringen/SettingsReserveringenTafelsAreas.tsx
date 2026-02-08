@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { SettingsDetailLayout } from "@/components/settings/layouts";
 import { AreasSection } from "@/components/settings/tables";
 import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/settings/context";
+import { NestoButton } from "@/components/polar/NestoButton";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAreasForSettings } from "@/hooks/useAreasWithTables";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
+import { Plus } from "lucide-react";
 
 /**
  * Niveau 4: Areas list page
@@ -13,6 +15,8 @@ export default function SettingsReserveringenTafelsAreas() {
   const { currentLocation } = useUserContext();
   const { data: areas, isLoading } = useAreasForSettings(currentLocation?.id, true);
   const breadcrumbs = buildBreadcrumbs("reserveringen", "tafels", "areas");
+  const [addTrigger, setAddTrigger] = useState(0);
+  const handleAddArea = () => setAddTrigger(t => t + 1);
 
   // Calculate aggregated stats
   const stats = useMemo(() => {
@@ -101,6 +105,12 @@ export default function SettingsReserveringenTafelsAreas() {
       title="Areas"
       description="Beheer ruimtes en de tafels daarin."
       breadcrumbs={breadcrumbs}
+      actions={
+        <NestoButton onClick={handleAddArea} size="sm" disabled={!currentLocation?.id}>
+          <Plus className="h-4 w-4 mr-1" />
+          Nieuwe Area
+        </NestoButton>
+      }
       aside={
         !isLoading && stats ? (
           <SettingsInsightPanel insights={insights} checks={checks} context={context} />
@@ -108,7 +118,7 @@ export default function SettingsReserveringenTafelsAreas() {
       }
     >
       <div className="max-w-4xl">
-        <AreasSection locationId={currentLocation?.id} />
+        <AreasSection locationId={currentLocation?.id} externalAddTrigger={addTrigger} />
       </div>
     </SettingsDetailLayout>
   );
