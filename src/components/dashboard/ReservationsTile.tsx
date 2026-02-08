@@ -57,9 +57,7 @@ function renderDayTick({ x, y, payload }: any) {
       y={y + 12}
       textAnchor="middle"
       fontSize={10}
-      fill="currentColor"
-      className={isToday ? 'text-muted-foreground' : 'text-muted-foreground/40'}
-      style={{ opacity: isToday ? 1 : 0.4 }}
+      fill={isToday ? 'hsl(var(--muted-foreground))' : 'hsl(var(--muted-foreground) / 0.4)'}
     >
       {entry.dayLabel}
     </text>
