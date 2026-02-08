@@ -217,8 +217,7 @@ export function AreasSection({ locationId, externalAddTrigger }: AreasSectionPro
   }
 
   return (
-    <NestoCard className="p-6">
-
+    <div className="space-y-3">
       {/* Active Areas with DnD */}
       <DndContext
         sensors={sensors}
@@ -232,7 +231,6 @@ export function AreasSection({ locationId, externalAddTrigger }: AreasSectionPro
           items={activeAreas.map(a => a.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-3">
             {activeAreas.map((area, index) => (
               <SortableAreaCard
                 key={area.id}
@@ -258,7 +256,6 @@ export function AreasSection({ locationId, externalAddTrigger }: AreasSectionPro
                 </NestoButton>
               </div>
             )}
-          </div>
         </SortableContext>
 
         {/* DragOverlay - matches collapsed AreaCard header */}
@@ -288,7 +285,7 @@ export function AreasSection({ locationId, externalAddTrigger }: AreasSectionPro
 
       {/* Centralized Archived Section */}
       {hasArchivedContent && (
-        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="mt-4">
+        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="mt-6 bg-muted/30 rounded-lg p-4">
           <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
             <ChevronRight className={`h-4 w-4 transition-transform ${archivedOpen ? 'rotate-90' : ''}`} />
             <Archive className="h-4 w-4" />
@@ -387,6 +384,6 @@ export function AreasSection({ locationId, externalAddTrigger }: AreasSectionPro
           table={restoringTable}
         />
       )}
-    </NestoCard>
+    </div>
   );
 }

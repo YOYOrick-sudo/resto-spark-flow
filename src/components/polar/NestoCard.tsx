@@ -15,25 +15,26 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
     return (
       <div
         ref={ref}
-        className={cn(
-          "bg-card text-card-foreground",
-          "transition-[box-shadow,transform] duration-200",
-          radiusClass,
-          {
-            "p-6": variant === "default",
-            "p-8": variant === "large",
-            "p-6 bg-accent": variant === "subtle",
-            "p-4": variant === "small",
-          },
-          hoverable && !nested && "cursor-pointer hover:-translate-y-px",
-          className
-        )}
+          className={cn(
+            "bg-card text-card-foreground",
+            "transition-[box-shadow,transform] duration-200",
+            radiusClass,
+            {
+              "p-6": variant === "default",
+              "p-8": variant === "large",
+              "p-6 bg-accent": variant === "subtle",
+              "p-4": variant === "small",
+            },
+            nested && "border border-border/40",
+            hoverable && !nested && "cursor-pointer hover:-translate-y-px",
+            className
+          )}
         style={{
           boxShadow: nested
             ? "none"
             : hoverable
               ? undefined
-              : "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
+              : "0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)",
           ...(props.style || {}),
         }}
         onMouseEnter={hoverable && !nested ? (e) => {
@@ -41,7 +42,7 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
           props.onMouseEnter?.(e);
         } : props.onMouseEnter}
         onMouseLeave={hoverable && !nested ? (e) => {
-          (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)";
+          (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)";
           props.onMouseLeave?.(e);
         } : props.onMouseLeave}
         {...props}
