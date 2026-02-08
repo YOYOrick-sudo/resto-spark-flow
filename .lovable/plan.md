@@ -1,37 +1,36 @@
 
 
-## Modal overlay en shadow moderniseren
+## Status badges reserveringen - Teal kleurenfamilie
 
-### Wijzigingen
+### Samenvatting
 
-**1. `src/components/ui/dialog.tsx` (regel 22)**
-Overlay van `bg-black/80` naar `bg-black/20 backdrop-blur-sm`:
-```
-"fixed inset-0 z-50 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in ..."
-```
+De status badges krijgen een consistent kleursysteem gebaseerd op de Nesto teal kleur, met een duidelijke visuele progressie voor actieve statussen. Checked in en Seated worden visueel onderscheidend gemaakt.
 
-DialogContent (regel 43) shadow van `shadow-lg` naar `shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]`:
-```
-"... shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] duration-200 ..."
-```
+### Kleursysteem
 
-**2. `src/components/ui/alert-dialog.tsx` (regel 19)**
-Zelfde overlay wijziging: `bg-black/80` naar `bg-black/20 backdrop-blur-sm`
+| Status | Dot | Tekst | Achtergrond | Border | Logica |
+|---|---|---|---|---|---|
+| **Pending** | #B8B5B0 (warm grijs) | text-muted-foreground | bg-muted/40 | - | Neutraal, wachtend |
+| **Confirmed** | #1d979e (nesto teal) | text-primary | bg-primary/[0.08] | - | Licht teal = bevestigd |
+| **Checked in** | #0D9488 (teal-600) | #0F766E | #F0FDFA | #99F6E4 | Teal + border = aangekomen |
+| **Seated** | #14B8A6 (teal-500) | text-primary | bg-primary/15 | - | Vollere teal = aan tafel |
+| **Completed** | #D1CCC7 (warm grijs) | text-muted-foreground opacity-50 | - | - | Vervaagd, klaar |
+| **No-show** | #E87461 (warm koraal) | #C4503E | #FEF2F0 | #FECDC8 | Warm rood, negatief |
+| **Cancelled** | geen | text-muted-foreground line-through | - | - | Doorgestreept, inactief |
 
-AlertDialogContent (regel 37) shadow van `shadow-lg` naar `shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]`
+De visuele progressie voor actieve statussen: Confirmed (licht teal) -> Checked in (teal + border) -> Seated (vollere teal achtergrond). Elk niveau wordt "steviger" zodat je in een oogopslag ziet waar een gast zich bevindt.
 
-**3. `docs/design/MODAL_PATTERNS.md`**
-Voeg een "Overlay en Shadow" sectie toe:
-- Overlay: `bg-black/20 backdrop-blur-sm` (niet `bg-black/80`)
-- Modal shadow: `shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]`
-- De lichtere overlay met blur geeft een moderne, cleanere look
-- De sterkere shadow compenseert en houdt de modal prominent
+### Bestanden die wijzigen
 
-### Overzicht
+**1. `src/data/reservations.ts` (regels 66-106)**
 
-| Bestand | Wijziging |
-|---|---|
-| `dialog.tsx` | Overlay `bg-black/80` naar `bg-black/20 backdrop-blur-sm`, shadow naar `shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]` |
-| `alert-dialog.tsx` | Idem |
-| `MODAL_PATTERNS.md` | Nieuwe sectie "Overlay en Shadow" |
+Het type van `reservationStatusConfig` wordt uitgebreid. Het `badgeVariant` veld wordt vervangen door: `showDot`, `textClass`, `bgClass`, en `borderClass`. Het bestaande `dotColor` veld blijft (wordt ook gebruikt door de losse StatusDot in de lijst).
+
+**2. `src/components/reserveringen/ReservationListView.tsx` (regels 184-190)**
+
+De `NestoBadge` voor de status wordt vervangen door een custom `span` die de nieuwe config-velden uitleest. De dot (w-2 h-2 rounded-full) wordt inline gerenderd binnen de badge. NestoBadge blijft in gebruik voor shift badges en walk-in labels.
+
+**3. `docs/design/COLOR_PALETTE.md`**
+
+Nieuwe sectie "STATUS BADGE COLORS" onderaan met het volledige kleursysteem en de design-rationale (teal-familie, warm grijs, warm koraal).
 
