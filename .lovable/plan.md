@@ -1,26 +1,19 @@
 
 
-## Sidebar iconen iets kleiner maken
+## Dunne lijn onder header verwijderen
 
-Beide iconen in de sidebar header worden van `size={20}` naar `size={18}` gezet voor een subtiel kleiner formaat.
+De header-div op regel 72 heeft `border-b border-border` wat een dunne scheidingslijn toont tussen de header en de zoekbalk. Deze wordt verwijderd.
 
-### Wijzigingen in `src/components/layout/NestoSidebar.tsx`
+### Wijziging in `src/components/layout/NestoSidebar.tsx`
 
-**Zap icoon (regel 86):**
+**Regel 72:**
 ```tsx
 // Was:
-<Zap size={20} strokeWidth={0} className="fill-foreground" />
+<div className="p-4 border-b border-border">
+
 // Wordt:
-<Zap size={18} strokeWidth={0} className="fill-foreground" />
+<div className="p-4">
 ```
 
-**PanelLeft icoon (regel 96):**
-```tsx
-// Was:
-<PanelLeft size={20} strokeWidth={2} className="text-foreground" />
-// Wordt:
-<PanelLeft size={18} strokeWidth={2} className="text-foreground" />
-```
-
-Alleen de `size` property wijzigt, verder blijft alles hetzelfde.
+Alleen `border-b border-border` wordt verwijderd, de padding blijft behouden.
 
