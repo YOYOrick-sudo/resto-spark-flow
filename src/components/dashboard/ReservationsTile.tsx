@@ -44,12 +44,14 @@ function CustomDot(props: any) {
 function renderDayTick({ x, y, payload, index }: any) {
   if (!payload.value) return null;
   const isToday = index === mockData.length - 1;
+  const isFirst = index === 7;
+  const anchor = isToday ? 'end' : isFirst ? 'start' : 'middle';
   return (
     <text
       x={x}
       y={y}
       dy={8}
-      textAnchor="middle"
+      textAnchor={anchor}
       fontSize={11}
       fontWeight={isToday ? 600 : 400}
       fill={isToday ? '#1d979e' : '#ACAEB3'}
@@ -78,7 +80,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
       </div>
       <div className="mt-4">
         <ResponsiveContainer width="100%" height={160}>
-          <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+          <AreaChart data={mockData} margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="reservationGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#1d979e" stopOpacity={0.15} />
