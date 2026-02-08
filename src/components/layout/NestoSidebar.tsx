@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
 
 import { mockAssistantItems } from '@/data/assistantMockData';
+import { CommandPalette } from './CommandPalette';
 
 interface NestoSidebarProps {
   onNavigate?: () => void;
@@ -20,6 +21,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
     const group = getExpandedGroupFromPath(location.pathname);
     return group ? [group] : [];
   });
+  const [commandOpen, setCommandOpen] = useState(false);
   const activeItemId = getActiveItemFromPath(location.pathname);
 
   const hasAttentionSignals = useMemo(() => 
@@ -38,6 +40,17 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       setExpandedGroups((prev) => prev.length === 0 ? prev : []);
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCommandOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
 
   const handleNavigation = useCallback((path: string) => {
     if (location.pathname === path) return;
@@ -88,19 +101,22 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
 
       {/* Search bar */}
       <div className="px-4 mt-2 mb-4">
-        <div className="relative group">
+        <button
+          type="button"
+          onClick={() => setCommandOpen(true)}
+          className="relative group w-full"
+        >
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Zoeken..."
-            readOnly
-            className="w-full h-9 pl-9 pr-12 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none cursor-pointer hover:border-primary/40 transition-colors"
-          />
+          <div className="w-full h-9 pl-9 pr-12 bg-background border border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
+            Zoeken...
+          </div>
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
             ⌘K
           </span>
-        </div>
+        </button>
       </div>
+
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2">
