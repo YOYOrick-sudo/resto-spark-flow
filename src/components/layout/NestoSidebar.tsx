@@ -5,7 +5,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
-import logoWordmark from '@/assets/logo-wordmark.png';
+
 
 interface NestoSidebarProps {
   onNavigate?: () => void;
@@ -77,11 +77,17 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <img 
-            src={logoWordmark} 
-            alt="Nesto" 
-            className="h-8 w-auto"
-          />
+          <span
+            className="text-2xl font-bold text-foreground"
+            style={{
+              fontFamily: 'Inter, sans-serif',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            nesto
+          </span>
           
           {/* Quick action buttons - Zap + PanelLeft (Figma spec) */}
           <div className="flex items-center gap-1">
