@@ -12,9 +12,9 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     return (
-      <div ref={ref} className="min-h-screen flex w-full bg-card">
+      <div ref={ref} className="h-screen flex w-full bg-card overflow-hidden">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex w-60 flex-shrink-0">
+        <aside className="hidden lg:flex w-60 flex-shrink-0 sticky top-0 h-screen">
           <NestoSidebar />
         </aside>
 
