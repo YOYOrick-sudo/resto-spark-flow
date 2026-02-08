@@ -1,38 +1,26 @@
 
 
-## Sidebar iconen herstellen naar referentie
+## Sidebar iconen iets kleiner maken
 
-De huidige `muted-foreground` kleur (#73747B) is te licht/grijs. De referentie toont donkere, stevige iconen in de standaard `foreground` kleur.
+Beide iconen in de sidebar header worden van `size={20}` naar `size={18}` gezet voor een subtiel kleiner formaat.
 
 ### Wijzigingen in `src/components/layout/NestoSidebar.tsx`
 
-**Regel 86 - Zap icoon:**
+**Zap icoon (regel 86):**
 ```tsx
-// Huidig (te licht):
-<Zap size={20} strokeWidth={0} className="fill-muted-foreground" />
-
-// Nieuw (donker, solid filled):
+// Was:
 <Zap size={20} strokeWidth={0} className="fill-foreground" />
+// Wordt:
+<Zap size={18} strokeWidth={0} className="fill-foreground" />
 ```
 
-**Regel 96 - PanelLeft icoon:**
+**PanelLeft icoon (regel 96):**
 ```tsx
-// Huidig (te licht, te dun):
-<PanelLeft size={20} strokeWidth={1.5} className="text-muted-foreground" />
-
-// Nieuw (donker, steviger stroke):
+// Was:
 <PanelLeft size={20} strokeWidth={2} className="text-foreground" />
+// Wordt:
+<PanelLeft size={18} strokeWidth={2} className="text-foreground" />
 ```
 
-### Waarom
+Alleen de `size` property wijzigt, verder blijft alles hetzelfde.
 
-- `fill-foreground` / `text-foreground` gebruikt de standaard donkere tekstkleur die overeenkomt met de referentie
-- PanelLeft krijgt `strokeWidth={2}` voor een steviger, dikker uiterlijk zoals in het voorbeeld
-- Geen hardcoded hex kleuren, dus dark mode werkt automatisch
-- Zap blijft `strokeWidth={0}` (solid filled shape zonder outline)
-
-| Eigenschap | Huidig | Nieuw |
-|---|---|---|
-| Zap kleur | fill-muted-foreground (te grijs) | fill-foreground (donker) |
-| PanelLeft kleur | text-muted-foreground (te grijs) | text-foreground (donker) |
-| PanelLeft stroke | 1.5 (te dun) | 2 (steviger) |
