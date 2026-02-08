@@ -1,33 +1,49 @@
 
 
-## Sidebar header iconen aanpassen aan screenshot
+## Sidebar header iconen aanpassen
 
-De bliksem (Zap) en inklap-icoon (PanelLeft) staan al in de sidebar header. De styling moet aangepast worden zodat ze er exact uitzien als in je screenshot: iets groter, dikker, en prominenter.
+De Zap en PanelLeft iconen in de sidebar header moeten donkerder, dikker en "gevulder" worden. Momenteel zijn ze te licht en te dun.
 
-### Wijzigingen
+### Wijzigingen in `src/components/layout/NestoSidebar.tsx`
 
-#### `src/components/layout/NestoSidebar.tsx`
+**Zap icoon (bliksem):**
+- size: 16 -> 18
+- strokeWidth: default (2) -> 2 (expliciet)
+- Kleur: text-muted-foreground -> hardcoded color="#17171C"
+- Toevoegen: `fill="currentColor"` zodat het icoon gevuld/solid is
+- Padding: p-1.5 -> p-1
+- Hover: hover:bg-muted/50 behouden
+- Verwijder hover:text-foreground (kleur is nu vast)
 
-Huidige styling van de icon-buttons:
-- `size={16}`, `p-1.5`, `text-muted-foreground`
+**PanelLeft icoon (inklap):**
+- size: 16 -> 18
+- strokeWidth: default (2) -> 2 (expliciet)
+- Kleur: text-muted-foreground -> hardcoded color="#17171C"
+- Geen fill (blijft outlined, maar met dikkere lijn)
+- Padding: p-1.5 -> p-1
+- Hover: hover:bg-muted/50 behouden
+- Verwijder hover:text-foreground (kleur is nu vast)
 
-Nieuwe styling om het screenshot te matchen:
-- Icon size verhogen naar `size={18}` voor meer zichtbaarheid
-- `strokeWidth={2.5}` toevoegen voor dikkere lijnen (zoals in screenshot)
-- Padding verhogen naar `p-2` voor meer ademruimte rond de iconen
-- Kleur aanpassen naar `text-foreground` (donkerder, zoals in screenshot) in plaats van `text-muted-foreground`
-- Hover state behouden: `hover:bg-muted/50`
+**Container styling (beide buttons):**
+- Geen achtergrondkleur in default state
+- Hover: bg-muted/50 rounded-md
+- Geen border/box
 
-| Eigenschap | Huidig | Nieuw |
-|---|---|---|
-| Icon size | 16 | 18 |
-| Stroke width | 2 (default) | 2.5 |
-| Padding | p-1.5 | p-2 |
-| Kleur | text-muted-foreground | text-foreground |
-| Hover | hover:text-foreground hover:bg-muted/50 | hover:bg-muted/50 |
+### Samenvatting wijzigingen per knop
+
+| Eigenschap | Huidig | Nieuw (Zap) | Nieuw (PanelLeft) |
+|---|---|---|---|
+| size | 16 | 18 | 18 |
+| strokeWidth | default | 2 | 2 |
+| color | via CSS class | #17171C | #17171C |
+| fill | geen | currentColor | geen |
+| padding | p-1.5 | p-1 | p-1 |
+| default kleur class | text-muted-foreground | -- | -- |
+| hover | hover:text-foreground hover:bg-muted/50 | hover:bg-muted/50 | hover:bg-muted/50 |
 
 ### Bestand
 
 | Bestand | Actie |
 |---|---|
-| `src/components/layout/NestoSidebar.tsx` | Icon styling aanpassen (size, strokeWidth, padding, kleur) |
+| `src/components/layout/NestoSidebar.tsx` | Icon props en button styling aanpassen |
+
