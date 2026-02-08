@@ -5,10 +5,11 @@ export interface NestoCardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "large" | "subtle" | "small";
   hoverable?: boolean;
   radius?: "default" | "small";
+  nested?: boolean;
 }
 
 const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
-  ({ className, variant = "default", hoverable = false, radius = "default", ...props }, ref) => {
+  ({ className, variant = "default", hoverable = false, radius = "default", nested = false, ...props }, ref) => {
     const radiusClass = radius === "small" ? "rounded-card-sm" : "rounded-card";
     
     return (
@@ -16,7 +17,7 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
         ref={ref}
         className={cn(
           "bg-card text-card-foreground border border-border",
-          "transition-all duration-200",
+          "transition-[box-shadow,transform] duration-200",
           radiusClass,
           {
             "p-6": variant === "default",
@@ -24,14 +25,25 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
             "p-6 bg-accent": variant === "subtle",
             "p-4": variant === "small",
           },
-          hoverable && "cursor-pointer hover:border-primary hover:shadow-md",
+          hoverable && !nested && "cursor-pointer hover:border-primary hover:-translate-y-px",
           className
         )}
         style={{
-          boxShadow: hoverable
-            ? undefined
-            : "inset 0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04)",
+          boxShadow: nested
+            ? "none"
+            : hoverable
+              ? undefined
+              : "0 1px 2px rgba(0, 0, 0, 0.04)",
+          ...(props.style || {}),
         }}
+        onMouseEnter={hoverable && !nested ? (e) => {
+          (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.06)";
+          props.onMouseEnter?.(e);
+        } : props.onMouseEnter}
+        onMouseLeave={hoverable && !nested ? (e) => {
+          (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.04)";
+          props.onMouseLeave?.(e);
+        } : props.onMouseLeave}
         {...props}
       />
     );
