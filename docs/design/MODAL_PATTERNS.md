@@ -60,3 +60,22 @@
   </form>
 </NestoModal>
 ```
+
+---
+
+## Overlay en Shadow
+
+### Overlay
+- `bg-black/20 backdrop-blur-sm` (niet `bg-black/80`)
+- De lichtere overlay met blur geeft een moderne, cleanere look
+- Content achter de modal blijft zichtbaar maar subtiel geblurd
+
+### Modal Shadow
+- `shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]`
+- De sterkere shadow compenseert voor de lichtere overlay
+- Houdt de modal visueel prominent en verheven
+
+### Waarom deze combinatie
+- Lichtere overlay = minder "zwaar" gevoel, modernere uitstraling
+- Backdrop blur = context behouden zonder afleiding
+- Sterke shadow = duidelijke focus op de modal content
