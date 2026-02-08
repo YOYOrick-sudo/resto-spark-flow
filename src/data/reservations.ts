@@ -66,42 +66,66 @@ export interface ShiftConfig {
 export const reservationStatusConfig: Record<ReservationStatus, {
   label: string;
   dotColor: string;
-  badgeVariant: 'default' | 'primary' | 'success' | 'pending' | 'warning' | 'error' | 'outline';
+  showDot: boolean;
+  textClass: string;
+  bgClass: string;
+  borderClass: string;
 }> = {
   pending: {
     label: 'Pending',
-    dotColor: 'hsl(var(--muted-foreground))',
-    badgeVariant: 'outline',
+    dotColor: '#B8B5B0',
+    showDot: true,
+    textClass: 'text-muted-foreground',
+    bgClass: 'bg-muted/40',
+    borderClass: '',
   },
   confirmed: {
     label: 'Confirmed',
-    dotColor: 'hsl(var(--primary))',
-    badgeVariant: 'primary',
+    dotColor: '#1d979e',
+    showDot: true,
+    textClass: 'text-primary',
+    bgClass: 'bg-primary/[0.08]',
+    borderClass: '',
   },
   checked_in: {
     label: 'Checked in',
-    dotColor: 'hsl(160 84% 39%)',
-    badgeVariant: 'success',
+    dotColor: '#0D9488',
+    showDot: true,
+    textClass: 'text-[#0F766E]',
+    bgClass: 'bg-[#F0FDFA]',
+    borderClass: 'border border-[#99F6E4]',
   },
   seated: {
     label: 'Seated',
-    dotColor: 'hsl(160 84% 39%)',
-    badgeVariant: 'success',
+    dotColor: '#14B8A6',
+    showDot: true,
+    textClass: 'text-primary',
+    bgClass: 'bg-primary/15',
+    borderClass: '',
   },
   completed: {
     label: 'Completed',
-    dotColor: 'hsl(var(--muted-foreground))',
-    badgeVariant: 'outline',
-  },
-  cancelled: {
-    label: 'Cancelled',
-    dotColor: 'hsl(0 74% 60%)',
-    badgeVariant: 'error',
+    dotColor: '#D1CCC7',
+    showDot: true,
+    textClass: 'text-muted-foreground opacity-50',
+    bgClass: '',
+    borderClass: '',
   },
   no_show: {
     label: 'No show',
-    dotColor: 'hsl(36 100% 50%)',
-    badgeVariant: 'warning',
+    dotColor: '#E87461',
+    showDot: true,
+    textClass: 'text-[#C4503E]',
+    bgClass: 'bg-[#FEF2F0]',
+    borderClass: 'border border-[#FECDC8]',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    dotColor: '',
+    showDot: false,
+    textClass: 'text-muted-foreground line-through',
+    bgClass: '',
+    borderClass: '',
   },
 };
 

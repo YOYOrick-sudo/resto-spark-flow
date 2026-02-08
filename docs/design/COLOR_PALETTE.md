@@ -138,3 +138,26 @@ className="border-border"        // Default border
 3. **Hover state voor primary**
    - Nieuwe CSS variable: `--primary-hover`
    - Tailwind class: `hover:bg-primary-hover`
+
+---
+
+## **STATUS BADGE COLORS**
+
+Reserveringsstatus badges gebruiken een teal-kleurenfamilie i.p.v. standaard Tailwind kleuren. De visuele progressie voor actieve statussen: **Confirmed** (licht teal) → **Checked in** (teal + border) → **Seated** (vollere teal). Elk niveau wordt "steviger" zodat je in een oogopslag ziet waar een gast zich bevindt.
+
+| Status | Dot | Tekst | Achtergrond | Border | Logica |
+|---|---|---|---|---|---|
+| **Pending** | `#B8B5B0` (warm grijs) | `text-muted-foreground` | `bg-muted/40` | - | Neutraal, wachtend |
+| **Confirmed** | `#1d979e` (nesto teal) | `text-primary` | `bg-primary/[0.08]` | - | Licht teal = bevestigd |
+| **Checked in** | `#0D9488` (teal-600) | `#0F766E` | `#F0FDFA` | `#99F6E4` | Teal + border = aangekomen |
+| **Seated** | `#14B8A6` (teal-500) | `text-primary` | `bg-primary/15` | - | Vollere teal = aan tafel |
+| **Completed** | `#D1CCC7` (warm grijs) | `text-muted-foreground opacity-50` | - | - | Vervaagd, klaar |
+| **No-show** | `#E87461` (warm koraal) | `#C4503E` | `#FEF2F0` | `#FECDC8` | Warm rood, negatief |
+| **Cancelled** | geen | `text-muted-foreground line-through` | - | - | Doorgestreept, inactief |
+
+### Design-rationale
+
+- **Teal-tinten** voor actieve/positieve statussen (Confirmed, Checked in, Seated)
+- **Warm grijs** voor neutrale statussen (Pending, Completed)
+- **Warm koraalrood** voor negatieve (No-show) — zachter dan standaard rood, past beter bij teal
+- Geen standaard Tailwind blauw of groen — alles voelt als één kleurenfamilie
