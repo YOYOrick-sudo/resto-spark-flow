@@ -24,37 +24,33 @@ Settings pagina's gebruiken `SettingsPageLayout` met:
 </SettingsPageLayout>
 ```
 
+## Belangrijke Regels
+
+1. **Geen titelduplicatie**: Page-level titels worden NIET herhaald in NestoCard headers. De page header (via `SettingsDetailLayout`) geeft titel + beschrijving. Cards beginnen direct met content of action buttons.
+
+2. **Primaire actie in page header**: Primaire actie buttons (`+ Nieuw item`) horen in de page header (rechts uitgelijnd via `SettingsDetailLayout` actions), NIET in een card header.
+
+3. **Geen card-in-card nesting**: Vermijd card-in-card nesting. Gebruik één NestoCard per logische content-groep. Zie `docs/design/CARD_SHADOWS.md` voor details.
+
+---
+
 ## Sectie Kaarten
 
 Elke logische sectie wordt gewrapt in een `NestoCard`:
 
 ```tsx
 <NestoCard className="p-6">
-  {/* Sectie Header */}
-  <div className="flex items-center justify-between mb-6">
-    <div>
-      <h3 className="text-lg font-medium">Sectie Titel</h3>
-      <p className="text-sm text-muted-foreground">
-        Korte beschrijving van de sectie.
-      </p>
-    </div>
-    <NestoButton size="sm">
-      <Plus className="h-4 w-4 mr-1" />
-      Actie
-    </NestoButton>
-  </div>
-
-  {/* Sectie Content */}
+  {/* Content begint direct — geen titel herhaling */}
   <div className="space-y-3">
     {/* Items */}
   </div>
 </NestoCard>
 ```
 
-### Sectie Header Specificaties
+### Sectie Header Specificaties (alleen als er geen page header is)
 - **Titel**: `text-lg font-medium`
 - **Beschrijving**: `text-sm text-muted-foreground`
-- **Primaire actie**: `NestoButton size="sm"` rechts uitgelijnd
+- **Primaire actie**: Hoort in page header, niet in card
 - **Spacing**: `mb-6` tussen header en content
 
 ## Meerdere Secties in Één Kaart
@@ -150,11 +146,11 @@ Voor standalone empty states (zonder kaart wrapper):
 
 ## Gearchiveerde Items
 
-Gebruik een `Collapsible` onderaan de kaart voor gearchiveerde content:
+Gebruik een `Collapsible` onder de cards voor gearchiveerde content. De collapsible staat buiten de cards, met een subtiele achtergrond:
 
 ```tsx
 {hasArchivedItems && (
-  <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="mt-4">
+  <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="mt-6 bg-muted/30 rounded-lg p-4">
     <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
       <ChevronRight className={`h-4 w-4 transition-transform ${archivedOpen ? 'rotate-90' : ''}`} />
       <Archive className="h-4 w-4" />
@@ -183,7 +179,8 @@ Gebruik een `Collapsible` onderaan de kaart voor gearchiveerde content:
 - **Tekst**: `text-sm text-muted-foreground`
 - **Hover**: `hover:text-foreground transition-colors`
 - **Iconen**: `ChevronRight` (roteert 90° open) + `Archive`
-- **Spacing**: `mt-4` boven de trigger, `mt-3` voor content
+- **Wrapper**: `mt-6 bg-muted/30 rounded-lg p-4` (buiten de cards, eigen visueel blok)
+- **Spacing**: `mt-3` voor content binnen de collapsible
 
 ### Archived Item Specificaties
 - **Container**: `p-3 bg-muted/50 rounded-lg`

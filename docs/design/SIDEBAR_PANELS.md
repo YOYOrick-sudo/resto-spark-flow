@@ -141,6 +141,18 @@ Titels in sidebars worden in HOOFDLETTERS weergegeven:
 
 ---
 
+## SettingsInsightPanel Dividers
+
+Secties in `SettingsInsightPanel` (Operationeel, Signalen, Context) worden gescheiden met:
+
+```tsx
+<div className="border-t border-border pt-4 mt-4" />
+```
+
+**Niet** `border-border/60` of `my-3` — gebruik de volledige border kleur en `pt-4 mt-4` spacing voor duidelijke visuele scheiding.
+
+---
+
 ## Checklist voor nieuwe modules
 
 Bij het bouwen van nieuwe modules met sidebar navigatie:
