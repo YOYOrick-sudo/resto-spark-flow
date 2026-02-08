@@ -3,28 +3,22 @@ import { ArrowUpRight } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { NestoCard } from '@/components/polar/NestoCard';
 
-const dayLabels = ['M', 'D', 'W', 'D', 'V', 'Z', 'Z'];
-
 const mockData = [
-  { date: '26 jan', count: 12 },
-  { date: '27 jan', count: 18 },
-  { date: '28 jan', count: 15 },
-  { date: '29 jan', count: 22 },
-  { date: '30 jan', count: 8 },
-  { date: '31 jan', count: 14 },
-  { date: '1 feb', count: 19 },
-  { date: '2 feb', count: 25 },
-  { date: '3 feb', count: 11 },
-  { date: '4 feb', count: 17 },
-  { date: '5 feb', count: 21 },
-  { date: '6 feb', count: 16 },
-  { date: '7 feb', count: 23 },
-  { date: '8 feb', count: 20 },
-].map((d, i, arr) => {
-  const last7Start = arr.length - 7;
-  const dayIndex = i - last7Start;
-  return { ...d, dayLabel: dayIndex >= 0 ? dayLabels[dayIndex] : '', isToday: i === arr.length - 1 };
-});
+  { date: '26 jan', day: '', count: 8 },
+  { date: '27 jan', day: '', count: 12 },
+  { date: '28 jan', day: '', count: 15 },
+  { date: '29 jan', day: '', count: 10 },
+  { date: '30 jan', day: '', count: 22 },
+  { date: '31 jan', day: '', count: 18 },
+  { date: '1 feb', day: '', count: 14 },
+  { date: '2 feb', day: 'M', count: 16 },
+  { date: '3 feb', day: 'D', count: 19 },
+  { date: '4 feb', day: 'W', count: 14 },
+  { date: '5 feb', day: 'D', count: 24 },
+  { date: '6 feb', day: 'V', count: 28 },
+  { date: '7 feb', day: 'Z', count: 32 },
+  { date: '8 feb', day: 'Z', count: 20 },
+];
 
 interface ReservationsTileProps {
   todayCount: number;
@@ -34,7 +28,7 @@ const renderTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const { date, count } = payload[0].payload;
   return (
-    <div className="bg-foreground text-background rounded-lg px-3 py-1.5 text-sm shadow-lg">
+    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
       <span className="font-medium">{date}</span>
       <span className="ml-2">{count} reserveringen</span>
     </div>
@@ -44,22 +38,23 @@ const renderTooltip = ({ active, payload }: any) => {
 function CustomDot(props: any) {
   const { cx, cy, index } = props;
   if (index !== mockData.length - 1) return null;
-  return <circle cx={cx} cy={cy} r={4} fill="#1d979e" stroke="none" />;
+  return <circle cx={cx} cy={cy} r={4} fill="#1d979e" stroke="#fff" strokeWidth={2} />;
 }
 
-function renderDayTick({ x, y, payload }: any) {
-  const entry = mockData[payload.index];
-  if (!entry?.dayLabel) return null;
-  const isToday = entry.isToday;
+function renderDayTick({ x, y, payload, index }: any) {
+  if (!payload.value) return null;
+  const isToday = index === mockData.length - 1;
   return (
     <text
       x={x}
-      y={y + 12}
+      y={y}
+      dy={8}
       textAnchor="middle"
-      fontSize={10}
-      fill={isToday ? 'hsl(var(--muted-foreground))' : 'hsl(var(--muted-foreground) / 0.4)'}
+      fontSize={11}
+      fontWeight={isToday ? 600 : 400}
+      fill={isToday ? '#1d979e' : '#ACAEB3'}
     >
-      {entry.dayLabel}
+      {payload.value}
     </text>
   );
 }
@@ -82,7 +77,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
         <span className="text-sm text-muted-foreground">vandaag</span>
       </div>
       <div className="mt-4">
-        <ResponsiveContainer width="100%" height={140}>
+        <ResponsiveContainer width="100%" height={160}>
           <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="reservationGradient" x1="0" y1="0" x2="0" y2="1">
@@ -91,12 +86,12 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
               </linearGradient>
             </defs>
             <XAxis
-              dataKey="dayLabel"
+              dataKey="day"
               axisLine={false}
               tickLine={false}
               tick={renderDayTick}
               interval={0}
-              height={20}
+              height={28}
             />
             <Tooltip content={renderTooltip} cursor={false} />
             <Area
