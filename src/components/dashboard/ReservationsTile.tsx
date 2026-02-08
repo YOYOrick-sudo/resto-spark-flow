@@ -48,9 +48,9 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
         <span className="text-4xl font-bold tracking-tight text-foreground">{heroValue}</span>
         <span className="text-sm text-muted-foreground">vandaag</span>
       </div>
-      <div className="mt-4" style={{ marginRight: -5 }}>
+      <div className="mt-4">
         <ResponsiveContainer width="100%" height={164}>
-          <AreaChart data={mockData} margin={{ top: 8, right: 0, bottom: 20, left: 0 }}>
+          <AreaChart data={mockData} margin={{ top: 8, right: 16, bottom: 20, left: 16 }}>
             <defs>
               <linearGradient id="reservationGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#1d979e" stopOpacity={0.15} />
