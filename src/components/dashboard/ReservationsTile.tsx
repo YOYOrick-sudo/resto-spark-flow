@@ -23,7 +23,7 @@ const renderTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const { date, count } = payload[0].payload;
   return (
-    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
+    <div className="bg-foreground text-background text-xs rounded-lg px-3 py-2 shadow-lg">
       <span className="font-medium">{date}</span>
       <span className="ml-2">{count} reserveringen</span>
     </div>
@@ -50,7 +50,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
       </div>
       <div className="mt-4">
         <ResponsiveContainer width="100%" height={164}>
-          <AreaChart data={mockData} margin={{ top: 8, right: 16, bottom: 20, left: 16 }}>
+          <AreaChart data={mockData} margin={{ top: 8, right: 12, bottom: 20, left: 12 }}>
             <defs>
               <linearGradient id="reservationGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#1d979e" stopOpacity={0.15} />
@@ -59,6 +59,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
             </defs>
             <XAxis
               dataKey="day"
+              padding={{ left: 8, right: 8 }}
               allowDuplicatedCategory={true}
               axisLine={false}
               tickLine={false}
