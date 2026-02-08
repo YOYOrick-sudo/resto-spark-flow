@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { NestoCard } from '@/components/polar/NestoCard';
+
+const dayLabels = ['M', 'D', 'W', 'D', 'V', 'Z', 'Z'];
 
 const mockData = [
   { date: '26 jan', count: 12 },
@@ -18,7 +20,11 @@ const mockData = [
   { date: '6 feb', count: 16 },
   { date: '7 feb', count: 23 },
   { date: '8 feb', count: 20 },
-];
+].map((d, i, arr) => {
+  const last7Start = arr.length - 7;
+  const dayIndex = i - last7Start;
+  return { ...d, dayLabel: dayIndex >= 0 ? dayLabels[dayIndex] : '', isToday: i === arr.length - 1 };
+});
 
 interface ReservationsTileProps {
   todayCount: number;
@@ -41,6 +47,25 @@ function CustomDot(props: any) {
   return <circle cx={cx} cy={cy} r={4} fill="#1d979e" stroke="none" />;
 }
 
+function renderDayTick({ x, y, payload }: any) {
+  const entry = mockData[payload.index];
+  if (!entry?.dayLabel) return null;
+  const isToday = entry.isToday;
+  return (
+    <text
+      x={x}
+      y={y + 12}
+      textAnchor="middle"
+      fontSize={10}
+      fill="currentColor"
+      className={isToday ? 'text-muted-foreground' : 'text-muted-foreground/40'}
+      style={{ opacity: isToday ? 1 : 0.4 }}
+    >
+      {entry.dayLabel}
+    </text>
+  );
+}
+
 export function ReservationsTile({ todayCount }: ReservationsTileProps) {
   const navigate = useNavigate();
   const heroValue = todayCount > 0 ? String(todayCount) : '—';
@@ -59,7 +84,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
         <span className="text-sm text-muted-foreground">vandaag</span>
       </div>
       <div className="mt-4">
-        <ResponsiveContainer width="100%" height={120}>
+        <ResponsiveContainer width="100%" height={140}>
           <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="reservationGradient" x1="0" y1="0" x2="0" y2="1">
@@ -67,6 +92,14 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
                 <stop offset="100%" stopColor="#1d979e" stopOpacity={0} />
               </linearGradient>
             </defs>
+            <XAxis
+              dataKey="dayLabel"
+              axisLine={false}
+              tickLine={false}
+              tick={renderDayTick}
+              interval={0}
+              height={20}
+            />
             <Tooltip content={renderTooltip} cursor={false} />
             <Area
               type="monotone"
