@@ -33,9 +33,10 @@ import type { Area, Table, AreaWithTables } from "@/types/reservations";
 
 interface AreasSectionProps {
   locationId: string | undefined;
+  externalAddTrigger?: number;
 }
 
-export function AreasSection({ locationId }: AreasSectionProps) {
+export function AreasSection({ locationId, externalAddTrigger }: AreasSectionProps) {
   const { data: allAreas, isLoading } = useAreasForSettings(locationId);
   const { mutate: restoreArea, isPending: isRestoring } = useRestoreArea();
   const { mutate: reorderAreas } = useReorderAreas();
@@ -106,6 +107,14 @@ export function AreasSection({ locationId }: AreasSectionProps) {
       return pruned;
     });
   }, [activeAreas]);
+
+  // External trigger to open add area modal
+  useEffect(() => {
+    if (externalAddTrigger && externalAddTrigger > 0) {
+      setEditingArea(null);
+      setAreaModalOpen(true);
+    }
+  }, [externalAddTrigger]);
 
   // DnD sensors - optimized for smooth input
   const sensors = useSensors(
@@ -209,12 +218,6 @@ export function AreasSection({ locationId }: AreasSectionProps) {
 
   return (
     <NestoCard className="p-6">
-      <div className="flex justify-end mb-4">
-        <NestoButton onClick={handleAddArea} size="sm" disabled={!locationId}>
-          <Plus className="h-4 w-4 mr-1" />
-          Nieuwe Area
-        </NestoButton>
-      </div>
 
       {/* Active Areas with DnD */}
       <DndContext
