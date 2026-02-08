@@ -1,16 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
-import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { NestoCard } from '@/components/polar/NestoCard';
 
 const mockData = [
-  { date: '26 jan', day: '', count: 8 },
-  { date: '27 jan', day: '', count: 12 },
-  { date: '28 jan', day: '', count: 15 },
-  { date: '29 jan', day: '', count: 10 },
-  { date: '30 jan', day: '', count: 22 },
-  { date: '31 jan', day: '', count: 18 },
-  { date: '1 feb', day: '', count: 14 },
+  { date: '26 jan', count: 8 },
+  { date: '27 jan', count: 12 },
+  { date: '28 jan', count: 15 },
+  { date: '29 jan', count: 10 },
+  { date: '30 jan', count: 22 },
+  { date: '31 jan', count: 18 },
+  { date: '1 feb', count: 14 },
   { date: '2 feb', day: 'M', count: 16 },
   { date: '3 feb', day: 'D', count: 19 },
   { date: '4 feb', day: 'W', count: 14 },
@@ -19,6 +19,8 @@ const mockData = [
   { date: '7 feb', day: 'Z', count: 32 },
   { date: '8 feb', day: 'Z', count: 20 },
 ];
+
+const dayLabels = ['M', 'D', 'W', 'D', 'V', 'Z', 'Z'];
 
 interface ReservationsTileProps {
   todayCount: number;
@@ -41,20 +43,6 @@ function CustomDot(props: any) {
   return <circle cx={cx} cy={cy} r={4} fill="#1d979e" stroke="#fff" strokeWidth={2} />;
 }
 
-function renderDayTick({ x, y, payload, index }: any) {
-  if (!payload.value) return null;
-  const isToday = index === mockData.length - 1;
-  const isFirst = index === 7;
-  const anchor = isToday ? 'end' : isFirst ? 'start' : 'middle';
-  return (
-    <text x={x} y={y} dy={4} textAnchor={anchor}
-      fontSize={11} fontWeight={isToday ? 600 : 400}
-      fill={isToday ? '#1d979e' : '#ACAEB3'}>
-      {payload.value}
-    </text>
-  );
-}
-
 export function ReservationsTile({ todayCount }: ReservationsTileProps) {
   const navigate = useNavigate();
   const heroValue = todayCount > 0 ? String(todayCount) : '—';
@@ -72,7 +60,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
         <span className="text-4xl font-bold tracking-tight text-foreground">{heroValue}</span>
         <span className="text-sm text-muted-foreground">vandaag</span>
       </div>
-      <div className="mt-4" style={{ marginRight: -5 }}>
+      <div className="relative mt-4" style={{ marginRight: -5 }}>
         <ResponsiveContainer width="100%" height={164}>
           <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <defs>
@@ -81,14 +69,6 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
                 <stop offset="100%" stopColor="#1d979e" stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <XAxis
-              dataKey="day"
-              axisLine={false}
-              tickLine={false}
-              tick={renderDayTick}
-              interval={0}
-              height={24}
-            />
             <Tooltip content={renderTooltip} cursor={false} />
             <Area
               type="monotone"
@@ -101,6 +81,23 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
             />
           </AreaChart>
         </ResponsiveContainer>
+        {/* Overlay day labels */}
+        <div className="absolute bottom-0 left-0 right-0 flex justify-end" style={{ paddingRight: 24, paddingBottom: 12 }}>
+          <div className="flex" style={{ width: '50%' }}>
+            {dayLabels.map((label, i) => (
+              <span
+                key={i}
+                className="flex-1 text-center text-[11px]"
+                style={{
+                  color: i === dayLabels.length - 1 ? '#1d979e' : '#ACAEB3',
+                  fontWeight: i === dayLabels.length - 1 ? 600 : 400,
+                }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </NestoCard>
   );
