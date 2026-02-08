@@ -1,19 +1,21 @@
 
 
-## Zoekbalk iets prominenter maken
+## Sidebar navigatie-items iets kleiner maken
 
-De zoekbalk krijgt een subtiel zwaardere border voor net iets meer visuele aanwezigheid, zonder overdreven te worden.
+De menu-items in de sidebar worden subtiel kleiner: zowel de tekst als de iconen schalen mee.
 
-### Wijziging in `src/components/layout/NestoSidebar.tsx`
+### Wijzigingen in `src/components/layout/NestoSidebar.tsx`
 
-**Regel 110 - zoekbalk div:**
-```tsx
-// Was:
-<div className="w-full h-9 pl-9 pr-12 bg-background border border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
+**Iconen bij hoofditems** — van `size={18}` naar `size={16}`:
+- Expandable group items (regel 149)
+- Disabled items (regel 193)
+- Regular link items (regel 201)
 
-// Wordt:
-<div className="w-full h-9 pl-9 pr-12 bg-background border-[1.5px] border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
-```
+**Tekst bij alle items** — van `text-sm` naar `text-[13px]`:
+- Expandable group button (regel 145)
+- Sub-items (regels 166, 175)
+- Disabled items (regel 192)
+- Regular link items (regel 198)
 
-De enige wijziging is `border` naar `border-[1.5px]` — een heel subtiele versterking van de rand zodat de zoekbalk net iets meer opvalt zonder het ontwerp te verstoren.
+Dit houdt de verhouding icoon-tekst consistent en maakt de navigatie net iets compacter.
 
