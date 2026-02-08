@@ -30,13 +30,6 @@ const renderTooltip = ({ active, payload }: any) => {
   );
 };
 
-function CustomDot(props: any) {
-  const { cx, cy, index } = props;
-  if (index === mockData.length - 1) {
-    return <circle cx={cx} cy={cy} r={4} fill="#1d979e" stroke="#fff" strokeWidth={2} />;
-  }
-  return <circle cx={cx} cy={cy} r={2.5} fill="#ACAEB3" />;
-}
 
 export function ReservationsTile({ todayCount }: ReservationsTileProps) {
   const navigate = useNavigate();
@@ -57,7 +50,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
       </div>
       <div className="relative mt-4" style={{ marginRight: -5 }}>
         <ResponsiveContainer width="100%" height={164}>
-          <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+          <AreaChart data={mockData} margin={{ top: 8, right: 0, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="reservationGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#1d979e" stopOpacity={0.15} />
@@ -71,8 +64,8 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
               stroke="#1d979e"
               strokeWidth={2}
               fill="url(#reservationGradient)"
-              dot={<CustomDot />}
-              activeDot={false}
+              dot={false}
+              activeDot={{ r: 5, fill: "#1d979e", stroke: "#fff", strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>
