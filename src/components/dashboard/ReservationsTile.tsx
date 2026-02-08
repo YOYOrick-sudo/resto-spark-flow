@@ -4,13 +4,6 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { NestoCard } from '@/components/polar/NestoCard';
 
 const mockData = [
-  { date: '26 jan', count: 8 },
-  { date: '27 jan', count: 12 },
-  { date: '28 jan', count: 15 },
-  { date: '29 jan', count: 10 },
-  { date: '30 jan', count: 22 },
-  { date: '31 jan', count: 18 },
-  { date: '1 feb', count: 14 },
   { date: '2 feb', day: 'M', count: 16 },
   { date: '3 feb', day: 'D', count: 19 },
   { date: '4 feb', day: 'W', count: 14 },
@@ -82,21 +75,19 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
           </AreaChart>
         </ResponsiveContainer>
         {/* Overlay day labels */}
-        <div className="absolute bottom-0 left-0 right-0 flex justify-end" style={{ paddingRight: 24, paddingBottom: 12 }}>
-          <div className="flex" style={{ width: '50%' }}>
-            {dayLabels.map((label, i) => (
-              <span
-                key={i}
-                className="flex-1 text-center text-[11px]"
-                style={{
-                  color: i === dayLabels.length - 1 ? '#1d979e' : '#ACAEB3',
-                  fontWeight: i === dayLabels.length - 1 ? 600 : 400,
-                }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
+        <div className="absolute bottom-0 left-0 right-0 flex px-3 pb-2">
+          {dayLabels.map((label, i) => (
+            <span
+              key={i}
+              className="flex-1 text-center text-[11px]"
+              style={{
+                color: i === dayLabels.length - 1 ? '#1d979e' : '#ACAEB3',
+                fontWeight: i === dayLabels.length - 1 ? 600 : 400,
+              }}
+            >
+              {label}
+            </span>
+          ))}
         </div>
       </div>
     </NestoCard>
