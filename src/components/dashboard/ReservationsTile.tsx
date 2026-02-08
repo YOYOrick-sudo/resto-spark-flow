@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { NestoCard } from '@/components/polar/NestoCard';
@@ -42,15 +42,17 @@ function CustomDot(props: any) {
 }
 
 export function ReservationsTile({ todayCount }: ReservationsTileProps) {
+  const navigate = useNavigate();
   const heroValue = todayCount > 0 ? String(todayCount) : '—';
 
   return (
-    <NestoCard className="overflow-hidden !p-0">
+    <NestoCard
+      className="overflow-hidden !p-0 cursor-pointer group transition-shadow duration-200 hover:shadow-md"
+      onClick={() => navigate('/reserveringen')}
+    >
       <div className="px-6 pt-6 flex items-center justify-between">
         <span className="text-sm text-muted-foreground">Reserveringen</span>
-        <Link to="/reserveringen">
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
-        </Link>
+        <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
       <div className="px-6 mt-1 flex items-baseline gap-2">
         <span className="text-4xl font-bold tracking-tight text-foreground">{heroValue}</span>

@@ -1,35 +1,37 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { NestoCard } from '@/components/polar/NestoCard';
 
 export function KeukenTile() {
+  const navigate = useNavigate();
   const done = 8;
   const total = 12;
   const remaining = total - done;
   const pct = Math.round((done / total) * 100);
 
   return (
-    <NestoCard className="overflow-hidden">
+    <NestoCard
+      className="overflow-hidden cursor-pointer group transition-shadow duration-200 hover:shadow-md"
+      onClick={() => navigate('/keuken/taken')}
+    >
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">Keuken</span>
-        <Link to="/keuken/taken">
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
-        </Link>
+        <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
       <div className="mt-1 flex items-baseline gap-2">
         <span className="text-4xl font-bold tracking-tight text-foreground">{done}/{total}</span>
         <span className="text-sm text-muted-foreground">MEP-taken</span>
       </div>
       <div className="mt-4">
-        <div className="h-3 w-full rounded-full bg-muted">
+        <div className="h-2 w-full rounded-full bg-muted">
           <div
             className="h-full rounded-full"
-            style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #1d979e, #2BB4BC)' }}
+            style={{ width: `${pct}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))' }}
           />
         </div>
         <div className="mt-2 flex justify-between">
           <span className="text-xs text-muted-foreground">{remaining} resterend</span>
-          <span className="text-xs font-medium text-primary">{pct}%</span>
+          <span className="text-xs font-medium text-foreground">{pct}%</span>
         </div>
       </div>
       <div className="mt-4 pt-4 border-t border-border/50 flex items-start gap-2">
