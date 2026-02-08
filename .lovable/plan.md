@@ -1,71 +1,86 @@
 
 
-## Reserveringen Chart — Edge-to-Edge & Gradient Fix
+## Reserveringen Chart — Volledige Breedte & Geintegreerde Labels
 
 ### Probleem
 
-De chart loopt niet helemaal tot de linker- en rechterrand van de card. Er is `margin.right: 8` op de AreaChart waardoor rechts witte ruimte ontstaat. Daarnaast stopt de teal gradient boven de XAxis in plaats van door te lopen tot de onderkant van de card.
+1. **Rechts witte ruimte**: Recharts voegt standaard 5px interne padding toe aan de SVG, waardoor de gradient/lijn niet tot de rechterrand reikt.
+2. **Dag-labels zweven los**: De HTML dag-labels staan in een aparte div onder de chart met padding/margin ertussen. Ze moeten direct tegen de gradient aanzitten, zoals bij Polar.sh.
 
 ### Oplossing
 
-#### 1. Chart margins op 0 zetten
+#### 1. XAxis terug in de chart (als overlay op de gradient)
 
-De `AreaChart` margin wordt `{ top: 0, right: 0, bottom: 0, left: 0 }` zodat de lijn en gradient echt van rand tot rand lopen.
+Breng de `XAxis` terug in de `AreaChart` zodat de labels **binnen** het chart-gebied zitten. De gradient loopt dan over de labels heen. Configuratie:
 
-#### 2. Laatste label afsnijding voorkomen zonder margin
+- `dataKey="day"`, `interval={0}`
+- `axisLine={false}`, `tickLine={false}`  
+- `tick` als custom render functie
+- `height={24}` — dit reserveert ruimte onderaan de chart voor de labels, maar de gradient fill bedekt dit gebied ook
 
-In plaats van `margin.right: 8` gebruiken we `textAnchor="end"` op het laatste label (al geimplementeerd) en passen we de XAxis `padding` prop aan: `padding={{ left: 0, right: 6 }}`. Dit verschuift het laatste datapunt net genoeg naar links zodat het label past, zonder witte ruimte aan de rand (de gradient/fill loopt nog steeds tot de SVG-rand door).
+#### 2. Custom tick renderer
 
-#### 3. Gradient doorlopen tot onderkant
+De tick functie:
+- Toont niks als `payload.value` leeg is (eerste 7 datapunten)
+- Laatste datapunt (index 13): `textAnchor="end"`, `fontWeight: 600`, `fill: "#1d979e"`
+- Eerste zichtbare label (index 7): `textAnchor="start"`
+- Rest: `textAnchor="middle"`
+- `fontSize: 11`, `dy: 4`
 
-Het probleem is dat de XAxis `height={28}` ruimte reserveert onder het chart-gebied, waardoor de gradient daar stopt. Oplossing:
+#### 3. Gradient doorlopen tot onderkant inclusief XAxis
 
-- Gebruik een **relative container** met de chart en de labels **als aparte laag**
-- De `AreaChart` krijgt **geen XAxis** meer — verwijder de XAxis uit de AreaChart
-- De dag-labels worden een apart `div` element onder de chart, gepositioneerd met CSS
-- De `ResponsiveContainer` height wordt `140` (alleen chart, geen XAxis ruimte)
-- Onder de chart komt een `div` met `px-2 pb-3 pt-1` die de 7 dag-labels toont als een flex row met `justify-between`, maar alleen over de rechterhelft (de laatste 7 datapunten)
+Door de XAxis **binnen** de AreaChart te plaatsen (in plaats van als aparte HTML), loopt de gradient fill automatisch door tot de onderkant van de hele chart area inclusief de XAxis ruimte. De gradient bedekt de labels subtiel.
 
-Concreet:
-- Wrapper div wordt `relative`
-- Chart `ResponsiveContainer` height `140`, geen XAxis
-- Nieuw `div` eronder met de dag-labels als gewone HTML tekst
-- De labels div heeft `flex justify-end` met 7 items die elk `flex-1 text-center` zijn
-- Laatste label krijgt teal kleur en bold
+#### 4. Rechterrand fix
 
-#### 4. Gradient opacity aanpassen
+Recharts heeft een interne padding op het SVG element. Dit lossen we op met een negatieve margin op de chart wrapper: `-mr-[5px]` en `overflow-hidden` op de parent (al aanwezig op NestoCard). Alternatief: gebruik `width="calc(100% + 5px)"` op de ResponsiveContainer wrapper.
 
-De gradient `stopOpacity` bij 100% wordt `0.02` in plaats van `0` zodat er een subtiele tint overblijft tot de onderkant.
+Een betere aanpak: wrap de ResponsiveContainer in een div met `style={{ marginRight: -5 }}` zodat de rechterrand van de SVG voorbij de card-rand valt en door `overflow-hidden` wordt afgesneden. Dit geeft een perfect edge-to-edge resultaat.
+
+#### 5. HTML dag-labels verwijderen
+
+Verwijder de `dayLabels` array en de complete HTML div met de labels (regels 84-97). De labels komen nu uit de XAxis.
 
 ### Wijzigingen
 
 | Bestand | Actie |
 |---|---|
-| `src/components/dashboard/ReservationsTile.tsx` | XAxis verwijderen uit AreaChart, dag-labels als HTML div eronder, chart margin op 0, gradient tot bodem |
+| `src/components/dashboard/ReservationsTile.tsx` | XAxis terug toevoegen in AreaChart met custom tick, HTML labels div verwijderen, wrapper met negatieve margin rechts voor edge-to-edge |
 
 ### Technische details
 
+De chart wrapper div krijgt:
 ```text
-<div className="mt-4">
-  <ResponsiveContainer width="100%" height={140}>
-    <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-      <!-- geen XAxis -->
-      <Tooltip ... />
-      <Area ... />
-    </AreaChart>
-  </ResponsiveContainer>
-  <div className="flex px-2 pb-3 pt-1">
-    <div className="w-1/2" />  <!-- lege ruimte voor eerste 7 datapunten -->
-    <div className="flex flex-1">
-      {['M','D','W','D','V','Z','Z'].map((label, i) => (
-        <span key={i} className="flex-1 text-center text-[11px] ..."
-              style={i===6 ? {color:'#1d979e', fontWeight:600} : {color:'#ACAEB3'}}>
-          {label}
-        </span>
-      ))}
-    </div>
-  </div>
-</div>
+<div className="mt-4" style={{ marginRight: -5 }}>
 ```
 
-De gradient fill loopt nu visueel door tot de onderkant van de chart area (die direct grenst aan de labels div), en de labels staan als HTML text netjes gepositioneerd zonder SVG clipping issues.
+De AreaChart bevat weer een XAxis:
+```text
+<XAxis
+  dataKey="day"
+  axisLine={false}
+  tickLine={false}
+  tick={renderDayTick}
+  interval={0}
+  height={24}
+/>
+```
+
+De `renderDayTick` functie:
+```text
+function renderDayTick({ x, y, payload, index }: any) {
+  if (!payload.value) return null;
+  const isToday = index === mockData.length - 1;
+  const isFirst = index === 7;
+  const anchor = isToday ? 'end' : isFirst ? 'start' : 'middle';
+  return (
+    <text x={x} y={y} dy={4} textAnchor={anchor}
+      fontSize={11} fontWeight={isToday ? 600 : 400}
+      fill={isToday ? '#1d979e' : '#ACAEB3'}>
+      {payload.value}
+    </text>
+  );
+}
+```
+
+De gradient fill loopt nu door over de dag-labels heen, en de chart reikt tot beide randen van de card.
