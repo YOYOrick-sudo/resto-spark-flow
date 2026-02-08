@@ -1,36 +1,55 @@
 
 
-## Reserveringen Chart — Bolletjes op Alle Datapunten
+## Fix Reserveringen Chart — Interactieve Dots + Geen Clipping
 
-### Probleem
+### Wat er nu mis is
 
-Nu is er alleen een bolletje op het laatste datapunt (vandaag). De andere 6 dagen hebben geen visuele indicator op de lijn, waardoor het onduidelijk is welk punt bij welke dag hoort.
-
-### Oplossing
-
-Alle 7 datapunten krijgen een klein bolletje op de lijn, zodat de dag-labels visueel gekoppeld zijn aan hun positie op de grafiek. Het "vandaag"-bolletje blijft groter en opvallender.
+De code bevat nog steeds statische dots (`CustomDot`) en de lijn wordt afgesneden door de border-radius van de card (`margin top: 0`). Het eerder goedgekeurde plan is niet correct doorgevoerd.
 
 ### Wijzigingen in `src/components/dashboard/ReservationsTile.tsx`
 
-#### CustomDot functie aanpassen
+#### 1. CustomDot functie verwijderen (regel 33-39)
 
-De huidige `CustomDot` toont alleen een bolletje bij het laatste punt. Dit wordt aangepast:
+De hele `CustomDot` functie wordt verwijderd — niet meer nodig.
 
-- **Vandaag (laatste punt)**: Groot bolletje (r=4), teal fill, witte stroke — blijft zoals nu
-- **Overige dagen**: Klein bolletje (r=2.5), lichtgrijs fill (#ACAEB3), zonder stroke — subtiel maar zichtbaar genoeg om de connectie met de label eronder te tonen
+#### 2. AreaChart margin aanpassen (regel 60)
 
-Zo is er een duidelijke visuele lijn van label naar datapunt, zonder dat de chart te druk wordt.
+Van:
+```
+margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+```
+Naar:
+```
+margin={{ top: 8, right: 0, bottom: 0, left: 0 }}
+```
+
+Dit geeft 8px ruimte bovenin zodat de lijn niet wordt afgeknipt door de afgeronde hoeken van de card.
+
+#### 3. Area props aanpassen (regel 74-75)
+
+Van:
+```
+dot={<CustomDot />}
+activeDot={false}
+```
+Naar:
+```
+dot={false}
+activeDot={{ r: 5, fill: "#1d979e", stroke: "#fff", strokeWidth: 2 }}
+```
+
+- `dot={false}` — geen statische bolletjes op de lijn
+- `activeDot` — bij hover verschijnt een teal bolletje met witte rand op het dichtstbijzijnde datapunt
+
+### Resultaat
+
+- Schone lijn zonder statische bolletjes
+- Bij hover over de chart verschijnt een interactief teal bolletje
+- Tooltip met datum + aantal reserveringen blijft werken
+- De lijn wordt niet meer afgesneden door de card border-radius
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/components/dashboard/ReservationsTile.tsx` | `CustomDot` aanpassen: alle punten een bolletje, vandaag groter/teal, overige kleiner/grijs |
-
-### Resultaat
-
-- Elk dag-label (M D W D V Z Z) heeft een bijbehorend bolletje direct erboven op de lijn
-- Vandaag springt eruit met een groter teal bolletje
-- De overige dagen hebben subtiele grijze bolletjes
-- De connectie tussen label en datapunt is direct zichtbaar
-
+| `src/components/dashboard/ReservationsTile.tsx` | `CustomDot` verwijderen, `dot={false}`, `activeDot` inschakelen, `margin top: 8` |
