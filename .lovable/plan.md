@@ -1,102 +1,116 @@
 
 
-## Dashboard Redesign — Module Tiles
+## Dashboard Tiles Redesign — Polar-style Visualisaties
 
 ### Samenvatting
 
-Het dashboard wordt volledig herstructureerd naar een schaalbaar tile-based systeem. De vier stat cards en de reserveringenlijst worden vervangen door module tiles in een responsive grid. Een nieuw herbruikbaar component `DashboardModuleTile` wordt aangemaakt.
+De drie dashboard tiles worden herontworpen zodat de visualisatie het dominante element is, geinspireerd door Polar.sh. De `DashboardModuleTile` component wordt vervangen door drie specifieke tile-componenten die elk een Recharts-visualisatie bevatten. Een documentatiebestand wordt aangemaakt.
 
 ### Wijzigingen
 
-**Nieuw bestand: `src/components/polar/DashboardModuleTile.tsx`**
+**1. Verwijder `src/components/polar/DashboardModuleTile.tsx`**
 
-Generiek, herbruikbaar tile component met deze props:
+Dit generieke component wordt vervangen door een nieuw component met visualisatie-ondersteuning.
 
+**2. Nieuw: `src/components/dashboard/ReservationsTile.tsx`**
+
+Tile met AreaChart die de afgelopen 14 dagen toont.
+
+- NestoCard met `className="overflow-hidden p-0"` (geen padding via variant, custom padding per sectie)
+- Header zone: `px-6 pt-6` met "Reserveringen" links (`text-sm text-muted-foreground`) en `ArrowUpRight` icoon rechts als `Link` naar `/reserveringen`
+- Hero zone: `px-6 mt-1` met getal (`text-4xl font-bold tracking-tight`) + "vandaag" (`text-sm text-muted-foreground ml-2`)
+- Chart zone: direct eronder, `mt-4`, geen padding — chart loopt tot aan de linker-, rechter- en onderrand
+- Chart specs:
+  - `ResponsiveContainer` width="100%" height={120}
+  - `AreaChart` met `margin={{ top: 0, right: 0, bottom: 0, left: 0 }}`
+  - Data: 14 hardcoded datapunten met varierende counts
+  - `defs` met `linearGradient` id="reservationGradient": stop offset="0%" `#1d979e` opacity 0.15, stop offset="100%" transparent
+  - `Area` type="monotone" dataKey="count" stroke="#1d979e" strokeWidth={2} fill="url(#reservationGradient)"
+  - Custom `dot` renderer: alleen op het laatste punt een cirkel met fill="#1d979e" r={4}
+  - `Tooltip` met custom `content`: div met `bg-foreground text-background rounded-lg px-3 py-1.5 text-sm shadow-lg` — toont datum en "X reserveringen"
+  - Geen `XAxis`, `YAxis`, `CartesianGrid`
+
+**3. Nieuw: `src/components/dashboard/KeukenTile.tsx`**
+
+Tile met horizontale progress bar.
+
+- NestoCard met `className="overflow-hidden"` (standaard p-6)
+- Header: "Keuken" + ArrowUpRight link naar `/keuken/taken`
+- Hero: "8/12" in `text-4xl font-bold tracking-tight` + "MEP-taken" in `text-sm text-muted-foreground ml-2`
+- Progress bar (`mt-4`):
+  - Track: `h-3 w-full rounded-full bg-muted`
+  - Fill: div met `h-full rounded-full` en `style={{ width: '67%', background: 'linear-gradient(90deg, #1d979e, #2BB4BC)' }}`
+  - Labels eronder (`mt-2 flex justify-between`): "4 resterend" (`text-xs text-muted-foreground`) en "67%" (`text-xs font-medium text-primary`)
+- Secundaire info (`mt-4 pt-4 border-t border-border/50`): oranje dot (`w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0`) + "3 ingredienten onder minimum" (`text-sm text-muted-foreground`)
+
+**4. Nieuw: `src/components/dashboard/ReceptenTile.tsx`**
+
+Tile met diagonale lijnen empty state.
+
+- NestoCard met `className="overflow-hidden"` (standaard p-6)
+- Header: "Recepten" + ArrowUpRight link naar `/recepten`
+- Hero: "---" in `text-4xl font-bold text-muted-foreground tracking-tight`
+- Patroon zone (`mt-4`): div met `h-20 rounded-lg` en inline style:
+  - `backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 5px)'`
+  - Dark mode variant via een extra overlay of CSS class
+
+**5. Bewerk `src/pages/Dashboard.tsx`**
+
+- Verwijder import van `DashboardModuleTile`
+- Importeer de drie nieuwe tile components
+- Grid: `grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch`
+- Plaats `ReservationsTile` met `todayCount` en `isEmpty` props
+- Plaats `KeukenTile` zonder props (hardcoded mock)
+- Plaats `ReceptenTile` zonder props (hardcoded mock)
+- Header en urgent banner blijven exact hetzelfde
+
+**6. Bewerk `src/components/polar/index.ts`**
+
+- Verwijder export van `DashboardModuleTile` en `DashboardModuleTileProps`
+
+**7. Nieuw: `docs/design/DASHBOARD_TILES.md`**
+
+Documentatie met:
+- Tile structuur (header, hero, visualisatie)
+- Reserveringen AreaChart specificaties (gradient, stroke, tooltip, edge-to-edge)
+- Keuken progress bar specificaties (gradient fill, labels)
+- Recepten empty state pattern
+- Grid layout regels
+- Kleurcodes (#1d979e, #2BB4BC)
+- Dark mode overwegingen
+
+### Mock data voor de chart
+
+14 datapunten worden inline gedefinieerd in `ReservationsTile`:
+
+```text
+[
+  { date: '26 jan', count: 12 },
+  { date: '27 jan', count: 18 },
+  { date: '28 jan', count: 15 },
+  { date: '29 jan', count: 22 },
+  { date: '30 jan', count: 8 },
+  { date: '31 jan', count: 14 },
+  { date: '1 feb', count: 19 },
+  { date: '2 feb', count: 25 },
+  { date: '3 feb', count: 11 },
+  { date: '4 feb', count: 17 },
+  { date: '5 feb', count: 21 },
+  { date: '6 feb', count: 16 },
+  { date: '7 feb', count: 23 },
+  { date: '8 feb', count: 20 },
+]
 ```
-interface SecondaryMetric {
-  label: string;
-  value: string;
-}
-
-interface DashboardModuleTileProps {
-  title: string;           // Module naam, bijv. "Reserveringen"
-  heroValue: string;       // Hero getal, bijv. "20" of "—"
-  heroLabel: string;       // Label onder hero, bijv. "vandaag"
-  secondaryMetrics?: SecondaryMetric[];  // Max 2 key-value pairs
-  linkTo: string;          // Route, bijv. "/reserveringen"
-  linkLabel?: string;      // Default: "Bekijken"
-}
-```
-
-Structuur van de tile:
-- Wrapper: `NestoCard` (standaard shadow, default padding)
-- Title: `text-sm font-medium text-muted-foreground`
-- Hero value: `text-3xl font-semibold text-foreground` (of `text-muted-foreground` als "—")
-- Hero label: `text-sm text-muted-foreground` direct onder hero
-- Secundaire metrics: klein grid (`grid grid-cols-2 gap-x-4 gap-y-1 mt-4 pt-4 border-t border-border/50`), elke metric toont label (`text-xs text-muted-foreground`) en value (`text-sm font-medium text-foreground`)
-- Footer link: `mt-4` met `Link` component, `text-sm text-primary hover:underline inline-flex items-center gap-1` + `ChevronRight h-3.5 w-3.5`
-- De tile heeft `flex flex-col justify-between h-full` zodat alle tiles in een grid dezelfde hoogte hebben
-
-**Bestand: `src/pages/Dashboard.tsx` — volledig herschrijven**
-
-De pagina wordt opgebouwd uit drie secties:
-
-**1. Header (geen card)**
-
-- Flex row met greeting links en datum rechts
-- Greeting: `getGreeting()` functie (bestaand) in `text-2xl font-semibold text-foreground`
-- Datum: voluit formaat "zondag 8 februari" via `toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })` in `text-sm text-muted-foreground`
-
-**2. Urgente signalen banner (conditioneel)**
-
-- Alleen tonen als er `error` of `warning` signalen zijn in `mockAssistantItems`
-- Styling: `bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3`
-- Content: `Link` naar `/assistent` met `AlertTriangle` icoon (`h-4 w-4 text-orange-500`) + tekst "{n} signalen vereisen aandacht" (of "1 signaal vereist aandacht" voor enkelvoud) in `text-sm font-medium text-orange-800 dark:text-orange-200`
-- Als 0 signalen: hele banner niet renderen
-
-**3. Module tiles grid**
-
-- Container: `mt-8` voor ademruimte onder header/banner
-- Grid: `grid gap-4 grid-cols-1 sm:grid-cols-2` (2 kolommen voor 2-3 modules; later `lg:grid-cols-3` toevoegen wanneer er 4+ modules zijn)
-- `items-stretch` zodat alle tiles dezelfde hoogte hebben
-
-Tiles met mock data:
-
-| Tile | title | heroValue | heroLabel | secondaryMetrics | linkTo |
-|---|---|---|---|---|---|
-| Reserveringen | "Reserveringen" | `todayReservations.length` of "—" | "vandaag" | `[{label: "bezetting", value: "98%"}, {label: "VIP", value: "2"}]` | "/reserveringen" |
-| Keuken | "Keuken" | "—" | "open taken" | `[{label: "ingredienten", value: "12"}, {label: "onder minimum", value: "3"}]` | "/keuken/taken" |
-| Recepten | "Recepten" | "—" | "actief" | geen | "/recepten" |
-
-Data berekeningen:
-- `todayReservations`: filter `mockReservations` op vandaag + niet cancelled (bestaande logica)
-- Bezetting: berekend uit `totalGuests / totalCapacity * 100` (bestaande logica)
-- VIP count: `todayReservations.filter(r => r.isVip).length`
-- Keuken/Recepten: hardcoded "—" (nog geen data)
-
-**Verwijderd:**
-- `DashboardStat` sub-component
-- Stat cards grid
-- "Aandacht vereist" sectie met individuele signaalregels
-- Reserveringen lijst NestoCard
-- Imports: `NestoBadge`, severity/module configs, iconen die niet meer nodig zijn
-
-### Technische details
-
-| Aspect | Oud | Nieuw |
-|---|---|---|
-| Layout | Stat cards + signalen + reserveringenlijst | Header + banner + module tiles |
-| Datum formaat | "zo 8 feb" | "zondag 8 februari" |
-| Signalen | Max 2 regels met icoon/badge/chevron | 1 compacte banner met link |
-| Reserveringen | Lijst met 4 rijen | Tile met hero getal |
-| Schaalbaar | Nee (hardcoded 4 stat cards) | Ja (tiles toevoegen per module) |
-| Componenten | DashboardStat (inline) | DashboardModuleTile (herbruikbaar) |
 
 ### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/components/polar/DashboardModuleTile.tsx` | Nieuw — generiek tile component |
-| `src/components/polar/index.ts` | Export toevoegen |
-| `src/pages/Dashboard.tsx` | Herschrijven — header + banner + tiles |
+| `src/components/polar/DashboardModuleTile.tsx` | Verwijderen |
+| `src/components/dashboard/ReservationsTile.tsx` | Nieuw |
+| `src/components/dashboard/KeukenTile.tsx` | Nieuw |
+| `src/components/dashboard/ReceptenTile.tsx` | Nieuw |
+| `src/pages/Dashboard.tsx` | Bewerken -- nieuwe tile imports |
+| `src/components/polar/index.ts` | Export verwijderen |
+| `docs/design/DASHBOARD_TILES.md` | Nieuw -- design specificaties |
 
