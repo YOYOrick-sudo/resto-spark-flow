@@ -16,7 +16,7 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
       <div
         ref={ref}
         className={cn(
-          "bg-card text-card-foreground border border-border",
+          "bg-card text-card-foreground",
           "transition-[box-shadow,transform] duration-200",
           radiusClass,
           {
@@ -25,7 +25,7 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
             "p-6 bg-accent": variant === "subtle",
             "p-4": variant === "small",
           },
-          hoverable && !nested && "cursor-pointer hover:border-primary hover:-translate-y-px",
+          hoverable && !nested && "cursor-pointer hover:-translate-y-px",
           className
         )}
         style={{
@@ -33,15 +33,15 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
             ? "none"
             : hoverable
               ? undefined
-              : "0 1px 2px rgba(0, 0, 0, 0.04)",
+              : "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
           ...(props.style || {}),
         }}
         onMouseEnter={hoverable && !nested ? (e) => {
-          (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.06)";
+          (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.08)";
           props.onMouseEnter?.(e);
         } : props.onMouseEnter}
         onMouseLeave={hoverable && !nested ? (e) => {
-          (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.04)";
+          (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)";
           props.onMouseLeave?.(e);
         } : props.onMouseLeave}
         {...props}
