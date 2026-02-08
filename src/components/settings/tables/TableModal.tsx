@@ -2,11 +2,8 @@ import { useState, useEffect } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
-import { NestoBadge } from "@/components/polar/NestoBadge";
-import { FormSection } from "@/components/polar/FormSection";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Clock } from "lucide-react";
 import { useCreateTable, useUpdateTable, getNextTableSortOrder } from "@/hooks/useTableMutations";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
 import type { Table } from "@/types/reservations";
@@ -33,7 +30,6 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
   const isEditing = !!editingTable;
   const isPending = isCreating || isUpdating;
 
-  // Reset form when modal opens
   useEffect(() => {
     if (open) {
       setTableNumber(editingTable?.table_number ?? 1);
@@ -52,7 +48,6 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
     
     setError('');
     
-    // Validate capacities
     if (minCapacity > maxCapacity) {
       setError('Minimum capaciteit kan niet groter zijn dan maximum.');
       return;
@@ -71,13 +66,8 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
             is_joinable: isJoinable,
           },
           {
-            onSuccess: () => {
-              onOpenChange(false);
-            },
-            onError: (err) => {
-              const parsed = parseSupabaseError(err);
-              setError(parsed.message);
-            }
+            onSuccess: () => onOpenChange(false),
+            onError: (err) => setError(parseSupabaseError(err).message),
           }
         );
       } else {
@@ -94,19 +84,13 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
             sort_order: sortOrder,
           },
           {
-            onSuccess: () => {
-              onOpenChange(false);
-            },
-            onError: (err) => {
-              const parsed = parseSupabaseError(err);
-              setError(parsed.message);
-            }
+            onSuccess: () => onOpenChange(false),
+            onError: (err) => setError(parseSupabaseError(err).message),
           }
         );
       }
     } catch (err) {
-      const parsed = parseSupabaseError(err);
-      setError(parsed.message);
+      setError(parseSupabaseError(err).message);
     }
   };
 
@@ -115,8 +99,10 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
       open={open}
       onOpenChange={onOpenChange}
       title={isEditing ? 'Tafel bewerken' : 'Nieuwe tafel'}
+      size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Sectie 1: Identificatie */}
         <div className="grid grid-cols-2 gap-4">
           <NestoInput
             label="Tafelnummer"
@@ -134,31 +120,38 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
             error={error && error.includes('label') ? error : undefined}
           />
         </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <NestoInput
-            label="Min. capaciteit"
-            type="number"
-            min={1}
-            max={50}
-            value={minCapacity}
-            onChange={(e) => setMinCapacity(parseInt(e.target.value) || 1)}
-          />
-          <NestoInput
-            label="Max. capaciteit"
-            type="number"
-            min={1}
-            max={50}
-            value={maxCapacity}
-            onChange={(e) => setMaxCapacity(parseInt(e.target.value) || 1)}
-          />
+
+        {/* Sectie 2: Capaciteit */}
+        <div className="border-t border-border/50 pt-4 mt-4">
+          <p className="text-sm font-medium text-foreground mb-3">Capaciteit</p>
+          <div className="grid grid-cols-2 gap-4">
+            <NestoInput
+              label="Min. capaciteit"
+              type="number"
+              min={1}
+              max={50}
+              value={minCapacity}
+              onChange={(e) => setMinCapacity(parseInt(e.target.value) || 1)}
+            />
+            <NestoInput
+              label="Max. capaciteit"
+              type="number"
+              min={1}
+              max={50}
+              value={maxCapacity}
+              onChange={(e) => setMaxCapacity(parseInt(e.target.value) || 1)}
+            />
+          </div>
         </div>
         
         {error && !error.includes('tafelnummer') && !error.includes('label') && (
           <p className="text-sm text-destructive">{error}</p>
         )}
-        
-        <div className="space-y-4 pt-2">
+
+        {/* Sectie 3: Instellingen */}
+        <div className="border-t border-border/50 pt-4 mt-4 space-y-4">
+          <p className="text-sm font-medium text-foreground">Instellingen</p>
+          
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="is_online_bookable" className="text-sm font-medium">
@@ -192,29 +185,8 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
           </div>
         </div>
 
-        {/* Availability Placeholder - Scope C */}
-        <FormSection title="Beschikbaarheid" className="border-t pt-4 mt-4">
-          <div className="p-4 bg-muted/30 rounded-lg border border-dashed">
-            <div className="flex items-start gap-3">
-              <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-medium">Specifieke beschikbaarheidsregels</p>
-                  <NestoBadge variant="soon" className="text-xs">Coming soon</NestoBadge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Stel in wanneer deze tafel wel of niet beschikbaar is voor reserveringen.
-                </p>
-                <p className="text-xs text-warning mt-2">
-                  Let op: deze functie heeft nog geen effect op de beschikbaarheid. 
-                  Alle tafels zijn nu beschikbaar tijdens openingstijden.
-                </p>
-              </div>
-            </div>
-          </div>
-        </FormSection>
-        
-        <div className="flex justify-end gap-2 pt-4">
+        {/* Footer */}
+        <div className="flex justify-end gap-3 pt-4">
           <NestoButton type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Annuleren
           </NestoButton>
