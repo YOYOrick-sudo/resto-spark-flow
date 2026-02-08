@@ -120,7 +120,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2">
-        <ul className="space-y-0.5 px-2">
+        <ul className="px-2">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             const isExpanded = expandedGroups.includes(item.id);
