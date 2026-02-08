@@ -59,6 +59,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
             </defs>
             <XAxis
               dataKey="day"
+              allowDuplicatedCategory={true}
               axisLine={false}
               tickLine={false}
               tick={({ x, y, index, payload }: any) => {
