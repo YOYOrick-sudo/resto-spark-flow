@@ -157,14 +157,14 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                         type="button"
                         onClick={() => handleExpandableClick(item)}
                         className={cn(
-                          'group w-full flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-sm transition-colors duration-150',
+                          'group w-full flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-[13px] transition-colors duration-150',
                           'border',
                           hasActiveChild
                             ? 'bg-card border-border text-foreground font-medium'
                             : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
                         )}
                       >
-                        <Icon size={18} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
+                        <Icon size={16} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
                         <span className="flex-1 text-left">{item.label}</span>
                         <ChevronDown 
                           size={16} 
@@ -185,7 +185,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                             if (subItem.disabled) {
                               return (
                                 <li key={subItem.id}>
-                                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default border border-transparent">
+                                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-[13px] text-muted-foreground opacity-40 cursor-default border border-transparent">
                                     <span>{subItem.label}</span>
                                   </div>
                                 </li>
@@ -198,7 +198,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center px-2.5 py-[7px] text-sm transition-colors duration-150 rounded-lg',
+                                    'w-full flex items-center px-2.5 py-[7px] text-[13px] transition-colors duration-150 rounded-lg',
                                     'border border-transparent',
                                     isSubActive
                                       ? 'text-[#1d979e] font-medium hover:text-[#1d979e]'
@@ -216,8 +216,8 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                   </Collapsible.Root>
                 ) : item.disabled ? (
                   /* Disabled item */
-                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default">
-                    <Icon size={18} className="flex-shrink-0" />
+                  <div className="flex items-center gap-3 px-2.5 py-[7px] text-[13px] text-muted-foreground opacity-40 cursor-default">
+                    <Icon size={16} className="flex-shrink-0" />
                     <span>{item.label}</span>
                   </div>
                 ) : (
@@ -226,14 +226,14 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                     type="button"
                     onClick={() => { if (item.path) handleNavigation(item.path); }}
                     className={cn(
-                      'group w-full flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-sm transition-colors duration-150',
+                      'group w-full flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-[13px] transition-colors duration-150',
                       'border border-transparent',
                       isActive
                         ? 'bg-card border-border text-foreground font-medium'
                         : 'text-muted-foreground font-medium hover:text-foreground'
                     )}
                   >
-                    <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
+                    <Icon size={16} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
                     <span>{item.label}</span>
                     {item.id === 'assistent' && hasAttentionSignals && (
                       <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-auto flex-shrink-0" />
