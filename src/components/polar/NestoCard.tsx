@@ -24,13 +24,13 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
             "p-6 bg-accent": variant === "subtle",
             "p-4": variant === "small",
           },
-          hoverable && "cursor-pointer hover:border-primary hover:shadow-md",
+          hoverable && "cursor-pointer hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-[var(--shadow-hover)]",
           className
         )}
         style={{
           boxShadow: hoverable
             ? undefined
-            : "inset 0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04)",
+            : "var(--shadow-sm)",
         }}
         {...props}
       />
