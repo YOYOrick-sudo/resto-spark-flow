@@ -1,36 +1,71 @@
 
 
-## Fix Reserveringen Chart — Label Afsnijding & Edge-to-Edge
+## Reserveringen Chart — Edge-to-Edge & Gradient Fix
 
-### Probleem 1: Laatste dag-label "Z" wordt afgesneden
+### Probleem
 
-De `renderDayTick` functie gebruikt `textAnchor="middle"` voor alle labels, maar het laatste datapunt zit tegen de rechterrand waardoor de tekst buiten de SVG valt. 
+De chart loopt niet helemaal tot de linker- en rechterrand van de card. Er is `margin.right: 8` op de AreaChart waardoor rechts witte ruimte ontstaat. Daarnaast stopt de teal gradient boven de XAxis in plaats van door te lopen tot de onderkant van de card.
 
-**Oplossing**: In `renderDayTick`, als het de laatste index is (`index === mockData.length - 1`), gebruik `textAnchor="end"` in plaats van `"middle"`.
+### Oplossing
 
-### Probleem 2: Chart edges — volle breedte
+#### 1. Chart margins op 0 zetten
 
-De card gebruikt al `!p-0` en de content sections hebben eigen padding (`px-6 pt-6` en `px-6 mt-1`). De chart wrapper div (`mt-4`) heeft echter geen negatieve margins en ook geen expliciete breedte-compensatie.
+De `AreaChart` margin wordt `{ top: 0, right: 0, bottom: 0, left: 0 }` zodat de lijn en gradient echt van rand tot rand lopen.
 
-**Oplossing**: De chart wrapper div krijgt geen extra margins nodig omdat de card al `p-0` is. Maar we moeten controleren dat er geen onzichtbare padding zit. De `AreaChart` margin is al `{ top: 0, right: 0, bottom: 0, left: 0 }`. De `NestoCard` heeft al `overflow-hidden`. De chart wrapper `mt-4` wordt vervangen door `mt-4` zonder extra padding — dit is al correct.
+#### 2. Laatste label afsnijding voorkomen zonder margin
 
-Het echte probleem is dat `XAxis` met `height={28}` ruimte inneemt onderaan, maar de chart area zelf stopt daarboven. Om de gradient tot de onderkant van de card te laten lopen, moeten we de XAxis **over** de chart heen laten zweven. Dit doen we door de XAxis `height` te verkleinen en de labels als overlay te positioneren.
+In plaats van `margin.right: 8` gebruiken we `textAnchor="end"` op het laatste label (al geimplementeerd) en passen we de XAxis `padding` prop aan: `padding={{ left: 0, right: 6 }}`. Dit verschuift het laatste datapunt net genoeg naar links zodat het label past, zonder witte ruimte aan de rand (de gradient/fill loopt nog steeds tot de SVG-rand door).
 
-**Aanpak**: Geef de `AreaChart` een kleine `margin.right` van `4` zodat het laatste label niet wordt afgesneden, terwijl de linkerkant `0` blijft voor edge-to-edge.
+#### 3. Gradient doorlopen tot onderkant
 
-### Wijzigingen in `src/components/dashboard/ReservationsTile.tsx`
+Het probleem is dat de XAxis `height={28}` ruimte reserveert onder het chart-gebied, waardoor de gradient daar stopt. Oplossing:
 
-1. **`renderDayTick` functie** — Voeg conditie toe voor het laatste label:
-   - `textAnchor="end"` wanneer `index === mockData.length - 1`
-   - `textAnchor="start"` wanneer `index` het eerste zichtbare label is (index 7)
-   - `textAnchor="middle"` voor alle tussenliggende labels
+- Gebruik een **relative container** met de chart en de labels **als aparte laag**
+- De `AreaChart` krijgt **geen XAxis** meer — verwijder de XAxis uit de AreaChart
+- De dag-labels worden een apart `div` element onder de chart, gepositioneerd met CSS
+- De `ResponsiveContainer` height wordt `140` (alleen chart, geen XAxis ruimte)
+- Onder de chart komt een `div` met `px-2 pb-3 pt-1` die de 7 dag-labels toont als een flex row met `justify-between`, maar alleen over de rechterhelft (de laatste 7 datapunten)
 
-2. **`AreaChart` margin** — Wijzig naar `{ top: 0, right: 8, bottom: 0, left: 0 }` om ruimte te maken voor het laatste label aan de rechterkant. Links blijft 0 voor edge-to-edge aansluiting.
+Concreet:
+- Wrapper div wordt `relative`
+- Chart `ResponsiveContainer` height `140`, geen XAxis
+- Nieuw `div` eronder met de dag-labels als gewone HTML tekst
+- De labels div heeft `flex justify-end` met 7 items die elk `flex-1 text-center` zijn
+- Laatste label krijgt teal kleur en bold
 
-3. **Bevestig bestaande setup** — De card heeft al `!p-0` en `overflow-hidden`, de content secties hebben eigen padding. Geen verdere wijzigingen nodig aan de card structuur.
+#### 4. Gradient opacity aanpassen
 
-### Samenvatting
+De gradient `stopOpacity` bij 100% wordt `0.02` in plaats van `0` zodat er een subtiele tint overblijft tot de onderkant.
+
+### Wijzigingen
 
 | Bestand | Actie |
 |---|---|
-| `src/components/dashboard/ReservationsTile.tsx` | Bewerken: renderDayTick textAnchor fix + AreaChart margin.right |
+| `src/components/dashboard/ReservationsTile.tsx` | XAxis verwijderen uit AreaChart, dag-labels als HTML div eronder, chart margin op 0, gradient tot bodem |
+
+### Technische details
+
+```text
+<div className="mt-4">
+  <ResponsiveContainer width="100%" height={140}>
+    <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+      <!-- geen XAxis -->
+      <Tooltip ... />
+      <Area ... />
+    </AreaChart>
+  </ResponsiveContainer>
+  <div className="flex px-2 pb-3 pt-1">
+    <div className="w-1/2" />  <!-- lege ruimte voor eerste 7 datapunten -->
+    <div className="flex flex-1">
+      {['M','D','W','D','V','Z','Z'].map((label, i) => (
+        <span key={i} className="flex-1 text-center text-[11px] ..."
+              style={i===6 ? {color:'#1d979e', fontWeight:600} : {color:'#ACAEB3'}}>
+          {label}
+        </span>
+      ))}
+    </div>
+  </div>
+</div>
+```
+
+De gradient fill loopt nu visueel door tot de onderkant van de chart area (die direct grenst aan de labels div), en de labels staan als HTML text netjes gepositioneerd zonder SVG clipping issues.
