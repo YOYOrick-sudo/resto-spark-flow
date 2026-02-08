@@ -80,20 +80,20 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0 relative"
+              className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0 relative"
               aria-label="Notificaties"
             >
-              <Zap size={16} />
+              <Zap size={18} strokeWidth={2} color="#17171C" fill="currentColor" />
               {unreadNotifications > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
               )}
             </button>
             <button
               type="button"
-              className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0"
+              className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0"
               aria-label="Panel"
             >
-              <PanelLeft size={16} />
+              <PanelLeft size={18} strokeWidth={2} color="#17171C" />
             </button>
           </div>
         </div>
