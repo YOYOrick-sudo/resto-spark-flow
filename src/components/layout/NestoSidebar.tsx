@@ -94,7 +94,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
             type="text"
             placeholder="Zoeken..."
             readOnly
-            className="w-full h-9 pl-9 pr-12 bg-muted/40 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none cursor-pointer hover:border-primary/40 transition-colors"
+            className="w-full h-9 pl-9 pr-12 bg-background/60 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none cursor-pointer hover:border-primary/40 transition-colors"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
             ⌘K
