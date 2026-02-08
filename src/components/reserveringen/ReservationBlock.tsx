@@ -105,7 +105,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
       case "checked_in":
         return "bg-emerald-100 border-emerald-400 dark:bg-emerald-900/40 dark:border-emerald-600";
       case "confirmed":
-        return "bg-primary/15 border-primary/50";
+        return "bg-primary/10 border-primary/40";
       case "pending":
         return "bg-muted border-border";
       case "cancelled":
@@ -286,14 +286,14 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
 
         {/* Phone indicator */}
         {reservation.phone && !reservation.isWalkIn && displayPosition.width > 100 && (
-          <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
         )}
 
         {/* Shift badge - only show if there's enough space */}
         {displayPosition.width > 140 && (
           <span
             className={cn(
-              "text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ml-auto",
+              "text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity",
               reservation.shift === "ED"
                 ? "bg-primary/20 text-primary"
                 : "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400"

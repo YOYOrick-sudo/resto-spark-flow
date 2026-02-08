@@ -38,7 +38,7 @@ export function ViewToggle({
             className={cn(
               "p-2 rounded-md transition-all",
               isActive
-                ? "bg-card text-foreground shadow-sm"
+                ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-background/50"
             )}
             title={view.label}

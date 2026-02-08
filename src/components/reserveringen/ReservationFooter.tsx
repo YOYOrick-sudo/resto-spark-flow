@@ -35,17 +35,24 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
           <span>Notities</span>
         </button>
 
+        {/* Divider */}
+        <div className="h-4 w-px bg-border" />
+
         {/* Center - Stats */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <div className="text-sm">
-            <span className="font-semibold text-foreground">{totalGuests}</span>
+            <span className="font-medium text-foreground">{totalGuests}</span>
             <span className="text-muted-foreground ml-1">gasten vandaag</span>
           </div>
+          <div className="h-4 w-px bg-border" />
           <div className="text-sm">
-            <span className="font-semibold text-foreground">{waitingCount}</span>
+            <span className="font-medium text-foreground">{waitingCount}</span>
             <span className="text-muted-foreground ml-1">wachtend</span>
           </div>
         </div>
+
+        {/* Divider */}
+        <div className="h-4 w-px bg-border" />
 
         {/* Right side - Status */}
         <div className="flex items-center gap-2">

@@ -165,7 +165,7 @@ function ReservationRow({ reservation, onClick, onStatusChange }: ReservationRow
       {/* Notes indicator */}
       <div className="w-[120px] truncate">
         {reservation.notes && (
-          <span className="text-sm text-muted-foreground italic truncate">
+          <span className="text-sm text-muted-foreground/70 italic truncate">
             {reservation.notes}
           </span>
         )}
@@ -173,9 +173,9 @@ function ReservationRow({ reservation, onClick, onStatusChange }: ReservationRow
 
       {/* Shift badge */}
       <NestoBadge
-        variant={reservation.shift === "ED" ? "primary" : "default"}
+        variant="outline"
         size="sm"
-        className="w-10 justify-center"
+        className="w-10 justify-center text-muted-foreground"
       >
         {reservation.shift}
       </NestoBadge>
