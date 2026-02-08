@@ -1,26 +1,21 @@
 
 
-## Sidebar header iconen verfijnen
+## Zap icoon filled maken
 
-De iconen moeten eleganter: groter maar met dunnere lijnen, outline stijl (Linear/Vercel look).
+Het Zap icoon mist nog `fill="currentColor"`. Dit moet worden toegevoegd zodat het bliksemicoon solid/filled is, zoals in de referentie-afbeelding.
 
-### Wijzigingen in `src/components/layout/NestoSidebar.tsx`
+### Wijziging
 
-**Zap icoon (regel 89):**
-- Verwijder `fill="currentColor"`
-- `strokeWidth={2}` -> `strokeWidth={1.5}`
-- `size={18}` -> `size={20}`
-- `color="#17171C"` blijft
+**Bestand:** `src/components/layout/NestoSidebar.tsx`, regel 86
 
-**PanelLeft icoon (regel 98):**
-- `strokeWidth={2}` -> `strokeWidth={1.5}`
-- `size={18}` -> `size={20}`
-- `color="#17171C"` blijft
+Huidige code:
+```tsx
+<Zap size={20} strokeWidth={1.5} color="#17171C" />
+```
 
-| Eigenschap | Huidig | Nieuw |
-|---|---|---|
-| size | 18 | 20 |
-| strokeWidth | 2 | 1.5 |
-| fill (Zap) | currentColor | verwijderd |
-| color | #17171C | #17171C |
+Nieuwe code:
+```tsx
+<Zap size={20} strokeWidth={1.5} color="#17171C" fill="currentColor" />
+```
 
+Het PanelLeft icoon blijft ongewijzigd (outline).
