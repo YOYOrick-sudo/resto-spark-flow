@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { SearchBar } from "@/components/polar/SearchBar";
 import { ViewToggle, type ViewType } from "@/components/reserveringen/ViewToggle";
-import { DensityToggle, useDensity } from "@/components/reserveringen/DensityToggle";
+import { useDensity } from "@/components/reserveringen/DensityToggle";
 import { DateNavigator } from "@/components/reserveringen/DateNavigator";
 import { ReservationListView } from "@/components/reserveringen/ReservationListView";
 import { ReservationGridView } from "@/components/reserveringen/ReservationGridView";
@@ -108,7 +108,6 @@ export default function Reserveringen() {
         {/* Top row: View toggle, density toggle, date navigator, search, new button */}
         <div className="flex items-center gap-4 flex-wrap">
           <ViewToggle activeView={activeView} onViewChange={setActiveView} />
-          <DensityToggle density={density} onDensityChange={setDensity} />
           
           <DateNavigator
             selectedDate={selectedDate}
@@ -172,6 +171,8 @@ export default function Reserveringen() {
         totalGuests={totalGuests}
         waitingCount={waitingCount}
         isOpen={isOpen}
+        density={density}
+        onDensityChange={setDensity}
       />
     </div>
   );

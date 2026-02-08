@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
-import { PenSquare } from "lucide-react";
+import { PenSquare, Rows3, Rows4 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { DensityType } from "./DensityToggle";
 
 interface ReservationFooterProps {
   totalGuests: number;
@@ -8,6 +9,8 @@ interface ReservationFooterProps {
   isOpen: boolean;
   className?: string;
   onNotesClick?: () => void;
+  density?: DensityType;
+  onDensityChange?: (d: DensityType) => void;
 }
 
 export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterProps>(
@@ -17,6 +20,8 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
     isOpen,
     className,
     onNotesClick,
+    density,
+    onDensityChange,
   }, ref) {
     return (
       <div
@@ -66,6 +71,39 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
             {isOpen ? "Open" : "Gesloten"}
           </span>
         </div>
+
+        {/* Density toggle */}
+        {density && onDensityChange && (
+          <>
+            <div className="h-4 w-px bg-border" />
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onDensityChange("compact")}
+                className={cn(
+                  "transition-colors",
+                  density === "compact"
+                    ? "text-foreground"
+                    : "text-muted-foreground/50 hover:text-muted-foreground"
+                )}
+                title="Compact"
+              >
+                <Rows4 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => onDensityChange("comfortable")}
+                className={cn(
+                  "transition-colors",
+                  density === "comfortable"
+                    ? "text-foreground"
+                    : "text-muted-foreground/50 hover:text-muted-foreground"
+                )}
+                title="Comfortable"
+              >
+                <Rows3 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
     );
   }
