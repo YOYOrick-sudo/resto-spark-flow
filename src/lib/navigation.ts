@@ -46,6 +46,7 @@ export interface MenuItem {
   disabled?: boolean;
   expandable?: boolean;
   subItems?: SubMenuItem[];
+  section?: string;
 }
 
 export const menuItems: MenuItem[] = [
@@ -66,12 +67,14 @@ export const menuItems: MenuItem[] = [
     label: 'Reserveringen',
     icon: Calendar,
     path: '/reserveringen',
+    section: 'OPERATIE',
   },
   {
     id: 'kitchen',
     label: 'Keuken',
     icon: ChefHat,
     expandable: true,
+    section: 'OPERATIE',
     subItems: [
       { id: 'kitchen-mep', label: 'MEP Taken', path: '/mep' },
       { id: 'kitchen-halffabricaten', label: 'Halffabricaten', path: '/halffabricaten' },
@@ -86,6 +89,7 @@ export const menuItems: MenuItem[] = [
     label: 'Kaartbeheer',
     icon: UtensilsCrossed,
     expandable: true,
+    section: 'OPERATIE',
     subItems: [
       { id: 'kaartbeheer-gerechten', label: 'Gerechten', path: '/kaartbeheer' },
       { id: 'kaartbeheer-menu-engineering', label: 'Menu-engineering', disabled: true },
@@ -96,12 +100,14 @@ export const menuItems: MenuItem[] = [
     label: 'Takeaway',
     icon: ShoppingBag,
     disabled: true,
+    section: 'SERVICE',
   },
   {
     id: 'service',
     label: 'Service',
     icon: ClipboardList,
     expandable: true,
+    section: 'SERVICE',
     subItems: [
       { id: 'service-tasks', label: 'Taken & Checklists', path: '/taken' },
     ],
@@ -111,12 +117,14 @@ export const menuItems: MenuItem[] = [
     label: 'Finance',
     icon: Banknote,
     disabled: true,
+    section: 'BEHEER',
   },
   {
     id: 'settings',
     label: 'Settings',
     icon: Settings,
     expandable: true,
+    section: 'BEHEER',
     subItems: [
       { id: 'settings-voorkeuren', label: 'Voorkeuren', path: '/instellingen/voorkeuren' },
       { id: 'settings-keuken', label: 'Keuken', path: '/instellingen/keuken' },
@@ -125,6 +133,8 @@ export const menuItems: MenuItem[] = [
       { id: 'settings-labels', label: 'Labels & Printen', disabled: true },
       { id: 'settings-finance', label: 'Finance', disabled: true },
       { id: 'settings-hrm', label: 'HRM', disabled: true },
+      { id: 'settings-support', label: 'Support', disabled: true },
+      { id: 'settings-documentatie', label: 'Documentatie', disabled: true },
     ],
   },
 ];
