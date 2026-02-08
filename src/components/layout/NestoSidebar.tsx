@@ -107,7 +107,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
           className="relative group w-full"
         >
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <div className="w-full h-9 pl-9 pr-12 bg-background border border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
+          <div className="w-full h-9 pl-9 pr-12 bg-background border-[1.5px] border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
             Zoeken...
           </div>
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
