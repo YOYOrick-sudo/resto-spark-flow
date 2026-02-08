@@ -1,36 +1,53 @@
 
 
-## Status badges reserveringen - Teal kleurenfamilie
+## Fix 8, 9 en 11 in één keer
 
-### Samenvatting
+### Fix 8: Hover States Reserveringsrijen
 
-De status badges krijgen een consistent kleursysteem gebaseerd op de Nesto teal kleur, met een duidelijke visuele progressie voor actieve statussen. Checked in en Seated worden visueel onderscheidend gemaakt.
+**Bestand: `src/components/reserveringen/ReservationListView.tsx` (regel 125)**
 
-### Kleursysteem
+De huidige hover is `hover:bg-secondary/50`. Dit wordt gewijzigd naar:
+- `hover:bg-muted/30`
+- `transition-colors duration-150` (vervangt huidige `transition-colors`)
+- `cursor-pointer` (staat er al)
 
-| Status | Dot | Tekst | Achtergrond | Border | Logica |
-|---|---|---|---|---|---|
-| **Pending** | #B8B5B0 (warm grijs) | text-muted-foreground | bg-muted/40 | - | Neutraal, wachtend |
-| **Confirmed** | #1d979e (nesto teal) | text-primary | bg-primary/[0.08] | - | Licht teal = bevestigd |
-| **Checked in** | #0D9488 (teal-600) | #0F766E | #F0FDFA | #99F6E4 | Teal + border = aangekomen |
-| **Seated** | #14B8A6 (teal-500) | text-primary | bg-primary/15 | - | Vollere teal = aan tafel |
-| **Completed** | #D1CCC7 (warm grijs) | text-muted-foreground opacity-50 | - | - | Vervaagd, klaar |
-| **No-show** | #E87461 (warm koraal) | #C4503E | #FEF2F0 | #FECDC8 | Warm rood, negatief |
-| **Cancelled** | geen | text-muted-foreground line-through | - | - | Doorgestreept, inactief |
+### Fix 9: Allergenen "Geen" Badge Verwijderen
 
-De visuele progressie voor actieve statussen: Confirmed (licht teal) -> Checked in (teal + border) -> Seated (vollere teal achtergrond). Elk niveau wordt "steviger" zodat je in een oogopslag ziet waar een gast zich bevindt.
+**Bestand: `src/pages/Ingredienten.tsx` (regels 326-330)**
+
+Het `else`-blok dat de "Geen" badge rendert wordt vervangen door `null`. Lege allergenen = lege cel.
+
+### Fix 11: Assistent Notification Dot
+
+**Bestand: `src/components/layout/NestoSidebar.tsx` (regels 58-63)**
+
+Het Assistent menu-item is een regulier link-item (id: `assistent`). De aanpak:
+
+1. Importeer `mockAssistantItems` uit `@/data/assistantMockData`
+2. Bereken `hasAttentionSignals` via een `useMemo` die checkt of er items zijn met `actionable === true` en `severity === 'error' || severity === 'warning'`
+3. Voeg in het reguliere link-item blok (rond regel 183) een conditionele dot toe na de label `<span>`:
+
+```tsx
+{item.id === 'assistent' && hasAttentionSignals && (
+  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-auto flex-shrink-0" />
+)}
+```
+
+De dot is 6px (`w-1.5 h-1.5`), `bg-orange-500`, `rounded-full`, gepositioneerd rechts via `ml-auto`.
+
+### Documentatie
+
+**Bestand: `docs/design/COLOR_PALETTE.md`** - Nieuwe sectie "TABLE ROW INTERACTION" met het hover-standaard.
+
+**Bestand: `docs/design/INLINE_DATA_TABLES.md`** - Notitie toevoegen: lege waarden worden leeg gelaten, geen "Geen"/"N/A" badges.
 
 ### Bestanden die wijzigen
 
-**1. `src/data/reservations.ts` (regels 66-106)**
-
-Het type van `reservationStatusConfig` wordt uitgebreid. Het `badgeVariant` veld wordt vervangen door: `showDot`, `textClass`, `bgClass`, en `borderClass`. Het bestaande `dotColor` veld blijft (wordt ook gebruikt door de losse StatusDot in de lijst).
-
-**2. `src/components/reserveringen/ReservationListView.tsx` (regels 184-190)**
-
-De `NestoBadge` voor de status wordt vervangen door een custom `span` die de nieuwe config-velden uitleest. De dot (w-2 h-2 rounded-full) wordt inline gerenderd binnen de badge. NestoBadge blijft in gebruik voor shift badges en walk-in labels.
-
-**3. `docs/design/COLOR_PALETTE.md`**
-
-Nieuwe sectie "STATUS BADGE COLORS" onderaan met het volledige kleursysteem en de design-rationale (teal-familie, warm grijs, warm koraal).
+| Bestand | Wijziging |
+|---|---|
+| `src/components/reserveringen/ReservationListView.tsx` | Hover class aanpassen naar `hover:bg-muted/30 transition-colors duration-150` |
+| `src/pages/Ingredienten.tsx` | "Geen" badge verwijderen, `null` teruggeven bij lege allergenen |
+| `src/components/layout/NestoSidebar.tsx` | Import mock data, bereken `hasAttentionSignals`, toon 6px orange dot bij Assistent |
+| `docs/design/COLOR_PALETTE.md` | Sectie "TABLE ROW INTERACTION" toevoegen |
+| `docs/design/INLINE_DATA_TABLES.md` | Notitie over lege waarden toevoegen |
 
