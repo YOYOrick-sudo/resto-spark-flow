@@ -1,30 +1,47 @@
 
 
-## NestoCard: border verwijderen, shadow-only stijl (Polar.sh patroon)
+## Visuele verbeteringen Areas pagina
 
-### Keuze
-
-De borderless variant met een sterkere shadow geeft het cleanste, modernste resultaat. De huidige border (#ECEDED) heeft te weinig contrast met zowel de card (wit) als de page achtergrond (#F4F5F6). Een donkerdere border zou werken, maar de shadow-only aanpak sluit beter aan bij het Polar.sh design system waar Nesto naar verwijst.
-
-### Wat verandert er
+### 1. NestoCard shadow verhogen (globaal)
 
 **Bestand: `src/components/polar/NestoCard.tsx`**
 
-- Verwijder `border border-border` uit de className
-- Verhoog de base shadow van `0 1px 2px rgba(0, 0, 0, 0.04)` naar `0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)`
-- Hover shadow blijft `0 2px 8px rgba(0, 0, 0, 0.06)`
-- Hoverable cards verliezen ook `hover:border-primary` (geen border meer om te highlighten)
-- Nested cards: shadow blijft `none` (geen verandering)
+Base shadow verhogen van `0.06/0.04` naar `0.08/0.06`:
+- Regel 36: `"0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)"`
+- Regel 44 (onMouseLeave): zelfde waarde
+- Nested cards: shadow blijft `"none"` maar krijgen een subtiele `border border-border/40` als fallback
 
-### Technisch detail
+### 2. Outer NestoCard wrapper verwijderen uit AreasSection
 
-Regel 19: `"bg-card text-card-foreground"` (border classes verwijderd)
+**Bestand: `src/components/settings/tables/AreasSection.tsx`**
 
-Regel 28: `hoverable && !nested && "cursor-pointer hover:-translate-y-px"` (hover:border-primary verwijderd)
+- Regel 220: `<NestoCard className="p-6">` wordt `<div className="space-y-3">`
+- Regel 390: `</NestoCard>` wordt `</div>`
+- De `<div className="space-y-3">` op regel 235 wordt overbodig (merge met parent)
+- Elke `SortableAreaCard` / `AreaCard` is al een eigen `NestoCard` -- die worden nu de top-level cards met de verhoogde shadow
+- De lege state (regel 253) en gearchiveerd sectie (regel 291) staan direct in de parent div
+- Gearchiveerd collapsible (regel 291): `className="mt-4"` wordt `"mt-6"` voor meer ademruimte
 
-Regel 36: shadow wordt `"0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)"`
+### 3. SettingsInsightPanel dividers versterken
 
-Hover shadow (regel 40): wordt ook verhoogd naar `"0 4px 12px rgba(0, 0, 0, 0.08)"` voor meer contrast bij hover.
+**Bestand: `src/components/settings/context/SettingsInsightPanel.tsx`**
 
-Leave shadow (regel 44): matcht de nieuwe base shadow.
+De bestaande dividers (regels 50-52 en 88-90) gebruiken `border-border/60`. Verander naar `border-border` met expliciete spacing:
+- `<div className="border-t border-border/60 my-3" />` wordt `<div className="border-t border-border pt-4 mt-4" />`
+- Beide dividers (regel 51 en 89) krijgen dezelfde aanpassing
+
+### 4. Gearchiveerd sectie styling
+
+De collapsible in `AreasSection.tsx` (regel 291-355) staat nu los buiten de outer card (na stap 2). Styling aanpassen:
+- Wrapper krijgt een subtiele achtergrond: `bg-muted/30 rounded-lg p-4`
+- De trigger-tekst styling blijft hetzelfde (al consistent)
+- Dit maakt het visueel een eigen blok zonder een volledige card te zijn
+
+### Technisch overzicht van wijzigingen per bestand
+
+| Bestand | Wijziging |
+|---|---|
+| `NestoCard.tsx` | Shadow `0.06/0.04` naar `0.08/0.06`, nested krijgt `border border-border/40` |
+| `AreasSection.tsx` | Outer `NestoCard` wrapper verwijderd, gearchiveerd sectie krijgt `bg-muted/30 rounded-lg p-4` |
+| `SettingsInsightPanel.tsx` | Dividers van `border-border/60 my-3` naar `border-border pt-4 mt-4` |
 
