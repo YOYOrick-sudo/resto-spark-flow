@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, Zap, PanelLeft, Sun, Moon, Monitor, HelpCircle, BookOpen } from 'lucide-react';
-import { useTheme } from '@/components/ThemeProvider';
+import { ChevronDown, Zap, PanelLeft, Search, Building2 } from 'lucide-react';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
@@ -16,14 +15,11 @@ interface NestoSidebarProps {
 export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme, resolvedTheme } = useTheme();
   
-  // Initialize with correct group already expanded (no useEffect flash)
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
     const group = getExpandedGroupFromPath(location.pathname);
     return group ? [group] : [];
   });
-  const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const activeItemId = getActiveItemFromPath(location.pathname);
 
   const hasAttentionSignals = useMemo(() => 
@@ -31,46 +27,26 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
     []
   );
 
-  // Sync expanded groups with current route - collapse others when navigating away
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
-    
     if (groupToExpand) {
-      // Route within a group: keep only that group expanded
       setExpandedGroups((prev) => {
         if (prev.length === 1 && prev[0] === groupToExpand) return prev;
         return [groupToExpand];
       });
     } else {
-      // Top-level route: collapse all groups
       setExpandedGroups((prev) => prev.length === 0 ? prev : []);
     }
   }, [location.pathname]);
 
-  const toggleGroup = useCallback((groupId: string) => {
-    setExpandedGroups((prev) =>
-      prev.includes(groupId)
-        ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
-    );
-  }, []);
-
   const handleNavigation = useCallback((path: string) => {
-    // Guard: don't navigate if already on this path
-    if (location.pathname === path) {
-      return;
-    }
+    if (location.pathname === path) return;
     navigate(path);
     onNavigate?.();
   }, [location.pathname, navigate, onNavigate]);
 
-  // Handle click on expandable parent: navigate to first sub-item
   const handleExpandableClick = useCallback((item: MenuItem) => {
-    // Find first non-disabled subitem and navigate
-    const firstActiveSubItem = item.subItems?.find(
-      (sub) => !sub.disabled && sub.path
-    );
-    
+    const firstActiveSubItem = item.subItems?.find((sub) => !sub.disabled && sub.path);
     if (firstActiveSubItem?.path && location.pathname !== firstActiveSubItem.path) {
       navigate(firstActiveSubItem.path);
       onNavigate?.();
@@ -82,72 +58,76 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
-          {/* Logo */}
           <span 
             className="text-xl font-extrabold tracking-tight text-primary"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             nesto
           </span>
-          
-          {/* Quick action buttons - Zap + PanelLeft (Figma spec) */}
           <div className="flex items-center gap-1">
-            {/* Zap button - Notifications */}
             <button
               type="button"
-              className={cn(
-                'w-8 h-8 flex items-center justify-center rounded-md transition-colors relative',
-                hoveredButton === 'zap' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-muted-foreground'
-              )}
-              onMouseEnter={() => setHoveredButton('zap')}
-              onMouseLeave={() => setHoveredButton(null)}
+              className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0 relative"
               aria-label="Notificaties"
             >
-              <Zap size={18} />
+              <Zap size={16} />
               {unreadNotifications > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
               )}
             </button>
-            
-            {/* PanelLeft button - Panel toggle */}
             <button
               type="button"
-              className={cn(
-                'w-8 h-8 flex items-center justify-center rounded-md transition-colors',
-                hoveredButton === 'panel' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-muted-foreground'
-              )}
-              onMouseEnter={() => setHoveredButton('panel')}
-              onMouseLeave={() => setHoveredButton(null)}
+              className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0"
               aria-label="Panel"
             >
-              <PanelLeft size={18} />
+              <PanelLeft size={16} />
             </button>
           </div>
         </div>
       </div>
 
+      {/* Search bar */}
+      <div className="px-4 mt-2 mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Zoeken..."
+            readOnly
+            className="w-full h-9 pl-9 pr-12 bg-muted/40 border-0 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none cursor-default"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
+            ⌘K
+          </span>
+        </div>
+      </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2">
         <ul className="space-y-0.5 px-2">
-          {menuItems.map((item) => {
+          {menuItems.map((item, index) => {
             const Icon = item.icon;
             const isExpanded = expandedGroups.includes(item.id);
             const isActive = activeItemId === item.id;
             const hasActiveChild = item.subItems?.some((sub) => activeItemId === sub.id);
+            const prevItem = index > 0 ? menuItems[index - 1] : null;
+            const showSectionLabel = item.section && (!prevItem || prevItem.section !== item.section);
 
-            // Expandable group
-            if (item.expandable && item.subItems) {
-              const isOpen = isExpanded || hasActiveChild;
-              
-              return (
-                <li key={item.id}>
+            return (
+              <li key={item.id}>
+                {/* Section label */}
+                {showSectionLabel && (
+                  <div className="px-3 pt-5 pb-1">
+                    <span className="text-[11px] font-medium text-muted-foreground/60 tracking-widest uppercase">
+                      {item.section}
+                    </span>
+                  </div>
+                )}
+
+                {/* Expandable group */}
+                {item.expandable && item.subItems ? (
                   <Collapsible.Root
-                    open={isOpen}
+                    open={isExpanded || !!hasActiveChild}
                     onOpenChange={(nextOpen) => {
                       setExpandedGroups((prev) =>
                         nextOpen
@@ -174,7 +154,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                           size={16} 
                           className={cn(
                             'text-muted-foreground transition-transform duration-200',
-                            isOpen && 'rotate-180'
+                            (isExpanded || hasActiveChild) && 'rotate-180'
                           )} 
                         />
                       </button>
@@ -218,88 +198,52 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                       </div>
                     </Collapsible.Content>
                   </Collapsible.Root>
-                </li>
-              );
-            }
-
-            // Disabled item
-            if (item.disabled) {
-              return (
-                <li key={item.id}>
+                ) : item.disabled ? (
+                  /* Disabled item */
                   <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default">
                     <Icon size={18} className="flex-shrink-0" />
                     <span>{item.label}</span>
                   </div>
-                </li>
-              );
-            }
-
-            // Regular link item
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (item.path) handleNavigation(item.path);
-                  }}
-                  className={cn(
-                    'group w-full flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-sm transition-colors duration-150',
-                    'border border-transparent',
-                    isActive
-                      ? 'bg-card border-border text-foreground font-medium'
-                      : 'text-muted-foreground font-medium hover:text-foreground'
-                  )}
-                >
-                  <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
-                  <span>{item.label}</span>
-                  {item.id === 'assistent' && hasAttentionSignals && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-auto flex-shrink-0" />
-                  )}
-                </button>
+                ) : (
+                  /* Regular link item */
+                  <button
+                    type="button"
+                    onClick={() => { if (item.path) handleNavigation(item.path); }}
+                    className={cn(
+                      'group w-full flex items-center gap-3 px-2.5 py-[7px] rounded-lg text-sm transition-colors duration-150',
+                      'border border-transparent',
+                      isActive
+                        ? 'bg-card border-border text-foreground font-medium'
+                        : 'text-muted-foreground font-medium hover:text-foreground'
+                    )}
+                  >
+                    <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
+                    <span>{item.label}</span>
+                    {item.id === 'assistent' && hasAttentionSignals && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-auto flex-shrink-0" />
+                    )}
+                  </button>
+                )}
               </li>
             );
           })}
         </ul>
       </nav>
 
-      {/* Support & Documentation Section */}
-      <div className="px-3 py-3 border-t border-border">
-        <div className="space-y-0.5">
-          {/* Support Item - disabled */}
-          <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default">
-            <HelpCircle size={18} className="flex-shrink-0" />
-            <span>Support</span>
+      {/* Footer */}
+      <div className="border-t border-border px-3 pt-3 pb-3 space-y-2">
+        <div className="flex items-center gap-2 px-2.5">
+          <Building2 size={16} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-sm font-medium text-foreground truncate">Restaurant Demo</span>
+        </div>
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center flex-shrink-0">
+            JD
           </div>
-          
-          {/* Documentatie Item - disabled */}
-          <div className="flex items-center gap-3 px-2.5 py-[7px] text-sm text-muted-foreground opacity-40 cursor-default">
-            <BookOpen size={18} className="flex-shrink-0" />
-            <span>Documentatie</span>
-          </div>
+          <span className="text-sm text-foreground truncate flex-1">Jan de Vries</span>
+          <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
         </div>
       </div>
-
-      {/* Footer - Theme Indicator (NOT clickable) */}
-      <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 flex items-center justify-center rounded bg-muted">
-            {theme === 'light' && <Sun size={14} />}
-            {theme === 'dark' && <Moon size={14} />}
-            {theme === 'system' && <Monitor size={14} />}
-          </div>
-          <span className="text-[13px] text-muted-foreground">
-            {theme === 'light' ? 'Licht' : theme === 'dark' ? 'Donker' : 'Systeem'}
-          </span>
-        </div>
-        
-        {/* Show effective theme when system */}
-        {theme === 'system' && (
-          <span className="text-sm">
-            {resolvedTheme === 'dark' ? '🌙' : '☀️'}
-          </span>
-        )}
-      </div>
-
     </div>
   );
 }
