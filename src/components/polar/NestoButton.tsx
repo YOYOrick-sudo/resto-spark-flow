@@ -10,9 +10,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "text-primary-foreground rounded-button-primary shadow-[var(--shadow-primary)] hover:shadow-[0_6px_18px_hsl(183_70%_37%/0.3)] hover:-translate-y-px active:translate-y-0 [background:var(--gradient-primary)] hover:[background:var(--gradient-primary-hover)]",
+          "bg-primary text-primary-foreground hover:bg-primary-hover rounded-button-primary",
         secondary:
-          "bg-card text-primary border border-primary hover:bg-primary/10 hover:-translate-y-px hover:shadow-md rounded-button",
+          "bg-card text-primary border border-primary hover:bg-primary/10 rounded-button",
         ghost:
           "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-button",
         danger:

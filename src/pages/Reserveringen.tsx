@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { format } from "date-fns";
 import { NestoButton } from "@/components/polar/NestoButton";
-import { PageTransition } from "@/components/polar/PageTransition";
 import { SearchBar } from "@/components/polar/SearchBar";
 import { ViewToggle, type ViewType } from "@/components/reserveringen/ViewToggle";
 import { DateNavigator } from "@/components/reserveringen/DateNavigator";
@@ -109,7 +108,7 @@ export default function Reserveringen() {
   };
 
   return (
-    <PageTransition className="flex flex-col h-full">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex flex-col gap-4 p-4 pb-0">
         {/* Top row: View toggle, date navigator, search, new button */}
@@ -177,6 +176,6 @@ export default function Reserveringen() {
         waitingCount={waitingCount}
         isOpen={isOpen}
       />
-    </PageTransition>
+    </div>
   );
 }
