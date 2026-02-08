@@ -1,86 +1,54 @@
 
 
-## Reserveringen Chart — Volledige Breedte & Geintegreerde Labels
+## Reserveringen Chart — Definitieve Fix
 
-### Probleem
+### Kernprobleem
 
-1. **Rechts witte ruimte**: Recharts voegt standaard 5px interne padding toe aan de SVG, waardoor de gradient/lijn niet tot de rechterrand reikt.
-2. **Dag-labels zweven los**: De HTML dag-labels staan in een aparte div onder de chart met padding/margin ertussen. Ze moeten direct tegen de gradient aanzitten, zoals bij Polar.sh.
+Recharts splitst de chart in twee zones wanneer je een `XAxis` toevoegt: een **plot-zone** (waar de gradient/lijn tekent) en een **axis-zone** eronder. De gradient fill kan NOOIT doorlopen naar de axis-zone — dit is een harde beperking van Recharts. Daarom blijft er altijd een kale strook onder de gradient.
 
-### Oplossing
+Tegelijkertijd voegt Recharts ~5px interne SVG padding toe aan de rechterkant, waardoor de lijn/gradient niet tot de rechterrand van de card reikt.
 
-#### 1. XAxis terug in de chart (als overlay op de gradient)
+### Oplossing: Overlay Labels
 
-Breng de `XAxis` terug in de `AreaChart` zodat de labels **binnen** het chart-gebied zitten. De gradient loopt dan over de labels heen. Configuratie:
+De enige manier om het Polar.sh-effect te bereiken is:
 
-- `dataKey="day"`, `interval={0}`
-- `axisLine={false}`, `tickLine={false}`  
-- `tick` als custom render functie
-- `height={24}` — dit reserveert ruimte onderaan de chart voor de labels, maar de gradient fill bedekt dit gebied ook
+1. **XAxis volledig verwijderen** uit de AreaChart
+2. **Chart uitrekken tot de onderkant** van de card (geen ruimte reserveren voor labels)
+3. **HTML labels absoluut positioneren** over de onderkant van de chart heen, zodat de gradient erachter doorloopt
+4. **Negatieve margin rechts** om de Recharts SVG padding te compenseren
 
-#### 2. Custom tick renderer
+### Wijzigingen in `src/components/dashboard/ReservationsTile.tsx`
 
-De tick functie:
-- Toont niks als `payload.value` leeg is (eerste 7 datapunten)
-- Laatste datapunt (index 13): `textAnchor="end"`, `fontWeight: 600`, `fill: "#1d979e"`
-- Eerste zichtbare label (index 7): `textAnchor="start"`
-- Rest: `textAnchor="middle"`
-- `fontSize: 11`, `dy: 4`
+#### 1. XAxis verwijderen
+De `XAxis` component en de `renderDayTick` functie worden volledig verwijderd.
 
-#### 3. Gradient doorlopen tot onderkant inclusief XAxis
+#### 2. Chart wrapper met relative positioning
+De wrapper div krijgt `position: relative` zodat de labels absoluut gepositioneerd kunnen worden.
 
-Door de XAxis **binnen** de AreaChart te plaatsen (in plaats van als aparte HTML), loopt de gradient fill automatisch door tot de onderkant van de hele chart area inclusief de XAxis ruimte. De gradient bedekt de labels subtiel.
+#### 3. ResponsiveContainer hoogte
+Terug naar `164` — de volledige hoogte is nu beschikbaar voor de chart (geen XAxis die ruimte inneemt).
 
-#### 4. Rechterrand fix
+#### 4. Labels als overlay
+Een `div` met `position: absolute`, `bottom: 0`, `left: 0`, `right: 0` wordt over de chart heen gelegd. Binnen deze div:
+- `padding: 0 24px 12px 0` (rechts 24px zodat labels niet buiten de card vallen, onder 12px voor ademruimte)
+- `display: flex`, `justify-content: flex-end`
+- De 7 labels staan in een container die ~50% van de breedte inneemt (want de eerste 7 datapunten hebben geen labels)
+- Elke label is `flex-1 text-center`
+- Laatste label: `color: #1d979e, fontWeight: 600`
+- Overige labels: `color: #ACAEB3`
 
-Recharts heeft een interne padding op het SVG element. Dit lossen we op met een negatieve margin op de chart wrapper: `-mr-[5px]` en `overflow-hidden` op de parent (al aanwezig op NestoCard). Alternatief: gebruik `width="calc(100% + 5px)"` op de ResponsiveContainer wrapper.
+#### 5. Edge-to-edge fix
+De wrapper div behoudt `style={{ marginRight: -5 }}` om de Recharts interne SVG padding te compenseren. De NestoCard heeft al `overflow-hidden` waardoor het overschot netjes wordt afgesneden.
 
-Een betere aanpak: wrap de ResponsiveContainer in een div met `style={{ marginRight: -5 }}` zodat de rechterrand van de SVG voorbij de card-rand valt en door `overflow-hidden` wordt afgesneden. Dit geeft een perfect edge-to-edge resultaat.
+### Resultaat
 
-#### 5. HTML dag-labels verwijderen
+- De teal lijn en gradient lopen van linkerrand tot rechterrand
+- De gradient loopt door tot de onderkant van de card
+- De dag-labels (M D W D V Z Z) zitten IN de gradient, niet eronder
+- Geen witte ruimte aan enige zijde
 
-Verwijder de `dayLabels` array en de complete HTML div met de labels (regels 84-97). De labels komen nu uit de XAxis.
-
-### Wijzigingen
+### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/components/dashboard/ReservationsTile.tsx` | XAxis terug toevoegen in AreaChart met custom tick, HTML labels div verwijderen, wrapper met negatieve margin rechts voor edge-to-edge |
-
-### Technische details
-
-De chart wrapper div krijgt:
-```text
-<div className="mt-4" style={{ marginRight: -5 }}>
-```
-
-De AreaChart bevat weer een XAxis:
-```text
-<XAxis
-  dataKey="day"
-  axisLine={false}
-  tickLine={false}
-  tick={renderDayTick}
-  interval={0}
-  height={24}
-/>
-```
-
-De `renderDayTick` functie:
-```text
-function renderDayTick({ x, y, payload, index }: any) {
-  if (!payload.value) return null;
-  const isToday = index === mockData.length - 1;
-  const isFirst = index === 7;
-  const anchor = isToday ? 'end' : isFirst ? 'start' : 'middle';
-  return (
-    <text x={x} y={y} dy={4} textAnchor={anchor}
-      fontSize={11} fontWeight={isToday ? 600 : 400}
-      fill={isToday ? '#1d979e' : '#ACAEB3'}>
-      {payload.value}
-    </text>
-  );
-}
-```
-
-De gradient fill loopt nu door over de dag-labels heen, en de chart reikt tot beide randen van de card.
+| `src/components/dashboard/ReservationsTile.tsx` | XAxis verwijderen, labels als absolute overlay, renderDayTick verwijderen |
