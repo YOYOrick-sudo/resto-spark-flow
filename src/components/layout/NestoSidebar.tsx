@@ -88,13 +88,13 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
 
       {/* Search bar */}
       <div className="px-4 mt-2 mb-4">
-        <div className="relative">
+        <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             placeholder="Zoeken..."
             readOnly
-            className="w-full h-9 pl-9 pr-12 bg-muted/40 border-0 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none cursor-default"
+            className="w-full h-9 pl-9 pr-12 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none cursor-pointer hover:border-primary/40 transition-colors"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
             ⌘K
