@@ -1,75 +1,102 @@
 
 
-## Dashboard Redesign — Rustiger en Compacter
+## Dashboard Redesign — Module Tiles
 
 ### Samenvatting
 
-Het dashboard wordt visueel rustiger: minder tekst, meer ademruimte, sneller scanbaar. Vijf concrete wijzigingen in een enkel bestand.
+Het dashboard wordt volledig herstructureerd naar een schaalbaar tile-based systeem. De vier stat cards en de reserveringenlijst worden vervangen door module tiles in een responsive grid. Een nieuw herbruikbaar component `DashboardModuleTile` wordt aangemaakt.
 
-### Wijzigingen in `src/pages/Dashboard.tsx`
+### Wijzigingen
 
-**1. Greeting in plaats van H1 titel**
+**Nieuw bestand: `src/components/polar/DashboardModuleTile.tsx`**
 
-Vervang `<h1>Dashboard</h1>` door een flex row:
-- Links: greeting op basis van `new Date().getHours()`:
-  - `< 12` → "Goedemorgen"
-  - `12-17` → "Goedemiddag"
-  - `>= 18` → "Goedenavond"
-  - Styling: `text-2xl font-semibold text-foreground`
-- Rechts: datum in formaat "zo 8 feb" via `toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })`
-  - Styling: `text-sm text-muted-foreground`
+Generiek, herbruikbaar tile component met deze props:
 
-**2. Stat Cards compacter**
+```
+interface SecondaryMetric {
+  label: string;
+  value: string;
+}
 
-`DashboardStat` component vereenvoudigen:
-- Verwijder `zeroLabel` en `subLabel` props
-- Card padding: `p-4` (was `p-5`)
-- Label: `text-sm text-muted-foreground` (was `text-[13px] font-medium`)
-- Getal: `text-xl font-semibold` (was `text-2xl`)
-- Waarde 0: toon "—" in `text-xl font-semibold text-muted-foreground`, geen extra tekst eronder
-- Waarde > 0: toon getal in `text-xl font-semibold text-foreground`, geen subtitel
-- Icoon container blijft: `w-9 h-9 rounded-lg bg-primary/5`
-- Grid gap: `gap-3` (was `gap-4`)
+interface DashboardModuleTileProps {
+  title: string;           // Module naam, bijv. "Reserveringen"
+  heroValue: string;       // Hero getal, bijv. "20" of "—"
+  heroLabel: string;       // Label onder hero, bijv. "vandaag"
+  secondaryMetrics?: SecondaryMetric[];  // Max 2 key-value pairs
+  linkTo: string;          // Route, bijv. "/reserveringen"
+  linkLabel?: string;      // Default: "Bekijken"
+}
+```
 
-**3. Signalen — max 2, single-line**
+Structuur van de tile:
+- Wrapper: `NestoCard` (standaard shadow, default padding)
+- Title: `text-sm font-medium text-muted-foreground`
+- Hero value: `text-3xl font-semibold text-foreground` (of `text-muted-foreground` als "—")
+- Hero label: `text-sm text-muted-foreground` direct onder hero
+- Secundaire metrics: klein grid (`grid grid-cols-2 gap-x-4 gap-y-1 mt-4 pt-4 border-t border-border/50`), elke metric toont label (`text-xs text-muted-foreground`) en value (`text-sm font-medium text-foreground`)
+- Footer link: `mt-4` met `Link` component, `text-sm text-primary hover:underline inline-flex items-center gap-1` + `ChevronRight h-3.5 w-3.5`
+- De tile heeft `flex flex-col justify-between h-full` zodat alle tiles in een grid dezelfde hoogte hebben
 
-- `.slice(0, 2)` in plaats van `.slice(0, 3)`
-- Elk signaal wordt een enkele regel: severity icoon (geen ronde achtergrond, gewoon icoon `h-4 w-4` met kleur) + titel (`text-sm font-medium flex-1`) + module badge + ChevronRight
-- Verwijder de beschrijving (`item.message` wordt niet meer getoond)
-- Verwijder de ronde icoon-container (`w-8 h-8 rounded-full`), gebruik het icoon direct
-- Elke regel: `flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer hover:bg-muted/30 transition-colors`
-- Klikbaar via `onClick` naar `action_path` (al aanwezig)
+**Bestand: `src/pages/Dashboard.tsx` — volledig herschrijven**
 
-**4. Reserveringen — compacter**
+De pagina wordt opgebouwd uit drie secties:
 
-- Header label: "Vandaag" (was "Reserveringen vandaag")
-- `.slice(0, 4)` in plaats van `.slice(0, 5)`
-- Per rij: alleen tijd (`text-sm font-medium w-14`) en naam (`text-sm flex-1 truncate`)
-- Verwijder: gasten/tafel info, status dot
-- Verwijder imports: `reservationStatusConfig` (niet meer nodig)
-- Lege state: `py-6` (was `py-8`)
+**1. Header (geen card)**
 
-**5. Spacing**
+- Flex row met greeting links en datum rechts
+- Greeting: `getGreeting()` functie (bestaand) in `text-2xl font-semibold text-foreground`
+- Datum: voluit formaat "zondag 8 februari" via `toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })` in `text-sm text-muted-foreground`
 
-- Parent container: `space-y-8` (was `space-y-6`)
+**2. Urgente signalen banner (conditioneel)**
+
+- Alleen tonen als er `error` of `warning` signalen zijn in `mockAssistantItems`
+- Styling: `bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3`
+- Content: `Link` naar `/assistent` met `AlertTriangle` icoon (`h-4 w-4 text-orange-500`) + tekst "{n} signalen vereisen aandacht" (of "1 signaal vereist aandacht" voor enkelvoud) in `text-sm font-medium text-orange-800 dark:text-orange-200`
+- Als 0 signalen: hele banner niet renderen
+
+**3. Module tiles grid**
+
+- Container: `mt-8` voor ademruimte onder header/banner
+- Grid: `grid gap-4 grid-cols-1 sm:grid-cols-2` (2 kolommen voor 2-3 modules; later `lg:grid-cols-3` toevoegen wanneer er 4+ modules zijn)
+- `items-stretch` zodat alle tiles dezelfde hoogte hebben
+
+Tiles met mock data:
+
+| Tile | title | heroValue | heroLabel | secondaryMetrics | linkTo |
+|---|---|---|---|---|---|
+| Reserveringen | "Reserveringen" | `todayReservations.length` of "—" | "vandaag" | `[{label: "bezetting", value: "98%"}, {label: "VIP", value: "2"}]` | "/reserveringen" |
+| Keuken | "Keuken" | "—" | "open taken" | `[{label: "ingredienten", value: "12"}, {label: "onder minimum", value: "3"}]` | "/keuken/taken" |
+| Recepten | "Recepten" | "—" | "actief" | geen | "/recepten" |
+
+Data berekeningen:
+- `todayReservations`: filter `mockReservations` op vandaag + niet cancelled (bestaande logica)
+- Bezetting: berekend uit `totalGuests / totalCapacity * 100` (bestaande logica)
+- VIP count: `todayReservations.filter(r => r.isVip).length`
+- Keuken/Recepten: hardcoded "—" (nog geen data)
+
+**Verwijderd:**
+- `DashboardStat` sub-component
+- Stat cards grid
+- "Aandacht vereist" sectie met individuele signaalregels
+- Reserveringen lijst NestoCard
+- Imports: `NestoBadge`, severity/module configs, iconen die niet meer nodig zijn
 
 ### Technische details
 
 | Aspect | Oud | Nieuw |
 |---|---|---|
-| Titel | `<h1>Dashboard</h1>` | Greeting + datum |
-| Stat card padding | `p-5` | `p-4` |
-| Stat card getal | `text-2xl` + subtitel | `text-xl`, geen subtitel |
-| Grid gap | `gap-4` | `gap-3` |
-| Signalen max | 3 | 2 |
-| Signaal layout | Twee regels + icoon container | Single line, icoon direct |
-| Reserveringen max | 5 | 4 |
-| Reservering rij | Tijd + naam + gasten + tafel + dot | Tijd + naam |
-| Sectie spacing | `space-y-6` | `space-y-8` |
+| Layout | Stat cards + signalen + reserveringenlijst | Header + banner + module tiles |
+| Datum formaat | "zo 8 feb" | "zondag 8 februari" |
+| Signalen | Max 2 regels met icoon/badge/chevron | 1 compacte banner met link |
+| Reserveringen | Lijst met 4 rijen | Tile met hero getal |
+| Schaalbaar | Nee (hardcoded 4 stat cards) | Ja (tiles toevoegen per module) |
+| Componenten | DashboardStat (inline) | DashboardModuleTile (herbruikbaar) |
 
 ### Bestanden
 
-| Bestand | Wijziging |
+| Bestand | Actie |
 |---|---|
-| `src/pages/Dashboard.tsx` | Greeting, compactere stat cards, 2 signalen single-line, 4 reserveringen zonder details, meer spacing |
+| `src/components/polar/DashboardModuleTile.tsx` | Nieuw — generiek tile component |
+| `src/components/polar/index.ts` | Export toevoegen |
+| `src/pages/Dashboard.tsx` | Herschrijven — header + banner + tiles |
 
