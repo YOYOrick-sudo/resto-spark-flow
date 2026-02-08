@@ -98,8 +98,5 @@ export type { TitleHelpProps, TitleHelpTipProps } from "./TitleHelp";
 export { FieldHelp, FieldHelpExample } from "./FieldHelp";
 export type { FieldHelpProps, FieldHelpExampleProps } from "./FieldHelp";
 
-export { DashboardModuleTile } from "./DashboardModuleTile";
-export type { DashboardModuleTileProps } from "./DashboardModuleTile";
-
 // Re-export toast from sonner for easy access
 export { toast } from 'sonner';

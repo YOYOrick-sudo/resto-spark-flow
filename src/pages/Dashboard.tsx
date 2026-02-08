@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
-import { DashboardModuleTile } from '@/components/polar/DashboardModuleTile';
+import { ReservationsTile } from '@/components/dashboard/ReservationsTile';
+import { KeukenTile } from '@/components/dashboard/KeukenTile';
+import { ReceptenTile } from '@/components/dashboard/ReceptenTile';
 import { mockAssistantItems } from '@/data/assistantMockData';
-import { mockReservations, mockTables } from '@/data/reservations';
+import { mockReservations } from '@/data/reservations';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -21,35 +23,18 @@ export default function Dashboard() {
     [today]
   );
 
-  const totalCapacity = useMemo(
-    () => mockTables.filter((t) => t.isActive).reduce((sum, t) => sum + t.maxCapacity, 0),
-    []
-  );
-
-  const totalGuests = useMemo(
-    () => todayReservations.reduce((sum, r) => sum + r.guests, 0),
-    [todayReservations]
-  );
-
-  const occupancy = totalCapacity > 0 ? Math.round((totalGuests / totalCapacity) * 100) : 0;
-  const vipCount = todayReservations.filter((r) => (r as any).isVip).length;
-
   const urgentCount = useMemo(
     () => mockAssistantItems.filter((i) => i.severity === 'error' || i.severity === 'warning').length,
     []
   );
 
-  const resHero = todayReservations.length > 0 ? String(todayReservations.length) : '—';
-
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-2xl font-semibold text-foreground">{getGreeting()}</span>
         <span className="text-sm text-muted-foreground">{dateLabel}</span>
       </div>
 
-      {/* Urgent banner */}
       {urgentCount > 0 && (
         <Link
           to="/assistent"
@@ -62,34 +47,10 @@ export default function Dashboard() {
         </Link>
       )}
 
-      {/* Module tiles */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 items-stretch mt-8">
-        <DashboardModuleTile
-          title="Reserveringen"
-          heroValue={resHero}
-          heroLabel="vandaag"
-          secondaryMetrics={[
-            { label: 'bezetting', value: `${occupancy}%` },
-            { label: 'VIP', value: String(vipCount) },
-          ]}
-          linkTo="/reserveringen"
-        />
-        <DashboardModuleTile
-          title="Keuken"
-          heroValue="—"
-          heroLabel="open taken"
-          secondaryMetrics={[
-            { label: 'ingrediënten', value: '12' },
-            { label: 'onder minimum', value: '3' },
-          ]}
-          linkTo="/keuken/taken"
-        />
-        <DashboardModuleTile
-          title="Recepten"
-          heroValue="—"
-          heroLabel="actief"
-          linkTo="/recepten"
-        />
+        <ReservationsTile todayCount={todayReservations.length} />
+        <KeukenTile />
+        <ReceptenTile />
       </div>
     </div>
   );
