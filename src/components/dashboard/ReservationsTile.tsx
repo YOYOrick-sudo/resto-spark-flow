@@ -24,7 +24,7 @@ interface ReservationsTileProps {
   todayCount: number;
 }
 
-function CustomTooltip({ active, payload }: any) {
+const renderTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const { date, count } = payload[0].payload;
   return (
@@ -33,7 +33,7 @@ function CustomTooltip({ active, payload }: any) {
       <span className="ml-2">{count} reserveringen</span>
     </div>
   );
-}
+};
 
 function CustomDot(props: any) {
   const { cx, cy, index } = props;
@@ -65,7 +65,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
                 <stop offset="100%" stopColor="#1d979e" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <Tooltip content={<CustomTooltip />} cursor={false} />
+            <Tooltip content={renderTooltip} cursor={false} />
             <Area
               type="monotone"
               dataKey="count"
