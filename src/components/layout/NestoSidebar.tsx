@@ -59,7 +59,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <span 
-            className="text-xl font-extrabold tracking-tight text-primary"
+            className="text-xl font-extrabold tracking-tight text-foreground"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             nesto
