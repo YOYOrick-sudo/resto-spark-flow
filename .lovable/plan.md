@@ -1,53 +1,43 @@
 
 
-## Fix 8, 9 en 11 in één keer
+## "Soon" badges verwijderen uit sidebar
 
-### Fix 8: Hover States Reserveringsrijen
+### Samenvatting
 
-**Bestand: `src/components/reserveringen/ReservationListView.tsx` (regel 125)**
+Alle 7 "Soon" badges worden verwijderd. Niet-beschikbare items worden subtiel gedempt met `opacity-40` en `cursor-default`, zonder tekst of badges.
 
-De huidige hover is `hover:bg-secondary/50`. Dit wordt gewijzigd naar:
-- `hover:bg-muted/30`
-- `transition-colors duration-150` (vervangt huidige `transition-colors`)
-- `cursor-pointer` (staat er al)
+### Wijzigingen
 
-### Fix 9: Allergenen "Geen" Badge Verwijderen
+**1. `src/components/layout/NestoSidebar.tsx`**
 
-**Bestand: `src/pages/Ingredienten.tsx` (regels 326-330)**
+Drie plekken waar "Soon" badges staan:
 
-Het `else`-blok dat de "Geen" badge rendert wordt vervangen door `null`. Lege allergenen = lege cel.
+- **Disabled sub-items** (regels 165-176): De `<span>` met "Soon" badge wordt verwijderd. De styling wordt `opacity-40 cursor-default` in plaats van `cursor-not-allowed`.
 
-### Fix 11: Assistent Notification Dot
+- **Disabled top-level items** (regels 192-203): Zelfde aanpak — "Soon" badge weg, `opacity-40 cursor-default`.
 
-**Bestand: `src/components/layout/NestoSidebar.tsx` (regels 58-63)**
+- **Support & Documentatie sectie** (regels 225-242): Beide items verliezen hun "Soon" badge, krijgen `opacity-40 cursor-default`.
 
-Het Assistent menu-item is een regulier link-item (id: `assistent`). De aanpak:
-
-1. Importeer `mockAssistantItems` uit `@/data/assistantMockData`
-2. Bereken `hasAttentionSignals` via een `useMemo` die checkt of er items zijn met `actionable === true` en `severity === 'error' || severity === 'warning'`
-3. Voeg in het reguliere link-item blok (rond regel 183) een conditionele dot toe na de label `<span>`:
-
+Per locatie wordt de huidige code:
 ```tsx
-{item.id === 'assistent' && hasAttentionSignals && (
-  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-auto flex-shrink-0" />
-)}
+// Oud
+<span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded bg-[rgba(29,151,158,0.15)] text-[#1d979e]">
+  Soon
+</span>
 ```
+volledig verwijderd, en de parent `div`/container krijgt `opacity-40 cursor-default` (vervangt `cursor-not-allowed`).
 
-De dot is 6px (`w-1.5 h-1.5`), `bg-orange-500`, `rounded-full`, gepositioneerd rechts via `ml-auto`.
+**2. `docs/design/NAVIGATION_CARDS.md` of `docs/design/COLOR_PALETTE.md`**
 
-### Documentatie
+Nieuwe sectie "DISABLED NAVIGATION ITEMS" met het standaard:
+- Nooit "Soon" of "Coming soon" badges
+- Niet-beschikbare items: `opacity-40`, `cursor-default`
+- Items met een echte pagina (beperkte functionaliteit) blijven normaal zichtbaar
 
-**Bestand: `docs/design/COLOR_PALETTE.md`** - Nieuwe sectie "TABLE ROW INTERACTION" met het hover-standaard.
-
-**Bestand: `docs/design/INLINE_DATA_TABLES.md`** - Notitie toevoegen: lege waarden worden leeg gelaten, geen "Geen"/"N/A" badges.
-
-### Bestanden die wijzigen
+### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/reserveringen/ReservationListView.tsx` | Hover class aanpassen naar `hover:bg-muted/30 transition-colors duration-150` |
-| `src/pages/Ingredienten.tsx` | "Geen" badge verwijderen, `null` teruggeven bij lege allergenen |
-| `src/components/layout/NestoSidebar.tsx` | Import mock data, bereken `hasAttentionSignals`, toon 6px orange dot bij Assistent |
-| `docs/design/COLOR_PALETTE.md` | Sectie "TABLE ROW INTERACTION" toevoegen |
-| `docs/design/INLINE_DATA_TABLES.md` | Notitie over lege waarden toevoegen |
+| `src/components/layout/NestoSidebar.tsx` | 3x "Soon" badge verwijderen, opacity-40 + cursor-default toepassen |
+| `docs/design/COLOR_PALETTE.md` | Sectie "DISABLED NAVIGATION ITEMS" toevoegen |
 
