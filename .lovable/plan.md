@@ -1,48 +1,38 @@
 
 
-## Sidebar iconen aanpassen naar referentie
+## Sidebar iconen herstellen naar referentie
 
-De huidige iconen gebruiken `#17171C` (bijna zwart) wat te hard/fel is. In de referentie zijn de iconen een **zachter donkergrijs**, meer in lijn met `text-muted-foreground` styling.
+De huidige `muted-foreground` kleur (#73747B) is te licht/grijs. De referentie toont donkere, stevige iconen in de standaard `foreground` kleur.
 
 ### Wijzigingen in `src/components/layout/NestoSidebar.tsx`
 
-**Zap icoon (regel 86):**
-- Kleur wijzigen van `#17171C` naar een zachtere kleur via Tailwind class
-- Gebruik `className="text-muted-foreground"` met `fill="currentColor"` zodat het automatisch de juiste tint pakt
-
-**PanelLeft icoon (regel 96):**
-- Zelfde aanpak: `className="text-muted-foreground"` in plaats van hardcoded `color="#17171C"`
-
-### Concrete code
-
-Regel 86 - Zap:
+**Regel 86 - Zap icoon:**
 ```tsx
-// Was:
-<Zap size={20} strokeWidth={0} fill="#17171C" />
-
-// Wordt:
+// Huidig (te licht):
 <Zap size={20} strokeWidth={0} className="fill-muted-foreground" />
+
+// Nieuw (donker, solid filled):
+<Zap size={20} strokeWidth={0} className="fill-foreground" />
 ```
 
-Regel 96 - PanelLeft:
+**Regel 96 - PanelLeft icoon:**
 ```tsx
-// Was:
-<PanelLeft size={20} strokeWidth={1.5} color="#17171C" />
-
-// Wordt:
+// Huidig (te licht, te dun):
 <PanelLeft size={20} strokeWidth={1.5} className="text-muted-foreground" />
+
+// Nieuw (donker, steviger stroke):
+<PanelLeft size={20} strokeWidth={2} className="text-foreground" />
 ```
 
 ### Waarom
 
-- `text-muted-foreground` is `#73747B` - een zacht donkergrijs dat past bij de referentie
-- Geen hardcoded kleuren meer, werkt ook automatisch in dark mode
-- Het Zap icoon gebruikt `fill-muted-foreground` (Tailwind fill utility) omdat het een filled shape is zonder stroke
-- Het PanelLeft icoon gebruikt `text-muted-foreground` omdat Lucide stroke-iconen `currentColor` via `color` property gebruiken
+- `fill-foreground` / `text-foreground` gebruikt de standaard donkere tekstkleur die overeenkomt met de referentie
+- PanelLeft krijgt `strokeWidth={2}` voor een steviger, dikker uiterlijk zoals in het voorbeeld
+- Geen hardcoded hex kleuren, dus dark mode werkt automatisch
+- Zap blijft `strokeWidth={0}` (solid filled shape zonder outline)
 
 | Eigenschap | Huidig | Nieuw |
 |---|---|---|
-| Zap fill | #17171C (hard zwart) | fill-muted-foreground (#73747B) |
-| PanelLeft color | #17171C (hard zwart) | text-muted-foreground (#73747B) |
-| Dark mode | Werkt niet | Automatisch correct |
-
+| Zap kleur | fill-muted-foreground (te grijs) | fill-foreground (donker) |
+| PanelLeft kleur | text-muted-foreground (te grijs) | text-foreground (donker) |
+| PanelLeft stroke | 1.5 (te dun) | 2 (steviger) |
