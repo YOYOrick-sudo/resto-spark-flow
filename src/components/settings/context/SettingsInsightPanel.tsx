@@ -48,7 +48,7 @@ export function SettingsInsightPanel({
       )}
 
       {insights?.length && (checks?.length || context?.length) ? (
-        <div className="border-t border-border/60 my-3" />
+        <div className="border-t border-border pt-4 mt-4" />
       ) : null}
 
       {checks && checks.length > 0 && (
@@ -86,7 +86,7 @@ export function SettingsInsightPanel({
       )}
 
       {checks?.length && context?.length ? (
-        <div className="border-t border-border/60 my-3" />
+        <div className="border-t border-border pt-4 mt-4" />
       ) : null}
 
       {context && context.length > 0 && (
