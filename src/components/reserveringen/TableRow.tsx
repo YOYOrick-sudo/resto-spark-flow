@@ -9,6 +9,7 @@ import {
   defaultGridConfig,
 } from "@/data/reservations";
 import { ReservationBlock } from "./ReservationBlock";
+import type { DensityType } from "./DensityToggle";
 
 interface TableRowProps {
   table: Table;
@@ -19,11 +20,12 @@ interface TableRowProps {
   onReservationResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
   onEmptySlotClick?: (tableId: string, time: string) => void;
   isOdd?: boolean;
-  activeReservationId?: string | null; // ID of reservation being dragged
-  isDropTarget?: boolean; // True when ghost is hovering over this table
-  ghostStartTime?: string | null; // Time where ghost will snap to (for highlighting drop target cell)
-  refreshKey?: number; // Force re-fetch of reservations when this changes
-  isDropAnimating?: boolean; // True during drop animation - keeps original hidden
+  activeReservationId?: string | null;
+  isDropTarget?: boolean;
+  ghostStartTime?: string | null;
+  refreshKey?: number;
+  isDropAnimating?: boolean;
+  density?: DensityType;
 }
 
 // Constants - must match ReservationGridView
@@ -65,7 +67,9 @@ export function TableRow({
   ghostStartTime = null,
   refreshKey = 0,
   isDropAnimating = false,
+  density = "compact",
 }: TableRowProps) {
+  const isCompact = density === "compact";
   const reservations = useMemo(
     () => getReservationsForTableMutable(date, table.id),
     [date, table.id, refreshKey]
@@ -90,7 +94,8 @@ export function TableRow({
   return (
     <div
       className={cn(
-        "flex border-b border-border/50 h-12 transition-colors duration-100",
+        "flex border-b border-border/50 transition-colors duration-100",
+        isCompact ? "h-9" : "h-12",
         isOdd ? "bg-secondary" : "bg-card",
         isDropTarget && "bg-primary/5"
       )}
@@ -157,6 +162,7 @@ export function TableRow({
                 onCheckIn={onReservationCheckIn}
                 onResize={onReservationResize}
                 isBeingDragged={reservation.id === activeReservationId || (isDropAnimating && reservation.id === activeReservationId)}
+                density={density}
               />
             ))}
         </div>

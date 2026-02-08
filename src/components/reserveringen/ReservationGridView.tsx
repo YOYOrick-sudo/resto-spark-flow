@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, pointerWithin, useSensor, useSensors, PointerSensor, TouchSensor } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+import type { DensityType } from "./DensityToggle";
 
 // Ghost position type for drag preview
 interface GhostPosition {
@@ -50,6 +51,7 @@ interface ReservationGridViewProps {
   onReservationClick?: (reservation: Reservation) => void;
   onReservationUpdate?: () => void;
   config?: GridTimeConfig;
+  density?: DensityType;
 }
 
 // Grid lines component - renders vertical lines for hours and quarter hours
@@ -163,12 +165,14 @@ function SeatedCountRow({
   isExpanded,
   onToggle,
   onSlotClick,
+  isCompact = false,
 }: {
   date: string;
   config: GridTimeConfig;
   isExpanded: boolean;
   onToggle: () => void;
   onSlotClick?: (time: string) => void;
+  isCompact?: boolean;
 }) {
   const hourLabels = useMemo(() => getHourLabels(config), [config]);
   const quarterWidth = 15 * config.pixelsPerMinute;
@@ -195,10 +199,10 @@ function SeatedCountRow({
   }, [date, quarterSlots]);
 
   return (
-    <div className="flex border-b-2 border-border bg-secondary">
+    <div className="flex border-b-2 border-border bg-secondary sticky top-[40px] z-20">
       {/* Label cell */}
       <div 
-        className="sticky left-0 z-30 flex-shrink-0 flex items-center justify-between px-3 py-2 bg-secondary border-r-2 border-border"
+        className={cn("sticky left-0 z-30 flex-shrink-0 flex items-center justify-between px-3 bg-secondary border-r-2 border-border", isCompact ? "py-1" : "py-2")}
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       >
         <span className="text-xs font-semibold text-muted-foreground">Pacing</span>
@@ -251,10 +255,9 @@ function SeatedCountRow({
 }
 
 // Zone header
-function ZoneHeader({ name }: { name: string }) {
+function ZoneHeader({ name, isCompact = false }: { name: string; isCompact?: boolean }) {
   return (
-    <div className="flex bg-secondary border-b border-t border-border h-8">
-      {/* Sticky zone label - blijft altijd zichtbaar bij horizontaal scrollen */}
+    <div className={cn("flex bg-secondary border-b border-t border-border", isCompact ? "h-7" : "h-8")}>
       <div 
         className="sticky left-0 z-30 flex-shrink-0 bg-secondary border-r-2 border-border flex items-center px-3"
         style={{ width: `${STICKY_COL_WIDTH}px` }}
@@ -263,8 +266,6 @@ function ZoneHeader({ name }: { name: string }) {
           {name}
         </span>
       </div>
-      
-      {/* Rest van de rij (leeg, alleen voor grid-achtergrond) */}
       <div className="flex-1" />
     </div>
   );
@@ -394,7 +395,9 @@ export function ReservationGridView({
   onReservationClick,
   onReservationUpdate,
   config = defaultGridConfig,
+  density = "compact",
 }: ReservationGridViewProps) {
+  const isCompact = density === "compact";
   const containerRef = useRef<HTMLDivElement>(null);
   const [seatedExpanded, setSeatedExpanded] = useState(true);
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
@@ -424,12 +427,11 @@ export function ReservationGridView({
   const totalWidth = STICKY_COL_WIDTH + gridWidth;
 
   // Row heights for table position calculation - MUST MATCH CSS
-  const HEADER_HEIGHT = 40;      // TimelineHeader: h-10 = 40px
-  const SEATED_ROW_HEIGHT = 44;  // SeatedCountRow: py-2 + content ≈ 44px
-  const ZONE_HEADER_HEIGHT = 32; // ZoneHeader: h-8 = 32px
-  const TABLE_ROW_HEIGHT = 56;   // TableRow: h-14 = 56px (3.5rem)
+  const HEADER_HEIGHT = 40;
+  const SEATED_ROW_HEIGHT = isCompact ? 36 : 44;
+  const ZONE_HEADER_HEIGHT = isCompact ? 28 : 32;
+  const TABLE_ROW_HEIGHT = isCompact ? 36 : 56;
 
-  // Calculate table positions for ghost preview
   const tablePositions = useMemo(() => {
     const positions: Record<string, number> = {};
     let currentTop = HEADER_HEIGHT + SEATED_ROW_HEIGHT;
@@ -440,14 +442,15 @@ export function ReservationGridView({
       
       currentTop += ZONE_HEADER_HEIGHT;
       tables.forEach(table => {
-        // Ghost is 36px, row is 56px, center: (56-36)/2 = 10px offset
-        positions[table.id] = currentTop + 10;
+        const ghostHeight = isCompact ? 28 : 36;
+        const verticalOffset = (TABLE_ROW_HEIGHT - ghostHeight) / 2;
+        positions[table.id] = currentTop + verticalOffset;
         currentTop += TABLE_ROW_HEIGHT;
       });
     });
     
     return positions;
-  }, [zones]);
+  }, [zones, isCompact, HEADER_HEIGHT, SEATED_ROW_HEIGHT, ZONE_HEADER_HEIGHT, TABLE_ROW_HEIGHT]);
 
   // Scroll to current time on mount
   useEffect(() => {
@@ -847,6 +850,7 @@ export function ReservationGridView({
               isExpanded={seatedExpanded}
               onToggle={() => setSeatedExpanded(!seatedExpanded)}
               onSlotClick={handleSlotClick}
+              isCompact={isCompact}
             />
 
             {/* Zones with tables */}
@@ -857,7 +861,7 @@ export function ReservationGridView({
               return (
                 <div key={zone.id}>
                   {/* Zone header */}
-                  <ZoneHeader name={zone.name} />
+                  <ZoneHeader name={zone.name} isCompact={isCompact} />
 
                   {/* Table rows */}
                   {tables.map((table, index) => (
@@ -876,6 +880,7 @@ export function ReservationGridView({
                       ghostStartTime={ghostPosition?.tableId === table.id ? ghostPosition.startTime : null}
                       refreshKey={localRefreshKey}
                       isDropAnimating={isDropAnimating}
+                      density={density}
                     />
                   ))}
                 </div>
