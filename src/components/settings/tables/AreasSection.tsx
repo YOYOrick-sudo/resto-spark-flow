@@ -209,13 +209,7 @@ export function AreasSection({ locationId }: AreasSectionProps) {
 
   return (
     <NestoCard className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-medium">Areas</h3>
-          <p className="text-sm text-muted-foreground">
-            Beheer ruimtes en de tafels daarin.
-          </p>
-        </div>
+      <div className="flex justify-end mb-4">
         <NestoButton onClick={handleAddArea} size="sm" disabled={!locationId}>
           <Plus className="h-4 w-4 mr-1" />
           Nieuwe Area
