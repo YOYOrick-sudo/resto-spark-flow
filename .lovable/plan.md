@@ -1,48 +1,33 @@
 
 
-## Fix: Dag-labels worden afgesneden aan linker- en rechterkant
+## Polish: Reserveringen Chart visueel verfijnen
 
-### Probleem
-
-In de screenshot is te zien dat de "M" (maandag) links helemaal niet zichtbaar is, en de laatste "Z" (zondag) rechts wordt afgeknipt. Dit komt door twee oorzaken:
-
-1. De `AreaChart` heeft `margin left: 0` en `margin right: 0`, waardoor labels aan de randen buiten het zichtbare gebied vallen
-2. De wrapper div heeft `marginRight: -5` wat de rechterkant extra afsnijdt
+Je hebt gelijk -- de labels staan nu technisch goed maar optisch nog iets te strak op de rand. Drie kleine verbeteringen:
 
 ### Wijzigingen in `src/components/dashboard/ReservationsTile.tsx`
 
-#### 1. Wrapper marginRight verwijderen (regel 51)
+#### 1. XAxis padding toevoegen
 
-Van:
-```tsx
-<div className="mt-4" style={{ marginRight: -5 }}>
-```
-Naar:
-```tsx
-<div className="mt-4">
-```
+`padding={{ left: 8, right: 8 }}` op de XAxis zorgt dat "M" en "Z" ~8px van de chartrand af staan. Subtiel, maar merkbaar mooier.
 
-#### 2. AreaChart margin left en right toevoegen (regel 53)
+#### 2. Chart margins finetunen
 
-Van:
-```tsx
-margin={{ top: 8, right: 0, bottom: 20, left: 0 }}
-```
-Naar:
-```tsx
-margin={{ top: 8, right: 16, bottom: 20, left: 16 }}
-```
+Margins van 16 naar 12 -- in combinatie met de XAxis padding is 12px genoeg en wordt de chart niet onnodig smal.
 
-16px links en rechts geeft genoeg ruimte zodat de "M" en de laatste "Z" volledig zichtbaar zijn. De XAxis `padding` prop wordt niet gebruikt -- margin op de chart zelf is betrouwbaarder.
+#### 3. Tooltip dark mode fix
 
-### Bestanden
+De tooltip gebruikt nu `bg-gray-900 text-white` (hardcoded). Wijzigen naar `bg-foreground text-background` zodat het in beide thema's klopt.
 
-| Bestand | Actie |
-|---|---|
-| `src/components/dashboard/ReservationsTile.tsx` | `marginRight: -5` verwijderen, chart margin left/right naar 16 |
+### Overzicht
+
+| Wat | Van | Naar |
+|---|---|---|
+| XAxis | geen padding | `padding={{ left: 8, right: 8 }}` |
+| AreaChart margin left/right | 16 | 12 |
+| Tooltip klassen | `bg-gray-900 text-white` | `bg-foreground text-background` |
 
 ### Resultaat
 
-- Alle 7 labels volledig zichtbaar: M D W D V Z Z
-- Lijn en gradient blijven edge-to-edge lopen (met 16px ademruimte)
-- Hover dots blijven aligned met labels
+- M en Z labels staan optisch los van de kaartrand
+- Chart lijn loopt nog steeds breed uit
+- Tooltip werkt in light en dark mode
