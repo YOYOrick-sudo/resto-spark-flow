@@ -1,67 +1,75 @@
 
 
-## Dashboard Verbetering
+## Dashboard Redesign — Rustiger en Compacter
 
 ### Samenvatting
 
-Het Dashboard wordt opgebouwd met drie secties: verbeterde stat cards (4 stuks), een "Aandacht vereist" sectie met urgente signalen uit de Assistent data, en een "Reserveringen vandaag" sectie met een compacte lijst.
+Het dashboard wordt visueel rustiger: minder tekst, meer ademruimte, sneller scanbaar. Vijf concrete wijzigingen in een enkel bestand.
 
-### Wijzigingen
+### Wijzigingen in `src/pages/Dashboard.tsx`
 
-**Bestand: `src/pages/Dashboard.tsx` - volledig herschrijven**
+**1. Greeting in plaats van H1 titel**
 
-Het huidige placeholder-dashboard wordt vervangen door een volwaardig dashboard met drie secties.
+Vervang `<h1>Dashboard</h1>` door een flex row:
+- Links: greeting op basis van `new Date().getHours()`:
+  - `< 12` → "Goedemorgen"
+  - `12-17` → "Goedemiddag"
+  - `>= 18` → "Goedenavond"
+  - Styling: `text-2xl font-semibold text-foreground`
+- Rechts: datum in formaat "zo 8 feb" via `toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })`
+  - Styling: `text-sm text-muted-foreground`
 
-**1. Stat Cards (4 stuks in grid)**
+**2. Stat Cards compacter**
 
-Grid layout: `grid gap-4 sm:grid-cols-2 lg:grid-cols-4`
+`DashboardStat` component vereenvoudigen:
+- Verwijder `zeroLabel` en `subLabel` props
+- Card padding: `p-4` (was `p-5`)
+- Label: `text-sm text-muted-foreground` (was `text-[13px] font-medium`)
+- Getal: `text-xl font-semibold` (was `text-2xl`)
+- Waarde 0: toon "—" in `text-xl font-semibold text-muted-foreground`, geen extra tekst eronder
+- Waarde > 0: toon getal in `text-xl font-semibold text-foreground`, geen subtitel
+- Icoon container blijft: `w-9 h-9 rounded-lg bg-primary/5`
+- Grid gap: `gap-3` (was `gap-4`)
 
-Elke card is een `NestoCard` met `p-5`:
-- Header: label links (`text-[13px] font-medium text-muted-foreground`), icoon container rechts (`w-9 h-9 rounded-lg bg-primary/5` met icoon `h-4 w-4 text-primary`)
-- Waarde 0: em-dash in `text-2xl font-semibold text-muted-foreground` + beschrijving in `text-xs text-muted-foreground`
-- Waarde > 0: getal in `text-2xl font-semibold text-foreground` + sub-label in `text-xs text-muted-foreground`
+**3. Signalen — max 2, single-line**
 
-Cards:
-| Card | Icoon | Zero label | Sub label |
-|---|---|---|---|
-| Reserveringen vandaag | CalendarDays | Geen reserveringen | vandaag |
-| Open taken | CheckSquare | Geen open taken | open |
-| Actieve recepten | BookOpen | Geen actieve recepten | actief |
-| Bezetting | Users | Geen data | % |
+- `.slice(0, 2)` in plaats van `.slice(0, 3)`
+- Elk signaal wordt een enkele regel: severity icoon (geen ronde achtergrond, gewoon icoon `h-4 w-4` met kleur) + titel (`text-sm font-medium flex-1`) + module badge + ChevronRight
+- Verwijder de beschrijving (`item.message` wordt niet meer getoond)
+- Verwijder de ronde icoon-container (`w-8 h-8 rounded-full`), gebruik het icoon direct
+- Elke regel: `flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer hover:bg-muted/30 transition-colors`
+- Klikbaar via `onClick` naar `action_path` (al aanwezig)
 
-Reserveringen en bezetting worden berekend uit `mockReservations` (gefilterd op vandaag) en `mockTables`.
+**4. Reserveringen — compacter**
 
-**2. Aandacht vereist sectie**
+- Header label: "Vandaag" (was "Reserveringen vandaag")
+- `.slice(0, 4)` in plaats van `.slice(0, 5)`
+- Per rij: alleen tijd (`text-sm font-medium w-14`) en naam (`text-sm flex-1 truncate`)
+- Verwijder: gasten/tafel info, status dot
+- Verwijder imports: `reservationStatusConfig` (niet meer nodig)
+- Lege state: `py-6` (was `py-8`)
 
-- Sectie label: `AlertTriangle` icoon (`h-4 w-4 text-orange-500`) + "Aandacht vereist" (`text-sm font-semibold text-foreground`)
-- Filtert `mockAssistantItems` op severity `error` of `warning`, gesorteerd op severity dan datum, max 3 items
-- Elk item: urgentie-icoon, titel (`text-sm font-medium`), beschrijving (`text-sm text-muted-foreground`), module badge (zelfde config als Assistent pagina)
-- Items staan direct op de pagina met `divide-y divide-border`, geen NestoCard wrapper
-- Klikbaar met `hover:bg-muted/30 rounded-lg transition-colors`
-- Link onderaan: "Alle signalen bekijken (pijl)" naar `/assistent`
-- Als er GEEN urgente signalen zijn: hele sectie wordt niet gerenderd
+**5. Spacing**
 
-**3. Reserveringen vandaag sectie**
+- Parent container: `space-y-8` (was `space-y-6`)
 
-- In een `NestoCard` met `p-0 overflow-hidden`
-- Header: "Reserveringen vandaag" links (`text-base font-medium`), rechts totaal aantal + "Bekijk alle (pijl)" link naar `/reserveringen`
-- Max 5 reserveringen, gesorteerd op startTime
-- Per rij: tijd (`text-sm font-medium w-14`), naam (`text-sm flex-1 truncate`), gasten + tafel (`text-sm text-muted-foreground`), status dot (kleur uit `reservationStatusConfig`)
-- Rijen: `hover:bg-muted/30 transition-colors duration-150 cursor-pointer`
-- Leeg: "Geen reserveringen vandaag" in `text-sm text-muted-foreground text-center py-8`
+### Technische details
 
-**Imports:**
-- `CalendarDays, CheckSquare, BookOpen, Users, AlertTriangle, AlertCircle, ChevronRight` uit lucide-react
-- `NestoCard, NestoBadge` uit polar components
-- `mockAssistantItems` uit assistant mock data
-- `mockReservations, mockTables, reservationStatusConfig` uit reservations data
-- `Link, useNavigate` uit react-router-dom
-
-De welkomsttekst wordt verwijderd. Alleen een `h1` "Dashboard" blijft bovenaan.
+| Aspect | Oud | Nieuw |
+|---|---|---|
+| Titel | `<h1>Dashboard</h1>` | Greeting + datum |
+| Stat card padding | `p-5` | `p-4` |
+| Stat card getal | `text-2xl` + subtitel | `text-xl`, geen subtitel |
+| Grid gap | `gap-4` | `gap-3` |
+| Signalen max | 3 | 2 |
+| Signaal layout | Twee regels + icoon container | Single line, icoon direct |
+| Reserveringen max | 5 | 4 |
+| Reservering rij | Tijd + naam + gasten + tafel + dot | Tijd + naam |
+| Sectie spacing | `space-y-6` | `space-y-8` |
 
 ### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/pages/Dashboard.tsx` | Volledig herschrijven met 3 secties |
+| `src/pages/Dashboard.tsx` | Greeting, compactere stat cards, 2 signalen single-line, 4 reserveringen zonder details, meer spacing |
 
