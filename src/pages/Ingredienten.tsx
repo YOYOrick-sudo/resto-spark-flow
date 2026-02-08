@@ -323,11 +323,7 @@ export default function Ingredienten() {
               </NestoBadge>
             ))}
           </div>
-        ) : (
-          <NestoBadge variant="outline" size="sm">
-            Geen
-          </NestoBadge>
-        ),
+        ) : null,
     },
   ];
 

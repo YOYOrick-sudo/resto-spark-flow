@@ -122,7 +122,7 @@ function ReservationRow({ reservation, onClick, onStatusChange }: ReservationRow
   return (
     <div
       className={cn(
-        "flex items-center gap-4 px-4 py-3 hover:bg-secondary/50 cursor-pointer transition-colors",
+        "flex items-center gap-4 px-4 py-3 hover:bg-muted/30 cursor-pointer transition-colors duration-150",
         reservation.status === "cancelled" && "opacity-50",
         reservation.status === "no_show" && "opacity-60"
       )}
