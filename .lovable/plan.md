@@ -1,33 +1,48 @@
 
 
-## Zap icoon corrigeren naar referentie
+## Sidebar iconen aanpassen naar referentie
 
-Het probleem is dat `fill="currentColor"` samen met `color="#17171C"` en `strokeWidth={1.5}` een dubbel effect geeft: zowel een dikke outline als een fill. In de referentie is het bliksemicoon een **clean solid shape** zonder zichtbare stroke eromheen.
+De huidige iconen gebruiken `#17171C` (bijna zwart) wat te hard/fel is. In de referentie zijn de iconen een **zachter donkergrijs**, meer in lijn met `text-muted-foreground` styling.
 
-### Wijziging
+### Wijzigingen in `src/components/layout/NestoSidebar.tsx`
 
-**Bestand:** `src/components/layout/NestoSidebar.tsx`, regel 86
+**Zap icoon (regel 86):**
+- Kleur wijzigen van `#17171C` naar een zachtere kleur via Tailwind class
+- Gebruik `className="text-muted-foreground"` met `fill="currentColor"` zodat het automatisch de juiste tint pakt
 
-Huidige code:
+**PanelLeft icoon (regel 96):**
+- Zelfde aanpak: `className="text-muted-foreground"` in plaats van hardcoded `color="#17171C"`
+
+### Concrete code
+
+Regel 86 - Zap:
 ```tsx
-<Zap size={20} strokeWidth={1.5} color="#17171C" fill="currentColor" />
-```
-
-Nieuwe code:
-```tsx
+// Was:
 <Zap size={20} strokeWidth={0} fill="#17171C" />
+
+// Wordt:
+<Zap size={20} strokeWidth={0} className="fill-muted-foreground" />
 ```
 
-Door `strokeWidth={0}` te zetten en `fill="#17171C"` direct in te stellen, wordt het een zuiver gevulde shape zonder stroke-omlijning. Dit geeft het scherpe, solide resultaat zoals in de referentie.
+Regel 96 - PanelLeft:
+```tsx
+// Was:
+<PanelLeft size={20} strokeWidth={1.5} color="#17171C" />
 
-Het PanelLeft icoon blijft ongewijzigd (outline met strokeWidth 1.5).
+// Wordt:
+<PanelLeft size={20} strokeWidth={1.5} className="text-muted-foreground" />
+```
 
-### Technisch detail
+### Waarom
+
+- `text-muted-foreground` is `#73747B` - een zacht donkergrijs dat past bij de referentie
+- Geen hardcoded kleuren meer, werkt ook automatisch in dark mode
+- Het Zap icoon gebruikt `fill-muted-foreground` (Tailwind fill utility) omdat het een filled shape is zonder stroke
+- Het PanelLeft icoon gebruikt `text-muted-foreground` omdat Lucide stroke-iconen `currentColor` via `color` property gebruiken
 
 | Eigenschap | Huidig | Nieuw |
 |---|---|---|
-| strokeWidth | 1.5 | 0 |
-| color | #17171C | verwijderd |
-| fill | currentColor | #17171C |
-| size | 20 | 20 (ongewijzigd) |
+| Zap fill | #17171C (hard zwart) | fill-muted-foreground (#73747B) |
+| PanelLeft color | #17171C (hard zwart) | text-muted-foreground (#73747B) |
+| Dark mode | Werkt niet | Automatisch correct |
 
