@@ -69,7 +69,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   return (
     <div className="h-full w-60 flex flex-col bg-secondary border-r border-border">
       {/* Header */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4">
         <div className="flex items-center justify-between">
           <span 
             className="text-xl font-extrabold tracking-tight text-foreground"
