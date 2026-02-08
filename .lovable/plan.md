@@ -1,194 +1,112 @@
 
 
-## Polish: Reserveringenpagina visueel afronden
+## Density Toggle + Compact Modus voor Reserveringenpagina
 
-Acht gerichte visuele verbeteringen die de reserveringenpagina professioneel afmaken. Geen functionele wijzigingen -- puur visual polish.
+### Overzicht
 
----
-
-### 1. Lijstweergave -- Status badges (teal-familie)
-
-De `reservationStatusConfig` in `src/data/reservations.ts` heeft al de juiste teal-kleurenfamilie. De badges in `ReservationListView.tsx` gebruiken deze config correct via `statusConfig.textClass`, `bgClass`, `borderClass` en `dotColor`. De "Completed" status heeft `textClass: 'text-muted-foreground opacity-50'` en geen `bgClass`, wat al gedempt is. Dit zit dus goed -- geen wijziging nodig.
-
-**Bestand**: geen wijziging
+Een density toggle (compact/comfortable) toevoegen naast de view toggles. Compact wordt de default en wordt opgeslagen in localStorage. Dit geldt voor zowel de lijstweergave als de gridweergave. De sticky headers voor tijdslots worden verbeterd.
 
 ---
 
-### 2. Lijstweergave -- ED/LD badges neutraal maken
+### Nieuwe bestanden
 
-De shift badges (regel 175-181 in `ReservationListView.tsx`) gebruiken nu `variant="primary"` voor ED (teal) en `variant="default"` voor LD. Beide moeten neutraal worden: metadata, geen status.
+#### `src/components/reserveringen/DensityToggle.tsx`
 
-**Bestand**: `src/components/reserveringen/ReservationListView.tsx`
+Een nieuwe component naast de ViewToggle met twee knoppen:
+- **Compact** (Rows4 icoon) -- default, actief
+- **Comfortable** (Rows3 icoon) -- huidige spacing
 
-Wijziging op regel 175-181:
-```tsx
-// Van:
-<NestoBadge
-  variant={reservation.shift === "ED" ? "primary" : "default"}
-  size="sm"
-  className="w-10 justify-center"
->
+Styling identiek aan ViewToggle: `bg-secondary rounded-lg p-1`, actief = `bg-primary/10 text-primary border border-primary/20 shadow-sm`.
 
-// Naar:
-<NestoBadge
-  variant="outline"
-  size="sm"
-  className="w-10 justify-center text-muted-foreground"
->
-```
+State wordt opgeslagen in `localStorage` key `nesto-density` met waarden `"compact"` | `"comfortable"`.
+
+Export: `type DensityType = "compact" | "comfortable"` en de component.
 
 ---
 
-### 3. Lijstweergave -- Notities styling verfijnen
+### Wijzigingen per bestand
 
-De notities (regel 166-172) zijn al `italic text-muted-foreground`. De opacity kan iets lager zodat ze meer op de achtergrond staan.
+#### `src/pages/Reserveringen.tsx`
 
-**Bestand**: `src/components/reserveringen/ReservationListView.tsx`
+- Importeer `DensityToggle` en `DensityType`
+- Voeg `density` state toe, initialiseer vanuit localStorage (default: `"compact"`)
+- Render `DensityToggle` naast `ViewToggle` in de toolbar
+- Geef `density` door als prop aan `ReservationListView` en `ReservationGridView`
 
-Wijziging op regel 168:
-```tsx
-// Van:
-<span className="text-sm text-muted-foreground italic truncate">
+#### `src/components/reserveringen/ReservationListView.tsx`
 
-// Naar:
-<span className="text-sm text-muted-foreground/70 italic truncate">
-```
+Accepteer `density` prop. Pas conditionele classes toe:
 
----
+| Element | Compact | Comfortable (huidig) |
+|---|---|---|
+| Rij padding | `py-1.5 px-4 gap-3` | `py-3 px-4 gap-4` |
+| Tijdslot header padding | `py-1 px-4` | `py-2 px-4` |
+| Tijdslot header tekst | `text-xs` | `text-sm` |
+| Naam tekst | `text-sm` (blijft) | `text-sm` |
+| Gasten/tafel tekst | `text-xs` | `text-sm` |
+| Status badge | `text-[11px] px-1.5 py-0 min-w-[80px]` | `text-xs px-2.5 py-1 min-w-[90px]` |
+| Status dot in badge | `w-1.5 h-1.5` | `w-2 h-2` |
+| VIP ster | `h-3 w-3` | `h-3.5 w-3.5` |
+| Telefoon icoon | `h-2.5 w-2.5` | `h-3 w-3` |
+| Menu icoon | `h-3.5 w-3.5` | `h-4 w-4` |
+| Notities kolom | `w-[100px]` | `w-[120px]` |
+| Divider tussen rijen | `divide-border/30` | `divide-border` |
 
-### 4. Gridweergave -- Pacing rij versterken
+De sticky headers voor tijdslots zijn al `sticky top-0 z-10`. Shadow toevoegen: `shadow-[0_1px_3px_rgba(0,0,0,0.05)]`.
 
-De `SeatedCountRow` in `ReservationGridView.tsx` (regel 198) heeft `border-b border-border`. Dit wordt een sterkere scheiding en de pacing getallen gaan van `text-xs` (huidig) naar `text-[11px]` voor een subtielere look.
+#### `src/components/reserveringen/ReservationGridView.tsx`
 
-**Bestand**: `src/components/reserveringen/ReservationGridView.tsx`
+Accepteer `density` prop. Wijzigingen:
 
-Wijziging op regel 198:
-```tsx
-// Van:
-<div className="flex border-b border-border bg-secondary">
+- **TABLE_ROW_HEIGHT**: compact = 36px, comfortable = 56px (huidige waarde)
+- **SEATED_ROW_HEIGHT**: compact = 36px, comfortable = 44px
+- **ZONE_HEADER_HEIGHT**: compact = 28px, comfortable = 32px
+- Geef `density` door aan `TableRow`
+- `SeatedCountRow`: compact = `py-1` in cellen, comfortable = `py-2`
+- `ZoneHeader`: compact = `h-7`, comfortable = `h-8`
+- `TimelineHeader`: al sticky top-0 z-20 -- geen wijziging nodig
+- `SeatedCountRow`: sticky gedrag toevoegen: `sticky top-[40px] z-20` (onder TimelineHeader)
+- `tablePositions` berekening: gebruik de density-afhankelijke hoogte constanten
 
-// Naar:
-<div className="flex border-b-2 border-border bg-secondary">
-```
+#### `src/components/reserveringen/TableRow.tsx`
 
-Wijziging op regel 227 (pacing cel `text-xs`):
-```tsx
-// Van:
-className={cn(
-  "text-xs flex items-center justify-center py-2 cursor-pointer..."
+Accepteer `density` prop:
 
-// Naar:
-className={cn(
-  "text-[11px] flex items-center justify-center py-2 cursor-pointer..."
-```
+- Rij hoogte: compact = `h-9` (36px), comfortable = `h-12` (48px)
+- ReservationBlock `top`/`bottom` insets: compact = `top-0.5 bottom-0.5`, comfortable = `top-1.5 bottom-1.5` (huidig)
 
----
+#### `src/components/reserveringen/ReservationBlock.tsx`
 
-### 5. Gridweergave -- Reserveringsblokken verfijnen
+Accepteer `density` prop:
 
-In `ReservationBlock.tsx`:
-
-a) "Confirmed" achtergrond lichter maken (regel 108):
-```tsx
-// Van:
-case "confirmed":
-  return "bg-primary/15 border-primary/50";
-
-// Naar:
-case "confirmed":
-  return "bg-primary/10 border-primary/40";
-```
-
-b) Telefoon-icoon en shift badge verbergen in grid (tonen alleen op hover). Regel 288-304:
-```tsx
-// Phone: voeg opacity-0 group-hover:opacity-100 transition-opacity toe
-{reservation.phone && !reservation.isWalkIn && displayPosition.width > 100 && (
-  <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-)}
-
-// Shift badge: idem
-{displayPosition.width > 140 && (
-  <span
-    className={cn(
-      "text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity",
-      ...
-    )}
-  >
-```
+- Blok insets: compact = `top-0.5 bottom-0.5`, comfortable = `top-1.5 bottom-1.5`
+- Guest count tekst: compact = `text-xs`, comfortable = `text-sm`
+- Naam tekst: compact = `text-[11px]`, comfortable = `text-xs`
+- Content padding: compact = `px-1.5 gap-1`, comfortable = `px-2.5 gap-1.5`
 
 ---
 
-### 6. Gridweergave -- Lege beschikbare slots subtiel markeren
+### Sticky gedrag samenvatting
 
-In `TableRow.tsx`, de lege quarter-hour cellen (regel 131-144) krijgen een heel subtiele achtergrond zodat "leeg en beschikbaar" zichtbaar verschilt van "leeg en niet beschikbaar":
+**Lijstweergave:**
+- Tijdslot headers: al `sticky top-0 z-10` -- shadow toevoegen
+- Toolbar bovenaan: zit buiten de scroll container, dus blijft automatisch staan
 
-```tsx
-// Voeg een subtiele even/odd styling toe aan de cel:
-// De bestaande hover:bg-primary/10 blijft; voeg bg-background/30 toe als base
-className={cn(
-  "h-full cursor-pointer transition-colors hover:bg-primary/10",
-  index % 4 === 0 ? "border-l border-border/50" : "border-l border-border/20",
-  isDropTarget && ghostStartTime === time && "bg-primary/20 ring-2 ring-primary ring-inset"
-)}
-```
-
-Aangezien de beschikbaarheid per tafel al visueel wordt aangegeven met de rode/groene dot links, en niet-beschikbare tafels altijd beschikbaar zijn in de grid (alleen niet online bookable), is een subtiele achtergrondkleur hier niet zinvol -- de rode dot doet dit werk al. Geen wijziging hier.
+**Gridweergave:**
+- TimelineHeader: al `sticky top-0 z-20` -- geen wijziging
+- SeatedCountRow: `sticky top-[40px] z-19` toevoegen (40px = hoogte TimelineHeader)
+- Tafel kolom links: al `sticky left-0 z-30` -- geen wijziging
 
 ---
 
-### 7. Bottom bar -- Dividers en highlighting
+### Bestanden overzicht
 
-In `ReservationFooter.tsx`:
-
-a) Dividers toevoegen tussen items (regel 39-48):
-```tsx
-// Center stats met dividers:
-<div className="flex items-center gap-4">
-  <div className="text-sm">
-    <span className="font-medium text-foreground">{totalGuests}</span>
-    <span className="text-muted-foreground ml-1">gasten vandaag</span>
-  </div>
-  <div className="h-4 w-px bg-border" />
-  <div className="text-sm">
-    <span className="font-medium text-foreground">{waitingCount}</span>
-    <span className="text-muted-foreground ml-1">wachtend</span>
-  </div>
-</div>
-```
-
-b) Ook dividers links en rechts van het center blok:
-```tsx
-// Links van stats: divider na Notities knop
-// Rechts van stats: divider voor Open status
-```
-
----
-
-### 8. View toggles -- Actieve state duidelijker
-
-In `ViewToggle.tsx`, de actieve toggle krijgt een teal tint (regel 38-42):
-
-```tsx
-// Van:
-isActive
-  ? "bg-card text-foreground shadow-sm"
-  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-
-// Naar:
-isActive
-  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
-  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-```
-
----
-
-### Samenvatting bestanden
-
-| Bestand | Wijzigingen |
+| Bestand | Actie |
 |---|---|
-| `src/components/reserveringen/ReservationListView.tsx` | ED/LD badge neutraal, notities opacity |
-| `src/components/reserveringen/ReservationGridView.tsx` | Pacing rij border + tekst kleiner |
-| `src/components/reserveringen/ReservationBlock.tsx` | Confirmed lichter, phone/shift hidden tot hover |
-| `src/components/reserveringen/ReservationFooter.tsx` | Dividers tussen items |
-| `src/components/reserveringen/ViewToggle.tsx` | Actieve toggle teal accent |
+| `src/components/reserveringen/DensityToggle.tsx` | Nieuw -- density toggle component |
+| `src/pages/Reserveringen.tsx` | density state + toggle in toolbar + prop doorgeven |
+| `src/components/reserveringen/ReservationListView.tsx` | density prop, conditionele sizing, sticky shadow |
+| `src/components/reserveringen/ReservationGridView.tsx` | density prop, row heights, seated sticky, doorgeven |
+| `src/components/reserveringen/TableRow.tsx` | density prop, row height |
+| `src/components/reserveringen/ReservationBlock.tsx` | density prop, compactere insets en tekst |
 
