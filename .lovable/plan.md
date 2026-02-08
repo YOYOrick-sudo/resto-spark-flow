@@ -1,49 +1,41 @@
 
 
-## Subtiele box-shadow toevoegen aan NestoCard
+## Dubbele titel verwijderen in AreasSection
 
-### Wat verandert er
+### Probleem
+Op de Areas pagina staat de titel "Areas" en beschrijving "Beheer ruimtes en de tafels daarin." twee keer: in de page header (via `SettingsDetailLayout`) en in de `NestoCard` header binnen `AreasSection`.
 
-Het `NestoCard` component krijgt een verfijnde schaduw en hover-effect, zodat kaarten visueel "zweven" boven de pagina.
+### Oplossing
 
-### Aanpassingen
+**Bestand: `src/components/settings/tables/AreasSection.tsx`**
 
-**Bestand: `src/components/polar/NestoCard.tsx`**
+De `<div>` met de `<h3>` en `<p>` tags (regels ~161-167) wordt verwijderd. De `flex items-center justify-between mb-6` wrapper blijft bestaan maar bevat alleen de "Nieuwe Area" button, rechts uitgelijnd via `ml-auto` of `justify-end`.
 
-1. **Base shadow** — De huidige inline `boxShadow` style wordt vervangen door een enkele, schone shadow:
-   - `box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04)`
-   - Dit geldt voor alle cards (default state)
-
-2. **Hover state voor clickable cards** (`hoverable={true}`):
-   - `hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]`
-   - `hover:-translate-y-px` (1px omhoog)
-   - Transition op zowel shadow als transform (200ms ease) — zit al deels in het component via `transition-all duration-200`
-
-3. **Geneste cards uitsluiten** — Een extra prop `nested` (default `false`) wordt toegevoegd. Wanneer `nested={true}`:
-   - Geen box-shadow
-   - Geen hover-transformatie
-   - Dit geeft controle aan de ontwikkelaar om geneste cards plat te houden
-
-### Technisch detail
-
+Van:
 ```tsx
-// Nieuwe prop
-nested?: boolean;  // default false
-
-// Base classes (niet-genest)
-// shadow via inline style: "0 1px 2px rgba(0, 0, 0, 0.04)"
-
-// Hoverable + niet-genest
-// hover shadow via inline style of Tailwind arbitrary value
-// hover:-translate-y-px transition-[box-shadow,transform] duration-200
-
-// Genest (nested=true)
-// shadow: "none", geen hover transform
+<div className="flex items-center justify-between mb-6">
+  <div>
+    <h3 className="text-lg font-medium">Areas</h3>
+    <p className="text-sm text-muted-foreground">
+      Beheer ruimtes en de tafels daarin.
+    </p>
+  </div>
+  <NestoButton onClick={handleAddArea} size="sm" disabled={!locationId}>
+    <Plus className="h-4 w-4 mr-1" />
+    Nieuwe Area
+  </NestoButton>
+</div>
 ```
 
-De bestaande inline `boxShadow` met de `inset` wordt verwijderd en vervangen door de nieuwe, schonere shadow. De `hoverable` logica voor `hover:border-primary` en `hover:shadow-md` wordt aangepast naar de nieuwe specificatie.
+Naar:
+```tsx
+<div className="flex justify-end mb-6">
+  <NestoButton onClick={handleAddArea} size="sm" disabled={!locationId}>
+    <Plus className="h-4 w-4 mr-1" />
+    Nieuwe Area
+  </NestoButton>
+</div>
+```
 
-### Impact
-
-Alle plekken waar `NestoCard` wordt gebruikt (settings pages, assistant cards, detail layouts) krijgen automatisch de subtiele shadow. Geen wijzigingen nodig in andere bestanden, tenzij er ergens geneste cards zijn die de `nested` prop nodig hebben.
+Geen andere bestanden worden aangepast.
 
