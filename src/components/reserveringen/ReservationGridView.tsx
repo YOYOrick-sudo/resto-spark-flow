@@ -195,7 +195,7 @@ function SeatedCountRow({
   }, [date, quarterSlots]);
 
   return (
-    <div className="flex border-b border-border bg-secondary">
+    <div className="flex border-b-2 border-border bg-secondary">
       {/* Label cell */}
       <div 
         className="sticky left-0 z-30 flex-shrink-0 flex items-center justify-between px-3 py-2 bg-secondary border-r-2 border-border"
@@ -224,7 +224,7 @@ function SeatedCountRow({
                 <div
                   onClick={() => onSlotClick?.(time)}
                   className={cn(
-                    "text-xs flex items-center justify-center py-2 cursor-pointer transition-colors hover:bg-primary/10",
+                    "text-[11px] flex items-center justify-center py-2 cursor-pointer transition-colors hover:bg-primary/10",
                     index % 4 === 0 ? "border-l border-border" : "border-l border-border/50",
                     index === 0 && "border-l-0"
                   )}
