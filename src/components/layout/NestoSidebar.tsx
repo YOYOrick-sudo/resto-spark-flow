@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Zap, PanelLeft, Sun, Moon, Monitor, HelpCircle, BookOpen } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
@@ -6,6 +6,7 @@ import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } 
 import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import logoWordmark from '@/assets/logo-wordmark.png';
+import { mockAssistantItems } from '@/data/assistantMockData';
 
 interface NestoSidebarProps {
   onNavigate?: () => void;
@@ -24,6 +25,11 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   });
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const activeItemId = getActiveItemFromPath(location.pathname);
+
+  const hasAttentionSignals = useMemo(() => 
+    mockAssistantItems.some(item => item.actionable && (item.severity === 'error' || item.severity === 'warning')),
+    []
+  );
 
   // Sync expanded groups with current route - collapse others when navigating away
   useEffect(() => {
@@ -251,6 +257,9 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                 >
                   <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
                   <span>{item.label}</span>
+                  {item.id === 'assistent' && hasAttentionSignals && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-auto flex-shrink-0" />
+                  )}
                 </button>
               </li>
             );

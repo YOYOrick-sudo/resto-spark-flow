@@ -264,3 +264,14 @@ const style: React.CSSProperties = {
 - [BORDER_RADIUS.md](./BORDER_RADIUS.md) - Border radius tokens
 - [COLOR_PALETTE.md](./COLOR_PALETTE.md) - Kleur tokens
 - [SIDEBAR_PANELS.md](./SIDEBAR_PANELS.md) - Sidebar patterns
+
+---
+
+## Lege Waarden Standaard
+
+**Regel:** Lege waarden in tabellen worden leeg gelaten — geen "Geen", "N/A", of placeholder badges. Minder visuele ruis = beter scanbaar.
+
+- ✅ Lege cel bij geen allergenen
+- ✅ Lege cel bij geen notities
+- ❌ `NestoBadge variant="outline"` met tekst "Geen"
+- ❌ Tekst "N/A" of "—" voor optionele velden

@@ -161,3 +161,17 @@ Reserveringsstatus badges gebruiken een teal-kleurenfamilie i.p.v. standaard Tai
 - **Warm grijs** voor neutrale statussen (Pending, Completed)
 - **Warm koraalrood** voor negatieve (No-show) — zachter dan standaard rood, past beter bij teal
 - Geen standaard Tailwind blauw of groen — alles voelt als één kleurenfamilie
+
+---
+
+## **TABLE ROW INTERACTION**
+
+Alle klikbare tabelrijen in de app gebruiken hetzelfde hover-patroon:
+
+| Property | Waarde | Tailwind Class |
+|----------|--------|----------------|
+| Hover achtergrond | `muted/30` | `hover:bg-muted/30` |
+| Transitie | 150ms | `transition-colors duration-150` |
+| Cursor | pointer | `cursor-pointer` |
+
+Dit geldt voor reserveringsrijen, ingrediënten, recepten, en alle andere klikbare rijen.
