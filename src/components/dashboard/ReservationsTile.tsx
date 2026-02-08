@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { NestoCard } from '@/components/polar/NestoCard';
 
 const mockData = [
@@ -13,7 +13,7 @@ const mockData = [
   { date: '8 feb', day: 'Z', count: 20 },
 ];
 
-const dayLabels = ['M', 'D', 'W', 'D', 'V', 'Z', 'Z'];
+
 
 interface ReservationsTileProps {
   todayCount: number;
@@ -48,15 +48,35 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
         <span className="text-4xl font-bold tracking-tight text-foreground">{heroValue}</span>
         <span className="text-sm text-muted-foreground">vandaag</span>
       </div>
-      <div className="relative mt-4" style={{ marginRight: -5 }}>
+      <div className="mt-4" style={{ marginRight: -5 }}>
         <ResponsiveContainer width="100%" height={164}>
-          <AreaChart data={mockData} margin={{ top: 8, right: 0, bottom: 0, left: 0 }}>
+          <AreaChart data={mockData} margin={{ top: 8, right: 0, bottom: 20, left: 0 }}>
             <defs>
               <linearGradient id="reservationGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#1d979e" stopOpacity={0.15} />
                 <stop offset="100%" stopColor="#1d979e" stopOpacity={0.02} />
               </linearGradient>
             </defs>
+            <XAxis
+              dataKey="day"
+              axisLine={false}
+              tickLine={false}
+              tick={({ x, y, index, payload }: any) => {
+                const isLast = index === mockData.length - 1;
+                return (
+                  <text
+                    x={x}
+                    y={y + 4}
+                    textAnchor="middle"
+                    fontSize={11}
+                    fill={isLast ? '#1d979e' : '#ACAEB3'}
+                    fontWeight={isLast ? 600 : 400}
+                  >
+                    {payload.value}
+                  </text>
+                );
+              }}
+            />
             <Tooltip content={renderTooltip} cursor={false} />
             <Area
               type="monotone"
@@ -69,21 +89,6 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
             />
           </AreaChart>
         </ResponsiveContainer>
-        {/* Overlay day labels */}
-        <div className="absolute bottom-0 left-0 right-0 flex px-3 pb-2">
-          {dayLabels.map((label, i) => (
-            <span
-              key={i}
-              className="flex-1 text-center text-[11px]"
-              style={{
-                color: i === dayLabels.length - 1 ? '#1d979e' : '#ACAEB3',
-                fontWeight: i === dayLabels.length - 1 ? 600 : 400,
-              }}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
       </div>
     </NestoCard>
   );
