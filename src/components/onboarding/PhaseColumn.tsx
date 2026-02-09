@@ -19,7 +19,7 @@ interface PhaseColumnProps {
 
 export function PhaseColumn({ phase, phaseNumber, candidates, onCandidateClick }: PhaseColumnProps) {
   return (
-    <div className="bg-secondary/30 rounded-lg p-3 flex flex-col">
+    <div className="bg-secondary/50 border border-border/40 rounded-lg p-3 flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium truncate">{phaseNumber}. {phase.name}</span>
         <NestoBadge variant="default" size="sm">
