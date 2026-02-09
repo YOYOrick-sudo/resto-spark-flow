@@ -1,43 +1,42 @@
 
-# Switch transitie verfijnen en standaardiseren
 
-## Probleem
-De Switch voelt "houterig" omdat:
-1. `transition-colors` op de root en `transition-transform` op de thumb gebruiken Tailwind's default van `150ms ease` — te kort en te abrupt voor een premium gevoel
-2. De SortableTableRow heeft een inline mini-switch (`h-4 w-7`) maar de thumb translate-waarden zijn nog op de standaard maat berekend, waardoor de thumb niet goed past
+# Switch component: Premium polish
 
-## Oplossing
+## Wat er nu is
+De transitie is al verbeterd naar `200ms ease-in-out`, maar het voelt nog steeds als een standaard toggle. Premium SaaS producten (Linear, Vercel) gebruiken subtiele extra details die het verschil maken.
 
-### 1. Base Switch component (`src/components/ui/switch.tsx`)
+## Verbeteringen
 
-**Root element:**
-- Vervang `transition-colors` door `transition-all duration-200 ease-in-out` voor een vloeiendere kleurovergang
+### 1. Betere easing curve
+Vervang `ease-in-out` door een custom `cubic-bezier(0.4, 0, 0.2, 1)` — dit is de Material Design "standard" curve die een snellere start en zachtere landing geeft. Voelt natuurlijker dan symmetrisch ease-in-out.
 
-**Thumb element:**
-- Vervang `transition-transform` door `transition-all duration-200 ease-in-out` zodat de slide-animatie soepeler is en consistent met de root
+### 2. Thumb "lift" effect bij checked state
+Voeg een subtiele schaduw toe aan de thumb wanneer checked: `data-[state=checked]:shadow-md`. Dit geeft het gevoel dat de thumb "omhoog" komt wanneer actief — een klein maar merkbaar kwaliteitssignaal.
 
-### 2. Mini-switch in SortableTableRow (`src/components/settings/tables/SortableTableRow.tsx`)
+### 3. Checked track met subtiele inner shadow
+Voeg `data-[state=checked]:shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]` toe aan de root voor een subtiel diepte-effect op de teal track.
 
-De inline override `className="h-4 w-7 data-[state=checked]:bg-success"` verandert de track-afmetingen maar niet de thumb. Met een track van 28px breed en een thumb van 16px breed past dat niet.
+### 4. Duration naar 250ms
+Net iets langer (250ms i.p.v. 200ms) geeft meer "weight" aan de transitie — het voelt deliberaat in plaats van snel.
 
-**Fix:** Voeg thumb-specifieke overrides toe via de `[&>span]` selector:
-```
-className="h-[18px] w-[32px] [&>span]:h-[12px] [&>span]:w-[12px] [&>span]:data-[state=checked]:translate-x-[15px] [&>span]:data-[state=unchecked]:translate-x-[1px] data-[state=checked]:bg-success"
-```
+## Technisch
 
-Dit zorgt dat de mini-switch proportioneel klopt met kleinere thumb en correcte translate-waarden.
+### `src/components/ui/switch.tsx`
 
-## Alle Switch-locaties in het project (geverifieerd)
+**Root:**
+- `transition-all duration-200 ease-in-out` wordt `transition-all duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]`
+- Toevoegen: `data-[state=checked]:shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]`
 
-| Bestand | Type | Aanpassing |
-|---|---|---|
-| `switch.tsx` (base) | Base component | Transitie verbeteren |
-| `SortableTableRow.tsx` | Inline mini-switch | Thumb proportie fixen |
-| `ReminderSettingsSection.tsx` | Standaard | Erft van base, geen wijziging |
-| `PhaseConfigCard.tsx` | Standaard | Erft van base, geen wijziging |
-| `TaskTemplateList.tsx` | Standaard | Erft van base, geen wijziging |
-| `TableModal.tsx` (2x) | Standaard | Erft van base, geen wijziging |
-| `TableGroupModal.tsx` | Standaard | Erft van base, geen wijziging |
+**Thumb:**
+- `transition-all duration-200 ease-in-out` wordt `transition-all duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]`
+- Toevoegen: `data-[state=checked]:shadow-md`
+
+### `src/components/settings/tables/SortableTableRow.tsx`
+Geen extra wijzigingen nodig — de mini-switch erft de verbeterde base styling.
+
+## Overige Switch-locaties
+Alle 7 andere locaties (ReminderSettingsSection, PhaseConfigCard, TaskTemplateList, TableModal 2x, TableGroupModal) erven automatisch van de base component.
 
 ## Resultaat
-Alle switches in het systeem bewegen soepel met een consistente `200ms ease-in-out` transitie. De mini-switch in de tafeltabel is proportioneel correct.
+Een switch die voelt als Linear/Vercel: vloeiend, met subtiel diepte-effect, en een natuurlijke bewegingscurve die premium aanvoelt.
+
