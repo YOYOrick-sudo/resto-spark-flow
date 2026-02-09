@@ -3,6 +3,7 @@ import { CandidateCard } from './CandidateCard';
 
 interface PhaseColumnProps {
   phase: { id: string; name: string };
+  phaseNumber: number;
   candidates: Array<{
     id: string;
     first_name: string;
@@ -16,11 +17,11 @@ interface PhaseColumnProps {
   onCandidateClick?: (id: string) => void;
 }
 
-export function PhaseColumn({ phase, candidates, onCandidateClick }: PhaseColumnProps) {
+export function PhaseColumn({ phase, phaseNumber, candidates, onCandidateClick }: PhaseColumnProps) {
   return (
-    <div className="min-w-[220px] w-[280px] flex-shrink-0 bg-secondary/30 rounded-lg p-3 flex flex-col">
+    <div className="bg-secondary/30 rounded-lg p-3 flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium truncate">{phase.name}</span>
+        <span className="text-sm font-medium truncate">{phaseNumber}. {phase.name}</span>
         <NestoBadge variant="default" size="sm">
           {candidates.length}
         </NestoBadge>
