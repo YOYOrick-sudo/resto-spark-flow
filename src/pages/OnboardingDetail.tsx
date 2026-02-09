@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NestoTabContent } from '@/components/polar/NestoTabs';
 import { NestoBadge } from '@/components/polar/NestoBadge';
+import { formatDateTimeCompact } from '@/lib/datetime';
 import { DetailPageLayout } from '@/components/polar/DetailPageLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
@@ -16,7 +17,6 @@ import { useCompleteTask } from '@/hooks/useCompleteTask';
 import { useRejectCandidate } from '@/hooks/useRejectCandidate';
 import { useSaveEvaluation } from '@/hooks/useSaveEvaluation';
 import { PhaseTaskList } from '@/components/onboarding/PhaseTaskList';
-import { CandidateInfo } from '@/components/onboarding/CandidateInfo';
 import { CandidateTimeline } from '@/components/onboarding/CandidateTimeline';
 import { EvaluationForm } from '@/components/onboarding/EvaluationForm';
 import { CandidateActions } from '@/components/onboarding/CandidateActions';
@@ -32,7 +32,6 @@ const STATUS_MAP: Record<string, { variant: 'default' | 'success' | 'error' | 'w
 
 const TABS = [
   { id: 'taken', label: 'Taken' },
-  { id: 'info', label: 'Info' },
   { id: 'tijdlijn', label: 'Tijdlijn' },
 ];
 
@@ -145,46 +144,74 @@ export default function OnboardingDetail() {
           </div>
         }
       >
-        <NestoTabContent value="taken" activeValue={activeTab}>
-          {tasksLoading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+          {/* Left column - tab content */}
+          <div className="max-w-2xl">
+            <NestoTabContent value="taken" activeValue={activeTab}>
+              {tasksLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : tasks ? (
+                <>
+                  <PhaseTaskList
+                    tasks={tasks}
+                    currentPhaseId={currentPhaseId}
+                    onCompleteTask={handleCompleteTask}
+                    disabled={candidate.status !== 'active'}
+                  />
+                  {showEvaluation && candidate.status === 'active' && (
+                    <EvaluationForm
+                      onSave={handleSaveEvaluation}
+                      isLoading={saveEvaluation.isPending}
+                    />
+                  )}
+                </>
+              ) : null}
+            </NestoTabContent>
+
+            <NestoTabContent value="tijdlijn" activeValue={activeTab}>
+              {eventsLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
+                </div>
+              ) : events ? (
+                <CandidateTimeline events={events} />
+              ) : null}
+            </NestoTabContent>
+          </div>
+
+          {/* Right column - sidebar card */}
+          <aside className="bg-secondary rounded-xl border border-border/50 p-5 space-y-4 h-fit">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contactgegevens</h3>
             <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : tasks ? (
-            <>
-              <PhaseTaskList
-                tasks={tasks}
-                currentPhaseId={currentPhaseId}
-                onCompleteTask={handleCompleteTask}
-                disabled={candidate.status !== 'active'}
-              />
-              {showEvaluation && candidate.status === 'active' && (
-                <EvaluationForm
-                  onSave={handleSaveEvaluation}
-                  isLoading={saveEvaluation.isPending}
-                />
+              <div>
+                <span className="text-xs text-muted-foreground">E-mail</span>
+                <p className="text-sm text-foreground">{candidate.email}</p>
+              </div>
+              {candidate.phone && (
+                <div>
+                  <span className="text-xs text-muted-foreground">Telefoon</span>
+                  <p className="text-sm text-foreground">{candidate.phone}</p>
+                </div>
               )}
-            </>
-          ) : null}
-        </NestoTabContent>
-
-        <NestoTabContent value="info" activeValue={activeTab}>
-          <CandidateInfo candidate={candidate} />
-        </NestoTabContent>
-
-        <NestoTabContent value="tijdlijn" activeValue={activeTab}>
-          {eventsLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full" />
-              ))}
+              <div>
+                <span className="text-xs text-muted-foreground">Aangemeld</span>
+                <p className="text-sm text-foreground">{formatDateTimeCompact(candidate.applied_at)}</p>
+              </div>
             </div>
-          ) : events ? (
-            <CandidateTimeline events={events} />
-          ) : null}
-        </NestoTabContent>
+            {candidate.notes && (
+              <div className="pt-2 border-t border-border/30">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Notities</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{candidate.notes}</p>
+              </div>
+            )}
+          </aside>
+        </div>
 
         {/* Sticky action bar */}
         <CandidateActions
