@@ -1,69 +1,136 @@
 
 
-# Fix: Split View layout polish
+# Detailpagina voor kandidaten (vervangt Split View)
 
-Zes concrete fixes voor het detail panel en de taken-weergave.
-
----
-
-## Wijzigingen
-
-### 1. Dubbele naam verwijderen
-
-Het `DetailPanel` toont de naam in de header (via `title` prop), en `CandidateHeader` binnen de content toont dezelfde naam opnieuw.
-
-**Oplossing**: Verwijder de `title` prop uit de `DetailPanel` aanroep in `OnboardingPage.tsx`. Het panel header toont dan alleen de close-knop (rechts uitgelijnd). De naam blijft zichtbaar in de `CandidateHeader` component binnen de content.
-
-**Bestand**: `OnboardingPage.tsx` -- verwijder `title={...}` van DetailPanel.
+Vervang het inline detail panel door een eigen pagina op `/onboarding/:id`. Wanneer je op een kandidaatkaart klikt, navigeer je naar die pagina. Met de terugknop ga je terug naar de pipeline.
 
 ---
 
-### 2. Panel header: alleen close-knop
+## Wat verandert
 
-In `DetailPanel.tsx`, wanneer er geen `title` is, moet de close-knop rechts uitgelijnd staan met `ml-auto`. Huidige `justify-between` werkt alleen als er twee elementen zijn.
+### Nieuw bestand (1)
 
-**Bestand**: `DetailPanel.tsx` -- voeg `ml-auto` toe aan de close-knop styling zodat deze altijd rechts staat, ook zonder titel.
+| Bestand | Beschrijving |
+|---------|-------------|
+| `src/pages/OnboardingDetail.tsx` | Detailpagina met `DetailPageLayout`, tabs, en alle kandidaat-logica |
 
----
+### Gewijzigde bestanden (4)
 
-### 3. Eerdere fasen: sortering omdraaien (meest recent eerst)
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/App.tsx` | Route `/onboarding/:id` toevoegen |
+| `src/pages/OnboardingPage.tsx` | DetailPanel + Escape handler + scroll effect verwijderen, kaart-klik navigeert naar `/onboarding/:id` |
+| `src/components/onboarding/CandidateCard.tsx` | `isSelected` prop verwijderen, `data-candidate-id` verwijderen |
+| `src/components/onboarding/PipelineBoard.tsx` + `PhaseColumn.tsx` | `selectedCandidateId` prop verwijderen |
 
-In `PhaseTaskList.tsx` worden eerdere fasen gesorteerd op `sortOrder` ascending (fase 1 eerst). De gebruiker wil de meest recente fase bovenaan zien.
+### Verwijderd/ongebruikt (2)
 
-**Bestand**: `PhaseTaskList.tsx` -- sorteer `previousGroups` descending: `.sort((a, b) => b.sortOrder - a.sortOrder)` zodat fase 4 boven fase 3 staat, etc.
-
----
-
-### 4. "Doorgaan" knop kleuren bevestigen
-
-De `NestoButton` default variant is `primary` (teal). De huidige code gebruikt geen `variant` prop op de Doorgaan knop, wat default `primary` oplevert. Dit zou al correct moeten zijn. Als het visueel rood lijkt, kan dat komen door een CSS conflict.
-
-**Bestand**: `CandidateActions.tsx` -- voeg expliciet `variant="primary"` toe aan de Doorgaan knop voor duidelijkheid.
-
----
-
-### 5. Board scrollt naar geselecteerde kandidaat
-
-Wanneer een kaart geselecteerd wordt, scroll de board-container zodat de kolom met die kandidaat zichtbaar is.
-
-**Bestand**: `OnboardingPage.tsx` -- voeg een `useEffect` toe die bij wijziging van `selectedCandidateId` de geselecteerde kaart in beeld scrollt via `document.querySelector` en `scrollIntoView({ behavior: 'smooth', inline: 'nearest' })`.
+| Bestand | Reden |
+|---------|-------|
+| `src/components/onboarding/CandidateDetailContent.tsx` | Logica verhuist naar `OnboardingDetail.tsx` |
+| `src/components/polar/DetailPanel.tsx` | Niet meer nodig (bewaar als het elders gebruikt wordt, anders verwijderen) |
 
 ---
 
-### 6. Overflow fix op board container
+## Nieuwe pagina: `OnboardingDetail.tsx`
 
-De board container moet `overflow-hidden` niet gebruiken maar `overflow-x-auto` behouden. Controleer dat de flex parent (`flex flex-1 min-h-0`) correct is zodat het board krimpt in plaats van het panel te overlappen.
+Gebruikt het bestaande `DetailPageLayout` component met:
+- **backLabel**: "Terug naar pipeline"
+- **backHref**: `/onboarding`
+- **title**: `{first_name} {last_name}` van de kandidaat
+- **headerActions**: Status badge (Actief/Aangenomen/Afgewezen) + fase-naam
+- **tabs**: Taken, Info, Tijdlijn
+- **Content per tab**: Exact dezelfde componenten als nu in `CandidateDetailContent`
 
-**Bestand**: `OnboardingPage.tsx` -- bevestig dat de flex container `overflow-hidden` heeft op het parent level zodat de scroll-context correct is.
+De `CandidateActions` (Afwijzen/Doorgaan knoppen) komen onder de tab-content als een sticky footer of als onderdeel van de headerActions.
+
+### Structuur
+
+```text
+DetailPageLayout
+  backLabel="Terug naar pipeline"
+  backHref="/onboarding"
+  title="Jan Jansen"
+  headerActions={<NestoBadge>Actief</NestoBadge> <span>Fase: Meeloopdag</span>}
+  tabs=[Taken, Info, Tijdlijn]
+  activeTab / onTabChange
+
+  TabContent "taken":
+    PhaseTaskList + EvaluationForm
+
+  TabContent "info":
+    CandidateInfo
+
+  TabContent "tijdlijn":
+    CandidateTimeline
+
+  CandidateActions (sticky bottom)
+```
+
+---
+
+## OnboardingPage vereenvoudigen
+
+De pipeline pagina wordt weer schoon:
+- Geen `selectedCandidateId` state
+- Geen `DetailPanel`
+- Geen Escape handler
+- Geen scroll-to-selected effect
+- Kaart-klik: `navigate(\`/onboarding/${candidate.id}\`)`
+
+---
+
+## Routing
+
+In `App.tsx` voeg toe:
+
+```text
+<Route path="/onboarding/:id" element={<OnboardingDetail />} />
+```
+
+Onder de bestaande `/onboarding` route.
+
+---
+
+## Technische details
+
+### OnboardingDetail.tsx -- hooks en logica
+
+Alle hooks uit `CandidateDetailContent` verhuizen hierheen:
+- `useParams()` voor `id`
+- `useOnboardingCandidates`, `useOnboardingTasks`, `useOnboardingEvents`, `useOnboardingPhases`
+- `useCompleteTask`, `useRejectCandidate`, `useSaveEvaluation`
+- `useAuth`, `useUserContext`, `useQueryClient`
+
+Bij afwijzen: `navigate('/onboarding')` na succesvolle reject.
+
+### CandidateCard vereenvoudigen
+
+- Verwijder `isSelected` prop en bijbehorende styling
+- Verwijder `data-candidate-id` attribuut
+- `onClick` wordt `() => navigate(\`/onboarding/${candidate.id}\`)` (doorgegeven vanuit parent)
+
+### PipelineBoard + PhaseColumn
+
+- Verwijder `selectedCandidateId` prop
+- `onCandidateClick` callback blijft, maar navigeert nu in plaats van state te zetten
+
+### DetailPanel.tsx
+
+Wordt nergens meer gebruikt na deze wijziging. Kan verwijderd worden, of bewaard voor toekomstig hergebruik (dan als los component zonder actieve imports).
 
 ---
 
 ## Samenvatting bestanden
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `OnboardingPage.tsx` | Verwijder `title` prop van DetailPanel, scroll-to-selected effect, overflow fix |
-| `DetailPanel.tsx` | Close-knop altijd rechts (`ml-auto`) als er geen title is |
-| `PhaseTaskList.tsx` | Sorteer previousGroups descending (meest recente fase eerst) |
-| `CandidateActions.tsx` | Expliciet `variant="primary"` op Doorgaan knop |
+| Bestand | Actie |
+|---------|-------|
+| `src/pages/OnboardingDetail.tsx` | Nieuw -- detailpagina |
+| `src/App.tsx` | Route toevoegen |
+| `src/pages/OnboardingPage.tsx` | Vereenvoudigen, DetailPanel + state weg |
+| `src/components/onboarding/CandidateCard.tsx` | `isSelected` weg |
+| `src/components/onboarding/PipelineBoard.tsx` | `selectedCandidateId` weg |
+| `src/components/onboarding/PhaseColumn.tsx` | `selectedCandidateId` weg |
+| `src/components/onboarding/CandidateDetailContent.tsx` | Verwijderen |
+| `src/components/polar/DetailPanel.tsx` | Behouden maar niet meer geimporteerd |
 
