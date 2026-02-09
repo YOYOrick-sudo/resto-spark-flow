@@ -1,56 +1,74 @@
 
 
-# Pipeline board: fase-nummers + responsive grid
+# Edge Function: Onboarding Agent
 
-Twee aanpassingen aan het pipeline board zodat alle fasen in een oogopslag zichtbaar zijn.
-
----
-
-## 1. Fase-nummers in kolom-headers
-
-Omdat `phases` al gesorteerd op `sort_order` binnenkomen, geeft `PipelineBoard` de index door als `phaseNumber` prop aan `PhaseColumn`.
-
-De header wordt dan: **"1. Aanmelding ontvangen"**, **"2. Screening"**, etc.
+Bouw een `onboarding-agent` edge function met shared helpers voor idempotency, email (stub), en template rendering. De agent verwerkt events (`candidate_created`, `phase_changed`, `candidate_rejected`, `task_completed`) en voert automatische taken uit.
 
 ---
 
-## 2. Horizontaal scroll → responsive grid
+## Nieuwe bestanden
 
-Vervang de `flex overflow-x-auto` container door een CSS grid:
+| Bestand | Doel |
+|---------|------|
+| `supabase/functions/_shared/supabaseAdmin.ts` | Admin Supabase client (service_role, bypassed RLS) |
+| `supabase/functions/_shared/idempotency.ts` | Claim/complete/fail via `workflow_executions` tabel |
+| `supabase/functions/_shared/email.ts` | Email stub -- logt naar console + `onboarding_events` |
+| `supabase/functions/_shared/templateRenderer.ts` | Placeholder-vervanging + ophalen templates uit `onboarding_settings` |
+| `supabase/functions/onboarding-agent/index.ts` | Hoofd edge function met event routing en handlers |
+
+---
+
+## Hoe het werkt
+
+1. Agent ontvangt een POST met `{ type, candidate_id, location_id }`.
+2. Op basis van `type` wordt de juiste handler aangeroepen.
+3. Idempotency via `workflow_executions`: unieke key per event voorkomt dubbele verwerking.
+4. Handlers voeren taken uit: automated tasks afronden, email events loggen (stub).
+5. Resultaat wordt teruggegeven als `{ success: true }`.
+
+---
+
+## Config
+
+`supabase/config.toml` krijgt JWT verificatie uit voor deze function (webhooks sturen geen user JWT):
 
 ```text
-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4
+[functions.onboarding-agent]
+verify_jwt = false
 ```
-
-- **Mobiel**: 1 kolom
-- **Tablet (sm)**: 2 kolommen
-- **Desktop (lg)**: 3 kolommen
-- **Breed (xl)**: 4 kolommen
-
-De `PhaseColumn` verliest z'n vaste breedte (`min-w-[220px] w-[280px] flex-shrink-0`) en wordt `w-full` zodat hij de grid-cel vult.
-
----
-
-## Gewijzigde bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/onboarding/PipelineBoard.tsx` | `flex overflow-x-auto` → responsive grid, `phaseNumber` prop doorgeven (index + 1) |
-| `src/components/onboarding/PhaseColumn.tsx` | Vaste breedte weg, `phaseNumber` prop toevoegen, header toont `{phaseNumber}. {phase.name}` |
 
 ---
 
 ## Technische details
 
-### PipelineBoard.tsx
+### supabaseAdmin.ts
+Supabase client met `SUPABASE_URL` en `SUPABASE_SERVICE_ROLE_KEY` (automatisch beschikbaar in edge functions). Geen secrets toe te voegen.
 
-- Container class wordt: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4`
-- `phases.map((phase, index)` → geeft `phaseNumber={index + 1}` door
+### idempotency.ts
+- `claimIdempotencyLock(key)`: insert in `workflow_executions`, vangt unique constraint violation (code `23505`) op als "al verwerkt".
+- `completeExecution(key, result?)`: update status naar `completed`.
+- `failExecution(key, error)`: update status naar `failed`.
 
-### PhaseColumn.tsx
+### email.ts
+Stub: logt `[EMAIL STUB]` naar console en insert een `email_sent` event in `onboarding_events` met `stub: true`. Wordt in een latere stap vervangen door echte Resend integratie.
 
-- Interface krijgt `phaseNumber: number`
-- Class `min-w-[220px] w-[280px] flex-shrink-0` wordt verwijderd (column vult grid-cel automatisch)
-- Header text: `{phaseNumber}. {phase.name}` (genummerd)
+### templateRenderer.ts
+- `renderTemplate(template, context)`: vervangt `[voornaam]`, `[achternaam]`, `[vestiging]`, `[functie]`, `[datum]` placeholders.
+- `getEmailTemplates(locationId)`: haalt `email_templates` JSONB op uit `onboarding_settings`.
 
-Geen nieuwe bestanden nodig. Twee kleine wijzigingen.
+### onboarding-agent/index.ts
+- CORS headers voor OPTIONS preflight.
+- Input validatie (type, candidate_id, location_id verplicht).
+- Event routing via switch: `candidate_created`, `phase_changed`, `candidate_rejected`, `task_completed`.
+- `handleCandidateCreated`: claimt lock, haalt kandidaat + locatie op, stuurt bevestigingsmail (stub), rondt automated taken af.
+- `handlePhaseChanged`: claimt lock, rondt automated taken in nieuwe fase af.
+- `handleCandidateRejected`: claimt lock, stuurt afwijsmail (stub).
+- `handleTaskCompleted`: alleen logging (database trigger doet het zware werk).
+- `completeAutomatedTasks(candidateId, locationId)`: update `ob_tasks` waar `is_automated=true` en `status=pending` naar `completed`, logt events.
+
+### Belangrijk: geen nieuwe database tabellen nodig
+De `workflow_executions` tabel bestaat al en heeft de juiste kolommen (`idempotency_key`, `status`, `result`, `error`, `completed_at`). De `onboarding_events` tabel bestaat ook al.
+
+### Na deploy: handmatig testen
+De agent kan getest worden via een POST request met een test candidate_id en location_id. Controles: response `{ success: true }`, events in `onboarding_events`, idempotency bij herhaalde aanroep.
+
