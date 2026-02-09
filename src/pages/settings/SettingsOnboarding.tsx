@@ -19,7 +19,7 @@ const TABS = [
 
 export default function SettingsOnboarding() {
   const [activeTab, setActiveTab] = useState('phases');
-  const hasPermission = usePermission('onboarding.manage');
+  const hasPermission = usePermission('onboarding.settings');
 
   if (!hasPermission) {
     return (
