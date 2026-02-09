@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 interface AgentEvent {
-  type: 'candidate_created' | 'phase_changed' | 'candidate_rejected' | 'task_completed';
+  type: 'candidate_created' | 'phase_changed' | 'candidate_rejected' | 'candidate_hired' | 'task_completed';
   candidate_id: string;
   location_id: string;
   old_phase_id?: string;
@@ -49,6 +49,9 @@ Deno.serve(async (req) => {
         break;
       case 'candidate_rejected':
         await handleCandidateRejected(event);
+        break;
+      case 'candidate_hired':
+        await handleCandidateHired(event);
         break;
       case 'task_completed':
         await handleTaskCompleted(event);
@@ -218,6 +221,50 @@ async function handleCandidateRejected(event: AgentEvent) {
     }
 
     await completeExecution(idempotencyKey, { email_sent: !!templates?.rejection });
+  } catch (error) {
+    await failExecution(idempotencyKey, error.message);
+    throw error;
+  }
+}
+
+async function handleCandidateHired(event: AgentEvent) {
+  const idempotencyKey = `candidate_hired:${event.candidate_id}`;
+  if (!(await claimIdempotencyLock(idempotencyKey))) return;
+
+  try {
+    const { data: candidate } = await supabaseAdmin
+      .from('onboarding_candidates')
+      .select('*, location:locations!onboarding_candidates_location_id_fkey(name)')
+      .eq('id', event.candidate_id)
+      .single();
+
+    if (!candidate) {
+      await failExecution(idempotencyKey, 'Candidate not found');
+      return;
+    }
+
+    const templates = await getEmailTemplates(event.location_id);
+
+    if (templates?.welcome) {
+      const context = {
+        voornaam: candidate.first_name,
+        achternaam: candidate.last_name,
+        vestiging: (candidate as any).location?.name || '',
+        functie: '',
+      };
+
+      await sendEmail({
+        to: candidate.email,
+        subject: renderTemplate(templates.welcome.subject, context),
+        html: renderTemplate(templates.welcome.html_body, context),
+        candidateId: candidate.id,
+        locationId: event.location_id,
+        emailType: 'welcome',
+      });
+    }
+
+    await completeExecution(idempotencyKey, { email_sent: !!templates?.welcome });
+    console.log(`[AGENT] Candidate hired: ${event.candidate_id}, welcome email sent: ${!!templates?.welcome}`);
   } catch (error) {
     await failExecution(idempotencyKey, error.message);
     throw error;
