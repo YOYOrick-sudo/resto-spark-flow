@@ -30,6 +30,7 @@ import SettingsInkoop from "./pages/SettingsInkoop";
 import SettingsLeveranciers from "./pages/SettingsLeveranciers";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
+import OnboardingPage from "./pages/OnboardingPage";
 
 // New multi-level settings pages
 import {
@@ -91,6 +92,9 @@ const App = () => (
                   
                   {/* Service */}
                   <Route path="/taken" element={<Taken />} />
+                  
+                  {/* Onboarding */}
+                  <Route path="/onboarding" element={<OnboardingPage />} />
                   
                   {/* Settings - Legacy */}
                   <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />

@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Banknote,
   Settings,
+  UserPlus,
 } from 'lucide-react';
 
 // Route mapping: sidebar ID → route
@@ -29,6 +30,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'settings-reserveringen': '/instellingen/reserveringen',
   'settings-inkoop': '/instellingen/inkoop',
   'settings-leveranciers': '/instellingen/leveranciers',
+  'onboarding': '/onboarding',
 };
 
 export interface SubMenuItem {
@@ -113,6 +115,13 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
+    id: 'onboarding',
+    label: 'Onboarding',
+    icon: UserPlus,
+    path: '/onboarding',
+    section: 'BEHEER',
+  },
+  {
     id: 'finance',
     label: 'Finance',
     icon: Banknote,
@@ -171,5 +180,6 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
   if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
   if (path.startsWith('/taken')) return 'service';
   if (path.startsWith('/instellingen')) return 'settings';
+  if (path.startsWith('/onboarding')) return null;
   return null;
 };
