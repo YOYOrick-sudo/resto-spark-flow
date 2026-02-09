@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { ReservationsTile } from '@/components/dashboard/ReservationsTile';
 import { KeukenTile } from '@/components/dashboard/KeukenTile';
 import { ReceptenTile } from '@/components/dashboard/ReceptenTile';
-import { mockAssistantItems } from '@/data/assistantMockData';
+import { useSignals } from '@/hooks/useSignals';
 import { mockReservations } from '@/data/reservations';
 
 function getGreeting() {
@@ -17,6 +17,7 @@ function getGreeting() {
 export default function Dashboard() {
   const today = new Date().toISOString().split('T')[0];
   const dateLabel = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const { signals } = useSignals();
 
   const todayReservations = useMemo(
     () => mockReservations.filter((r) => r.date === today && r.status !== 'cancelled'),
@@ -24,8 +25,8 @@ export default function Dashboard() {
   );
 
   const urgentCount = useMemo(
-    () => mockAssistantItems.filter((i) => i.severity === 'error' || i.severity === 'warning').length,
-    []
+    () => signals.filter((i) => i.severity === 'error' || i.severity === 'warning').length,
+    [signals]
   );
 
   return (

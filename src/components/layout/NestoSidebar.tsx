@@ -5,7 +5,7 @@ import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } 
 import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
 
-import { mockAssistantItems } from '@/data/assistantMockData';
+import { useSignals } from '@/hooks/useSignals';
 import { CommandPalette } from './CommandPalette';
 
 interface NestoSidebarProps {
@@ -24,9 +24,10 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
   const [commandOpen, setCommandOpen] = useState(false);
   const activeItemId = getActiveItemFromPath(location.pathname);
 
+  const { signals } = useSignals();
   const hasAttentionSignals = useMemo(() => 
-    mockAssistantItems.some(item => item.actionable && (item.severity === 'error' || item.severity === 'warning')),
-    []
+    signals.some(item => item.actionable && (item.severity === 'error' || item.severity === 'warning')),
+    [signals]
   );
 
   useEffect(() => {
