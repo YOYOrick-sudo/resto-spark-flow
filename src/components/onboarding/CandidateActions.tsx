@@ -38,6 +38,7 @@ export function CandidateActions({
           </NestoButton>
 
           <NestoButton
+            variant="primary"
             size="sm"
             onClick={onAdvance}
             disabled={!allCurrentTasksDone}

@@ -53,6 +53,15 @@ export default function OnboardingPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedCandidateId]);
 
+  // Scroll to selected candidate card
+  useEffect(() => {
+    if (!selectedCandidateId) return;
+    requestAnimationFrame(() => {
+      const card = document.querySelector(`[data-candidate-id="${selectedCandidateId}"]`);
+      card?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+    });
+  }, [selectedCandidateId]);
+
   const isLoading = phasesLoading || candidatesLoading;
 
   return (
@@ -97,10 +106,9 @@ export default function OnboardingPage() {
         </div>
 
         {/* Detail panel */}
-        <DetailPanel
+      <DetailPanel
           open={!!selectedCandidateId}
           onClose={() => setSelectedCandidateId(null)}
-          title={selectedCandidate ? `${selectedCandidate.first_name} ${selectedCandidate.last_name}` : ''}
         >
           {selectedCandidateId && (
             <CandidateDetailContent

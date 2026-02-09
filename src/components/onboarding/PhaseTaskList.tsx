@@ -51,7 +51,9 @@ export function PhaseTaskList({ tasks, currentPhaseId, onCompleteTask, disabled 
   }, [tasks]);
 
   const currentGroup = groups.find((g) => g.phaseId === currentPhaseId);
-  const previousGroups = groups.filter((g) => g.phaseId !== currentPhaseId && g.sortOrder < (currentGroup?.sortOrder ?? Infinity));
+  const previousGroups = groups
+    .filter((g) => g.phaseId !== currentPhaseId && g.sortOrder < (currentGroup?.sortOrder ?? Infinity))
+    .sort((a, b) => b.sortOrder - a.sortOrder);
 
   return (
     <div className="space-y-4">
