@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { NestoTabs, NestoTabContent } from '@/components/polar/NestoTabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,8 +19,8 @@ import { CandidateTimeline } from './CandidateTimeline';
 import { EvaluationForm } from './EvaluationForm';
 import { CandidateActions } from './CandidateActions';
 
-interface CandidateDetailSheetProps {
-  candidateId: string | null;
+interface CandidateDetailContentProps {
+  candidateId: string;
   onClose: () => void;
 }
 
@@ -33,17 +32,18 @@ const TABS = [
 
 const EVAL_PHASE_SORT_ORDERS = [40, 50];
 
-export function CandidateDetailSheet({ candidateId, onClose }: CandidateDetailSheetProps) {
+export function CandidateDetailContent({ candidateId, onClose }: CandidateDetailContentProps) {
   const { user } = useAuth();
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState('taken');
 
   const { data: phases } = useOnboardingPhases(locationId);
   const { data: candidates } = useOnboardingCandidates(locationId);
-  const { data: tasks, isLoading: tasksLoading } = useOnboardingTasks(candidateId ?? undefined);
-  const { data: events, isLoading: eventsLoading } = useOnboardingEvents(candidateId ?? undefined);
+  const { data: tasks, isLoading: tasksLoading } = useOnboardingTasks(candidateId);
+  const { data: events, isLoading: eventsLoading } = useOnboardingEvents(candidateId);
 
   const completeTask = useCompleteTask();
   const rejectCandidate = useRejectCandidate();
@@ -64,7 +64,6 @@ export function CandidateDetailSheet({ candidateId, onClose }: CandidateDetailSh
 
     const currentPhase = candidate.current_phase as { id: string; name: string; sort_order: number } | null;
     const sortOrder = currentPhase?.sort_order ?? 0;
-
     const maxSortOrder = phases && phases.length > 0 ? Math.max(...phases.map(p => p.sort_order)) : 0;
 
     return {
@@ -92,8 +91,6 @@ export function CandidateDetailSheet({ candidateId, onClose }: CandidateDetailSh
     saveEvaluation.mutate({ candidateId, evaluation, userId: user.id, locationId });
   };
 
-  const queryClient = useQueryClient();
-
   const handleAdvance = () => {
     queryClient.invalidateQueries({ queryKey: ['onboarding-candidates'] });
     queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
@@ -101,82 +98,80 @@ export function CandidateDetailSheet({ candidateId, onClose }: CandidateDetailSh
     toast.success('Doorgegaan naar volgende fase');
   };
 
+  if (!candidate) {
+    return (
+      <div className="p-4">
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+
   return (
-    <Sheet open={!!candidateId} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent side="right" className="max-w-[520px] w-full p-0 flex flex-col">
-        {candidate ? (
-          <>
-            {/* Header */}
-            <div className="p-4 border-b border-border/50">
-              <CandidateHeader candidate={candidate} />
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-border/50">
+        <CandidateHeader candidate={candidate} />
+      </div>
+
+      {/* Tabs */}
+      <div className="px-4 pt-2">
+        <NestoTabs tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
+
+      {/* Tab content - scrollable */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <NestoTabContent value="taken" activeValue={activeTab}>
+          {tasksLoading ? (
+            <div className="space-y-3 pt-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
             </div>
+          ) : tasks ? (
+            <>
+              <PhaseTaskList
+                tasks={tasks}
+                currentPhaseId={currentPhaseId}
+                onCompleteTask={handleCompleteTask}
+                disabled={candidate.status !== 'active'}
+              />
+              {showEvaluation && candidate.status === 'active' && (
+                <EvaluationForm
+                  onSave={handleSaveEvaluation}
+                  isLoading={saveEvaluation.isPending}
+                />
+              )}
+            </>
+          ) : null}
+        </NestoTabContent>
 
-            {/* Tabs */}
-            <div className="px-4 pt-2">
-              <NestoTabs tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        <NestoTabContent value="info" activeValue={activeTab}>
+          <CandidateInfo candidate={candidate} />
+        </NestoTabContent>
+
+        <NestoTabContent value="tijdlijn" activeValue={activeTab}>
+          {eventsLoading ? (
+            <div className="space-y-3 pt-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
             </div>
+          ) : events ? (
+            <CandidateTimeline events={events} />
+          ) : null}
+        </NestoTabContent>
+      </div>
 
-            {/* Tab content - scrollable */}
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
-              <NestoTabContent value="taken" activeValue={activeTab}>
-                {tasksLoading ? (
-                  <div className="space-y-3 pt-2">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} className="h-10 w-full" />
-                    ))}
-                  </div>
-                ) : tasks ? (
-                  <>
-                    <PhaseTaskList
-                      tasks={tasks}
-                      currentPhaseId={currentPhaseId}
-                      onCompleteTask={handleCompleteTask}
-                      disabled={candidate.status !== 'active'}
-                    />
-                    {showEvaluation && candidate.status === 'active' && (
-                      <EvaluationForm
-                        onSave={handleSaveEvaluation}
-                        isLoading={saveEvaluation.isPending}
-                      />
-                    )}
-                  </>
-                ) : null}
-              </NestoTabContent>
-
-              <NestoTabContent value="info" activeValue={activeTab}>
-                <CandidateInfo candidate={candidate} />
-              </NestoTabContent>
-
-              <NestoTabContent value="tijdlijn" activeValue={activeTab}>
-                {eventsLoading ? (
-                  <div className="space-y-3 pt-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-8 w-full" />
-                    ))}
-                  </div>
-                ) : events ? (
-                  <CandidateTimeline events={events} />
-                ) : null}
-              </NestoTabContent>
-            </div>
-
-            {/* Sticky footer */}
-            <CandidateActions
-              status={candidate.status}
-              candidateName={`${candidate.first_name} ${candidate.last_name}`}
-              allCurrentTasksDone={allCurrentTasksDone}
-              isLastPhase={isLastPhase}
-              onReject={handleReject}
-              onAdvance={handleAdvance}
-              isRejecting={rejectCandidate.isPending}
-            />
-          </>
-        ) : (
-          <div className="p-6">
-            <Skeleton className="h-20 w-full" />
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
+      {/* Sticky footer */}
+      <CandidateActions
+        status={candidate.status}
+        candidateName={`${candidate.first_name} ${candidate.last_name}`}
+        allCurrentTasksDone={allCurrentTasksDone}
+        isLastPhase={isLastPhase}
+        onReject={handleReject}
+        onAdvance={handleAdvance}
+        isRejecting={rejectCandidate.isPending}
+      />
+    </div>
   );
 }

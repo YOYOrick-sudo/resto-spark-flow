@@ -5,7 +5,7 @@ export { PhaseDurationBadge } from './PhaseDurationBadge';
 export { StatusFilterPills } from './StatusFilterPills';
 export type { StatusFilter } from './StatusFilterPills';
 export { AddCandidateModal } from './AddCandidateModal';
-export { CandidateDetailSheet } from './CandidateDetailSheet';
+export { CandidateDetailContent } from './CandidateDetailContent';
 export { CandidateHeader } from './CandidateHeader';
 export { CandidateInfo } from './CandidateInfo';
 export { PhaseTaskList } from './PhaseTaskList';
