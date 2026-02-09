@@ -14,11 +14,12 @@ interface PhaseColumnProps {
     status: string;
   }>;
   onCandidateClick?: (id: string) => void;
+  selectedCandidateId?: string | null;
 }
 
-export function PhaseColumn({ phase, candidates, onCandidateClick }: PhaseColumnProps) {
+export function PhaseColumn({ phase, candidates, onCandidateClick, selectedCandidateId }: PhaseColumnProps) {
   return (
-    <div className="min-w-[280px] w-[300px] flex-shrink-0 bg-secondary/30 rounded-lg p-3 flex flex-col">
+    <div className="min-w-[220px] w-[280px] flex-shrink-0 bg-secondary/30 rounded-lg p-3 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium truncate">{phase.name}</span>
@@ -39,6 +40,7 @@ export function PhaseColumn({ phase, candidates, onCandidateClick }: PhaseColumn
               key={candidate.id}
               candidate={candidate}
               onClick={() => onCandidateClick?.(candidate.id)}
+              isSelected={candidate.id === selectedCandidateId}
             />
           ))
         )}
