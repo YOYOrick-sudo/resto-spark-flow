@@ -1,74 +1,38 @@
 
 
-# Edge Function: Onboarding Agent
+# Pre-build Checklist toevoegen aan Component Decision Guide
 
-Bouw een `onboarding-agent` edge function met shared helpers voor idempotency, email (stub), en template rendering. De agent verwerkt events (`candidate_created`, `phase_changed`, `candidate_rejected`, `task_completed`) en voert automatische taken uit.
+## Wat
 
----
+Een nieuwe **Sectie 0: Pre-build Checklist** bovenaan `docs/design/COMPONENT_DECISION_GUIDE.md` -- een korte, afrekenbare lijst die doorlopen wordt voordat een nieuw component of module gebouwd wordt.
 
-## Nieuwe bestanden
+## Checklist inhoud
 
-| Bestand | Doel |
-|---------|------|
-| `supabase/functions/_shared/supabaseAdmin.ts` | Admin Supabase client (service_role, bypassed RLS) |
-| `supabase/functions/_shared/idempotency.ts` | Claim/complete/fail via `workflow_executions` tabel |
-| `supabase/functions/_shared/email.ts` | Email stub -- logt naar console + `onboarding_events` |
-| `supabase/functions/_shared/templateRenderer.ts` | Placeholder-vervanging + ophalen templates uit `onboarding_settings` |
-| `supabase/functions/onboarding-agent/index.ts` | Hoofd edge function met event routing en handlers |
+De checklist bevat 8 vragen, gegroepeerd in drie categorieen:
 
----
+**Containers & Layout**
+1. Gebruik ik `NestoCard` (met juiste variant) in plaats van een raw `<div>` voor kaarten/content blokken?
+2. Gebruik ik `bg-secondary/50 border border-border/40` voor groeperings-zones (kolommen, lanes) -- nooit `bg-secondary/30` of lager?
+3. Geen card-in-card nesting? Elke content-groep is een eigen NestoCard.
 
-## Hoe het werkt
+**Interactie**
+4. Welke `NestoButton` variant past? (primary voor hoofdactie, outline voor secundair, danger voor destructief, ghost voor toolbar)
+5. Maximaal 1 primary button per zichtbaar scherm, rechts-uitgelijnd?
+6. Formuliervelden via `NestoInput` / `NestoSelect` / `NestoModal` -- nooit raw HTML inputs?
 
-1. Agent ontvangt een POST met `{ type, candidate_id, location_id }`.
-2. Op basis van `type` wordt de juiste handler aangeroepen.
-3. Idempotency via `workflow_executions`: unieke key per event voorkomt dubbele verwerking.
-4. Handlers voeren taken uit: automated tasks afronden, email events loggen (stub).
-5. Resultaat wordt teruggegeven als `{ success: true }`.
+**Feedback**
+7. Welk feedback patroon? Toast voor expliciete acties, inline error voor validatie, ConfirmDialog voor destructief, EmptyState voor lege data.
+8. Badges via `NestoBadge` met semantische variant (success/pending/error) -- nooit shadcn Badge rechtstreeks?
 
----
+## Hoe het actief gebruikt wordt
 
-## Config
+Bovenaan de checklist komt een opmerking dat deze lijst bij **elke nieuwe module, pagina of component** doorlopen moet worden voordat er code geschreven wordt. Dit wordt ook vastgelegd als instructie in het document zelf, zodat het bij elke toekomstige bouwopdracht geraadpleegd wordt.
 
-`supabase/config.toml` krijgt JWT verificatie uit voor deze function (webhooks sturen geen user JWT):
+## Wijziging
 
-```text
-[functions.onboarding-agent]
-verify_jwt = false
-```
+| Bestand | Actie |
+|---------|-------|
+| `docs/design/COMPONENT_DECISION_GUIDE.md` | Pre-build Checklist als eerste sectie toevoegen (onderdeel van het volledige document dat nog aangemaakt moet worden) |
 
----
-
-## Technische details
-
-### supabaseAdmin.ts
-Supabase client met `SUPABASE_URL` en `SUPABASE_SERVICE_ROLE_KEY` (automatisch beschikbaar in edge functions). Geen secrets toe te voegen.
-
-### idempotency.ts
-- `claimIdempotencyLock(key)`: insert in `workflow_executions`, vangt unique constraint violation (code `23505`) op als "al verwerkt".
-- `completeExecution(key, result?)`: update status naar `completed`.
-- `failExecution(key, error)`: update status naar `failed`.
-
-### email.ts
-Stub: logt `[EMAIL STUB]` naar console en insert een `email_sent` event in `onboarding_events` met `stub: true`. Wordt in een latere stap vervangen door echte Resend integratie.
-
-### templateRenderer.ts
-- `renderTemplate(template, context)`: vervangt `[voornaam]`, `[achternaam]`, `[vestiging]`, `[functie]`, `[datum]` placeholders.
-- `getEmailTemplates(locationId)`: haalt `email_templates` JSONB op uit `onboarding_settings`.
-
-### onboarding-agent/index.ts
-- CORS headers voor OPTIONS preflight.
-- Input validatie (type, candidate_id, location_id verplicht).
-- Event routing via switch: `candidate_created`, `phase_changed`, `candidate_rejected`, `task_completed`.
-- `handleCandidateCreated`: claimt lock, haalt kandidaat + locatie op, stuurt bevestigingsmail (stub), rondt automated taken af.
-- `handlePhaseChanged`: claimt lock, rondt automated taken in nieuwe fase af.
-- `handleCandidateRejected`: claimt lock, stuurt afwijsmail (stub).
-- `handleTaskCompleted`: alleen logging (database trigger doet het zware werk).
-- `completeAutomatedTasks(candidateId, locationId)`: update `ob_tasks` waar `is_automated=true` en `status=pending` naar `completed`, logt events.
-
-### Belangrijk: geen nieuwe database tabellen nodig
-De `workflow_executions` tabel bestaat al en heeft de juiste kolommen (`idempotency_key`, `status`, `result`, `error`, `completed_at`). De `onboarding_events` tabel bestaat ook al.
-
-### Na deploy: handmatig testen
-De agent kan getest worden via een POST request met een test candidate_id en location_id. Controles: response `{ success: true }`, events in `onboarding_events`, idempotency bij herhaalde aanroep.
+Dit wordt meegenomen wanneer het volledige document wordt aangemaakt -- er verandert niets aan de eerder goedgekeurde secties, er komt alleen een sectie 0 bovenaan bij.
 
