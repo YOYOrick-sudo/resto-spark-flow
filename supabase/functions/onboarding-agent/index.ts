@@ -116,12 +116,63 @@ async function handleCandidateCreated(event: AgentEvent) {
   }
 }
 
+// ─── PHASE EMAIL MAP ────────────────────────────────────
+const PHASE_EMAIL_MAP: Record<number, string> = {
+  20: 'additional_questions',
+  30: 'interview_invite',
+  50: 'trial_day_invite',
+  80: 'offer_and_form',
+};
+
 async function handlePhaseChanged(event: AgentEvent) {
   const idempotencyKey = `phase_changed:${event.candidate_id}:${event.new_phase_id}`;
   if (!(await claimIdempotencyLock(idempotencyKey))) return;
 
   try {
     await completeAutomatedTasks(event.candidate_id, event.location_id);
+
+    // Send phase-specific email if template exists
+    if (event.new_phase_id) {
+      const { data: phase } = await supabaseAdmin
+        .from('onboarding_phases')
+        .select('sort_order')
+        .eq('id', event.new_phase_id)
+        .single();
+
+      const templateKey = phase ? PHASE_EMAIL_MAP[phase.sort_order] : null;
+
+      if (templateKey) {
+        const templates = await getEmailTemplates(event.location_id);
+        const template = templates?.[templateKey];
+
+        if (template) {
+          const { data: candidate } = await supabaseAdmin
+            .from('onboarding_candidates')
+            .select('*, location:locations!onboarding_candidates_location_id_fkey(name)')
+            .eq('id', event.candidate_id)
+            .single();
+
+          if (candidate) {
+            const context = {
+              voornaam: candidate.first_name,
+              achternaam: candidate.last_name,
+              vestiging: (candidate as any).location?.name || '',
+              functie: '',
+            };
+
+            await sendEmail({
+              to: candidate.email,
+              subject: renderTemplate(template.subject, context),
+              html: renderTemplate(template.html_body, context),
+              candidateId: candidate.id,
+              locationId: event.location_id,
+              emailType: templateKey,
+            });
+          }
+        }
+      }
+    }
+
     console.log(`[AGENT] Phase changed to ${event.new_phase_id} for candidate ${event.candidate_id}`);
     await completeExecution(idempotencyKey);
   } catch (error) {
