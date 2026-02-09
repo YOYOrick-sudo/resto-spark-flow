@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
+import { Code, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface EmailTemplate {
   subject: string;
@@ -93,44 +94,53 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
 
   return (
     <NestoCard className="p-4">
-      <div className="flex items-start justify-between gap-3 mb-3">
+      {/* Header with border separator */}
+      <div className="flex items-start justify-between gap-3 pb-3 mb-3 border-b border-border/50">
         <div>
           <h3 className="text-sm font-semibold">{TEMPLATE_LABELS[templateKey] || templateKey}</h3>
           <p className="text-xs text-muted-foreground">{TEMPLATE_DESCRIPTIONS[templateKey] || templateKey}</p>
         </div>
-        <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">{templateKey}</span>
+        <span className="text-[11px] font-mono text-muted-foreground bg-secondary border border-border/40 px-2 py-0.5 rounded-control">
+          {templateKey}
+        </span>
       </div>
 
       <div className="space-y-3">
-        <div>
-          <Label className="text-xs mb-1">Onderwerp</Label>
-          <Input
-            value={localSubject}
-            onChange={(e) => handleSubjectChange(e.target.value)}
-            placeholder="Email onderwerp..."
-            className="h-8 text-sm"
-          />
-        </div>
+        {/* Form grouping block */}
+        <div className="bg-secondary/50 rounded-card p-4 space-y-3">
+          <div>
+            <Label className="text-xs mb-1">Onderwerp</Label>
+            <Input
+              value={localSubject}
+              onChange={(e) => handleSubjectChange(e.target.value)}
+              placeholder="Email onderwerp..."
+              className="h-8 text-sm"
+            />
+          </div>
 
-        <div>
-          <Label className="text-xs mb-1">Body</Label>
-          <Textarea
-            value={localBody}
-            onChange={(e) => handleBodyChange(e.target.value)}
-            placeholder="Email body..."
-            className="text-sm min-h-[160px] resize-y"
-            rows={8}
-          />
+          <div>
+            <Label className="text-xs mb-1">Body</Label>
+            <Textarea
+              value={localBody}
+              onChange={(e) => handleBodyChange(e.target.value)}
+              placeholder="Email body..."
+              className="text-sm min-h-[160px] resize-y"
+              rows={8}
+            />
+          </div>
         </div>
 
         {/* Variable chips */}
         <div className="flex flex-wrap gap-1.5">
-          <span className="text-xs text-muted-foreground mr-1 self-center">Variabelen:</span>
+          <span className="text-xs text-muted-foreground mr-1 self-center inline-flex items-center gap-1">
+            <Code className="h-3 w-3" />
+            Variabelen:
+          </span>
           {VARIABLES.map((v) => (
             <button
               key={v.key}
               onClick={() => insertVariable(v.key)}
-              className="text-xs px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-mono"
+              className="text-xs px-2 py-1 rounded-control bg-secondary border border-border/40 text-foreground hover:border-primary/50 hover:bg-primary/5 transition-colors font-mono"
             >
               {v.key}
             </button>
@@ -140,16 +150,17 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
         {/* Preview toggle */}
         <button
           onClick={() => setShowPreview(!showPreview)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors underline"
+          className="text-xs px-2 py-1 rounded-button bg-secondary/80 hover:bg-secondary border border-border/40 transition-colors inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
         >
           {showPreview ? 'Preview verbergen' : 'Preview tonen'}
+          {showPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         </button>
 
         {showPreview && (
-          <div className="p-3 rounded-lg bg-muted/40 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Onderwerp:</p>
-            <p className="text-sm font-medium mb-2">{renderPreview(localSubject)}</p>
-            <p className="text-xs text-muted-foreground mb-1">Body:</p>
+          <div className="bg-secondary/50 rounded-card p-4 border border-border/40 space-y-2">
+            <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Onderwerp</p>
+            <p className="text-sm font-medium mb-3">{renderPreview(localSubject)}</p>
+            <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Body</p>
             <div className="text-sm whitespace-pre-wrap">{renderPreview(localBody)}</div>
           </div>
         )}
