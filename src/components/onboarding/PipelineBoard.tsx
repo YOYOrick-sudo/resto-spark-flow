@@ -22,10 +22,9 @@ interface PipelineBoardProps {
   phases: Phase[];
   candidates: Candidate[];
   onCandidateClick?: (id: string) => void;
-  selectedCandidateId?: string | null;
 }
 
-export function PipelineBoard({ phases, candidates, onCandidateClick, selectedCandidateId }: PipelineBoardProps) {
+export function PipelineBoard({ phases, candidates, onCandidateClick }: PipelineBoardProps) {
   return (
     <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:snap-none">
       {phases.map((phase) => (
@@ -34,7 +33,6 @@ export function PipelineBoard({ phases, candidates, onCandidateClick, selectedCa
           phase={phase}
           candidates={candidates.filter((c) => c.current_phase_id === phase.id)}
           onCandidateClick={onCandidateClick}
-          selectedCandidateId={selectedCandidateId}
         />
       ))}
     </div>

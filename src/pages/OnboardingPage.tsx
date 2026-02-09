@@ -1,9 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/polar/PageHeader';
-import { DetailPanel } from '@/components/polar/DetailPanel';
 import { PipelineBoard, StatusFilterPills, AddCandidateModal } from '@/components/onboarding';
-import { CandidateDetailContent } from '@/components/onboarding/CandidateDetailContent';
 import type { StatusFilter } from '@/components/onboarding';
 import { useUserContext } from '@/contexts/UserContext';
 import { useOnboardingPhases } from '@/hooks/useOnboardingPhases';
@@ -13,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const REJECTED_STATUSES = ['rejected', 'withdrawn', 'no_response', 'expired'];
 
 export default function OnboardingPage() {
+  const navigate = useNavigate();
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
 
@@ -21,7 +21,6 @@ export default function OnboardingPage() {
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
 
   const filteredCandidates = useMemo(() => {
     if (!candidates) return [];
@@ -36,31 +35,6 @@ export default function OnboardingPage() {
         return candidates;
     }
   }, [candidates, statusFilter]);
-
-  const selectedCandidate = useMemo(
-    () => candidates?.find((c) => c.id === selectedCandidateId) ?? null,
-    [candidates, selectedCandidateId]
-  );
-
-  // Escape key handler
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedCandidateId) {
-        setSelectedCandidateId(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCandidateId]);
-
-  // Scroll to selected candidate card
-  useEffect(() => {
-    if (!selectedCandidateId) return;
-    requestAnimationFrame(() => {
-      const card = document.querySelector(`[data-candidate-id="${selectedCandidateId}"]`);
-      card?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
-    });
-  }, [selectedCandidateId]);
 
   const isLoading = phasesLoading || candidatesLoading;
 
@@ -82,41 +56,24 @@ export default function OnboardingPage() {
         <StatusFilterPills value={statusFilter} onChange={setStatusFilter} />
       </div>
 
-      <div className="flex flex-1 min-h-0 px-6 pb-6 pt-4">
-        {/* Board */}
-        <div className="flex-1 min-w-0 overflow-x-auto transition-all duration-200">
-          {isLoading ? (
-            <div className="flex gap-4 overflow-hidden">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="min-w-[280px] h-[300px] rounded-lg" />
-              ))}
-            </div>
-          ) : phases && phases.length > 0 ? (
-            <PipelineBoard
-              phases={phases}
-              candidates={filteredCandidates}
-              onCandidateClick={(id) => setSelectedCandidateId(id)}
-              selectedCandidateId={selectedCandidateId}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              Geen onboarding fasen geconfigureerd.
-            </p>
-          )}
-        </div>
-
-        {/* Detail panel */}
-      <DetailPanel
-          open={!!selectedCandidateId}
-          onClose={() => setSelectedCandidateId(null)}
-        >
-          {selectedCandidateId && (
-            <CandidateDetailContent
-              candidateId={selectedCandidateId}
-              onClose={() => setSelectedCandidateId(null)}
-            />
-          )}
-        </DetailPanel>
+      <div className="flex-1 min-h-0 px-6 pb-6 pt-4 overflow-x-auto">
+        {isLoading ? (
+          <div className="flex gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="min-w-[280px] h-[300px] rounded-lg" />
+            ))}
+          </div>
+        ) : phases && phases.length > 0 ? (
+          <PipelineBoard
+            phases={phases}
+            candidates={filteredCandidates}
+            onCandidateClick={(id) => navigate(`/onboarding/${id}`)}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            Geen onboarding fasen geconfigureerd.
+          </p>
+        )}
       </div>
 
       {locationId && (

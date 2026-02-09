@@ -1,6 +1,9 @@
 import { useState, useMemo } from 'react';
-import { NestoTabs, NestoTabContent } from '@/components/polar/NestoTabs';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NestoTabContent } from '@/components/polar/NestoTabs';
+import { NestoBadge } from '@/components/polar/NestoBadge';
+import { DetailPageLayout } from '@/components/polar/DetailPageLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,17 +15,20 @@ import { useOnboardingPhases } from '@/hooks/useOnboardingPhases';
 import { useCompleteTask } from '@/hooks/useCompleteTask';
 import { useRejectCandidate } from '@/hooks/useRejectCandidate';
 import { useSaveEvaluation } from '@/hooks/useSaveEvaluation';
-import { CandidateHeader } from './CandidateHeader';
-import { PhaseTaskList } from './PhaseTaskList';
-import { CandidateInfo } from './CandidateInfo';
-import { CandidateTimeline } from './CandidateTimeline';
-import { EvaluationForm } from './EvaluationForm';
-import { CandidateActions } from './CandidateActions';
+import { PhaseTaskList } from '@/components/onboarding/PhaseTaskList';
+import { CandidateInfo } from '@/components/onboarding/CandidateInfo';
+import { CandidateTimeline } from '@/components/onboarding/CandidateTimeline';
+import { EvaluationForm } from '@/components/onboarding/EvaluationForm';
+import { CandidateActions } from '@/components/onboarding/CandidateActions';
 
-interface CandidateDetailContentProps {
-  candidateId: string;
-  onClose: () => void;
-}
+const STATUS_MAP: Record<string, { variant: 'default' | 'success' | 'error' | 'warning' | 'pending'; label: string }> = {
+  active: { variant: 'default', label: 'Actief' },
+  hired: { variant: 'success', label: 'Aangenomen' },
+  rejected: { variant: 'error', label: 'Afgewezen' },
+  withdrawn: { variant: 'warning', label: 'Teruggetrokken' },
+  no_response: { variant: 'warning', label: 'Geen reactie' },
+  expired: { variant: 'pending', label: 'Verlopen' },
+};
 
 const TABS = [
   { id: 'taken', label: 'Taken' },
@@ -32,7 +38,9 @@ const TABS = [
 
 const EVAL_PHASE_SORT_ORDERS = [40, 50];
 
-export function CandidateDetailContent({ candidateId, onClose }: CandidateDetailContentProps) {
+export default function OnboardingDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
@@ -41,17 +49,17 @@ export function CandidateDetailContent({ candidateId, onClose }: CandidateDetail
   const [activeTab, setActiveTab] = useState('taken');
 
   const { data: phases } = useOnboardingPhases(locationId);
-  const { data: candidates } = useOnboardingCandidates(locationId);
-  const { data: tasks, isLoading: tasksLoading } = useOnboardingTasks(candidateId);
-  const { data: events, isLoading: eventsLoading } = useOnboardingEvents(candidateId);
+  const { data: candidates, isLoading: candidatesLoading } = useOnboardingCandidates(locationId);
+  const { data: tasks, isLoading: tasksLoading } = useOnboardingTasks(id);
+  const { data: events, isLoading: eventsLoading } = useOnboardingEvents(id);
 
   const completeTask = useCompleteTask();
   const rejectCandidate = useRejectCandidate();
   const saveEvaluation = useSaveEvaluation();
 
   const candidate = useMemo(
-    () => candidates?.find((c) => c.id === candidateId) ?? null,
-    [candidates, candidateId]
+    () => candidates?.find((c) => c.id === id) ?? null,
+    [candidates, id]
   );
 
   const currentPhaseId = candidate?.current_phase_id ?? null;
@@ -79,16 +87,16 @@ export function CandidateDetailContent({ candidateId, onClose }: CandidateDetail
   };
 
   const handleReject = () => {
-    if (!candidateId || !user?.id || !locationId) return;
+    if (!id || !user?.id || !locationId) return;
     rejectCandidate.mutate(
-      { candidateId, userId: user.id, locationId },
-      { onSuccess: () => onClose() }
+      { candidateId: id, userId: user.id, locationId },
+      { onSuccess: () => navigate('/onboarding') }
     );
   };
 
   const handleSaveEvaluation = (evaluation: { rating: number; notes: string; recommendation: string }) => {
-    if (!candidateId || !user?.id || !locationId) return;
-    saveEvaluation.mutate({ candidateId, evaluation, userId: user.id, locationId });
+    if (!id || !user?.id || !locationId) return;
+    saveEvaluation.mutate({ candidateId: id, evaluation, userId: user.id, locationId });
   };
 
   const handleAdvance = () => {
@@ -98,31 +106,48 @@ export function CandidateDetailContent({ candidateId, onClose }: CandidateDetail
     toast.success('Doorgegaan naar volgende fase');
   };
 
-  if (!candidate) {
+  if (candidatesLoading) {
     return (
-      <div className="p-4">
-        <Skeleton className="h-20 w-full" />
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
+  if (!candidate) {
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">Kandidaat niet gevonden.</p>
+      </div>
+    );
+  }
+
+  const statusInfo = STATUS_MAP[candidate.status] ?? { variant: 'default' as const, label: candidate.status };
+  const currentPhase = candidate.current_phase as { name: string } | null;
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-border/50">
-        <CandidateHeader candidate={candidate} />
-      </div>
-
-      {/* Tabs */}
-      <div className="px-4 pt-2">
-        <NestoTabs tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
-      </div>
-
-      {/* Tab content - scrollable */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+    <div className="p-6">
+      <DetailPageLayout
+        title={`${candidate.first_name} ${candidate.last_name}`}
+        backLabel="Terug naar pipeline"
+        backHref="/onboarding"
+        tabs={TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        headerActions={
+          <div className="flex items-center gap-2">
+            <NestoBadge variant={statusInfo.variant} size="sm">{statusInfo.label}</NestoBadge>
+            {currentPhase && (
+              <span className="text-sm text-muted-foreground">Fase: {currentPhase.name}</span>
+            )}
+          </div>
+        }
+      >
         <NestoTabContent value="taken" activeValue={activeTab}>
           {tasksLoading ? (
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
@@ -151,7 +176,7 @@ export function CandidateDetailContent({ candidateId, onClose }: CandidateDetail
 
         <NestoTabContent value="tijdlijn" activeValue={activeTab}>
           {eventsLoading ? (
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-8 w-full" />
               ))}
@@ -160,18 +185,18 @@ export function CandidateDetailContent({ candidateId, onClose }: CandidateDetail
             <CandidateTimeline events={events} />
           ) : null}
         </NestoTabContent>
-      </div>
 
-      {/* Sticky footer */}
-      <CandidateActions
-        status={candidate.status}
-        candidateName={`${candidate.first_name} ${candidate.last_name}`}
-        allCurrentTasksDone={allCurrentTasksDone}
-        isLastPhase={isLastPhase}
-        onReject={handleReject}
-        onAdvance={handleAdvance}
-        isRejecting={rejectCandidate.isPending}
-      />
+        {/* Sticky action bar */}
+        <CandidateActions
+          status={candidate.status}
+          candidateName={`${candidate.first_name} ${candidate.last_name}`}
+          allCurrentTasksDone={allCurrentTasksDone}
+          isLastPhase={isLastPhase}
+          onReject={handleReject}
+          onAdvance={handleAdvance}
+          isRejecting={rejectCandidate.isPending}
+        />
+      </DetailPageLayout>
     </div>
   );
 }

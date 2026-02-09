@@ -1,5 +1,4 @@
 import { PhaseDurationBadge } from './PhaseDurationBadge';
-import { cn } from '@/lib/utils';
 
 interface CandidateCardProps {
   candidate: {
@@ -13,20 +12,13 @@ interface CandidateCardProps {
     status: string;
   };
   onClick?: () => void;
-  isSelected?: boolean;
 }
 
-export function CandidateCard({ candidate, onClick, isSelected }: CandidateCardProps) {
+export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
   return (
     <div
-      data-candidate-id={candidate.id}
       onClick={onClick}
-      className={cn(
-        'bg-card border rounded-lg p-3 cursor-pointer transition-colors',
-        isSelected
-          ? 'border-primary bg-primary/5'
-          : 'border-border/50 hover:border-primary/30'
-      )}
+      className="bg-card border border-border/50 hover:border-primary/30 rounded-lg p-3 cursor-pointer transition-colors"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
