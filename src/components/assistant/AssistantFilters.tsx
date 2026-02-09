@@ -1,24 +1,17 @@
-import { AssistantModule } from '@/types/assistant';
+import { SignalModule, SIGNAL_MODULE_CONFIGS } from '@/types/signals';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 interface AssistantFiltersProps {
-  activeModule: AssistantModule | 'all';
-  onModuleChange: (module: AssistantModule | 'all') => void;
+  activeModule: SignalModule | 'all';
+  onModuleChange: (module: SignalModule | 'all') => void;
   onlyActionable: boolean;
   onOnlyActionableChange: (value: boolean) => void;
   totalCount: number;
   filteredCount: number;
+  availableModules: Set<SignalModule>;
 }
-
-const modules: { value: AssistantModule | 'all'; label: string }[] = [
-  { value: 'all', label: 'Alle' },
-  { value: 'reserveringen', label: 'Reserveringen' },
-  { value: 'keuken', label: 'Keuken' },
-  { value: 'revenue', label: 'Revenue' },
-  { value: 'configuratie', label: 'Configuratie' },
-];
 
 export function AssistantFilters({
   activeModule,
@@ -27,20 +20,25 @@ export function AssistantFilters({
   onOnlyActionableChange,
   totalCount,
   filteredCount,
+  availableModules,
 }: AssistantFiltersProps) {
+  // Show 'Alle' + modules that have signals or are currently selected
+  const visibleModules = SIGNAL_MODULE_CONFIGS.filter(
+    (m) => m.value === 'all' || availableModules.has(m.value as SignalModule) || activeModule === m.value
+  );
+
   return (
     <div className="bg-secondary/50 rounded-card border border-border/50 p-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        {/* Module Filter Pills - Subtle outline style */}
         <div className="flex items-center gap-2 flex-wrap">
-          {modules.map((module) => {
+          {visibleModules.map((module) => {
             const isSelected = activeModule === module.value;
             
             return (
               <button
                 key={module.value}
                 type="button"
-                onClick={() => onModuleChange(module.value)}
+                onClick={() => onModuleChange(module.value as SignalModule | 'all')}
                 className={cn(
                   "px-3 py-1.5 text-[13px] font-medium rounded-button transition-all duration-200",
                   "border-[1.5px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -55,9 +53,7 @@ export function AssistantFilters({
           })}
         </div>
 
-        {/* Right side: Toggle + Counter */}
         <div className="flex items-center gap-4">
-          {/* Actionable Toggle */}
           <div className="flex items-center gap-2">
             <Switch
               id="only-actionable"
@@ -69,7 +65,6 @@ export function AssistantFilters({
             </Label>
           </div>
 
-          {/* Result Counter */}
           <span className="text-xs text-muted-foreground whitespace-nowrap">
             {filteredCount === totalCount 
               ? `${totalCount} signalen`

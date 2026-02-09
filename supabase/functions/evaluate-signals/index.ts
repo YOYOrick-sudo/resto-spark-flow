@@ -1,0 +1,489 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const supabaseAdmin = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
+
+// ============================================
+// PROVIDER INTERFACE
+// ============================================
+
+interface SignalDraft {
+  organization_id: string;
+  location_id: string;
+  module: string;
+  signal_type: string;
+  kind: 'signal' | 'insight';
+  severity: 'info' | 'warning' | 'error' | 'ok';
+  title: string;
+  message?: string;
+  action_path?: string;
+  payload?: Record<string, unknown>;
+  dedup_key: string;
+  actionable: boolean;
+  priority: number;
+  cooldown_hours?: number;
+}
+
+interface SignalProvider {
+  name: string;
+  evaluate(locationId: string, orgId: string): Promise<SignalDraft[]>;
+  resolveStale(locationId: string): Promise<string[]>; // returns signal_types to resolve
+}
+
+// ============================================
+// CONFIG SIGNAL PROVIDER
+// ============================================
+
+const configProvider: SignalProvider = {
+  name: 'config',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const drafts: SignalDraft[] = [];
+
+    // 1. Unassigned tables: tables.area_id references areas, but check for tables 
+    //    that are active but whose area is inactive (effectively unassigned)
+    // Note: In current schema, area_id is NOT NULL, so "unassigned" means area is inactive
+    const { data: unassignedTables } = await supabaseAdmin
+      .from('tables')
+      .select('id, area_id, areas!inner(is_active)')
+      .eq('location_id', locationId)
+      .eq('is_active', true)
+      .eq('areas.is_active', false);
+
+    if (unassignedTables && unassignedTables.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'configuratie',
+        signal_type: 'unassigned_tables',
+        kind: 'signal',
+        severity: 'warning',
+        title: `${unassignedTables.length} tafel(s) in gearchiveerde area`,
+        message: 'Actieve tafels staan in een gearchiveerde area en zijn niet zichtbaar voor reserveringen.',
+        action_path: '/instellingen/reserveringen/tafels',
+        dedup_key: `unassigned_tables:${locationId}`,
+        actionable: true,
+        priority: 30,
+        payload: { count: unassignedTables.length },
+      });
+    }
+
+    // 2. Empty table groups: active groups with no active members
+    const { data: groups } = await supabaseAdmin
+      .from('table_groups')
+      .select('id, name, table_group_members(id)')
+      .eq('location_id', locationId)
+      .eq('is_active', true)
+      .eq('is_system_generated', false);
+
+    const emptyGroups = (groups || []).filter(
+      (g: any) => !g.table_group_members || g.table_group_members.length === 0
+    );
+
+    if (emptyGroups.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'configuratie',
+        signal_type: 'empty_table_groups',
+        kind: 'signal',
+        severity: 'warning',
+        title: `${emptyGroups.length} tafelgroep(en) zonder leden`,
+        message: `Groepen zonder tafels: ${emptyGroups.map((g: any) => g.name).join(', ')}`,
+        action_path: '/instellingen/reserveringen/tafels/groepen',
+        dedup_key: `empty_table_groups:${locationId}`,
+        actionable: true,
+        priority: 40,
+        payload: { count: emptyGroups.length, names: emptyGroups.map((g: any) => g.name) },
+      });
+    }
+
+    // 3. Shifts without proper pacing (arrival_interval_minutes = 0 or very low)
+    const { data: shifts } = await supabaseAdmin
+      .from('shifts')
+      .select('id, name, arrival_interval_minutes')
+      .eq('location_id', locationId)
+      .eq('is_active', true);
+
+    const noPacingShifts = (shifts || []).filter(
+      (s: any) => s.arrival_interval_minutes === 0
+    );
+
+    if (noPacingShifts.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'configuratie',
+        signal_type: 'shifts_without_pacing',
+        kind: 'signal',
+        severity: 'info',
+        title: `${noPacingShifts.length} shift(s) zonder pacing`,
+        message: `Shifts zonder arrival interval: ${noPacingShifts.map((s: any) => s.name).join(', ')}`,
+        action_path: '/instellingen/reserveringen/shifts',
+        dedup_key: `shifts_without_pacing:${locationId}`,
+        actionable: true,
+        priority: 60,
+        payload: { count: noPacingShifts.length },
+      });
+    }
+
+    return drafts;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const resolved: string[] = [];
+
+    // Check unassigned_tables: resolve if no active tables in inactive areas
+    const { data: unassigned } = await supabaseAdmin
+      .from('tables')
+      .select('id, areas!inner(is_active)')
+      .eq('location_id', locationId)
+      .eq('is_active', true)
+      .eq('areas.is_active', false);
+
+    if (!unassigned || unassigned.length === 0) {
+      resolved.push('unassigned_tables');
+    }
+
+    // Check empty_table_groups
+    const { data: groups } = await supabaseAdmin
+      .from('table_groups')
+      .select('id, table_group_members(id)')
+      .eq('location_id', locationId)
+      .eq('is_active', true)
+      .eq('is_system_generated', false);
+
+    const emptyGroups = (groups || []).filter(
+      (g: any) => !g.table_group_members || g.table_group_members.length === 0
+    );
+
+    if (emptyGroups.length === 0) {
+      resolved.push('empty_table_groups');
+    }
+
+    // Check shifts_without_pacing
+    const { data: shifts } = await supabaseAdmin
+      .from('shifts')
+      .select('id, arrival_interval_minutes')
+      .eq('location_id', locationId)
+      .eq('is_active', true);
+
+    const noPacing = (shifts || []).filter((s: any) => s.arrival_interval_minutes === 0);
+    if (noPacing.length === 0) {
+      resolved.push('shifts_without_pacing');
+    }
+
+    return resolved;
+  },
+};
+
+// ============================================
+// ONBOARDING SIGNAL PROVIDER
+// ============================================
+
+const onboardingProvider: SignalProvider = {
+  name: 'onboarding',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const drafts: SignalDraft[] = [];
+
+    // Stalled candidates: active candidates in same phase for > 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data: stalledCandidates } = await supabaseAdmin
+      .from('onboarding_candidates')
+      .select('id, first_name, last_name, current_phase_id, updated_at')
+      .eq('location_id', locationId)
+      .eq('status', 'active')
+      .lt('updated_at', sevenDaysAgo.toISOString());
+
+    if (stalledCandidates && stalledCandidates.length > 0) {
+      for (const c of stalledCandidates) {
+        drafts.push({
+          organization_id: orgId,
+          location_id: locationId,
+          module: 'onboarding',
+          signal_type: 'stalled_candidate',
+          kind: 'signal',
+          severity: 'warning',
+          title: `${c.first_name} ${c.last_name} staat stil`,
+          message: 'Kandidaat zit langer dan 7 dagen in dezelfde fase.',
+          action_path: `/onboarding/${c.id}`,
+          dedup_key: `stalled_candidate:${c.id}`,
+          actionable: true,
+          priority: 25,
+          payload: { candidate_id: c.id },
+        });
+      }
+    }
+
+    // Overdue tasks: pending tasks older than 3 days
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const { data: overdueTasks } = await supabaseAdmin
+      .from('ob_tasks')
+      .select('id, title, candidate_id, created_at, onboarding_candidates!inner(first_name, last_name, status)')
+      .eq('location_id', locationId)
+      .eq('status', 'pending')
+      .eq('onboarding_candidates.status', 'active')
+      .lt('created_at', threeDaysAgo.toISOString());
+
+    if (overdueTasks && overdueTasks.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'onboarding',
+        signal_type: 'overdue_tasks',
+        kind: 'signal',
+        severity: 'warning',
+        title: `${overdueTasks.length} openstaande onboarding taak/taken`,
+        message: 'Er zijn taken die al meer dan 3 dagen openstaan.',
+        action_path: '/onboarding',
+        dedup_key: `overdue_tasks:${locationId}`,
+        actionable: true,
+        priority: 30,
+        payload: { count: overdueTasks.length },
+      });
+    }
+
+    return drafts;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const resolved: string[] = [];
+
+    // Check stalled candidates per candidate
+    const { data: activeSignals } = await supabaseAdmin
+      .from('signals')
+      .select('id, dedup_key, payload')
+      .eq('location_id', locationId)
+      .eq('signal_type', 'stalled_candidate')
+      .eq('status', 'active');
+
+    if (activeSignals) {
+      for (const signal of activeSignals) {
+        const candidateId = (signal.payload as any)?.candidate_id;
+        if (!candidateId) continue;
+
+        const { data: candidate } = await supabaseAdmin
+          .from('onboarding_candidates')
+          .select('status, updated_at')
+          .eq('id', candidateId)
+          .single();
+
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        if (!candidate || candidate.status !== 'active' || new Date(candidate.updated_at) > sevenDaysAgo) {
+          // Resolve this specific signal directly
+          await supabaseAdmin
+            .from('signals')
+            .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+            .eq('id', signal.id);
+        }
+      }
+    }
+
+    // Check overdue_tasks
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const { data: overdueTasks } = await supabaseAdmin
+      .from('ob_tasks')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('status', 'pending')
+      .lt('created_at', threeDaysAgo.toISOString())
+      .limit(1);
+
+    if (!overdueTasks || overdueTasks.length === 0) {
+      resolved.push('overdue_tasks');
+    }
+
+    return resolved;
+  },
+};
+
+// ============================================
+// SIGNAL ENGINE
+// ============================================
+
+const providers: SignalProvider[] = [configProvider, onboardingProvider];
+
+async function processLocation(locationId: string, orgId: string) {
+  const results = { created: 0, resolved: 0, skipped: 0 };
+
+  // 1. Auto-resolve stale signals
+  for (const provider of providers) {
+    const staleTypes = await provider.resolveStale(locationId);
+
+    for (const signalType of staleTypes) {
+      const { data: updated } = await supabaseAdmin
+        .from('signals')
+        .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+        .eq('location_id', locationId)
+        .eq('signal_type', signalType)
+        .eq('status', 'active')
+        .select('id');
+
+      results.resolved += updated?.length || 0;
+    }
+  }
+
+  // 2. Evaluate new signals
+  for (const provider of providers) {
+    const drafts = await provider.evaluate(locationId, orgId);
+
+    for (const draft of drafts) {
+      // Dedup check: partial unique index will catch this, but check explicitly for cooldown
+      const { data: existing } = await supabaseAdmin
+        .from('signals')
+        .select('id')
+        .eq('dedup_key', draft.dedup_key)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (existing) {
+        results.skipped++;
+        continue;
+      }
+
+      // Cooldown check
+      if (draft.cooldown_hours) {
+        const { data: coolingDown } = await supabaseAdmin
+          .from('signals')
+          .select('id')
+          .eq('location_id', locationId)
+          .eq('signal_type', draft.signal_type)
+          .gt('cooldown_until', new Date().toISOString())
+          .limit(1);
+
+        if (coolingDown && coolingDown.length > 0) {
+          results.skipped++;
+          continue;
+        }
+      }
+
+      // Insert new signal
+      const cooldownUntil = draft.cooldown_hours
+        ? new Date(Date.now() + draft.cooldown_hours * 3600000).toISOString()
+        : null;
+
+      const { error } = await supabaseAdmin.from('signals').insert({
+        organization_id: draft.organization_id,
+        location_id: draft.location_id,
+        module: draft.module,
+        signal_type: draft.signal_type,
+        kind: draft.kind,
+        severity: draft.severity,
+        title: draft.title,
+        message: draft.message || null,
+        action_path: draft.action_path || null,
+        payload: draft.payload || {},
+        dedup_key: draft.dedup_key,
+        cooldown_until: cooldownUntil,
+        actionable: draft.actionable,
+        priority: draft.priority,
+      });
+
+      if (!error) {
+        results.created++;
+      } else {
+        // Likely dedup conflict from partial unique index — safe to ignore
+        if (error.code === '23505') {
+          results.skipped++;
+        } else {
+          console.error('Error inserting signal:', error);
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+// ============================================
+// HTTP HANDLER
+// ============================================
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    let locationIds: string[] = [];
+
+    // Accept specific location_id or run for all active locations
+    if (req.method === 'POST') {
+      const body = await req.json().catch(() => ({}));
+      if (body.location_id) {
+        locationIds = [body.location_id];
+      }
+    }
+
+    // If no specific location, fetch all active locations
+    if (locationIds.length === 0) {
+      const { data: locations } = await supabaseAdmin
+        .from('locations')
+        .select('id, organization_id')
+        .eq('is_active', true);
+
+      if (!locations || locations.length === 0) {
+        return new Response(
+          JSON.stringify({ message: 'No active locations found' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Process each location
+      const allResults = [];
+      for (const loc of locations) {
+        const result = await processLocation(loc.id, loc.organization_id);
+        allResults.push({ location_id: loc.id, ...result });
+      }
+
+      return new Response(
+        JSON.stringify({ results: allResults }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Process specific location
+    const { data: location } = await supabaseAdmin
+      .from('locations')
+      .select('id, organization_id')
+      .eq('id', locationIds[0])
+      .single();
+
+    if (!location) {
+      return new Response(
+        JSON.stringify({ error: 'Location not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result = await processLocation(location.id, location.organization_id);
+
+    return new Response(
+      JSON.stringify({ location_id: location.id, ...result }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('evaluate-signals error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

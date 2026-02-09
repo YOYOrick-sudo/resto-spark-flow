@@ -1,16 +1,17 @@
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, AlertTriangle, Info, CheckCircle, Lightbulb, ChevronRight } from 'lucide-react';
-import { AssistantItem, AssistantSeverity, AssistantModule } from '@/types/assistant';
+import { AlertCircle, AlertTriangle, Info, CheckCircle, Lightbulb, ChevronRight, X } from 'lucide-react';
+import { Signal, SignalSeverity, SignalModule, SIGNAL_MODULE_CONFIGS } from '@/types/signals';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { formatDateTimeCompact } from '@/lib/datetime';
+import { useDismissSignal } from '@/hooks/useDismissSignal';
 import { cn } from '@/lib/utils';
 
 interface AssistantItemCardProps {
-  item: AssistantItem;
+  item: Signal;
 }
 
-const severityConfig: Record<AssistantSeverity, { 
+const severityConfig: Record<SignalSeverity, { 
   icon: typeof AlertCircle; 
   iconClass: string;
   bgClass: string;
@@ -37,26 +38,28 @@ const severityConfig: Record<AssistantSeverity, {
   },
 };
 
-const moduleConfig: Record<AssistantModule, { 
-  label: string;
-  variant: 'default' | 'primary' | 'success' | 'warning' | 'error';
-}> = {
-  reserveringen: { label: 'Reserveringen', variant: 'primary' },
-  keuken: { label: 'Keuken', variant: 'warning' },
-  revenue: { label: 'Revenue', variant: 'success' },
-  configuratie: { label: 'Configuratie', variant: 'default' },
-};
+function getModuleConfig(module: SignalModule) {
+  const config = SIGNAL_MODULE_CONFIGS.find(c => c.value === module);
+  return config || { label: module, variant: 'default' as const };
+}
 
 export function AssistantItemCard({ item }: AssistantItemCardProps) {
   const navigate = useNavigate();
-  const { icon: SeverityIcon, iconClass, bgClass } = severityConfig[item.severity];
-  const { label: moduleLabel, variant: moduleVariant } = moduleConfig[item.module];
+  const dismissMutation = useDismissSignal();
+  const severity = severityConfig[item.severity] || severityConfig.info;
+  const { icon: SeverityIcon, iconClass, bgClass } = severity;
+  const { label: moduleLabel, variant: moduleVariant } = getModuleConfig(item.module);
   const isClickable = Boolean(item.action_path);
 
   const handleClick = () => {
     if (item.action_path) {
       navigate(item.action_path);
     }
+  };
+
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    dismissMutation.mutate(item.id);
   };
 
   return (
@@ -68,7 +71,7 @@ export function AssistantItemCard({ item }: AssistantItemCardProps) {
       onClick={isClickable ? handleClick : undefined}
     >
       <div className="flex items-start gap-3">
-        {/* Severity Icon with background circle */}
+        {/* Severity Icon */}
         <div className={cn(
           'flex items-center justify-center w-8 h-8 rounded-full shrink-0',
           bgClass
@@ -107,6 +110,16 @@ export function AssistantItemCard({ item }: AssistantItemCardProps) {
           {isClickable && (
             <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
           )}
+          {/* Dismiss button */}
+          <button
+            type="button"
+            onClick={handleDismiss}
+            disabled={dismissMutation.isPending}
+            className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+            aria-label="Signaal verbergen"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </NestoCard>

@@ -1011,6 +1011,142 @@ export type Database = {
           },
         ]
       }
+      signal_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          location_id: string
+          muted: boolean | null
+          signal_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location_id: string
+          muted?: boolean | null
+          signal_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location_id?: string
+          muted?: boolean | null
+          signal_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signal_preferences_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signal_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signals: {
+        Row: {
+          action_path: string | null
+          actionable: boolean | null
+          cooldown_until: string | null
+          created_at: string | null
+          dedup_key: string
+          dismissed_at: string | null
+          dismissed_by: string | null
+          id: string
+          kind: string
+          location_id: string
+          message: string | null
+          module: string
+          organization_id: string
+          payload: Json | null
+          priority: number | null
+          resolved_at: string | null
+          severity: string
+          signal_type: string
+          source_signal_ids: string[] | null
+          status: string
+          title: string
+        }
+        Insert: {
+          action_path?: string | null
+          actionable?: boolean | null
+          cooldown_until?: string | null
+          created_at?: string | null
+          dedup_key: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          kind?: string
+          location_id: string
+          message?: string | null
+          module: string
+          organization_id: string
+          payload?: Json | null
+          priority?: number | null
+          resolved_at?: string | null
+          severity?: string
+          signal_type: string
+          source_signal_ids?: string[] | null
+          status?: string
+          title: string
+        }
+        Update: {
+          action_path?: string | null
+          actionable?: boolean | null
+          cooldown_until?: string | null
+          created_at?: string | null
+          dedup_key?: string
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          kind?: string
+          location_id?: string
+          message?: string | null
+          module?: string
+          organization_id?: string
+          payload?: Json | null
+          priority?: number | null
+          resolved_at?: string | null
+          severity?: string
+          signal_type?: string
+          source_signal_ids?: string[] | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signals_dismissed_by_fkey"
+            columns: ["dismissed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signals_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_group_members: {
         Row: {
           id: string

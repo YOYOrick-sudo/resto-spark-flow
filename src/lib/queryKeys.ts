@@ -24,6 +24,17 @@ export const queryKeys = {
   /** Effective shift schedule from RPC for a specific date */
   effectiveSchedule: (locationId: string, date: string) => 
     ['effective-schedule', locationId, date] as const,
+
+  // ============================================
+  // SIGNAL ARCHITECTURE
+  // ============================================
+  
+  /** Signals for a location */
+  signals: (locationId: string) => ['signals', locationId] as const,
+
+  /** Signal preferences for a user at a location */
+  signalPreferences: (userId: string, locationId: string) => 
+    ['signal-preferences', userId, locationId] as const,
 } as const;
 
 export type QueryKeys = typeof queryKeys;

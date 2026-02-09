@@ -2,29 +2,27 @@ import { useState, useMemo } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { PageHeader } from '@/components/polar/PageHeader';
 import { EmptyState } from '@/components/polar/EmptyState';
+import { Spinner } from '@/components/polar/LoadingStates';
 import { AssistantFilters, AssistantItemCard } from '@/components/assistant';
-import { mockAssistantItems } from '@/data/assistantMockData';
-import { AssistantItem, AssistantModule, AssistantSeverity } from '@/types/assistant';
+import { useSignals } from '@/hooks/useSignals';
+import type { Signal, SignalModule, SignalSeverity } from '@/types/signals';
 
-const SEVERITY_ORDER: Record<AssistantSeverity, number> = {
+const SEVERITY_ORDER: Record<SignalSeverity, number> = {
   error: 0,
   warning: 1,
   info: 2,
   ok: 3,
 };
 
-function sortItems(items: AssistantItem[]): AssistantItem[] {
+function sortItems(items: Signal[]): Signal[] {
   return [...items].sort((a, b) => {
-    // Priority first (undefined naar einde)
     const aPriority = a.priority ?? Infinity;
     const bPriority = b.priority ?? Infinity;
     if (aPriority !== bPriority) return aPriority - bPriority;
 
-    // Then severity
-    const severityDiff = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
+    const severityDiff = (SEVERITY_ORDER[a.severity] ?? 2) - (SEVERITY_ORDER[b.severity] ?? 2);
     if (severityDiff !== 0) return severityDiff;
 
-    // Then newest first
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 }
@@ -44,26 +42,22 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 }
 
 export default function Assistent() {
-  const [activeModule, setActiveModule] = useState<AssistantModule | 'all'>('all');
+  const [activeModule, setActiveModule] = useState<SignalModule | 'all'>('all');
   const [onlyActionable, setOnlyActionable] = useState(false);
+  const { signals, isLoading, availableModules } = useSignals();
 
   const { filteredItems, actionableItems, informativeItems, totalCount } = useMemo(() => {
-    let items = mockAssistantItems;
+    let items = signals;
 
-    // Filter by module
     if (activeModule !== 'all') {
       items = items.filter((item) => item.module === activeModule);
     }
 
-    // Filter by actionable
     if (onlyActionable) {
       items = items.filter((item) => item.actionable === true);
     }
 
-    // Sort
     const sorted = sortItems(items);
-
-    // Split into actionable and informative
     const actionable = sorted.filter((item) => item.actionable === true);
     const informative = sorted.filter((item) => item.actionable !== true);
 
@@ -71,11 +65,25 @@ export default function Assistent() {
       filteredItems: sorted,
       actionableItems: actionable,
       informativeItems: informative,
-      totalCount: mockAssistantItems.length,
+      totalCount: signals.length,
     };
-  }, [activeModule, onlyActionable]);
+  }, [signals, activeModule, onlyActionable]);
 
   const showSections = !onlyActionable && actionableItems.length > 0 && informativeItems.length > 0;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Assistent"
+          subtitle="Signalen en inzichten op basis van je data"
+        />
+        <div className="flex items-center justify-center py-20">
+          <Spinner size="lg" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -91,13 +99,13 @@ export default function Assistent() {
         onOnlyActionableChange={setOnlyActionable}
         totalCount={totalCount}
         filteredCount={filteredItems.length}
+        availableModules={availableModules}
       />
 
       {filteredItems.length > 0 ? (
         <div className="space-y-1">
           {showSections ? (
             <>
-              {/* Actionable Section */}
               <SectionHeader title="Aandacht vereist" count={actionableItems.length} />
               <div className="space-y-2">
                 {actionableItems.map((item) => (
@@ -105,7 +113,6 @@ export default function Assistent() {
                 ))}
               </div>
 
-              {/* Informative Section */}
               <SectionHeader title="Ter info" count={informativeItems.length} />
               <div className="space-y-2">
                 {informativeItems.map((item) => (
