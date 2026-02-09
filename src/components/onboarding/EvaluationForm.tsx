@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Star } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoSelect } from '@/components/polar/NestoSelect';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 interface EvaluationFormProps {
@@ -57,12 +58,12 @@ export function EvaluationForm({ onSave, isLoading }: EvaluationFormProps) {
       />
 
       {/* Notes */}
-      <textarea
+      <Textarea
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Observaties, sterke punten, aandachtspunten..."
         rows={3}
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        className="resize-none"
       />
 
       <NestoButton
