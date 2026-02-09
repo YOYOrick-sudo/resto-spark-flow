@@ -1,59 +1,56 @@
 
 
-# Twee-koloms layout voor OnboardingDetail
+# Pipeline board: fase-nummers + responsive grid
 
-Pas de detailpagina aan met een grid layout: links de tabs (Taken + Tijdlijn), rechts een permanente sidebar-kaart met contactinfo. De "Info" tab verdwijnt omdat die data altijd zichtbaar is in de sidebar.
-
----
-
-## Wijzigingen in `src/pages/OnboardingDetail.tsx`
-
-### 1. Tabs van 3 naar 2
-
-Verwijder de "Info" tab:
-
-```text
-Oud:  [Taken] [Info] [Tijdlijn]
-Nieuw: [Taken] [Tijdlijn]
-```
-
-### 2. Twee-koloms grid onder de tabs
-
-Wrap de tab content en sidebar in:
-
-```text
-<div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-  <!-- Links: tab content (max-w-2xl) -->
-  <!-- Rechts: sidebar kaart -->
-</div>
-```
-
-### 3. Sidebar-kaart (rechterkolom)
-
-Een `aside` met Nesto Panel styling (`bg-secondary rounded-xl border border-border/50 p-5 h-fit`) met:
-
-- **Contactgegevens** header
-- E-mail, telefoon (indien aanwezig), aanmelddatum
-- Notities sectie (indien aanwezig)
-
-Labels: `text-xs text-muted-foreground uppercase tracking-wide`
-Waarden: `text-sm text-foreground`
-
-### 4. CandidateActions buiten de grid
-
-De sticky action bar blijft full-width onder de grid.
-
-### 5. Responsief
-
-Op mobiel (`< lg`) stapelt de sidebar onder de tab content.
+Twee aanpassingen aan het pipeline board zodat alle fasen in een oogopslag zichtbaar zijn.
 
 ---
 
-## Samenvatting
+## 1. Fase-nummers in kolom-headers
 
-| Bestand | Actie |
-|---------|-------|
-| `src/pages/OnboardingDetail.tsx` | Tabs 3→2, grid layout, sidebar kaart, CandidateInfo import kan weg |
+Omdat `phases` al gesorteerd op `sort_order` binnenkomen, geeft `PipelineBoard` de index door als `phaseNumber` prop aan `PhaseColumn`.
 
-Geen nieuwe bestanden nodig.
+De header wordt dan: **"1. Aanmelding ontvangen"**, **"2. Screening"**, etc.
 
+---
+
+## 2. Horizontaal scroll → responsive grid
+
+Vervang de `flex overflow-x-auto` container door een CSS grid:
+
+```text
+grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4
+```
+
+- **Mobiel**: 1 kolom
+- **Tablet (sm)**: 2 kolommen
+- **Desktop (lg)**: 3 kolommen
+- **Breed (xl)**: 4 kolommen
+
+De `PhaseColumn` verliest z'n vaste breedte (`min-w-[220px] w-[280px] flex-shrink-0`) en wordt `w-full` zodat hij de grid-cel vult.
+
+---
+
+## Gewijzigde bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/onboarding/PipelineBoard.tsx` | `flex overflow-x-auto` → responsive grid, `phaseNumber` prop doorgeven (index + 1) |
+| `src/components/onboarding/PhaseColumn.tsx` | Vaste breedte weg, `phaseNumber` prop toevoegen, header toont `{phaseNumber}. {phase.name}` |
+
+---
+
+## Technische details
+
+### PipelineBoard.tsx
+
+- Container class wordt: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4`
+- `phases.map((phase, index)` → geeft `phaseNumber={index + 1}` door
+
+### PhaseColumn.tsx
+
+- Interface krijgt `phaseNumber: number`
+- Class `min-w-[220px] w-[280px] flex-shrink-0` wordt verwijderd (column vult grid-cel automatisch)
+- Header text: `{phaseNumber}. {phase.name}` (genummerd)
+
+Geen nieuwe bestanden nodig. Twee kleine wijzigingen.
