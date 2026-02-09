@@ -4,9 +4,12 @@ import { NestoTabs, NestoTabContent } from '@/components/polar/NestoTabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useOnboardingCandidates } from '@/hooks/useOnboardingCandidates';
 import { useOnboardingTasks } from '@/hooks/useOnboardingTasks';
 import { useOnboardingEvents } from '@/hooks/useOnboardingEvents';
+import { useOnboardingPhases } from '@/hooks/useOnboardingPhases';
 import { useCompleteTask } from '@/hooks/useCompleteTask';
 import { useRejectCandidate } from '@/hooks/useRejectCandidate';
 import { useSaveEvaluation } from '@/hooks/useSaveEvaluation';
@@ -37,6 +40,7 @@ export function CandidateDetailSheet({ candidateId, onClose }: CandidateDetailSh
 
   const [activeTab, setActiveTab] = useState('taken');
 
+  const { data: phases } = useOnboardingPhases(locationId);
   const { data: candidates } = useOnboardingCandidates(locationId);
   const { data: tasks, isLoading: tasksLoading } = useOnboardingTasks(candidateId ?? undefined);
   const { data: events, isLoading: eventsLoading } = useOnboardingEvents(candidateId ?? undefined);
@@ -61,12 +65,14 @@ export function CandidateDetailSheet({ candidateId, onClose }: CandidateDetailSh
     const currentPhase = candidate.current_phase as { id: string; name: string; sort_order: number } | null;
     const sortOrder = currentPhase?.sort_order ?? 0;
 
+    const maxSortOrder = phases && phases.length > 0 ? Math.max(...phases.map(p => p.sort_order)) : 0;
+
     return {
       allCurrentTasksDone: allDone,
-      isLastPhase: false, // determined by trigger, not UI
+      isLastPhase: sortOrder > 0 && sortOrder === maxSortOrder,
       showEvaluation: EVAL_PHASE_SORT_ORDERS.includes(sortOrder),
     };
-  }, [tasks, candidate, currentPhaseId]);
+  }, [tasks, candidate, currentPhaseId, phases]);
 
   const handleCompleteTask = (taskId: string) => {
     if (!user?.id) return;
@@ -84,6 +90,15 @@ export function CandidateDetailSheet({ candidateId, onClose }: CandidateDetailSh
   const handleSaveEvaluation = (evaluation: { rating: number; notes: string; recommendation: string }) => {
     if (!candidateId || !user?.id || !locationId) return;
     saveEvaluation.mutate({ candidateId, evaluation, userId: user.id, locationId });
+  };
+
+  const queryClient = useQueryClient();
+
+  const handleAdvance = () => {
+    queryClient.invalidateQueries({ queryKey: ['onboarding-candidates'] });
+    queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
+    queryClient.invalidateQueries({ queryKey: ['onboarding-events'] });
+    toast.success('Doorgegaan naar volgende fase');
   };
 
   return (
@@ -152,6 +167,7 @@ export function CandidateDetailSheet({ candidateId, onClose }: CandidateDetailSh
               allCurrentTasksDone={allCurrentTasksDone}
               isLastPhase={isLastPhase}
               onReject={handleReject}
+              onAdvance={handleAdvance}
               isRejecting={rejectCandidate.isPending}
             />
           </>

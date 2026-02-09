@@ -9,6 +9,7 @@ interface CandidateActionsProps {
   allCurrentTasksDone: boolean;
   isLastPhase: boolean;
   onReject: () => void;
+  onAdvance: () => void;
   isRejecting?: boolean;
 }
 
@@ -18,6 +19,7 @@ export function CandidateActions({
   allCurrentTasksDone,
   isLastPhase,
   onReject,
+  onAdvance,
   isRejecting,
 }: CandidateActionsProps) {
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
@@ -35,12 +37,13 @@ export function CandidateActions({
             Afwijzen
           </NestoButton>
 
-          {allCurrentTasksDone && (
-            <p className="text-sm text-success flex items-center gap-1.5">
-              <Trophy className="h-4 w-4" />
-              {isLastPhase ? 'Aangenomen' : 'Fase afgerond — automatisch doorgeschoven'}
-            </p>
-          )}
+          <NestoButton
+            size="sm"
+            onClick={onAdvance}
+            disabled={!allCurrentTasksDone}
+          >
+            {isLastPhase ? 'Aannemen' : 'Doorgaan'}
+          </NestoButton>
 
           <ConfirmDialog
             open={showRejectConfirm}
