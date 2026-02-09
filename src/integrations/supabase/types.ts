@@ -562,6 +562,7 @@ export type Database = {
       onboarding_settings: {
         Row: {
           created_at: string
+          email_config: Json
           email_templates: Json
           id: string
           location_id: string
@@ -570,6 +571,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_config?: Json
           email_templates?: Json
           id?: string
           location_id: string
@@ -578,6 +580,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_config?: Json
           email_templates?: Json
           id?: string
           location_id?: string

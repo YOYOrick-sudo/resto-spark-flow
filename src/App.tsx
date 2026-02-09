@@ -32,6 +32,7 @@ import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
 import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
+import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
 
 // New multi-level settings pages
 import {
@@ -103,6 +104,7 @@ const App = () => (
                   <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
                   <Route path="/instellingen/inkoop" element={<SettingsInkoop />} />
                   <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
+                  <Route path="/instellingen/onboarding" element={<SettingsOnboarding />} />
                   
                   {/* Settings - Reserveringen (Multi-level) */}
                   <Route path="/instellingen/reserveringen" element={<SettingsReserveringenIndex />} />
