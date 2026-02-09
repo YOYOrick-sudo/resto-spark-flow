@@ -4,6 +4,7 @@ import { NestoInput } from '@/components/polar/NestoInput';
 import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { useCreateCandidate } from '@/hooks/useCreateCandidate';
+import { Textarea } from '@/components/ui/textarea';
 
 const positionOptions = [
   { value: 'bediening', label: 'Bediening' },
@@ -153,12 +154,12 @@ export function AddCandidateModal({ open, onOpenChange, locationId }: AddCandida
           <label className="mb-2 block text-label text-muted-foreground">
             Notities
           </label>
-          <textarea
+          <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Eventuele opmerkingen..."
             rows={3}
-            className="flex w-full rounded-button border-[1.5px] border-border bg-card px-3 py-2.5 text-[15px] text-foreground transition-colors placeholder:text-muted-foreground focus:!border-primary focus:outline-none focus:ring-0 resize-none"
+            className="resize-none"
           />
         </div>
       </div>
