@@ -1,24 +1,19 @@
 
 
-# Textarea consistentie: laatste fixes
+# Switch dark mode verfijning
 
-## Overzicht
+## Probleem
+In dark mode is de unchecked switch te "intens" — de witte thumb tegen de donkere track heeft te veel contrast, en de border valt weg omdat `bg-muted` en `border-border` dezelfde kleur zijn.
 
-De base `Textarea` component is al gefixt. Er zijn nog 2 plekken die opgeruimd moeten worden:
+## Oplossing
+Subtielere dark mode styling via de bestaande Tailwind `dark:` modifier:
 
-## Wijzigingen
+### `src/components/ui/switch.tsx`
 
-### 1. `src/components/onboarding/AddCandidateModal.tsx`
-**Probleem**: Gebruikt een raw `<textarea>` element met handmatig gekopieerde styling in plaats van de `Textarea` component.
+| Eigenschap | Light mode (blijft) | Dark mode (nieuw) |
+|---|---|---|
+| Unchecked track | `bg-muted` | `dark:bg-muted/60` (zachter, minder contrast) |
+| Unchecked border | `border-border` | `dark:border-border/60` (subtielere rand) |
+| Thumb | `bg-white shadow-sm` | `dark:bg-white/90 dark:shadow-none` (iets gedempter, geen schaduw) |
 
-**Fix**:
-- Import `Textarea` uit `@/components/ui/textarea`
-- Vervang de raw `<textarea>` door `<Textarea>` met alleen `className="resize-none"` (de rest erft van de base component)
-
-### 2. `src/components/reserveringen/QuickReservationPanel.tsx`
-**Probleem**: Heeft `className="resize-none border-[1.5px]"` — de `border-[1.5px]` is overbodig omdat dit al in de base Textarea zit.
-
-**Fix**: Verander naar `className="resize-none"` (alleen de override die nodig is)
-
-## Resultaat
-Na deze 2 kleine fixes zijn alle textareas in het hele project consistent via de base component, zonder overrides of raw elementen.
+Resultaat: de toggle oogt rustiger in dark mode zonder het light mode design te veranderen.
