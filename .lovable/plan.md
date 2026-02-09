@@ -1,20 +1,21 @@
 
 
-# Fix: Permission key corrigeren op Settings > Onboarding
+# Textarea styling conform Nesto Polar
 
-## Probleem
+## Wijzigingen
 
-De pagina `SettingsOnboarding.tsx` checkt op permissie `onboarding.manage`, maar die bestaat niet in de database. De beschikbare permissie voor onboarding-instellingen is `onboarding.settings`.
+### 1. `src/components/ui/textarea.tsx`
+De base className aanpassen van ShadCN default naar Nesto Polar:
 
-Hierdoor ziet elke gebruiker — inclusief de owner — het "Geen toegang" scherm.
+| Eigenschap | Was | Wordt |
+|------------|-----|-------|
+| Border | `border border-input` | `border-[1.5px] border-border` |
+| Achtergrond | `bg-background` | `bg-card` |
+| Radius | `rounded-md` | `rounded-button` |
+| Focus | `ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` | `focus:!border-primary focus:outline-none focus:ring-0` |
 
-## Oplossing
+### 2. `src/components/onboarding/EvaluationForm.tsx`
+Raw `<textarea>` element vervangen door de `Textarea` component, zodat het automatisch de Nesto styling erft.
 
-Een wijziging in 1 bestand:
-
-**`src/pages/settings/SettingsOnboarding.tsx`** (regel 22):
-- Was: `usePermission('onboarding.manage')`
-- Wordt: `usePermission('onboarding.settings')`
-
-Dat is alles. De owner-rol heeft `onboarding.settings` al toegekend in de database.
+Resultaat: alle textareas in het project zien er hetzelfde uit als NestoInput — 1.5px border, witte achtergrond, teal focus border, geen ring.
 
