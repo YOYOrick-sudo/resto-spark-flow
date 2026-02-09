@@ -1,110 +1,119 @@
 
-# Stap 6: Email via Resend
 
-## Vereiste voorbereiding (door jou)
+# Stap 8: Settings > Onboarding — Implementatieplan
 
-Voordat de code-wijzigingen worden doorgevoerd:
+## Overzicht
 
-1. Ga naar https://resend.com en maak een account aan (gratis: 3.000 emails/maand)
-2. Verifieer je domein op https://resend.com/domains (DNS records toevoegen)
-3. Maak een API key aan op https://resend.com/api-keys
-4. Lovable slaat de key veilig op als backend secret (wordt gevraagd na goedkeuring)
-
-Optioneel: een `RESEND_FROM_EMAIL` secret voor het afzenderadres (bijv. `Nesto <noreply@jouwdomein.nl>`). Zonder deze wordt `Nesto <onboarding@resend.dev>` gebruikt (Resend test-domein).
+Nieuwe settings pagina op `/instellingen/onboarding` met 4 tabs: Fasen, E-mailtemplates, Reminders, Email configuratie. Volgt bestaande settings-architectuur.
 
 ---
 
-## Wat er verandert
+## 1. Database migratie
 
-### 1. `supabase/functions/_shared/email.ts` -- stub wordt Resend
-
-De huidige stub (console.log + event met `stub: true`) wordt vervangen door:
-
-- Check of `RESEND_API_KEY` beschikbaar is
-- **Ja**: HTTP POST naar `https://api.resend.com/emails` met Authorization header
-  - Bij succes: log Resend email ID, sla `email_sent` event op met `stub: false` en `resend_id`
-  - Bij fout: log `email_failed` event met error details, maar crash NIET (agent werkt door)
-- **Nee**: fallback naar huidige stub-gedrag (console log + `stub: true` event)
-
-Geen Resend SDK nodig -- het is een simpele `fetch()` call.
-
-### 2. `supabase/functions/onboarding-agent/index.ts` -- fase-emails
-
-`handlePhaseChanged` wordt uitgebreid:
-
-1. Na het afronden van automated tasks, haal de nieuwe fase op (sort_order)
-2. Map sort_order naar template key:
-
-| sort_order | Template key |
-|------------|-------------|
-| 20 | `additional_questions` |
-| 30 | `interview_invite` |
-| 50 | `trial_day_invite` |
-| 80 | `offer_and_form` |
-
-3. Als de template bestaat in `onboarding_settings.email_templates`: render met candidate context en verstuur
-4. Geen template? Skip (niet elke fase heeft een email)
-
-### 3. Database seed -- extra email templates
-
-Huidige templates in `onboarding_settings`:
-- `confirmation` -- aanwezig
-- `rejection` -- aanwezig
-- `interview_invite` -- aanwezig
-- `welcome` -- aanwezig
-
-Toe te voegen via SQL update:
-- `additional_questions` (Screening fase)
-- `trial_day_invite` (Meeloopdag fase)
-- `offer_and_form` (Pre-boarding fase)
-- `internal_reminder` (voorbereiding stap 7)
-- `internal_reminder_urgent` (voorbereiding stap 7)
+- `email_config` JSONB kolom toevoegen aan `onboarding_settings` (default: `{"sender_name": "", "reply_to": ""}`)
+- `reminder_enabled: true` toevoegen aan bestaande `reminder_config` records
+- Seed de test-locatie met defaults
 
 ---
 
-## Technische details
+## 2. Navigatie-integratie
 
-### email.ts (nieuw)
+**`src/lib/navigation.ts`**:
+- ROUTE_MAP: `'settings-onboarding': '/instellingen/onboarding'`
+- Sidebar sub-item onder Settings: `{ id: 'settings-onboarding', label: 'Onboarding', path: '/instellingen/onboarding' }`
+- `getExpandedGroupFromPath`: `/instellingen` al afgehandeld (returns `'settings'`)
 
-```text
-sendEmail(params)
-  |
-  +-- RESEND_API_KEY beschikbaar?
-  |     |
-  |     +-- Ja: fetch POST https://api.resend.com/emails
-  |     |     +-- 200 OK: log event (stub: false, resend_id)
-  |     |     +-- Error: log event (email_failed), NIET crashen
-  |     |
-  |     +-- Nee: console.log + event (stub: true)
-```
-
-### Phase-email mapping in agent
-
-```text
-handlePhaseChanged(event)
-  |
-  +-- completeAutomatedTasks()
-  +-- Haal phase.sort_order op via new_phase_id
-  +-- Lookup template key in PHASE_EMAIL_MAP
-  +-- Template gevonden in onboarding_settings?
-        +-- Ja: renderTemplate() + sendEmail()
-        +-- Nee: skip
-```
+**`src/App.tsx`**: nieuwe route `/instellingen/onboarding` -> `SettingsOnboarding`
 
 ---
 
-## Wijzigingen samenvatting
+## 3. Hooks (4 bestanden)
 
-| Bestand | Actie |
-|---------|-------|
-| `RESEND_API_KEY` secret | Toevoegen (wordt gevraagd na goedkeuring) |
-| `supabase/functions/_shared/email.ts` | Herschrijven: stub naar Resend met fallback |
-| `supabase/functions/onboarding-agent/index.ts` | `handlePhaseChanged` uitbreiden met fase-specifieke emails |
-| Database (onboarding_settings) | SQL update: 5 extra email templates toevoegen |
+| Hook | Tabel | Functie |
+|------|-------|---------|
+| `useOnboardingSettings` | `onboarding_settings` | Query: haalt settings op voor locatie |
+| `useUpdateOnboardingSettings` | `onboarding_settings` | Mutation: update `email_templates`, `reminder_config`, of `email_config` (generiek, accepteert partial update) |
+| `useAllOnboardingPhases` | `onboarding_phases` | Query: alle fasen inclusief inactieve, gesorteerd op sort_order |
+| `useUpdatePhaseConfig` | `onboarding_phases` | Mutation: update `is_active`, `description`, `task_templates` per fase |
 
-## Geen wijzigingen aan
+Scheiding: settings-tabel via generieke hook, phases-tabel via specifieke hook.
 
-- Frontend code
-- Andere Edge Functions
-- templateRenderer.ts (werkt al correct)
-- Bestaande handlers (candidateCreated / candidateRejected werken al met sendEmail)
+---
+
+## 4. Components (10 bestanden)
+
+### Route pagina
+- `src/pages/settings/SettingsOnboarding.tsx` — SettingsDetailLayout + NestoTabs (4 tabs)
+
+### Tab 1: Fasen
+- `PhaseConfigSection.tsx` — lijst van PhaseConfigCards
+- `PhaseConfigCard.tsx` — NestoCard per fase: naam (read-only), beschrijving (bewerkbaar), is_active toggle, expandable taken
+- `TaskTemplateList.tsx` — taken editor: titel input, role dropdown, is_automated toggle, toevoegen/verwijderen
+
+### Tab 2: E-mailtemplates
+- `EmailTemplatesSection.tsx` — lijst van alle 9 templates
+- `EmailTemplateEditor.tsx` — subject input + body textarea + variabelen-chips (toevoegen aan einde, geen cursor tracking voor MVP) + live preview met voorbeelddata
+
+### Tab 3: Reminders
+- `ReminderSettingsSection.tsx` — toggle + 3 numerieke velden (disabled wanneer toggle uit), autosave met inline indicator
+
+### Tab 4: Email config
+- `EmailConfigSection.tsx` — sender_name input + reply_to email input + info-tekst over platform domein
+
+### Barrel export
+- `src/components/onboarding/settings/index.ts`
+
+---
+
+## 5. Edge Function update
+
+**`supabase/functions/_shared/email.ts`**:
+- Bij het versturen van een email: haal `email_config` op uit `onboarding_settings` voor de betreffende `location_id`
+- Gebruik `sender_name` in het `from` veld: `{sender_name} <noreply@nesto.app>` (fallback naar huidige default)
+- Gebruik `reply_to` in de Resend payload (als ingevuld)
+- Dit voegt een extra DB query toe per email — acceptabel voor onboarding volumes
+
+---
+
+## 6. Autosave patroon
+
+- Debounced (800ms) autosave bij wijziging van tekstvelden
+- Directe save bij toggles en dropdowns
+- Inline "Opgeslagen" indicator (geen toast bij autosave)
+- Toast bij expliciete acties: taak toevoegen/verwijderen
+
+---
+
+## 7. Permission gating
+
+- Pagina checkt `onboarding.manage` permissie via bestaande `usePermission` hook
+- Zonder permissie: redirect naar dashboard of lege state
+
+---
+
+## Volgorde van uitvoering
+
+1. Database migratie (email_config kolom + reminder_enabled seed)
+2. Hooks (4 bestanden, parallel)
+3. Components (10 bestanden, parallel)
+4. Route + navigatie integratie
+5. Edge Function update (email.ts)
+6. Deploy edge function
+
+---
+
+## Gewijzigde bestaande bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/App.tsx` | Route toevoegen |
+| `src/lib/navigation.ts` | Sidebar item + ROUTE_MAP |
+| `supabase/functions/_shared/email.ts` | email_config ophalen + gebruiken |
+
+## Nieuwe bestanden (15)
+
+- 1 database migratie
+- 4 hooks
+- 9 components + 1 barrel export
+- 1 route pagina
+
