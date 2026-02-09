@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/polar/PageHeader';
-import { PipelineBoard, StatusFilterPills, AddCandidateModal } from '@/components/onboarding';
+import { PipelineBoard, StatusFilterPills, AddCandidateModal, CandidateDetailSheet } from '@/components/onboarding';
 import type { StatusFilter } from '@/components/onboarding';
 import { useUserContext } from '@/contexts/UserContext';
 import { useOnboardingPhases } from '@/hooks/useOnboardingPhases';
@@ -19,6 +19,7 @@ export default function OnboardingPage() {
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
 
   const filteredCandidates = useMemo(() => {
     if (!candidates) return [];
@@ -63,6 +64,7 @@ export default function OnboardingPage() {
         <PipelineBoard
           phases={phases}
           candidates={filteredCandidates}
+          onCandidateClick={(id) => setSelectedCandidateId(id)}
         />
       ) : (
         <p className="text-sm text-muted-foreground py-8 text-center">
@@ -77,6 +79,11 @@ export default function OnboardingPage() {
           locationId={locationId}
         />
       )}
+
+      <CandidateDetailSheet
+        candidateId={selectedCandidateId}
+        onClose={() => setSelectedCandidateId(null)}
+      />
     </div>
   );
 }
