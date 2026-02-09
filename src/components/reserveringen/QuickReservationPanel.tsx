@@ -389,7 +389,7 @@ export function QuickReservationPanel({
                   <FormControl>
                     <Textarea
                       placeholder="Optionele opmerkingen..."
-                      className="resize-none border-[1.5px]"
+                      className="resize-none"
                       rows={3}
                       {...field}
                     />
