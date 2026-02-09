@@ -2,3 +2,6 @@ project_id = "igqcfxizgtdkwnajvers"
 
 [functions.onboarding-agent]
 verify_jwt = false
+
+[functions.check-reminders]
+verify_jwt = false
