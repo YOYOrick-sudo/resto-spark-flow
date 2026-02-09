@@ -30,6 +30,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'settings-reserveringen': '/instellingen/reserveringen',
   'settings-inkoop': '/instellingen/inkoop',
   'settings-leveranciers': '/instellingen/leveranciers',
+  'settings-onboarding': '/instellingen/onboarding',
   'onboarding': '/onboarding',
 };
 
@@ -141,6 +142,7 @@ export const menuItems: MenuItem[] = [
       { id: 'settings-recepten', label: 'Recepten', disabled: true },
       { id: 'settings-labels', label: 'Labels & Printen', disabled: true },
       { id: 'settings-finance', label: 'Finance', disabled: true },
+      { id: 'settings-onboarding', label: 'Onboarding', path: '/instellingen/onboarding' },
       { id: 'settings-hrm', label: 'HRM', disabled: true },
       { id: 'settings-support', label: 'Support', disabled: true },
       { id: 'settings-documentatie', label: 'Documentatie', disabled: true },

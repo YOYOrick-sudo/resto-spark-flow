@@ -10,7 +10,29 @@ interface SendEmailParams {
 }
 
 /**
+ * Fetches location-specific email config (sender_name, reply_to) from onboarding_settings.
+ */
+async function getEmailConfig(locationId: string): Promise<{ sender_name?: string; reply_to?: string }> {
+  const { data, error } = await supabaseAdmin
+    .from('onboarding_settings')
+    .select('email_config')
+    .eq('location_id', locationId)
+    .maybeSingle();
+
+  if (error || !data?.email_config) {
+    return {};
+  }
+
+  const config = data.email_config as Record<string, string>;
+  return {
+    sender_name: config.sender_name || undefined,
+    reply_to: config.reply_to || undefined,
+  };
+}
+
+/**
  * Sends an email via Resend API, with fallback to stub if RESEND_API_KEY is not set.
+ * Uses location-specific sender_name and reply_to from onboarding_settings.
  */
 export async function sendEmail(params: SendEmailParams): Promise<void> {
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -33,21 +55,33 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
     return;
   }
 
-  const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'Nesto <onboarding@resend.dev>';
+  // Fetch location-specific email config
+  const emailConfig = await getEmailConfig(params.locationId);
+
+  const defaultFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'Nesto <onboarding@resend.dev>';
+  const fromEmail = emailConfig.sender_name
+    ? `${emailConfig.sender_name} <noreply@nesto.app>`
+    : defaultFrom;
 
   try {
+    const payload: Record<string, unknown> = {
+      from: fromEmail,
+      to: [params.to],
+      subject: params.subject,
+      html: params.html,
+    };
+
+    if (emailConfig.reply_to) {
+      payload.reply_to = emailConfig.reply_to;
+    }
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [params.to],
-        subject: params.subject,
-        html: params.html,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
