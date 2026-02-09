@@ -53,7 +53,7 @@ export function DetailPanel({
           )}
           <button
             onClick={onClose}
-            className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-secondary transition-colors flex-shrink-0"
+            className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-secondary transition-colors flex-shrink-0 ml-auto"
           >
             <X className="h-4 w-4" />
           </button>

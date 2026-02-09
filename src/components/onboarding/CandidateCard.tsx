@@ -19,6 +19,7 @@ interface CandidateCardProps {
 export function CandidateCard({ candidate, onClick, isSelected }: CandidateCardProps) {
   return (
     <div
+      data-candidate-id={candidate.id}
       onClick={onClick}
       className={cn(
         'bg-card border rounded-lg p-3 cursor-pointer transition-colors',
