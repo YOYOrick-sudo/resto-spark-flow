@@ -9,7 +9,7 @@ export type PlatformRole = 'platform_admin' | 'support';
 export type LocationRole = 'owner' | 'manager' | 'service' | 'kitchen' | 'finance';
 
 // Module keys for entitlements
-export type ModuleKey = 'reservations' | 'kitchen' | 'finance' | 'hrm' | 'marketing' | 'settings';
+export type ModuleKey = 'reservations' | 'kitchen' | 'finance' | 'hrm' | 'marketing' | 'settings' | 'onboarding';
 
 // Entitlement for a module
 export interface ModuleEntitlement {

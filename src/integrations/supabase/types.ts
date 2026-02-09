@@ -286,6 +286,314 @@ export type Database = {
           },
         ]
       }
+      ob_tasks: {
+        Row: {
+          assigned_role: Database["public"]["Enums"]["location_role"] | null
+          assigned_user_id: string | null
+          candidate_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_automated: boolean
+          location_id: string
+          phase_id: string
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_role?: Database["public"]["Enums"]["location_role"] | null
+          assigned_user_id?: string | null
+          candidate_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_automated?: boolean
+          location_id: string
+          phase_id: string
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_role?: Database["public"]["Enums"]["location_role"] | null
+          assigned_user_id?: string | null
+          candidate_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_automated?: boolean
+          location_id?: string
+          phase_id?: string
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ob_tasks_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ob_tasks_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ob_tasks_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_candidates: {
+        Row: {
+          applied_at: string
+          created_at: string
+          current_phase_id: string | null
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          location_id: string
+          notes: string | null
+          phone: string | null
+          status: Database["public"]["Enums"]["onboarding_status"]
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string
+          created_at?: string
+          current_phase_id?: string | null
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          location_id: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["onboarding_status"]
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string
+          created_at?: string
+          current_phase_id?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          location_id?: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["onboarding_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_candidates_current_phase_id_fkey"
+            columns: ["current_phase_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_candidates_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_events: {
+        Row: {
+          actor_id: string | null
+          candidate_id: string
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          location_id: string
+          triggered_by: string
+        }
+        Insert: {
+          actor_id?: string | null
+          candidate_id: string
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          location_id: string
+          triggered_by?: string
+        }
+        Update: {
+          actor_id?: string | null
+          candidate_id?: string
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          location_id?: string
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_events_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_phase_logs: {
+        Row: {
+          candidate_id: string
+          created_by: string | null
+          entered_at: string
+          exited_at: string | null
+          id: string
+          notes: string | null
+          phase_id: string
+        }
+        Insert: {
+          candidate_id: string
+          created_by?: string | null
+          entered_at?: string
+          exited_at?: string | null
+          id?: string
+          notes?: string | null
+          phase_id: string
+        }
+        Update: {
+          candidate_id?: string
+          created_by?: string | null
+          entered_at?: string
+          exited_at?: string | null
+          id?: string
+          notes?: string | null
+          phase_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_phase_logs_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_phase_logs_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_phases: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          location_id: string
+          name: string
+          sort_order: number
+          task_templates: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location_id: string
+          name: string
+          sort_order?: number
+          task_templates?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          name?: string
+          sort_order?: number
+          task_templates?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_phases_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_settings: {
+        Row: {
+          created_at: string
+          email_templates: Json
+          id: string
+          location_id: string
+          reminder_config: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_templates?: Json
+          id?: string
+          location_id: string
+          reminder_config?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_templates?: Json
+          id?: string
+          location_id?: string
+          reminder_config?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_settings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_tasks: {
         Row: {
           completed_at: string | null
@@ -883,6 +1191,36 @@ export type Database = {
           },
         ]
       }
+      workflow_executions: {
+        Row: {
+          completed_at: string | null
+          error: string | null
+          id: string
+          idempotency_key: string
+          result: Json | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          result?: Json | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          result?: Json | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -991,6 +1329,14 @@ export type Database = {
         | "hrm"
         | "marketing"
         | "settings"
+        | "onboarding"
+      onboarding_status:
+        | "active"
+        | "hired"
+        | "rejected"
+        | "withdrawn"
+        | "no_response"
+        | "expired"
       platform_role: "platform_admin" | "support"
       shift_exception_type: "closed" | "modified" | "special"
     }
@@ -1130,6 +1476,15 @@ export const Constants = {
         "hrm",
         "marketing",
         "settings",
+        "onboarding",
+      ],
+      onboarding_status: [
+        "active",
+        "hired",
+        "rejected",
+        "withdrawn",
+        "no_response",
+        "expired",
       ],
       platform_role: ["platform_admin", "support"],
       shift_exception_type: ["closed", "modified", "special"],
