@@ -1,21 +1,24 @@
 
 
-# Textarea styling conform Nesto Polar
+# Textarea consistentie: laatste fixes
+
+## Overzicht
+
+De base `Textarea` component is al gefixt. Er zijn nog 2 plekken die opgeruimd moeten worden:
 
 ## Wijzigingen
 
-### 1. `src/components/ui/textarea.tsx`
-De base className aanpassen van ShadCN default naar Nesto Polar:
+### 1. `src/components/onboarding/AddCandidateModal.tsx`
+**Probleem**: Gebruikt een raw `<textarea>` element met handmatig gekopieerde styling in plaats van de `Textarea` component.
 
-| Eigenschap | Was | Wordt |
-|------------|-----|-------|
-| Border | `border border-input` | `border-[1.5px] border-border` |
-| Achtergrond | `bg-background` | `bg-card` |
-| Radius | `rounded-md` | `rounded-button` |
-| Focus | `ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` | `focus:!border-primary focus:outline-none focus:ring-0` |
+**Fix**:
+- Import `Textarea` uit `@/components/ui/textarea`
+- Vervang de raw `<textarea>` door `<Textarea>` met alleen `className="resize-none"` (de rest erft van de base component)
 
-### 2. `src/components/onboarding/EvaluationForm.tsx`
-Raw `<textarea>` element vervangen door de `Textarea` component, zodat het automatisch de Nesto styling erft.
+### 2. `src/components/reserveringen/QuickReservationPanel.tsx`
+**Probleem**: Heeft `className="resize-none border-[1.5px]"` — de `border-[1.5px]` is overbodig omdat dit al in de base Textarea zit.
 
-Resultaat: alle textareas in het project zien er hetzelfde uit als NestoInput — 1.5px border, witte achtergrond, teal focus border, geen ring.
+**Fix**: Verander naar `className="resize-none"` (alleen de override die nodig is)
 
+## Resultaat
+Na deze 2 kleine fixes zijn alle textareas in het hele project consistent via de base component, zonder overrides of raw elementen.
