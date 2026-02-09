@@ -1,5 +1,5 @@
 # NESTO PROJECT ROADMAP
-Laatst bijgewerkt: 11 januari 2026
+Laatst bijgewerkt: 9 februari 2026
 
 ## PROJECT OVERZICHT
 Nesto is een SaaS platform voor horeca management met modules voor reserveringen, keuken, kaartbeheer, en meer. Multi-tenant architectuur waarbij elke organization meerdere locations kan hebben, met per-location billing en module entitlements.
@@ -16,7 +16,9 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
 - ✅ Fase 4.2: Areas, Tables, TableGroups
 - ✅ Fase 4.3.A: Shifts CRUD
 - ✅ Fase 4.3.B: Shifts Live Preview Panel
-- ✅ Fase 7.4.1: Nesto Assistant - Signals UI
+- ✅ Fase 7.4.1: Nesto Assistant - Signals UI (mock data)
+- ✅ Fase 7.4.2: Signal Architecture + Live Signals
+- ✅ Fase 7.5: Onboarding Module (Pipeline, Detail, Settings, Automation, Signals)
 
 ### IN UITVOERING
 - 🔄 Fase 4.3: Shifts + Exceptions
@@ -832,7 +834,7 @@ Status: Nog te starten
 - [ ] Voorkeuren
 
 ### 7.4 Nesto Assistant (Signaal-gedreven Beslissingsondersteuner)
-Status: Fase 1 Compleet
+Status: Fase 1 + Signal Architecture Compleet
 
 > Zie `docs/ASSISTANT_VISION.md` voor complete productvisie.
 
@@ -936,44 +938,48 @@ Status: Afgerond (10-11 januari 2026)
 
 ---
 
-#### 7.4.2 Fase 2: Live Signals ⏳ NOG TE STARTEN
-Status: Wacht op module data
+#### 7.4.2 Fase 2: Signal Architecture + Live Signals ✅ COMPLEET
+Status: Afgerond (9 februari 2026)
 
-**Doel:** Rule-based signals genereren uit live data
+**Wat is gedaan:**
 
-**Database (optioneel):**
-- [ ] `assistant_signals` tabel voor persistentie
-- [ ] Of: realtime berekening via hooks (geen persistentie)
+**Database:**
+- [x] `signals` tabel met dedup, cooldown, auto-resolve
+- [x] `signal_preferences` tabel (per-user muting)
+- [x] Partial unique index: `(dedup_key) WHERE status = 'active'`
+- [x] Composite index: `(location_id, status, created_at DESC)`
+- [x] RLS policies met `user_has_location_access()` + `location_entitlements` check
+- [x] Realtime enabled via `ALTER PUBLICATION supabase_realtime ADD TABLE signals`
 
-**Hooks per module:**
-- [ ] `useReservationSignals()`:
-  - Annuleringen vandaag (count > 2)
-  - No-show ratio deze week (> 10%)
-  - Wachtlijst entries (count > 0)
-  - Pacing vs capaciteit check
-- [ ] `useKitchenSignals()`:
-  - Open MEP-taken (count > 0 AND shift < 2h)
-  - Voorraad onder minimum
-  - Verlopen halffabricaten
-- [ ] `useConfigSignals()`:
-  - Tafels niet in area (unassigned > 0)
-  - Lege tafelgroepen (members = 0)
-  - Shift zonder pacing-limiet
-- [ ] `useRevenueSignals()`:
-  - Omzet vandaag
-  - Gemiddelde besteding
-  - Tafeltijd afwijking (> 15%)
+**Edge Function (`evaluate-signals`):**
+- [x] Provider Registry Pattern met `SignalProvider` interface
+- [x] `ConfigSignalProvider`: unassigned_tables, empty_table_groups, shifts_without_pacing
+- [x] `OnboardingSignalProvider`: stalled_candidate, overdue_tasks
+- [x] Auto-resolve: `resolveStale()` draait bij elke evaluatie
+- [x] Dedup via partial unique index + explicit check
+- [x] Cooldown mechanisme (cooldown_until timestamp)
+- [x] Database triggers op tables, areas, shifts, table_groups voor real-time evaluatie
 
-**Signal Rules Engine:**
-- [ ] Thresholds configureerbaar per locatie
-- [ ] Cooldown van 4 uur per signal type
-- [ ] Prioriteit berekening op basis van impact
+**Frontend:**
+- [x] `src/types/signals.ts` - Signal types (vervangt assistant.ts)
+- [x] `src/hooks/useSignals.ts` - Query + Realtime subscription + permission filtering
+- [x] `src/hooks/useDismissSignal.ts` - Dismiss mutatie
+- [x] `src/pages/Assistent.tsx` - Verbonden met echte data
+- [x] `src/components/assistant/AssistantItemCard.tsx` - Dismiss knop + dynamische module kleuren
+- [x] `src/components/assistant/AssistantFilters.tsx` - Dynamische module pills
+- [x] Mock data verwijderd (`assistantMockData.ts`, `assistant.ts`)
 
-**Acceptance Criteria:**
-- [ ] Signals worden realtime berekend uit live data
-- [ ] Geen "noise" - alleen significante signalen
-- [ ] Cooldown voorkomt herhaalde dezelfde signals
-- [ ] Mock data vervangen door live hooks
+**Documentatie:**
+- [x] `docs/SIGNAL_ARCHITECTURE.md` - Schema, providers, permission cascade, dedup/cooldown
+
+**Permission cascade (4 lagen):**
+1. Tenant → organization_id match (RLS)
+2. Location → user_has_location_access() (RLS)
+3. Module → location_entitlements enabled (RLS + client-side)
+4. Preference → signal_preferences.muted (client-side)
+
+**Nog te configureren:**
+- [ ] pg_cron job voor periodieke evaluatie (vereist handmatige setup)
 
 ---
 
@@ -1143,10 +1149,85 @@ Status: Wacht op 3+ maanden data
 | Document | Inhoud |
 |----------|--------|
 | `docs/ASSISTANT_VISION.md` | Complete productvisie met voorbeelden |
-| `src/types/assistant.ts` | TypeScript interfaces |
-| `src/data/assistantMockData.ts` | Mock data voor development |
+| `docs/SIGNAL_ARCHITECTURE.md` | Signal architectuur, providers, dedup/cooldown |
+| `src/types/signals.ts` | TypeScript interfaces |
 
-### 7.5 Takeaway
+---
+
+### 7.5 Onboarding Module ✅ COMPLEET
+Status: Afgerond (9 februari 2026)
+
+**Doel:** Recruitment pipeline voor het aannemen van nieuwe medewerkers.
+
+#### 7.5.1 Pipeline Board ✅ COMPLEET
+
+**Wat is gedaan:**
+- [x] `/onboarding` pagina met Kanban-style pipeline board
+- [x] Status-based filters: Actief, Afgerond, Afgewezen
+- [x] Responsive CSS grid (1 col mobile, 2 tablet, 3-4 desktop)
+- [x] `CandidateCard` met NestoCard variant="small" + hoverable
+- [x] `PhaseDurationBadge` met kleurcodering (groen <24u, oranje 24-48u, rood >48u)
+- [x] Genummerde kolom headers (e.g. "1. Aanmelding ontvangen")
+- [x] `AddCandidateModal` voor nieuwe kandidaten
+
+#### 7.5.2 Detail Pagina ✅ COMPLEET
+
+**Wat is gedaan:**
+- [x] `/onboarding/:id` detail pagina
+- [x] `CandidateHeader` met status badge en fase-info
+- [x] `CandidateInfo` met contactgegevens
+- [x] `PhaseTaskList` met taak check-off functionaliteit
+- [x] `TaskItem` component
+- [x] `EvaluationForm` (sterren 1-5, aanbeveling, notities) - verschijnt bij interview/trial fasen
+- [x] `CandidateTimeline` met volledige event historie
+- [x] `CandidateActions` footer bar:
+  - Afwijzen (rood, links) / Doorgaan of Aannemen (teal, rechts)
+  - Status-specifieke indicators (Trophy voor hired, XCircle voor rejected)
+
+#### 7.5.3 Settings ✅ COMPLEET
+
+**Wat is gedaan:**
+- [x] `/instellingen/onboarding` settings pagina met 4 tabs:
+  - Fasen: `PhaseConfigSection` met `PhaseConfigCard` per fase
+  - E-mailtemplates: `EmailTemplatesSection` met `EmailTemplateEditor`
+  - Reminders: `ReminderSettingsSection`
+  - Email configuratie: `EmailConfigSection`
+- [x] `useAllOnboardingPhases` hook
+- [x] `useUpdatePhaseConfig` mutation
+- [x] `useOnboardingSettings` hook
+
+#### 7.5.4 Automation ✅ COMPLEET
+
+**Wat is gedaan:**
+- [x] Edge Function `onboarding-agent`:
+  - `candidate_created`: bevestigingsemail + automatische taken
+  - `candidate_rejected`: afwijzingsemail
+  - `phase_changed`: taken voor nieuwe fase
+- [x] `workflow_executions` tabel voor idempotency
+- [x] Database trigger `trg_check_onboarding_phase_completion`:
+  - Automatische fase-voortgang wanneer alle taken completed/skipped
+  - Laatste fase → status 'hired'
+- [x] Template rendering met placeholders ([voornaam], [vestiging])
+
+#### 7.5.5 Signal Integration ✅ COMPLEET
+
+**Wat is gedaan:**
+- [x] `OnboardingSignalProvider` in evaluate-signals Edge Function
+- [x] Signal types: `stalled_candidate`, `overdue_tasks`
+- [x] Auto-resolve wanneer conditie niet meer geldt
+- [x] Onboarding signals zichtbaar op Assistent pagina
+
+**Database:**
+- [x] `onboarding_phases` - Fasen met task_templates (JSON)
+- [x] `onboarding_candidates` - Kandidaten met status enum
+- [x] `ob_tasks` - Taken per kandidaat per fase
+- [x] `onboarding_events` - Audit log
+- [x] `onboarding_phase_logs` - Fase doorlooptijd tracking
+- [x] `onboarding_settings` - Per-location configuratie
+- [x] `onboarding_status` enum: active, hired, rejected, withdrawn, no_response, expired
+- [x] Complete RLS policies via `user_has_location_access()` en `user_has_role_in_location()`
+
+### 7.6 Takeaway
 - [ ] Online bestellen
 - [ ] Order management
 
@@ -1364,6 +1445,28 @@ Menu items worden gefilterd op:
 ---
 
 ## SESSIE LOG
+
+### 9 februari 2026
+- **Fase 7.4.2 Signal Architecture + Live Signals COMPLEET**
+- `signals` + `signal_preferences` tabellen met RLS, indexes, Realtime
+- Edge Function `evaluate-signals` met Provider Registry Pattern
+- ConfigSignalProvider (unassigned_tables, empty_table_groups, shifts_without_pacing)
+- OnboardingSignalProvider (stalled_candidate, overdue_tasks)
+- Dedup via partial unique index, cooldown mechanisme, auto-resolve
+- Database triggers op tables/areas/shifts/table_groups voor real-time evaluatie
+- `useSignals` hook met Realtime subscription + 4-laags permission filtering
+- `useDismissSignal` hook voor dismiss functionaliteit
+- Assistent pagina verbonden met echte data, mock data verwijderd
+- Dynamische module filter pills op basis van beschikbare signals
+- `docs/SIGNAL_ARCHITECTURE.md` aangemaakt
+- **Fase 7.5 Onboarding Module COMPLEET**
+- Pipeline Board met Kanban-style layout en status filters
+- Detail pagina met taken, evaluatie, timeline, acties
+- Settings pagina met fasen, email templates, reminders, email config
+- `onboarding-agent` Edge Function voor automatisering
+- Database triggers voor automatische fase-voortgang
+- Onboarding als eerste live module aangesloten op Signal Architecture
+- Volgende: Shift Exceptions UI of uitbreiding OnboardingSignalProvider
 
 ### 10-11 januari 2026
 - **Fase 7.4.1 Nesto Assistant - Signals UI COMPLEET**
