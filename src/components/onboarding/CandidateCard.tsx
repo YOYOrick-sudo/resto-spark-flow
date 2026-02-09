@@ -1,3 +1,4 @@
+import { NestoCard } from '@/components/polar/NestoCard';
 import { PhaseDurationBadge } from './PhaseDurationBadge';
 
 interface CandidateCardProps {
@@ -16,10 +17,7 @@ interface CandidateCardProps {
 
 export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
   return (
-    <div
-      onClick={onClick}
-      className="bg-card border border-border/50 hover:border-primary/30 rounded-lg p-3 cursor-pointer transition-colors"
-    >
+    <NestoCard variant="small" hoverable onClick={onClick}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">
@@ -31,6 +29,6 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
         </div>
         <PhaseDurationBadge updatedAt={candidate.updated_at} />
       </div>
-    </div>
+    </NestoCard>
   );
 }
