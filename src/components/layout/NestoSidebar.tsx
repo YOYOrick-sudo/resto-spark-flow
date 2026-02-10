@@ -32,11 +32,20 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
 
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
+    
     if (groupToExpand) {
+      // First, add the new group immediately
       setExpandedGroups((prev) => {
-        if (prev.length === 1 && prev[0] === groupToExpand) return prev;
-        return [groupToExpand];
+        if (prev.includes(groupToExpand)) return prev;
+        return [...prev, groupToExpand];
       });
+      
+      // Then collapse old groups after a short delay (stagger effect)
+      const timer = setTimeout(() => {
+        setExpandedGroups((prev) => prev.filter((id) => id === groupToExpand));
+      }, 150);
+      
+      return () => clearTimeout(timer);
     } else {
       setExpandedGroups((prev) => prev.length === 0 ? prev : []);
     }
@@ -177,7 +186,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
                       </button>
                     </Collapsible.Trigger>
                     
-                    <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+                    <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up" style={{ willChange: 'height' }}>
                       <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
                         <ul className="space-y-0.5">
                           {item.subItems.map((subItem) => {
