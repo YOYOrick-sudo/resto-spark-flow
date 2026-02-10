@@ -1,5 +1,5 @@
 # NESTO PROJECT ROADMAP
-Laatst bijgewerkt: 9 februari 2026
+Laatst bijgewerkt: 10 februari 2026
 
 ## PROJECT OVERZICHT
 Nesto is een SaaS platform voor horeca management met modules voor reserveringen, keuken, kaartbeheer, en meer. Multi-tenant architectuur waarbij elke organization meerdere locations kan hebben, met per-location billing en module entitlements.
@@ -25,6 +25,9 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
   - ✅ 4.3.A Shifts CRUD - COMPLEET (11 januari 2026)
   - ✅ 4.3.B Live Preview Panel - COMPLEET (11 januari 2026)
   - ⏳ 4.3.C Shift Exceptions UI - VOLGENDE
+
+### GEPLAND
+- 📋 Fase 13: Nesto AI / Intelligence (na reserveringen-launch)
 
 ---
 
@@ -1407,6 +1410,55 @@ Status: Nog te starten
 
 ---
 
+## FASE 13: NESTO AI / INTELLIGENCE
+Status: Nog te starten
+Afhankelijk van: Fase 4.6 (Reservation Model) + Fase 7.4.2 (Live Signals)
+Strategie document: `docs/AI_STRATEGY.md`
+
+### 13.A No-Show Risicoscore (na reserveringen-launch)
+Afhankelijk van: Fase 4.6 (customers + reservations tabel) moet AF zijn
+- [ ] `module_key` enum uitbreiden met `'intelligence'`
+- [ ] Permissions toevoegen: `intelligence.view`, `intelligence.manage`
+- [ ] `customers` tabel uitbreiden met bezoekstatistieken
+- [ ] `reservations.no_show_risk_score` kolom
+- [ ] Regelgebaseerde score-berekening via DB trigger
+- [ ] Score weergave in reserveringsoverzicht
+- [ ] SignalProvider: `no_show_risk`
+
+### 13.B Ochtend-Briefing (na reserveringen-launch)
+Afhankelijk van: Fase 7.4.2 (signal engine) + Resend moet AF zijn
+- [ ] `briefings` tabel (opslag voor in-app weergave)
+- [ ] Briefing template samenstelling
+- [ ] Edge Function voor dagelijkse email
+- [ ] pg_cron job (06:00 lokale tijd)
+- [ ] Briefing preview in-app
+- [ ] Per-locatie opt-in/uit
+
+### 13.C Auto-Prep Engine (3-6 maanden live data)
+Afhankelijk van: recepten + ingrediënten + 4 weken data
+- [ ] `daily_forecasts` tabel
+- [ ] `daily_prep_plans` tabel (ingrediëntenlijst per dag)
+- [ ] `forecast_accuracy` tabel (ML evaluatie data)
+- [ ] Regelgebaseerde cover forecast
+- [ ] Ingrediëntenlijst generatie
+- [ ] Bestelvoorstel
+
+### 13.D Cross-Restaurant Benchmarks (6-12 maanden, 20+ locaties)
+Afhankelijk van: schaal + opt-in
+- [ ] `locations` tabel: restaurant profiel kolommen
+- [ ] Geanonimiseerde aggregatie
+- [ ] Benchmark dashboard
+- [ ] Opt-in mechanisme
+
+### 13.E Menu Engineering AI (6-12 maanden)
+Afhankelijk van: verkoopdata + kostprijzen
+- [ ] Performance scoring per gerecht
+- [ ] Winstgevendheid matrix
+- [ ] Prijs-suggesties
+- [ ] SignalProvider: `menu_engineering`
+
+---
+
 ## TECHNISCHE ONTWERPREGELS (doorlopend)
 
 Deze regels gelden voor ALLE fasen:
@@ -1424,6 +1476,9 @@ Deze regels gelden voor ALLE fasen:
 
 ### Database Structuur
 Zie `docs/DATABASE.md` voor complete schema documentatie.
+
+### AI Strategie
+Zie `docs/AI_STRATEGY.md` voor de volledige AI-strategie en feature specificaties.
 
 ### Authenticatie Flow
 1. User registreert via /auth
@@ -1445,6 +1500,13 @@ Menu items worden gefilterd op:
 ---
 
 ## SESSIE LOG
+
+### 10 februari 2026
+- AI-strategie documentatie aangemaakt: `docs/AI_STRATEGY.md`
+- Fase 13: Nesto AI / Intelligence toegevoegd aan roadmap
+- 5 subfasen gedefinieerd (13.A t/m 13.E) met afhankelijkheden
+- Pricing tiers gekoppeld: Starter / Professional / Enterprise
+- Volgende: Feature-documenten per AI-module aanmaken
 
 ### 9 februari 2026
 - **Fase 7.4.2 Signal Architecture + Live Signals COMPLEET**
