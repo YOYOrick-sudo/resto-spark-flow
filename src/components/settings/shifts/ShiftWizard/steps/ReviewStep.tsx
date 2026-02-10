@@ -22,6 +22,24 @@ function ReviewSection({ icon: Icon, title, children }: ReviewSectionProps) {
   );
 }
 
+function getOverrideSummary(
+  ticketId: string,
+  ticketName: string,
+  overrides: ReturnType<typeof useShiftWizard>["ticketOverrides"][string] | undefined
+): string {
+  if (!overrides) return `${ticketName}: standaard`;
+
+  const parts: string[] = [];
+  if (overrides.overrideDuration !== null) parts.push(`${overrides.overrideDuration} min`);
+  if (overrides.overrideMaxParty !== null) parts.push(`max ${overrides.overrideMaxParty} gasten`);
+  if (overrides.pacingLimit !== null) parts.push(`pacing ${overrides.pacingLimit}`);
+  if (overrides.squeezeEnabled) parts.push("squeeze aan");
+  if (overrides.areas !== null) parts.push(`${overrides.areas.length} gebieden`);
+  if (overrides.waitlistEnabled) parts.push("wachtlijst");
+
+  return parts.length > 0 ? `${ticketName}: ${parts.join(", ")}` : `${ticketName}: standaard`;
+}
+
 export function ReviewStep() {
   const {
     name,
@@ -32,6 +50,7 @@ export function ReviewStep() {
     interval,
     color,
     selectedTickets,
+    ticketOverrides,
     locationId,
     isEditing,
   } = useShiftWizard();
@@ -42,9 +61,12 @@ export function ReviewStep() {
   const formatTime = (time: string) => time.slice(0, 5);
   const formatInterval = (mins: number) => (mins === 60 ? "1 uur" : `${mins} min`);
 
-  const selectedTicketNames = allTickets
-    .filter((t) => selectedTickets.includes(t.id))
-    .map((t) => t.display_title);
+  const selectedTicketData = allTickets.filter((t) => selectedTickets.includes(t.id));
+  const selectedTicketNames = selectedTicketData.map((t) => t.display_title);
+
+  const configSummaries = selectedTicketData.map((t) =>
+    getOverrideSummary(t.id, t.display_title, ticketOverrides[t.id])
+  );
 
   return (
     <div className="space-y-4">
@@ -100,11 +122,23 @@ export function ReviewStep() {
           </ReviewSection>
 
           <ReviewSection icon={Settings2} title="Configuratie">
-            <span className="text-sm text-muted-foreground">Standaard</span>
+            {configSummaries.length > 0 ? (
+              <div className="space-y-0.5">
+                {configSummaries.map((summary, i) => (
+                  <p key={i} className="text-sm text-muted-foreground">{summary}</p>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">Standaard</span>
+            )}
           </ReviewSection>
 
           <ReviewSection icon={Users} title="Capaciteit">
-            <span className="text-sm text-muted-foreground">Standaard</span>
+            <span className="text-sm text-muted-foreground">
+              {selectedTickets.length > 0
+                ? `${selectedTickets.length} ticket(s) geconfigureerd`
+                : "Standaard"}
+            </span>
           </ReviewSection>
         </div>
       </div>

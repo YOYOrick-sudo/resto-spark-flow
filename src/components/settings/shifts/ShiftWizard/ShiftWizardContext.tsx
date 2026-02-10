@@ -93,6 +93,9 @@ export interface ShiftWizardState {
   // Step 3: Per-ticket overrides (keyed by ticket ID)
   ticketOverrides: Record<string, ShiftTicketOverrides>;
 
+  // Read-only: initial shift_tickets for diff calculation on save
+  initialShiftTickets: ShiftTicketRow[];
+
   // Wizard navigation
   currentStep: number;
   completedSteps: Set<number>;
@@ -176,6 +179,7 @@ export function ShiftWizardProvider({
       color: editingShift?.color ?? DEFAULT_COLOR,
       selectedTickets: initialSelectedTickets,
       ticketOverrides: initialOverrides,
+      initialShiftTickets,
       currentStep: 0,
       completedSteps: new Set<number>(),
       editingShift,
@@ -344,6 +348,7 @@ export function ShiftWizardProvider({
       color: DEFAULT_COLOR,
       selectedTickets: [],
       ticketOverrides: {},
+      initialShiftTickets: [],
       currentStep: 0,
       completedSteps: new Set<number>(),
       editingShift: null,
