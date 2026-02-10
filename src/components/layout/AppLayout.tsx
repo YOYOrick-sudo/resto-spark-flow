@@ -1,5 +1,6 @@
-import { ReactNode, useState, forwardRef } from 'react';
+import { ReactNode, useState, useEffect, forwardRef } from 'react';
 import { NestoSidebar } from './NestoSidebar';
+import { CommandPalette } from './CommandPalette';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -10,12 +11,24 @@ interface AppLayoutProps {
 export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
   function AppLayout({ children }, ref) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [commandOpen, setCommandOpen] = useState(false);
+
+    useEffect(() => {
+      const down = (e: KeyboardEvent) => {
+        if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          setCommandOpen((prev) => !prev);
+        }
+      };
+      document.addEventListener('keydown', down);
+      return () => document.removeEventListener('keydown', down);
+    }, []);
 
     return (
       <div ref={ref} className="h-screen flex w-full bg-card overflow-hidden">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex w-60 flex-shrink-0 sticky top-0 h-screen">
-          <NestoSidebar />
+          <NestoSidebar onSearchClick={() => setCommandOpen(true)} />
         </aside>
 
         {/* Mobile Menu Overlay */}
@@ -32,8 +45,10 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <NestoSidebar onNavigate={() => setMobileMenuOpen(false)} />
+          <NestoSidebar onNavigate={() => setMobileMenuOpen(false)} onSearchClick={() => setCommandOpen(true)} />
         </aside>
+
+        <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0">

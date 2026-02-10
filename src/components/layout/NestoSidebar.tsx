@@ -6,14 +6,15 @@ import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
 
 import { useSignals } from '@/hooks/useSignals';
-import { CommandPalette } from './CommandPalette';
+
 
 interface NestoSidebarProps {
   onNavigate?: () => void;
+  onSearchClick?: () => void;
   unreadNotifications?: number;
 }
 
-export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSidebarProps) {
+export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 0 }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -21,7 +22,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
     const group = getExpandedGroupFromPath(location.pathname);
     return group ? [group] : [];
   });
-  const [commandOpen, setCommandOpen] = useState(false);
+  
   const activeItemId = getActiveItemFromPath(location.pathname);
 
   const { signals } = useSignals();
@@ -51,16 +52,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
     }
   }, [location.pathname]);
 
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setCommandOpen((prev) => !prev);
-      }
-    };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
+  
 
   const handleNavigation = useCallback((path: string) => {
     if (location.pathname === path) return;
@@ -113,7 +105,7 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
       <div className="px-4 mt-2 mb-4">
         <button
           type="button"
-          onClick={() => setCommandOpen(true)}
+          onClick={() => onSearchClick?.()}
           className="relative group w-full"
         >
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -125,8 +117,6 @@ export function NestoSidebar({ onNavigate, unreadNotifications = 0 }: NestoSideb
           </span>
         </button>
       </div>
-
-      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2">
