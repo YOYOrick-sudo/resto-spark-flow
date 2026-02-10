@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/queryKeys";
+import type { ShiftTicketOverrides } from "@/components/settings/shifts/ShiftWizard/ShiftWizardContext";
 
 export interface ShiftTicketRow {
   id: string;
@@ -58,6 +59,84 @@ export function useShiftTickets(shiftId: string | undefined) {
 
       if (error) throw error;
       return (data ?? []) as ShiftTicketRow[];
+    },
+  });
+}
+
+// ============================================
+// Sync mutation: upsert + delete shift_tickets
+// ============================================
+
+interface SyncShiftTicketsInput {
+  shiftId: string;
+  locationId: string;
+  selectedTickets: string[];
+  ticketOverrides: Record<string, ShiftTicketOverrides>;
+}
+
+export function useSyncShiftTickets() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ shiftId, locationId, selectedTickets, ticketOverrides }: SyncShiftTicketsInput) => {
+      // 1. Fetch current shift_tickets
+      const { data: existing } = await supabase
+        .from("shift_tickets")
+        .select("id, ticket_id")
+        .eq("shift_id", shiftId);
+
+      const existingIds = (existing ?? []).map((st) => st.ticket_id);
+      const toRemove = existingIds.filter((id) => !selectedTickets.includes(id));
+
+      // 2. Delete removed
+      if (toRemove.length > 0) {
+        const { error } = await supabase
+          .from("shift_tickets")
+          .delete()
+          .eq("shift_id", shiftId)
+          .in("ticket_id", toRemove);
+        if (error) throw error;
+      }
+
+      // 3. Upsert selected (add + update)
+      if (selectedTickets.length > 0) {
+        const payload = selectedTickets.map((ticketId) => {
+          const o = ticketOverrides[ticketId];
+          return {
+            shift_id: shiftId,
+            ticket_id: ticketId,
+            location_id: locationId,
+            override_duration_minutes: o?.overrideDuration ?? null,
+            override_buffer_minutes: o?.overrideBuffer ?? null,
+            override_min_party: o?.overrideMinParty ?? null,
+            override_max_party: o?.overrideMaxParty ?? null,
+            pacing_limit: o?.pacingLimit ?? null,
+            seating_limit_guests: o?.seatingLimitGuests ?? null,
+            seating_limit_reservations: o?.seatingLimitReservations ?? null,
+            ignore_pacing: o?.ignorePacing ?? false,
+            areas: o?.areas ?? null,
+            show_area_name: o?.showAreaName ?? false,
+            squeeze_enabled: o?.squeezeEnabled ?? false,
+            squeeze_duration_minutes: o?.squeezeDuration ?? null,
+            squeeze_gap_minutes: o?.squeezeGap ?? null,
+            squeeze_to_fixed_end_time: o?.squeezeFixedEndTime ?? null,
+            squeeze_limit_per_shift: o?.squeezeLimit ?? null,
+            show_end_time: o?.showEndTime ?? false,
+            waitlist_enabled: o?.waitlistEnabled ?? false,
+            is_active: true,
+          };
+        });
+
+        const { error } = await supabase
+          .from("shift_tickets")
+          .upsert(payload, { onConflict: "shift_id,ticket_id" });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.shiftTickets(vars.shiftId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tickets(vars.locationId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts(vars.locationId) });
     },
   });
 }
