@@ -1,72 +1,41 @@
 
+# Fase 4.4A — Database Fundament: Tickets & Beleid (v3)
 
-# Soepele Paginatransities binnen Modules
+> **Lees eerst `docs/FASE_4_4_TICKETS.md` voor het volledige concept.**
 
-## Probleem
+## Status: ✅ AFGEROND
 
-Bij navigatie binnen een module (bijv. klikken op een kandidaat in Onboarding) wisselt de pagina-inhoud direct zonder enige visuele transitie. Dit voelt abrupt en niet passend bij een enterprise SaaS product.
+Migration uitgevoerd, TypeScript types aangemaakt, query keys geregistreerd, seed data geverifieerd.
 
-## Oplossing
+## Wat is aangemaakt
 
-Een subtiele **fade-in animatie** toevoegen aan alle pagina-overgangen via de `AppShell`. Dit wordt gedaan door de `<Outlet />` te wrappen in een component dat bij elke route-wisseling een korte fade-in triggert, met een `key` gebaseerd op het huidige pad.
+### Database
+- **`policy_sets`** — herbruikbare spelregels (betaling, annulering, no-show, herbevestiging)
+- **`tickets`** — het product dat de gast boekt, met directe `policy_set_id` FK
+- **`shift_tickets`** — brug tussen product en tijd, met gedenormaliseerde `location_id` voor RLS
 
-## Wat verandert
+### Triggers
+- `update_tickets_updated_at` / `update_policy_sets_updated_at`
+- `trg_enforce_single_default_ticket` — max 1 default per location
+- `trg_sync_shift_ticket_location` — synced location_id vanuit shifts
+- `trg_auto_create_default_ticket` — default ticket + policy bij nieuwe location
 
-### 1. AppShell.tsx — Animated Outlet
+### RLS
+- SELECT: `user_has_location_access` op alle 3 tabellen
+- INSERT/UPDATE/DELETE: `user_has_role_in_location` (owner/manager) op alle 3 tabellen
 
-De `<Outlet />` wordt gewrapt in een `<div>` met:
-- Een `key` gebaseerd op `location.pathname` zodat React het element opnieuw mount bij navigatie
-- De bestaande `animate-fade-in` CSS class (al aanwezig in het design system)
-- Een verkorte animatie-duur (0.15s i.p.v. 0.3s) voor snelle, subtiele feedback
+### RPCs
+- `get_bookable_tickets(location_id, date)` — inclusief shift_exceptions check
+- `get_ticket_with_policy(ticket_id)` — ticket + joined policy_set
+- `get_shift_ticket_config(shift_id, ticket_id)` — COALESCE merge
+- `get_next_ticket_sort_order(location_id)` — stap 10
+- `reorder_tickets(location_id, ticket_ids[])` — alle guards uit reorder_areas
 
-### 2. tailwind.config.ts — Snelle fade variant
+### TypeScript
+- `src/types/tickets.ts` — alle interfaces en constanten
+- `src/lib/queryKeys.ts` — 5 nieuwe query keys
 
-Een extra animatie `fade-in-fast` toevoegen:
-- Duur: 0.15s (de helft van de standaard fade-in)
-- Easing: cubic-bezier(0.4, 0, 0.2, 1) — consistent met sidebar animaties
-- Alleen opacity, geen translateY (voorkomt "springerig" gevoel bij pagina's)
+### Seed Data
+- Default "Standaard" policy set + "Reservering" ticket voor test-locatie `22222222-...`
 
-## Technische details
-
-### AppShell.tsx
-
-```tsx
-import { Outlet, useLocation } from 'react-router-dom';
-import { AppLayout } from './AppLayout';
-
-export function AppShell() {
-  const location = useLocation();
-
-  return (
-    <AppLayout>
-      <div key={location.pathname} className="animate-fade-in-fast">
-        <Outlet />
-      </div>
-    </AppLayout>
-  );
-}
-```
-
-### tailwind.config.ts
-
-Nieuwe keyframe en animatie toevoegen:
-
-```
-"fade-in-fast": {
-  "0%": { opacity: "0" },
-  "100%": { opacity: "1" }
-}
-
-animation: {
-  "fade-in-fast": "fade-in-fast 0.15s cubic-bezier(0.4, 0, 0.2, 1)"
-}
-```
-
-## Wat niet verandert
-
-- Geen database wijzigingen
-- Geen nieuwe dependencies
-- Geen wijzigingen aan individuele pagina's
-- Sidebar animaties blijven zoals net verbeterd
-- Routing structuur blijft identiek
-
+## Volgende stap: Sessie B — Signalen

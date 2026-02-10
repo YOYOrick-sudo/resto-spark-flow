@@ -792,6 +792,98 @@ export type Database = {
         }
         Relationships: []
       }
+      policy_sets: {
+        Row: {
+          absorb_transaction_fee: boolean
+          cancel_cutoff_time: string | null
+          cancel_policy_type: string
+          cancel_window_hours: number | null
+          created_at: string
+          description: string | null
+          discount_original_cents: number | null
+          full_price_cents: number | null
+          id: string
+          is_active: boolean
+          location_id: string
+          name: string
+          noshow_charge_amount_cents: number | null
+          noshow_mark_after_minutes: number | null
+          noshow_policy_type: string
+          payment_amount_cents: number | null
+          payment_type: string
+          reconfirm_enabled: boolean
+          reconfirm_hours_before: number | null
+          reconfirm_required: boolean
+          refund_percentage: number | null
+          refund_type: string
+          show_discount_price: boolean
+          show_full_price: boolean
+          updated_at: string
+        }
+        Insert: {
+          absorb_transaction_fee?: boolean
+          cancel_cutoff_time?: string | null
+          cancel_policy_type?: string
+          cancel_window_hours?: number | null
+          created_at?: string
+          description?: string | null
+          discount_original_cents?: number | null
+          full_price_cents?: number | null
+          id?: string
+          is_active?: boolean
+          location_id: string
+          name: string
+          noshow_charge_amount_cents?: number | null
+          noshow_mark_after_minutes?: number | null
+          noshow_policy_type?: string
+          payment_amount_cents?: number | null
+          payment_type?: string
+          reconfirm_enabled?: boolean
+          reconfirm_hours_before?: number | null
+          reconfirm_required?: boolean
+          refund_percentage?: number | null
+          refund_type?: string
+          show_discount_price?: boolean
+          show_full_price?: boolean
+          updated_at?: string
+        }
+        Update: {
+          absorb_transaction_fee?: boolean
+          cancel_cutoff_time?: string | null
+          cancel_policy_type?: string
+          cancel_window_hours?: number | null
+          created_at?: string
+          description?: string | null
+          discount_original_cents?: number | null
+          full_price_cents?: number | null
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          name?: string
+          noshow_charge_amount_cents?: number | null
+          noshow_mark_after_minutes?: number | null
+          noshow_policy_type?: string
+          payment_amount_cents?: number | null
+          payment_type?: string
+          reconfirm_enabled?: boolean
+          reconfirm_hours_before?: number | null
+          reconfirm_required?: boolean
+          refund_percentage?: number | null
+          refund_type?: string
+          show_discount_price?: boolean
+          show_full_price?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_sets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -951,6 +1043,112 @@ export type Database = {
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_tickets: {
+        Row: {
+          area_display_names: Json | null
+          areas: string[] | null
+          channel_permissions: Json
+          created_at: string
+          id: string
+          ignore_pacing: boolean
+          is_active: boolean
+          location_id: string
+          override_buffer_minutes: number | null
+          override_duration_minutes: number | null
+          override_max_party: number | null
+          override_min_party: number | null
+          pacing_limit: number | null
+          seating_limit_guests: number | null
+          seating_limit_reservations: number | null
+          shift_id: string
+          show_area_name: boolean
+          show_end_time: boolean
+          squeeze_duration_minutes: number | null
+          squeeze_enabled: boolean
+          squeeze_gap_minutes: number | null
+          squeeze_limit_per_shift: number | null
+          squeeze_to_fixed_end_time: string | null
+          ticket_id: string
+          waitlist_enabled: boolean
+        }
+        Insert: {
+          area_display_names?: Json | null
+          areas?: string[] | null
+          channel_permissions?: Json
+          created_at?: string
+          id?: string
+          ignore_pacing?: boolean
+          is_active?: boolean
+          location_id: string
+          override_buffer_minutes?: number | null
+          override_duration_minutes?: number | null
+          override_max_party?: number | null
+          override_min_party?: number | null
+          pacing_limit?: number | null
+          seating_limit_guests?: number | null
+          seating_limit_reservations?: number | null
+          shift_id: string
+          show_area_name?: boolean
+          show_end_time?: boolean
+          squeeze_duration_minutes?: number | null
+          squeeze_enabled?: boolean
+          squeeze_gap_minutes?: number | null
+          squeeze_limit_per_shift?: number | null
+          squeeze_to_fixed_end_time?: string | null
+          ticket_id: string
+          waitlist_enabled?: boolean
+        }
+        Update: {
+          area_display_names?: Json | null
+          areas?: string[] | null
+          channel_permissions?: Json
+          created_at?: string
+          id?: string
+          ignore_pacing?: boolean
+          is_active?: boolean
+          location_id?: string
+          override_buffer_minutes?: number | null
+          override_duration_minutes?: number | null
+          override_max_party?: number | null
+          override_min_party?: number | null
+          pacing_limit?: number | null
+          seating_limit_guests?: number | null
+          seating_limit_reservations?: number | null
+          shift_id?: string
+          show_area_name?: boolean
+          show_end_time?: boolean
+          squeeze_duration_minutes?: number | null
+          squeeze_enabled?: boolean
+          squeeze_gap_minutes?: number | null
+          squeeze_limit_per_shift?: number | null
+          squeeze_to_fixed_end_time?: string | null
+          ticket_id?: string
+          waitlist_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_tickets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_tickets_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_tickets_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -1298,6 +1496,117 @@ export type Database = {
           },
         ]
       }
+      tickets: {
+        Row: {
+          booking_window_max_days: number | null
+          booking_window_min_minutes: number | null
+          buffer_minutes: number
+          color: string
+          created_at: string
+          description: string | null
+          display_title: string
+          duration_minutes: number
+          friend_url_token: string | null
+          highlight_order: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_default: boolean
+          is_highlighted: boolean
+          large_party_min_minutes: number | null
+          large_party_threshold: number | null
+          location_id: string
+          max_party_size: number
+          metadata: Json
+          min_party_size: number
+          name: string
+          policy_set_id: string | null
+          short_description: string | null
+          sort_order: number
+          status: string
+          tags: Json
+          ticket_type: string
+          updated_at: string
+        }
+        Insert: {
+          booking_window_max_days?: number | null
+          booking_window_min_minutes?: number | null
+          buffer_minutes?: number
+          color?: string
+          created_at?: string
+          description?: string | null
+          display_title: string
+          duration_minutes?: number
+          friend_url_token?: string | null
+          highlight_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          is_highlighted?: boolean
+          large_party_min_minutes?: number | null
+          large_party_threshold?: number | null
+          location_id: string
+          max_party_size?: number
+          metadata?: Json
+          min_party_size?: number
+          name: string
+          policy_set_id?: string | null
+          short_description?: string | null
+          sort_order?: number
+          status?: string
+          tags?: Json
+          ticket_type?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_window_max_days?: number | null
+          booking_window_min_minutes?: number | null
+          buffer_minutes?: number
+          color?: string
+          created_at?: string
+          description?: string | null
+          display_title?: string
+          duration_minutes?: number
+          friend_url_token?: string | null
+          highlight_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          is_highlighted?: boolean
+          large_party_min_minutes?: number | null
+          large_party_threshold?: number | null
+          location_id?: string
+          max_party_size?: number
+          metadata?: Json
+          min_party_size?: number
+          name?: string
+          policy_set_id?: string | null
+          short_description?: string | null
+          sort_order?: number
+          status?: string
+          tags?: Json
+          ticket_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_policy_set_id_fkey"
+            columns: ["policy_set_id"]
+            isOneToOne: false
+            referencedRelation: "policy_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_location_roles: {
         Row: {
           created_at: string
@@ -1366,6 +1675,31 @@ export type Database = {
     }
     Functions: {
       archive_area: { Args: { _area_id: string }; Returns: Json }
+      get_bookable_tickets: {
+        Args: { _date: string; _location_id: string }
+        Returns: {
+          buffer_minutes: number
+          color: string
+          description: string
+          display_title: string
+          duration_minutes: number
+          friend_url_token: string
+          highlight_order: number
+          id: string
+          image_url: string
+          is_default: boolean
+          is_highlighted: boolean
+          max_party_size: number
+          metadata: Json
+          min_party_size: number
+          name: string
+          policy_set_id: string
+          short_description: string
+          sort_order: number
+          tags: Json
+          ticket_type: string
+        }[]
+      }
       get_effective_shift_schedule: {
         Args: { _date: string; _location_id: string }
         Returns: {
@@ -1394,6 +1728,15 @@ export type Database = {
         Returns: number
       }
       get_next_table_sort_order: { Args: { _area_id: string }; Returns: number }
+      get_next_ticket_sort_order: {
+        Args: { _location_id: string }
+        Returns: number
+      }
+      get_shift_ticket_config: {
+        Args: { _shift_id: string; _ticket_id: string }
+        Returns: Json
+      }
+      get_ticket_with_policy: { Args: { _ticket_id: string }; Returns: Json }
       get_user_context: {
         Args: { _location_id: string; _user_id: string }
         Returns: Json
@@ -1422,6 +1765,10 @@ export type Database = {
       }
       reorder_tables: {
         Args: { _area_id: string; _table_ids: string[] }
+        Returns: Json
+      }
+      reorder_tickets: {
+        Args: { _location_id: string; _ticket_ids: string[] }
         Returns: Json
       }
       restore_table: {
