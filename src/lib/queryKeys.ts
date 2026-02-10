@@ -35,6 +35,27 @@ export const queryKeys = {
   /** Signal preferences for a user at a location */
   signalPreferences: (userId: string, locationId: string) => 
     ['signal-preferences', userId, locationId] as const,
+
+  // ============================================
+  // FASE 4.4A: Tickets & Beleid
+  // ============================================
+
+  /** Tickets for a location */
+  tickets: (locationId: string) => ['tickets', locationId] as const,
+
+  /** Single ticket by ID */
+  ticket: (ticketId: string) => ['ticket', ticketId] as const,
+
+  /** Policy sets for a location */
+  policySets: (locationId: string) => ['policy-sets', locationId] as const,
+
+  /** Bookable tickets for a location on a specific date */
+  bookableTickets: (locationId: string, date: string) =>
+    ['bookable-tickets', locationId, date] as const,
+
+  /** Effective shift-ticket config (merged overrides) */
+  shiftTicketConfig: (shiftId: string, ticketId: string) =>
+    ['shift-ticket-config', shiftId, ticketId] as const,
 } as const;
 
 export type QueryKeys = typeof queryKeys;
