@@ -26,12 +26,11 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
   return (
     <DialogPrimitive.Root {...props}>
       <DialogPrimitive.Portal>
-        {/* Transparent overlay - no dimming, just captures clicks */}
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-transparent data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
-          className="fixed left-[50%] top-16 z-50 w-full max-w-[640px] translate-x-[-50%] mx-4 overflow-hidden rounded-lg border border-border bg-card shadow-sm duration-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-2 focus:outline-none"
+          className="fixed left-[50%] top-16 z-50 w-full max-w-[640px] translate-x-[-50%] mx-4 overflow-hidden rounded-card border border-border bg-card shadow-lg duration-100 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1 focus:outline-none"
         >
-          <Command className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-muted-foreground">
+          <Command className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-4 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-widest [&_[cmdk-group-heading]]:text-muted-foreground/60">
             {children}
           </Command>
         </DialogPrimitive.Content>
@@ -50,7 +49,7 @@ const CommandInput = React.forwardRef<
       <CommandPrimitive.Input
         ref={ref}
         className={cn(
-          "flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "flex h-10 w-full rounded-button border-[1.5px] border-border bg-secondary pl-9 pr-3 py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 focus:border-primary focus:ring-0",
           className,
         )}
         {...props}
@@ -67,7 +66,7 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={cn("max-h-[320px] overflow-y-auto overflow-x-hidden px-2 pb-2", className)}
+    className={cn("max-h-[320px] overflow-y-auto overflow-x-hidden px-1.5 pb-1.5", className)}
     {...props}
   />
 ));
@@ -77,7 +76,7 @@ CommandList.displayName = CommandPrimitive.List.displayName;
 const CommandEmpty = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Empty>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
->((props, ref) => <CommandPrimitive.Empty ref={ref} className="py-6 text-center text-sm" {...props} />);
+>((props, ref) => <CommandPrimitive.Empty ref={ref} className="py-6 text-center text-sm text-muted-foreground" {...props} />);
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
 
@@ -112,7 +111,7 @@ const CommandItem = React.forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-muted data-[selected=true]:text-foreground data-[disabled=true]:opacity-50",
+      "relative flex cursor-pointer select-none items-center rounded-button px-3 py-2 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-accent/60 data-[selected=true]:text-foreground data-[disabled=true]:opacity-50",
       className,
     )}
     {...props}
