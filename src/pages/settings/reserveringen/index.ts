@@ -7,3 +7,4 @@ export { default as SettingsReserveringenTafelsGroepen } from "./SettingsReserve
 export { default as SettingsReserveringenShiftTijden } from "./SettingsReserveringenShiftTijden";
 export { default as SettingsReserveringenNotificaties } from "./SettingsReserveringenNotificaties";
 export { default as SettingsReserveringenShifts } from "./SettingsReserveringenShifts";
+export { default as SettingsReserveringenTickets } from "./SettingsReserveringenTickets";

@@ -45,6 +45,7 @@ import {
   SettingsReserveringenShiftTijden,
   SettingsReserveringenNotificaties,
   SettingsReserveringenShifts,
+  SettingsReserveringenTickets,
 } from "./pages/settings/reserveringen";
 
 const queryClient = new QueryClient();
@@ -114,6 +115,7 @@ const App = () => (
                   <Route path="/instellingen/reserveringen/tafels/areas" element={<SettingsReserveringenTafelsAreas />} />
                   <Route path="/instellingen/reserveringen/tafels/tafelgroepen" element={<SettingsReserveringenTafelsGroepen />} />
                   <Route path="/instellingen/reserveringen/shifts" element={<SettingsReserveringenShifts />} />
+                  <Route path="/instellingen/reserveringen/tickets" element={<SettingsReserveringenTickets />} />
                   <Route path="/instellingen/reserveringen/shift-tijden" element={<SettingsReserveringenShiftTijden />} />
                   <Route path="/instellingen/reserveringen/notificaties" element={<SettingsReserveringenNotificaties />} />
                 </Route>

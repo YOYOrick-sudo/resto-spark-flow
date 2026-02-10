@@ -49,7 +49,6 @@ export interface Ticket {
   max_party_size: number;
   duration_minutes: number;
   buffer_minutes: number;
-  is_active: boolean;
   booking_window_min_minutes: number | null;
   booking_window_max_days: number | null;
   large_party_threshold: number | null;
@@ -222,7 +221,6 @@ export interface UpdateTicketInput {
   max_party_size?: number;
   duration_minutes?: number;
   buffer_minutes?: number;
-  is_active?: boolean;
   policy_set_id?: string | null;
   booking_window_min_minutes?: number | null;
   booking_window_max_days?: number | null;

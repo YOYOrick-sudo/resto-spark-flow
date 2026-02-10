@@ -1510,7 +1510,6 @@ export type Database = {
           highlight_order: number | null
           id: string
           image_url: string | null
-          is_active: boolean
           is_default: boolean
           is_highlighted: boolean
           large_party_min_minutes: number | null
@@ -1541,7 +1540,6 @@ export type Database = {
           highlight_order?: number | null
           id?: string
           image_url?: string | null
-          is_active?: boolean
           is_default?: boolean
           is_highlighted?: boolean
           large_party_min_minutes?: number | null
@@ -1572,7 +1570,6 @@ export type Database = {
           highlight_order?: number | null
           id?: string
           image_url?: string | null
-          is_active?: boolean
           is_default?: boolean
           is_highlighted?: boolean
           large_party_min_minutes?: number | null
