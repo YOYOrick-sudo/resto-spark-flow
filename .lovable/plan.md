@@ -1,10 +1,10 @@
 
 
-# Sessie D1 — ShiftWizard Context Refactor + Live Tickets
+# Sessie D2 — ConfigStep + CapacityStep + Submit Sync
 
 ## Samenvatting
 
-De ShiftWizard wordt omgebouwd van mock-data naar live database-tickets. AreasStep blijft als placeholder bestaan (wordt pas in D2 vervangen door ConfigStep). Alle `MOCK_TICKETS` referenties verdwijnen.
+De drie resterende wizard-stappen worden live gemaakt: AreasStep wordt vervangen door ConfigStep (per-ticket override panels), CapacityStep toont effectieve capaciteit, en handleSubmit schrijft shift_tickets naar de database. Een `useSyncShiftTickets` mutation in useShiftTickets.ts handelt de diff-logica af.
 
 ---
 
@@ -14,251 +14,264 @@ De ShiftWizard wordt omgebouwd van mock-data naar live database-tickets. AreasSt
 
 | Bestand | Beschrijving |
 |---|---|
-| `src/hooks/useShiftTickets.ts` | Query hook: shift_tickets voor een shift laden met ticket metadata |
+| `src/components/settings/shifts/ShiftWizard/steps/ConfigStep.tsx` | Per-ticket collapsible panels met alle override-velden |
+
+### Verwijderen
+
+| Bestand | Reden |
+|---|---|
+| `src/components/settings/shifts/ShiftWizard/steps/AreasStep.tsx` | Vervangen door ConfigStep.tsx |
 
 ### Wijzigen
 
 | Bestand | Wijziging |
 |---|---|
-| `src/lib/queryKeys.ts` | `shiftTickets` key toevoegen |
-| `src/components/settings/shifts/ShiftWizard/ShiftWizardContext.tsx` | MOCK_TICKETS verwijderen, `ShiftTicketOverrides` + `ticketOverrides` state, `areasByTicket` verwijderen, `initialShiftTickets` prop op provider |
-| `src/components/settings/shifts/ShiftWizard/ShiftWizard.tsx` | `useShiftTickets` query, loading guard, `initialShiftTickets` prop doorsturen |
-| `src/components/settings/shifts/ShiftWizard/steps/TicketsStep.tsx` | Volledig herschreven: live tickets via `useTickets`, quick-create via `TicketModal`, inline duration/pricing |
-| `src/components/settings/shifts/ShiftWizard/steps/AreasStep.tsx` | Placeholder: rendert tekst "Configuratie per ticket wordt ingesteld in de volgende update." Geen context-methods meer aanroepen. |
-| `src/components/settings/shifts/ShiftWizard/steps/ReviewStep.tsx` | MOCK_TICKETS verwijderen, ticketnamen uit `useTickets` data |
-| `src/components/settings/shifts/ShiftWizard/ShiftWizardSidebar.tsx` | Stap 3 label "Gebieden" wordt "Configuratie", icon wordt Settings2 |
-| `src/components/settings/shifts/ShiftWizard/index.ts` | `MOCK_TICKETS` en `MockTicket` exports verwijderen |
+| `src/components/settings/shifts/ShiftWizard/ShiftWizard.tsx` | Import AreasStep vervangen door ConfigStep, handleSubmit uitbreiden met syncShiftTickets, ConfirmDialog voor unlink |
+| `src/components/settings/shifts/ShiftWizard/steps/CapacityStep.tsx` | Volledig herschreven: live preview per ticket met effectieve waarden |
+| `src/components/settings/shifts/ShiftWizard/steps/ReviewStep.tsx` | Overrides samenvatting per ticket toevoegen |
+| `src/hooks/useShiftTickets.ts` | `useSyncShiftTickets` mutation toevoegen |
 
 ---
 
 ## Technische details
 
-### 1. queryKeys.ts
+### 1. useSyncShiftTickets mutation
 
-Toevoegen na de bestaande `shiftTicketConfig` key:
-
-```typescript
-shiftTickets: (shiftId: string) => ['shift-tickets', shiftId] as const,
-```
-
-### 2. useShiftTickets hook
+Toevoegen aan `src/hooks/useShiftTickets.ts`:
 
 ```typescript
-useShiftTickets(shiftId: string | undefined)
-  enabled: !!shiftId
-  queryKey: queryKeys.shiftTickets(shiftId!)
-  select: '*, tickets(name, display_title, duration_minutes, buffer_minutes, 
-           min_party_size, max_party_size, color, is_default, short_description,
-           policy_set_id, status)'
-  filter: .eq('shift_id', shiftId).eq('is_active', true)
-  returns: ShiftTicket[] met geneste ticket metadata
-```
-
-### 3. ShiftWizardContext refactor
-
-**Verwijderen:**
-- `MockTicket` interface en `MOCK_TICKETS` array
-- `TicketAreasConfig` interface
-- `areasByTicket` state
-- `setAreasForTicket`, `toggleAreaForTicket`, `setAllAreasForTicket` methods
-- `createDefaultAreasConfig` helper
-
-**Toevoegen:**
-
-```typescript
-interface ShiftTicketOverrides {
-  ticketId: string;
-  overrideDuration: number | null;
-  overrideBuffer: number | null;
-  overrideMinParty: number | null;
-  overrideMaxParty: number | null;
-  pacingLimit: number | null;
-  seatingLimitGuests: number | null;
-  seatingLimitReservations: number | null;
-  ignorePacing: boolean;
-  areas: string[] | null;
-  showAreaName: boolean;
-  squeezeEnabled: boolean;
-  squeezeDuration: number | null;
-  squeezeGap: number | null;
-  squeezeFixedEndTime: string | null;
-  squeezeLimit: number | null;
-  showEndTime: boolean;
-  waitlistEnabled: boolean;
+interface SyncShiftTicketsInput {
+  shiftId: string;
+  locationId: string;
+  selectedTickets: string[];
+  ticketOverrides: Record<string, ShiftTicketOverrides>;
 }
-```
 
-Nieuwe state: `ticketOverrides: Record<string, ShiftTicketOverrides>`
-
-Nieuwe methods:
-- `setTicketOverride(ticketId, field, value)`: update enkel override veld
-- `resetTicketOverride(ticketId, field)`: zet veld naar null
-- `getEffectiveValue(ticketId, field, ticketDefault)`: override waarde of fallback
-
-Nieuwe provider prop: `initialShiftTickets?: ShiftTicket[]`
-
-Bij initialisatie met `initialShiftTickets`: populate `selectedTickets` (ticket IDs) en `ticketOverrides` (map override velden van elk ShiftTicket naar de interface).
-
-`canProceed` voor stap 1 (Tickets): `selectedTickets.length > 0`
-
-`stepSummaries`:
-- Stap 1: `"{n} tickets"` (getal)
-- Stap 2: `"{n} aangepast"` of `"Standaard"` (telt ticketOverrides met niet-null velden)
-- Stap 3: `"Standaard"` (D2 vult dit aan)
-
-`TOTAL_STEPS` blijft 5.
-
-### 4. ShiftWizard.tsx — loading guard
-
-```typescript
-function ShiftWizard({ open, onOpenChange, locationId, editingShift }) {
-  const { data: existingShiftTickets, isLoading: isLoadingTickets } = 
-    useShiftTickets(editingShift?.id);
+export function useSyncShiftTickets() {
+  const queryClient = useQueryClient();
   
-  const isReady = !editingShift || !isLoadingTickets;
+  return useMutation({
+    mutationFn: async ({ shiftId, locationId, selectedTickets, ticketOverrides }: SyncShiftTicketsInput) => {
+      // 1. Fetch current shift_tickets
+      const { data: existing } = await supabase
+        .from('shift_tickets')
+        .select('id, ticket_id')
+        .eq('shift_id', shiftId)
+        .eq('is_active', true);
 
-  return (
-    <Dialog ...>
-      <DialogContent ...>
-        {isReady ? (
-          <ShiftWizardProvider 
-            locationId={locationId} 
-            editingShift={editingShift}
-            initialShiftTickets={existingShiftTickets ?? []}
-          >
-            <ShiftWizardContent onClose={handleClose} />
-          </ShiftWizardProvider>
-        ) : (
-          // Compact loading skeleton (sidebar + content area)
-          <div className="flex flex-col">
-            <div className="px-6 py-4 border-b"><Skeleton className="h-6 w-40" /></div>
-            <div className="flex flex-1 p-5">
-              <Skeleton className="w-48 h-64" />
-              <div className="flex-1 p-5 space-y-4">
-                <Skeleton className="h-6 w-64" />
-                <Skeleton className="h-32 w-full" />
-              </div>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
+      const existingIds = (existing ?? []).map(st => st.ticket_id);
+      const toRemove = existingIds.filter(id => !selectedTickets.includes(id));
+
+      // 2. Delete removed
+      if (toRemove.length > 0) {
+        const { error } = await supabase
+          .from('shift_tickets')
+          .delete()
+          .eq('shift_id', shiftId)
+          .in('ticket_id', toRemove);
+        if (error) throw error;
+      }
+
+      // 3. Upsert selected (add + update)
+      if (selectedTickets.length > 0) {
+        const payload = selectedTickets.map(ticketId => {
+          const o = ticketOverrides[ticketId];
+          return {
+            shift_id: shiftId,
+            ticket_id: ticketId,
+            location_id: locationId,
+            override_duration_minutes: o?.overrideDuration ?? null,
+            override_buffer_minutes: o?.overrideBuffer ?? null,
+            override_min_party: o?.overrideMinParty ?? null,
+            override_max_party: o?.overrideMaxParty ?? null,
+            pacing_limit: o?.pacingLimit ?? null,
+            seating_limit_guests: o?.seatingLimitGuests ?? null,
+            seating_limit_reservations: o?.seatingLimitReservations ?? null,
+            ignore_pacing: o?.ignorePacing ?? false,
+            areas: o?.areas ?? null,
+            show_area_name: o?.showAreaName ?? false,
+            squeeze_enabled: o?.squeezeEnabled ?? false,
+            squeeze_duration_minutes: o?.squeezeDuration ?? null,
+            squeeze_gap_minutes: o?.squeezeGap ?? null,
+            squeeze_to_fixed_end_time: o?.squeezeFixedEndTime ?? null,
+            squeeze_limit_per_shift: o?.squeezeLimit ?? null,
+            show_end_time: o?.showEndTime ?? false,
+            waitlist_enabled: o?.waitlistEnabled ?? false,
+            is_active: true,
+          };
+        });
+
+        const { error } = await supabase
+          .from('shift_tickets')
+          .upsert(payload, { onConflict: 'shift_id,ticket_id' });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.shiftTickets(vars.shiftId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tickets(vars.locationId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts(vars.locationId) });
+    },
+  });
 }
 ```
 
-Dit voorkomt de race condition: de context initialiseert pas als de data er is.
+Importeer `ShiftTicketOverrides` vanuit `ShiftWizardContext`, of definieer een compatible input type om circulaire imports te vermijden. Gebruik een aparte `SyncOverrides` interface die dezelfde velden heeft — of importeer vanuit het context bestand (is acceptabel aangezien hooks en context in dezelfde codebasis leven).
 
-### 5. TicketsStep — live data
+### 2. ConfigStep (nieuw bestand, vervangt AreasStep)
 
-Data: `useTickets(locationId)` — toont alleen tickets met `status === 'active'` uit `visibleTickets`.
+**Expliciet:** Verwijder `AreasStep.tsx`. Maak `ConfigStep.tsx`. Update import in `ShiftWizard.tsx` van `AreasStep` naar `ConfigStep`.
 
-Layout per ticket:
+Per geselecteerd ticket een `Collapsible` panel (van `@radix-ui/react-collapsible`):
 
 ```text
-+------------------------------------------+
-|  [x] Reguliere tafel            90 min   |
-|      Standaard reservering      Gratis   |
-+------------------------------------------+
-|  [ ] Kerstdiner                120 min   |
-|      5-gangen menu         EUR 85 p.p.   |
-+------------------------------------------+
-|  + Nieuw ticket aanmaken                 |
-+------------------------------------------+
-|  (!) Shift is niet boekbaar zonder ...   |
-+------------------------------------------+
+v Reguliere tafel                  2 overrides
++------------------------------------------------------+
+|  Tafeltijd & buffer                                  |
+|  [    ] min  (placeholder: 90)   [    ] min (15)     |
+|                                                       |
+|  Groepsgrootte                                       |
+|  Min [    ] (1)    Max [    ] (20)                    |
+|                                                       |
+|  Pacing                                              |
+|  Max gasten/slot [    ]   [switch] Negeer pacing     |
+|                                                       |
+|  Seating limieten                                    |
+|  Max gasten [    ]    Max reserveringen [    ]        |
+|                                                       |
+|  Gebieden                                            |
+|  (o) Alle gebieden (3)                               |
+|  ( ) Specifieke gebieden                             |
+|    [x] Terras  (4t, 24s)                             |
+|    [ ] Salon   (6t, 36s)                             |
+|  [switch] Toon area naam in widget                   |
+|                                                       |
+|  Squeeze                                             |
+|  [switch] Squeeze inschakelen                        |
+|  (als aan: duur, gap, vaste eindtijd, limiet)        |
+|                                                       |
+|  Weergave                                            |
+|  [switch] Toon eindtijd   [switch] Wachtlijst       |
++------------------------------------------------------+
 ```
 
-Per ticket-card:
-- Checkbox links (toggle via `toggleTicket`)
-- Ticketnaam + `is_default` badge (NestoBadge variant="outline")
-- `duration_minutes` rechts ("90 min")
-- `short_description` ondertitel (line-clamp-1)
-- Pricing badge rechts-onder (afgeleid van policyInfo, zelfde logica als TicketCard)
-- Kleur-dot (4px rond met `ticket.color`)
+Data en gedrag:
+- Haalt geselecteerde tickets op via `useTickets(locationId)` — lookup ticket-defaults voor placeholders
+- Haalt areas op via `useAreasWithTables(locationId)` — voor gebieden-selectie
+- Alle NestoInput velden zijn optioneel. Placeholder toont ticket-default (bijv. `placeholder="90"`)
+- Override waarden lezen/schrijven via `setTicketOverride(ticketId, field, value)` uit context
+- Switch-velden (ignorePacing, showAreaName, squeezeEnabled, showEndTime, waitlistEnabled) zijn booleans, default false
+- Gebieden: radio "Alle gebieden" / "Specifieke gebieden". Bij specifiek: checkbox-lijst van areas met tafel- en stoelcounts
+- Squeeze sub-velden alleen zichtbaar als `squeezeEnabled === true`
+- Eerste ticket default open, rest dicht
+- Collapsible header toont ticketnaam + override-count badge
 
-Quick-create: "Nieuw ticket aanmaken" knop opent bestaande `TicketModal` als geneste dialog. Na opslaan wordt `useTickets` geinvalideerd en het nieuwe ticket automatisch geselecteerd via `onSuccess` callback die `toggleTicket` aanroept met het nieuwe ticket ID.
+Geen tickets geselecteerd: toon een muted tekst "Selecteer eerst tickets in de vorige stap."
 
-Warning: als `selectedTickets.length === 0`: oranje `InfoAlert` "Shift is niet boekbaar zonder tickets".
+### 3. CapacityStep (herschreven)
 
-### 6. AreasStep — placeholder
+Per geselecteerd ticket een compacte NestoCard:
 
-Het bestand blijft bestaan maar wordt vervangen door een simpele placeholder:
+```text
+Reguliere tafel
++--------------------------------------------------+
+|  12 tafels · 1-20 gasten · 90 min                |
+|                                                   |
+|  Gebieden     Alle (3)                           |
+|  Pacing       Geen limiet                        |
+|  Seating      Geen limiet                        |
+|  Squeeze      Uit                                |
++--------------------------------------------------+
+```
+
+Data:
+- Combineert ticket-defaults met overrides via `getEffectiveValue` uit context
+- Tafelcount: berekend uit geselecteerde areas (of alle areas als `areas === null`) via `useAreasWithTables`
+- Gasten range: effectieve min/max party
+- Duration: effectieve duration
+
+Waarschuwingen (InfoAlert):
+- `squeezeEnabled && !squeezeLimit`: "Squeeze is ingeschakeld maar er is geen limiet ingesteld"
+
+Geen tickets geselecteerd: "Selecteer eerst tickets in stap 2."
+
+### 4. ShiftWizard.tsx — handleSubmit uitbreiding
+
+De huidige `handleSubmit` doet alleen shift create/update. Wordt uitgebreid:
 
 ```typescript
-export function AreasStep() {
-  return (
-    <div className="space-y-4">
-      <h3 className="text-base font-semibold">Configuratie per ticket</h3>
-      <p className="text-sm text-muted-foreground">
-        Hier stel je per ticket de tafeltijd, groepsgrootte, pacing, gebieden 
-        en squeeze-regels in. Deze stap wordt in de volgende update beschikbaar.
-      </p>
-    </div>
-  );
-}
+const { mutateAsync: syncTickets } = useSyncShiftTickets();
+const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
+const [pendingSubmitData, setPendingSubmitData] = useState<{ shiftId: string } | null>(null);
 ```
 
-Geen context-methods aanroepen. Geen imports van verwijderde state.
+Flow:
+1. Valideer shift data (bestaand)
+2. Check of tickets worden ontkoppeld (edit mode):
+   - Vergelijk `initialShiftTickets` (via context prop) met `selectedTickets`
+   - Als er tickets verdwijnen: toon ConfirmDialog, sla submit data op in state
+   - Als geen tickets verdwijnen: ga direct door
+3. Na bevestiging (of als geen unlink): save shift (create/update)
+4. Op onSuccess van shift save: `await syncTickets({ shiftId, locationId, selectedTickets, ticketOverrides })`
+5. Sluit wizard
 
-### 7. ReviewStep — echte data
+De ConfirmDialog zit in de ShiftWizardContent JSX:
+```text
+<ConfirmDialog
+  open={showUnlinkConfirm}
+  onOpenChange={setShowUnlinkConfirm}
+  title="Tickets ontkoppelen?"
+  description="{n} ticket(s) worden ontkoppeld van deze shift. Ingestelde overrides gaan verloren."
+  confirmLabel="Ontkoppelen"
+  variant="destructive"
+  onConfirm={executeSave}
+/>
+```
 
-- Verwijder `MOCK_TICKETS` import
-- Verwijder `areasByTicket` uit context destructuring
-- Haal ticketnamen op via `useTickets(locationId)`: lookup `selectedTickets` IDs in `visibleTickets` data
-- Tickets sectie: geselecteerde ticketnamen als komma-gescheiden lijst
-- Gebieden sectie: "Standaard" (placeholder tot D2)
-- Capaciteit sectie: "Standaard" (ongewijzigd)
+De `initialShiftTickets` moeten beschikbaar zijn in de ShiftWizardContent. Deze worden doorgegeven via de context — voeg `initialShiftTickets` toe aan de ShiftWizardState (read-only, voor diff-berekening).
 
-De `locationId` wordt uit de wizard context gehaald (is al beschikbaar als `useShiftWizard().locationId`).
+**Context wijziging:** Voeg `initialShiftTickets: ShiftTicketRow[]` toe aan `ShiftWizardState` zodat de submit handler de diff kan berekenen. Dit is een read-only waarde die bij initialisatie wordt gezet.
 
-### 8. ShiftWizardSidebar — labels
+### 5. ReviewStep — overrides samenvatting
 
-Stap 2 wijzigt:
-- Label: "Gebieden" wordt "Configuratie"
-- Icon: `MapPin` wordt `Settings2` (van lucide-react)
+Onder de bestaande "Tickets" sectie en "Configuratie" sectie worden nu per ticket de effectieve overrides getoond:
 
-Import `Settings2` toevoegen, `MapPin` import verwijderen.
+- Tickets sectie: ongewijzigd (komma-gescheiden namen)
+- Configuratie sectie: per ticket met overrides een kort overzicht
+  - "Reguliere tafel: standaard"
+  - "Kerstdiner: 120 min, max 12 gasten, squeeze aan"
+- Capaciteit sectie: korte samenvatting per ticket ("12 tafels, alle gebieden")
 
-### 9. index.ts — exports opschonen
-
-Verwijderen:
-- `MOCK_TICKETS`
-- `MockTicket`
-- `type MockTicket`
-
-Behouden:
-- `ShiftWizard`
-- `ShiftWizardProvider`
-- `useShiftWizard`
+De overrides worden opgebouwd door te itereren over `selectedTickets`, voor elk de `ticketOverrides` te bekijken, en ticket-defaults op te halen via `useTickets`.
 
 ---
 
 ## Volgorde van implementatie
 
-1. `queryKeys.ts` — shiftTickets key
-2. `useShiftTickets.ts` — nieuwe hook
-3. `ShiftWizardContext.tsx` — volledige refactor
-4. `ShiftWizard.tsx` — loading guard + initialShiftTickets
-5. `TicketsStep.tsx` — live tickets + quick-create
-6. `AreasStep.tsx` — placeholder content
-7. `ReviewStep.tsx` — echte ticketnamen
-8. `ShiftWizardSidebar.tsx` — labels + icons
-9. `index.ts` — exports opschonen
+1. `useShiftTickets.ts` — `useSyncShiftTickets` mutation toevoegen
+2. `ShiftWizardContext.tsx` — `initialShiftTickets` toevoegen aan state (read-only)
+3. `ConfigStep.tsx` — nieuw bestand aanmaken
+4. `AreasStep.tsx` — verwijderen
+5. `ShiftWizard.tsx` — import ConfigStep, handleSubmit uitbreiden met sync + ConfirmDialog
+6. `CapacityStep.tsx` — herschrijven met live data
+7. `ReviewStep.tsx` — overrides samenvatting
 
 ---
 
 ## Validatie-checklist
 
-- [ ] Stap 2 toont echte tickets uit database (geen mocks)
-- [ ] Alleen tickets met `status === 'active'` getoond
-- [ ] Quick-create opent TicketModal, na opslaan is ticket zichtbaar en geselecteerd
-- [ ] Warning bij 0 geselecteerde tickets
-- [ ] Bewerken van bestaande shift laadt huidige ticket-koppelingen
-- [ ] Wizard toont loading skeleton tot shift_tickets geladen zijn (edit mode)
-- [ ] Nieuwe shift: wizard opent direct zonder loading
-- [ ] AreasStep rendert placeholder tekst zonder errors
-- [ ] Review stap toont echte ticketnamen
-- [ ] Sidebar label "Configuratie" i.p.v. "Gebieden", icon Settings2
-- [ ] Geen `MOCK_TICKETS` referenties meer in codebase
-- [ ] `index.ts` exporteert geen `MOCK_TICKETS` of `MockTicket` meer
+- [ ] `AreasStep.tsx` verwijderd, `ConfigStep.tsx` bestaat
+- [ ] Import in `ShiftWizard.tsx` gebruikt `ConfigStep` (geen AreasStep referenties)
+- [ ] Per ticket een collapsible panel met alle override-velden
+- [ ] Override placeholders tonen ticket-defaults (duration, buffer, min/max party)
+- [ ] Lege overrides vallen terug op ticket-defaults in capaciteitspreview
+- [ ] Area selectie werkt per ticket (alle/specifiek) via `useAreasWithTables`
+- [ ] Squeeze sub-velden tonen alleen als toggle aan
+- [ ] Capaciteitspreview toont effectieve waarden per ticket
+- [ ] Opslaan schrijft naar `shift_tickets` koppeltabel (upsert + delete)
+- [ ] Bewerken van bestaande shift: ontkoppelen van tickets toont ConfirmDialog
+- [ ] Nieuwe shift: geen ConfirmDialog (er zijn geen bestaande koppelingen)
+- [ ] Review stap toont overrides samenvatting per ticket
+- [ ] Geen `AreasStep` referenties meer in codebase
+- [ ] Wizard sluit correct na succesvolle submit met ticket sync
+
