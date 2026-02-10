@@ -35,7 +35,22 @@ interface SignalDraft {
 interface SignalProvider {
   name: string;
   evaluate(locationId: string, orgId: string): Promise<SignalDraft[]>;
-  resolveStale(locationId: string): Promise<string[]>; // returns signal_types to resolve
+  resolveStale(locationId: string): Promise<string[]>;
+}
+
+// ============================================
+// ENTITLEMENT HELPER
+// ============================================
+
+async function hasReservationsEntitlement(locationId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('location_entitlements')
+    .select('id')
+    .eq('location_id', locationId)
+    .eq('module_key', 'reservations')
+    .eq('enabled', true)
+    .maybeSingle();
+  return !!data;
 }
 
 // ============================================
@@ -48,9 +63,11 @@ const configProvider: SignalProvider = {
   async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
     const drafts: SignalDraft[] = [];
 
-    // 1. Unassigned tables: tables.area_id references areas, but check for tables 
-    //    that are active but whose area is inactive (effectively unassigned)
-    // Note: In current schema, area_id is NOT NULL, so "unassigned" means area is inactive
+    // Entitlement guard: skip all reservation-related checks if not enabled
+    const hasRes = await hasReservationsEntitlement(locationId);
+    if (!hasRes) return drafts;
+
+    // 1. Unassigned tables: active tables in inactive areas
     const { data: unassignedTables } = await supabaseAdmin
       .from('tables')
       .select('id, area_id, areas!inner(is_active)')
@@ -76,7 +93,7 @@ const configProvider: SignalProvider = {
       });
     }
 
-    // 2. Empty table groups: active groups with no active members
+    // 2. Empty table groups
     const { data: groups } = await supabaseAdmin
       .from('table_groups')
       .select('id, name, table_group_members(id)')
@@ -106,7 +123,7 @@ const configProvider: SignalProvider = {
       });
     }
 
-    // 3. Shifts without proper pacing (arrival_interval_minutes = 0 or very low)
+    // 3. Shifts without pacing
     const { data: shifts } = await supabaseAdmin
       .from('shifts')
       .select('id, name, arrival_interval_minutes')
@@ -135,13 +152,169 @@ const configProvider: SignalProvider = {
       });
     }
 
+    // ============================================
+    // NEW: Ticket & Shift coupling signals
+    // ============================================
+
+    // 4. config_ticket_no_shift: active tickets without shift_tickets
+    const { data: ticketsNoShift } = await supabaseAdmin
+      .from('tickets')
+      .select('id, name, shift_tickets(id)')
+      .eq('location_id', locationId)
+      .eq('status', 'active');
+
+    const orphanTickets = (ticketsNoShift || []).filter(
+      (t: any) => !t.shift_tickets || t.shift_tickets.length === 0
+    );
+
+    if (orphanTickets.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'configuratie',
+        signal_type: 'config_ticket_no_shift',
+        kind: 'signal',
+        severity: 'warning',
+        title: `${orphanTickets.length} ticket(s) zonder shift`,
+        message: `Tickets zonder shift-koppeling: ${orphanTickets.map((t: any) => t.name).join(', ')}`,
+        action_path: '/instellingen/reserveringen/tickets',
+        dedup_key: `config_ticket_no_shift:${locationId}`,
+        actionable: true,
+        priority: 25,
+        payload: { count: orphanTickets.length, names: orphanTickets.map((t: any) => t.name) },
+      });
+    }
+
+    // 5. config_shift_no_tickets: active shifts without shift_tickets
+    const { data: shiftsNoTickets } = await supabaseAdmin
+      .from('shifts')
+      .select('id, name, shift_tickets(id)')
+      .eq('location_id', locationId)
+      .eq('is_active', true);
+
+    const orphanShifts = (shiftsNoTickets || []).filter(
+      (s: any) => !s.shift_tickets || s.shift_tickets.length === 0
+    );
+
+    if (orphanShifts.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'configuratie',
+        signal_type: 'config_shift_no_tickets',
+        kind: 'signal',
+        severity: 'warning',
+        title: `${orphanShifts.length} shift(s) zonder tickets`,
+        message: `Shifts zonder ticket-koppeling: ${orphanShifts.map((s: any) => s.name).join(', ')}`,
+        action_path: '/instellingen/reserveringen/shifts',
+        dedup_key: `config_shift_no_tickets:${locationId}`,
+        actionable: true,
+        priority: 25,
+        payload: { count: orphanShifts.length, names: orphanShifts.map((s: any) => s.name) },
+      });
+    }
+
+    // 6. config_ticket_no_policy: active tickets without policy_set
+    const { data: ticketsNoPolicy } = await supabaseAdmin
+      .from('tickets')
+      .select('id, name')
+      .eq('location_id', locationId)
+      .eq('status', 'active')
+      .is('policy_set_id', null);
+
+    if (ticketsNoPolicy && ticketsNoPolicy.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'configuratie',
+        signal_type: 'config_ticket_no_policy',
+        kind: 'signal',
+        severity: 'info',
+        title: `${ticketsNoPolicy.length} ticket(s) zonder beleid`,
+        message: `Tickets zonder beleid: ${ticketsNoPolicy.map((t: any) => t.name).join(', ')}`,
+        action_path: '/instellingen/reserveringen/tickets',
+        dedup_key: `config_ticket_no_policy:${locationId}`,
+        actionable: true,
+        priority: 50,
+        payload: { count: ticketsNoPolicy.length, names: ticketsNoPolicy.map((t: any) => t.name) },
+      });
+    }
+
+    // 7. config_ticket_draft: draft tickets older than 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data: staleDrafts } = await supabaseAdmin
+      .from('tickets')
+      .select('id, name')
+      .eq('location_id', locationId)
+      .eq('status', 'draft')
+      .lt('created_at', sevenDaysAgo.toISOString());
+
+    if (staleDrafts && staleDrafts.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'configuratie',
+        signal_type: 'config_ticket_draft',
+        kind: 'signal',
+        severity: 'info',
+        title: `${staleDrafts.length} draft ticket(s) ouder dan 7 dagen`,
+        message: `Drafts die mogelijk vergeten zijn: ${staleDrafts.map((t: any) => t.name).join(', ')}`,
+        action_path: '/instellingen/reserveringen/tickets',
+        dedup_key: `config_ticket_draft:${locationId}`,
+        actionable: true,
+        priority: 70,
+        payload: { count: staleDrafts.length, names: staleDrafts.map((t: any) => t.name) },
+      });
+    }
+
+    // 8. config_squeeze_no_limit: squeeze enabled without limit
+    const { data: squeezeNoLimit } = await supabaseAdmin
+      .from('shift_tickets')
+      .select('id, shifts!inner(name, is_active)')
+      .eq('location_id', locationId)
+      .eq('squeeze_enabled', true)
+      .is('squeeze_limit_per_shift', null)
+      .eq('shifts.is_active', true);
+
+    if (squeezeNoLimit && squeezeNoLimit.length > 0) {
+      const shiftNames = [...new Set((squeezeNoLimit as any[]).map(st => st.shifts?.name).filter(Boolean))];
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'configuratie',
+        signal_type: 'config_squeeze_no_limit',
+        kind: 'signal',
+        severity: 'info',
+        title: `Squeeze zonder limiet in ${shiftNames.length} shift(s)`,
+        message: `Shifts met ongelimiteerde squeeze: ${shiftNames.join(', ')}`,
+        action_path: '/instellingen/reserveringen/shifts',
+        dedup_key: `config_squeeze_no_limit:${locationId}`,
+        actionable: true,
+        priority: 60,
+        payload: { count: squeezeNoLimit.length, names: shiftNames },
+      });
+    }
+
     return drafts;
   },
 
   async resolveStale(locationId: string): Promise<string[]> {
     const resolved: string[] = [];
 
-    // Check unassigned_tables: resolve if no active tables in inactive areas
+    // Skip resolve checks if no reservation entitlement
+    const hasRes = await hasReservationsEntitlement(locationId);
+    if (!hasRes) {
+      // Resolve ALL reservation-related signals if entitlement is gone
+      return [
+        'unassigned_tables', 'empty_table_groups', 'shifts_without_pacing',
+        'config_ticket_no_shift', 'config_shift_no_tickets', 'config_ticket_no_policy',
+        'config_ticket_draft', 'config_squeeze_no_limit',
+      ];
+    }
+
+    // Check unassigned_tables
     const { data: unassigned } = await supabaseAdmin
       .from('tables')
       .select('id, areas!inner(is_active)')
@@ -164,7 +337,6 @@ const configProvider: SignalProvider = {
     const emptyGroups = (groups || []).filter(
       (g: any) => !g.table_group_members || g.table_group_members.length === 0
     );
-
     if (emptyGroups.length === 0) {
       resolved.push('empty_table_groups');
     }
@@ -179,6 +351,77 @@ const configProvider: SignalProvider = {
     const noPacing = (shifts || []).filter((s: any) => s.arrival_interval_minutes === 0);
     if (noPacing.length === 0) {
       resolved.push('shifts_without_pacing');
+    }
+
+    // Check config_ticket_no_shift
+    const { data: ticketsNoShift } = await supabaseAdmin
+      .from('tickets')
+      .select('id, shift_tickets(id)')
+      .eq('location_id', locationId)
+      .eq('status', 'active');
+
+    const orphanTickets = (ticketsNoShift || []).filter(
+      (t: any) => !t.shift_tickets || t.shift_tickets.length === 0
+    );
+    if (orphanTickets.length === 0) {
+      resolved.push('config_ticket_no_shift');
+    }
+
+    // Check config_shift_no_tickets
+    const { data: shiftsNoTickets } = await supabaseAdmin
+      .from('shifts')
+      .select('id, shift_tickets(id)')
+      .eq('location_id', locationId)
+      .eq('is_active', true);
+
+    const orphanShifts = (shiftsNoTickets || []).filter(
+      (s: any) => !s.shift_tickets || s.shift_tickets.length === 0
+    );
+    if (orphanShifts.length === 0) {
+      resolved.push('config_shift_no_tickets');
+    }
+
+    // Check config_ticket_no_policy
+    const { data: ticketsNoPolicy } = await supabaseAdmin
+      .from('tickets')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('status', 'active')
+      .is('policy_set_id', null)
+      .limit(1);
+
+    if (!ticketsNoPolicy || ticketsNoPolicy.length === 0) {
+      resolved.push('config_ticket_no_policy');
+    }
+
+    // Check config_ticket_draft
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data: staleDrafts } = await supabaseAdmin
+      .from('tickets')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('status', 'draft')
+      .lt('created_at', sevenDaysAgo.toISOString())
+      .limit(1);
+
+    if (!staleDrafts || staleDrafts.length === 0) {
+      resolved.push('config_ticket_draft');
+    }
+
+    // Check config_squeeze_no_limit
+    const { data: squeezeNoLimit } = await supabaseAdmin
+      .from('shift_tickets')
+      .select('id, shifts!inner(is_active)')
+      .eq('location_id', locationId)
+      .eq('squeeze_enabled', true)
+      .is('squeeze_limit_per_shift', null)
+      .eq('shifts.is_active', true)
+      .limit(1);
+
+    if (!squeezeNoLimit || squeezeNoLimit.length === 0) {
+      resolved.push('config_squeeze_no_limit');
     }
 
     return resolved;
@@ -226,7 +469,7 @@ const onboardingProvider: SignalProvider = {
       }
     }
 
-    // Overdue tasks: pending tasks older than 3 days
+    // Overdue tasks
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
@@ -285,7 +528,6 @@ const onboardingProvider: SignalProvider = {
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         if (!candidate || candidate.status !== 'active' || new Date(candidate.updated_at) > sevenDaysAgo) {
-          // Resolve this specific signal directly
           await supabaseAdmin
             .from('signals')
             .update({ status: 'resolved', resolved_at: new Date().toISOString() })
@@ -345,7 +587,6 @@ async function processLocation(locationId: string, orgId: string) {
     const drafts = await provider.evaluate(locationId, orgId);
 
     for (const draft of drafts) {
-      // Dedup check: partial unique index will catch this, but check explicitly for cooldown
       const { data: existing } = await supabaseAdmin
         .from('signals')
         .select('id')
@@ -358,7 +599,6 @@ async function processLocation(locationId: string, orgId: string) {
         continue;
       }
 
-      // Cooldown check
       if (draft.cooldown_hours) {
         const { data: coolingDown } = await supabaseAdmin
           .from('signals')
@@ -374,7 +614,6 @@ async function processLocation(locationId: string, orgId: string) {
         }
       }
 
-      // Insert new signal
       const cooldownUntil = draft.cooldown_hours
         ? new Date(Date.now() + draft.cooldown_hours * 3600000).toISOString()
         : null;
@@ -399,7 +638,6 @@ async function processLocation(locationId: string, orgId: string) {
       if (!error) {
         results.created++;
       } else {
-        // Likely dedup conflict from partial unique index — safe to ignore
         if (error.code === '23505') {
           results.skipped++;
         } else {
@@ -424,7 +662,6 @@ Deno.serve(async (req) => {
   try {
     let locationIds: string[] = [];
 
-    // Accept specific location_id or run for all active locations
     if (req.method === 'POST') {
       const body = await req.json().catch(() => ({}));
       if (body.location_id) {
@@ -432,7 +669,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // If no specific location, fetch all active locations
     if (locationIds.length === 0) {
       const { data: locations } = await supabaseAdmin
         .from('locations')
@@ -446,7 +682,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Process each location
       const allResults = [];
       for (const loc of locations) {
         const result = await processLocation(loc.id, loc.organization_id);
@@ -459,7 +694,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Process specific location
     const { data: location } = await supabaseAdmin
       .from('locations')
       .select('id, organization_id')

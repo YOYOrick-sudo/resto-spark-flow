@@ -6,6 +6,7 @@ import {
   Building2,
   MapPin,
   Link2,
+  Ticket,
   type LucideIcon,
 } from "lucide-react";
 
@@ -86,6 +87,13 @@ export const reserveringenConfig: SettingsModuleConfig = {
           icon: Link2,
         },
       ],
+    },
+    {
+      id: "tickets",
+      label: "Tickets",
+      path: "/instellingen/reserveringen/tickets",
+      description: "Reserveringsproducten beheren",
+      icon: Ticket,
     },
     {
       id: "shifts",
