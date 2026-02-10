@@ -1,25 +1,60 @@
 
 
-# AI Feature Specificaties Opslaan als Documentatie
+# Roadmap bijwerken: Fase 4.3.C + 4.3.D als COMPLEET
 
-## Wat we doen
+## Wat verandert
 
-Vijf nieuwe documentbestanden aanmaken in de `docs/` map, naast de bestaande documentatie (ROADMAP.md, AI_STRATEGY.md, DATABASE.md, ARCHITECTURE.md, etc.):
+Alleen `docs/ROADMAP.md` wordt aangepast:
 
-| Bestand | Inhoud |
-|---------|--------|
-| `docs/AI_FEATURE_1_RISK_SCORE.md` | No-Show Risicoscore specificatie |
-| `docs/AI_FEATURE_2_BRIEFING.md` | Ochtend-Briefing & Weekrapport specificatie |
-| `docs/AI_FEATURE_3_PREP_ENGINE.md` | Auto-Prep Engine specificatie |
-| `docs/AI_FEATURE_4_BENCHMARKS.md` | Cross-Restaurant Benchmarks specificatie |
-| `docs/AI_FEATURE_5_MENU_ENGINEERING.md` | Menu Engineering AI specificatie |
+### 1. HUIDIGE STATUS sectie (regel 22-28)
 
-De inhoud wordt 1-op-1 overgenomen uit de geuploadede bestanden. Dit zijn referentiedocumenten -- er wordt nu niets mee gebouwd.
+**Was:**
+```
+### IN UITVOERING
+- Fase 4.3: Shifts + Exceptions
+  - 4.3.A Shifts CRUD - COMPLEET
+  - 4.3.B Live Preview Panel - COMPLEET
+  - 4.3.C Shift Exceptions UI - VOLGENDE
+```
+
+**Wordt:**
+```
+### AFGEROND (toevoegen):
+- Fase 4.3.C: Shift Exceptions UI
+- Fase 4.3.D: Bulk Exceptions
+
+### IN UITVOERING wordt leeg / verwijst naar 4.4
+```
+
+### 2. Fase 4.3.C sectie (regel 361-382)
+
+Alle checkboxes worden aangevinkt en status wordt "COMPLEET". Checklist aanpassen naar wat daadwerkelijk gebouwd is:
+
+- ShiftExceptionsSection met kalender + lijstweergave
+- ShiftExceptionModal (create/edit, single date)
+- ExceptionCalendar met gekleurde markers
+- ExceptionListItem met edit/delete
+- Quick actions (Dag sluiten, Aangepaste tijden, Speciaal)
+- Type-specifieke kleuren (rood/oranje/paars)
+- ConfirmDialog voor verwijderen
+
+### 3. Nieuwe sectie: Fase 4.3.D Bulk Exceptions (COMPLEET)
+
+Toevoegen na 4.3.C:
+
+- BulkExceptionModal met periode/herhaling
+- BulkExceptionPreview met conflict-detectie
+- bulkExceptionGenerator.ts (weekly, monthly-day, monthly-nth, n-occurrences)
+- useBulkCreateShiftExceptions hook (batch processing, skip/replace)
+- Limieten: 500 records, 2 jaar bereik
+
+### 4. Volgende stap updaten
+
+"IN UITVOERING" verwijst nu naar Fase 4.4: Tickets + PolicySet Foundation.
 
 ## Wat niet verandert
 
 - Geen code wijzigingen
 - Geen database migraties
-- Geen Edge Functions
-- Geen wijzigingen aan ROADMAP.md of AI_STRATEGY.md (die verwijzen al naar deze documenten)
+- Geen andere documenten
 
