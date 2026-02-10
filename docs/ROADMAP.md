@@ -20,11 +20,11 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
 - ✅ Fase 7.4.2: Signal Architecture + Live Signals
 - ✅ Fase 7.5: Onboarding Module (Pipeline, Detail, Settings, Automation, Signals)
 
+- ✅ Fase 4.3.C: Shift Exceptions UI
+- ✅ Fase 4.3.D: Bulk Exceptions
+
 ### IN UITVOERING
-- 🔄 Fase 4.3: Shifts + Exceptions
-  - ✅ 4.3.A Shifts CRUD - COMPLEET (11 januari 2026)
-  - ✅ 4.3.B Live Preview Panel - COMPLEET (11 januari 2026)
-  - ⏳ 4.3.C Shift Exceptions UI - VOLGENDE
+- 🔄 Fase 4.4: Tickets + PolicySet Foundation
 
 ### GEPLAND
 - 📋 Fase 13: Nesto AI / Intelligence (na reserveringen-launch)
@@ -358,26 +358,42 @@ Status: Afgerond (11 januari 2026)
 
 ---
 
-#### 4.3.C Shift Exceptions UI ⏳ NOG TE STARTEN
-Status: Volgende stap
+#### 4.3.C Shift Exceptions UI ✅ COMPLEET
+Status: Afgerond (februari 2026)
 
-**Doel:** UI voor het beheren van shift exceptions (gesloten dagen, aangepaste tijden, speciale events)
-
-**Scope:**
-- [ ] Exceptions overzicht in settings (calendar of lijst view)
-- [ ] Exception modal (create/edit)
-  - Datum selectie (single of range)
-  - Type: Gesloten / Aangepaste tijden / Speciaal
+**Wat is gedaan:**
+- [x] `ShiftExceptionsSection` met kalender + scrollbare lijstweergave
+- [x] `ExceptionCalendar` met gekleurde markers per type
+- [x] `ExceptionListItem` met edit/delete + hover actions
+- [x] `ShiftExceptionModal` (create/edit, single date)
+  - Type selectie: Gesloten / Aangepaste tijden / Speciaal
   - Shift selectie (of location-wide)
   - Label en notities
-- [ ] Quick actions op kalender:
-  - "Sluiten" knop voor snelle dag afsluiting
-  - Copy exception to other dates
-- [ ] Bulk close voor vakantieperiodes
-- [ ] Integratie met Grid View (exception indicator op datum)
+  - Enterprise Form Grouping (bg-secondary/50 blokken)
+- [x] Quick actions: Dag sluiten, Aangepaste tijden, Speciaal
+- [x] Type-specifieke kleuren (rood/oranje/paars)
+- [x] `ConfirmDialog` voor verwijderen
+- [x] Scroll-fade indicator bij lange lijsten
 
 **UI Locatie:**
-- Settings > Reserveringen > Shifts > Uitzonderingen tab (of aparte pagina)
+- Settings > Reserveringen > Shifts (onder ShiftsTable)
+
+---
+
+#### 4.3.D Bulk Exceptions ✅ COMPLEET
+Status: Afgerond (februari 2026)
+
+**Wat is gedaan:**
+- [x] `BulkExceptionModal` met periode- en herhalingsselectie
+- [x] `BulkExceptionPreview` met scope-aware conflict-detectie
+- [x] `bulkExceptionGenerator.ts` met patronen:
+  - weekly (wekelijks op dag X)
+  - monthly-day (maandelijks op dag X)
+  - monthly-nth (maandelijks op Xde weekdag)
+  - n-occurrences (vast aantal herhalingen)
+- [x] `useBulkCreateShiftExceptions` hook (batch processing in 100-records batches)
+- [x] Conflict handling: Skip / Replace opties voor dezelfde scope
+- [x] Harde limieten: max 500 records, max 2 jaar bereik
 
 ---
 
