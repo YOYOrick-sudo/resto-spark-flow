@@ -1,11 +1,11 @@
-import { Clock, Ticket, MapPin, Users, CheckCircle, Check } from "lucide-react";
+import { Clock, Ticket, Settings2, Users, CheckCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useShiftWizard, TOTAL_STEPS } from "./ShiftWizardContext";
 
 const STEPS = [
   { id: 0, label: "Tijden", icon: Clock },
   { id: 1, label: "Tickets", icon: Ticket },
-  { id: 2, label: "Gebieden", icon: MapPin },
+  { id: 2, label: "Configuratie", icon: Settings2 },
   { id: 3, label: "Capaciteit", icon: Users },
   { id: 4, label: "Overzicht", icon: CheckCircle },
 ];
@@ -14,7 +14,6 @@ export function ShiftWizardSidebar() {
   const { currentStep, completedSteps, goToStep, stepSummaries, canProceed } = useShiftWizard();
 
   const handleStepClick = (stepId: number) => {
-    // Allow navigation to completed steps or the next available step
     if (completedSteps.has(stepId) || stepId <= currentStep || (stepId === currentStep + 1 && canProceed)) {
       goToStep(stepId);
     }

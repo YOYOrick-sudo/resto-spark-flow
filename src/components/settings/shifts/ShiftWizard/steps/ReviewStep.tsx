@@ -1,5 +1,6 @@
-import { Clock, Calendar, Timer, Ticket, MapPin, Users, CheckCircle } from "lucide-react";
-import { useShiftWizard, MOCK_TICKETS } from "../ShiftWizardContext";
+import { Clock, Calendar, Timer, Ticket, Settings2, Users, CheckCircle } from "lucide-react";
+import { useShiftWizard } from "../ShiftWizardContext";
+import { useTickets } from "@/hooks/useTickets";
 import { DAY_LABELS } from "@/types/shifts";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,6 @@ function ReviewSection({ icon: Icon, title, children }: ReviewSectionProps) {
   );
 }
 
-
 export function ReviewStep() {
   const {
     name,
@@ -32,28 +32,24 @@ export function ReviewStep() {
     interval,
     color,
     selectedTickets,
-    areasByTicket,
+    locationId,
     isEditing,
   } = useShiftWizard();
+
+  const { data } = useTickets(locationId);
+  const allTickets = data?.visibleTickets ?? [];
 
   const formatTime = (time: string) => time.slice(0, 5);
   const formatInterval = (mins: number) => (mins === 60 ? "1 uur" : `${mins} min`);
 
-  const selectedTicketNames = MOCK_TICKETS
+  const selectedTicketNames = allTickets
     .filter((t) => selectedTickets.includes(t.id))
-    .map((t) => t.name);
-
-  const getAreasSummary = () => {
-    const customized = Object.entries(areasByTicket).filter(([, config]) => !config.allAreas);
-    if (customized.length === 0) return "Alle gebieden";
-    return `${customized.length} aangepast`;
-  };
+    .map((t) => t.display_title);
 
   return (
     <div className="space-y-4">
       <h3 className="text-base font-semibold">Overzicht</h3>
 
-      {/* Summary card */}
       <div className="rounded-dropdown border border-border bg-card overflow-hidden">
         {/* Header with shift name and color */}
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border bg-secondary/50">
@@ -67,7 +63,6 @@ export function ReviewStep() {
           )}
         </div>
 
-        {/* Content - compact grid */}
         <div className="px-4 py-3 divide-y divide-border">
           <ReviewSection icon={Clock} title="Tijden">
             <span className="text-sm font-medium">{formatTime(startTime)} – {formatTime(endTime)}</span>
@@ -99,11 +94,13 @@ export function ReviewStep() {
           </ReviewSection>
 
           <ReviewSection icon={Ticket} title="Tickets">
-            <span className="text-sm font-medium">{selectedTicketNames.join(", ")}</span>
+            <span className="text-sm font-medium">
+              {selectedTicketNames.length > 0 ? selectedTicketNames.join(", ") : "Geen"}
+            </span>
           </ReviewSection>
 
-          <ReviewSection icon={MapPin} title="Gebieden">
-            <span className="text-sm">{getAreasSummary()}</span>
+          <ReviewSection icon={Settings2} title="Configuratie">
+            <span className="text-sm text-muted-foreground">Standaard</span>
           </ReviewSection>
 
           <ReviewSection icon={Users} title="Capaciteit">
@@ -112,7 +109,6 @@ export function ReviewStep() {
         </div>
       </div>
 
-      {/* Ready indicator */}
       <div className="flex items-center gap-2 p-2.5 rounded-button bg-success/10 border border-success/20">
         <CheckCircle className="w-4 h-4 text-success" />
         <span className="text-sm font-medium text-success">
