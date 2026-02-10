@@ -106,8 +106,8 @@ Alle features zijn zo ontworpen dat de berekening later kan worden vervangen doo
 
 Zie de individuele feature-documenten voor gedetailleerde specificaties:
 
-- `AI_FEATURE_1_RISK_SCORE.md` (nog aan te maken)
-- `AI_FEATURE_2_BRIEFING.md` (nog aan te maken)
-- `AI_FEATURE_3_PREP_ENGINE.md` (nog aan te maken)
-- `AI_FEATURE_4_BENCHMARKS.md` (nog aan te maken)
-- `AI_FEATURE_5_MENU_ENGINEERING.md` (nog aan te maken)
+- `AI_FEATURE_1_RISK_SCORE.md`
+- `AI_FEATURE_2_BRIEFING.md`
+- `AI_FEATURE_3_PREP_ENGINE.md`
+- `AI_FEATURE_4_BENCHMARKS.md`
+- `AI_FEATURE_5_MENU_ENGINEERING.md`
