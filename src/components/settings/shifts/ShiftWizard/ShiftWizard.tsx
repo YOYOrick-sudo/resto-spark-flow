@@ -10,8 +10,10 @@ import { AreasStep } from "./steps/AreasStep";
 import { CapacityStep } from "./steps/CapacityStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { useCreateShift, useUpdateShift, getNextShiftSortOrder, useAllShifts } from "@/hooks/useShifts";
+import { useShiftTickets } from "@/hooks/useShiftTickets";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
 import { checkShiftOverlap, formatOverlapError } from "@/lib/shiftValidation";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Shift } from "@/types/shifts";
 import { NestoButton } from "@/components/polar/NestoButton";
 
@@ -44,7 +46,6 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
   const { mutate: createShift } = useCreateShift();
   const { mutate: updateShift } = useUpdateShift();
 
-  // Generate short name suggestion
   const generateShortName = (n: string): string => {
     const trimmed = n.trim().toUpperCase();
     if (!trimmed) return "";
@@ -63,39 +64,13 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
     const trimmedName = name.trim();
     const finalShortName = shortName.trim() || generateShortName(name);
 
-    // Validation
-    if (!trimmedName) {
-      setError("Naam is verplicht.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (trimmedName.length > 50) {
-      setError("Naam mag maximaal 50 tekens zijn.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (!finalShortName) {
-      setError("Korte naam is verplicht.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (finalShortName.length > 4) {
-      setError("Korte naam mag maximaal 4 tekens zijn.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (startTime >= endTime) {
-      setError("Eindtijd moet na starttijd liggen.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (daysOfWeek.length === 0) {
-      setError("Selecteer minimaal één dag.");
-      setIsSubmitting(false);
-      return;
-    }
+    if (!trimmedName) { setError("Naam is verplicht."); setIsSubmitting(false); return; }
+    if (trimmedName.length > 50) { setError("Naam mag maximaal 50 tekens zijn."); setIsSubmitting(false); return; }
+    if (!finalShortName) { setError("Korte naam is verplicht."); setIsSubmitting(false); return; }
+    if (finalShortName.length > 4) { setError("Korte naam mag maximaal 4 tekens zijn."); setIsSubmitting(false); return; }
+    if (startTime >= endTime) { setError("Eindtijd moet na starttijd liggen."); setIsSubmitting(false); return; }
+    if (daysOfWeek.length === 0) { setError("Selecteer minimaal één dag."); setIsSubmitting(false); return; }
 
-    // Overlap check
     const overlapResult = checkShiftOverlap(
       { start_time: startTime, end_time: endTime, days_of_week: daysOfWeek },
       allShifts,
@@ -122,15 +97,8 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
             color,
           },
           {
-            onSuccess: () => {
-              setIsSubmitting(false);
-              onClose();
-            },
-            onError: (err) => {
-              const parsed = parseSupabaseError(err);
-              setError(parsed.message);
-              setIsSubmitting(false);
-            },
+            onSuccess: () => { setIsSubmitting(false); onClose(); },
+            onError: (err) => { setError(parseSupabaseError(err).message); setIsSubmitting(false); },
           }
         );
       } else {
@@ -148,43 +116,18 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
             sort_order: sortOrder,
           },
           {
-            onSuccess: () => {
-              setIsSubmitting(false);
-              onClose();
-            },
-            onError: (err) => {
-              const parsed = parseSupabaseError(err);
-              setError(parsed.message);
-              setIsSubmitting(false);
-            },
+            onSuccess: () => { setIsSubmitting(false); onClose(); },
+            onError: (err) => { setError(parseSupabaseError(err).message); setIsSubmitting(false); },
           }
         );
       }
     } catch (err) {
-      const parsed = parseSupabaseError(err);
-      setError(parsed.message);
+      setError(parseSupabaseError(err).message);
       setIsSubmitting(false);
     }
-  }, [
-    name,
-    shortName,
-    startTime,
-    endTime,
-    daysOfWeek,
-    interval,
-    color,
-    editingShift,
-    locationId,
-    allShifts,
-    createShift,
-    updateShift,
-    onClose,
-    setError,
-    setIsSubmitting,
-  ]);
+  }, [name, shortName, startTime, endTime, daysOfWeek, interval, color, editingShift, locationId, allShifts, createShift, updateShift, onClose, setError, setIsSubmitting]);
 
   const handleSaveAndClose = useCallback(async () => {
-    // Only save if we have minimum required data (name and valid times)
     if (name.trim() && startTime < endTime && daysOfWeek.length > 0) {
       await handleSubmit();
     } else {
@@ -194,51 +137,34 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
 
   const renderStep = () => {
     switch (currentStep) {
-      case 0:
-        return <TimesStep />;
-      case 1:
-        return <TicketsStep />;
-      case 2:
-        return <AreasStep />;
-      case 3:
-        return <CapacityStep />;
-      case 4:
-        return <ReviewStep />;
-      default:
-        return <TimesStep />;
+      case 0: return <TimesStep />;
+      case 1: return <TicketsStep />;
+      case 2: return <AreasStep />;
+      case 3: return <CapacityStep />;
+      case 4: return <ReviewStep />;
+      default: return <TimesStep />;
     }
   };
 
   return (
     <div className="flex flex-col">
-      {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
         <h2 className="text-lg font-semibold">
           {editingShift ? "Shift bewerken" : "Nieuwe shift"}
         </h2>
-        <NestoButton
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="h-8 w-8"
-        >
+        <NestoButton variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
           <X className="h-5 w-5" />
           <span className="sr-only">Sluiten</span>
         </NestoButton>
       </div>
 
-      {/* Content */}
       <div className="flex flex-1">
-        {/* Sidebar */}
         <ShiftWizardSidebar />
-
-        {/* Step content */}
         <div className="flex-1 p-5">
           {renderStep()}
         </div>
       </div>
 
-      {/* Footer */}
       <ShiftWizardFooter onClose={handleSaveAndClose} onSubmit={handleSubmit} />
     </div>
   );
@@ -249,15 +175,42 @@ export function ShiftWizard({ open, onOpenChange, locationId, editingShift }: Sh
     onOpenChange(false);
   }, [onOpenChange]);
 
+  const { data: existingShiftTickets, isLoading: isLoadingTickets } = useShiftTickets(editingShift?.id);
+
+  // Don't render the wizard until existing shift_tickets are loaded (edit mode)
+  const isReady = !editingShift || !isLoadingTickets;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-4xl p-0 gap-0 overflow-hidden rounded-card"
-        hideCloseButton
-      >
-        <ShiftWizardProvider locationId={locationId} editingShift={editingShift}>
-          <ShiftWizardContent onClose={handleClose} />
-        </ShiftWizardProvider>
+      <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden rounded-card" hideCloseButton>
+        {isReady ? (
+          <ShiftWizardProvider
+            locationId={locationId}
+            editingShift={editingShift}
+            initialShiftTickets={existingShiftTickets ?? []}
+          >
+            <ShiftWizardContent onClose={handleClose} />
+          </ShiftWizardProvider>
+        ) : (
+          <div className="flex flex-col">
+            <div className="px-6 py-4 border-b border-border">
+              <Skeleton className="h-6 w-40" />
+            </div>
+            <div className="flex flex-1">
+              <div className="w-48 shrink-0 border-r border-border p-3 space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="flex-1 p-5 space-y-4">
+                <Skeleton className="h-6 w-64" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -56,6 +56,9 @@ export const queryKeys = {
   /** Effective shift-ticket config (merged overrides) */
   shiftTicketConfig: (shiftId: string, ticketId: string) =>
     ['shift-ticket-config', shiftId, ticketId] as const,
+
+  /** Shift-ticket links for a specific shift */
+  shiftTickets: (shiftId: string) => ['shift-tickets', shiftId] as const,
 } as const;
 
 export type QueryKeys = typeof queryKeys;
