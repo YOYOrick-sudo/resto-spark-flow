@@ -1,36 +1,70 @@
 
 
-# Fix: task_type ontbreekt in bestaande task_templates
+# Fix Assistent-toggle + Takenlijst UI verbeteren
 
-## Probleem
-De seed-migratie die `task_type` moest toevoegen aan bestaande `task_templates` JSON in `onboarding_phases` heeft de data niet correct bijgewerkt. Hierdoor herkent de UI taken zoals "Ontvangstbevestiging sturen" niet als automatiseerbaar en toont de Assistent-toggle niet.
+## 1. Bug fix: Assistent toggle altijd tonen voor email-taken
 
-## Oplossing
+### Probleem
+De data in de database voor "Ontvangstbevestiging sturen" heeft `is_automated: false` maar GEEN `task_type` veld. De `isAutomatable()` functie herkent deze taak daardoor niet als automatiseerbaar, waardoor de toggle niet verschijnt en je hem niet meer kunt aanzetten.
 
-### 1. Database migratie -- task_type toevoegen aan bestaande JSON
+### Oplossing
+Twee dingen:
 
-Een migratie die alle `onboarding_phases.task_templates` doorloopt en voor elke taak een `task_type` toevoegt op basis van de titel:
-- Taken met "bevestiging", "email", "sturen", "herinnering" in de titel krijgen `task_type: 'send_email'`
-- Alle overige taken krijgen `task_type: 'manual'`
-- Taken die al een `task_type` hebben worden overgeslagen
+**A. Database fix** -- Opnieuw migratie draaien die `task_type: 'send_email'` toevoegt aan taken met email-gerelateerde titels. De vorige migratie heeft dit blijkbaar niet correct gedaan.
 
-### 2. Fallback in de UI -- TaskTemplateList.tsx
+**B. isAutomatable() robuuster maken** -- De check aanpassen zodat taken met email-gerelateerde titels ALTIJD als automatiseerbaar worden herkend, ongeacht de huidige waarde van `is_automated` of `task_type`:
 
-Als extra veiligheid: als een taak `is_automated: true` heeft maar geen `task_type`, behandel deze alsof `task_type = 'send_email'`. Dit voorkomt dat de toggle onzichtbaar blijft bij data die nog niet gemigreerd is.
-
-Wijziging in `isAutomatable()`:
 ```
-const isAutomatable = (task) =>
-  AUTOMATABLE_TYPES.includes(task.task_type || '') ||
-  (task.is_automated === true && !task.task_type);
+const isAutomatable = (task) => {
+  if (AUTOMATABLE_TYPES.includes(task.task_type || '')) return true;
+  // Fallback: herken op titel
+  const emailKeywords = /bevestiging|email|sturen|herinnering|reminder/i;
+  return emailKeywords.test(task.title);
+};
 ```
 
-Dezelfde fallback toepassen in `PhaseConfigCard.tsx` voor de `automatedCount` berekening.
+Dit zorgt ervoor dat de toggle ALTIJD zichtbaar is voor email-taken, ook als `task_type` ontbreekt. Wanneer de gebruiker de toggle aanzet, wordt `is_automated: true` opgeslagen.
+
+---
+
+## 2. Takenlijst UI opschonen -- Enterprise density
+
+### Huidige situatie (screenshot)
+- Losse kaarten met inputvelden en dropdowns
+- Geen visuele scheiding tussen automatiseerbare en handmatige taken
+- Rol-dropdown zonder context
+- Onoverzichtelijk bij meerdere taken
+
+### Nieuw ontwerp
+Compactere, tabelachtige rijen met inline informatie:
+
+```text
+TAKEN  2
+
++------------------------------------------------------+
+| Ontvangstbevestiging sturen                      [x] |
+| [Sparkles] Assistent [ON]  ✉ Automatisch verstuurd   |
++------------------------------------------------------+
+| CV en motivatie beoordelen                       [x] |
+| Toegewezen aan: Manager [v]                          |
++------------------------------------------------------+
+
+[+ Taak toevoegen]
+```
+
+Concrete UI-verbeteringen:
+- **Compactere rijen**: padding van p-3 naar p-2.5, minder verticale spacing
+- **Duidelijker label bij rol**: "Toegewezen aan:" prefix voor de rol-dropdown bij handmatige taken
+- **Assistent-status inline**: Sparkles icoon + toggle + status tekst op een lijn
+- **Subtielere delete**: trash icon alleen op hover (dit werkt al)
+- **Betere visuele scheiding**: lichtere border, geen hover-effect op de card zelf
+
+---
 
 ## Bestanden die wijzigen
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `supabase/migrations/...` | Update bestaande task_templates JSON met task_type |
-| `src/components/onboarding/settings/TaskTemplateList.tsx` | Fallback in `isAutomatable()` |
-| `src/components/onboarding/settings/PhaseConfigCard.tsx` | Fallback in `automatedCount` berekening |
+| `supabase/migrations/...` | Opnieuw task_type toevoegen aan taken zonder task_type |
+| `src/components/onboarding/settings/TaskTemplateList.tsx` | isAutomatable() fix + UI opschoning |
+
