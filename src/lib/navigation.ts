@@ -31,6 +31,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'settings-inkoop': '/instellingen/inkoop',
   'settings-leveranciers': '/instellingen/leveranciers',
   'settings-onboarding': '/instellingen/onboarding',
+  'settings-communicatie': '/instellingen/communicatie',
   'onboarding': '/onboarding',
 };
 
@@ -143,6 +144,7 @@ export const menuItems: MenuItem[] = [
       { id: 'settings-labels', label: 'Labels & Printen', disabled: true },
       { id: 'settings-finance', label: 'Finance', disabled: true },
       { id: 'settings-onboarding', label: 'Onboarding', path: '/instellingen/onboarding' },
+      { id: 'settings-communicatie', label: 'Communicatie', path: '/instellingen/communicatie' },
       { id: 'settings-hrm', label: 'HRM', disabled: true },
       { id: 'settings-support', label: 'Support', disabled: true },
       { id: 'settings-documentatie', label: 'Documentatie', disabled: true },

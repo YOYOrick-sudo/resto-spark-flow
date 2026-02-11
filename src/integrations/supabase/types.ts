@@ -55,6 +55,50 @@ export type Database = {
           },
         ]
       }
+      communication_settings: {
+        Row: {
+          brand_color: string | null
+          created_at: string
+          footer_text: string | null
+          id: string
+          location_id: string
+          logo_url: string | null
+          reply_to: string | null
+          sender_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand_color?: string | null
+          created_at?: string
+          footer_text?: string | null
+          id?: string
+          location_id: string
+          logo_url?: string | null
+          reply_to?: string | null
+          sender_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand_color?: string | null
+          created_at?: string
+          footer_text?: string | null
+          id?: string
+          location_id?: string
+          logo_url?: string | null
+          reply_to?: string | null
+          sender_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_settings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           created_at: string
