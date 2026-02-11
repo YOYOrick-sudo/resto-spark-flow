@@ -1,103 +1,101 @@
 
-# Enterprise Design Polish - Onboarding Settings
 
-Alle 6 onboarding settings componenten worden bijgewerkt naar de volledige Nesto Polar enterprise standaard, inclusief de nieuwe typografie/contrast regels en de 6 extra patronen (tabular-nums, truncation+tooltips, transition tokens, grouped suffixes, focus-visible, compact density).
+# Enterprise Visual Polish - Email Template Cards & Grote Cards
 
----
+## Probleem
 
-## Bestanden die worden aangepast
+De email template cards (Ontvangstbevestiging, Afwijzing, etc.) voelen visueel "vaag" aan ondanks de enterprise token-updates. De oorzaken:
 
-### 1. `src/components/onboarding/settings/PhaseConfigCard.tsx`
+1. **Alle 9 template cards zijn altijd volledig open** met grote textarea's -- dit creëert een overweldigende muur van lege formulieren
+2. **Geen visuele status-indicatie** of een template al geconfigureerd is of nog leeg
+3. **De `bg-secondary/50` form grouping** heeft minimaal contrast met de card achtergrond, waardoor de structuur vervalt
+4. **Textarea's zijn 160px hoog** zelfs wanneer leeg -- veel visuele ruimte zonder inhoud
 
-**Huidige issues:**
-- Phase nummer gebruikt `font-medium` in plaats van `font-semibold`
-- Expand button mist expliciete `duration-150` transition token
-- Truncated title mist tooltip fallback
+## Oplossing: Collapsible Template Cards
 
-**Wijzigingen:**
-- Phase nummer: `text-sm font-medium` wordt `text-sm font-semibold` (primaire data)
-- Truncated phase name: wrap in `Tooltip` zodat lange namen leesbaar blijven
-- Expand/collapse button: voeg `duration-150` toe als expliciete transition token
-- Taken count: voeg `tabular-nums` toe voor consistent numeriek alignment
+Dezelfde aanpak als PhaseConfigCard: cards zijn standaard **ingeklapt** met een compacte samenvatting, en klappen uit voor bewerking.
 
----
+### Wijzigingen aan `EmailTemplateEditor.tsx`
 
-### 2. `src/components/onboarding/settings/TaskTemplateList.tsx`
+**Collapsed state (standaard):**
+- Compacte rij: template naam + beschrijving + status badge
+- Status badge toont "Geconfigureerd" (teal) of "Niet ingesteld" (amber) op basis van of subject en body ingevuld zijn
+- Klik op de card header klapt de editor uit
+- Template key badge blijft zichtbaar (rechts)
 
-**Huidige issues:**
-- Task rows gebruiken `bg-muted/30` (verboden achtergrondwisseling)
-- Delete button mist `focus-visible` ring
-- Geen `divide-y` separator patroon
+**Expanded state (na klik):**
+- Huidige form grouping block met subject + body textarea
+- Variable chips
+- Preview toggle
+- Textarea hoogte verlaagd naar `min-h-[120px]` (was 160px)
 
-**Wijzigingen:**
-- Task row achtergrond: `bg-muted/30` wordt verwijderd, vervangen door `divide-y divide-border/50` op container + `hover:bg-accent/40 duration-150` per rij
-- Task row padding: `p-3` wordt `py-2.5 px-3` (compacter, Linear-style)
-- Delete button: voeg `focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1` toe
-- "Geautomatiseerd" label: blijft `text-xs text-muted-foreground` (correct, tertiair)
+**Visuele verbeteringen:**
+- Header wordt clickable met chevron icon (consistent met PhaseConfigCard)
+- Hover state op collapsed header: `hover:bg-accent/40 duration-150`
+- Status dot naast de titel: groene dot als geconfigureerd, amber als leeg
+- `border-b border-border/50` separator tussen header en content (alleen in expanded)
 
----
+### Wijzigingen aan `EmailTemplatesSection.tsx`
 
-### 3. `src/components/onboarding/settings/ReminderSettingsSection.tsx`
+- Geen structurele wijzigingen nodig, delegeert aan EmailTemplateEditor
 
-**Huidige issues:**
-- Gebruikt raw `Input` in plaats van grouped input+suffix patroon
-- "uur" / "dagen" suffix zweeft los als tekst
-- Nummervelden missen `tabular-nums`
+### Wijzigingen aan `PhaseConfigCard.tsx`
 
-**Wijzigingen:**
-- Nummer inputs: voeg `tabular-nums` class toe
-- Grouped input suffix: wrap input + eenheid ("uur"/"dagen") in een visuele groep met `flex` container, input met `rounded-r-none border-r-0`, suffix badge met `bg-secondary border border-border rounded-r-button px-3 text-xs text-muted-foreground`
-- "Opgeslagen" indicator: voeg `duration-200` transition toe voor smooth fade
-- Section header: al correct (`font-semibold`), geen wijziging nodig
+- Status dot toevoegen: groene dot als fase actief, grijze dot als inactief
+- Consistent met de email template status indicator
 
 ---
 
-### 4. `src/components/onboarding/settings/EmailTemplateEditor.tsx`
+## Technische details
 
-**Huidige issues:**
-- Preview labels gebruiken `font-medium` in plaats van `font-semibold` (enterprise standaard voor micro-labels)
-- Variable chips missen `focus-visible` ring voor keyboard navigatie
-- Preview toggle button mist expliciete transition timing
+### EmailTemplateEditor.tsx -- Collapsed/Expanded patroon
 
-**Wijzigingen:**
-- Preview sectie labels: `font-medium` wordt `font-semibold` (matcht enterprise micro-label standaard)
-- Variable chip buttons: voeg `focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1` toe
-- Preview toggle: voeg `duration-150` toe als expliciete transition token
-- Preview body rendered text: voeg `tabular-nums` toe (voor datums in preview)
+```text
+COLLAPSED:
++----------------------------------------------------------+
+| > Ontvangstbevestiging              [confirmation]       |
+|   Nieuwe kandidaat        * Geconfigureerd               |
++----------------------------------------------------------+
+
+EXPANDED:
++----------------------------------------------------------+
+| v Ontvangstbevestiging              [confirmation]       |
+|   Nieuwe kandidaat        * Geconfigureerd               |
+|----------------------------------------------------------|
+|   +--------------------------------------------------+   |
+|   | Onderwerp: [input field]                         |   |
+|   | Body: [textarea]                                 |   |
+|   +--------------------------------------------------+   |
+|   Variabelen: [voornaam] [achternaam] [vestiging]...     |
+|   [Preview tonen v]                                      |
++----------------------------------------------------------+
+```
+
+### Status badge logica
+
+```text
+- Subject EN body ingevuld -> NestoBadge variant="primary" met dot: "Geconfigureerd"
+- Subject OF body leeg -> NestoBadge variant="warning" met dot: "Niet ingesteld"
+```
+
+### Specifieke code-wijzigingen
+
+1. `EmailTemplateEditor.tsx`:
+   - Nieuwe state: `const [expanded, setExpanded] = useState(false)`
+   - Status check: `const isConfigured = template.subject.trim() !== '' && template.body.trim() !== ''`
+   - Collapsed header als clickable div met chevron + status badge
+   - Form content wrapped in `{expanded && (...)}`
+   - Textarea `min-h-[160px]` wordt `min-h-[120px]`
+
+2. `PhaseConfigCard.tsx`:
+   - StatusDot component toevoegen naast fase naam (groen=actief, grijs=inactief)
 
 ---
 
-### 5. `src/components/onboarding/settings/EmailConfigSection.tsx`
+## Resultaat
 
-**Huidige issues:**
-- Labels gebruiken `text-sm mb-1.5` maar missen de enterprise micro-label styling optie
-- Hulptekst is correct (`text-xs text-muted-foreground`)
-- Geen focus-visible op inputs (erft van base component, maar extra check)
+- De pagina wordt visueel **veel compacter** -- 9 ingeklapte cards in plaats van 9 grote open formulieren
+- **Direct zichtbaar** welke templates al geconfigureerd zijn (status badges)
+- **Consistent patroon** met PhaseConfigCard (collapsible cards)
+- Behoudt alle enterprise tokens die eerder zijn toegepast (tabular-nums, focus-visible, transitions)
 
-**Wijzigingen:**
-- Card header: al correct (`font-semibold`), geen wijziging nodig
-- Form velden groeperen in `bg-secondary/50 rounded-card p-4 space-y-4` block (enterprise form grouping patroon, consistent met EmailTemplateEditor)
-- "Opgeslagen" indicator: voeg `duration-200` transition toe
-
----
-
-### 6. `src/components/onboarding/settings/PhaseConfigSection.tsx`
-
-**Wijzigingen:**
-- Container `space-y-3` wordt `space-y-3 divide-y-0` (expliciet geen dubbele separatie met card shadows)
-- Geen andere wijzigingen nodig, delegeert aan PhaseConfigCard
-
----
-
-## Samenvatting enterprise patronen toegepast
-
-| Patroon | Waar toegepast |
-|---|---|
-| `tabular-nums` | ReminderSettings nummer inputs, EmailTemplate preview datums, PhaseConfigCard taken count |
-| Truncation + Tooltip | PhaseConfigCard phase namen |
-| Transition tokens (`duration-150`, `duration-200`) | Alle hover states, expand/collapse, opgeslagen indicators |
-| Grouped input suffix | ReminderSettings "uur"/"dagen" velden |
-| `focus-visible:ring-1 focus-visible:ring-primary/30` | Variable chips, delete buttons, expand triggers |
-| Compact density (`divide-y` i.p.v. `bg-muted`) | TaskTemplateList rijen |
-| Enterprise typography (`font-semibold`, geen `font-medium` op data) | PhaseConfigCard nummer, EmailTemplate preview labels |
-| Enterprise form grouping (`bg-secondary/50 rounded-card p-4`) | EmailConfigSection velden |
