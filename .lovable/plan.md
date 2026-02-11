@@ -1,53 +1,45 @@
 
 
-# Takenlijst omzetten naar Enterprise Inline Table
+# TaskTemplateList -- Enterprise compliance fix
 
-## Probleem
-De huidige takenlijst gebruikt losse kaarten met inputvelden en dropdowns per taak. Dit ziet er rommelig uit en past niet bij de enterprise-esthetiek van de rest van de app.
+## Wat er niet klopt
 
-## Nieuw ontwerp: Inline Data Table
+| Issue | Standaard | Huidig | Fix |
+|-------|-----------|--------|-----|
+| Raw `<input>` | Verboden, gebruik base components | `<input>` HTML element | Vervangen door gestylde component met correcte 1.5px border + teal focus |
+| Opacity modifier | `/60` verboden op labels | `text-muted-foreground/60` | `text-muted-foreground` |
+| Header alignment | Kolommen moeten matchen | Header `auto`, data `w-[240px]` | Beide dezelfde grid: `grid-cols-[1fr_240px_32px]` |
+| SelectTrigger | 1.5px border, bg-card, teal focus | Default ShadCN styling | Enterprise input styling toevoegen |
 
-De taken worden weergegeven als rijen in een compacte tabel, conform het Inline Data Tables pattern (INLINE_DATA_TABLES.md):
+## Wijzigingen in TaskTemplateList.tsx
 
-```text
-TAKEN  2
+### 1. Grid fix -- vaste kolommen voor alignment
+```
+// Header EN data rows krijgen dezelfde grid:
+grid-cols-[1fr_240px_32px]
+```
+Dit zorgt dat "Uitvoering" exact boven de rol-dropdown/assistent-toggle staat.
 
-Taak                              Uitvoering                        
-─────────────────────────────────────────────────────────────────────
-Aanvullende vragen sturen         ✦ Assistent [ON]  ✉ Automatisch  ⓘ     
-Antwoorden beoordelen             Manager ▼                          🗑
-                                                                     
-[+ Taak toevoegen]
+### 2. Input styling -- enterprise conform
+Vervang raw `<input>` door een gestylde input met de correcte Nesto tokens:
+- `border-[1.5px] border-border` (zichtbare border)
+- `bg-card` achtergrond
+- `focus:border-[#1d979e]` teal focus-border
+- Geen focus ring/glow/offset
+
+### 3. SelectTrigger -- enterprise input styling
+```
+className="h-7 w-[120px] text-xs border-[1.5px] border-border bg-card focus:border-[#1d979e]"
 ```
 
-## Concrete wijzigingen in TaskTemplateList.tsx
+### 4. Opacity fix
+```
+// Was:
+text-muted-foreground/60
+// Wordt:
+text-muted-foreground
+```
 
-### Header row
-- Twee kolommen: "Taak" en "Uitvoering"
-- Enterprise styling: `text-[11px] font-semibold text-muted-foreground uppercase tracking-wider`
-- Floating header (geen achtergrond), `border-b border-border/50`
+## Bestand
+Alleen `src/components/onboarding/settings/TaskTemplateList.tsx` wijzigt.
 
-### Data rows
-- Eenregelig per taak in een grid: `grid-cols-[1fr_auto_32px]`
-- Kolom 1: taaknaam als inline-editable input (geen border, border alleen on focus)
-- Kolom 2: uitvoering -- ofwel Assistent toggle + status, ofwel rol-dropdown
-- Kolom 3: delete icon (hover-reveal)
-- Row styling: `hover:bg-accent/40 transition-colors duration-150`, `divide-y divide-border/50`
-- Geen borders rondom individuele taken, geen card-per-task
-
-### Input styling
-- Taaknaam input wordt een "ghost input": transparante achtergrond, border alleen bij focus
-- `bg-transparent border-transparent focus:border-border focus:bg-card`
-
-### Assistent kolom
-- Automatiseerbaar + AAN: `Sparkles` + Switch + `Mail` icoon + "Automatisch" + info tooltip
-- Automatiseerbaar + UIT: `Sparkles` + Switch + rol-dropdown
-- Niet automatiseerbaar: rol-dropdown
-
-## Technische details
-
-### Bestand
-`src/components/onboarding/settings/TaskTemplateList.tsx` -- volledige herstructurering van de render.
-
-### Geen andere bestanden wijzigen
-PhaseConfigCard.tsx en de database blijven ongewijzigd.
