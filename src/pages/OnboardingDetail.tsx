@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NestoTabContent } from '@/components/polar/NestoTabs';
 import { NestoBadge } from '@/components/polar/NestoBadge';
+import { NestoButton } from '@/components/polar/NestoButton';
 import { formatDateTimeCompact } from '@/lib/datetime';
 import { DetailPageLayout } from '@/components/polar/DetailPageLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,14 +12,19 @@ import { useOnboardingCandidates } from '@/hooks/useOnboardingCandidates';
 import { useOnboardingTasks } from '@/hooks/useOnboardingTasks';
 import { useOnboardingEvents } from '@/hooks/useOnboardingEvents';
 import { useOnboardingPhases } from '@/hooks/useOnboardingPhases';
+import { useOnboardingMessages } from '@/hooks/useOnboardingMessages';
 import { useToggleTask } from '@/hooks/useToggleTask';
 import { useAdvancePhase } from '@/hooks/useAdvancePhase';
 import { useRejectCandidate } from '@/hooks/useRejectCandidate';
 import { useSaveEvaluation } from '@/hooks/useSaveEvaluation';
+import { useSendMessage } from '@/hooks/useSendMessage';
 import { PhaseTaskList } from '@/components/onboarding/PhaseTaskList';
 import { CandidateTimeline } from '@/components/onboarding/CandidateTimeline';
 import { EvaluationForm } from '@/components/onboarding/EvaluationForm';
 import { CandidateActions } from '@/components/onboarding/CandidateActions';
+import { MessageThread } from '@/components/onboarding/MessageThread';
+import { ComposeMessageModal } from '@/components/onboarding/ComposeMessageModal';
+import { Mail } from 'lucide-react';
 
 const STATUS_MAP: Record<string, { variant: 'default' | 'success' | 'error' | 'warning' | 'pending'; label: string }> = {
   active: { variant: 'default', label: 'Actief' },
@@ -31,6 +37,7 @@ const STATUS_MAP: Record<string, { variant: 'default' | 'success' | 'error' | 'w
 
 const TABS = [
   { id: 'taken', label: 'Taken' },
+  { id: 'berichten', label: 'Berichten' },
   { id: 'tijdlijn', label: 'Tijdlijn' },
 ];
 
@@ -44,16 +51,19 @@ export default function OnboardingDetail() {
   const locationId = currentLocation?.id;
 
   const [activeTab, setActiveTab] = useState('taken');
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const { data: phases } = useOnboardingPhases(locationId);
   const { data: candidates, isLoading: candidatesLoading } = useOnboardingCandidates(locationId);
   const { data: tasks, isLoading: tasksLoading } = useOnboardingTasks(id);
   const { data: events, isLoading: eventsLoading } = useOnboardingEvents(id);
+  const { data: messages, isLoading: messagesLoading } = useOnboardingMessages(id);
 
   const toggleTask = useToggleTask();
   const advancePhase = useAdvancePhase();
   const rejectCandidate = useRejectCandidate();
   const saveEvaluation = useSaveEvaluation();
+  const sendMessage = useSendMessage();
 
   const candidate = useMemo(
     () => candidates?.find((c) => c.id === id) ?? null,
@@ -178,6 +188,26 @@ export default function OnboardingDetail() {
               ) : null}
             </NestoTabContent>
 
+            <NestoTabContent value="berichten" activeValue={activeTab}>
+              {candidate.status === 'active' && (
+                <div className="flex justify-end mb-4">
+                  <NestoButton size="sm" onClick={() => setComposeOpen(true)}>
+                    <Mail className="h-4 w-4 mr-1.5" />
+                    Verstuur bericht
+                  </NestoButton>
+                </div>
+              )}
+              {messagesLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <MessageThread messages={messages ?? []} />
+              )}
+            </NestoTabContent>
+
             <NestoTabContent value="tijdlijn" activeValue={activeTab}>
               {eventsLoading ? (
                 <div className="space-y-3">
@@ -231,6 +261,19 @@ export default function OnboardingDetail() {
           onAdvance={handleAdvance}
           isRejecting={rejectCandidate.isPending}
           isAdvancing={advancePhase.isPending}
+        />
+
+        <ComposeMessageModal
+          open={composeOpen}
+          onOpenChange={setComposeOpen}
+          candidateName={`${candidate.first_name} ${candidate.last_name}`}
+          onSend={({ subject, bodyHtml, bodyText }) => {
+            sendMessage.mutate(
+              { candidateId: id!, subject, bodyHtml, bodyText },
+              { onSuccess: () => setComposeOpen(false) }
+            );
+          }}
+          isSending={sendMessage.isPending}
         />
       </DetailPageLayout>
     </div>

@@ -111,6 +111,8 @@ async function handleCandidateCreated(event: AgentEvent) {
         candidateId: candidate.id,
         locationId: event.location_id,
         emailType: 'confirmation',
+        saveToMessages: true,
+        senderName: 'Nesto Assistent',
       });
     }
 
@@ -172,6 +174,8 @@ async function handlePhaseChanged(event: AgentEvent) {
               candidateId: candidate.id,
               locationId: event.location_id,
               emailType: templateKey,
+              saveToMessages: true,
+              senderName: 'Nesto Assistent',
             });
           }
         }
@@ -219,6 +223,8 @@ async function handleCandidateRejected(event: AgentEvent) {
         candidateId: candidate.id,
         locationId: event.location_id,
         emailType: 'rejection',
+        saveToMessages: true,
+        senderName: 'Nesto Assistent',
       });
     }
 
@@ -262,6 +268,8 @@ async function handleCandidateHired(event: AgentEvent) {
         candidateId: candidate.id,
         locationId: event.location_id,
         emailType: 'welcome',
+        saveToMessages: true,
+        senderName: 'Nesto Assistent',
       });
     }
 
