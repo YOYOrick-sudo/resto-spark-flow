@@ -57,16 +57,20 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
     onExplicitAction?.();
   };
 
-  const isAutomatable = (task: TaskTemplate) =>
-    AUTOMATABLE_TYPES.includes(task.task_type || '') ||
-    (task.is_automated === true && !task.task_type);
+  const isAutomatable = (task: TaskTemplate) => {
+    if (AUTOMATABLE_TYPES.includes(task.task_type || '')) return true;
+    if (task.is_automated === true && !task.task_type) return true;
+    // Fallback: herken email-taken op titel
+    const emailKeywords = /bevestiging|email|sturen|herinnering|reminder|uitnodiging|welkom/i;
+    return emailKeywords.test(task.title);
+  };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {tasks.map((task, index) => (
         <div
           key={index}
-          className="group p-3 rounded-lg border border-border/40 hover:border-border/60 transition-colors duration-150"
+          className="group py-2.5 px-3 rounded-lg border border-border/30 transition-colors duration-150"
         >
           {/* Row 1: Title + delete */}
           <div className="flex items-center gap-2">
@@ -84,10 +88,10 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
             </button>
           </div>
 
-          {/* Row 2: Assistent toggle + role or auto label */}
-          <div className="flex items-center gap-3 mt-2">
+          {/* Row 2: Assignment / automation */}
+          <div className="flex items-center gap-3 mt-1.5">
             {isAutomatable(task) ? (
-              <>
+              <div className="flex items-center gap-3 flex-1">
                 <div className="flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                   <span className="text-xs text-muted-foreground">Assistent</span>
@@ -103,7 +107,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                 {task.is_automated !== false ? (
                   <div className="flex items-center gap-1.5">
                     <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                    <span className="text-xs text-primary font-medium">Wordt automatisch verstuurd</span>
+                    <span className="text-xs text-primary font-medium">Automatisch verstuurd</span>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -116,39 +120,45 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                     </TooltipProvider>
                   </div>
                 ) : (
-                  <Select
-                    value={task.assigned_role || ''}
-                    onValueChange={(val) => updateTask(index, 'assigned_role', val)}
-                  >
-                    <SelectTrigger className="h-8 w-[140px] text-sm">
-                      <SelectValue placeholder="Selecteer rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLES.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground">Toegewezen aan:</span>
+                    <Select
+                      value={task.assigned_role || ''}
+                      onValueChange={(val) => updateTask(index, 'assigned_role', val)}
+                    >
+                      <SelectTrigger className="h-7 w-[120px] text-xs">
+                        <SelectValue placeholder="Selecteer rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map((role) => (
+                          <SelectItem key={role.value} value={role.value}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
-              </>
+              </div>
             ) : (
-              <Select
-                value={task.assigned_role || ''}
-                onValueChange={(val) => updateTask(index, 'assigned_role', val)}
-              >
-                <SelectTrigger className="h-8 w-[140px] text-sm">
-                  <SelectValue placeholder="Selecteer rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">Toegewezen aan:</span>
+                <Select
+                  value={task.assigned_role || ''}
+                  onValueChange={(val) => updateTask(index, 'assigned_role', val)}
+                >
+                  <SelectTrigger className="h-7 w-[120px] text-xs">
+                    <SelectValue placeholder="Selecteer rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           </div>
         </div>
