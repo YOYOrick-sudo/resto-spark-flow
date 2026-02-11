@@ -1,168 +1,47 @@
 
 
-# Fase 1 + 2: Onboarding Berichten — Database, Thread UI en Compose Modal
+# Enterprise Design Fix — MessageThread en ComposeMessageModal
 
-## Overzicht
+## Probleem
 
-Bouw een volledig werkend berichtensysteem binnen de onboarding module. Kandidaat-detailpagina krijgt een nieuwe "Berichten" tab met chronologische thread en een compose-modal om handmatig berichten te versturen via de bestaande Resend integratie.
+De huidige implementatie wijkt op meerdere punten af van het Nesto Polar enterprise design system. Dit moet gecorrigeerd worden voordat het live gaat.
 
-## Scope
+## Fixes per component
 
-**Wel bouwen:**
-- `onboarding_messages` tabel met RLS
-- Berichten-tab op kandidaat-detailpagina (chronologische thread)
-- Compose modal om handmatig een bericht te sturen
-- `send-onboarding-message` Edge Function (via Resend)
-- Bestaande `onboarding-agent` aanpassen zodat verstuurde emails ook in `onboarding_messages` worden opgeslagen
+### ComposeMessageModal
 
-**NIET bouwen (post-launch):**
-- Bijlagen uploaden (fase 3)
-- Inbound email webhook (fase 4)
-- Document templates (fase 5)
-- Unread indicators (fase 6)
+| Issue | Huidig | Enterprise correct |
+|-------|--------|-------------------|
+| Label styling | `text-sm font-medium text-foreground` | `text-[13px] font-medium text-muted-foreground` |
+| Label implementatie | Losse `<label>` elementen | Via `label` prop op NestoInput; Textarea wrapped met zelfde label-patroon |
+| Loading tekst | Alleen "Versturen" | "Versturen..." tijdens pending |
 
----
+### MessageThread
 
-## Stap 1: Database migratie
+| Issue | Huidig | Enterprise correct |
+|-------|--------|-------------------|
+| Card afbakening | `border` met kleur-accent | `bg-card` met shadow (light) / `border border-border` (dark) — conform Card Shadow regels |
+| Outbound indicator | `border-primary/20 bg-primary/[0.03]` | Subtielere teal left-border (`border-l-2 border-primary`) op een neutrale `bg-card` kaart |
+| Expand button | Raw `<button>` | `NestoButton variant="ghost" size="sm"` of styled inline met `transition-colors duration-150` |
+| Lijst separatie | `space-y-3` met individuele borders | `divide-y divide-border/50` zonder individuele card borders, of `space-y-3` met shadow-cards |
+| Timestamp | `text-xs` | `text-[11px] text-muted-foreground` voor enterprise density |
+| Sender naam | `text-sm font-medium` | `text-sm font-semibold text-foreground` (primaire data = font-semibold) |
 
-Nieuwe tabel `onboarding_messages`:
+### Aanpak
 
-| Kolom | Type | Default | Nullable |
-|-------|------|---------|----------|
-| id | uuid PK | gen_random_uuid() | nee |
-| candidate_id | uuid FK -> onboarding_candidates | - | nee |
-| location_id | uuid FK | - | nee |
-| direction | text | 'outbound' | nee |
-| sender_name | text | - | nee |
-| sender_email | text | - | nee |
-| subject | text | - | nee |
-| body_html | text | - | nee |
-| body_text | text | - | ja |
-| resend_message_id | text | - | ja |
-| triggered_by | text | 'user' | nee |
-| read_at | timestamptz | - | ja |
-| created_at | timestamptz | now() | nee |
+Kies het **shadow-card** patroon per bericht (niet divide-y), omdat elk bericht een zelfstandig blok is met header, subject en body — dit past beter bij het NestoCard-achtige patroon.
 
-RLS policies (zelfde patroon als andere onboarding tabellen):
-- SELECT: `user_has_location_access(auth.uid(), location_id)`
-- SELECT: `is_platform_user(auth.uid())`
-- INSERT: `user_has_role_in_location(auth.uid(), location_id, ['owner','manager'])`
-- UPDATE: `user_has_role_in_location(auth.uid(), location_id, ['owner','manager'])`
-- DELETE: `user_has_role_in_location(auth.uid(), location_id, ['owner','manager'])`
+Elke message card krijgt:
+- `bg-card rounded-lg` met enterprise shadow (light mode)
+- `dark:border dark:border-border` fallback
+- Outbound: subtiele `border-l-2 border-primary` links
+- Agent: AssistentIcon naast naam (blijft)
+- Inbound: neutrale styling zonder left-border
 
-Realtime inschakelen voor live updates:
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.onboarding_messages;
-```
-
----
-
-## Stap 2: Edge Function `send-onboarding-message`
-
-Nieuw bestand: `supabase/functions/send-onboarding-message/index.ts`
-
-Verantwoordelijkheden:
-1. Ontvangt POST met `candidate_id`, `subject`, `body_html`, `body_text`
-2. Valideert dat de kandidaat bestaat en actief is
-3. Haalt communication_settings op voor sender_name en reply_to
-4. Verstuurt email via Resend (hergebruikt logica uit `_shared/email.ts`)
-5. Slaat bericht op in `onboarding_messages` tabel (direction: 'outbound', triggered_by: 'user')
-6. Logt event in `onboarding_events` (event_type: 'email_sent')
-7. Retourneert het opgeslagen bericht
-
-Authenticatie: JWT verificatie via `supabaseAdmin` met de user's auth token.
-
----
-
-## Stap 3: Bestaande `_shared/email.ts` uitbreiden
-
-De bestaande `sendEmail` functie uitbreiden zodat het optioneel ook een record in `onboarding_messages` opslaat. Dit zorgt ervoor dat alle emails die de Agent automatisch verstuurt ook in de Berichten-tab verschijnen.
-
-Aanpak: een optionele `saveToMessages: boolean` parameter toevoegen aan `SendEmailParams`. Wanneer `true`, wordt naast het event ook een `onboarding_messages` row aangemaakt met `triggered_by: 'agent'`.
-
----
-
-## Stap 4: Frontend — Hook `useOnboardingMessages`
-
-Nieuw bestand: `src/hooks/useOnboardingMessages.ts`
-
-- Query: `onboarding_messages` gefilterd op `candidate_id`, gesorteerd op `created_at ASC`
-- Realtime subscription voor live updates wanneer Agent of webhook berichten toevoegt
-- Query key: `['onboarding-messages', candidateId]`
-
----
-
-## Stap 5: Frontend — Hook `useSendMessage`
-
-Nieuw bestand: `src/hooks/useSendMessage.ts`
-
-- Mutation die de `send-onboarding-message` Edge Function aanroept
-- Invalideert `['onboarding-messages', candidateId]` en `['onboarding-events', candidateId]` na succes
-- Toast feedback: success of error
-
----
-
-## Stap 6: Frontend — `MessageThread` component
-
-Nieuw bestand: `src/components/onboarding/MessageThread.tsx`
-
-Chronologische lijst van berichten met visueel onderscheid:
-- **Outbound (user)**: Rechts uitgelijnd of teal-accent links-border, naam afzender + timestamp
-- **Outbound (agent)**: Zelfde styling maar met AssistentIcon sparkle naast de naam
-- **Inbound (candidate)**: Neutrale styling, links uitgelijnd (voorlopig alleen placeholder — wordt pas gevuld met inbound webhook in fase 4)
-
-Elk bericht toont:
-- Sender naam + timestamp
-- Onderwerp (bold)
-- Body preview (HTML gerenderd als tekst, max 3 regels, uitklapbaar)
-- Triggered_by indicator (AssistentIcon voor agent)
-
-Empty state wanneer er nog geen berichten zijn.
-
----
-
-## Stap 7: Frontend — `ComposeMessageModal` component
-
-Nieuw bestand: `src/components/onboarding/ComposeMessageModal.tsx`
-
-Volgt het standaard Nesto modal pattern:
-- NestoModal met `size="md"`
-- Velden: Onderwerp (NestoInput), Bericht (Textarea)
-- Footer: Annuleren (outline) + Versturen (primary), rechts uitgelijnd
-- Disabled state tijdens verzending
-- Sluit automatisch na succes
-
----
-
-## Stap 8: Frontend — `OnboardingDetail.tsx` aanpassen
-
-Wijzigingen:
-1. Tab-array uitbreiden: `[Taken, Berichten, Tijdlijn]`
-2. Nieuwe `NestoTabContent` voor "berichten" tab met `MessageThread` component
-3. "Verstuur bericht" button boven de thread (alleen zichtbaar als kandidaat actief is)
-4. ComposeMessageModal state management (open/close)
-
----
-
-## Stap 9: Export en index updates
-
-- `src/components/onboarding/index.ts` — exporteer `MessageThread` en `ComposeMessageModal`
-
----
-
-## Bestandsoverzicht
+## Bestanden
 
 | Bestand | Actie |
 |---------|-------|
-| SQL migratie (`onboarding_messages` tabel + RLS + realtime) | Nieuw |
-| `supabase/functions/send-onboarding-message/index.ts` | Nieuw |
-| `supabase/functions/_shared/email.ts` | Uitbreiden |
-| `supabase/functions/onboarding-agent/index.ts` | Aanpassen (saveToMessages) |
-| `src/hooks/useOnboardingMessages.ts` | Nieuw |
-| `src/hooks/useSendMessage.ts` | Nieuw |
-| `src/components/onboarding/MessageThread.tsx` | Nieuw |
-| `src/components/onboarding/ComposeMessageModal.tsx` | Nieuw |
-| `src/pages/OnboardingDetail.tsx` | Aanpassen (tab + compose) |
-| `src/components/onboarding/index.ts` | Uitbreiden |
-| `supabase/config.toml` | Toevoegen: `[functions.send-onboarding-message]` |
+| `src/components/onboarding/MessageThread.tsx` | Enterprise card styling, sender font-semibold, timestamp 11px, expand button met transition |
+| `src/components/onboarding/ComposeMessageModal.tsx` | Label styling naar 13px muted-foreground, loading tekst "Versturen..." |
 
