@@ -130,7 +130,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
   return (
     <div className="space-y-3">
       {/* Table header */}
-      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-2 text-[11px] text-muted-foreground/70 font-semibold uppercase tracking-wider">
+      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-3 py-2 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider bg-muted/40 rounded-lg">
         <span></span>
         <span className="text-center">Prio</span>
         <span>Tijden</span>
@@ -140,8 +140,8 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
         <span></span>
       </div>
 
-      {/* Subtle separator */}
-      <div className="h-px bg-border/50" />
+      {/* Separator */}
+      <div className="h-px bg-border" />
 
       {/* Active shifts with DnD */}
       <DndContext
@@ -156,7 +156,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
           items={activeShifts.map((s) => s.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-0.5">
+          <div className="divide-y divide-border/50">
             {activeShifts.map((shift, index) => (
               <SortableShiftRow
                 key={shift.id}
