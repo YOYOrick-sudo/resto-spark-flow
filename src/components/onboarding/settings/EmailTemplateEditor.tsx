@@ -66,7 +66,7 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
   const [expanded, setExpanded] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
-  const isConfigured = template.subject.trim() !== '' && template.body.trim() !== '';
+  const isConfigured = (template.subject ?? '').trim() !== '' && (template.body ?? '').trim() !== '';
 
   const debouncedOnChange = useDebouncedCallback((subject: string, body: string) => {
     onChange(templateKey, { subject, body });
