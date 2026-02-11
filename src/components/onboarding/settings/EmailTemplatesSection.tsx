@@ -2,6 +2,7 @@ import { useOnboardingSettings, useUpdateOnboardingSettings } from '@/hooks/useO
 import { EmailTemplateEditor } from './EmailTemplateEditor';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
+import { FieldHelp } from '@/components/polar/FieldHelp';
 import { Json } from '@/integrations/supabase/types';
 import { Link } from 'react-router-dom';
 
@@ -44,11 +45,14 @@ export function EmailTemplatesSection() {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground flex items-center gap-1">
         Email branding en afzender instellen via{' '}
         <Link to="/instellingen/communicatie" className="text-primary hover:underline">
           Instellingen → Communicatie
         </Link>
+        <FieldHelp>
+          <p className="text-muted-foreground">Logo, footer en afzendernaam worden centraal beheerd en gelden voor alle modules.</p>
+        </FieldHelp>
       </p>
 
       <p className="text-sm text-muted-foreground">
