@@ -1,98 +1,100 @@
 
-# Enterprise Design Guide: Centraal Referentiedocument
+# Onboarding Settings — Enterprise Polish
 
-## Wat er nu is
+Vijf directe verbeteringen (punten 1-4, 6) plus twee features voor de volgende iteratie (5, 7).
 
-Er bestaan 19 gedetailleerde design documenten in `docs/design/` die elk een specifiek onderwerp dekken -- van card shadows tot typography tot modal patterns. Deze docs zijn technisch correct en bevatten exacte Tailwind classes die matchen met de codebase.
+---
 
-Het geUploade document bevat goede filosofische uitgangspunten maar conflicteert op meerdere punten met de werkelijke implementatie (shadows vs borders, input styling, overlay opacity, etc.).
+## Directe wijzigingen (deze ronde)
 
-## Wat ik ga maken
+### 1. Team tab skeleton fix
+**Component:** `TeamOwnersSection.tsx`
+**Probleem:** `useLocationTeamMembers` heeft `enabled: !!locationId` — als `currentLocation` nog niet geladen is bij mount, blijft de query in loading state.
+**Fix:** Voeg een explicit check toe: als `phasesLoading` klaar is maar `teamLoading` nog wacht door ontbrekende `locationId`, toon de tabel met "Niet ingesteld" in plaats van skeleton. Eventueel `isLoading` conditioneel maken op basis van of de query daadwerkelijk `isFetching` is vs. `disabled`.
 
-Een nieuw `docs/design/ENTERPRISE_DESIGN_GUIDE.md` als **centraal hub-document** dat:
+---
 
-1. De kernfilosofie samenvat (gecorrigeerde versie van het geUploade doc)
-2. Per onderwerp de correcte regels geeft met exacte Tailwind classes
-3. Verwijst naar de detail-docs voor diepgaande implementatie
-4. De "Nesto-test" checklist bevat als afsluiter
-5. Alle conflicten uit het geUploade doc corrigeert
+### 2. Blauwe rand verwijderen
+**Component:** `PhaseConfigCard.tsx`, regel 58-61
+**Huidig:** `(assistantEnabled || hasAutomatedTasks) && "border-l-2 border-l-primary"`
+**Fix:** Verwijder de `border-l-2 border-l-primary` conditie volledig. De Sparkles badge naast de fasenaam (regel 76-90) is al voldoende indicator. NestoCard heeft standaard al een subtiele shadow via zijn base styling — geen extra shadow nodig.
 
-## Structuur
+---
 
-### Sectie 0: Kernprincipe
-Enterprise aesthetic (Linear, Stripe, Polar.sh). "Typografie en witruimte doen het werk."
+### 3. Assistent vs Rol — Conditionele logica
+**Component:** `TaskTemplateList.tsx`, de taak-rij (regels 59-111)
+**Fix:** Row 2 wordt conditioneel:
 
-### Sectie 1: Component Systeem
-Samenvatting van alle Nesto componenten met verwijzing naar `COMPONENT_DECISION_GUIDE.md`.
+- **Als `is_automated = true`:** Verberg de rol-dropdown. Toon in plaats daarvan: `Sparkles` icoon + "Assistent" label in `text-primary text-sm`. De toggle blijft rechts.
+- **Als `is_automated = false`:** Toon de rol-dropdown (`w-[140px]`). Toggle + "Assistent" label rechts.
 
-### Sectie 2: Kleurgebruik
-Correcte tokens uit `COLOR_PALETTE.md`. Severity kleuren. Regel: kleur heeft altijd betekenis.
+De visuele twee states:
 
-### Sectie 3: Typografie en Contrast
-De 3-niveau hierarchie met exacte Tailwind classes. Zwevende headers. Verboden patronen.
-Verwijzing: `ENTERPRISE_TYPOGRAPHY.md`
+```text
+Assistent AAN:
++----------------------------------------------+
+| Ontvangstbevestiging sturen              [x] |
+| * Assistent                    Assistent [on] |
++----------------------------------------------+
 
-### Sectie 4: Cards en Surfaces
-**Correctie:** Shadow als primaire afbakening (niet border). Exacte shadow waarden. Nesting regels.
-Verwijzing: `CARD_SHADOWS.md`
+Assistent UIT:
++----------------------------------------------+
+| CV beoordelen                            [x] |
+| Manager v                      Assistent [off]|
++----------------------------------------------+
+```
 
-### Sectie 5: Spacing en Density
-Card padding regels. Settings container: `max-w-5xl` (niet `max-w-7xl` zoals het geUploade doc zegt). `divide-y divide-border/50` voor rij separatie.
+---
 
-### Sectie 6: Formulieren en Inputs
-**Correctie:** `bg-card` (niet `bg-secondary/50`). `focus:!border-primary focus:ring-0` (niet `ring-2`). Switch: 250ms cubic-bezier.
+### 4. Expanded fase-view — Rustiger
+**Component:** `PhaseConfigCard.tsx`, expanded section (regels 127-180)
+**Huidige staat:** Al twee groepen met `border-t border-border/40` scheiding. De `bg-secondary/30` container voor de Assistent toggle is al aanwezig.
+**Fix:** Minimale aanpassingen:
+- Verwijder de `bg-secondary/30 rounded-lg` container rond de Assistent toggle — maak het een platte rij met `py-2` (rustiger, minder visueel gewicht)
+- Voeg `space-y-5` toe op de outer container (was `space-y-4`) voor iets meer ademruimte
+- De Assistent-rij wordt: `flex items-center justify-between py-2` met Sparkles icoon + label links, toggle rechts — zonder achtergrondkleur
 
-### Sectie 7: Knoppen
-Border radius hierarchie: primary=16px, rest=8px. Max 1 primary per scherm.
-Verwijzing: `BUTTON_STYLING.md`, `BORDER_RADIUS.md`
+---
 
-### Sectie 8: Tabellen
-**Correctie:** Geen zebra striping (verboden in enterprise typography). Zwevende headers zonder achtergrond. `divide-y divide-border/50`.
-Verwijzing: `INLINE_DATA_TABLES.md`
+### 6. InfoAlerts vervangen door TitleHelp/FieldHelp
+**Betreft 3 locaties:**
 
-### Sectie 9: Modals
-**Correctie:** Overlay = `bg-black/20 backdrop-blur-sm` (niet `bg-black/50`). Shadow compenseert lichtere overlay.
-Verwijzing: `MODAL_PATTERNS.md`
+| Locatie | Huidige InfoAlert | Vervangen door |
+|---------|-------------------|----------------|
+| `TeamOwnersSection.tsx` regel 164-166 | "Wie ontvangt reminders?" | `TitleHelp` naast de tabel-header titel |
+| `ReminderSettingsSection.tsx` regel 145-147 | "Naar wie gaan reminders?" | `TitleHelp` naast de sectie-titel "Automatische herinneringen" |
+| `EmailConfigSection.tsx` regel 92-97 | "Platform domein" | `FieldHelp` naast het "Reply-to adres" label |
 
-### Sectie 10: Micro-interacties
-Transition tokens: 150ms (hovers), 200ms (state fades), 250ms (switches). Toast styling.
+De `InfoAlert` bovenaan de Team tab (regel 109-112, "Verantwoordelijken ontbreken") blijft behouden — dit is een actionable status-melding, geen uitleg.
 
-### Sectie 11: Navigatie en Layout
-Sidebar, breadcrumbs, page headers. Settings: `SettingsContainer max-w-5xl`.
-Verwijzing: `SETTINGS_PAGE_PATTERNS.md`, `NAVIGATION_CARDS.md`, `SIDEBAR_PANELS.md`
+---
 
-### Sectie 12: Feedback Patronen
-Toast alleen voor expliciete acties. Autosave = inline indicator. Validatie = inline errors.
-Verwijzing: `TOAST_NOTIFICATIONS.md`
+## Volgende iteratie (niet in deze ronde)
 
-### Sectie 13: Anti-patronen
-Gecombineerde lijst: goede items uit het geUploade doc + codebase-specifieke verboden patronen met concrete "Fout vs Correct" voorbeelden.
+### 5. Email branding (logo, kleur, footer)
+- Tab 5 "Email configuratie" wordt "Branding & Afzender"
+- Nieuwe velden: logo upload (Supabase Storage), primaire kleur (color picker), footer tekst
+- `onboarding_settings.email_config` JSON uitbreiden met `logo_url`, `brand_color`, `footer_text`
+- Email rendering in `templateRenderer.ts` uitbreiden met HTML wrapper
 
-### Sectie 14: De Nesto-test (checklist)
-De 5-punts checklist uit het geUploade doc (deze is goed en wordt overgenomen).
+### 7. "Stuur testmail naar mij" knop
+- Nieuwe edge function `send-test-email` die de gerenderde template + branding stuurt naar de ingelogde user
+- Knop in `EmailTemplateEditor.tsx` naast "Preview tonen"
+- Cooldown van 2 minuten (client-side timer)
 
-## Gecorrigeerde conflicten
+---
 
-| Onderwerp | Geupload doc (fout) | Codebase (correct) |
-|-----------|--------------------|--------------------|
-| Card borders | `border border-border/40` | Shadow als primaire afbakening, geen border op top-level |
-| Card hover | `hover:border-border/60` | `translateY(-1px)` + shadow change |
-| Input achtergrond | `bg-secondary/50` | `bg-card` |
-| Input focus | `ring-2 ring-primary/30` | `focus:!border-primary focus:ring-0` |
-| Modal overlay | `bg-black/50` | `bg-black/20 backdrop-blur-sm` |
-| Tabel hover | `hover:bg-secondary/30` | `hover:bg-accent/40` of `hover:bg-muted/50` |
-| Zebra striping | "alleen bij >10 rijen" | Verboden -- altijd `divide-y` |
-| Page margins | `max-w-7xl` | `max-w-5xl` (SettingsContainer) |
-| Typography | `font-mono tabular-nums` | `tabular-nums` zonder `font-mono` |
-| Data font weight | Niet gespecificeerd | `font-semibold` voor primaire data |
-| Switch timing | "200ms" | 250ms cubic-bezier(0.4,0,0.2,1) |
+## Technische details
 
-## Wat er NIET verandert
+### Bestanden die wijzigen (directe ronde)
 
-- Alle 19 bestaande detail-docs blijven bestaan als diepe referentie
-- Geen codewijzigingen -- dit is puur documentatie
-- Het nieuwe document vervangt niets, het consolideert en corrigeert
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/onboarding/settings/PhaseConfigCard.tsx` | Verwijder `border-l-2`, rustiger Assistent-rij |
+| `src/components/onboarding/settings/TaskTemplateList.tsx` | Conditionele Row 2: rol hidden bij automated, Assistent label bij aan |
+| `src/components/onboarding/settings/TeamOwnersSection.tsx` | Skeleton fix, InfoAlert "Wie ontvangt reminders" naar TitleHelp |
+| `src/components/onboarding/settings/ReminderSettingsSection.tsx` | InfoAlert naar TitleHelp, verwijder InfoAlert component |
+| `src/components/onboarding/settings/EmailConfigSection.tsx` | InfoAlert "Platform domein" naar FieldHelp |
 
-## Resultaat
-
-Na implementatie: 1 document (`ENTERPRISE_DESIGN_GUIDE.md`) dat als standaard referentie dient bij elke UI-prompt. Het bevat de correcte regels en verwijst naar detail-docs voor implementatie-specifics.
+### Geen nieuwe bestanden of dependencies nodig
+Alle benodigde componenten (`TitleHelp`, `FieldHelp`, `NestoCard`, `Switch`, etc.) bestaan al.
