@@ -60,11 +60,10 @@ export default function SettingsReserveringenShifts() {
       }
     >
       <NestoCard className="p-6">
-        <div className="mb-4">
-          <h3 className="text-lg font-medium">Shift overzicht</h3>
-          <p className="text-sm text-muted-foreground">
-            Versleep shifts om de prioriteit te wijzigen. Shifts worden in volgorde getoond in de
-            reserveringsweergave.
+        <div className="mb-5">
+          <h3 className="text-base font-semibold">Shift overzicht</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Versleep shifts om de prioriteit te wijzigen.
           </p>
         </div>
 
@@ -73,7 +72,6 @@ export default function SettingsReserveringenShifts() {
         ) : (
           <p className="text-sm text-muted-foreground">Geen locatie geselecteerd.</p>
         )}
-
       </NestoCard>
 
       {/* Shift Exceptions Section */}

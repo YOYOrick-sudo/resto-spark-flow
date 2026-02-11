@@ -45,7 +45,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
   // DnD state
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Split active and archived shifts (always sorted by sort_order for DnD - MVP choice)
+  // Split active and archived shifts
   const activeShifts = useMemo(
     () => allShifts.filter((s) => s.is_active).sort((a, b) => a.sort_order - b.sort_order),
     [allShifts]
@@ -128,9 +128,9 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Table header */}
-      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-1 text-xs text-muted-foreground font-medium">
+      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-2 text-[11px] text-muted-foreground/70 font-semibold uppercase tracking-wider">
         <span></span>
         <span className="text-center">Prio</span>
         <span>Tijden</span>
@@ -139,6 +139,9 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
         <span className="text-center">Interval</span>
         <span></span>
       </div>
+
+      {/* Subtle separator */}
+      <div className="h-px bg-border/50" />
 
       {/* Active shifts with DnD */}
       <DndContext
@@ -153,26 +156,26 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
           items={activeShifts.map((s) => s.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {activeShifts.map((shift, index) => (
               <SortableShiftRow
                 key={shift.id}
                 id={shift.id}
                 shift={shift}
                 priority={index + 1}
-                isDragDisabled={false} // MVP: Always enabled since we always sort by priority
+                isDragDisabled={false}
                 onEdit={() => handleEdit(shift)}
                 onArchive={() => handleArchive(shift.id)}
                 isArchiving={isArchiving}
               />
             ))}
             {activeShifts.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
-                <p>Nog geen shifts aangemaakt.</p>
+              <div className="text-center py-10 text-muted-foreground border border-dashed border-border/60 rounded-card bg-muted/20">
+                <p className="text-sm">Nog geen shifts aangemaakt.</p>
                 <NestoButton
                   variant="outline"
                   size="sm"
-                  className="mt-2"
+                  className="mt-3"
                   onClick={handleOpenCreate}
                 >
                   Eerste shift toevoegen
@@ -186,17 +189,17 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
         <DragOverlay dropAnimation={null}>
           {activeShift && (
             <div
-              className="bg-card border rounded-lg shadow-lg ring-1 ring-primary/20 overflow-hidden pointer-events-none select-none px-3 py-2"
+              className="bg-card border border-border/60 rounded-dropdown shadow-lg ring-1 ring-primary/20 overflow-hidden pointer-events-none select-none px-3 py-2.5"
               style={{ willChange: "transform" }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <GripVertical className="h-3.5 w-3.5 text-primary" />
                 <span
-                  className="w-2.5 h-2.5 rounded-full"
+                  className="w-3 h-3 rounded-full ring-2 ring-background"
                   style={{ backgroundColor: activeShift.color }}
                 />
-                <span className="font-medium text-sm">{activeShift.name}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="font-semibold text-sm">{activeShift.name}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">
                   {formatTime(activeShift.start_time)} – {formatTime(activeShift.end_time)}
                 </span>
               </div>
@@ -215,19 +218,19 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
             <Archive className="h-4 w-4" />
             Gearchiveerd ({archivedShifts.length})
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3 space-y-2">
+          <CollapsibleContent className="mt-3 space-y-1.5">
             {archivedShifts.map((shift) => (
               <div
                 key={shift.id}
-                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-dropdown border border-border/30"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <span
-                    className="w-2.5 h-2.5 rounded-full"
+                    className="w-2.5 h-2.5 rounded-full opacity-50"
                     style={{ backgroundColor: shift.color }}
                   />
-                  <span className="text-sm font-medium">{shift.name}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm font-medium text-muted-foreground">{shift.name}</span>
+                  <span className="text-xs text-muted-foreground/70 tabular-nums">
                     {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                   </span>
                   <div className="flex gap-0.5 ml-2">

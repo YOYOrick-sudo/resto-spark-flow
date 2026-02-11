@@ -56,7 +56,7 @@ export function ShiftsLivePreviewPanel({
     return shifts.find(s => s.id === selectedShiftId) ?? shifts[0] ?? null;
   }, [shifts, selectedShiftId]);
 
-  // Update selected shift when shifts change (e.g., after CRUD)
+  // Update selected shift when shifts change
   useEffect(() => {
     if (shifts.length > 0 && !shifts.find(s => s.id === selectedShiftId)) {
       setSelectedShiftId(shifts[0].id);
@@ -87,8 +87,8 @@ export function ShiftsLivePreviewPanel({
   // Loading state
   if (isLoading) {
     return (
-      <NestoCard className="p-4 space-y-4">
-        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+      <NestoCard className="p-5 space-y-4">
+        <h4 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
           Live Preview
         </h4>
         <div className="py-8 text-center">
@@ -98,16 +98,16 @@ export function ShiftsLivePreviewPanel({
     );
   }
 
-  // Empty state - no active shifts
+  // Empty state
   if (shifts.length === 0) {
     return (
-      <NestoCard className="p-4 space-y-4">
-        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+      <NestoCard className="p-5 space-y-4">
+        <h4 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
           Live Preview
         </h4>
-        <div className="py-6 text-center space-y-3">
-          <div className="flex items-center justify-center rounded-full bg-muted h-12 w-12 mx-auto">
-            <Calendar className="h-6 w-6 text-muted-foreground" />
+        <div className="py-8 text-center space-y-3">
+          <div className="flex items-center justify-center rounded-full bg-primary/8 h-12 w-12 mx-auto">
+            <Calendar className="h-5 w-5 text-primary/60" />
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium">Geen shifts geconfigureerd</p>
@@ -121,10 +121,10 @@ export function ShiftsLivePreviewPanel({
   }
 
   return (
-    <NestoCard className="p-4 space-y-4">
-      {/* Header */}
-      <div>
-        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+    <NestoCard className="p-5 space-y-5 overflow-hidden">
+      {/* Header with subtle gradient accent */}
+      <div className="relative">
+        <h4 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
           Live Preview
         </h4>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -132,27 +132,30 @@ export function ShiftsLivePreviewPanel({
         </p>
       </div>
 
-      {/* Shift Selector */}
+      {/* Shift Selector — pill style */}
       <div className="flex flex-wrap gap-1.5">
-        {shifts.map((shift) => (
-          <button
-            key={shift.id}
-            onClick={() => setSelectedShiftId(shift.id)}
-            className={cn(
-              "px-3 py-1.5 rounded-button text-sm font-medium transition-colors",
-              shift.id === currentShift?.id
-                ? "text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            )}
-            style={shift.id === currentShift?.id ? { backgroundColor: shift.color } : undefined}
-          >
-            {shift.short_name}
-          </button>
-        ))}
+        {shifts.map((shift) => {
+          const isActive = shift.id === currentShift?.id;
+          return (
+            <button
+              key={shift.id}
+              onClick={() => setSelectedShiftId(shift.id)}
+              className={cn(
+                "px-3 py-1.5 rounded-button text-sm font-semibold transition-all duration-150",
+                isActive
+                  ? "text-white shadow-sm"
+                  : "bg-secondary text-muted-foreground hover:bg-accent/60"
+              )}
+              style={isActive ? { backgroundColor: shift.color } : undefined}
+            >
+              {shift.short_name}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Day Selector */}
-      <div className="flex gap-1">
+      {/* Day Selector — refined circles */}
+      <div className="flex gap-1.5">
         {ALL_DAYS.map((day) => {
           const isAvailable = currentShift?.days_of_week.includes(day) ?? false;
           const isSelected = day === selectedDay && isAvailable;
@@ -163,10 +166,10 @@ export function ShiftsLivePreviewPanel({
               onClick={() => isAvailable && setSelectedDay(day)}
               disabled={!isAvailable}
               className={cn(
-                "w-8 h-8 rounded-full text-xs font-medium transition-colors",
-                isSelected && "bg-primary text-primary-foreground",
-                !isSelected && isAvailable && "bg-muted hover:bg-accent",
-                !isAvailable && "opacity-40 cursor-not-allowed bg-transparent"
+                "w-8 h-8 rounded-full text-xs font-semibold transition-all duration-150",
+                isSelected && "bg-primary text-primary-foreground shadow-sm",
+                !isSelected && isAvailable && "bg-secondary hover:bg-accent/60 text-foreground",
+                !isAvailable && "opacity-30 cursor-not-allowed bg-transparent text-muted-foreground"
               )}
             >
               {dayLabels[day]}
@@ -175,25 +178,25 @@ export function ShiftsLivePreviewPanel({
         })}
       </div>
 
-      {/* Time Slots */}
+      {/* Time Slots — grid with visual depth */}
       {currentShift && currentShift.days_of_week.length === 0 ? (
-        <div className="py-3 text-center">
+        <div className="py-4 text-center">
           <p className="text-xs text-warning flex items-center justify-center gap-1.5">
             <Info className="h-3.5 w-3.5" />
             Geen actieve dagen ingesteld
           </p>
         </div>
       ) : isDayActive ? (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 font-semibold uppercase tracking-wider">
+            <Clock className="h-3 w-3" />
             <span>Beschikbare tijden</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {timeSlots.map((slot) => (
               <span
                 key={slot}
-                className="px-2 py-1 rounded-control bg-card border text-sm tabular-nums"
+                className="px-2.5 py-1.5 rounded-button bg-secondary border border-border/40 text-sm tabular-nums font-medium hover:border-primary/30 hover:bg-primary/5 transition-colors cursor-default"
               >
                 {slot}
               </span>
@@ -206,29 +209,30 @@ export function ShiftsLivePreviewPanel({
           )}
         </div>
       ) : (
-        <div className="py-3 text-center">
+        <div className="py-4 text-center">
           <p className="text-xs text-muted-foreground">
             Selecteer een actieve dag om tijdsloten te zien
           </p>
         </div>
       )}
 
-      {/* Capacity indicator - subtle */}
+      {/* Capacity stats — refined */}
       {capacityStats.totalTables > 0 && (
-        <div className="flex items-center gap-3 text-xs text-muted-foreground py-2 px-3 bg-muted/30 rounded-lg">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground py-2.5 px-3 bg-secondary/60 rounded-button border border-border/30">
           <div className="flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5" />
-            <span>{capacityStats.totalMinCapacity}–{capacityStats.totalMaxCapacity} gasten</span>
+            <Users className="h-3.5 w-3.5 text-primary/60" />
+            <span className="font-medium">{capacityStats.totalMinCapacity}–{capacityStats.totalMaxCapacity}</span>
+            <span>gasten</span>
           </div>
-          <span className="text-border">|</span>
-          <span>{capacityStats.totalTables} tafels</span>
+          <div className="w-px h-3 bg-border/60" />
+          <span><span className="font-medium">{capacityStats.totalTables}</span> tafels</span>
         </div>
       )}
 
-      {/* Footer Info */}
-      <div className="pt-2 border-t border-border/60">
-        <p className="text-xs text-muted-foreground flex items-start gap-1.5">
-          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+      {/* Footer — minimal */}
+      <div className="pt-3 border-t border-border/40">
+        <p className="text-[11px] text-muted-foreground/60 flex items-start gap-1.5">
+          <Info className="h-3 w-3 shrink-0 mt-0.5" />
           <span>Preview toont aankomsttijden op basis van shifts.</span>
         </p>
       </div>

@@ -55,8 +55,14 @@ export function SortableShiftRow({
       <div
         ref={setNodeRef}
         style={style}
-        className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 py-2 px-1 rounded-dropdown hover:bg-accent/50 transition-colors group"
+        className="relative grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 py-2.5 px-2 rounded-dropdown hover:bg-accent/40 transition-all duration-150 group border border-transparent hover:border-border/40"
       >
+        {/* Subtle left color accent */}
+        <div
+          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          style={{ backgroundColor: shift.color }}
+        />
+
         {/* Drag handle */}
         <TooltipProvider delayDuration={300}>
           <Tooltip>
@@ -82,40 +88,42 @@ export function SortableShiftRow({
           </Tooltip>
         </TooltipProvider>
 
-        {/* Priority */}
+        {/* Priority badge */}
         <div className="flex items-center justify-center">
-          <span className="w-8 h-6 text-sm text-center tabular-nums text-muted-foreground flex items-center justify-center">
+          <span className="w-6 h-6 text-[11px] font-semibold tabular-nums text-muted-foreground flex items-center justify-center rounded-md bg-muted/60">
             {priority}
           </span>
         </div>
 
         {/* Times */}
-        <span className="text-sm tabular-nums">
-          {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
+        <span className="text-sm tabular-nums font-medium">
+          {formatTime(shift.start_time)}
+          <span className="text-muted-foreground mx-0.5">–</span>
+          {formatTime(shift.end_time)}
         </span>
 
         {/* Name + color dot + short name */}
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className="w-2.5 h-2.5 rounded-full shrink-0"
+            className="w-3 h-3 rounded-full shrink-0 ring-2 ring-background shadow-sm"
             style={{ backgroundColor: shift.color }}
           />
-          <span className="font-medium text-sm truncate">{shift.name}</span>
-          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+          <span className="font-semibold text-sm truncate">{shift.name}</span>
+          <span className="text-[11px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-control shrink-0 font-medium">
             {shift.short_name}
           </span>
         </div>
 
         {/* Days */}
-        <div className="flex gap-0.5">
+        <div className="flex gap-[3px]">
           {ALL_WEEKDAYS.map((day) => (
             <span
               key={day}
               className={cn(
-                "px-1 py-0.5 text-[10px] rounded font-medium",
+                "w-[18px] h-[18px] flex items-center justify-center text-[10px] rounded-[4px] font-semibold transition-colors",
                 shift.days_of_week.includes(day)
-                  ? "bg-primary/10 text-primary"
-                  : "bg-muted/50 text-muted-foreground"
+                  ? "bg-primary/12 text-primary"
+                  : "text-muted-foreground/40"
               )}
             >
               {DAY_LABELS[day]}
@@ -124,7 +132,7 @@ export function SortableShiftRow({
         </div>
 
         {/* Interval */}
-        <span className="text-xs text-muted-foreground text-center">
+        <span className="text-xs text-muted-foreground text-center font-medium tabular-nums">
           {formatInterval(shift.arrival_interval_minutes)}
         </span>
 
