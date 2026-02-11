@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
-import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trash2, Mail } from 'lucide-react';
 import { TaskTemplateList } from './TaskTemplateList';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { Tables, Json } from '@/integrations/supabase/types';
@@ -18,6 +18,7 @@ interface TaskTemplate {
   description?: string;
   assigned_role?: string | null;
   is_automated?: boolean;
+  task_type?: string;
 }
 
 interface PhaseConfigCardProps {
@@ -42,7 +43,8 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
   const [expanded, setExpanded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const tasks = (phase.task_templates as unknown as TaskTemplate[]) || [];
-
+  const AUTOMATABLE_TYPES = ['send_email', 'send_reminder'];
+  const automatedCount = tasks.filter(t => AUTOMATABLE_TYPES.includes(t.task_type || '') && t.is_automated !== false).length;
   const debouncedDescriptionUpdate = useDebouncedCallback((value: string) => {
     onUpdate({ description: value || null });
   }, 800);
@@ -70,6 +72,13 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
           </div>
         </div>
         <div className="flex items-center gap-2 pt-1 flex-shrink-0">
+          {/* Automated tasks count badge in collapsed state */}
+          {!expanded && automatedCount > 0 && (
+            <div className="flex items-center gap-1 text-primary">
+              <Mail className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium">{automatedCount}×</span>
+            </div>
+          )}
           {/* Delete button in header — only for custom phases */}
           {expanded && onDelete && (
             <TooltipProvider>

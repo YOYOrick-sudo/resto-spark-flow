@@ -295,6 +295,7 @@ async function completeAutomatedTasks(candidateId: string, locationId: string) {
     .eq('candidate_id', candidateId)
     .eq('phase_id', candidate.current_phase_id)
     .in('task_type', ['send_email', 'send_reminder'])
+    .eq('is_automated', true)
     .eq('status', 'pending');
 
   if (!pendingTasks || pendingTasks.length === 0) return;
