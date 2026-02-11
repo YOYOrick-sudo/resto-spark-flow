@@ -517,6 +517,69 @@ export type Database = {
           },
         ]
       }
+      onboarding_messages: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          candidate_id: string
+          created_at: string
+          direction: string
+          id: string
+          location_id: string
+          read_at: string | null
+          resend_message_id: string | null
+          sender_email: string
+          sender_name: string
+          subject: string
+          triggered_by: string
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          candidate_id: string
+          created_at?: string
+          direction?: string
+          id?: string
+          location_id: string
+          read_at?: string | null
+          resend_message_id?: string | null
+          sender_email: string
+          sender_name: string
+          subject: string
+          triggered_by?: string
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          candidate_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          location_id?: string
+          read_at?: string | null
+          resend_message_id?: string | null
+          sender_email?: string
+          sender_name?: string
+          subject?: string
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_messages_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_messages_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_phase_logs: {
         Row: {
           candidate_id: string

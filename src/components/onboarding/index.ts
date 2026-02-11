@@ -12,3 +12,5 @@ export { TaskItem } from './TaskItem';
 export { EvaluationForm } from './EvaluationForm';
 export { CandidateTimeline } from './CandidateTimeline';
 export { CandidateActions } from './CandidateActions';
+export { MessageThread } from './MessageThread';
+export { ComposeMessageModal } from './ComposeMessageModal';

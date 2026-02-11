@@ -7,6 +7,9 @@ interface SendEmailParams {
   candidateId: string;
   locationId: string;
   emailType: string;
+  saveToMessages?: boolean;
+  senderName?: string;
+  senderEmail?: string;
 }
 
 /**
@@ -117,6 +120,21 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
       },
       triggered_by: 'agent',
     });
+
+    // Save to onboarding_messages if requested
+    if (params.saveToMessages) {
+      await supabaseAdmin.from('onboarding_messages').insert({
+        candidate_id: params.candidateId,
+        location_id: params.locationId,
+        direction: 'outbound',
+        sender_name: params.senderName || emailConfig.sender_name || 'Nesto Assistent',
+        sender_email: params.senderEmail || 'noreply@nesto.app',
+        subject: params.subject,
+        body_html: params.html,
+        resend_message_id: result.id,
+        triggered_by: 'agent',
+      });
+    }
   } catch (error) {
     console.error(`[EMAIL] Exception sending email:`, error);
     await supabaseAdmin.from('onboarding_events').insert({
