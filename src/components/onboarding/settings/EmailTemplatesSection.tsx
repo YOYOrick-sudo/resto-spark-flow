@@ -2,8 +2,6 @@ import { useOnboardingSettings, useUpdateOnboardingSettings } from '@/hooks/useO
 import { EmailTemplateEditor } from './EmailTemplateEditor';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
-import { InfoAlert } from '@/components/polar/InfoAlert';
-import { FieldHelp } from '@/components/polar/FieldHelp';
 import { Json } from '@/integrations/supabase/types';
 import { Link } from 'react-router-dom';
 
@@ -46,21 +44,16 @@ export function EmailTemplatesSection() {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground flex items-center gap-1">
+      <p className="text-xs text-muted-foreground">
         Email branding en afzender instellen via{' '}
         <Link to="/instellingen/communicatie" className="text-primary hover:underline">
           Instellingen → Communicatie
         </Link>
-        <FieldHelp>
-          <p className="text-muted-foreground">Logo, footer en afzendernaam worden centraal beheerd en gelden voor alle modules.</p>
-        </FieldHelp>
       </p>
 
-      {unconfiguredCount > 0 && (
-        <InfoAlert variant="info" title="Templates incompleet">
-          {unconfiguredCount} van {TEMPLATE_ORDER.length} templates zijn nog niet ingevuld. Vul de templates in zodat de Assistent automatisch emails kan versturen.
-        </InfoAlert>
-      )}
+      <p className="text-sm text-muted-foreground">
+        {TEMPLATE_ORDER.length - unconfiguredCount} van {TEMPLATE_ORDER.length} templates ingevuld
+      </p>
 
       {TEMPLATE_ORDER.map((key) => {
         const template = templates[key] || { subject: '', body: '' };
