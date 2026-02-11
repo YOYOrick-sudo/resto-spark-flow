@@ -102,18 +102,18 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
       {/* Header with quick actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h3 className="text-lg font-medium">Uitzonderingen</h3>
-          <p className="text-sm text-muted-foreground">
-            Beheer gesloten dagen, aangepaste tijden en speciale markeringen.
+          <h3 className="text-base font-semibold">Uitzonderingen</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Gesloten dagen, aangepaste tijden en speciale markeringen.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           <NestoButton
             variant="outline"
             size="sm"
             onClick={() => handleQuickAction("closed")}
           >
-            <Ban className="h-4 w-4 mr-1.5" />
+            <Ban className="h-3.5 w-3.5 mr-1.5" />
             Dag sluiten
           </NestoButton>
           <NestoButton
@@ -121,15 +121,15 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
             size="sm"
             onClick={() => handleQuickAction("modified")}
           >
-            <Clock className="h-4 w-4 mr-1.5" />
-            Aangepaste tijden
+            <Clock className="h-3.5 w-3.5 mr-1.5" />
+            Aangepast
           </NestoButton>
           <NestoButton
             variant="outline"
             size="sm"
             onClick={() => handleQuickAction("special")}
           >
-            <Star className="h-4 w-4 mr-1.5" />
+            <Star className="h-3.5 w-3.5 mr-1.5" />
             Speciaal
           </NestoButton>
           <NestoButton
@@ -137,8 +137,8 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
             size="sm"
             onClick={() => setBulkModalOpen(true)}
           >
-            <Repeat className="h-4 w-4 mr-1.5" />
-            Periode / Herhaling
+            <Repeat className="h-3.5 w-3.5 mr-1.5" />
+            Periode
           </NestoButton>
         </div>
       </div>
