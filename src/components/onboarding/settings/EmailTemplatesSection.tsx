@@ -2,6 +2,7 @@ import { useOnboardingSettings, useUpdateOnboardingSettings } from '@/hooks/useO
 import { EmailTemplateEditor } from './EmailTemplateEditor';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
+import { InfoAlert } from '@/components/polar/InfoAlert';
 import { Json } from '@/integrations/supabase/types';
 
 interface EmailTemplate {
@@ -35,8 +36,20 @@ export function EmailTemplatesSection() {
     updateSettings.mutate({ email_templates: updatedTemplates as unknown as Json });
   };
 
+  // Count unconfigured templates
+  const unconfiguredCount = TEMPLATE_ORDER.filter((key) => {
+    const t = templates[key];
+    return !t || !t.subject?.trim() || !t.body?.trim();
+  }).length;
+
   return (
     <div className="space-y-3">
+      {unconfiguredCount > 0 && (
+        <InfoAlert variant="info" title="Templates incompleet">
+          {unconfiguredCount} van {TEMPLATE_ORDER.length} templates zijn nog niet ingevuld. Vul de templates in zodat de Assistent automatisch emails kan versturen.
+        </InfoAlert>
+      )}
+
       {TEMPLATE_ORDER.map((key) => {
         const template = templates[key] || { subject: '', body: '' };
         return (

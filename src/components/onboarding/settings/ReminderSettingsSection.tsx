@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useOnboardingSettings, useUpdateOnboardingSettings } from '@/hooks/useOnboardingSettings';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { Switch } from '@/components/ui/switch';
@@ -86,54 +85,49 @@ export function ReminderSettingsSection() {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Label className="text-sm min-w-[200px]">1e herinnering na</Label>
-          <div className="flex">
-            <Input
-              type="number"
-              value={localConfig.first_reminder_hours ?? 24}
-              onChange={(e) => updateField('first_reminder_hours', parseInt(e.target.value) || 0)}
-              className="w-20 h-8 text-sm tabular-nums rounded-r-none border-r-0"
-              disabled={!enabled}
-              min={1}
-            />
-            <span className="inline-flex items-center bg-secondary border border-border rounded-r-button px-3 text-xs text-muted-foreground">uur</span>
-          </div>
+        {/* Grid-aligned rows */}
+        <div className="grid grid-cols-[1fr_80px_auto] items-center gap-4">
+          <Label className="text-sm">1e herinnering na</Label>
+          <Input
+            type="number"
+            value={localConfig.first_reminder_hours ?? 24}
+            onChange={(e) => updateField('first_reminder_hours', parseInt(e.target.value) || 0)}
+            className="w-20 h-8 text-sm tabular-nums text-right"
+            disabled={!enabled}
+            min={1}
+          />
+          <span className="text-xs text-muted-foreground w-12">uur</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Label className="text-sm min-w-[200px]">2e herinnering (urgent) na</Label>
-          <div className="flex">
-            <Input
-              type="number"
-              value={localConfig.urgent_reminder_hours ?? 48}
-              onChange={(e) => updateField('urgent_reminder_hours', parseInt(e.target.value) || 0)}
-              className="w-20 h-8 text-sm tabular-nums rounded-r-none border-r-0"
-              disabled={!enabled}
-              min={1}
-            />
-            <span className="inline-flex items-center bg-secondary border border-border rounded-r-button px-3 text-xs text-muted-foreground">uur</span>
-          </div>
+        <div className="grid grid-cols-[1fr_80px_auto] items-center gap-4">
+          <Label className="text-sm">2e herinnering (urgent) na</Label>
+          <Input
+            type="number"
+            value={localConfig.urgent_reminder_hours ?? 48}
+            onChange={(e) => updateField('urgent_reminder_hours', parseInt(e.target.value) || 0)}
+            className="w-20 h-8 text-sm tabular-nums text-right"
+            disabled={!enabled}
+            min={1}
+          />
+          <span className="text-xs text-muted-foreground w-12">uur</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Label className="text-sm min-w-[200px]">Auto-markering 'geen reactie' na</Label>
-          <div className="flex">
-            <Input
-              type="number"
-              value={localConfig.no_response_days ?? 7}
-              onChange={(e) => updateField('no_response_days', parseInt(e.target.value) || 0)}
-              className="w-20 h-8 text-sm tabular-nums rounded-r-none border-r-0"
-              disabled={!enabled}
-              min={1}
-            />
-            <span className="inline-flex items-center bg-secondary border border-border rounded-r-button px-3 text-xs text-muted-foreground">dagen</span>
-          </div>
+        <div className="grid grid-cols-[1fr_80px_auto] items-center gap-4">
+          <Label className="text-sm">Auto-markering 'geen reactie' na</Label>
+          <Input
+            type="number"
+            value={localConfig.no_response_days ?? 7}
+            onChange={(e) => updateField('no_response_days', parseInt(e.target.value) || 0)}
+            className="w-20 h-8 text-sm tabular-nums text-right"
+            disabled={!enabled}
+            min={1}
+          />
+          <span className="text-xs text-muted-foreground w-12">dagen</span>
         </div>
 
         {/* Notification channels */}
         <div className="pt-4 border-t border-border/50 space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notificatiekanalen</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Notificatiekanalen</p>
           <div className="flex items-center justify-between">
             <Label className="text-sm">Email</Label>
             <NestoBadge variant="primary" size="sm" dot>Altijd aan</NestoBadge>
@@ -148,7 +142,7 @@ export function ReminderSettingsSection() {
         </div>
       </div>
 
-      <InfoAlert variant="info" title="Naar wie gaan reminders?">
+      <InfoAlert variant="info" title="Naar wie gaan reminders?" className="mt-6">
         Reminders worden verstuurd naar de verantwoordelijke van elke fase. Stel verantwoordelijken in via het tabblad 'Team'.
       </InfoAlert>
     </NestoCard>

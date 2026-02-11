@@ -1,4 +1,3 @@
-import { Input } from '@/components/ui/input';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -11,6 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
+import { NestoInput } from '@/components/polar/NestoInput';
 import { useState } from 'react';
 
 interface TaskTemplate {
@@ -23,14 +23,14 @@ interface TaskTemplate {
 interface TaskTemplateListProps {
   tasks: TaskTemplate[];
   onChange: (tasks: TaskTemplate[]) => void;
-  onExplicitAction?: () => void; // trigger toast for add/remove
+  onExplicitAction?: () => void;
 }
 
 const ROLES = [
-  { value: 'owner', label: 'Owner' },
+  { value: 'owner', label: 'Eigenaar' },
   { value: 'manager', label: 'Manager' },
   { value: 'service', label: 'Service' },
-  { value: 'kitchen', label: 'Kitchen' },
+  { value: 'kitchen', label: 'Keuken' },
 ];
 
 export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemplateListProps) {
@@ -55,61 +55,63 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
   };
 
   return (
-    <div className="divide-y divide-border/50">
+    <div className="space-y-2">
       {tasks.map((task, index) => (
-        <div key={index} className="flex items-start gap-3 py-2.5 px-3 rounded-lg hover:bg-accent/40 transition-colors duration-150">
-          <div className="flex-1 space-y-2">
-            <Input
+        <div
+          key={index}
+          className="group p-3 rounded-lg border border-border/40 hover:border-border/60 transition-colors duration-150"
+        >
+          {/* Row 1: Title + delete */}
+          <div className="flex items-center gap-2">
+            <NestoInput
               value={task.title}
               onChange={(e) => updateTask(index, 'title', e.target.value)}
               placeholder="Taaknaam..."
-              className="h-8 text-sm"
+              className="h-8 text-sm flex-1"
             />
-            <div className="flex items-center gap-4">
-              <Select
-                value={task.assigned_role || ''}
-                onValueChange={(val) => updateTask(index, 'assigned_role', val)}
-              >
-                <SelectTrigger className="h-8 w-[140px] text-sm">
-                  <SelectValue placeholder="Rol..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id={`auto-${index}`}
-                  checked={task.is_automated ?? false}
-                  onCheckedChange={(val) => updateTask(index, 'is_automated', val)}
-                />
-                <Label htmlFor={`auto-${index}`} className="text-xs text-muted-foreground flex items-center gap-1">
-                  {task.is_automated ? (
-                    <>
-                      <Sparkles className="h-3 w-3 text-primary" />
-                      Assistent
-                    </>
-                  ) : (
-                    'Geautomatiseerd'
-                  )}
-                </Label>
-              </div>
+            <button
+              onClick={() => setDeleteIndex(index)}
+              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors duration-150 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-primary/30 outline-none flex-shrink-0"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Row 2: Role dropdown + Assistant toggle */}
+          <div className="flex items-center gap-4 mt-2">
+            <Select
+              value={task.assigned_role || ''}
+              onValueChange={(val) => updateTask(index, 'assigned_role', val)}
+            >
+              <SelectTrigger className="h-8 w-[140px] text-sm">
+                <SelectValue placeholder="Selecteer rol" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((role) => (
+                  <SelectItem key={role.value} value={role.value}>
+                    {role.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2 ml-auto">
+              {task.is_automated && (
+                <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
+              )}
+              <Label htmlFor={`auto-${index}`} className="text-xs text-muted-foreground cursor-pointer">
+                Assistent
+              </Label>
+              <Switch
+                id={`auto-${index}`}
+                checked={task.is_automated ?? false}
+                onCheckedChange={(val) => updateTask(index, 'is_automated', val)}
+              />
             </div>
           </div>
-          <button
-            onClick={() => setDeleteIndex(index)}
-            className="mt-1 p-1.5 text-muted-foreground hover:text-destructive transition-colors duration-150 rounded focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 outline-none"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
         </div>
       ))}
 
-      <NestoButton variant="outline" size="sm" onClick={addTask}>
+      <NestoButton variant="outline" size="sm" onClick={addTask} className="mt-1">
         <Plus className="h-4 w-4 mr-1" />
         Taak toevoegen
       </NestoButton>

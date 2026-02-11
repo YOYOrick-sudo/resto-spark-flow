@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/polar/EmptyState';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus } from 'lucide-react';
 
 export function PhaseConfigSection() {
   const { data: phases, isLoading } = useAllOnboardingPhases();
