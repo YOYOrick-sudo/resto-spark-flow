@@ -1,23 +1,28 @@
+import { useState } from 'react';
 import { useAllOnboardingPhases } from '@/hooks/useAllOnboardingPhases';
 import { useUpdatePhaseConfig } from '@/hooks/useUpdatePhaseConfig';
 import { useCreatePhase } from '@/hooks/useCreatePhase';
 import { useDeletePhase } from '@/hooks/useDeletePhase';
 import { useReorderPhases } from '@/hooks/useReorderPhases';
+import { useResetOnboardingPhases } from '@/hooks/useResetOnboardingPhases';
 import { PhaseConfigCard } from './PhaseConfigCard';
 import { AddPhaseModal } from './AddPhaseModal';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { NestoButton } from '@/components/polar/NestoButton';
+import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 
 export function PhaseConfigSection() {
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const { data: phases, isLoading } = useAllOnboardingPhases();
   const updatePhase = useUpdatePhaseConfig();
   const createPhase = useCreatePhase();
   const deletePhase = useDeletePhase();
   const reorderPhases = useReorderPhases();
+  const resetPhases = useResetOnboardingPhases();
 
   if (isLoading) return <><CardSkeleton lines={3} /><CardSkeleton lines={3} /><CardSkeleton lines={3} /></>;
 
@@ -88,6 +93,34 @@ export function PhaseConfigSection() {
           isLoading={createPhase.isPending}
         />
       </div>
+
+      <div className="flex justify-center pt-1">
+        <NestoButton
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground text-xs gap-1.5"
+          onClick={() => setShowResetConfirm(true)}
+          leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
+        >
+          Standaardinstelling herstellen
+        </NestoButton>
+      </div>
+
+      <ConfirmDialog
+        open={showResetConfirm}
+        onOpenChange={setShowResetConfirm}
+        title="Standaardinstelling herstellen"
+        description="Dit vervangt alle huidige fasen en taken door de aanbevolen Nesto configuratie (10 fasen). Bestaande fasen worden gearchiveerd. Lopende kandidaten worden niet beïnvloed."
+        confirmLabel="Herstellen"
+        cancelLabel="Annuleren"
+        variant="default"
+        isLoading={resetPhases.isPending}
+        onConfirm={() => {
+          resetPhases.mutate(undefined, {
+            onSuccess: () => setShowResetConfirm(false),
+          });
+        }}
+      />
     </div>
   );
 }
