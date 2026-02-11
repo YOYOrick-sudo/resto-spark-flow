@@ -74,7 +74,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
       {/* Header row */}
       <div className="grid grid-cols-[1fr_240px_32px] gap-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2.5 pb-2 border-b border-border/50 mb-0">
         <span>Taak</span>
-        <span>Uitvoering</span>
+        <span className="text-right">Uitvoering</span>
         <span />
       </div>
 
