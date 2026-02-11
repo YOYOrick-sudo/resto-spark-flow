@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Sparkles, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { TitleHelp } from '@/components/polar/TitleHelp';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -115,7 +115,7 @@ export function TeamOwnersSection() {
 
       <NestoCard className="p-0 overflow-hidden">
         {/* Header — floating enterprise style */}
-        <div className="grid grid-cols-[auto_1fr_1fr_80px] gap-4 px-4 py-2.5 border-b border-border/50">
+        <div className="grid grid-cols-[auto_1fr_1fr] gap-4 px-4 py-2.5 border-b border-border/50">
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-6">#</span>
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Fase</span>
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -125,7 +125,6 @@ export function TeamOwnersSection() {
               <p className="text-muted-foreground">Zonder verantwoordelijke gaan reminders naar de locatie-eigenaar.</p>
             </TitleHelp>
           </span>
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Assistent</span>
         </div>
 
         {/* Rows */}
@@ -134,12 +133,11 @@ export function TeamOwnersSection() {
             const p = phase as any;
             const ownerName = p.phase_owner_name;
             const ownerEmail = p.phase_owner_email;
-            const assistantEnabled = p.assistant_enabled ?? false;
 
             return (
               <div
                 key={phase.id}
-                className="grid grid-cols-[auto_1fr_1fr_80px] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors duration-150 cursor-pointer group"
+                className="grid grid-cols-[auto_1fr_1fr] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors duration-150 cursor-pointer group"
                 onClick={() => openEdit(phase.id)}
               >
                 <span className="text-sm text-muted-foreground tabular-nums w-6">{index + 1}</span>
@@ -154,13 +152,6 @@ export function TeamOwnersSection() {
                     <span className="text-sm text-muted-foreground">Niet ingesteld</span>
                   )}
                   <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                </div>
-                <div className="flex justify-center">
-                  {assistantEnabled ? (
-                    <NestoBadge variant="primary" size="sm" dot>Aan</NestoBadge>
-                  ) : (
-                    <NestoBadge variant="outline" size="sm">Uit</NestoBadge>
-                  )}
                 </div>
               </div>
             );

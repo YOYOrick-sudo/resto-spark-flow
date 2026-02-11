@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
-import { ChevronDown, ChevronRight, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { TaskTemplateList } from './TaskTemplateList';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { Tables, Json } from '@/integrations/supabase/types';
@@ -32,7 +32,6 @@ interface PhaseConfigCardProps {
     name?: string;
     description?: string | null;
     task_templates?: Json;
-    assistant_enabled?: boolean;
   }) => void;
   onDelete?: (phaseId: string) => void;
   onExplicitAction?: () => void;
@@ -43,8 +42,6 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
   const [expanded, setExpanded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const tasks = (phase.task_templates as unknown as TaskTemplate[]) || [];
-  const assistantEnabled = (phase as any).assistant_enabled ?? false;
-  const hasAutomatedTasks = tasks.some((t) => t.is_automated);
 
   const debouncedDescriptionUpdate = useDebouncedCallback((value: string) => {
     onUpdate({ description: value || null });
@@ -67,24 +64,6 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
               {expanded ? <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
               <h3 className="text-sm font-semibold truncate">{phase.name}</h3>
             </button>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Sparkles className={cn(
-                    "h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150",
-                    (assistantEnabled || hasAutomatedTasks)
-                      ? "text-primary"
-                      : "text-muted-foreground/40"
-                  )} />
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>{(assistantEnabled || hasAutomatedTasks)
-                    ? "Assistent actief voor deze fase"
-                    : "Assistent niet actief"
-                  }</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
             {(phase as any).is_custom && (
               <NestoBadge variant="outline" size="sm">Aangepast</NestoBadge>
             )}
@@ -145,20 +124,6 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
               />
             </div>
 
-            {/* Assistant toggle — flat inline row */}
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">Assistent inschakelen</p>
-                  <p className="text-xs text-muted-foreground">Automatische taken worden door de Assistent opgepakt</p>
-                </div>
-              </div>
-              <Switch
-                checked={assistantEnabled}
-                onCheckedChange={(val) => onUpdate({ assistant_enabled: val })}
-              />
-            </div>
           </div>
 
           {/* Divider between groups */}

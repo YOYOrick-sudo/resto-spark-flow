@@ -345,6 +345,7 @@ export type Database = {
           phase_id: string
           sort_order: number
           status: string
+          task_type: string
           title: string
           updated_at: string
         }
@@ -362,6 +363,7 @@ export type Database = {
           phase_id: string
           sort_order?: number
           status?: string
+          task_type?: string
           title: string
           updated_at?: string
         }
@@ -379,6 +381,7 @@ export type Database = {
           phase_id?: string
           sort_order?: number
           status?: string
+          task_type?: string
           title?: string
           updated_at?: string
         }
@@ -561,7 +564,6 @@ export type Database = {
       }
       onboarding_phases: {
         Row: {
-          assistant_enabled: boolean
           created_at: string
           description: string | null
           id: string
@@ -577,7 +579,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          assistant_enabled?: boolean
           created_at?: string
           description?: string | null
           id?: string
@@ -593,7 +594,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          assistant_enabled?: boolean
           created_at?: string
           description?: string | null
           id?: string
@@ -627,6 +627,7 @@ export type Database = {
       }
       onboarding_settings: {
         Row: {
+          assistant_enabled: boolean
           created_at: string
           email_config: Json
           email_templates: Json
@@ -636,6 +637,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assistant_enabled?: boolean
           created_at?: string
           email_config?: Json
           email_templates?: Json
@@ -645,6 +647,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assistant_enabled?: boolean
           created_at?: string
           email_config?: Json
           email_templates?: Json

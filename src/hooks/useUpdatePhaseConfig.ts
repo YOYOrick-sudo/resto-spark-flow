@@ -10,7 +10,6 @@ interface PhaseUpdate {
     name?: string;
     description?: string | null;
     task_templates?: Json;
-    assistant_enabled?: boolean;
   };
 }
 
