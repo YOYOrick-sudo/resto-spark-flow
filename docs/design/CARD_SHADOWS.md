@@ -67,7 +67,8 @@ Zie `src/components/polar/NestoCard.tsx` voor de broncode. De shadow waarden wor
 
 ## Checklist
 
-- [ ] Geen `border` op top-level NestoCards
+- [ ] Geen `border` op top-level NestoCards **in light mode**
+- [ ] Dark mode gebruikt `dark:border dark:border-border` als fallback op alle top-level card-achtige componenten (NestoCard, StatCard, FormSection)
 - [ ] Shadow is de primaire visuele afbakening
 - [ ] Geen card-in-card nesting
 - [ ] Nested cards gebruiken `border border-border/40` zonder shadow

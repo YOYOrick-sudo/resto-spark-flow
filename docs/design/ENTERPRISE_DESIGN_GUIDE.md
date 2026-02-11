@@ -113,8 +113,9 @@ Cards gebruiken **shadow**, niet border, als visuele grens.
 
 | Type | Shadow | Border |
 |------|--------|--------|
-| **Top-level** | `0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)` | Geen |
-| **Hover** | `0 4px 12px rgba(0,0,0,0.08)` + `translateY(-1px)` | Geen |
+| **Top-level (light)** | `0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)` | Geen |
+| **Top-level (dark)** | Shadow onzichtbaar op donkere achtergrond | `dark:border dark:border-border` als fallback |
+| **Hover** | `0 4px 12px rgba(0,0,0,0.08)` + `translateY(-1px)` | Geen (dark: border-border/80) |
 | **Nested** | Geen | `border border-border/40` |
 
 ### Nesting Regels
