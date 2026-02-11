@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NestoCard } from '@/components/polar/NestoCard';
+import { StatusDot } from '@/components/polar/StatusDot';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,6 +38,7 @@ export function PhaseConfigCard({ phase, index, onUpdate, onExplicitAction }: Ph
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-muted-foreground tabular-nums">{index + 1}.</span>
+            <StatusDot status={phase.is_active ? 'success' : 'neutral'} size="sm" />
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
