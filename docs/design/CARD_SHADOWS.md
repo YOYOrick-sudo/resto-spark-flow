@@ -26,7 +26,8 @@ Transition: `200ms ease` op `box-shadow` en `transform`.
 
 | Context | Border |
 |---------|--------|
-| **Top-level cards** | Geen border — shadow is voldoende |
+| **Top-level (light)** | Geen border — shadow is voldoende |
+| **Top-level (dark)** | `dark:border dark:border-border/50` als fallback (shadow onzichtbaar) |
 | **Nested cards** | `border border-border/40` als subtiele fallback (geen shadow) |
 
 ---
