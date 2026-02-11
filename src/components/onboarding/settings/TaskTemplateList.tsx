@@ -87,8 +87,8 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
               className="h-8 text-sm font-semibold text-foreground bg-transparent border-[1.5px] border-transparent rounded-button px-2 focus:border-border focus:bg-card focus:outline-none transition-colors placeholder:text-muted-foreground"
             />
 
-            {/* Col 2: Execution */}
-            <div className="flex items-center gap-2.5 min-w-[220px]">
+            {/* Col 2: Execution — fixed width for alignment */}
+            <div className="flex items-center gap-2.5 w-[240px] justify-end">
               {isAutomatable(task) ? (
                 <>
                   <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
@@ -102,7 +102,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                   {task.is_automated !== false ? (
                     <div className="flex items-center gap-1.5">
                       <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                      <span className="text-xs text-primary font-medium">Automatisch</span>
+                      <span className="text-xs text-primary font-medium whitespace-nowrap">Automatisch</span>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -122,10 +122,12 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                   )}
                 </>
               ) : (
-                <RoleSelect
-                  value={task.assigned_role || ''}
-                  onChange={(val) => updateTask(index, 'assigned_role', val)}
-                />
+                <div className="flex items-center justify-end w-full">
+                  <RoleSelect
+                    value={task.assigned_role || ''}
+                    onChange={(val) => updateTask(index, 'assigned_role', val)}
+                  />
+                </div>
               )}
             </div>
 
