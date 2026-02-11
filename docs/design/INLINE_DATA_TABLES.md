@@ -52,8 +52,8 @@ Dit pattern is ideaal voor:
 // Data row
 className="grid grid-cols-[32px_1fr_80px_40px_80px_32px] items-center gap-2 py-2 px-1 rounded-lg hover:bg-muted/50 transition-colors group"
 
-// Header row (zelfde grid, andere styling)
-className="grid grid-cols-[32px_1fr_80px_40px_80px_32px] gap-2 text-xs text-muted-foreground px-1 pb-2 border-b border-border/50 mb-1"
+// Header row (zelfde grid, enterprise styling — geen achtergrondkleur)
+className="grid grid-cols-[32px_1fr_80px_40px_80px_32px] gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-1 pb-2 border-b border-border/50 mb-1"
 ```
 
 ### Variaties
@@ -118,7 +118,7 @@ className="opacity-0 group-hover:opacity-100 transition-opacity" // op actions
 ### Header Row
 
 ```tsx
-className="grid grid-cols-[...] gap-2 text-xs text-muted-foreground px-1 pb-2 border-b border-border/50 mb-1"
+className="grid grid-cols-[...] gap-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-1 pb-2 border-b border-border/50 mb-1"
 ```
 
 ### StatusDot Gebruik
@@ -248,7 +248,9 @@ const style: React.CSSProperties = {
 
 - [ ] Gebruik `NestoCard` met `Collapsible` voor parent container
 - [ ] Implementeer grid layout met vaste kolommen (32px-1fr-80px-40px-80px-32px)
-- [ ] Voeg header row toe met kolom labels (text-xs, muted)
+- [ ] Voeg header row toe met kolom labels (`text-[11px] font-semibold uppercase tracking-wider`, muted)
+- [ ] Header row zonder achtergrondkleur (zwevende labels)
+- [ ] Data tekst met `font-semibold` en `text-foreground`
 - [ ] Gebruik `StatusDot` voor boolean status indicators
 - [ ] Gebruik `NestoBadge` voor count values, "—" voor 0
 - [ ] Implementeer hover-reveal actions met `group` + `opacity` pattern

@@ -25,6 +25,11 @@ Loop deze 8 vragen door voordat je begint met bouwen:
 - [ ] **7.** Welk feedback patroon? Toast voor expliciete acties, inline error voor validatie, ConfirmDialog voor destructief, EmptyState voor lege data.
 - [ ] **8.** Badges via `NestoBadge` met semantische variant (success/pending/error) — nooit shadcn Badge rechtstreeks?
 
+### Typografie & Contrast
+
+- [ ] **9.** Tabel/lijst headers zonder achtergrondkleur? Labels zweven boven data.
+- [ ] **10.** Tekst hiërarchie correct? Data = `text-foreground font-semibold`, metadata = `text-foreground/70`, labels = `text-muted-foreground` (volle kleur, geen `/60` of `/70` opacity).
+
 ---
 
 ## Sectie 1: Component Catalogus
@@ -150,6 +155,9 @@ Loop deze 8 vragen door voordat je begint met bouwen:
 | shadcn `Badge` rechtstreeks | Mist Nesto varianten | `NestoBadge` met semantische variant |
 | Toast voor form validatie | Verwarrend, inline is beter | `NestoInput error="..."` |
 | `NestoModal` voor delete bevestiging | Te zwaar | `ConfirmDialog` |
+| `bg-muted/40` op tabel headers | Visueel gewicht, niet enterprise | Geen achtergrond, zwevende labels |
+| `text-muted-foreground/70` of `/60` | Te lage opacity, onleesbaar | Volle `text-muted-foreground` of `text-foreground/70` |
+| `font-medium` op data-waarden | Te licht, data moet opvallen | `font-semibold` voor primaire data |
 
 ---
 
@@ -301,3 +309,24 @@ Loop deze 8 vragen door voordat je begint met bouwen:
 - `dot` prop voor status-badges met gekleurde indicator
 - `size="sm"` in compacte tabellen, `size="default"` standaard, `size="lg"` alleen in headers
 - Gebruik `NestoBadge`, nooit shadcn `Badge` rechtstreeks
+
+---
+
+## Sectie 10: Enterprise Typografie & Contrast
+
+> Zie [ENTERPRISE_TYPOGRAPHY.md](./ENTERPRISE_TYPOGRAPHY.md) voor het volledige referentiedocument.
+
+### Kernregels
+
+1. **Zwevende headers** — Tabel kolomkoppen zonder achtergrondkleur. Labels zweven boven data met `text-[11px] font-semibold text-muted-foreground uppercase tracking-wider`.
+
+2. **Tekst contrast hiërarchie** (3 niveaus):
+   - **Primair (data):** `text-foreground font-semibold` — namen, datums, bedragen
+   - **Secundair (metadata):** `text-foreground/70` — scope, beschrijvingen
+   - **Tertiair (labels):** `text-muted-foreground` — kolomkoppen, hulptekst (volle kleur, **nooit** `/60` of `/70`)
+
+3. **Sectie micro-labels** — `text-[11px] font-semibold text-muted-foreground uppercase tracking-wider` voor alle sectiekoppen binnen cards.
+
+4. **Rij separatie** — `divide-y divide-border/50`, geen zware borders of alternerende achtergrondkleuren.
+
+5. **Hover** — `hover:bg-accent/40 transition-colors duration-150`

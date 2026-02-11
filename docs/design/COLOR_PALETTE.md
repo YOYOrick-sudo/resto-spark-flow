@@ -20,6 +20,18 @@
 | **Secondary** | `#73747B` | `220 3% 47%` | `--text-secondary` | Body text, descriptions |
 | **Tertiary** | `#ACAEB3` | `220 4% 68%` | `--text-tertiary` | Placeholders, hints |
 
+### Enterprise Tekst Hiërarchie
+
+De 3-niveau contrast hiërarchie die in alle modules wordt aangehouden. Zie [ENTERPRISE_TYPOGRAPHY.md](./ENTERPRISE_TYPOGRAPHY.md) voor het volledige referentiedocument.
+
+| Niveau | Tailwind | Wanneer |
+|--------|---------|---------|
+| **Primair (data)** | `text-foreground font-semibold` | Data die moet opvallen: namen, datums, bedragen |
+| **Secundair (metadata)** | `text-foreground/70` | Ondersteunende context: scope, beschrijvingen |
+| **Tertiair (labels)** | `text-muted-foreground` | Structurele labels: kolomkoppen, hulptekst |
+
+**Verboden:** `text-muted-foreground/70`, `text-muted-foreground/60`, `font-medium` op data-waarden.
+
 ---
 
 ## **SURFACE COLORS**
