@@ -53,15 +53,13 @@ export function EmailConfigSection() {
       <NestoCard className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Afzender configuratie</h3>
-          {saved && (
-            <span className="flex items-center gap-1 text-xs text-primary">
-              <Check className="h-3 w-3" />
-              Opgeslagen
-            </span>
-          )}
+          <span className={`flex items-center gap-1 text-xs text-primary transition-opacity duration-200 ${saved ? 'opacity-100' : 'opacity-0'}`}>
+            <Check className="h-3 w-3" />
+            Opgeslagen
+          </span>
         </div>
 
-        <div className="space-y-4">
+        <div className="bg-secondary/50 rounded-card p-4 space-y-4">
           <div>
             <Label className="text-sm mb-1.5">Afzendernaam</Label>
             <Input

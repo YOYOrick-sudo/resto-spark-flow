@@ -71,12 +71,10 @@ export function ReminderSettingsSection() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {saved && (
-            <span className="flex items-center gap-1 text-xs text-primary">
-              <Check className="h-3 w-3" />
-              Opgeslagen
-            </span>
-          )}
+          <span className={`flex items-center gap-1 text-xs text-primary transition-opacity duration-200 ${saved ? 'opacity-100' : 'opacity-0'}`}>
+            <Check className="h-3 w-3" />
+            Opgeslagen
+          </span>
           <Switch
             checked={enabled}
             onCheckedChange={(val) => updateField('reminder_enabled', val)}
@@ -87,41 +85,47 @@ export function ReminderSettingsSection() {
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <Label className="text-sm min-w-[200px]">1e herinnering na</Label>
-          <Input
-            type="number"
-            value={localConfig.first_reminder_hours ?? 24}
-            onChange={(e) => updateField('first_reminder_hours', parseInt(e.target.value) || 0)}
-            className="w-20 h-8 text-sm"
-            disabled={!enabled}
-            min={1}
-          />
-          <span className="text-sm text-muted-foreground">uur</span>
+          <div className="flex">
+            <Input
+              type="number"
+              value={localConfig.first_reminder_hours ?? 24}
+              onChange={(e) => updateField('first_reminder_hours', parseInt(e.target.value) || 0)}
+              className="w-20 h-8 text-sm tabular-nums rounded-r-none border-r-0"
+              disabled={!enabled}
+              min={1}
+            />
+            <span className="inline-flex items-center bg-secondary border border-border rounded-r-button px-3 text-xs text-muted-foreground">uur</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           <Label className="text-sm min-w-[200px]">2e herinnering (urgent) na</Label>
-          <Input
-            type="number"
-            value={localConfig.urgent_reminder_hours ?? 48}
-            onChange={(e) => updateField('urgent_reminder_hours', parseInt(e.target.value) || 0)}
-            className="w-20 h-8 text-sm"
-            disabled={!enabled}
-            min={1}
-          />
-          <span className="text-sm text-muted-foreground">uur</span>
+          <div className="flex">
+            <Input
+              type="number"
+              value={localConfig.urgent_reminder_hours ?? 48}
+              onChange={(e) => updateField('urgent_reminder_hours', parseInt(e.target.value) || 0)}
+              className="w-20 h-8 text-sm tabular-nums rounded-r-none border-r-0"
+              disabled={!enabled}
+              min={1}
+            />
+            <span className="inline-flex items-center bg-secondary border border-border rounded-r-button px-3 text-xs text-muted-foreground">uur</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           <Label className="text-sm min-w-[200px]">Auto-markering 'geen reactie' na</Label>
-          <Input
-            type="number"
-            value={localConfig.no_response_days ?? 7}
-            onChange={(e) => updateField('no_response_days', parseInt(e.target.value) || 0)}
-            className="w-20 h-8 text-sm"
-            disabled={!enabled}
-            min={1}
-          />
-          <span className="text-sm text-muted-foreground">dagen</span>
+          <div className="flex">
+            <Input
+              type="number"
+              value={localConfig.no_response_days ?? 7}
+              onChange={(e) => updateField('no_response_days', parseInt(e.target.value) || 0)}
+              className="w-20 h-8 text-sm tabular-nums rounded-r-none border-r-0"
+              disabled={!enabled}
+              min={1}
+            />
+            <span className="inline-flex items-center bg-secondary border border-border rounded-r-button px-3 text-xs text-muted-foreground">dagen</span>
+          </div>
         </div>
       </div>
     </NestoCard>

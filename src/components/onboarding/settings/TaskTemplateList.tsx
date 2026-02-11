@@ -55,9 +55,9 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
   };
 
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-border/50">
       {tasks.map((task, index) => (
-        <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+        <div key={index} className="flex items-start gap-3 py-2.5 px-3 rounded-lg hover:bg-accent/40 transition-colors duration-150">
           <div className="flex-1 space-y-2">
             <Input
               value={task.title}
@@ -95,7 +95,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
           </div>
           <button
             onClick={() => setDeleteIndex(index)}
-            className="mt-1 p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded"
+            className="mt-1 p-1.5 text-muted-foreground hover:text-destructive transition-colors duration-150 rounded focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 outline-none"
           >
             <Trash2 className="h-4 w-4" />
           </button>
