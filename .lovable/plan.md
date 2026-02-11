@@ -1,70 +1,78 @@
 
 
-# Assistent per taak activeerbaar (binnen fase-instellingen)
+# Assistent-toggle verduidelijken in fase-instellingen
 
-De huidige globale Assistent-kaart bovenaan de Fasen-tab wordt verwijderd. In plaats daarvan wordt de assistent-toggle **per taak** getoond, maar alleen bij taken met een automatiseerbaar `task_type`.
+## Probleem
+De huidige UI maakt niet duidelijk wat de Assistent precies doet. De toggle staat er, maar er is geen uitleg. Gebruikers weten niet welke emails er verstuurd worden of wanneer.
 
----
+## Wijzigingen
 
-## Wat verandert
+### 1. TaskTemplateList.tsx -- Duidelijker Assistent-label
 
-### PhaseConfigSection.tsx -- Assistent-kaart verwijderen
+Bij automatiseerbare taken (`send_email`, `send_reminder`) met de toggle AAN:
+- Vervang het generieke "Automatisch" label door een specifiekere beschrijving: "Wordt automatisch verstuurd door de Assistent"
+- Voeg een klein info-icoon toe met een Tooltip die uitlegt wat er precies gebeurt: "De Assistent verstuurt deze email automatisch wanneer een kandidaat in deze fase terechtkomt. Je kunt de inhoud aanpassen via E-mailtemplates."
 
-De volledige NestoCard met Sparkles/Assistent (regels 67-95) wordt verwijderd. De imports voor `Sparkles`, `Mail`, `Bell`, `Switch`, `Label`, `NestoCard` (indien niet elders gebruikt), en de `ASSISTANT_ACTIONS` constante worden opgeschoond. De `useOnboardingSettings`/`useUpdateOnboardingSettings` imports en `assistantEnabled`/`handleToggleAssistant` logica worden verwijderd.
+Bij toggle UIT:
+- Toon de rol-dropdown zoals nu, maar met een subtiele hint: "Handmatig uitvoeren"
 
-### TaskTemplateList.tsx -- Per-taak Assistent toggle
+### 2. PhaseConfigCard.tsx -- Collapsed state hint
 
-Voor taken met automatiseerbaar `task_type` (`send_email`, `send_reminder`):
-- Toon een **Switch toggle** met label "Assistent" en een Mail-icoon
-- De toggle leest/schrijft `is_automated` op de taak-template (default `true` voor automatiseerbare types)
-- Als de toggle uit staat, verschijnt de rol-dropdown (de taak wordt dan handmatig door iemand uitgevoerd)
-- Als de toggle aan staat, toon read-only "Automatisch (Assistent)" label (geen rol-dropdown nodig)
+In de collapsed fase-header: als de fase automatiseerbare taken bevat die AAN staan, toon een compact Mail-icoon + count badge (bijv. "2x") rechts van de fasenaam. Dit geeft in een oogopslag weer hoeveel taken de Assistent afhandelt, zonder de UI druk te maken.
 
-Voor niet-automatiseerbare taken: alleen de rol-dropdown, geen toggle. Zelfde als nu.
-
-Visueel per taak-rij:
-
+Voorbeeld collapsed:
 ```text
-Automatiseerbaar + toggle AAN:
-+----------------------------------------------+
-| Ontvangstbevestiging sturen              [x] |
-| [Assistent toggle: ON]  Automatisch          |
-+----------------------------------------------+
-
-Automatiseerbaar + toggle UIT:
-+----------------------------------------------+
-| Ontvangstbevestiging sturen              [x] |
-| [Assistent toggle: OFF]  [Manager v]         |
-+----------------------------------------------+
-
-Niet-automatiseerbaar:
-+----------------------------------------------+
-| CV beoordelen                            [x] |
-| [Manager v]                                  |
-+----------------------------------------------+
+1. > Sollicitatie ontvangen          [Mail 1x]  Actief [on]
+2. > Aanvullende vragen              [Mail 1x]  Actief [on]
+3. > Sollicitatiegesprek                         Actief [on]
 ```
 
-### addTask() default
+### 3. Edge Function fix -- `is_automated` respecteren
 
-Nieuwe taken (handmatig toegevoegd door gebruiker) krijgen `task_type: 'manual'`, `is_automated: false`. Dus geen Assistent-toggle zichtbaar.
+De `completeAutomatedTasks()` in `onboarding-agent/index.ts` filtert nu alleen op `task_type` maar negeert de `is_automated` vlag. Als een gebruiker de Assistent-toggle uitzet voor een email-taak, wordt die taak toch automatisch afgevinkt. Dit moet gefixed worden:
 
-### Database -- onboarding_settings.assistant_enabled
+Toevoegen van `.eq('is_automated', true)` aan de query in `completeAutomatedTasks()`, zodat alleen taken waar de toggle AAN staat automatisch worden afgehandeld.
 
-De kolom `assistant_enabled` op `onboarding_settings` die net is toegevoegd wordt weer verwijderd -- niet meer nodig omdat de controle nu per taak is.
+## Technische details
 
-### Edge Function -- onboarding-agent
-
-De agent filtert op `is_automated = true` (zoals voorheen) in plaats van de globale `assistant_enabled` check. De `task_type` check blijft als extra filter.
-
----
-
-## Bestanden die wijzigen
+### Bestanden die wijzigen
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `supabase/migrations/...` | Drop `onboarding_settings.assistant_enabled` kolom |
-| `src/components/onboarding/settings/PhaseConfigSection.tsx` | Verwijder Assistent-kaart, opschonen imports |
-| `src/components/onboarding/settings/TaskTemplateList.tsx` | Per-taak Switch toggle voor automatiseerbare types |
-| `src/hooks/useOnboardingSettings.ts` | Verwijder `assistant_enabled` referenties indien aanwezig |
-| `supabase/functions/onboarding-agent/index.ts` | Verwijder globale `assistant_enabled` check, filter op `is_automated AND task_type` |
+| `src/components/onboarding/settings/TaskTemplateList.tsx` | Duidelijker label + info-tooltip bij Assistent-toggle |
+| `src/components/onboarding/settings/PhaseConfigCard.tsx` | Mail-count badge in collapsed header |
+| `supabase/functions/onboarding-agent/index.ts` | `.eq('is_automated', true)` toevoegen aan query |
+
+### TaskTemplateList.tsx aanpassingen
+
+Row 2 bij automatiseerbare taken met toggle AAN:
+- Sparkles icoon + "Assistent" label + Switch (bestaand)
+- Mail icoon + "Wordt automatisch verstuurd" tekst
+- Info (HelpCircle) icoon met Tooltip: "De Assistent verstuurt deze email automatisch wanneer een kandidaat deze fase bereikt. Pas de inhoud aan via het tabblad E-mailtemplates."
+
+Row 2 bij toggle UIT:
+- Sparkles icoon + "Assistent" label + Switch (UIT)
+- Rol-dropdown (bestaand)
+
+### PhaseConfigCard.tsx aanpassingen
+
+In de collapsed header-div, na de fasenaam en voor de Actief-toggle:
+- Tel het aantal taken met `isAutomatable(task) && task.is_automated !== false`
+- Als count > 0: toon `<Mail className="h-3.5 w-3.5 text-primary" />` + `<span className="text-xs text-muted-foreground">{count}x</span>`
+
+### Edge Function fix
+
+```typescript
+// In completeAutomatedTasks(), regel 292-298 wijzigen:
+const { data: pendingTasks } = await supabaseAdmin
+  .from('ob_tasks')
+  .select('id, title')
+  .eq('candidate_id', candidateId)
+  .eq('phase_id', candidate.current_phase_id)
+  .in('task_type', ['send_email', 'send_reminder'])
+  .eq('is_automated', true)  // NIEUW: respecteer de toggle
+  .eq('status', 'pending');
+```
+
+### Geen nieuwe dependencies of database-migraties nodig
 
