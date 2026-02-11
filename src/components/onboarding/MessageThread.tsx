@@ -43,7 +43,7 @@ export function MessageThread({ messages }: MessageThreadProps) {
 function MessageBubble({ message }: { message: Message }) {
   const [expanded, setExpanded] = useState(false);
   const isAgent = message.triggered_by === 'agent';
-  const isInbound = message.direction === 'inbound';
+  const isOutbound = message.direction === 'outbound';
 
   // Strip HTML for preview
   const plainText = message.body_text || message.body_html.replace(/<[^>]+>/g, '');
@@ -52,19 +52,17 @@ function MessageBubble({ message }: { message: Message }) {
 
   return (
     <div
-      className={`rounded-lg border p-4 ${
-        isInbound
-          ? 'border-border bg-secondary/50'
-          : 'border-primary/20 bg-primary/[0.03]'
+      className={`bg-card rounded-lg p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none dark:border dark:border-border ${
+        isOutbound ? 'border-l-2 border-l-primary' : ''
       }`}
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         {isAgent && <AssistentIcon size={14} className="text-primary shrink-0" />}
-        <span className="text-sm font-medium text-foreground">
+        <span className="text-sm font-semibold text-foreground">
           {message.sender_name}
         </span>
-        <span className="text-xs text-muted-foreground ml-auto">
+        <span className="text-[11px] text-muted-foreground ml-auto">
           {formatDateTimeCompact(message.created_at)}
         </span>
       </div>
@@ -80,7 +78,7 @@ function MessageBubble({ message }: { message: Message }) {
       {isLong && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="mt-1 flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary-hover transition-colors duration-150"
         >
           {expanded ? (
             <>Minder tonen <ChevronUp className="h-3 w-3" /></>

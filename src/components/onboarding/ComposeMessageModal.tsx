@@ -66,25 +66,21 @@ export function ComposeMessageModal({
             disabled={!canSend || isSending}
             isLoading={isSending}
           >
-            Versturen
+            {isSending ? 'Versturen...' : 'Versturen'}
           </NestoButton>
         </div>
       }
     >
       <div className="space-y-4">
+        <NestoInput
+          label="Onderwerp"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder="Bijv. Uitnodiging kennismakingsgesprek"
+          disabled={isSending}
+        />
         <div>
-          <label className="text-sm font-medium text-foreground mb-1.5 block">
-            Onderwerp
-          </label>
-          <NestoInput
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Bijv. Uitnodiging kennismakingsgesprek"
-            disabled={isSending}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-foreground mb-1.5 block">
+          <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">
             Bericht
           </label>
           <Textarea
