@@ -7,9 +7,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Mail, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Mail, Sparkles, HelpCircle } from 'lucide-react';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { NestoInput } from '@/components/polar/NestoInput';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
 
 interface TaskTemplate {
@@ -100,7 +101,17 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                 {task.is_automated !== false ? (
                   <div className="flex items-center gap-1.5">
                     <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                    <span className="text-sm text-primary font-medium">Automatisch</span>
+                    <span className="text-xs text-primary font-medium">Wordt automatisch verstuurd</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help flex-shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[260px] text-xs">
+                          De Assistent verstuurt deze email automatisch wanneer een kandidaat deze fase bereikt. Pas de inhoud aan via het tabblad E-mailtemplates.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 ) : (
                   <Select
