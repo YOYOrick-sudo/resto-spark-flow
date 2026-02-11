@@ -627,7 +627,6 @@ export type Database = {
       }
       onboarding_settings: {
         Row: {
-          assistant_enabled: boolean
           created_at: string
           email_config: Json
           email_templates: Json
@@ -637,7 +636,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          assistant_enabled?: boolean
           created_at?: string
           email_config?: Json
           email_templates?: Json
@@ -647,7 +645,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          assistant_enabled?: boolean
           created_at?: string
           email_config?: Json
           email_templates?: Json

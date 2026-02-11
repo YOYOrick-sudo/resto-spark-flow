@@ -6,7 +6,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Mail } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, Mail, Sparkles } from 'lucide-react';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { NestoInput } from '@/components/polar/NestoInput';
 import { useState } from 'react';
@@ -80,13 +81,45 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
             </button>
           </div>
 
-          {/* Row 2: Automatable = read-only label, otherwise = role dropdown */}
-          <div className="flex items-center gap-4 mt-2">
+          {/* Row 2: Assistent toggle + role or auto label */}
+          <div className="flex items-center gap-3 mt-2">
             {isAutomatable(task) ? (
-              <div className="flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                <span className="text-sm text-primary font-medium">Automatisch (Assistent)</span>
-              </div>
+              <>
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span className="text-xs text-muted-foreground">Assistent</span>
+                  <Switch
+                    checked={task.is_automated !== false}
+                    onCheckedChange={(checked) => {
+                      updateTask(index, 'is_automated', checked);
+                      onExplicitAction?.();
+                    }}
+                    className="ml-0.5"
+                  />
+                </div>
+                {task.is_automated !== false ? (
+                  <div className="flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                    <span className="text-sm text-primary font-medium">Automatisch</span>
+                  </div>
+                ) : (
+                  <Select
+                    value={task.assigned_role || ''}
+                    onValueChange={(val) => updateTask(index, 'assigned_role', val)}
+                  >
+                    <SelectTrigger className="h-8 w-[140px] text-sm">
+                      <SelectValue placeholder="Selecteer rol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </>
             ) : (
               <Select
                 value={task.assigned_role || ''}

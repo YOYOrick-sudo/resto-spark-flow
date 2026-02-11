@@ -40,15 +40,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check global assistant toggle
-    const assistantEnabled = await isAssistantEnabled(event.location_id);
-    if (!assistantEnabled) {
-      console.log(`[AGENT] Assistant disabled for location ${event.location_id}, skipping`);
-      return new Response(JSON.stringify({ success: true, skipped: true, reason: 'assistant_disabled' }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // No global assistant toggle — automation is controlled per-task via is_automated flag
 
     switch (event.type) {
       case 'candidate_created':
@@ -83,18 +75,6 @@ Deno.serve(async (req) => {
   }
 });
 
-// ─── ASSISTANT TOGGLE CHECK ─────────────────────────────
-
-async function isAssistantEnabled(locationId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from('onboarding_settings')
-    .select('assistant_enabled')
-    .eq('location_id', locationId)
-    .maybeSingle();
-
-  // Default to true if no settings row exists
-  return (data as any)?.assistant_enabled ?? true;
-}
 
 // ─── HANDLERS ───────────────────────────────────────────
 
