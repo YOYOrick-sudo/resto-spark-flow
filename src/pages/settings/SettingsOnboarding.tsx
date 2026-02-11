@@ -8,7 +8,6 @@ import {
   TeamOwnersSection,
   EmailTemplatesSection,
   ReminderSettingsSection,
-  EmailConfigSection,
 } from '@/components/onboarding/settings';
 
 const TABS = [
@@ -16,7 +15,6 @@ const TABS = [
   { id: 'team', label: 'Team' },
   { id: 'templates', label: 'E-mailtemplates' },
   { id: 'reminders', label: 'Reminders' },
-  { id: 'email-config', label: 'Email configuratie' },
 ];
 
 export default function SettingsOnboarding() {
@@ -59,10 +57,6 @@ export default function SettingsOnboarding() {
 
       <NestoTabContent value="reminders" activeValue={activeTab}>
         <ReminderSettingsSection />
-      </NestoTabContent>
-
-      <NestoTabContent value="email-config" activeValue={activeTab}>
-        <EmailConfigSection />
       </NestoTabContent>
     </SettingsDetailLayout>
   );

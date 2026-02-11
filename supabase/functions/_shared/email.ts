@@ -10,23 +10,22 @@ interface SendEmailParams {
 }
 
 /**
- * Fetches location-specific email config (sender_name, reply_to) from onboarding_settings.
+ * Fetches location-specific email config (sender_name, reply_to) from communication_settings.
  */
 async function getEmailConfig(locationId: string): Promise<{ sender_name?: string; reply_to?: string }> {
   const { data, error } = await supabaseAdmin
-    .from('onboarding_settings')
-    .select('email_config')
+    .from('communication_settings')
+    .select('sender_name, reply_to')
     .eq('location_id', locationId)
     .maybeSingle();
 
-  if (error || !data?.email_config) {
+  if (error || !data) {
     return {};
   }
 
-  const config = data.email_config as Record<string, string>;
   return {
-    sender_name: config.sender_name || undefined,
-    reply_to: config.reply_to || undefined,
+    sender_name: data.sender_name || undefined,
+    reply_to: data.reply_to || undefined,
   };
 }
 
