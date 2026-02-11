@@ -1,6 +1,4 @@
 import { NestoButton } from '@/components/polar/NestoButton';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -8,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Mail } from 'lucide-react';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { NestoInput } from '@/components/polar/NestoInput';
 import { useState } from 'react';
@@ -18,6 +16,7 @@ interface TaskTemplate {
   description?: string;
   assigned_role?: string | null;
   is_automated?: boolean;
+  task_type?: string;
 }
 
 interface TaskTemplateListProps {
@@ -25,6 +24,8 @@ interface TaskTemplateListProps {
   onChange: (tasks: TaskTemplate[]) => void;
   onExplicitAction?: () => void;
 }
+
+const AUTOMATABLE_TYPES = ['send_email', 'send_reminder'];
 
 const ROLES = [
   { value: 'owner', label: 'Eigenaar' },
@@ -44,7 +45,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
   };
 
   const addTask = () => {
-    onChange([...tasks, { title: '', assigned_role: 'manager', is_automated: false }]);
+    onChange([...tasks, { title: '', assigned_role: 'manager', is_automated: false, task_type: 'manual' }]);
     onExplicitAction?.();
   };
 
@@ -53,6 +54,8 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
     setDeleteIndex(null);
     onExplicitAction?.();
   };
+
+  const isAutomatable = (task: TaskTemplate) => AUTOMATABLE_TYPES.includes(task.task_type || '');
 
   return (
     <div className="space-y-2">
@@ -77,12 +80,12 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
             </button>
           </div>
 
-          {/* Row 2: Role dropdown OR Assistent label + toggle */}
+          {/* Row 2: Automatable = read-only label, otherwise = role dropdown */}
           <div className="flex items-center gap-4 mt-2">
-            {task.is_automated ? (
+            {isAutomatable(task) ? (
               <div className="flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                <span className="text-sm text-primary font-medium">Assistent</span>
+                <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <span className="text-sm text-primary font-medium">Automatisch (Assistent)</span>
               </div>
             ) : (
               <Select
@@ -101,16 +104,6 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                 </SelectContent>
               </Select>
             )}
-            <div className="flex items-center gap-2 ml-auto">
-              <Label htmlFor={`auto-${index}`} className="text-xs text-muted-foreground cursor-pointer">
-                Assistent
-              </Label>
-              <Switch
-                id={`auto-${index}`}
-                checked={task.is_automated ?? false}
-                onCheckedChange={(val) => updateTask(index, 'is_automated', val)}
-              />
-            </div>
           </div>
         </div>
       ))}

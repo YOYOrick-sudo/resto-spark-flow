@@ -40,6 +40,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check global assistant toggle
+    const assistantEnabled = await isAssistantEnabled(event.location_id);
+    if (!assistantEnabled) {
+      console.log(`[AGENT] Assistant disabled for location ${event.location_id}, skipping`);
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: 'assistant_disabled' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     switch (event.type) {
       case 'candidate_created':
         await handleCandidateCreated(event);
@@ -72,6 +82,19 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// ─── ASSISTANT TOGGLE CHECK ─────────────────────────────
+
+async function isAssistantEnabled(locationId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('onboarding_settings')
+    .select('assistant_enabled')
+    .eq('location_id', locationId)
+    .maybeSingle();
+
+  // Default to true if no settings row exists
+  return (data as any)?.assistant_enabled ?? true;
+}
 
 // ─── HANDLERS ───────────────────────────────────────────
 
@@ -134,7 +157,6 @@ async function handlePhaseChanged(event: AgentEvent) {
   try {
     await completeAutomatedTasks(event.candidate_id, event.location_id);
 
-    // Send phase-specific email if template exists
     if (event.new_phase_id) {
       const { data: phase } = await supabaseAdmin
         .from('onboarding_phases')
@@ -286,16 +308,26 @@ async function completeAutomatedTasks(candidateId: string, locationId: string) {
 
   if (!candidate?.current_phase_id) return;
 
+  // Filter by task_type instead of is_automated
+  const { data: pendingTasks } = await supabaseAdmin
+    .from('ob_tasks')
+    .select('id, title')
+    .eq('candidate_id', candidateId)
+    .eq('phase_id', candidate.current_phase_id)
+    .in('task_type', ['send_email', 'send_reminder'])
+    .eq('status', 'pending');
+
+  if (!pendingTasks || pendingTasks.length === 0) return;
+
+  const taskIds = pendingTasks.map(t => t.id);
+
   const { data: updatedTasks, error } = await supabaseAdmin
     .from('ob_tasks')
     .update({
       status: 'completed',
       completed_at: new Date().toISOString(),
     })
-    .eq('candidate_id', candidateId)
-    .eq('phase_id', candidate.current_phase_id)
-    .eq('is_automated', true)
-    .eq('status', 'pending')
+    .in('id', taskIds)
     .select();
 
   if (error) {
