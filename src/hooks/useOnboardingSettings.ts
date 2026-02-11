@@ -39,7 +39,6 @@ export function useUpdateOnboardingSettings() {
       email_templates?: Json;
       reminder_config?: Json;
       email_config?: Json;
-      assistant_enabled?: boolean;
     }) => {
       if (!locationId) throw new Error('No location selected');
 

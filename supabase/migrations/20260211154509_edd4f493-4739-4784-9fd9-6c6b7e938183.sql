@@ -1,0 +1,1 @@
+ALTER TABLE public.onboarding_settings DROP COLUMN IF EXISTS assistant_enabled;
