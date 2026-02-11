@@ -18,6 +18,7 @@ interface TaskTemplate {
   assigned_role?: string | null;
   is_automated?: boolean;
   task_type?: string;
+  is_system?: boolean;
 }
 
 interface TaskTemplateListProps {
@@ -46,7 +47,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
   };
 
   const addTask = () => {
-    onChange([...tasks, { title: '', assigned_role: 'manager', is_automated: false, task_type: 'manual' }]);
+    onChange([...tasks, { title: '', assigned_role: 'manager', is_automated: false, task_type: 'manual', is_system: false }]);
     onExplicitAction?.();
   };
 
@@ -56,7 +57,12 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
     onExplicitAction?.();
   };
 
+  const isSystemTask = (task: TaskTemplate) => {
+    return task.is_system === true || ['send_email', 'send_reminder'].includes(task.task_type || '');
+  };
+
   const isAutomatable = (task: TaskTemplate) => {
+    if (isSystemTask(task)) return true;
     if (AUTOMATABLE_TYPES.includes(task.task_type || '')) return true;
     if (task.is_automated === true && !task.task_type) return true;
     const emailKeywords = /bevestiging|email|sturen|herinnering|reminder|uitnodiging|welkom/i;
@@ -74,18 +80,26 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
 
       {/* Data rows */}
       <div className="divide-y divide-border/50">
-        {tasks.map((task, index) => (
+      {tasks.map((task, index) => {
+          const isSystem = isSystemTask(task);
+          return (
           <div
             key={index}
             className="grid grid-cols-[1fr_240px_32px] items-center gap-3 py-2 px-2.5 hover:bg-accent/40 transition-colors duration-150 group"
           >
-            {/* Col 1: Task name — ghost input */}
-            <input
-              value={task.title}
-              onChange={(e) => updateTask(index, 'title', e.target.value)}
-              placeholder="Taaknaam..."
-              className="h-8 text-sm font-semibold text-foreground bg-card border-[1.5px] border-border rounded-button px-2 focus:!border-primary focus:outline-none focus:ring-0 transition-colors placeholder:text-muted-foreground"
-            />
+            {/* Col 1: Task name — ghost input for custom, plain text for system */}
+            {isSystem ? (
+              <div className="h-8 flex items-center px-2">
+                <span className="text-sm font-semibold text-foreground">{task.title}</span>
+              </div>
+            ) : (
+              <input
+                value={task.title}
+                onChange={(e) => updateTask(index, 'title', e.target.value)}
+                placeholder="Taaknaam..."
+                className="h-8 text-sm font-semibold text-foreground bg-card border-[1.5px] border-border rounded-button px-2 focus:!border-primary focus:outline-none focus:ring-0 transition-colors placeholder:text-muted-foreground"
+              />
+            )}
 
             {/* Col 2: Execution — fixed width for alignment */}
             <div className="flex items-center gap-2.5 w-[240px] justify-end">
@@ -131,15 +145,20 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
               )}
             </div>
 
-            {/* Col 3: Delete */}
-            <button
-              onClick={() => setDeleteIndex(index)}
-              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors duration-150 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-primary/30 outline-none"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            {/* Col 3: Delete — hidden for system tasks */}
+            {isSystem ? (
+              <div className="w-[32px]" />
+            ) : (
+              <button
+                onClick={() => setDeleteIndex(index)}
+                className="p-1.5 text-muted-foreground hover:text-destructive transition-colors duration-150 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-primary/30 outline-none"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-2 px-2.5">
