@@ -1838,6 +1838,30 @@ export type Database = {
         Args: { _location_id: string; _ticket_ids: string[] }
         Returns: Json
       }
+      reset_onboarding_phases: {
+        Args: { p_location_id: string }
+        Returns: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_custom: boolean
+          location_id: string
+          name: string
+          phase_owner_email: string | null
+          phase_owner_id: string | null
+          phase_owner_name: string | null
+          sort_order: number
+          task_templates: Json
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "onboarding_phases"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       restore_table: {
         Args: { _new_display_label?: string; _table_id: string }
         Returns: Json
