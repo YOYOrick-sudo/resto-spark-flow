@@ -26,10 +26,13 @@ export function AddPhaseModal({ onAdd, isLoading }: AddPhaseModalProps) {
 
   return (
     <>
-      <NestoButton variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4 mr-1" />
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-card border-2 border-dashed border-border/60 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors duration-150"
+      >
+        <Plus className="h-4 w-4" />
         Fase toevoegen
-      </NestoButton>
+      </button>
 
       <NestoModal
         open={open}

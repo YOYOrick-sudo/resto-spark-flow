@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAllOnboardingPhases } from '@/hooks/useAllOnboardingPhases';
-import { useLocationTeamMembers, TeamMember } from '@/hooks/useLocationTeamMembers';
+import { useLocationTeamMembers } from '@/hooks/useLocationTeamMembers';
 import { useUpdatePhaseOwner } from '@/hooks/useUpdatePhaseOwner';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
@@ -20,10 +20,10 @@ import {
 import { Sparkles, Pencil } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
+  owner: 'Eigenaar',
   manager: 'Manager',
   service: 'Service',
-  kitchen: 'Kitchen',
+  kitchen: 'Keuken',
 };
 
 export function TeamOwnersSection() {
@@ -102,19 +102,27 @@ export function TeamOwnersSection() {
     setEditPhaseId(phaseId);
   };
 
+  const phasesWithoutOwner = activePhases.filter((p) => !(p as any).phase_owner_name);
+
   return (
     <div className="space-y-4">
+      {phasesWithoutOwner.length > 0 && phasesWithoutOwner.length < activePhases.length && (
+        <InfoAlert variant="info" title="Verantwoordelijken ontbreken">
+          {phasesWithoutOwner.length} van {activePhases.length} fasen hebben nog geen verantwoordelijke. Wijs per fase een verantwoordelijke aan om gerichte herinneringen te ontvangen.
+        </InfoAlert>
+      )}
+
       <NestoCard className="p-0 overflow-hidden">
-        {/* Header */}
-        <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-4 py-2.5 bg-secondary/50 border-b border-border/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          <span className="w-6">#</span>
-          <span>Fase</span>
-          <span>Verantwoordelijke</span>
-          <span className="w-20 text-center">Assistent</span>
+        {/* Header — floating enterprise style */}
+        <div className="grid grid-cols-[auto_1fr_1fr_80px] gap-4 px-4 py-2.5 border-b border-border/50">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-6">#</span>
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Fase</span>
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Verantwoordelijke</span>
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Assistent</span>
         </div>
 
         {/* Rows */}
-        <div className="divide-y divide-border/40">
+        <div className="divide-y divide-border/50">
           {activePhases.map((phase, index) => {
             const p = phase as any;
             const ownerName = p.phase_owner_name;
@@ -124,23 +132,23 @@ export function TeamOwnersSection() {
             return (
               <div
                 key={phase.id}
-                className="grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-4 py-3 items-center hover:bg-accent/40 transition-colors duration-150 cursor-pointer group"
+                className="grid grid-cols-[auto_1fr_1fr_80px] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors duration-150 cursor-pointer group"
                 onClick={() => openEdit(phase.id)}
               >
                 <span className="text-sm text-muted-foreground tabular-nums w-6">{index + 1}</span>
-                <span className="text-sm font-medium truncate">{phase.name}</span>
+                <span className="text-sm font-semibold truncate">{phase.name}</span>
                 <div className="flex items-center gap-2 min-w-0">
                   {ownerName ? (
                     <div className="min-w-0">
-                      <p className="text-sm truncate">{ownerName}</p>
+                      <p className="text-sm font-semibold truncate">{ownerName}</p>
                       {ownerEmail && <p className="text-xs text-muted-foreground truncate">{ownerEmail}</p>}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground italic">Niet ingesteld</span>
+                    <span className="text-sm text-muted-foreground">Niet ingesteld</span>
                   )}
                   <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                 </div>
-                <div className="w-20 flex justify-center">
+                <div className="flex justify-center">
                   {assistantEnabled ? (
                     <NestoBadge variant="primary" size="sm" dot>Aan</NestoBadge>
                   ) : (

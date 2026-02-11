@@ -55,7 +55,10 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
   }, 800);
 
   return (
-    <NestoCard className="p-4">
+    <NestoCard className={cn(
+      "p-4",
+      (assistantEnabled || hasAutomatedTasks) && "border-l-2 border-l-primary"
+    )}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -90,7 +93,26 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3 pt-1 flex-shrink-0">
+        <div className="flex items-center gap-2 pt-1 flex-shrink-0">
+          {/* Delete button in header — only for custom phases */}
+          {expanded && onDelete && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                    disabled={!canDelete}
+                    className="p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 rounded focus-visible:ring-1 focus-visible:ring-primary/30 outline-none"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{canDelete ? "Fase verwijderen" : "Er zijn nog actieve kandidaten in deze fase"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <Label htmlFor={`phase-active-${phase.id}`} className="text-xs text-muted-foreground">
             Actief
           </Label>
@@ -103,80 +125,58 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
       </div>
 
       {expanded && (
-        <div className="mt-4 space-y-4">
-          {/* Editable name */}
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1">Fase naam</Label>
-            <Input
-              defaultValue={phase.name}
-              onChange={(e) => debouncedNameUpdate(e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1">Beschrijving</Label>
-            <Textarea
-              defaultValue={phase.description || ''}
-              onChange={(e) => debouncedDescriptionUpdate(e.target.value)}
-              placeholder="Beschrijving van deze fase..."
-              className="min-h-[60px] text-sm resize-none"
-              rows={2}
-            />
-          </div>
-
-          {/* Assistant toggle */}
-          <div className="flex items-center justify-between py-2 px-3 bg-secondary/50 rounded-card border border-border/40">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <div>
-                <p className="text-sm font-medium">Assistent inschakelen</p>
-                <p className="text-xs text-muted-foreground">Automatische taken in deze fase worden door de Assistent opgepakt</p>
-              </div>
+        <div className="mt-4 space-y-0">
+          {/* Group 1: Fase-instellingen */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1">Fase naam</Label>
+              <Input
+                defaultValue={phase.name}
+                onChange={(e) => debouncedNameUpdate(e.target.value)}
+                className="h-8 text-sm"
+              />
             </div>
-            <Switch
-              checked={assistantEnabled}
-              onCheckedChange={(val) => onUpdate({ assistant_enabled: val })}
-            />
+
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1">Beschrijving</Label>
+              <Textarea
+                defaultValue={phase.description || ''}
+                onChange={(e) => debouncedDescriptionUpdate(e.target.value)}
+                placeholder="Beschrijving van deze fase..."
+                className="min-h-[60px] text-sm resize-none"
+                rows={2}
+              />
+            </div>
+
+            {/* Assistant toggle — styled as inline setting card */}
+            <div className="flex items-center justify-between py-3 px-4 bg-secondary/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Assistent inschakelen</p>
+                  <p className="text-xs text-muted-foreground">Automatische taken worden door de Assistent opgepakt</p>
+                </div>
+              </div>
+              <Switch
+                checked={assistantEnabled}
+                onCheckedChange={(val) => onUpdate({ assistant_enabled: val })}
+              />
+            </div>
           </div>
 
-          {/* Tasks */}
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-2 tabular-nums">{tasks.length} taken</p>
+          {/* Divider between groups */}
+          <div className="border-t border-border/40 pt-4 mt-4">
+            {/* Group 2: Taken */}
+            <div className="flex items-center gap-2 mb-3">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Taken</p>
+              <NestoBadge variant="default" size="sm">{tasks.length}</NestoBadge>
+            </div>
             <TaskTemplateList
               tasks={tasks}
               onChange={(newTasks) => onUpdate({ task_templates: newTasks as unknown as Json })}
               onExplicitAction={onExplicitAction}
             />
           </div>
-
-          {/* Delete button */}
-          {onDelete && (
-            <div className="pt-2 border-t border-border/50">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <button
-                        onClick={() => setShowDeleteConfirm(true)}
-                        disabled={!canDelete}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 rounded-button outline-none p-1"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Fase verwijderen
-                      </button>
-                    </span>
-                  </TooltipTrigger>
-                  {!canDelete && (
-                    <TooltipContent side="top">
-                      <p>Er zijn nog actieve kandidaten in deze fase</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          )}
         </div>
       )}
 

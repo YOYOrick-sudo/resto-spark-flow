@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
-import { Code, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
+import { Code, ChevronDown, ChevronRight, Sparkles, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface EmailTemplate {
   subject: string;
@@ -104,7 +105,7 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
 
   return (
     <NestoCard className="p-0 overflow-hidden">
-      {/* Clickable header – always visible */}
+      {/* Clickable header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-start justify-between gap-3 p-4 text-left hover:bg-accent/40 transition-colors duration-150 focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 rounded-card outline-none"
@@ -115,16 +116,19 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
             : <ChevronRight className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
           }
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold truncate">{TEMPLATE_LABELS[templateKey] || templateKey}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className={cn(
+                "text-sm font-semibold truncate",
+                !isConfigured && "text-muted-foreground"
+              )}>
+                {TEMPLATE_LABELS[templateKey] || templateKey}
+              </h3>
+              {isConfigured && (
+                <Check className="h-4 w-4 text-success flex-shrink-0" />
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-xs text-muted-foreground">{TEMPLATE_DESCRIPTIONS[templateKey] || templateKey}</p>
-              <NestoBadge
-                variant={isConfigured ? 'primary' : 'warning'}
-                size="sm"
-                dot
-              >
-                {isConfigured ? 'Geconfigureerd' : 'Niet ingesteld'}
-              </NestoBadge>
               {ASSISTANT_TEMPLATES.has(templateKey) && (
                 <NestoBadge variant="primary" size="sm">
                   <Sparkles className="h-3 w-3 mr-0.5" />
@@ -134,7 +138,7 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
             </div>
           </div>
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground bg-secondary border border-border/40 px-2 py-0.5 rounded-control flex-shrink-0 mt-0.5">
+        <span className="text-xs text-muted-foreground font-mono bg-secondary/50 px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
           {templateKey}
         </span>
       </button>
@@ -160,27 +164,30 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
                 value={localBody}
                 onChange={(e) => handleBodyChange(e.target.value)}
                 placeholder="Email body..."
-                className="text-sm min-h-[120px] resize-y"
-                rows={6}
+                className="text-sm min-h-[160px] resize-y"
+                rows={8}
               />
             </div>
           </div>
 
           {/* Variable chips */}
-          <div className="flex flex-wrap gap-1.5">
-            <span className="text-xs text-muted-foreground mr-1 self-center inline-flex items-center gap-1">
-              <Code className="h-3 w-3" />
-              Variabelen:
-            </span>
-            {VARIABLES.map((v) => (
-              <button
-                key={v.key}
-                onClick={() => insertVariable(v.key)}
-                className="text-xs px-2 py-1 rounded-control bg-secondary border border-border/40 text-foreground hover:border-primary/50 hover:bg-primary/5 transition-colors duration-150 font-mono focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 outline-none"
-              >
-                {v.key}
-              </button>
-            ))}
+          <div>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="text-xs text-muted-foreground mr-1 self-center inline-flex items-center gap-1">
+                <Code className="h-3 w-3" />
+                Variabelen:
+              </span>
+              {VARIABLES.map((v) => (
+                <button
+                  key={v.key}
+                  onClick={() => insertVariable(v.key)}
+                  className="text-xs px-2 py-1 rounded-control bg-secondary border border-border/40 text-foreground hover:border-primary/50 hover:bg-primary/5 transition-colors duration-150 font-mono focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 outline-none"
+                >
+                  {v.key}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">Klik op een variabele om deze in te voegen op de cursorpositie</p>
           </div>
 
           {/* Preview toggle */}
