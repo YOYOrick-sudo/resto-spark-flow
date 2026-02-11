@@ -1,44 +1,40 @@
 
+# Enterprise gevoel doorzetten naar hele Shifts-pagina
 
-# Shifts tabel header — Notion/Linear-stijl
+## Wat is er nu
 
-## Probleem
+De **Shift overzicht** tabel heeft nu enterprise styling (clean headers, goede contrasten, rij-dividers). Maar twee andere secties op dezelfde pagina vallen uit de toon:
 
-De tabelkop heeft nu `bg-muted/40 rounded-lg` — een gekleurde balk achter de kolomlabels. Enterprise apps zoals Notion, Linear en Stripe gebruiken dit niet. Zij houden headers minimaal: alleen tekst + een subtiele bottom-border.
+1. **Uitzonderingen sectie** — de exception list items en header labels gebruiken nog lichtere contrasten
+2. **Live Preview panel** — headers gebruiken `text-muted-foreground/70` (te vaag), sub-labels ook
 
-## Wijziging
+## Minimale aanpassingen per bestand
 
-**Bestand: `src/components/settings/shifts/ShiftsTable.tsx`**
+### 1. `ShiftExceptionsSection.tsx`
+- Lijst header "Lijst": `text-xs font-medium text-muted-foreground` wordt `text-[11px] font-semibold text-muted-foreground uppercase tracking-wider` — matcht nu de Shift-tabel kolomkoppen
+- Items count rechts: consistent houden als `text-xs text-muted-foreground`
 
-Huidige header (regel 133):
-```
-bg-muted/40 rounded-lg
-```
+### 2. `ExceptionListItem.tsx`
+- Datum tekst: `text-sm font-medium` wordt `text-sm font-semibold text-foreground` — zelfde als shift tijden
+- Scope label en tijden: `text-muted-foreground` wordt `text-foreground/70` — iets sterker, consistent met interval kolom
+- Label tekst: al `font-medium`, wordt `font-semibold` voor consistentie
 
-Wordt:
-```
-(geen achtergrond, geen rounded)
-```
+### 3. `ShiftsLivePreviewPanel.tsx`
+- "Live Preview" header: `text-muted-foreground/70` wordt `text-muted-foreground` (volle kleur, geen 70% opacity) — op alle 3 plekken (loading, empty, main)
+- "Beschikbare tijden" sub-label: `text-muted-foreground/70` wordt `text-muted-foreground`
+- Footer info tekst: `text-muted-foreground/60` wordt `text-muted-foreground` — subtiel maar leesbaar
 
-Daarnaast: de aparte `<div className="h-px bg-border" />` separator op regel 144 kan weg — de `divide-y` op de rij-container zorgt al voor scheiding, en de header zelf heeft geen extra lijn nodig als hij geen achtergrond meer heeft. De scheiding komt automatisch door de witruimte.
+### 4. `ExceptionCalendar.tsx`
+- Maand label: `text-sm font-medium` wordt `text-sm font-semibold` — iets sterker, consistent met card headers
+- Weekdag headers: `text-muted-foreground font-medium` wordt `text-muted-foreground font-semibold` — matcht tabel kolomkoppen
 
-### Concreet
+## Samenvatting
 
-| Element | Huidig | Nieuw |
-|---|---|---|
-| Header achtergrond | `bg-muted/40 rounded-lg` | Geen |
-| Header padding | `px-3 py-2` | `px-2 pb-2` (alleen onderaan ruimte) |
-| Separator div | `h-px bg-border` apart element | Verwijderen |
-
-De tekststyling (`text-[11px] text-muted-foreground font-semibold uppercase tracking-wider`) blijft exact hetzelfde — die is al goed.
-
-## Resultaat
-
-Schone, "zwevende" kolomlabels boven de data — precies zoals Notion en Linear het doen. De rij-dividers (`divide-y divide-border/50`) zorgen voor structuur, de header hoeft geen eigen achtergrond te hebben.
-
-## Bestand
+Alle wijzigingen zijn puur contrast/font-weight aanpassingen die het Notion/Linear enterprise gevoel van de shift-tabel doortrekken naar de rest van de pagina. Geen layout of functionele wijzigingen.
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/settings/shifts/ShiftsTable.tsx` | Achtergrond en rounded verwijderen van header, separator div verwijderen |
-
+| `src/components/settings/shifts/exceptions/ShiftExceptionsSection.tsx` | Lijst header styling naar uppercase tracking |
+| `src/components/settings/shifts/exceptions/ExceptionListItem.tsx` | Tekst contrast omhoog |
+| `src/components/settings/shifts/ShiftsLivePreviewPanel.tsx` | Headers van /70 naar volle kleur |
+| `src/components/settings/shifts/exceptions/ExceptionCalendar.tsx` | Font-weights omhoog |
