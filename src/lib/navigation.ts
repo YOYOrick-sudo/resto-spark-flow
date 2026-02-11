@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
 import {
   Home,
-  Bot,
   Calendar,
   ChefHat,
   UtensilsCrossed,
@@ -11,6 +10,7 @@ import {
   Settings,
   UserPlus,
 } from 'lucide-react';
+import { AssistentIcon } from '@/components/icons/AssistentIcon';
 
 // Route mapping: sidebar ID → route
 export const ROUTE_MAP: Record<string, string> = {
@@ -45,7 +45,7 @@ export interface SubMenuItem {
 export interface MenuItem {
   id: string;
   label: string;
-  icon: typeof Home;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
   path?: string;
   disabled?: boolean;
   expandable?: boolean;
@@ -63,7 +63,7 @@ export const menuItems: MenuItem[] = [
   {
     id: 'assistent',
     label: 'Assistent',
-    icon: Bot,
+    icon: AssistentIcon,
     path: '/assistent',
   },
   {

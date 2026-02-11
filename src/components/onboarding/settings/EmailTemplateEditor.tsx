@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
-import { Code, ChevronDown, ChevronRight, Sparkles, Check } from 'lucide-react';
+import { Code, ChevronDown, ChevronRight, Check } from 'lucide-react';
+import { AssistentIcon } from '@/components/icons/AssistentIcon';
 import { cn } from '@/lib/utils';
 
 interface EmailTemplate {
@@ -131,7 +132,7 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
               <p className="text-xs text-muted-foreground">{TEMPLATE_DESCRIPTIONS[templateKey] || templateKey}</p>
               {ASSISTANT_TEMPLATES.has(templateKey) && (
                 <NestoBadge variant="primary" size="sm">
-                  <Sparkles className="h-3 w-3 mr-0.5" />
+                  <AssistentIcon size={12} className="mr-0.5" />
                   Assistent
                 </NestoBadge>
               )}

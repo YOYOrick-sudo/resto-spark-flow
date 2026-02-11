@@ -7,7 +7,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Mail, Sparkles, HelpCircle } from 'lucide-react';
+import { Plus, Trash2, HelpCircle } from 'lucide-react';
+import { AssistentIcon } from '@/components/icons/AssistentIcon';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
@@ -101,7 +102,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
             <div className="flex items-center gap-2.5 w-[240px] justify-end">
               {isAutomatable(task) ? (
                 <>
-                  <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <AssistentIcon size={14} className="flex-shrink-0" />
                   <Switch
                     checked={task.is_automated !== false}
                     onCheckedChange={(checked) => {
@@ -111,7 +112,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                   />
                   {task.is_automated !== false ? (
                     <div className="flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      <AssistentIcon size={14} className="flex-shrink-0" />
                       <span className="text-xs text-primary font-medium whitespace-nowrap">Automatisch</span>
                       <TooltipProvider>
                         <Tooltip>

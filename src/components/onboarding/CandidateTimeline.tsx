@@ -1,7 +1,8 @@
 import {
   UserPlus, ArrowRight, CheckCircle, SkipForward, Trophy,
-  XCircle, UserMinus, Mail, Bell, Star, MessageSquare, Sparkles,
+  XCircle, UserMinus, Mail, Bell, Star, MessageSquare,
 } from 'lucide-react';
+import { AssistentIcon } from '@/components/icons/AssistentIcon';
 import { formatDateTimeCompact } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { Json } from '@/integrations/supabase/types';
@@ -70,7 +71,7 @@ export function CandidateTimeline({ events }: CandidateTimelineProps) {
                 {event.triggered_by === 'cron' && ' • Systeem'}
                 {event.triggered_by === 'agent' && (
                   <span className="inline-flex items-center gap-0.5 ml-1">
-                    • <Sparkles className="h-3 w-3 text-primary inline" /> Assistent
+                    • <AssistentIcon size={12} className="text-primary inline" /> Assistent
                   </span>
                 )}
               </p>

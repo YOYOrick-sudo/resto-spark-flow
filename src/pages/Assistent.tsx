@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { CheckCircle } from 'lucide-react';
+import { AssistentIcon } from '@/components/icons/AssistentIcon';
 import { PageHeader } from '@/components/polar/PageHeader';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { Spinner } from '@/components/polar/LoadingStates';
@@ -77,6 +78,7 @@ export default function Assistent() {
         <PageHeader
           title="Assistent"
           subtitle="Signalen en inzichten op basis van je data"
+          actions={<AssistentIcon size={24} className="text-primary" />}
         />
         <div className="flex items-center justify-center py-20">
           <Spinner size="lg" />
@@ -90,6 +92,7 @@ export default function Assistent() {
       <PageHeader
         title="Assistent"
         subtitle="Signalen en inzichten op basis van je data"
+        actions={<AssistentIcon size={24} className="text-primary" />}
       />
 
       <AssistantFilters

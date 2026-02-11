@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
-import { ChevronDown, ChevronRight, Trash2, Mail } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { AssistentIcon } from '@/components/icons/AssistentIcon';
 import { TaskTemplateList } from './TaskTemplateList';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { Tables, Json } from '@/integrations/supabase/types';
@@ -81,7 +82,7 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
           {/* Automated tasks count badge in collapsed state */}
           {!expanded && automatedCount > 0 && (
             <div className="flex items-center gap-1 text-primary">
-              <Mail className="h-3.5 w-3.5" />
+              <AssistentIcon size={14} />
               <span className="text-xs font-medium">{automatedCount}×</span>
             </div>
           )}

@@ -1,6 +1,6 @@
 import { Checkbox } from '@/components/ui/checkbox';
 import { NestoBadge } from '@/components/polar/NestoBadge';
-import { Sparkles } from 'lucide-react';
+import { AssistentIcon } from '@/components/icons/AssistentIcon';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -48,7 +48,7 @@ export function TaskItem({ task, onToggle, disabled }: TaskItemProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <AssistentIcon size={14} />
                   <NestoBadge variant="primary" size="sm">Assistent</NestoBadge>
                 </div>
               </TooltipTrigger>
