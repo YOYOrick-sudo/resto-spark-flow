@@ -47,9 +47,10 @@ export function TaskItem({ task, onToggle, disabled }: TaskItemProps) {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1">
-                  <AssistentIcon size={14} />
-                  <NestoBadge variant="primary" size="sm">Assistent</NestoBadge>
+                <div className="flex items-center">
+                  <NestoBadge variant="primary" size="sm">
+                    <AssistentIcon size={14} />
+                  </NestoBadge>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="top">
