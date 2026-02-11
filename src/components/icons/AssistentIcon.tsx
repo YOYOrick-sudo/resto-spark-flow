@@ -22,25 +22,16 @@ export const AssistentIcon = forwardRef<SVGSVGElement, AssistentIconProps>(
         xmlns="http://www.w3.org/2000/svg"
         className={cn('text-primary', className)}
       >
-        {/* Main 4-pointed star */}
+        {/* Main 4-pointed sparkle star */}
         <path
-          d="M12 2C12 2 14.5 8.5 12 12C9.5 8.5 12 2 12 2Z"
+          d="M10 1C10 1 11.5 6.5 10 10C6.5 11.5 1 10 1 10C1 10 6.5 8.5 10 10C11.5 13.5 10 19 10 19C10 19 8.5 13.5 10 10C13.5 8.5 19 10 19 10C19 10 13.5 11.5 10 10Z"
           fill="currentColor"
         />
+        {/* Small sparkle star top-right */}
         <path
-          d="M12 22C12 22 9.5 15.5 12 12C14.5 15.5 12 22 12 22Z"
+          d="M19 1C19 1 19.75 3.25 19 4C18.25 4.75 16 5 16 5C16 5 18.25 4.25 19 4C19.75 3.25 22 3 22 3C22 3 19.75 3.75 19 4C18.25 4.75 19 7 19 7C19 7 19.75 4.75 19 4Z"
           fill="currentColor"
         />
-        <path
-          d="M2 12C2 12 8.5 9.5 12 12C8.5 14.5 2 12 2 12Z"
-          fill="currentColor"
-        />
-        <path
-          d="M22 12C22 12 15.5 14.5 12 12C15.5 9.5 22 12 22 12Z"
-          fill="currentColor"
-        />
-        {/* Small star top-right */}
-        <circle cx="18.5" cy="5.5" r="1.5" fill="currentColor" />
       </svg>
     );
   }
