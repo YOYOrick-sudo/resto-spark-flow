@@ -222,8 +222,8 @@ export default function OnboardingDetail() {
           </div>
 
           {/* Right column - sidebar card */}
-          <aside className="bg-secondary rounded-xl border border-border/50 p-5 space-y-4 h-fit">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contactgegevens</h3>
+          <aside className="bg-card rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none dark:border dark:border-border p-5 space-y-4 h-fit">
+            <h3 className="text-xs font-medium text-muted-foreground">Contactgegevens</h3>
             <div className="space-y-3">
               <div>
                 <span className="text-xs text-muted-foreground">E-mail</span>
@@ -242,26 +242,12 @@ export default function OnboardingDetail() {
             </div>
             {candidate.notes && (
               <div className="pt-2 border-t border-border/30">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Notities</h3>
+                <h3 className="text-xs font-medium text-muted-foreground mb-1">Notities</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{candidate.notes}</p>
               </div>
             )}
           </aside>
         </div>
-
-        {/* Sticky action bar */}
-        <CandidateActions
-          status={candidate.status}
-          candidateName={`${candidate.first_name} ${candidate.last_name}`}
-          allCurrentTasksDone={allCurrentTasksDone}
-          isLastPhase={isLastPhase}
-          currentPhaseName={currentPhaseName}
-          nextPhaseName={nextPhaseName}
-          onReject={handleReject}
-          onAdvance={handleAdvance}
-          isRejecting={rejectCandidate.isPending}
-          isAdvancing={advancePhase.isPending}
-        />
 
         <ComposeMessageModal
           open={composeOpen}
@@ -276,6 +262,20 @@ export default function OnboardingDetail() {
           isSending={sendMessage.isPending}
         />
       </DetailPageLayout>
+
+      {/* Sticky action bar - outside DetailPageLayout for correct sticky behavior */}
+      <CandidateActions
+        status={candidate.status}
+        candidateName={`${candidate.first_name} ${candidate.last_name}`}
+        allCurrentTasksDone={allCurrentTasksDone}
+        isLastPhase={isLastPhase}
+        currentPhaseName={currentPhaseName}
+        nextPhaseName={nextPhaseName}
+        onReject={handleReject}
+        onAdvance={handleAdvance}
+        isRejecting={rejectCandidate.isPending}
+        isAdvancing={advancePhase.isPending}
+      />
     </div>
   );
 }
