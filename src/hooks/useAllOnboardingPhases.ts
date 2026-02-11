@@ -17,6 +17,7 @@ export function useAllOnboardingPhases() {
         .from('onboarding_phases')
         .select('*')
         .eq('location_id', locationId!)
+        .eq('is_active', true)
         .order('sort_order', { ascending: true });
       if (error) throw error;
       return data;
