@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
+import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -66,21 +67,24 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
               {expanded ? <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />}
               <h3 className="text-sm font-semibold truncate">{phase.name}</h3>
             </button>
-            {(assistantEnabled || hasAutomatedTasks) && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      <NestoBadge variant="primary" size="sm">Assistent</NestoBadge>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>Deze fase bevat taken die door de Nesto Assistent worden afgehandeld</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Sparkles className={cn(
+                    "h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150",
+                    (assistantEnabled || hasAutomatedTasks)
+                      ? "text-primary"
+                      : "text-muted-foreground/40"
+                  )} />
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{(assistantEnabled || hasAutomatedTasks)
+                    ? "Assistent actief voor deze fase"
+                    : "Assistent niet actief"
+                  }</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {(phase as any).is_custom && (
               <NestoBadge variant="outline" size="sm">Aangepast</NestoBadge>
             )}
