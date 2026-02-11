@@ -66,7 +66,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
   return (
     <div>
       {/* Header row */}
-      <div className="grid grid-cols-[1fr_auto_32px] gap-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2.5 pb-2 border-b border-border/50 mb-0">
+      <div className="grid grid-cols-[1fr_240px_32px] gap-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2.5 pb-2 border-b border-border/50 mb-0">
         <span>Taak</span>
         <span>Uitvoering</span>
         <span />
@@ -77,14 +77,14 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
         {tasks.map((task, index) => (
           <div
             key={index}
-            className="grid grid-cols-[1fr_auto_32px] items-center gap-3 py-2 px-2.5 hover:bg-accent/40 transition-colors duration-150 group"
+            className="grid grid-cols-[1fr_240px_32px] items-center gap-3 py-2 px-2.5 hover:bg-accent/40 transition-colors duration-150 group"
           >
             {/* Col 1: Task name — ghost input */}
             <input
               value={task.title}
               onChange={(e) => updateTask(index, 'title', e.target.value)}
               placeholder="Taaknaam..."
-              className="h-8 text-sm font-semibold text-foreground bg-transparent border-[1.5px] border-transparent rounded-button px-2 focus:border-border focus:bg-card focus:outline-none transition-colors placeholder:text-muted-foreground"
+              className="h-8 text-sm font-semibold text-foreground bg-card border-[1.5px] border-border rounded-button px-2 focus:!border-primary focus:outline-none focus:ring-0 transition-colors placeholder:text-muted-foreground"
             />
 
             {/* Col 2: Execution — fixed width for alignment */}
@@ -106,7 +106,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help flex-shrink-0" />
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-[260px] text-xs">
                             De Assistent verstuurt deze email automatisch wanneer een kandidaat deze fase bereikt.
@@ -165,7 +165,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
 function RoleSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-7 w-[120px] text-xs">
+      <SelectTrigger className="h-7 w-[120px] text-xs border-[1.5px] border-border bg-card focus:!border-primary focus:ring-0">
         <SelectValue placeholder="Selecteer rol" />
       </SelectTrigger>
       <SelectContent>
