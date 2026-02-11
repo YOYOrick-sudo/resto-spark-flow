@@ -505,3 +505,4 @@ Geen visuele ruis, geen onnodige animaties, geen afleidende kleuren. Rust en sca
 | [SQUEEZE_LOGIC.md](./SQUEEZE_LOGIC.md) | Squeeze reservering logica |
 | [SHIFTS_ARCHITECTURE.md](./SHIFTS_ARCHITECTURE.md) | Shifts module architectuur |
 | [SETTINGS_MULTI_LEVEL_NAVIGATION.md](./SETTINGS_MULTI_LEVEL_NAVIGATION.md) | Multi-level settings navigatie |
+| [SETTINGS_LIST_PATTERNS.md](./SETTINGS_LIST_PATTERNS.md) | Flat Table, Collapsible Card, Compound patronen |
