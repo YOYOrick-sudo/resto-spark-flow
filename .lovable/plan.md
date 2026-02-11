@@ -1,69 +1,42 @@
 
 
-# Dark mode card-systeem: documentatie + componenten synchroniseren
+# Uitvoering: van rollen naar echte teamleden
 
-## Probleem
+## Wat verandert
 
-De dark mode border-fix (`dark:border dark:border-border`) is alleen toegepast in `NestoCard.tsx` en deels in `CARD_SHADOWS.md`. Maar:
+De `RoleSelect` dropdown toont nu generieke rollen ("Eigenaar", "Manager", "Service", "Keuken"). Dit moet vervangen worden door een dropdown met **echte teamleden** van de huidige locatie -- naam + rol als context.
 
-- Het **hoofddocument** (`ENTERPRISE_DESIGN_GUIDE.md`) vermeldt de dark mode regel niet
-- De **checklist** in `CARD_SHADOWS.md` is verouderd
-- **StatCard** en **FormSection** gebruiken nog `border border-border` in beide modes (geen shadow, altijd border) -- dat is inconsistent met het shadow-first principe
+## Datamodel
 
-## Wijzigingen
+- **Veld `assigned_role`** wordt **`assigned_to`** (of we hergebruiken hetzelfde veld) met een `user_id` als waarde in plaats van een rol-string.
+- Geen database-migratie nodig: `task_templates` is een JSONB-array op `onboarding_phases`. We veranderen alleen de waarde die erin wordt opgeslagen (van `"manager"` naar een UUID).
+- Bestaande waarden (`"manager"`, `"owner"`, etc.) worden backward-compatible behandeld: als de waarde geen UUID is, tonen we "Niet toegewezen" en laten we de gebruiker opnieuw kiezen.
 
-### 1. `docs/design/ENTERPRISE_DESIGN_GUIDE.md` -- Sectie 4 tabel updaten
+## UI-wijziging
 
-De tabel op regel 114-118 mist de dark mode border. Wordt:
+### `RoleSelect` wordt `TeamMemberSelect`
 
-| Type | Shadow | Border |
-|------|--------|--------|
-| Top-level (light) | `0 1px 3px ...` | Geen |
-| Top-level (dark) | `0 1px 3px ...` (onzichtbaar) | `dark:border dark:border-border` |
-| Hover | `0 4px 12px ...` + translateY | Geen (dark: `/80`) |
-| Nested | Geen | `border border-border/40` |
+- Haalt teamleden op via de bestaande `useLocationTeamMembers()` hook
+- Toont per optie: **naam** (of email als naam ontbreekt) + rol-badge als context
+- Trigger toont de geselecteerde naam in plaats van een rol
+- Breedte gaat van `w-[120px]` naar `w-[160px]` om namen te accommoderen
+- Placeholder: "Selecteer persoon"
 
-### 2. `docs/design/CARD_SHADOWS.md` -- Checklist updaten
+### Props-wijziging
 
-Regel 70 zegt nu "Geen border op top-level NestoCards". Wordt:
+`TaskTemplateList` krijgt geen extra props -- de component importeert `useLocationTeamMembers` zelf.
 
-- "Geen border op top-level NestoCards **in light mode**"
-- Nieuwe regel: "Dark mode gebruikt `dark:border dark:border-border` als fallback op alle top-level card-achtige componenten"
+## Technische stappen
 
-### 3. `src/components/polar/StatCard.tsx`
+| # | Bestand | Wat |
+|---|---------|-----|
+| 1 | `TaskTemplateList.tsx` | Vervang `RoleSelect` component door `TeamMemberSelect` die `useLocationTeamMembers()` gebruikt |
+| 2 | `TaskTemplateList.tsx` | Update het veld van `assigned_role` naar `assigned_to` in de `TaskTemplate` interface |
+| 3 | `TaskTemplateList.tsx` | `addTask()` zet `assigned_to: null` in plaats van `assigned_role: 'manager'` |
+| 4 | `PhaseConfigCard.tsx` | Geen wijzigingen nodig (delegeert alles aan TaskTemplateList) |
 
-**Nu:** `bg-card border border-border rounded-2xl p-6` -- altijd border, geen shadow.
+## Backward compatibility
 
-**Wordt:** Shadow-first benadering, border alleen in dark mode:
-- Class: `bg-card rounded-2xl p-6 dark:border dark:border-border`
-- Inline style: `boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)"`
-
-### 4. `src/components/polar/FormSection.tsx`
-
-**Nu:** `bg-card border border-border rounded-2xl p-6` -- zelfde probleem.
-
-**Wordt:** Zelfde fix als StatCard:
-- Class: `bg-card rounded-2xl p-6 dark:border dark:border-border`
-- Inline style met shadow
-
-### 5. Niet aangepast (bewust)
-
-| Component | Reden |
-|-----------|-------|
-| `Reserveringen.tsx` wrapper | Content-container, geen card. Border is functioneel voor tabel-afbakening |
-| `ShiftsTable.tsx` drag overlay | Tijdelijke ghost-state met `shadow-lg ring-1`. Eigen styling nodig |
-| `PhaseColumn.tsx` grouping zone | Gebruikt `bg-secondary/50 border-border/40` -- correct patroon voor lanes |
-| Archived secties | `bg-muted/30` -- correct patroon voor gearchiveerde zones |
-| `TaskTemplateList.tsx` input | Dit is een input-veld, geen card |
-
-## Resultaat
-
-Na deze wijzigingen:
-- Alle drie de "card-achtige" Polar-componenten (NestoCard, StatCard, FormSection) volgen hetzelfde patroon: shadow in light, border in dark
-- Beide design-documenten beschrijven de dark mode regel correct
-- Toekomstige componenten hebben een duidelijke referentie
-
-## Scope
-
-4 bestanden, minimale wijzigingen per bestand.
+- Bestaande taken met `assigned_role: "manager"` matchen niet met een UUID. De select toont dan geen waarde (placeholder). Bij volgende keuze wordt het correct opgeslagen.
+- Geen migratie nodig -- het is een JSONB-veld dat vrije waarden accepteert.
 
