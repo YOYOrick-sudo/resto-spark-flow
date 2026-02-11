@@ -10,7 +10,7 @@ interface AssistentIconProps {
 }
 
 export const AssistentIcon = forwardRef<SVGSVGElement, AssistentIconProps>(
-  ({ size = 16, className, ...rest }, ref) => {
+  ({ size = 16, className, color, strokeWidth, absoluteStrokeWidth, ...rest }, ref) => {
     const s = typeof size === 'string' ? parseInt(size, 10) || 16 : size;
     return (
       <svg
@@ -21,7 +21,6 @@ export const AssistentIcon = forwardRef<SVGSVGElement, AssistentIconProps>(
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className={cn('text-primary', className)}
-        {...rest}
       >
         {/* Main 4-pointed star */}
         <path
