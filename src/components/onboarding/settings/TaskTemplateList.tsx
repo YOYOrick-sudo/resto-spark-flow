@@ -11,11 +11,13 @@ import { Plus, Trash2, Mail, Sparkles, HelpCircle } from 'lucide-react';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
+import { useLocationTeamMembers } from '@/hooks/useLocationTeamMembers';
+import { NestoBadge } from '@/components/polar/NestoBadge';
 
 interface TaskTemplate {
   title: string;
   description?: string;
-  assigned_role?: string | null;
+  assigned_to?: string | null;
   is_automated?: boolean;
   task_type?: string;
   is_system?: boolean;
@@ -29,14 +31,8 @@ interface TaskTemplateListProps {
 
 const AUTOMATABLE_TYPES = ['send_email', 'send_reminder'];
 
-const ROLES = [
-  { value: 'owner', label: 'Eigenaar' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'service', label: 'Service' },
-  { value: 'kitchen', label: 'Keuken' },
-];
-
 export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemplateListProps) {
+  const { data: teamMembers = [] } = useLocationTeamMembers();
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const updateTask = (index: number, field: keyof TaskTemplate, value: any) => {
@@ -47,7 +43,7 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
   };
 
   const addTask = () => {
-    onChange([...tasks, { title: '', assigned_role: 'manager', is_automated: false, task_type: 'manual', is_system: false }]);
+    onChange([...tasks, { title: '', assigned_to: null, is_automated: false, task_type: 'manual', is_system: false }]);
     onExplicitAction?.();
   };
 
@@ -129,17 +125,19 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                       </TooltipProvider>
                     </div>
                   ) : (
-                    <RoleSelect
-                      value={task.assigned_role || ''}
-                      onChange={(val) => updateTask(index, 'assigned_role', val)}
+                    <TeamMemberSelect
+                      members={teamMembers}
+                      value={task.assigned_to || ''}
+                      onChange={(val) => updateTask(index, 'assigned_to', val)}
                     />
                   )}
                 </>
               ) : (
                 <div className="flex items-center justify-end w-full">
-                  <RoleSelect
-                    value={task.assigned_role || ''}
-                    onChange={(val) => updateTask(index, 'assigned_role', val)}
+                  <TeamMemberSelect
+                    members={teamMembers}
+                    value={task.assigned_to || ''}
+                    onChange={(val) => updateTask(index, 'assigned_to', val)}
                   />
                 </div>
               )}
@@ -181,16 +179,31 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
   );
 }
 
-function RoleSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+const ROLE_LABELS: Record<string, string> = {
+  owner: 'Eigenaar',
+  manager: 'Manager',
+  service: 'Service',
+  kitchen: 'Keuken',
+};
+
+function TeamMemberSelect({ members, value, onChange }: { members: { user_id: string; name: string | null; email: string; role: string }[]; value: string; onChange: (val: string) => void }) {
+  // Only match UUIDs, not old role strings
+  const isValidSelection = value && members.some(m => m.user_id === value);
+
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-7 w-[120px] text-xs border-[1.5px] border-border bg-card focus:!border-primary focus:ring-0">
-        <SelectValue placeholder="Selecteer rol" />
+    <Select value={isValidSelection ? value : undefined} onValueChange={onChange}>
+      <SelectTrigger className="h-7 w-[160px] text-xs border-[1.5px] border-border bg-card focus:!border-primary focus:ring-0">
+        <SelectValue placeholder="Selecteer persoon" />
       </SelectTrigger>
-      <SelectContent>
-        {ROLES.map((role) => (
-          <SelectItem key={role.value} value={role.value}>
-            {role.label}
+      <SelectContent className="bg-card border border-border z-50">
+        {members.map((member) => (
+          <SelectItem key={member.user_id} value={member.user_id} className="text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate">{member.name || member.email}</span>
+              <NestoBadge variant="outline" size="sm" className="ml-auto">
+                {ROLE_LABELS[member.role] || member.role}
+              </NestoBadge>
+            </div>
           </SelectItem>
         ))}
       </SelectContent>
