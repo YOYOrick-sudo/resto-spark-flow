@@ -44,9 +44,13 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const tasks = (phase.task_templates as unknown as TaskTemplate[]) || [];
   const AUTOMATABLE_TYPES = ['send_email', 'send_reminder'];
-  const automatedCount = tasks.filter(t =>
-    (AUTOMATABLE_TYPES.includes(t.task_type || '') || (t.is_automated === true && !t.task_type)) && t.is_automated !== false
-  ).length;
+  const emailKeywords = /bevestiging|email|sturen|herinnering|reminder|uitnodiging|welkom/i;
+  const automatedCount = tasks.filter(t => {
+    const isAutomatable = AUTOMATABLE_TYPES.includes(t.task_type || '') ||
+      (t.is_automated === true && !t.task_type) ||
+      emailKeywords.test(t.title);
+    return isAutomatable && t.is_automated !== false;
+  }).length;
   const debouncedDescriptionUpdate = useDebouncedCallback((value: string) => {
     onUpdate({ description: value || null });
   }, 800);
