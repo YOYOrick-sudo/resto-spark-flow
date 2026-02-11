@@ -130,7 +130,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
   return (
     <div className="space-y-3">
       {/* Table header */}
-      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-3 py-2 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider bg-muted/40 rounded-lg">
+      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-2 pb-2 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
         <span></span>
         <span className="text-center">Prio</span>
         <span>Tijden</span>
@@ -140,8 +140,6 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
         <span></span>
       </div>
 
-      {/* Separator */}
-      <div className="h-px bg-border" />
 
       {/* Active shifts with DnD */}
       <DndContext
