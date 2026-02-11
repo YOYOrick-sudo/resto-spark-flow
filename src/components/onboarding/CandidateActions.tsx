@@ -37,7 +37,7 @@ export function CandidateActions({
     : `Alle taken in "${currentPhaseName ?? 'huidige fase'}" zijn afgerond. Wil je doorgaan naar "${nextPhaseName ?? 'volgende fase'}"?`;
 
   return (
-    <div className="sticky bottom-0 border-t border-border/50 bg-background p-4 flex justify-end items-center gap-3">
+    <div className="sticky bottom-0 border-t border-border/50 bg-background p-4 mt-6 flex justify-end items-center gap-3 max-w-5xl">
       {status === 'active' && (
         <>
           <NestoButton
