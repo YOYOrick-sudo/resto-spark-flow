@@ -17,7 +17,7 @@ interface Task {
 interface PhaseTaskListProps {
   tasks: Task[];
   currentPhaseId: string | null;
-  onCompleteTask: (taskId: string) => void;
+  onToggleTask: (taskId: string, currentStatus: string) => void;
   disabled?: boolean;
 }
 
@@ -29,7 +29,7 @@ interface PhaseGroup {
   completedCount: number;
 }
 
-export function PhaseTaskList({ tasks, currentPhaseId, onCompleteTask, disabled }: PhaseTaskListProps) {
+export function PhaseTaskList({ tasks, currentPhaseId, onToggleTask, disabled }: PhaseTaskListProps) {
   const groups = useMemo(() => {
     const map = new Map<string, PhaseGroup>();
     for (const task of tasks) {
@@ -63,7 +63,7 @@ export function PhaseTaskList({ tasks, currentPhaseId, onCompleteTask, disabled 
           <h4 className="text-sm font-medium text-foreground mb-2">{currentGroup.phaseName}</h4>
           <div className="divide-y divide-border/30">
             {currentGroup.tasks.map((task) => (
-              <TaskItem key={task.id} task={task} onComplete={onCompleteTask} disabled={disabled} />
+              <TaskItem key={task.id} task={task} onToggle={onToggleTask} disabled={disabled} />
             ))}
           </div>
         </div>
@@ -80,7 +80,7 @@ export function PhaseTaskList({ tasks, currentPhaseId, onCompleteTask, disabled 
           <CollapsibleContent className="mt-1 ml-5">
             <div className="divide-y divide-border/30">
               {group.tasks.map((task) => (
-                <TaskItem key={task.id} task={task} onComplete={onCompleteTask} disabled />
+                <TaskItem key={task.id} task={task} onToggle={onToggleTask} disabled />
               ))}
             </div>
           </CollapsibleContent>

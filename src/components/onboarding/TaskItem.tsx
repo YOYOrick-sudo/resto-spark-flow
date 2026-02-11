@@ -12,21 +12,22 @@ interface TaskItemProps {
     assigned_role: string | null;
     is_automated: boolean;
   };
-  onComplete: (taskId: string) => void;
+  onToggle: (taskId: string, currentStatus: string) => void;
   disabled?: boolean;
 }
 
-export function TaskItem({ task, onComplete, disabled }: TaskItemProps) {
+export function TaskItem({ task, onToggle, disabled }: TaskItemProps) {
   const isDone = task.status === 'completed' || task.status === 'skipped';
+  const isSkipped = task.status === 'skipped';
 
   return (
     <div className="flex items-start gap-3 py-2">
       <Checkbox
         checked={isDone}
         onCheckedChange={() => {
-          if (!isDone) onComplete(task.id);
+          if (!isSkipped) onToggle(task.id, task.status);
         }}
-        disabled={disabled || isDone}
+        disabled={disabled || isSkipped}
         className="mt-0.5"
       />
       <div className="flex-1 min-w-0">

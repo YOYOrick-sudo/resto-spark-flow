@@ -1671,6 +1671,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_onboarding_phase: {
+        Args: { _candidate_id: string; _user_id: string }
+        Returns: Json
+      }
       archive_area: { Args: { _area_id: string }; Returns: Json }
       get_bookable_tickets: {
         Args: { _date: string; _location_id: string }
