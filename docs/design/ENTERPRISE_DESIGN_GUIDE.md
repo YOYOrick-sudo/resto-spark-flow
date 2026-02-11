@@ -177,6 +177,31 @@ className="even:bg-muted/20"                 // Zebra striping verboden
 | Form field rows | `py-3` |
 | Sidebar item gap | `space-y-1` |
 
+### Data als Design Element (Polar.sh-principe)
+
+> **Data IS het design.** Getallen, grafieken en trends zijn geen bijzaak — ze zijn de visuele identiteit van het dashboard.
+
+**Hero Metrics:**
+- Grote getallen: `text-4xl font-bold text-foreground` met subtiele context eronder (`text-sm text-muted-foreground`)
+- Getallen altijd vergezeld van context: trend (↑ +12%), vergelijking ("vs vorige week"), of periode ("deze maand")
+- Gebruik `tabular-nums` voor stabiele breedte bij veranderende waarden
+
+**Area Charts (dashboard tiles):**
+- Smooth curves: `type="monotone"` op `<Area>`
+- Gradient fill: primary → transparent (`<linearGradient>` van `hsl(var(--primary))` opacity 0.3 → 0)
+- Edge-to-edge: charts vullen de volledige card breedte (`overflow-hidden`, `!p-0` op container)
+- Geen zware axis lijnen — minimale of verborgen grid
+- Tooltip: `bg-foreground text-background` voor thema-compatibiliteit
+- `activeDot` alleen op hover (r:5, teal fill, white stroke)
+
+**Regels:**
+- Elk getal vertelt een verhaal: niet "42" maar "42 reserveringen · ↑ 8% vs vorige week"
+- Visualisaties domineren de tile — tekst is ondersteunend
+- Progress bars: 8px hoog, soft gradient, met percentage label
+- Empty states: patroon-achtergrond met `text-5xl` hero en subtiele label
+
+→ **Detail:** [DASHBOARD_TILES.md](./DASHBOARD_TILES.md)
+
 ---
 
 ## Sectie 6: Formulieren en Inputs
