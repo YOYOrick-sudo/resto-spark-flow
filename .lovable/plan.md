@@ -1,59 +1,98 @@
 
+# Enterprise Design Guide: Centraal Referentiedocument
 
-# Assistent-indicator: Icon-only patroon
+## Wat er nu is
 
-## Huidige situatie
+Er bestaan 19 gedetailleerde design documenten in `docs/design/` die elk een specifiek onderwerp dekken -- van card shadows tot typography tot modal patterns. Deze docs zijn technisch correct en bevatten exacte Tailwind classes die matchen met de codebase.
 
-In de collapsed header van elke fase staat nu:
-- Sparkles icoon (teal) + tekst badge "Assistent"
-- Alleen zichtbaar als assistent aan staat
-- Als assistent uit staat: geen indicator
+Het geUploade document bevat goede filosofische uitgangspunten maar conflicteert op meerdere punten met de werkelijke implementatie (shadows vs borders, input styling, overlay opacity, etc.).
 
-## Voorstel: Icon-only met kleur-status
+## Wat ik ga maken
 
-Vervang de icoon + badge combo door **alleen het Sparkles icoon**, altijd zichtbaar, met kleur als status-indicator:
+Een nieuw `docs/design/ENTERPRISE_DESIGN_GUIDE.md` als **centraal hub-document** dat:
 
-| Status | Icoon kleur | Tooltip |
-|--------|------------|---------|
-| Assistent aan | `text-primary` (teal) | "Assistent actief voor deze fase" |
-| Assistent uit | `text-muted-foreground/40` (lichtgrijs) | "Assistent niet actief" |
+1. De kernfilosofie samenvat (gecorrigeerde versie van het geUploade doc)
+2. Per onderwerp de correcte regels geeft met exacte Tailwind classes
+3. Verwijst naar de detail-docs voor diepgaande implementatie
+4. De "Nesto-test" checklist bevat als afsluiter
+5. Alle conflicten uit het geUploade doc corrigeert
 
-Dit is consistent met enterprise patronen (Linear, Notion) waar icon-only indicators met kleurverschil worden gebruikt voor compacte status-weergave.
+## Structuur
 
-## Wijzigingen
+### Sectie 0: Kernprincipe
+Enterprise aesthetic (Linear, Stripe, Polar.sh). "Typografie en witruimte doen het werk."
 
-### `PhaseConfigCard.tsx` (collapsed header)
+### Sectie 1: Component Systeem
+Samenvatting van alle Nesto componenten met verwijzing naar `COMPONENT_DECISION_GUIDE.md`.
 
-- Verwijder de `NestoBadge` "Assistent" tekst
-- Toon het Sparkles icoon **altijd** (niet alleen als enabled)
-- Kleur: `text-primary` als `assistantEnabled || hasAutomatedTasks`, anders `text-muted-foreground/40`
-- Tooltip blijft, met aangepaste tekst per status
-- Het `(phase as any).is_custom` badge "Aangepast" blijft ongewijzigd
+### Sectie 2: Kleurgebruik
+Correcte tokens uit `COLOR_PALETTE.md`. Severity kleuren. Regel: kleur heeft altijd betekenis.
 
-### Technisch
+### Sectie 3: Typografie en Contrast
+De 3-niveau hierarchie met exacte Tailwind classes. Zwevende headers. Verboden patronen.
+Verwijzing: `ENTERPRISE_TYPOGRAPHY.md`
 
-Regel 69-83 wordt:
+### Sectie 4: Cards en Surfaces
+**Correctie:** Shadow als primaire afbakening (niet border). Exacte shadow waarden. Nesting regels.
+Verwijzing: `CARD_SHADOWS.md`
 
-```tsx
-<TooltipProvider>
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Sparkles className={cn(
-        "h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150",
-        (assistantEnabled || hasAutomatedTasks)
-          ? "text-primary"
-          : "text-muted-foreground/40"
-      )} />
-    </TooltipTrigger>
-    <TooltipContent side="top">
-      <p>{(assistantEnabled || hasAutomatedTasks)
-        ? "Assistent actief voor deze fase"
-        : "Assistent niet actief"
-      }</p>
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
-```
+### Sectie 5: Spacing en Density
+Card padding regels. Settings container: `max-w-5xl` (niet `max-w-7xl` zoals het geUploade doc zegt). `divide-y divide-border/50` voor rij separatie.
 
-Vereist toevoegen van `cn` import uit `@/lib/utils`.
+### Sectie 6: Formulieren en Inputs
+**Correctie:** `bg-card` (niet `bg-secondary/50`). `focus:!border-primary focus:ring-0` (niet `ring-2`). Switch: 250ms cubic-bezier.
 
+### Sectie 7: Knoppen
+Border radius hierarchie: primary=16px, rest=8px. Max 1 primary per scherm.
+Verwijzing: `BUTTON_STYLING.md`, `BORDER_RADIUS.md`
+
+### Sectie 8: Tabellen
+**Correctie:** Geen zebra striping (verboden in enterprise typography). Zwevende headers zonder achtergrond. `divide-y divide-border/50`.
+Verwijzing: `INLINE_DATA_TABLES.md`
+
+### Sectie 9: Modals
+**Correctie:** Overlay = `bg-black/20 backdrop-blur-sm` (niet `bg-black/50`). Shadow compenseert lichtere overlay.
+Verwijzing: `MODAL_PATTERNS.md`
+
+### Sectie 10: Micro-interacties
+Transition tokens: 150ms (hovers), 200ms (state fades), 250ms (switches). Toast styling.
+
+### Sectie 11: Navigatie en Layout
+Sidebar, breadcrumbs, page headers. Settings: `SettingsContainer max-w-5xl`.
+Verwijzing: `SETTINGS_PAGE_PATTERNS.md`, `NAVIGATION_CARDS.md`, `SIDEBAR_PANELS.md`
+
+### Sectie 12: Feedback Patronen
+Toast alleen voor expliciete acties. Autosave = inline indicator. Validatie = inline errors.
+Verwijzing: `TOAST_NOTIFICATIONS.md`
+
+### Sectie 13: Anti-patronen
+Gecombineerde lijst: goede items uit het geUploade doc + codebase-specifieke verboden patronen met concrete "Fout vs Correct" voorbeelden.
+
+### Sectie 14: De Nesto-test (checklist)
+De 5-punts checklist uit het geUploade doc (deze is goed en wordt overgenomen).
+
+## Gecorrigeerde conflicten
+
+| Onderwerp | Geupload doc (fout) | Codebase (correct) |
+|-----------|--------------------|--------------------|
+| Card borders | `border border-border/40` | Shadow als primaire afbakening, geen border op top-level |
+| Card hover | `hover:border-border/60` | `translateY(-1px)` + shadow change |
+| Input achtergrond | `bg-secondary/50` | `bg-card` |
+| Input focus | `ring-2 ring-primary/30` | `focus:!border-primary focus:ring-0` |
+| Modal overlay | `bg-black/50` | `bg-black/20 backdrop-blur-sm` |
+| Tabel hover | `hover:bg-secondary/30` | `hover:bg-accent/40` of `hover:bg-muted/50` |
+| Zebra striping | "alleen bij >10 rijen" | Verboden -- altijd `divide-y` |
+| Page margins | `max-w-7xl` | `max-w-5xl` (SettingsContainer) |
+| Typography | `font-mono tabular-nums` | `tabular-nums` zonder `font-mono` |
+| Data font weight | Niet gespecificeerd | `font-semibold` voor primaire data |
+| Switch timing | "200ms" | 250ms cubic-bezier(0.4,0,0.2,1) |
+
+## Wat er NIET verandert
+
+- Alle 19 bestaande detail-docs blijven bestaan als diepe referentie
+- Geen codewijzigingen -- dit is puur documentatie
+- Het nieuwe document vervangt niets, het consolideert en corrigeert
+
+## Resultaat
+
+Na implementatie: 1 document (`ENTERPRISE_DESIGN_GUIDE.md`) dat als standaard referentie dient bij elke UI-prompt. Het bevat de correcte regels en verwijst naar detail-docs voor implementatie-specifics.
