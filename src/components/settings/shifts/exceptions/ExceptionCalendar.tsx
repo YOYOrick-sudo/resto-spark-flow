@@ -71,7 +71,7 @@ export function ExceptionCalendar({
         >
           <ChevronLeft className="h-4 w-4" />
         </NestoButton>
-        <span className="text-sm font-medium capitalize">
+        <span className="text-sm font-semibold capitalize">
           {format(selectedMonth, "MMMM yyyy", { locale: nl })}
         </span>
         <NestoButton
@@ -89,7 +89,7 @@ export function ExceptionCalendar({
         {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map((day) => (
           <div
             key={day}
-            className="text-center text-xs text-muted-foreground font-medium py-1"
+            className="text-center text-xs text-muted-foreground font-semibold py-1"
           >
             {day}
           </div>

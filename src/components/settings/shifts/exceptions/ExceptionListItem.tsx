@@ -45,7 +45,7 @@ export function ExceptionListItem({
       {/* Left: Content area */}
       <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden px-3">
         {/* Date */}
-        <span className="text-sm font-medium w-16 flex-shrink-0">
+        <span className="text-sm font-semibold text-foreground w-16 flex-shrink-0">
           {formattedDate}
         </span>
 
@@ -58,20 +58,20 @@ export function ExceptionListItem({
         </NestoBadge>
 
         {/* Scope */}
-        <span className="text-sm text-muted-foreground truncate flex-shrink min-w-0">
+        <span className="text-sm text-foreground/70 truncate flex-shrink min-w-0">
           {scopeLabel}
         </span>
 
         {/* Times for modified */}
         {exception.exception_type === "modified" && exception.override_start_time && exception.override_end_time && (
-          <span className="text-sm text-muted-foreground flex-shrink-0">
+          <span className="text-sm text-foreground/70 flex-shrink-0">
             {formatTime(exception.override_start_time)} - {formatTime(exception.override_end_time)}
           </span>
         )}
 
         {/* Label if present */}
         {exception.label && (
-          <span className="text-sm font-medium truncate flex-shrink min-w-0">
+          <span className="text-sm font-semibold truncate flex-shrink min-w-0">
             {exception.label}
           </span>
         )}
