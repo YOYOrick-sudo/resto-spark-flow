@@ -55,10 +55,7 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
   }, 800);
 
   return (
-    <NestoCard className={cn(
-      "p-4",
-      (assistantEnabled || hasAutomatedTasks) && "border-l-2 border-l-primary"
-    )}>
+    <NestoCard className="p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -125,7 +122,7 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
       </div>
 
       {expanded && (
-        <div className="mt-4 space-y-0">
+        <div className="mt-4 space-y-5">
           {/* Group 1: Fase-instellingen */}
           <div className="space-y-4">
             <div>
@@ -148,8 +145,8 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
               />
             </div>
 
-            {/* Assistant toggle — styled as inline setting card */}
-            <div className="flex items-center justify-between py-3 px-4 bg-secondary/30 rounded-lg">
+            {/* Assistant toggle — flat inline row */}
+            <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
                 <div>
