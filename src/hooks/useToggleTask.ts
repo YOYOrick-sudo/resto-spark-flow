@@ -2,18 +2,20 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export function useCompleteTask() {
+export function useToggleTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ taskId, userId }: { taskId: string; userId: string }) => {
+    mutationFn: async ({ taskId, userId, currentStatus }: { taskId: string; userId: string; currentStatus: string }) => {
+      const isCompleted = currentStatus === 'completed';
+
       const { data, error } = await supabase
         .from('ob_tasks')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          completed_by: userId,
-        })
+        .update(
+          isCompleted
+            ? { status: 'pending', completed_at: null, completed_by: null }
+            : { status: 'completed', completed_at: new Date().toISOString(), completed_by: userId }
+        )
         .eq('id', taskId)
         .select()
         .single();
@@ -26,7 +28,7 @@ export function useCompleteTask() {
       queryClient.invalidateQueries({ queryKey: ['onboarding-events'] });
     },
     onError: (error) => {
-      toast.error('Taak afvinken mislukt', { description: error.message });
+      toast.error('Taakstatus wijzigen mislukt', { description: error.message });
     },
   });
 }

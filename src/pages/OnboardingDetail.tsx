@@ -7,13 +7,12 @@ import { formatDateTimeCompact } from '@/lib/datetime';
 import { DetailPageLayout } from '@/components/polar/DetailPageLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { useOnboardingCandidates } from '@/hooks/useOnboardingCandidates';
 import { useOnboardingTasks } from '@/hooks/useOnboardingTasks';
 import { useOnboardingEvents } from '@/hooks/useOnboardingEvents';
 import { useOnboardingPhases } from '@/hooks/useOnboardingPhases';
-import { useCompleteTask } from '@/hooks/useCompleteTask';
+import { useToggleTask } from '@/hooks/useToggleTask';
+import { useAdvancePhase } from '@/hooks/useAdvancePhase';
 import { useRejectCandidate } from '@/hooks/useRejectCandidate';
 import { useSaveEvaluation } from '@/hooks/useSaveEvaluation';
 import { PhaseTaskList } from '@/components/onboarding/PhaseTaskList';
@@ -43,7 +42,6 @@ export default function OnboardingDetail() {
   const { user } = useAuth();
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
-  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState('taken');
 
@@ -52,7 +50,8 @@ export default function OnboardingDetail() {
   const { data: tasks, isLoading: tasksLoading } = useOnboardingTasks(id);
   const { data: events, isLoading: eventsLoading } = useOnboardingEvents(id);
 
-  const completeTask = useCompleteTask();
+  const toggleTask = useToggleTask();
+  const advancePhase = useAdvancePhase();
   const rejectCandidate = useRejectCandidate();
   const saveEvaluation = useSaveEvaluation();
 
@@ -63,8 +62,8 @@ export default function OnboardingDetail() {
 
   const currentPhaseId = candidate?.current_phase_id ?? null;
 
-  const { allCurrentTasksDone, isLastPhase, showEvaluation } = useMemo(() => {
-    if (!tasks || !candidate) return { allCurrentTasksDone: false, isLastPhase: false, showEvaluation: false };
+  const { allCurrentTasksDone, isLastPhase, showEvaluation, currentPhaseName, nextPhaseName } = useMemo(() => {
+    if (!tasks || !candidate) return { allCurrentTasksDone: false, isLastPhase: false, showEvaluation: false, currentPhaseName: undefined, nextPhaseName: undefined };
 
     const currentTasks = tasks.filter((t) => t.phase_id === currentPhaseId);
     const allDone = currentTasks.length > 0 && currentTasks.every((t) => t.status === 'completed' || t.status === 'skipped');
@@ -73,16 +72,20 @@ export default function OnboardingDetail() {
     const sortOrder = currentPhase?.sort_order ?? 0;
     const maxSortOrder = phases && phases.length > 0 ? Math.max(...phases.map(p => p.sort_order)) : 0;
 
+    const nextPhase = phases?.find(p => p.sort_order > sortOrder && p.is_active);
+
     return {
       allCurrentTasksDone: allDone,
       isLastPhase: sortOrder > 0 && sortOrder === maxSortOrder,
       showEvaluation: EVAL_PHASE_SORT_ORDERS.includes(sortOrder),
+      currentPhaseName: currentPhase?.name,
+      nextPhaseName: nextPhase?.name,
     };
   }, [tasks, candidate, currentPhaseId, phases]);
 
-  const handleCompleteTask = (taskId: string) => {
+  const handleToggleTask = (taskId: string, currentStatus: string) => {
     if (!user?.id) return;
-    completeTask.mutate({ taskId, userId: user.id });
+    toggleTask.mutate({ taskId, userId: user.id, currentStatus });
   };
 
   const handleReject = () => {
@@ -99,10 +102,13 @@ export default function OnboardingDetail() {
   };
 
   const handleAdvance = () => {
-    queryClient.invalidateQueries({ queryKey: ['onboarding-candidates'] });
-    queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
-    queryClient.invalidateQueries({ queryKey: ['onboarding-events'] });
-    toast.success('Doorgegaan naar volgende fase');
+    if (!id || !user?.id) return;
+    advancePhase.mutate(
+      { candidateId: id, userId: user.id },
+      { onSuccess: (data) => {
+        if (data?.action === 'hired') navigate('/onboarding');
+      }}
+    );
   };
 
   if (candidatesLoading) {
@@ -159,7 +165,7 @@ export default function OnboardingDetail() {
                   <PhaseTaskList
                     tasks={tasks}
                     currentPhaseId={currentPhaseId}
-                    onCompleteTask={handleCompleteTask}
+                    onToggleTask={handleToggleTask}
                     disabled={candidate.status !== 'active'}
                   />
                   {showEvaluation && candidate.status === 'active' && (
@@ -219,9 +225,12 @@ export default function OnboardingDetail() {
           candidateName={`${candidate.first_name} ${candidate.last_name}`}
           allCurrentTasksDone={allCurrentTasksDone}
           isLastPhase={isLastPhase}
+          currentPhaseName={currentPhaseName}
+          nextPhaseName={nextPhaseName}
           onReject={handleReject}
           onAdvance={handleAdvance}
           isRejecting={rejectCandidate.isPending}
+          isAdvancing={advancePhase.isPending}
         />
       </DetailPageLayout>
     </div>

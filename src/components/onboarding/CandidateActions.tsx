@@ -8,9 +8,12 @@ interface CandidateActionsProps {
   candidateName: string;
   allCurrentTasksDone: boolean;
   isLastPhase: boolean;
+  currentPhaseName?: string;
+  nextPhaseName?: string;
   onReject: () => void;
   onAdvance: () => void;
   isRejecting?: boolean;
+  isAdvancing?: boolean;
 }
 
 export function CandidateActions({
@@ -18,11 +21,20 @@ export function CandidateActions({
   candidateName,
   allCurrentTasksDone,
   isLastPhase,
+  currentPhaseName,
+  nextPhaseName,
   onReject,
   onAdvance,
   isRejecting,
+  isAdvancing,
 }: CandidateActionsProps) {
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [showAdvanceConfirm, setShowAdvanceConfirm] = useState(false);
+
+  const advanceTitle = isLastPhase ? 'Kandidaat aannemen' : 'Doorgaan naar volgende fase';
+  const advanceDescription = isLastPhase
+    ? `Alle taken in "${currentPhaseName ?? 'huidige fase'}" zijn afgerond. Wil je ${candidateName} aannemen?`
+    : `Alle taken in "${currentPhaseName ?? 'huidige fase'}" zijn afgerond. Wil je doorgaan naar "${nextPhaseName ?? 'volgende fase'}"?`;
 
   return (
     <div className="sticky bottom-0 border-t border-border/50 bg-background p-4 flex justify-between items-center">
@@ -40,8 +52,8 @@ export function CandidateActions({
           <NestoButton
             variant="primary"
             size="sm"
-            onClick={onAdvance}
-            disabled={!allCurrentTasksDone}
+            onClick={() => setShowAdvanceConfirm(true)}
+            disabled={!allCurrentTasksDone || isAdvancing}
           >
             {isLastPhase ? 'Aannemen' : 'Doorgaan'}
           </NestoButton>
@@ -57,6 +69,20 @@ export function CandidateActions({
             onConfirm={() => {
               onReject();
               setShowRejectConfirm(false);
+            }}
+          />
+
+          <ConfirmDialog
+            open={showAdvanceConfirm}
+            onOpenChange={setShowAdvanceConfirm}
+            title={advanceTitle}
+            description={advanceDescription}
+            confirmLabel={isLastPhase ? 'Aannemen' : 'Doorgaan'}
+            variant="default"
+            isLoading={isAdvancing}
+            onConfirm={() => {
+              onAdvance();
+              setShowAdvanceConfirm(false);
             }}
           />
         </>
