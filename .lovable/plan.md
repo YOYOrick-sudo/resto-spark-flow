@@ -1,47 +1,38 @@
 
 
-# Enterprise Design Fix — MessageThread en ComposeMessageModal
+# Fix: CandidateActions sticky action bar layout
 
 ## Probleem
 
-De huidige implementatie wijkt op meerdere punten af van het Nesto Polar enterprise design system. Dit moet gecorrigeerd worden voordat het live gaat.
+De action bar met "Afwijzen" en "Doorgaan" buttons spant over de volle breedte van de pagina. Door `justify-between` staan de twee buttons op de uiterste linker- en rechterrand, wat er niet professioneel uitziet.
 
-## Fixes per component
+## Oplossing
 
-### ComposeMessageModal
+De buttons naar **rechts groeperen** met een gap ertussen, conform het enterprise footer-patroon (zie MODAL_PATTERNS.md: "rechts uitgelijnd met gap-3"). De "Afwijzen" button (destructive outline) staat links van "Doorgaan" (primary), beide rechts uitgelijnd.
 
-| Issue | Huidig | Enterprise correct |
-|-------|--------|-------------------|
-| Label styling | `text-sm font-medium text-foreground` | `text-[13px] font-medium text-muted-foreground` |
-| Label implementatie | Losse `<label>` elementen | Via `label` prop op NestoInput; Textarea wrapped met zelfde label-patroon |
-| Loading tekst | Alleen "Versturen" | "Versturen..." tijdens pending |
+Dit is hetzelfde patroon als modal footers — consistent door de hele applicatie.
 
-### MessageThread
+## Wijziging
 
-| Issue | Huidig | Enterprise correct |
-|-------|--------|-------------------|
-| Card afbakening | `border` met kleur-accent | `bg-card` met shadow (light) / `border border-border` (dark) — conform Card Shadow regels |
-| Outbound indicator | `border-primary/20 bg-primary/[0.03]` | Subtielere teal left-border (`border-l-2 border-primary`) op een neutrale `bg-card` kaart |
-| Expand button | Raw `<button>` | `NestoButton variant="ghost" size="sm"` of styled inline met `transition-colors duration-150` |
-| Lijst separatie | `space-y-3` met individuele borders | `divide-y divide-border/50` zonder individuele card borders, of `space-y-3` met shadow-cards |
-| Timestamp | `text-xs` | `text-[11px] text-muted-foreground` voor enterprise density |
-| Sender naam | `text-sm font-medium` | `text-sm font-semibold text-foreground` (primaire data = font-semibold) |
+**Bestand:** `src/components/onboarding/CandidateActions.tsx`
 
-### Aanpak
+- Verander `flex justify-between` naar `flex justify-end gap-3`
+- Dit groepeert beide buttons rechts met een nette gap ertussen
+- Hired/rejected status-tekst blijft links uitgelijnd (die krijgt `mr-auto` of aparte `justify-start`)
 
-Kies het **shadow-card** patroon per bericht (niet divide-y), omdat elk bericht een zelfstandig blok is met header, subject en body — dit past beter bij het NestoCard-achtige patroon.
+## Technisch detail
 
-Elke message card krijgt:
-- `bg-card rounded-lg` met enterprise shadow (light mode)
-- `dark:border dark:border-border` fallback
-- Outbound: subtiele `border-l-2 border-primary` links
-- Agent: AssistentIcon naast naam (blijft)
-- Inbound: neutrale styling zonder left-border
+```
+// Huidig (probleem)
+<div className="... flex justify-between items-center">
 
-## Bestanden
+// Nieuw (enterprise correct)  
+<div className="... flex justify-end items-center gap-3">
+```
+
+Voor de hired/rejected states wordt `justify-start` gebruikt zodat de statustekst links blijft.
 
 | Bestand | Actie |
 |---------|-------|
-| `src/components/onboarding/MessageThread.tsx` | Enterprise card styling, sender font-semibold, timestamp 11px, expand button met transition |
-| `src/components/onboarding/ComposeMessageModal.tsx` | Label styling naar 13px muted-foreground, loading tekst "Versturen..." |
+| `src/components/onboarding/CandidateActions.tsx` | `justify-between` -> `justify-end gap-3`, hired/rejected states apart afhandelen |
 
