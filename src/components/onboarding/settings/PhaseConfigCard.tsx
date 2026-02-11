@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { TaskTemplateList } from './TaskTemplateList';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { Tables, Json } from '@/integrations/supabase/types';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TaskTemplate {
   title: string;
@@ -35,8 +36,17 @@ export function PhaseConfigCard({ phase, index, onUpdate, onExplicitAction }: Ph
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">{index + 1}.</span>
-            <h3 className="text-sm font-semibold truncate">{phase.name}</h3>
+            <span className="text-sm font-semibold text-muted-foreground tabular-nums">{index + 1}.</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <h3 className="text-sm font-semibold truncate">{phase.name}</h3>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>{phase.name}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="mt-2">
             <Textarea
@@ -62,10 +72,10 @@ export function PhaseConfigCard({ phase, index, onUpdate, onExplicitAction }: Ph
 
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1 mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-1 mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150 focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 rounded-button outline-none"
       >
         {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        <span>{tasks.length} taken</span>
+        <span className="tabular-nums">{tasks.length} taken</span>
       </button>
 
       {expanded && (

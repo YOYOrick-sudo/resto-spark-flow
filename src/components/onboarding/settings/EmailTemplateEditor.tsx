@@ -140,7 +140,7 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
             <button
               key={v.key}
               onClick={() => insertVariable(v.key)}
-              className="text-xs px-2 py-1 rounded-control bg-secondary border border-border/40 text-foreground hover:border-primary/50 hover:bg-primary/5 transition-colors font-mono"
+              className="text-xs px-2 py-1 rounded-control bg-secondary border border-border/40 text-foreground hover:border-primary/50 hover:bg-primary/5 transition-colors duration-150 font-mono focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 outline-none"
             >
               {v.key}
             </button>
@@ -150,7 +150,7 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
         {/* Preview toggle */}
         <button
           onClick={() => setShowPreview(!showPreview)}
-          className="text-xs px-2 py-1 rounded-button bg-secondary/80 hover:bg-secondary border border-border/40 transition-colors inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+          className="text-xs px-2 py-1 rounded-button bg-secondary/80 hover:bg-secondary border border-border/40 transition-colors duration-150 inline-flex items-center gap-1 text-muted-foreground hover:text-foreground focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-offset-1 outline-none"
         >
           {showPreview ? 'Preview verbergen' : 'Preview tonen'}
           {showPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -158,10 +158,10 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
 
         {showPreview && (
           <div className="bg-secondary/50 rounded-card p-4 border border-border/40 space-y-2">
-            <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Onderwerp</p>
-            <p className="text-sm font-medium mb-3">{renderPreview(localSubject)}</p>
-            <p className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">Body</p>
-            <div className="text-sm whitespace-pre-wrap">{renderPreview(localBody)}</div>
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Onderwerp</p>
+            <p className="text-sm font-semibold mb-3">{renderPreview(localSubject)}</p>
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Body</p>
+            <div className="text-sm whitespace-pre-wrap tabular-nums">{renderPreview(localBody)}</div>
           </div>
         )}
       </div>
