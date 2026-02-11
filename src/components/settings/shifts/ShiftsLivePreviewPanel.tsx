@@ -87,7 +87,7 @@ export function ShiftsLivePreviewPanel({
   // Loading state
   if (isLoading) {
     return (
-      <NestoCard className="p-5 space-y-4">
+      <NestoCard className="p-5 space-y-4 border border-border">
         <h4 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
           Live Preview
         </h4>
@@ -101,7 +101,7 @@ export function ShiftsLivePreviewPanel({
   // Empty state
   if (shifts.length === 0) {
     return (
-      <NestoCard className="p-5 space-y-4">
+      <NestoCard className="p-5 space-y-4 border border-border">
         <h4 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
           Live Preview
         </h4>
@@ -121,7 +121,7 @@ export function ShiftsLivePreviewPanel({
   }
 
   return (
-    <NestoCard className="p-5 space-y-5 overflow-hidden">
+    <NestoCard className="p-5 space-y-5 overflow-hidden border border-border">
       {/* Header with subtle gradient accent */}
       <div className="relative">
         <h4 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">

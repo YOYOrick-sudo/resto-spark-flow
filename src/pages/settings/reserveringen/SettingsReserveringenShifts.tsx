@@ -59,7 +59,7 @@ export default function SettingsReserveringenShifts() {
         />
       }
     >
-      <NestoCard className="p-6">
+      <NestoCard className="p-6 border border-border">
         <div className="mb-5">
           <h3 className="text-base font-semibold">Shift overzicht</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
