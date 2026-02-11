@@ -1,6 +1,6 @@
 import {
   UserPlus, ArrowRight, CheckCircle, SkipForward, Trophy,
-  XCircle, UserMinus, Mail, Bell, Star, MessageSquare,
+  XCircle, UserMinus, Mail, Bell, Star, MessageSquare, Sparkles,
 } from 'lucide-react';
 import { formatDateTimeCompact } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
@@ -67,6 +67,12 @@ export function CandidateTimeline({ events }: CandidateTimelineProps) {
               <p className="text-xs text-muted-foreground">
                 {formatDateTimeCompact(event.created_at)}
                 {event.triggered_by === 'system' && ' • Systeem'}
+                {event.triggered_by === 'cron' && ' • Systeem'}
+                {event.triggered_by === 'agent' && (
+                  <span className="inline-flex items-center gap-0.5 ml-1">
+                    • <Sparkles className="h-3 w-3 text-primary inline" /> Assistent
+                  </span>
+                )}
               </p>
             </div>
           </div>

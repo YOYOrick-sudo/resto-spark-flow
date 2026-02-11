@@ -1,7 +1,8 @@
 import { Checkbox } from '@/components/ui/checkbox';
 import { NestoBadge } from '@/components/polar/NestoBadge';
-import { Zap } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TaskItemProps {
   task: {
@@ -43,7 +44,19 @@ export function TaskItem({ task, onToggle, disabled }: TaskItemProps) {
           <NestoBadge variant="outline" size="sm">{task.assigned_role}</NestoBadge>
         )}
         {task.is_automated && (
-          <Zap className="h-3.5 w-3.5 text-warning" />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <NestoBadge variant="primary" size="sm">Assistent</NestoBadge>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Wordt afgehandeld door de Nesto Assistent</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
     </div>

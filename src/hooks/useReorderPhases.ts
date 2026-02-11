@@ -1,31 +1,24 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { Json } from '@/integrations/supabase/types';
 
-interface PhaseUpdate {
-  phaseId: string;
-  updates: {
-    is_active?: boolean;
-    name?: string;
-    description?: string | null;
-    task_templates?: Json;
-    assistant_enabled?: boolean;
-  };
-}
-
-export function useUpdatePhaseConfig() {
+export function useReorderPhases() {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ phaseId, updates }: PhaseUpdate) => {
-      const { error } = await supabase
-        .from('onboarding_phases')
-        .update(updates)
-        .eq('id', phaseId);
-      if (error) throw error;
+    mutationFn: async (phaseIds: string[]) => {
+      // Update sort_order for each phase: 10, 20, 30...
+      const updates = phaseIds.map((id, index) =>
+        supabase
+          .from('onboarding_phases')
+          .update({ sort_order: (index + 1) * 10 })
+          .eq('id', id)
+      );
+      const results = await Promise.all(updates);
+      const err = results.find((r) => r.error);
+      if (err?.error) throw err.error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases-all', locationId] });

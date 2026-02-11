@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOnboardingSettings, useUpdateOnboardingSettings } from '@/hooks/useOnboardingSettings';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
+import { InfoAlert } from '@/components/polar/InfoAlert';
+import { NestoBadge } from '@/components/polar/NestoBadge';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { Check } from 'lucide-react';
 import { Json } from '@/integrations/supabase/types';
@@ -127,7 +130,27 @@ export function ReminderSettingsSection() {
             <span className="inline-flex items-center bg-secondary border border-border rounded-r-button px-3 text-xs text-muted-foreground">dagen</span>
           </div>
         </div>
+
+        {/* Notification channels */}
+        <div className="pt-4 border-t border-border/50 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notificatiekanalen</p>
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Email</Label>
+            <NestoBadge variant="primary" size="sm" dot>Altijd aan</NestoBadge>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm">WhatsApp</Label>
+              <NestoBadge variant="outline" size="sm">Binnenkort</NestoBadge>
+            </div>
+            <Switch checked={false} disabled />
+          </div>
+        </div>
       </div>
+
+      <InfoAlert variant="info" title="Naar wie gaan reminders?">
+        Reminders worden verstuurd naar de verantwoordelijke van elke fase. Stel verantwoordelijken in via het tabblad 'Team'.
+      </InfoAlert>
     </NestoCard>
   );
 }

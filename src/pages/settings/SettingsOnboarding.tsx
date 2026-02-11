@@ -5,6 +5,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { EmptyState } from '@/components/polar/EmptyState';
 import {
   PhaseConfigSection,
+  TeamOwnersSection,
   EmailTemplatesSection,
   ReminderSettingsSection,
   EmailConfigSection,
@@ -12,6 +13,7 @@ import {
 
 const TABS = [
   { id: 'phases', label: 'Fasen' },
+  { id: 'team', label: 'Team' },
   { id: 'templates', label: 'E-mailtemplates' },
   { id: 'reminders', label: 'Reminders' },
   { id: 'email-config', label: 'Email configuratie' },
@@ -45,6 +47,10 @@ export default function SettingsOnboarding() {
 
       <NestoTabContent value="phases" activeValue={activeTab}>
         <PhaseConfigSection />
+      </NestoTabContent>
+
+      <NestoTabContent value="team" activeValue={activeTab}>
+        <TeamOwnersSection />
       </NestoTabContent>
 
       <NestoTabContent value="templates" activeValue={activeTab}>
