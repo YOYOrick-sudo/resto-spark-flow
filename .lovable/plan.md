@@ -1,84 +1,51 @@
 
 
-# Fix Command Palette — Dubbel probleem + Enterprise restyling
+# Onboarding: Taken uitvinkbaar + Handmatige fase-overgang
 
-## Problemen
+## Probleem 1: Taken kunnen niet uitgevinkt worden
 
-1. **Dubbele instantie**: Twee `NestoSidebar` renderings = twee `CommandPalette` + twee `⌘K` listeners
-2. **Styling botst met design system**:
-   - Input heeft `focus-visible:ring-2` (ShadCN default) in plaats van 1.5px teal border
-   - Items gebruiken `rounded-md` en `bg-muted` hover — generiek, niet Nesto Polar
-   - Geen verfijnde radius tokens (`rounded-dropdown` ontbreekt)
-   - Group headings missen de juiste spacing en stijl
-   - Geen subtiele entry-animatie die "licht" aanvoelt
+De checkbox is `disabled` zodra een taak 'completed' is. Er bestaat geen functie om een taak terug te zetten naar 'pending'.
 
-## Oplossing
+### Oplossing
+- **`useCompleteTask.ts`** uitbreiden tot **`useToggleTask.ts`**: als status 'completed' is, zet terug naar 'pending' (wis `completed_at` en `completed_by`). Als status 'pending' is, zet naar 'completed'.
+- **`TaskItem.tsx`**: Verwijder `disabled={isDone}` en laat de checkbox togglen. Voeg een subtiele undo-animatie toe (geen line-through totdat hover weg is).
+- **`OnboardingDetail.tsx`**: Vervang `useCompleteTask` door `useToggleTask`.
 
-### 1. Centraliseer in AppLayout
+## Probleem 2: Automatische fase-overgang zonder bevestiging
 
-**`NestoSidebar.tsx`**:
-- Verwijder `CommandPalette` render, `commandOpen` state, en `⌘K` useEffect
-- Voeg `onSearchClick?: () => void` prop toe
-- Zoekknop roept `onSearchClick?.()` aan
+Een database trigger (`check_onboarding_phase_completion`) detecteert wanneer alle taken in een fase 'completed'/'skipped' zijn en verplaatst de kandidaat automatisch naar de volgende fase. Dit geeft de gebruiker geen kans om te controleren of reviewen.
 
-**`AppLayout.tsx`**:
-- Voeg `commandOpen` state + `⌘K` listener toe (eenmalig)
-- Render een enkele `CommandPalette`
-- Geef `onSearchClick` door aan beide sidebar instanties
+### Oplossing
 
-### 2. Restyle `command.tsx` naar Nesto Polar
+De trigger verwijderen en fase-overgang volledig handmatig maken via de bestaande "Doorgaan" knop.
 
-**CommandDialog container**:
-- `rounded-card` (16px) in plaats van `rounded-lg`
-- Subtielere shadow: `shadow-lg` voor diepte zonder zwaarte
-- Snellere, lichtere animatie: `duration-100` met `slide-in-from-top-1` (kleiner, sneller)
-
-**CommandInput**:
-- Verwijder `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`
-- Vervang door `border-[1.5px] border-border focus:border-primary focus:ring-0` (Nesto standaard)
-- `rounded-button` (8px) voor het input veld
-- `bg-secondary` achtergrond voor contrast met de card
-
-**CommandItem**:
-- `rounded-button` (8px) in plaats van `rounded-md`
-- Hover/selected: `data-[selected='true']:bg-accent/60` (subtiel, consistent met sidebar hover)
-- Actieve teal accent: `data-[selected='true']:text-foreground` blijft, maar achtergrond wordt zachter
-
-**CommandGroup headings**:
-- `px-3 pt-4 pb-1.5` voor betere spacing tussen groepen
-- `text-[11px] tracking-widest uppercase text-muted-foreground/60` — exact zoals sidebar section labels
-
-**CommandList**:
-- `px-1.5 pb-1.5` — compacter, minder waste
-
-**CommandEmpty**:
-- `text-muted-foreground` kleur toevoegen
+1. **Database migratie**: `DROP TRIGGER trg_check_onboarding_phase_completion` en `DROP FUNCTION check_onboarding_phase_completion`. De logica (volgende fase bepalen, taken genereren, events loggen) verhuist naar een nieuwe database functie `advance_onboarding_phase(candidate_id, user_id)` die alleen via expliciete aanroep draait.
+2. **`useAdvancePhase.ts`** (nieuw): Hook die de RPC `advance_onboarding_phase` aanroept.
+3. **`CandidateActions.tsx`**: De "Doorgaan" knop opent een **ConfirmDialog** met samenvatting:
+   - "Alle taken in [fase naam] zijn afgerond. Wil je doorgaan naar [volgende fase naam]?"
+   - Bij "Aannemen" (laatste fase): "Alle taken zijn afgerond. Wil je [naam] aannemen?"
+   - Pas na bevestiging wordt de RPC aangeroepen.
+4. **`OnboardingDetail.tsx`**: `handleAdvance` roept `useAdvancePhase` aan in plaats van alleen queries te invalideren.
 
 ## Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/ui/command.tsx` | Volledige restyling van alle sub-componenten |
-| `src/components/layout/NestoSidebar.tsx` | CommandPalette + state + listener verwijderen, `onSearchClick` prop |
-| `src/components/layout/AppLayout.tsx` | `commandOpen` state, `⌘K` listener, enkele `CommandPalette` render |
+| `src/hooks/useCompleteTask.ts` | Hernoem naar `useToggleTask`, toggle logica |
+| `src/components/onboarding/TaskItem.tsx` | Checkbox uitvinkbaar maken |
+| `src/pages/OnboardingDetail.tsx` | `useToggleTask` + `useAdvancePhase` integreren |
+| `src/hooks/useAdvancePhase.ts` | Nieuw: RPC aanroep voor fase-overgang |
+| `src/components/onboarding/CandidateActions.tsx` | ConfirmDialog voor "Doorgaan"/"Aannemen" |
+| Database migratie | Drop trigger, nieuwe RPC `advance_onboarding_phase` |
 
-## Visueel resultaat
+## Enterprise flow na implementatie
 
 ```text
-+------------------------------------------+
-|  [Q] Zoeken in nesto...                  |   <-- 1.5px border, teal focus, bg-secondary
-+------------------------------------------+
-|                                          |
-|  OPERATIE                                |   <-- 11px uppercase, muted/60
-|    [icon] Dashboard                      |   <-- rounded-button, bg-accent/60 hover
-|    [icon] Reserveringen                  |
-|                                          |
-|  KEUKEN                                  |
-|    [icon] Recepten                       |
-|    [icon] Ingrediënten                   |
-|                                          |
-+------------------------------------------+
+Taak afvinken          -->  Checkbox togglet vrij (undo mogelijk)
+Alle taken afgerond    -->  "Doorgaan" knop wordt enabled
+Klik "Doorgaan"        -->  ConfirmDialog: "Doorgaan naar [fase]?"
+Bevestig               -->  RPC draait, nieuwe taken verschijnen
+Laatste fase bevestigd -->  ConfirmDialog: "[Naam] aannemen?"
+Bevestig               -->  Status wordt 'hired'
 ```
-
-Alles in lijn met de sidebar section labels, input styling en hover states die al in het project bestaan.
 
