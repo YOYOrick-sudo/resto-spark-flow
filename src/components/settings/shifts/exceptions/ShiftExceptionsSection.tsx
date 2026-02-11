@@ -176,7 +176,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
           {/* List header with count */}
           {exceptions.length > 0 && (
             <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Lijst
               </span>
               <span className="text-xs text-muted-foreground">
