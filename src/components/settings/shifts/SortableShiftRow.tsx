@@ -55,7 +55,7 @@ export function SortableShiftRow({
       <div
         ref={setNodeRef}
         style={style}
-        className="relative grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 py-2.5 px-2 rounded-dropdown hover:bg-accent/40 transition-all duration-150 group border border-transparent hover:border-border/40"
+        className="relative grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 py-2.5 px-2 rounded-dropdown hover:bg-accent/40 transition-all duration-150 group"
       >
         {/* Subtle left color accent */}
         <div
@@ -90,15 +90,15 @@ export function SortableShiftRow({
 
         {/* Priority badge */}
         <div className="flex items-center justify-center">
-          <span className="w-6 h-6 text-[11px] font-semibold tabular-nums text-muted-foreground flex items-center justify-center rounded-md bg-muted/60">
+          <span className="w-6 h-6 text-[11px] font-semibold tabular-nums text-muted-foreground flex items-center justify-center rounded-md bg-muted border border-border/60">
             {priority}
           </span>
         </div>
 
         {/* Times */}
-        <span className="text-sm tabular-nums font-medium">
+        <span className="text-sm tabular-nums font-semibold text-foreground">
           {formatTime(shift.start_time)}
-          <span className="text-muted-foreground mx-0.5">–</span>
+          <span className="text-muted-foreground/60 mx-0.5">–</span>
           {formatTime(shift.end_time)}
         </span>
 
@@ -109,7 +109,7 @@ export function SortableShiftRow({
             style={{ backgroundColor: shift.color }}
           />
           <span className="font-semibold text-sm truncate">{shift.name}</span>
-          <span className="text-[11px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-control shrink-0 font-medium">
+          <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-control shrink-0 font-medium">
             {shift.short_name}
           </span>
         </div>
@@ -122,7 +122,7 @@ export function SortableShiftRow({
               className={cn(
                 "w-[18px] h-[18px] flex items-center justify-center text-[10px] rounded-[4px] font-semibold transition-colors",
                 shift.days_of_week.includes(day)
-                  ? "bg-primary/12 text-primary"
+                  ? "bg-primary/15 text-primary font-bold"
                   : "text-muted-foreground/40"
               )}
             >
@@ -132,7 +132,7 @@ export function SortableShiftRow({
         </div>
 
         {/* Interval */}
-        <span className="text-xs text-muted-foreground text-center font-medium tabular-nums">
+        <span className="text-xs text-foreground/70 text-center font-medium tabular-nums">
           {formatInterval(shift.arrival_interval_minutes)}
         </span>
 

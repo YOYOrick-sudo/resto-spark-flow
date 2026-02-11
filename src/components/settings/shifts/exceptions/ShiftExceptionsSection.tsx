@@ -100,7 +100,7 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
   return (
     <NestoCard className="p-6 border border-border">
       {/* Header with quick actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-5 border-b border-border">
         <div>
           <h3 className="text-base font-semibold">Uitzonderingen</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
