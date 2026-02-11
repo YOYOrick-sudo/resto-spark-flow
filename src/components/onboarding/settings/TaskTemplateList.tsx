@@ -9,7 +9,6 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, Mail, Sparkles, HelpCircle } from 'lucide-react';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
-import { NestoInput } from '@/components/polar/NestoInput';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
 
@@ -60,114 +59,93 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
   const isAutomatable = (task: TaskTemplate) => {
     if (AUTOMATABLE_TYPES.includes(task.task_type || '')) return true;
     if (task.is_automated === true && !task.task_type) return true;
-    // Fallback: herken email-taken op titel
     const emailKeywords = /bevestiging|email|sturen|herinnering|reminder|uitnodiging|welkom/i;
     return emailKeywords.test(task.title);
   };
 
   return (
-    <div className="space-y-1.5">
-      {tasks.map((task, index) => (
-        <div
-          key={index}
-          className="group py-2.5 px-3 rounded-lg border border-border/30 transition-colors duration-150"
-        >
-          {/* Row 1: Title + delete */}
-          <div className="flex items-center gap-2">
-            <NestoInput
+    <div>
+      {/* Header row */}
+      <div className="grid grid-cols-[1fr_auto_32px] gap-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2.5 pb-2 border-b border-border/50 mb-0">
+        <span>Taak</span>
+        <span>Uitvoering</span>
+        <span />
+      </div>
+
+      {/* Data rows */}
+      <div className="divide-y divide-border/50">
+        {tasks.map((task, index) => (
+          <div
+            key={index}
+            className="grid grid-cols-[1fr_auto_32px] items-center gap-3 py-2 px-2.5 hover:bg-accent/40 transition-colors duration-150 group"
+          >
+            {/* Col 1: Task name — ghost input */}
+            <input
               value={task.title}
               onChange={(e) => updateTask(index, 'title', e.target.value)}
               placeholder="Taaknaam..."
-              className="h-8 text-sm flex-1"
+              className="h-8 text-sm font-semibold text-foreground bg-transparent border-[1.5px] border-transparent rounded-button px-2 focus:border-border focus:bg-card focus:outline-none transition-colors placeholder:text-muted-foreground"
             />
-            <button
-              onClick={() => setDeleteIndex(index)}
-              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors duration-150 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-primary/30 outline-none flex-shrink-0"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
 
-          {/* Row 2: Assignment / automation */}
-          <div className="flex items-center gap-3 mt-1.5">
-            {isAutomatable(task) ? (
-              <div className="flex items-center gap-3 flex-1">
-                <div className="flex items-center gap-1.5">
+            {/* Col 2: Execution */}
+            <div className="flex items-center gap-2.5 min-w-[220px]">
+              {isAutomatable(task) ? (
+                <>
                   <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground">Assistent</span>
                   <Switch
                     checked={task.is_automated !== false}
                     onCheckedChange={(checked) => {
                       updateTask(index, 'is_automated', checked);
                       onExplicitAction?.();
                     }}
-                    className="ml-0.5"
                   />
-                </div>
-                {task.is_automated !== false ? (
-                  <div className="flex items-center gap-1.5">
-                    <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                    <span className="text-xs text-primary font-medium">Automatisch verstuurd</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help flex-shrink-0" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[260px] text-xs">
-                          De Assistent verstuurt deze email automatisch wanneer een kandidaat deze fase bereikt. Pas de inhoud aan via het tabblad E-mailtemplates.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-muted-foreground">Toegewezen aan:</span>
-                    <Select
+                  {task.is_automated !== false ? (
+                    <div className="flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      <span className="text-xs text-primary font-medium">Automatisch</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help flex-shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[260px] text-xs">
+                            De Assistent verstuurt deze email automatisch wanneer een kandidaat deze fase bereikt.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ) : (
+                    <RoleSelect
                       value={task.assigned_role || ''}
-                      onValueChange={(val) => updateTask(index, 'assigned_role', val)}
-                    >
-                      <SelectTrigger className="h-7 w-[120px] text-xs">
-                        <SelectValue placeholder="Selecteer rol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROLES.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground">Toegewezen aan:</span>
-                <Select
+                      onChange={(val) => updateTask(index, 'assigned_role', val)}
+                    />
+                  )}
+                </>
+              ) : (
+                <RoleSelect
                   value={task.assigned_role || ''}
-                  onValueChange={(val) => updateTask(index, 'assigned_role', val)}
-                >
-                  <SelectTrigger className="h-7 w-[120px] text-xs">
-                    <SelectValue placeholder="Selecteer rol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ROLES.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        {role.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
+                  onChange={(val) => updateTask(index, 'assigned_role', val)}
+                />
+              )}
+            </div>
 
-      <NestoButton variant="outline" size="sm" onClick={addTask} className="mt-1">
-        <Plus className="h-4 w-4 mr-1" />
-        Taak toevoegen
-      </NestoButton>
+            {/* Col 3: Delete */}
+            <button
+              onClick={() => setDeleteIndex(index)}
+              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors duration-150 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-primary/30 outline-none"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 px-2.5">
+        <NestoButton variant="outline" size="sm" onClick={addTask}>
+          <Plus className="h-4 w-4 mr-1" />
+          Taak toevoegen
+        </NestoButton>
+      </div>
 
       <ConfirmDialog
         open={deleteIndex !== null}
@@ -179,5 +157,22 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
         onConfirm={() => deleteIndex !== null && removeTask(deleteIndex)}
       />
     </div>
+  );
+}
+
+function RoleSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-7 w-[120px] text-xs">
+        <SelectValue placeholder="Selecteer rol" />
+      </SelectTrigger>
+      <SelectContent>
+        {ROLES.map((role) => (
+          <SelectItem key={role.value} value={role.value}>
+            {role.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
