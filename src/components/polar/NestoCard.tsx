@@ -26,8 +26,8 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
               "p-4": variant === "small",
             },
             nested && "border border-border/40",
-            !nested && "dark:border dark:border-border/50",
-            hoverable && !nested && "cursor-pointer hover:-translate-y-px dark:hover:border-border/70",
+            !nested && "dark:border dark:border-border",
+            hoverable && !nested && "cursor-pointer hover:-translate-y-px dark:hover:border-border/80",
             className
           )}
         style={{
