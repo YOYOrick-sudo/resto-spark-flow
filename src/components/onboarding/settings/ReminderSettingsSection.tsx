@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
-import { InfoAlert } from '@/components/polar/InfoAlert';
+import { TitleHelp } from '@/components/polar/TitleHelp';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { Check } from 'lucide-react';
@@ -67,7 +67,13 @@ export function ReminderSettingsSection() {
     <NestoCard className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-sm font-semibold">Automatische herinneringen</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold">Automatische herinneringen</h3>
+            <TitleHelp title="Naar wie gaan reminders?">
+              <p className="text-muted-foreground">Reminders worden verstuurd naar de verantwoordelijke van elke fase.</p>
+              <p className="text-muted-foreground">Stel verantwoordelijken in via het tabblad 'Team'.</p>
+            </TitleHelp>
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Stuur automatisch herinneringen wanneer taken te lang openstaan
           </p>
@@ -142,9 +148,6 @@ export function ReminderSettingsSection() {
         </div>
       </div>
 
-      <InfoAlert variant="info" title="Naar wie gaan reminders?" className="mt-6">
-        Reminders worden verstuurd naar de verantwoordelijke van elke fase. Stel verantwoordelijken in via het tabblad 'Team'.
-      </InfoAlert>
     </NestoCard>
   );
 }

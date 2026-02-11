@@ -77,27 +77,31 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
             </button>
           </div>
 
-          {/* Row 2: Role dropdown + Assistant toggle */}
+          {/* Row 2: Role dropdown OR Assistent label + toggle */}
           <div className="flex items-center gap-4 mt-2">
-            <Select
-              value={task.assigned_role || ''}
-              onValueChange={(val) => updateTask(index, 'assigned_role', val)}
-            >
-              <SelectTrigger className="h-8 w-[140px] text-sm">
-                <SelectValue placeholder="Selecteer rol" />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLES.map((role) => (
-                  <SelectItem key={role.value} value={role.value}>
-                    {role.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {task.is_automated ? (
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <span className="text-sm text-primary font-medium">Assistent</span>
+              </div>
+            ) : (
+              <Select
+                value={task.assigned_role || ''}
+                onValueChange={(val) => updateTask(index, 'assigned_role', val)}
+              >
+                <SelectTrigger className="h-8 w-[140px] text-sm">
+                  <SelectValue placeholder="Selecteer rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="flex items-center gap-2 ml-auto">
-              {task.is_automated && (
-                <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
-              )}
               <Label htmlFor={`auto-${index}`} className="text-xs text-muted-foreground cursor-pointer">
                 Assistent
               </Label>

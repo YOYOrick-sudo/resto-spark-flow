@@ -3,7 +3,7 @@ import { useOnboardingSettings, useUpdateOnboardingSettings } from '@/hooks/useO
 import { NestoCard } from '@/components/polar/NestoCard';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { InfoAlert } from '@/components/polar/InfoAlert';
+import { FieldHelp } from '@/components/polar/FieldHelp';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { Check } from 'lucide-react';
@@ -74,7 +74,12 @@ export function EmailConfigSection() {
           </div>
 
           <div>
-            <Label className="text-sm mb-1.5">Reply-to adres</Label>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Label className="text-sm">Reply-to adres</Label>
+              <FieldHelp>
+                <p className="text-muted-foreground">Het afzenderdomein (@nesto.app) wordt beheerd op platform-niveau en is niet per locatie aanpasbaar.</p>
+              </FieldHelp>
+            </div>
             <Input
               type="email"
               value={localConfig.reply_to || ''}
@@ -89,12 +94,6 @@ export function EmailConfigSection() {
         </div>
       </NestoCard>
 
-      <InfoAlert
-        title="Platform domein"
-        variant="info"
-      >
-        Het afzenderdomein (@nesto.app) wordt beheerd op platform-niveau en is niet per locatie aanpasbaar.
-      </InfoAlert>
     </div>
   );
 }
