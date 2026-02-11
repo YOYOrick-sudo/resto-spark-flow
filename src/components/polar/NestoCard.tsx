@@ -17,7 +17,7 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
         ref={ref}
           className={cn(
             "bg-card text-card-foreground",
-            "transition-[box-shadow,transform] duration-200",
+            "transition-[box-shadow,transform,border-color] duration-200",
             radiusClass,
             {
               "p-6": variant === "default",
@@ -26,7 +26,8 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
               "p-4": variant === "small",
             },
             nested && "border border-border/40",
-            hoverable && !nested && "cursor-pointer hover:-translate-y-px",
+            !nested && "dark:border dark:border-border/50",
+            hoverable && !nested && "cursor-pointer hover:-translate-y-px dark:hover:border-border/70",
             className
           )}
         style={{
