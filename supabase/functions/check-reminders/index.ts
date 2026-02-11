@@ -113,6 +113,9 @@ async function processLocation(
   const templates = emailTemplates as Record<string, { subject: string; html_body: string }> | null;
 
   for (const task of pendingTasks) {
+    // Get phase owner email (fallback to location owner)
+    const recipientEmail = await getTaskRecipientEmail(task.phase_id, locationId, ownerEmail);
+
     // Count existing reminders for this task
     const { count } = await supabaseAdmin
       .from('onboarding_events')
@@ -126,11 +129,10 @@ async function processLocation(
     const taskAgeHours = (Date.now() - new Date(task.created_at).getTime()) / (1000 * 60 * 60);
 
     if (reminderCount === 0 && taskAgeHours >= config.first_reminder_hours) {
-      // First reminder
       const key = `reminder:${task.id}:1`;
       if (await claimIdempotencyLock(key)) {
         try {
-          await sendReminderEmail(task, locationId, ownerEmail, 'internal_reminder', templates);
+          await sendReminderEmail(task, locationId, recipientEmail, 'internal_reminder', templates);
           await logReminderEvent(task, locationId, 1);
           await completeExecution(key, { reminder_number: 1 });
           reminders++;
@@ -139,11 +141,10 @@ async function processLocation(
         }
       }
     } else if (reminderCount === 1 && taskAgeHours >= config.second_reminder_hours) {
-      // Second reminder (urgent)
       const key = `reminder:${task.id}:2`;
       if (await claimIdempotencyLock(key)) {
         try {
-          await sendReminderEmail(task, locationId, ownerEmail, 'internal_reminder_urgent', templates);
+          await sendReminderEmail(task, locationId, recipientEmail, 'internal_reminder_urgent', templates);
           await logReminderEvent(task, locationId, 2);
           await completeExecution(key, { reminder_number: 2, escalated: true });
           escalations++;
@@ -224,6 +225,23 @@ async function checkNoResponse(locationId: string, config: ReminderConfig): Prom
 }
 
 // ─── HELPERS ────────────────────────────────────────────
+
+async function getTaskRecipientEmail(
+  phaseId: string,
+  locationId: string,
+  fallbackEmail: string,
+): Promise<string> {
+  const { data: phase } = await supabaseAdmin
+    .from('onboarding_phases')
+    .select('phase_owner_email')
+    .eq('id', phaseId)
+    .single();
+
+  if (phase?.phase_owner_email) {
+    return phase.phase_owner_email;
+  }
+  return fallbackEmail;
+}
 
 async function getLocationOwnerEmail(locationId: string): Promise<string | null> {
   const { data } = await supabaseAdmin

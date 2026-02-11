@@ -1,35 +1,34 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { Json } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
-interface PhaseUpdate {
+interface PhaseOwnerUpdate {
   phaseId: string;
-  updates: {
-    is_active?: boolean;
-    name?: string;
-    description?: string | null;
-    task_templates?: Json;
-    assistant_enabled?: boolean;
-  };
+  phase_owner_id?: string | null;
+  phase_owner_name?: string | null;
+  phase_owner_email?: string | null;
 }
 
-export function useUpdatePhaseConfig() {
+export function useUpdatePhaseOwner() {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ phaseId, updates }: PhaseUpdate) => {
+    mutationFn: async ({ phaseId, ...ownerData }: PhaseOwnerUpdate) => {
       const { error } = await supabase
         .from('onboarding_phases')
-        .update(updates)
+        .update(ownerData)
         .eq('id', phaseId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases-all', locationId] });
-      queryClient.invalidateQueries({ queryKey: ['onboarding-phases', locationId] });
+      toast.success('Verantwoordelijke bijgewerkt');
+    },
+    onError: () => {
+      toast.error('Kon verantwoordelijke niet bijwerken');
     },
   });
 }

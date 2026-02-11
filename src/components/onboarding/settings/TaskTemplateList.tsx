@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { useState } from 'react';
 
@@ -87,8 +87,15 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
                   checked={task.is_automated ?? false}
                   onCheckedChange={(val) => updateTask(index, 'is_automated', val)}
                 />
-                <Label htmlFor={`auto-${index}`} className="text-xs text-muted-foreground">
-                  Geautomatiseerd
+                <Label htmlFor={`auto-${index}`} className="text-xs text-muted-foreground flex items-center gap-1">
+                  {task.is_automated ? (
+                    <>
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      Assistent
+                    </>
+                  ) : (
+                    'Geautomatiseerd'
+                  )}
                 </Label>
               </div>
             </div>

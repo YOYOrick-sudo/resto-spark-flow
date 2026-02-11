@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
-import { Code, ChevronDown, ChevronRight } from 'lucide-react';
+import { Code, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 
 interface EmailTemplate {
   subject: string;
@@ -35,6 +35,12 @@ const TEMPLATE_DESCRIPTIONS: Record<string, string> = {
   internal_reminder: 'Taak te lang open',
   internal_reminder_urgent: 'Taak veel te lang open',
 };
+
+const ASSISTANT_TEMPLATES = new Set([
+  'confirmation', 'additional_questions', 'interview_invite',
+  'trial_day_invite', 'offer_and_form', 'welcome',
+  'internal_reminder', 'internal_reminder_urgent',
+]);
 
 const VARIABLES = [
   { key: '[voornaam]', label: 'Voornaam' },
@@ -119,6 +125,12 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
               >
                 {isConfigured ? 'Geconfigureerd' : 'Niet ingesteld'}
               </NestoBadge>
+              {ASSISTANT_TEMPLATES.has(templateKey) && (
+                <NestoBadge variant="primary" size="sm">
+                  <Sparkles className="h-3 w-3 mr-0.5" />
+                  Assistent
+                </NestoBadge>
+              )}
             </div>
           </div>
         </div>

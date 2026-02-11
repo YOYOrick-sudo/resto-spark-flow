@@ -517,34 +517,49 @@ export type Database = {
       }
       onboarding_phases: {
         Row: {
+          assistant_enabled: boolean
           created_at: string
           description: string | null
           id: string
           is_active: boolean
+          is_custom: boolean
           location_id: string
           name: string
+          phase_owner_email: string | null
+          phase_owner_id: string | null
+          phase_owner_name: string | null
           sort_order: number
           task_templates: Json
           updated_at: string
         }
         Insert: {
+          assistant_enabled?: boolean
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          is_custom?: boolean
           location_id: string
           name: string
+          phase_owner_email?: string | null
+          phase_owner_id?: string | null
+          phase_owner_name?: string | null
           sort_order?: number
           task_templates?: Json
           updated_at?: string
         }
         Update: {
+          assistant_enabled?: boolean
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          is_custom?: boolean
           location_id?: string
           name?: string
+          phase_owner_email?: string | null
+          phase_owner_id?: string | null
+          phase_owner_name?: string | null
           sort_order?: number
           task_templates?: Json
           updated_at?: string
@@ -555,6 +570,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_phases_phase_owner_id_fkey"
+            columns: ["phase_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
