@@ -1,101 +1,59 @@
 
 
-# Enterprise Visual Polish - Email Template Cards & Grote Cards
+# Assistent-indicator: Icon-only patroon
 
-## Probleem
+## Huidige situatie
 
-De email template cards (Ontvangstbevestiging, Afwijzing, etc.) voelen visueel "vaag" aan ondanks de enterprise token-updates. De oorzaken:
+In de collapsed header van elke fase staat nu:
+- Sparkles icoon (teal) + tekst badge "Assistent"
+- Alleen zichtbaar als assistent aan staat
+- Als assistent uit staat: geen indicator
 
-1. **Alle 9 template cards zijn altijd volledig open** met grote textarea's -- dit creëert een overweldigende muur van lege formulieren
-2. **Geen visuele status-indicatie** of een template al geconfigureerd is of nog leeg
-3. **De `bg-secondary/50` form grouping** heeft minimaal contrast met de card achtergrond, waardoor de structuur vervalt
-4. **Textarea's zijn 160px hoog** zelfs wanneer leeg -- veel visuele ruimte zonder inhoud
+## Voorstel: Icon-only met kleur-status
 
-## Oplossing: Collapsible Template Cards
+Vervang de icoon + badge combo door **alleen het Sparkles icoon**, altijd zichtbaar, met kleur als status-indicator:
 
-Dezelfde aanpak als PhaseConfigCard: cards zijn standaard **ingeklapt** met een compacte samenvatting, en klappen uit voor bewerking.
+| Status | Icoon kleur | Tooltip |
+|--------|------------|---------|
+| Assistent aan | `text-primary` (teal) | "Assistent actief voor deze fase" |
+| Assistent uit | `text-muted-foreground/40` (lichtgrijs) | "Assistent niet actief" |
 
-### Wijzigingen aan `EmailTemplateEditor.tsx`
+Dit is consistent met enterprise patronen (Linear, Notion) waar icon-only indicators met kleurverschil worden gebruikt voor compacte status-weergave.
 
-**Collapsed state (standaard):**
-- Compacte rij: template naam + beschrijving + status badge
-- Status badge toont "Geconfigureerd" (teal) of "Niet ingesteld" (amber) op basis van of subject en body ingevuld zijn
-- Klik op de card header klapt de editor uit
-- Template key badge blijft zichtbaar (rechts)
+## Wijzigingen
 
-**Expanded state (na klik):**
-- Huidige form grouping block met subject + body textarea
-- Variable chips
-- Preview toggle
-- Textarea hoogte verlaagd naar `min-h-[120px]` (was 160px)
+### `PhaseConfigCard.tsx` (collapsed header)
 
-**Visuele verbeteringen:**
-- Header wordt clickable met chevron icon (consistent met PhaseConfigCard)
-- Hover state op collapsed header: `hover:bg-accent/40 duration-150`
-- Status dot naast de titel: groene dot als geconfigureerd, amber als leeg
-- `border-b border-border/50` separator tussen header en content (alleen in expanded)
+- Verwijder de `NestoBadge` "Assistent" tekst
+- Toon het Sparkles icoon **altijd** (niet alleen als enabled)
+- Kleur: `text-primary` als `assistantEnabled || hasAutomatedTasks`, anders `text-muted-foreground/40`
+- Tooltip blijft, met aangepaste tekst per status
+- Het `(phase as any).is_custom` badge "Aangepast" blijft ongewijzigd
 
-### Wijzigingen aan `EmailTemplatesSection.tsx`
+### Technisch
 
-- Geen structurele wijzigingen nodig, delegeert aan EmailTemplateEditor
+Regel 69-83 wordt:
 
-### Wijzigingen aan `PhaseConfigCard.tsx`
-
-- Status dot toevoegen: groene dot als fase actief, grijze dot als inactief
-- Consistent met de email template status indicator
-
----
-
-## Technische details
-
-### EmailTemplateEditor.tsx -- Collapsed/Expanded patroon
-
-```text
-COLLAPSED:
-+----------------------------------------------------------+
-| > Ontvangstbevestiging              [confirmation]       |
-|   Nieuwe kandidaat        * Geconfigureerd               |
-+----------------------------------------------------------+
-
-EXPANDED:
-+----------------------------------------------------------+
-| v Ontvangstbevestiging              [confirmation]       |
-|   Nieuwe kandidaat        * Geconfigureerd               |
-|----------------------------------------------------------|
-|   +--------------------------------------------------+   |
-|   | Onderwerp: [input field]                         |   |
-|   | Body: [textarea]                                 |   |
-|   +--------------------------------------------------+   |
-|   Variabelen: [voornaam] [achternaam] [vestiging]...     |
-|   [Preview tonen v]                                      |
-+----------------------------------------------------------+
+```tsx
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Sparkles className={cn(
+        "h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150",
+        (assistantEnabled || hasAutomatedTasks)
+          ? "text-primary"
+          : "text-muted-foreground/40"
+      )} />
+    </TooltipTrigger>
+    <TooltipContent side="top">
+      <p>{(assistantEnabled || hasAutomatedTasks)
+        ? "Assistent actief voor deze fase"
+        : "Assistent niet actief"
+      }</p>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
 ```
 
-### Status badge logica
-
-```text
-- Subject EN body ingevuld -> NestoBadge variant="primary" met dot: "Geconfigureerd"
-- Subject OF body leeg -> NestoBadge variant="warning" met dot: "Niet ingesteld"
-```
-
-### Specifieke code-wijzigingen
-
-1. `EmailTemplateEditor.tsx`:
-   - Nieuwe state: `const [expanded, setExpanded] = useState(false)`
-   - Status check: `const isConfigured = template.subject.trim() !== '' && template.body.trim() !== ''`
-   - Collapsed header als clickable div met chevron + status badge
-   - Form content wrapped in `{expanded && (...)}`
-   - Textarea `min-h-[160px]` wordt `min-h-[120px]`
-
-2. `PhaseConfigCard.tsx`:
-   - StatusDot component toevoegen naast fase naam (groen=actief, grijs=inactief)
-
----
-
-## Resultaat
-
-- De pagina wordt visueel **veel compacter** -- 9 ingeklapte cards in plaats van 9 grote open formulieren
-- **Direct zichtbaar** welke templates al geconfigureerd zijn (status badges)
-- **Consistent patroon** met PhaseConfigCard (collapsible cards)
-- Behoudt alle enterprise tokens die eerder zijn toegepast (tabular-nums, focus-visible, transitions)
+Vereist toevoegen van `cn` import uit `@/lib/utils`.
 
