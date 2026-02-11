@@ -57,7 +57,9 @@ export function TaskTemplateList({ tasks, onChange, onExplicitAction }: TaskTemp
     onExplicitAction?.();
   };
 
-  const isAutomatable = (task: TaskTemplate) => AUTOMATABLE_TYPES.includes(task.task_type || '');
+  const isAutomatable = (task: TaskTemplate) =>
+    AUTOMATABLE_TYPES.includes(task.task_type || '') ||
+    (task.is_automated === true && !task.task_type);
 
   return (
     <div className="space-y-2">
