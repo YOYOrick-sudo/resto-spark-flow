@@ -143,14 +143,15 @@ interface SettingsModuleConfig {
 ## Voorbeeld: Reserveringen Module
 
 ```
-/instellingen/reserveringen              → Cards: Pacing, Tafels, Shifts, Notificaties
+/instellingen/reserveringen              → Cards: Pacing, Tafels, Shifts, Tickets, Notificaties
 /instellingen/reserveringen/pacing       → Pacing formulier
 /instellingen/reserveringen/tafels       → Cards: Locatie, Areas, Tafelcombinaties
 /instellingen/reserveringen/tafels/locatie    → Locatie settings formulier
 /instellingen/reserveringen/tafels/areas      → Areas lijst
 /instellingen/reserveringen/tafels/areas/:id  → Area detail + tafels
 /instellingen/reserveringen/tafels/tafelgroepen → Tafelcombinaties lijst
-/instellingen/reserveringen/shift-tijden → Shift tijden formulier
+/instellingen/reserveringen/shifts       → Shifts beheer
+/instellingen/reserveringen/tickets      → Tickets beheer
 /instellingen/reserveringen/notificaties → Notificaties formulier
 ```
 
@@ -196,6 +197,7 @@ Bij het migreren van een bestaande settings pagina:
 
 ## Gerelateerde Documenten
 
+- `docs/design/SETTINGS_PATTERN_DECISION.md` - Patroonkeuze (Hub vs. Tabs) en module-indeling
 - `docs/design/SETTINGS_PAGE_PATTERNS.md` - Formulier en card patterns
 - `src/lib/settingsRouteConfig.ts` - Route configuraties
 - `src/components/settings/layouts/` - Layout componenten
