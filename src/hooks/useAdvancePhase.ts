@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 export function useAdvancePhase() {
   const queryClient = useQueryClient();
@@ -20,13 +20,13 @@ export function useAdvancePhase() {
       queryClient.invalidateQueries({ queryKey: ['onboarding-events'] });
 
       if (data?.action === 'hired') {
-        toast.success('Kandidaat aangenomen!');
+        nestoToast.success('Kandidaat aangenomen!');
       } else if (data?.action === 'advanced') {
-        toast.success(`Doorgegaan naar fase: ${data.to_phase}`);
+        nestoToast.success(`Doorgegaan naar fase: ${data.to_phase}`);
       }
     },
     onError: (error) => {
-      toast.error('Fase-overgang mislukt', { description: error.message });
+      nestoToast.error('Fase-overgang mislukt', error.message);
     },
   });
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 export function useToggleTask() {
   const queryClient = useQueryClient();
@@ -28,7 +28,7 @@ export function useToggleTask() {
       queryClient.invalidateQueries({ queryKey: ['onboarding-events'] });
     },
     onError: (error) => {
-      toast.error('Taakstatus wijzigen mislukt', { description: error.message });
+      nestoToast.error('Taakstatus wijzigen mislukt', error.message);
     },
   });
 }

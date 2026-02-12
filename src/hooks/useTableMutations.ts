@@ -7,7 +7,7 @@ import type {
   ArchiveAreaResponse, 
   RestoreTableResponse 
 } from "@/types/reservations";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import { queryKeys } from "@/lib/queryKeys";
 
 // ============================================
@@ -33,10 +33,10 @@ export function useCreateArea() {
         queryKey: queryKeys.areasWithTables(variables.location_id),
         exact: false 
       });
-      toast.success('Area aangemaakt');
+      nestoToast.success('Area aangemaakt');
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij aanmaken: ${error.message}`);
+      nestoToast.error(`Fout bij aanmaken: ${error.message}`);
     }
   });
 }
@@ -89,13 +89,13 @@ export function useArchiveArea() {
         });
       }
       if (result.archived_area) {
-        toast.success(`Area gearchiveerd met ${result.archived_tables} tafel(s)`);
+        nestoToast.success(`Area gearchiveerd met ${result.archived_tables} tafel(s)`);
       } else {
-        toast.info(result.message || 'Area was al gearchiveerd');
+        nestoToast.info(result.message || 'Area was al gearchiveerd');
       }
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij archiveren: ${error.message}`);
+      nestoToast.error(`Fout bij archiveren: ${error.message}`);
     }
   });
 }
@@ -127,7 +127,7 @@ export function useRestoreArea() {
           exact: false 
         });
       }
-      toast.success('Area hersteld');
+      nestoToast.success('Area hersteld');
     }
   });
 }
@@ -165,10 +165,10 @@ export function useCreateTable() {
           exact: false 
         });
       }
-      toast.success('Tafel aangemaakt');
+      nestoToast.success('Tafel aangemaakt');
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij aanmaken: ${error.message}`);
+      nestoToast.error(`Fout bij aanmaken: ${error.message}`);
     }
   });
 }
@@ -203,10 +203,10 @@ export function useCreateTablesBulk() {
           exact: false 
         });
       }
-      toast.success(`${data.length} tafel(s) aangemaakt`);
+      nestoToast.success(`${data.length} tafel(s) aangemaakt`);
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij aanmaken: ${error.message}`);
+      nestoToast.error(`Fout bij aanmaken: ${error.message}`);
     }
   });
 }
@@ -257,7 +257,7 @@ export function useArchiveTable() {
         queryKey: queryKeys.areasWithTables(locationId),
         exact: false 
       });
-      toast.success('Tafel gearchiveerd');
+      nestoToast.success('Tafel gearchiveerd');
     }
   });
 }
@@ -304,12 +304,12 @@ export function useRestoreTable() {
           exact: false 
         });
       }
-      toast.success(`Tafel "${result.display_label}" hersteld`);
+      nestoToast.success(`Tafel "${result.display_label}" hersteld`);
     },
     onError: (error: Error & { code?: string }) => {
       // Don't show toast for label conflicts - let UI handle it
       if (error.code !== 'label_conflict') {
-        toast.error(`Fout bij herstellen: ${error.message}`);
+        nestoToast.error(`Fout bij herstellen: ${error.message}`);
       }
     }
   });
@@ -343,7 +343,7 @@ export function useSwapAreaSortOrder() {
       });
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij herschikken: ${error.message}`);
+      nestoToast.error(`Fout bij herschikken: ${error.message}`);
     }
   });
 }
@@ -372,7 +372,7 @@ export function useSwapTableSortOrder() {
       });
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij herschikken: ${error.message}`);
+      nestoToast.error(`Fout bij herschikken: ${error.message}`);
     }
   });
 }
@@ -442,7 +442,7 @@ export function useReorderAreas() {
           queryClient.setQueryData(key, data);
         });
       }
-      toast.error("Herschikken mislukt", { description: error.message });
+      nestoToast.error("Herschikken mislukt", error.message);
     },
 
     onSettled: (_, __, { locationId }) => {
@@ -519,7 +519,7 @@ export function useReorderTables() {
           queryClient.setQueryData(key, data);
         });
       }
-      toast.error("Herschikken mislukt", { description: error.message });
+      nestoToast.error("Herschikken mislukt", error.message);
     },
 
     onSettled: (_, __, { locationId }) => {

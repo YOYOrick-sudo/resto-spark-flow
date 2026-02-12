@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { nestoToast } from '@/lib/nestoToast';
 
 interface SendMessageParams {
   candidateId: string;
@@ -45,10 +45,10 @@ export function useSendMessage() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-messages', variables.candidateId] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-events', variables.candidateId] });
-      toast({ title: 'Bericht verstuurd', description: 'Het bericht is succesvol verzonden.' });
+      nestoToast.success('Bericht verstuurd', 'Het bericht is succesvol verzonden.');
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij versturen', description: error.message, variant: 'destructive' });
+      nestoToast.error('Fout bij versturen', error.message);
     },
   });
 }

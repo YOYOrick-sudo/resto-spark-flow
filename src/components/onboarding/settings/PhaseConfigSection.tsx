@@ -11,7 +11,7 @@ import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 import { Json } from '@/integrations/supabase/types';
 import { ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 
@@ -31,7 +31,7 @@ export function PhaseConfigSection() {
   };
 
   const handleExplicitAction = () => {
-    toast.success('Taak bijgewerkt');
+    nestoToast.success('Taak bijgewerkt');
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {

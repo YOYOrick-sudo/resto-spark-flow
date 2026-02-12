@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 interface CreatePhaseInput {
   name: string;
@@ -17,7 +17,6 @@ export function useCreatePhase() {
     mutationFn: async ({ name, description }: CreatePhaseInput) => {
       if (!locationId) throw new Error('No location');
 
-      // Get next sort_order
       const { data: existing } = await supabase
         .from('onboarding_phases')
         .select('sort_order')
@@ -47,10 +46,10 @@ export function useCreatePhase() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases-all', locationId] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases', locationId] });
-      toast.success('Fase toegevoegd');
+      nestoToast.success('Fase toegevoegd');
     },
     onError: () => {
-      toast.error('Kon fase niet toevoegen');
+      nestoToast.error('Kon fase niet toevoegen');
     },
   });
 }

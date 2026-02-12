@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import type { CreatePolicySetInput } from "@/types/tickets";
 
 export function usePolicySets(locationId: string | undefined) {
@@ -34,11 +34,11 @@ export function useCreatePolicySet(locationId: string | undefined) {
       return data.id as string;
     },
     onSuccess: () => {
-      toast.success("Beleid aangemaakt");
+      nestoToast.success("Beleid aangemaakt");
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.policySets(locationId) });
     },
     onError: (err: any) => {
-      toast.error(err.message || "Fout bij aanmaken beleid");
+      nestoToast.error(err.message || "Fout bij aanmaken beleid");
     },
   });
 }

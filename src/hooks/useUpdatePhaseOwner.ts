@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 interface PhaseOwnerUpdate {
   phaseId: string;
@@ -25,10 +25,10 @@ export function useUpdatePhaseOwner() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases-all', locationId] });
-      toast.success('Verantwoordelijke bijgewerkt');
+      nestoToast.success('Verantwoordelijke bijgewerkt');
     },
     onError: () => {
-      toast.error('Kon verantwoordelijke niet bijwerken');
+      nestoToast.error('Kon verantwoordelijke niet bijwerken');
     },
   });
 }

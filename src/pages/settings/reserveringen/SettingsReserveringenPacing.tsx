@@ -9,7 +9,7 @@ import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { TitleHelp, TitleHelpTip } from "@/components/polar/TitleHelp";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import {
   mockPacingSettings,
   updatePacingSettings,
@@ -103,7 +103,7 @@ export default function SettingsReserveringenPacing() {
         dinner: settings.dinnerLimit,
       },
     });
-    toast.success("Pacing instellingen opgeslagen");
+    nestoToast.success("Pacing instellingen opgeslagen");
   };
 
   const breadcrumbs = buildBreadcrumbs("reserveringen", "pacing");

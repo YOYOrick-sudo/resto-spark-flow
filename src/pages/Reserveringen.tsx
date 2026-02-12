@@ -21,7 +21,7 @@ import {
   getGuestDisplayName,
   type Reservation,
 } from "@/data/reservations";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export default function Reserveringen() {
   // State
@@ -91,15 +91,15 @@ export default function Reserveringen() {
 
   // Handlers
   const handleReservationClick = (reservation: Reservation) => {
-    toast.info(`Reservering: ${getGuestDisplayName(reservation)}`);
+    nestoToast.info(`Reservering: ${getGuestDisplayName(reservation)}`);
   };
 
   const handleStatusChange = (reservation: Reservation, newStatus: Reservation["status"]) => {
-    toast.success(`Status gewijzigd naar: ${newStatus}`);
+    nestoToast.success(`Status gewijzigd naar: ${newStatus}`);
   };
 
   const handleNewReservation = () => {
-    toast.info("Nieuwe reservering maken...");
+    nestoToast.info("Nieuwe reservering maken...");
   };
 
   return (
