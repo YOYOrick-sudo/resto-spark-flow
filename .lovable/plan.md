@@ -1,79 +1,40 @@
 
-# Toast V8 als Systeem-Standaard
 
-## Wat er moet gebeuren
+# Toast V8 Fix — Zichtbaarheid & Positionering
 
-De `nestoToast()` functie staat nu alleen in `TestToasts.tsx`. Dit plan maakt het de enige toast-methode in het hele platform.
+## Probleem
 
-## Stappen
+Twee issues waardoor de toast niet (goed) zichtbaar is:
 
-### 1. Nieuwe utility: `src/lib/nestoToast.tsx`
+1. **Ongeldige offset**: `offset="24px 40px"` is geen geldig Sonner formaat. Sonner accepteert alleen een enkele waarde (getal of string). Dit kan de positionering breken.
 
-Extract de `nestoToast` functie en `variantStyles` uit `TestToasts.tsx` naar een eigen bestand. Exporteer convenience-methodes:
+2. **Verouderde CSS in `index.css`**: Er staan nog V7-stijlen (`.nesto-toast` met `border-left`, afwijkende font-sizes) die kunnen conflicteren. Omdat `nestoToast` via `toast.custom()` rendert met eigen Tailwind-classes, zijn deze CSS-regels overbodig.
+
+## Oplossing
+
+### 1. Sonner offset fixen (`src/components/ui/sonner.tsx`)
+
+Verander `offset="24px 40px"` terug naar een geldig getal, en gebruik CSS/style om de horizontale positie aan te passen:
 
 ```text
-nestoToast.success(title, desc?)
-nestoToast.error(title, desc?)
-nestoToast.warning(title, desc?)
-nestoToast.info(title, desc?)
+offset={24}
+style={{ right: '40px' }}
 ```
 
-Dit maakt migratie eenvoudig: `toast.success("X")` wordt `nestoToast.success("X")`.
+Dit plaatst de toast 24px van de onderkant en 40px van de rechterkant.
 
-### 2. Migratie — Sonner-aanroepen (20+ bestanden)
+### 2. Verouderde CSS verwijderen (`src/index.css`)
 
-Alle bestanden die `import { toast } from "sonner"` gebruiken worden gemigreerd naar `import { nestoToast } from "@/lib/nestoToast"`.
+Verwijder het hele `.nesto-toast` CSS-blok (regels ~329-384). Deze stijlen zijn V7-overblijfselen en worden niet meer gebruikt — V8 rendert volledig via Tailwind-classes in `nestoToast.tsx`.
 
-Betreft o.a.:
-- `useCreateCandidate.ts`, `useAdvancePhase.ts`, `useRejectCandidate.ts`
-- `useTicketMutations.ts`, `useTableMutations.ts`, `useTableGroups.ts`
-- `useDeletePhase.ts`, `useCreatePhase.ts`, `useResetOnboardingPhases.ts`
-- `useReservationSettings.ts`, `usePolicySets.ts`, `useUpdatePhaseOwner.ts`
-- `useToggleTask.ts`, `useSaveEvaluation.ts`
-- `Reserveringen.tsx`, `SettingsReserveringenPacing.tsx`
-- `TableGroupModal.tsx`
-- `TestToasts.tsx` (import vanuit lib, functie verwijderen)
+### 3. Sonner toastOptions opschonen (`src/components/ui/sonner.tsx`)
 
-### 3. Migratie — Radix/useToast-aanroepen (4 bestanden)
+Verwijder de `classNames` mapping uit `toastOptions` aangezien de CSS-classes niet meer bestaan. Houd `unstyled: true` aan zodat Sonner geen eigen styling toepast op custom toasts.
 
-Bestanden die het oude Radix toast-systeem (`useToast` / `@/hooks/use-toast`) gebruiken:
-- `useShifts.ts` (5 mutaties)
-- `useShiftExceptions.ts` (4 mutaties)
-- `useSendMessage.ts`
-- `ReservationGridView.tsx`
+## Bestanden
 
-Deze worden ook gemigreerd naar `nestoToast`.
+| Bestand | Actie |
+|---------|-------|
+| `src/components/ui/sonner.tsx` | Fix offset, voeg `style` toe, verwijder classNames |
+| `src/index.css` | Verwijder `.nesto-toast` CSS-blok (~55 regels) |
 
-### 4. Opruimen — Oude toast-infrastructuur verwijderen
-
-Na migratie zijn deze bestanden overbodig:
-- `src/components/ui/toaster.tsx` — Radix Toaster component
-- `src/components/ui/toast.tsx` — Radix Toast primitives
-- `src/components/ui/use-toast.ts` — Re-export wrapper
-- `src/hooks/use-toast.ts` — Radix toast hook + state machine
-
-En in `App.tsx`:
-- `<Toaster />` (Radix) verwijderen — alleen `<Sonner />` behouden (die rendert de custom toasts)
-
-### 5. Documentatie updaten
-
-`docs/design/TOAST_NOTIFICATIONS.md` bijwerken met het V8 patroon en de nieuwe import-conventie.
-
----
-
-## Technische details
-
-| Onderdeel | Actie |
-|-----------|-------|
-| `src/lib/nestoToast.tsx` | Nieuw bestand met V8 toast utility |
-| 20+ hooks/components | `toast.success()` wordt `nestoToast.success()` |
-| 4 bestanden met `useToast` | Migreren van Radix naar `nestoToast` |
-| 4 oude toast-bestanden | Verwijderen |
-| `App.tsx` | `<Toaster />` import en element verwijderen |
-| `docs/design/TOAST_NOTIFICATIONS.md` | Updaten naar V8 standaard |
-
-## Resultaat
-
-- Een toast-systeem in plaats van twee
-- Consistent V8 design overal
-- Simpelere API: `nestoToast.success("Opgeslagen")`
