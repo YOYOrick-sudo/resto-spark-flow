@@ -1,79 +1,127 @@
 
 
-# Logo Upload en Brand Color Picker — Communicatie Settings
+# Policy Sets Beheer + Squeeze Defaults + Inline Preview (v2)
 
-## Overzicht
-Activeer de twee gedimde branding-velden op de bestaande Communicatie-pagina: een werkende logo-upload met preview/verwijder en een hex color picker met live preview.
+## Wijzigingen t.o.v. vorig voorstel
 
-## 1. Storage Bucket (database migratie)
+### Wijziging 1: Description veld in Basis-sectie
 
-Maak een private storage bucket `communication-assets` aan met RLS policies:
+De "Basis" sectie in `PolicySetDetailSheet` krijgt naast "Naam" ook een optioneel "Beschrijving" veld (textarea, max 200 tekens). Dit veld:
 
-- **SELECT**: gebruiker heeft toegang tot de locatie (`user_has_location_access`)
-- **INSERT**: owner/manager rol in de locatie
-- **UPDATE**: owner/manager rol in de locatie
-- **DELETE**: owner/manager rol in de locatie
-- Padstructuur: `{location_id}/logo.{ext}`
-- Bestandslimiet: 2 MB, alleen `image/png`, `image/jpeg`, `image/svg+xml`
+- Wordt opgeslagen in `policy_sets.description` (kolom bestaat al in de database)
+- Wordt getoond op de `PolicySetCard` als subtekst onder de naam (indien gevuld)
+- Wordt getoond in de policy set dropdown op de ticket detail pagina (als secondary text)
+- Placeholder: "Bijv. voor groepen vanaf 8 personen"
 
-## 2. Logo Upload Hook
+Geen database migratie nodig — `description` kolom bestaat al.
 
-Nieuw bestand: `src/hooks/useLogoUpload.ts`
+### Wijziging 2: Archiveer-guard met blokkade
 
-| Functie | Wat het doet |
-|---------|-------------|
-| `uploadLogo(file)` | Valideert type + grootte, upload naar `communication-assets/{location_id}/logo.{ext}`, haalt public URL op, slaat `logo_url` op via `useUpdateCommunicationSettings` |
-| `deleteLogo()` | Verwijdert bestand uit storage, zet `logo_url` op `null` |
-| `isUploading` | Loading state |
+Bij archiveren checkt `useArchivePolicySet` eerst het aantal actieve gekoppelde tickets:
 
-Validatie in de hook:
-- Max 2 MB
-- Alleen PNG, JPG, SVG
-- Toast bij fout (verkeerd type, te groot, upload mislukt)
+```text
+SELECT count(*) FROM tickets 
+WHERE policy_set_id = :id AND status = 'active'
+```
 
-## 3. Logo Upload Component
+- **0 actieve tickets**: archiveer direct (met ConfirmDialog)
+- **1+ actieve tickets**: blokkeer met foutmelding via ConfirmDialog variant:
+  - Titel: "Beleid kan niet gearchiveerd worden"
+  - Tekst: "Dit beleid is gekoppeld aan X actieve ticket(s). Koppel deze tickets eerst aan een ander beleid voordat je dit beleid archiveert."
+  - Alleen een "Begrepen" knop, geen destructieve actie
+  - Lijst met de namen van de gekoppelde tickets (klikbaar, navigeert naar ticket detail)
 
-Nieuw bestand: `src/components/settings/communication/LogoUploadField.tsx`
+De guard zit in de UI-laag (pre-check voor de mutation), niet als database constraint — consistent met hoe andere archiveer-flows werken in Nesto.
 
-Vervangt het gedimde placeholder-blok. Twee states:
+---
 
-**Geen logo:**
-- Drop zone met gestippelde border (bestaande stijl)
-- Drag-and-drop + klik om bestand te kiezen
-- Tekst: "Sleep een logo hierheen of klik om te uploaden"
-- Subtekst: "PNG, JPG of SVG. Max 2 MB."
+## Volledige scope (inclusief wijzigingen)
 
-**Logo aanwezig:**
-- Preview afbeelding (max-h-16, object-contain)
-- Verwijder-knop (Trash2 icon) met ConfirmDialog
-- Opnieuw uploaden via klik op de preview
+### 1. Squeeze Defaults op tickets tabel
 
-Loading state: skeleton/spinner tijdens upload.
+Database migratie: 5 kolommen toevoegen aan `tickets`:
 
-## 4. Color Picker Activeren
+| Kolom | Type | Default |
+|-------|------|---------|
+| squeeze_enabled | boolean | false |
+| squeeze_duration_minutes | integer | nullable |
+| squeeze_gap_minutes | integer | 0 |
+| squeeze_to_fixed_end_time | time | nullable |
+| squeeze_limit_per_shift | integer | nullable |
 
-In `SettingsCommunicatie.tsx` — verwijder `opacity-40` en `cursor-default` van het kleur-blok:
+Update `get_shift_ticket_config` RPC: COALESCE shift_tickets overrides met tickets defaults.
 
-- Hex input wordt bewerkbaar
-- Live kleurpreview vierkant (al aanwezig, reageert op `local.brand_color`)
-- Validatie: regex `/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/`
-- Bij ongeldig: rode border, niet opslaan (zelfde patroon als reply-to validatie)
-- Bij geldig: autosave via bestaande `debouncedSave`
-- Kleur vierkant is ook klikbaar om native color picker te openen (`<input type="color">` hidden)
+### 2. Hooks (`src/hooks/usePolicySets.ts`)
 
-## 5. Wijzigingen per bestand
+| Hook | Functie |
+|------|---------|
+| `usePolicySets` | Uitbreiden: alle velden + ticketCount via count query |
+| `useCreatePolicySet` | Bestaand, blijft |
+| `usePolicySet(id)` | **Nieuw** — Enkel policy set + gekoppelde ticket namen |
+| `useUpdatePolicySet` | **Nieuw** — Update alle velden inclusief description |
+| `useArchivePolicySet` | **Nieuw** — Pre-check actieve tickets, blokkeer of archiveer |
+| `useRestorePolicySet` | **Nieuw** — Restore (is_active = true) |
+
+### 3. Overzichtspagina (`SettingsReserveringenBeleid.tsx`)
+
+Route: `/instellingen/reserveringen/beleid`
+
+Kaarten grid met `PolicySetCard`:
+- Naam + beschrijving (indien gevuld)
+- 4 regels leesbare samenvatting (betaling, annulering, no-show, reconfirmatie)
+- Badge: "X tickets"
+- Klik opent `PolicySetDetailSheet`
+
+Header: "+ Nieuw beleid" knop. Archief sectie: collapsible onderaan.
+
+### 4. Detail Sheet (`PolicySetDetailSheet.tsx`)
+
+Sheet van rechts, 5 secties:
+1. **Basis** — Naam + Beschrijving (textarea, optioneel)
+2. **Betaling** — Type dropdown + bedrag (conditioneel)
+3. **Annulering** — Type dropdown + uren (conditioneel)
+4. **No-show** — Type dropdown + minuten + kosten (conditioneel)
+5. **Reconfirmatie** — Enabled toggle + uren + verplicht toggle
+
+Onderaan: "Gekoppelde tickets" lijst (read-only). InfoAlert als meer dan 1 ticket gekoppeld.
+
+### 5. Inline Preview op Ticket Detail
+
+In de beleid-sectie van `SettingsReserveringenTicketDetail.tsx`:
+- Preview-card met 4 regels samenvatting van geselecteerde policy set
+- Beschrijving getoond als secondary text in de dropdown
+- "+ Nieuw beleid" opent `PolicySetDetailSheet`
+
+### 6. Samenvattingshelper (`policySetSummary.ts`)
+
+Gedeelde functies voor leesbare teksten:
+- `formatPaymentSummary(policySet)` — "Geen betaling" / "EUR 25,00 p.p. deposit"
+- `formatCancelSummary(policySet)` — "Gratis annuleren" / "Tot 24u voor aanvang"
+- `formatNoshowSummary(policySet)` — "Geen actie" / "Markeren na 15 min"
+- `formatReconfirmSummary(policySet)` — "Uit" / "24u voor, verplicht"
+
+### 7. Bestanden overzicht
 
 | Bestand | Actie |
 |---------|-------|
-| **SQL migratie** | Bucket `communication-assets` aanmaken + RLS policies |
-| `src/hooks/useLogoUpload.ts` | **Nieuw** — upload, delete, validatie logica |
-| `src/components/settings/communication/LogoUploadField.tsx` | **Nieuw** — drag-drop upload component met preview |
-| `src/pages/settings/SettingsCommunicatie.tsx` | Logo placeholder vervangen door `LogoUploadField`, kleur-blok activeren met hex validatie + hidden color input |
+| **SQL migratie** | Squeeze kolommen op tickets + update RPC |
+| `src/hooks/usePolicySets.ts` | Uitbreiden met 4 nieuwe hooks |
+| `src/pages/settings/reserveringen/SettingsReserveringenBeleid.tsx` | **Nieuw** |
+| `src/components/settings/tickets/PolicySetCard.tsx` | **Nieuw** |
+| `src/components/settings/tickets/PolicySetDetailSheet.tsx` | **Nieuw** |
+| `src/components/settings/tickets/PolicySetsSection.tsx` | **Nieuw** |
+| `src/components/settings/tickets/policySetSummary.ts` | **Nieuw** |
+| `src/pages/settings/reserveringen/SettingsReserveringenTicketDetail.tsx` | Beleid-sectie met inline preview |
+| `src/lib/settingsRouteConfig.ts` | Sectie "beleid" toevoegen |
+| `src/App.tsx` | Route toevoegen |
+| `src/pages/settings/reserveringen/index.ts` | Export toevoegen |
+| `docs/ARCHITECTURE_ALIGNMENT.md` | **Nieuw** — Referentiedocument |
+| `docs/ROADMAP.md` | Status 4.4 bijwerken |
 
-## 6. Geen wijzigingen aan
+### 8. Wat NIET verandert
 
-- Geen nieuwe routes
-- Geen nieuwe database tabellen (logo_url en brand_color bestaan al)
-- `useCommunicationSettings` hook blijft ongewijzigd
-- `useUpdateCommunicationSettings` hook blijft ongewijzigd (wordt hergebruikt)
+- PolicySetModal blijft als quick-create in ShiftWizard/ticket detail
+- TicketModal blijft voor ShiftWizard
+- Bestaande tickets UI en hooks intact
+- ShiftWizard squeeze-velden op shift_tickets blijven (nu met fallback)
 
