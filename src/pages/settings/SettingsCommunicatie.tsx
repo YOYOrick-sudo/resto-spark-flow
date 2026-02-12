@@ -5,13 +5,17 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FieldHelp } from '@/components/polar/FieldHelp';
+import { TitleHelp } from '@/components/polar/TitleHelp';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { useCommunicationSettings, useUpdateCommunicationSettings } from '@/hooks/useCommunicationSettings';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { usePermission } from '@/hooks/usePermission';
 import { EmptyState } from '@/components/polar/EmptyState';
+import { nestoToast } from '@/lib/nestoToast';
 import { Check, Mail, MessageSquare } from 'lucide-react';
+
+const isValidEmail = (email: string) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 interface LocalSettings {
   sender_name: string;
@@ -26,6 +30,7 @@ export default function SettingsCommunicatie() {
   const updateSettings = useUpdateCommunicationSettings();
   const hasPermission = usePermission('onboarding.settings');
   const [saved, setSaved] = useState(false);
+  const [emailError, setEmailError] = useState(false);
 
   const [local, setLocal] = useState<LocalSettings>({
     sender_name: '',
@@ -53,12 +58,22 @@ export default function SettingsCommunicatie() {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       },
+      onError: () => {
+        nestoToast.error('Opslaan mislukt', 'Probeer het opnieuw.');
+      },
     });
   }, 800);
 
   const updateField = (field: keyof LocalSettings, value: string) => {
     const updated = { ...local, [field]: value };
     setLocal(updated);
+
+    if (field === 'reply_to') {
+      const valid = isValidEmail(value);
+      setEmailError(!valid);
+      if (!valid) return;
+    }
+
     debouncedSave({ [field]: value });
   };
 
@@ -73,10 +88,24 @@ export default function SettingsCommunicatie() {
     );
   }
 
+  const titleWithHelp = (
+    <span className="flex items-center gap-2">
+      Communicatie
+      <TitleHelp title="Communicatie-instellingen">
+        <p className="text-muted-foreground">
+          Deze instellingen gelden voor alle uitgaande communicatie vanuit het platform — onboarding, reserveringen en notificaties.
+        </p>
+        <p className="text-muted-foreground">
+          Het afzenderdomein (@nesto.app) wordt op platform-niveau beheerd en is niet per locatie aanpasbaar.
+        </p>
+      </TitleHelp>
+    </span>
+  );
+
   if (isLoading) {
     return (
       <SettingsDetailLayout
-        title="Communicatie"
+        title={titleWithHelp}
         description="Beheer de email branding, afzender en kanalen voor alle modules."
         breadcrumbs={[
           { label: 'Instellingen', path: '/instellingen/voorkeuren' },
@@ -90,7 +119,7 @@ export default function SettingsCommunicatie() {
 
   return (
     <SettingsDetailLayout
-      title="Communicatie"
+      title={titleWithHelp}
       description="Beheer de email branding, afzender en kanalen voor alle modules."
       breadcrumbs={[
         { label: 'Instellingen', path: '/instellingen/voorkeuren' },
@@ -185,11 +214,15 @@ export default function SettingsCommunicatie() {
               value={local.reply_to}
               onChange={(e) => updateField('reply_to', e.target.value)}
               placeholder="Bijv. info@restaurantdekok.nl"
-              className="text-sm"
+              className={`text-sm ${emailError ? 'border-error focus-visible:ring-error' : ''}`}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Antwoorden van kandidaten worden naar dit adres gestuurd.
-            </p>
+            {emailError ? (
+              <p className="text-xs text-error mt-1">Voer een geldig emailadres in.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Antwoorden van kandidaten worden naar dit adres gestuurd.
+              </p>
+            )}
           </div>
         </div>
 
@@ -203,7 +236,10 @@ export default function SettingsCommunicatie() {
           <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Email</span>
+              <div>
+                <span className="text-sm">Email</span>
+                <p className="text-xs text-muted-foreground">Automatische berichten, templates en notificaties</p>
+              </div>
             </div>
             <NestoBadge variant="primary" size="sm">Actief</NestoBadge>
           </div>
@@ -211,7 +247,10 @@ export default function SettingsCommunicatie() {
           <div className="flex items-center justify-between py-1 opacity-40 cursor-default">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">WhatsApp</span>
+              <div>
+                <span className="text-sm">WhatsApp</span>
+                <p className="text-xs text-muted-foreground">Directe berichten via WhatsApp Business</p>
+              </div>
             </div>
             <NestoBadge variant="default" size="sm">Binnenkort</NestoBadge>
           </div>
