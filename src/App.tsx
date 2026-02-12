@@ -34,6 +34,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
 import SettingsCommunicatie from "./pages/settings/SettingsCommunicatie";
+import TestToasts from "./pages/TestToasts";
 
 // New multi-level settings pages
 import {
@@ -96,6 +97,7 @@ const App = () => (
                   
                   {/* Service */}
                   <Route path="/taken" element={<Taken />} />
+                  <Route path="/test-toasts" element={<TestToasts />} />
                   
                   {/* Onboarding */}
                   <Route path="/onboarding" element={<OnboardingPage />} />
