@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 export function useResetOnboardingPhases() {
   const queryClient = useQueryClient();
@@ -22,10 +22,10 @@ export function useResetOnboardingPhases() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases-all'], exact: false });
-      toast.success('Pipeline hersteld naar standaardinstelling');
+      nestoToast.success('Pipeline hersteld naar standaardinstelling');
     },
     onError: (err: Error) => {
-      toast.error('Herstellen mislukt', { description: err.message });
+      nestoToast.error('Herstellen mislukt', err.message);
     },
   });
 }

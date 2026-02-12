@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 export function useSaveEvaluation() {
   const queryClient = useQueryClient();
@@ -26,10 +26,10 @@ export function useSaveEvaluation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-events'] });
-      toast.success('Evaluatie opgeslagen');
+      nestoToast.success('Evaluatie opgeslagen');
     },
     onError: (error) => {
-      toast.error('Evaluatie opslaan mislukt', { description: error.message });
+      nestoToast.error('Evaluatie opslaan mislukt', error.message);
     },
   });
 }

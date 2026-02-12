@@ -5,7 +5,7 @@ import { NestoSelect } from "@/components/polar/NestoSelect";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { useCreateArea, useUpdateArea, getNextAreaSortOrder } from "@/hooks/useTableMutations";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import type { Area, FillOrderType } from "@/types/reservations";
 
 interface AreaModalProps {
@@ -59,7 +59,7 @@ export function AreaModal({ open, onOpenChange, locationId, editingArea }: AreaM
           { id: editingArea.id, name: name.trim(), fill_order: fillOrder },
           {
             onSuccess: () => {
-              toast.success('Area bijgewerkt');
+              nestoToast.success('Area bijgewerkt');
               onOpenChange(false);
             },
             onError: (err) => {

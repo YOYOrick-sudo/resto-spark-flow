@@ -5,7 +5,7 @@ import { NestoSelect } from "@/components/polar/NestoSelect";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/settings/context";
 import { TitleHelp } from "@/components/polar/TitleHelp";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import { mockPacingSettings, updatePacingSettings } from "@/data/reservations";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 
@@ -27,7 +27,7 @@ export default function SettingsReserveringenShiftTijden() {
         dinner: { start: settings.dinnerStart, end: settings.dinnerEnd },
       },
     });
-    toast.success("Shift tijden opgeslagen");
+    nestoToast.success("Shift tijden opgeslagen");
   };
 
   const timeOptions = Array.from({ length: 24 }, (_, i) => {

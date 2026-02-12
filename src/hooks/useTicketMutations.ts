@@ -1,13 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/queryKeys";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export function useCreateTicket(locationId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Record<string, any> & { location_id: string; name: string; display_title: string }) => {
-      // Get next sort order
       const { data: sortOrder } = await supabase.rpc("get_next_ticket_sort_order", {
         _location_id: input.location_id,
       });
@@ -20,11 +19,11 @@ export function useCreateTicket(locationId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      toast.success("Ticket aangemaakt");
+      nestoToast.success("Ticket aangemaakt");
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {
-      toast.error(err.message || "Fout bij aanmaken ticket");
+      nestoToast.error(err.message || "Fout bij aanmaken ticket");
     },
   });
 }
@@ -44,11 +43,11 @@ export function useUpdateTicket(locationId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      toast.success("Ticket bijgewerkt");
+      nestoToast.success("Ticket bijgewerkt");
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {
-      toast.error(err.message || "Fout bij bijwerken ticket");
+      nestoToast.error(err.message || "Fout bij bijwerken ticket");
     },
   });
 }
@@ -64,11 +63,11 @@ export function useArchiveTicket(locationId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Ticket gearchiveerd");
+      nestoToast.success("Ticket gearchiveerd");
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {
-      toast.error(err.message || "Fout bij archiveren");
+      nestoToast.error(err.message || "Fout bij archiveren");
     },
   });
 }
@@ -84,11 +83,11 @@ export function useRestoreTicket(locationId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Ticket hersteld als draft");
+      nestoToast.success("Ticket hersteld als draft");
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {
-      toast.error(err.message || "Fout bij herstellen");
+      nestoToast.error(err.message || "Fout bij herstellen");
     },
   });
 }
@@ -97,7 +96,6 @@ export function useDuplicateTicket(locationId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (ticketId: string) => {
-      // Read original
       const { data: original, error: readErr } = await supabase
         .from("tickets")
         .select("*")
@@ -134,11 +132,11 @@ export function useDuplicateTicket(locationId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      toast.success("Ticket gedupliceerd");
+      nestoToast.success("Ticket gedupliceerd");
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {
-      toast.error(err.message || "Fout bij dupliceren");
+      nestoToast.error(err.message || "Fout bij dupliceren");
     },
   });
 }

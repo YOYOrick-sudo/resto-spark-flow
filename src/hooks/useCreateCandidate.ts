@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 interface CreateCandidateInput {
   location_id: string;
@@ -26,10 +26,10 @@ export function useCreateCandidate() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-candidates'] });
-      toast.success(`${data.first_name} ${data.last_name} toegevoegd`);
+      nestoToast.success(`${data.first_name} ${data.last_name} toegevoegd`);
     },
     onError: (error) => {
-      toast.error('Kandidaat toevoegen mislukt', { description: error.message });
+      nestoToast.error('Kandidaat toevoegen mislukt', error.message);
     },
   });
 }

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { TableGroup, TableGroupMember } from "@/types/reservations";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import { queryKeys } from "@/lib/queryKeys";
 
 interface UseTableGroupsOptions {
@@ -109,10 +109,10 @@ export function useCreateTableGroup() {
         queryKey: queryKeys.areasWithTables(variables.location_id),
         exact: false 
       });
-      toast.success('Tafelgroep aangemaakt');
+      nestoToast.success('Tafelgroep aangemaakt');
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij aanmaken: ${error.message}`);
+      nestoToast.error(`Fout bij aanmaken: ${error.message}`);
     }
   });
 }
@@ -167,7 +167,7 @@ export function useArchiveTableGroup() {
         queryKey: queryKeys.areasWithTables(locationId),
         exact: false 
       });
-      toast.success('Tafelgroep gearchiveerd');
+      nestoToast.success('Tafelgroep gearchiveerd');
     }
   });
 }
@@ -198,7 +198,7 @@ export function useRestoreTableGroup() {
         queryKey: queryKeys.areasWithTables(locationId),
         exact: false 
       });
-      toast.success('Tafelgroep hersteld');
+      nestoToast.success('Tafelgroep hersteld');
     }
   });
 }
@@ -239,7 +239,7 @@ export function useAddTableGroupMember() {
       });
     },
     onError: (error: Error) => {
-      toast.error(`Fout bij toevoegen: ${error.message}`);
+      nestoToast.error(`Fout bij toevoegen: ${error.message}`);
     }
   });
 }

@@ -11,7 +11,7 @@ import { useAreasForSettings } from "@/hooks/useAreasWithTables";
 import { useTableGroups, useCreateTableGroup, useUpdateTableGroup, useAddTableGroupMember, useRemoveTableGroupMember } from "@/hooks/useTableGroups";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
 import { getBaseCapacity, getCombinationCapacity, getMinExtraSeats, MAX_EXTRA_SEATS, validateExtraSeats } from "@/lib/tableCapacity";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import type { TableGroup } from "@/types/reservations";
 
 interface TableGroupModalProps {
@@ -193,7 +193,7 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
                 });
               }
               
-              toast.success('Groep bijgewerkt');
+              nestoToast.success('Groep bijgewerkt');
               onOpenChange(false);
             },
             onError: (err) => {

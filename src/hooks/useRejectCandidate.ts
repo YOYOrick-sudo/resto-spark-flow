@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 export function useRejectCandidate() {
   const queryClient = useQueryClient();
@@ -11,14 +11,12 @@ export function useRejectCandidate() {
       userId: string;
       locationId: string;
     }) => {
-      // 1. Set candidate to rejected (no rejected_at column exists)
       const { error: candidateError } = await supabase
         .from('onboarding_candidates')
         .update({ status: 'rejected' })
         .eq('id', candidateId);
       if (candidateError) throw candidateError;
 
-      // 2. Skip all pending tasks
       const { error: tasksError } = await supabase
         .from('ob_tasks')
         .update({ status: 'skipped' })
@@ -26,7 +24,6 @@ export function useRejectCandidate() {
         .in('status', ['pending', 'in_progress']);
       if (tasksError) throw tasksError;
 
-      // 3. Log event
       const { error: eventError } = await supabase
         .from('onboarding_events')
         .insert({
@@ -43,10 +40,10 @@ export function useRejectCandidate() {
       queryClient.invalidateQueries({ queryKey: ['onboarding-candidates'] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-events'] });
-      toast.success('Kandidaat afgewezen');
+      nestoToast.success('Kandidaat afgewezen');
     },
     onError: (error) => {
-      toast.error('Afwijzen mislukt', { description: error.message });
+      nestoToast.error('Afwijzen mislukt', error.message);
     },
   });
 }

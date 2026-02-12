@@ -37,7 +37,7 @@ import {
   getTableById,
 } from "@/data/reservations";
 import { TableRow, STICKY_COL_WIDTH } from "./TableRow";
-import { useToast } from "@/hooks/use-toast";
+import { nestoToast } from "@/lib/nestoToast";
 import { QuickReservationPanel } from "./QuickReservationPanel";
 import {
   Tooltip,
@@ -408,7 +408,7 @@ export function ReservationGridView({
   const [isDropAnimating, setIsDropAnimating] = useState(false);
   const [finalDropPosition, setFinalDropPosition] = useState<GhostPosition | null>(null);
   const [animatingReservationId, setAnimatingReservationId] = useState<string | null>(null);
-  const { toast } = useToast();
+  
   
   // Quick reservation panel state
   const [quickReservationOpen, setQuickReservationOpen] = useState(false);
@@ -595,11 +595,7 @@ export function ReservationGridView({
     );
 
     if (conflict.hasConflict) {
-      toast({
-        title: "Conflict gedetecteerd",
-        description: `Overlapt met reservering van ${getGuestDisplayName(conflict.conflictingReservation!)} (${conflict.conflictingReservation!.startTime} - ${conflict.conflictingReservation!.endTime})`,
-        variant: "destructive",
-      });
+      nestoToast.error("Conflict gedetecteerd", `Overlapt met reservering van ${getGuestDisplayName(conflict.conflictingReservation!)} (${conflict.conflictingReservation!.startTime} - ${conflict.conflictingReservation!.endTime})`);
       setActiveReservation(null);
       setGhostPosition(null);
       return;
@@ -640,16 +636,13 @@ export function ReservationGridView({
         }, 150);
       }, 100);
 
-      toast({
-        title: "Reservering verplaatst",
-        description: `${getGuestDisplayName(reservation)} verplaatst naar tafel ${over.data.current?.tableId?.replace('table-', '')} om ${newStartTime}`,
-      });
+      nestoToast.success("Reservering verplaatst", `${getGuestDisplayName(reservation)} verplaatst naar tafel ${over.data.current?.tableId?.replace('table-', '')} om ${newStartTime}`);
       onReservationUpdate?.();
     } else {
       setActiveReservation(null);
       setGhostPosition(null);
     }
-  }, [config, toast, onReservationUpdate, tablePositions]);
+  }, [config, onReservationUpdate, tablePositions]);
 
   // Handle resize with collision detection
   const handleResize = useCallback((
@@ -666,11 +659,7 @@ export function ReservationGridView({
     const startMins = timeToMinutes(newStartTime);
     const endMins = timeToMinutes(newEndTime);
     if (endMins - startMins < 15) {
-      toast({
-        title: "Te kort",
-        description: "Minimale duur is 15 minuten",
-        variant: "destructive",
-      });
+      nestoToast.error("Te kort", "Minimale duur is 15 minuten");
       return false;
     }
 
@@ -684,26 +673,19 @@ export function ReservationGridView({
     );
 
     if (conflict.hasConflict) {
-      toast({
-        title: "Conflict gedetecteerd",
-        description: `Overlapt met reservering van ${getGuestDisplayName(conflict.conflictingReservation!)} (${conflict.conflictingReservation!.startTime} - ${conflict.conflictingReservation!.endTime})`,
-        variant: "destructive",
-      });
+      nestoToast.error("Conflict gedetecteerd", `Overlapt met reservering van ${getGuestDisplayName(conflict.conflictingReservation!)} (${conflict.conflictingReservation!.startTime} - ${conflict.conflictingReservation!.endTime})`);
       return false;
     }
 
     // Update reservation
     updateReservationDuration(reservationId, newStartTime, newEndTime);
     
-    toast({
-      title: "Duur aangepast",
-      description: `${getGuestDisplayName(reservation)} nu van ${newStartTime} tot ${newEndTime}`,
-    });
+    nestoToast.success("Duur aangepast", `${getGuestDisplayName(reservation)} nu van ${newStartTime} tot ${newEndTime}`);
     
     onReservationUpdate?.();
     setLocalRefreshKey(k => k + 1);
     return true;
-  }, [reservations, toast, onReservationUpdate]);
+  }, [reservations, onReservationUpdate]);
 
   // Handle check-in (double-click or long-press) - moves reservation to current time
   const handleCheckIn = useCallback((reservation: Reservation) => {
@@ -714,15 +696,12 @@ export function ReservationGridView({
       const tableNumber = getTableById(reservation.tableIds[0])?.number || reservation.tableIds[0];
       const timeMoved = updated.startTime !== reservation.startTime;
       
-      toast({
-        title: `${getGuestDisplayName(reservation)} is ingecheckt`,
-        description: timeMoved 
+      nestoToast.success(`${getGuestDisplayName(reservation)} is ingecheckt`, timeMoved 
           ? `Tafel ${tableNumber} - ${reservation.guests} gasten - Verplaatst naar ${updated.startTime}`
-          : `Tafel ${tableNumber} - ${reservation.guests} gasten`,
-      });
+          : `Tafel ${tableNumber} - ${reservation.guests} gasten`);
       onReservationUpdate?.();
     }
-  }, [toast, onReservationUpdate]);
+  }, [onReservationUpdate]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (event.active.data.current?.reservation) {
@@ -811,14 +790,11 @@ export function ReservationGridView({
       ticketType: '',
     });
 
-    toast({
-      title: data.isWalkIn ? "Walk-in toegevoegd" : "Reservering aangemaakt",
-      description: `${data.isWalkIn ? 'Walk-in' : data.guestName} om ${data.time} voor ${data.guests} gasten`,
-    });
+    nestoToast.success(data.isWalkIn ? "Walk-in toegevoegd" : "Reservering aangemaakt", `${data.isWalkIn ? 'Walk-in' : data.guestName} om ${data.time} voor ${data.guests} gasten`);
 
     onReservationUpdate?.();
     setLocalRefreshKey(k => k + 1);
-  }, [dateString, toast, onReservationUpdate]);
+  }, [dateString, onReservationUpdate]);
 
   return (
     <DndContext 
