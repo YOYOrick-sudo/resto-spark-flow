@@ -1,53 +1,79 @@
 
 
-# Ticket aanmaken/bewerken — Van modal naar eigen pagina
+# Logo Upload en Brand Color Picker — Communicatie Settings
 
-## Probleem
-De TicketModal bevat te veel content (10+ velden, kleurkiezer, beleid-sectie) waardoor het uit beeld raakt. Niet enterprise-waardig.
+## Overzicht
+Activeer de twee gedimde branding-velden op de bestaande Communicatie-pagina: een werkende logo-upload met preview/verwijder en een hex color picker met live preview.
 
-## Oplossing
-Vervang de modal door een dedicated Level 4 detail-pagina, consistent met het bestaande settings navigatie-patroon.
+## 1. Storage Bucket (database migratie)
 
-## Routes
+Maak een private storage bucket `communication-assets` aan met RLS policies:
 
-| Route | Doel |
-|-------|------|
-| `/instellingen/reserveringen/tickets` | Overzicht (bestaand, blijft) |
-| `/instellingen/reserveringen/tickets/nieuw` | Nieuw ticket aanmaken |
-| `/instellingen/reserveringen/tickets/:id` | Bestaand ticket bewerken |
+- **SELECT**: gebruiker heeft toegang tot de locatie (`user_has_location_access`)
+- **INSERT**: owner/manager rol in de locatie
+- **UPDATE**: owner/manager rol in de locatie
+- **DELETE**: owner/manager rol in de locatie
+- Padstructuur: `{location_id}/logo.{ext}`
+- Bestandslimiet: 2 MB, alleen `image/png`, `image/jpeg`, `image/svg+xml`
 
-## Pagina-indeling
+## 2. Logo Upload Hook
 
-De nieuwe detail-pagina gebruikt `SettingsDetailLayout` met breadcrumbs: **Instellingen > Reserveringen > Tickets > Nieuw ticket** (of de ticketnaam bij bewerken).
+Nieuw bestand: `src/hooks/useLogoUpload.ts`
 
-Secties op de pagina (in NestoCard's):
+| Functie | Wat het doet |
+|---------|-------------|
+| `uploadLogo(file)` | Valideert type + grootte, upload naar `communication-assets/{location_id}/logo.{ext}`, haalt public URL op, slaat `logo_url` op via `useUpdateCommunicationSettings` |
+| `deleteLogo()` | Verwijdert bestand uit storage, zet `logo_url` op `null` |
+| `isUploading` | Loading state |
 
-1. **Basis** — Type (regulier/event), naam, display titel, korte beschrijving, kleur
-2. **Reservering** — Tafeltijd, buffer, min/max gasten
-3. **Beleid** — Policy set selectie + "Nieuw beleid" knop (PolicySetModal blijft een modal, die is klein genoeg)
+Validatie in de hook:
+- Max 2 MB
+- Alleen PNG, JPG, SVG
+- Toast bij fout (verkeerd type, te groot, upload mislukt)
 
-Footer met "Annuleren" (terug naar overzicht) en "Aanmaken" / "Opslaan" button.
+## 3. Logo Upload Component
 
-## Wijzigingen
+Nieuw bestand: `src/components/settings/communication/LogoUploadField.tsx`
+
+Vervangt het gedimde placeholder-blok. Twee states:
+
+**Geen logo:**
+- Drop zone met gestippelde border (bestaande stijl)
+- Drag-and-drop + klik om bestand te kiezen
+- Tekst: "Sleep een logo hierheen of klik om te uploaden"
+- Subtekst: "PNG, JPG of SVG. Max 2 MB."
+
+**Logo aanwezig:**
+- Preview afbeelding (max-h-16, object-contain)
+- Verwijder-knop (Trash2 icon) met ConfirmDialog
+- Opnieuw uploaden via klik op de preview
+
+Loading state: skeleton/spinner tijdens upload.
+
+## 4. Color Picker Activeren
+
+In `SettingsCommunicatie.tsx` — verwijder `opacity-40` en `cursor-default` van het kleur-blok:
+
+- Hex input wordt bewerkbaar
+- Live kleurpreview vierkant (al aanwezig, reageert op `local.brand_color`)
+- Validatie: regex `/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/`
+- Bij ongeldig: rode border, niet opslaan (zelfde patroon als reply-to validatie)
+- Bij geldig: autosave via bestaande `debouncedSave`
+- Kleur vierkant is ook klikbaar om native color picker te openen (`<input type="color">` hidden)
+
+## 5. Wijzigingen per bestand
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/settings/reserveringen/SettingsReserveringenTicketDetail.tsx` | **Nieuw** — Detail-pagina met het formulier (content uit TicketModal verplaatst) |
-| `src/App.tsx` | Route toevoegen: `/instellingen/reserveringen/tickets/nieuw` en `/:id` |
-| `src/pages/settings/reserveringen/SettingsReserveringenTickets.tsx` | "Nieuw ticket" knop linkt naar `/tickets/nieuw` i.p.v. modal trigger |
-| `src/components/settings/tickets/TicketsSection.tsx` | Kaart-klik navigeert naar `/tickets/:id` i.p.v. modal openen |
-| `src/components/settings/tickets/TicketCard.tsx` | onClick navigeert naar detail-route |
-| `src/lib/settingsRouteConfig.ts` | Breadcrumb config toevoegen voor ticket detail level |
-| `src/components/settings/shifts/ShiftWizard/steps/TicketsStep.tsx` | Blijft ongewijzigd — de quick-create modal in de ShiftWizard is een apart gebruik en klein genoeg |
+| **SQL migratie** | Bucket `communication-assets` aanmaken + RLS policies |
+| `src/hooks/useLogoUpload.ts` | **Nieuw** — upload, delete, validatie logica |
+| `src/components/settings/communication/LogoUploadField.tsx` | **Nieuw** — drag-drop upload component met preview |
+| `src/pages/settings/SettingsCommunicatie.tsx` | Logo placeholder vervangen door `LogoUploadField`, kleur-blok activeren met hex validatie + hidden color input |
 
-## Wat blijft
-- **PolicySetModal** blijft een modal (compact formulier, past prima)
-- **TicketsStep in ShiftWizard** behoudt zijn eigen inline TicketModal voor quick-create (andere context)
-- **TicketModal.tsx** wordt uiteindelijk niet meer gebruikt vanuit de tickets-pagina, maar blijft beschikbaar voor de ShiftWizard
+## 6. Geen wijzigingen aan
 
-## Technisch
-- Formulier-logica (state, validatie, submit) wordt 1-op-1 verplaatst van TicketModal naar de nieuwe pagina
-- Bij bewerken: ticket ophalen via `useTickets` + route param `:id`
-- Na opslaan/aanmaken: `navigate(-1)` terug naar overzicht
-- Breadcrumbs via bestaande `buildBreadcrumbs` functie
+- Geen nieuwe routes
+- Geen nieuwe database tabellen (logo_url en brand_color bestaan al)
+- `useCommunicationSettings` hook blijft ongewijzigd
+- `useUpdateCommunicationSettings` hook blijft ongewijzigd (wordt hergebruikt)
 
