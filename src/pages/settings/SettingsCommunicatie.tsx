@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SettingsDetailLayout } from '@/components/settings/layouts/SettingsDetailLayout';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { Label } from '@/components/ui/label';
@@ -13,9 +13,11 @@ import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { usePermission } from '@/hooks/usePermission';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { nestoToast } from '@/lib/nestoToast';
+import { LogoUploadField } from '@/components/settings/communication/LogoUploadField';
 import { Check, Mail, MessageSquare } from 'lucide-react';
 
 const isValidEmail = (email: string) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 
 interface LocalSettings {
   sender_name: string;
@@ -31,6 +33,8 @@ export default function SettingsCommunicatie() {
   const hasPermission = usePermission('onboarding.settings');
   const [saved, setSaved] = useState(false);
   const [emailError, setEmailError] = useState(false);
+  const [colorError, setColorError] = useState(false);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   const [local, setLocal] = useState<LocalSettings>({
     sender_name: '',
@@ -71,6 +75,12 @@ export default function SettingsCommunicatie() {
     if (field === 'reply_to') {
       const valid = isValidEmail(value);
       setEmailError(!valid);
+      if (!valid) return;
+    }
+
+    if (field === 'brand_color') {
+      const valid = isValidHex(value);
+      setColorError(!valid);
       if (!valid) return;
     }
 
@@ -136,37 +146,46 @@ export default function SettingsCommunicatie() {
         </div>
 
         <div className="bg-secondary/50 rounded-card p-4 space-y-4">
-          {/* Logo — prepared but disabled */}
-          <div className="opacity-40 cursor-default">
-            <Label className="text-sm mb-1.5">Bedrijfslogo</Label>
-            <div className="h-20 border border-dashed border-border rounded-card flex items-center justify-center">
-              <span className="text-xs text-muted-foreground">Logo uploaden</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Verschijnt bovenaan elke email die vanuit het platform wordt verstuurd.
-            </p>
-          </div>
+          {/* Logo upload */}
+          <LogoUploadField logoUrl={local.logo_url || null} />
 
-          {/* Brand color — prepared but disabled */}
-          <div className="opacity-40 cursor-default">
+          {/* Brand color — active */}
+          <div>
             <Label className="text-sm mb-1.5">Primaire kleur</Label>
             <div className="flex items-center gap-2">
-              <div
-                className="h-8 w-8 rounded-control border border-border"
-                style={{ backgroundColor: local.brand_color }}
+              <button
+                type="button"
+                onClick={() => colorInputRef.current?.click()}
+                className="h-8 w-8 rounded-control border border-border cursor-pointer hover:ring-2 hover:ring-primary/30 transition-shadow"
+                style={{ backgroundColor: isValidHex(local.brand_color) ? local.brand_color : '#1d979e' }}
+                title="Klik om kleur te kiezen"
               />
               <Input
                 value={local.brand_color}
-                disabled
-                className="text-sm w-[120px]"
+                onChange={(e) => updateField('brand_color', e.target.value)}
+                className={`text-sm w-[120px] ${colorError ? 'border-error focus-visible:ring-error' : ''}`}
+                placeholder="#1d979e"
+                maxLength={7}
+              />
+              <input
+                ref={colorInputRef}
+                type="color"
+                value={isValidHex(local.brand_color) ? local.brand_color : '#1d979e'}
+                onChange={(e) => updateField('brand_color', e.target.value)}
+                className="sr-only"
+                tabIndex={-1}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Kleur voor knoppen en accenten in emails.
-            </p>
+            {colorError ? (
+              <p className="text-xs text-error mt-1">Voer een geldige hex kleurcode in (bijv. #1d979e).</p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Kleur voor knoppen en accenten in emails.
+              </p>
+            )}
           </div>
 
-          {/* Footer text — active */}
+          {/* Footer text */}
           <div>
             <Label className="text-sm mb-1.5">Footer tekst</Label>
             <Textarea
