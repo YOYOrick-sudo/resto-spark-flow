@@ -329,18 +329,10 @@
    ============================================================================ */
 
 .nesto-toast {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  font-family: var(--font-family);
-  min-width: 320px;
-  max-width: 420px;
-  animation: toast-slide-in 0.2s ease-out;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .nesto-toast-title {
