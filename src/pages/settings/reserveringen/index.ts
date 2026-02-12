@@ -8,3 +8,4 @@ export { default as SettingsReserveringenShiftTijden } from "./SettingsReserveri
 export { default as SettingsReserveringenNotificaties } from "./SettingsReserveringenNotificaties";
 export { default as SettingsReserveringenShifts } from "./SettingsReserveringenShifts";
 export { default as SettingsReserveringenTickets } from "./SettingsReserveringenTickets";
+export { default as SettingsReserveringenTicketDetail } from "./SettingsReserveringenTicketDetail";

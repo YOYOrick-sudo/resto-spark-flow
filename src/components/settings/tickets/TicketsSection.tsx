@@ -1,49 +1,31 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Ticket as TicketIcon, ChevronRight, Archive, Loader2, Plus } from "lucide-react";
 import { useTickets } from "@/hooks/useTickets";
 import { useArchiveTicket, useRestoreTicket, useDuplicateTicket } from "@/hooks/useTicketMutations";
 import { TicketCard } from "./TicketCard";
-import { TicketModal } from "./TicketModal";
 import { EmptyState } from "@/components/polar/EmptyState";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import type { TicketWithMeta } from "@/hooks/useTickets";
 
 interface TicketsSectionProps {
   locationId: string;
-  externalAddTrigger?: number;
 }
 
-export function TicketsSection({ locationId, externalAddTrigger }: TicketsSectionProps) {
+export function TicketsSection({ locationId }: TicketsSectionProps) {
+  const navigate = useNavigate();
   const { data, isLoading } = useTickets(locationId);
   const { mutate: archiveTicket } = useArchiveTicket(locationId);
   const { mutate: restoreTicket } = useRestoreTicket(locationId);
   const { mutate: duplicateTicket } = useDuplicateTicket(locationId);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingTicket, setEditingTicket] = useState<TicketWithMeta | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
-
-  // External trigger to open add modal
-  const [lastTrigger, setLastTrigger] = useState(0);
-  if (externalAddTrigger && externalAddTrigger !== lastTrigger) {
-    setLastTrigger(externalAddTrigger);
-    setEditingTicket(null);
-    setModalOpen(true);
-  }
 
   const visibleTickets = data?.visibleTickets ?? [];
   const archivedTickets = data?.archivedTickets ?? [];
 
-  const handleEdit = (ticket: TicketWithMeta) => {
-    setEditingTicket(ticket);
-    setModalOpen(true);
-  };
-
-  const handleAdd = () => {
-    setEditingTicket(null);
-    setModalOpen(true);
-  };
+  const handleAdd = () => navigate("/instellingen/reserveringen/tickets/nieuw");
+  const handleEdit = (ticketId: string) => navigate(`/instellingen/reserveringen/tickets/${ticketId}`);
 
   if (isLoading) {
     return (
@@ -68,7 +50,7 @@ export function TicketsSection({ locationId, externalAddTrigger }: TicketsSectio
             <TicketCard
               key={ticket.id}
               ticket={ticket}
-              onEdit={() => handleEdit(ticket)}
+              onEdit={() => handleEdit(ticket.id)}
               onDuplicate={() => duplicateTicket(ticket.id)}
               onArchive={() => archiveTicket(ticket.id)}
             />
@@ -99,14 +81,6 @@ export function TicketsSection({ locationId, externalAddTrigger }: TicketsSectio
           </CollapsibleContent>
         </Collapsible>
       )}
-
-      {/* Modal */}
-      <TicketModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        locationId={locationId}
-        editingTicket={editingTicket}
-      />
     </div>
   );
 }
