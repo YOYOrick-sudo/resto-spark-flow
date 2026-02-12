@@ -9,3 +9,4 @@ export { default as SettingsReserveringenNotificaties } from "./SettingsReserver
 export { default as SettingsReserveringenShifts } from "./SettingsReserveringenShifts";
 export { default as SettingsReserveringenTickets } from "./SettingsReserveringenTickets";
 export { default as SettingsReserveringenTicketDetail } from "./SettingsReserveringenTicketDetail";
+export { default as SettingsReserveringenBeleid } from "./SettingsReserveringenBeleid";

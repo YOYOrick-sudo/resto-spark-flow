@@ -40,7 +40,8 @@ export function TicketModal({ open, onOpenChange, locationId, editingTicket }: T
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
 
-  const { data: policySets = [] } = usePolicySets(locationId);
+  const { data: policyData } = usePolicySets(locationId);
+  const policySets = policyData?.activePolicySets ?? [];
   const { mutate: createTicket, isPending: isCreating } = useCreateTicket(locationId);
   const { mutate: updateTicket, isPending: isUpdating } = useUpdateTicket(locationId);
   const isPending = isCreating || isUpdating;

@@ -7,6 +7,7 @@ import {
   MapPin,
   Link2,
   Ticket,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 
@@ -94,6 +95,13 @@ export const reserveringenConfig: SettingsModuleConfig = {
       path: "/instellingen/reserveringen/tickets",
       description: "Reserveringsproducten beheren",
       icon: Ticket,
+    },
+    {
+      id: "beleid",
+      label: "Beleid",
+      path: "/instellingen/reserveringen/beleid",
+      description: "Betalings- en annuleringsbeleid",
+      icon: Shield,
     },
     {
       id: "shifts",
