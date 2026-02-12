@@ -103,13 +103,6 @@ export const reserveringenConfig: SettingsModuleConfig = {
       icon: Clock,
     },
     {
-      id: "shift-tijden",
-      label: "Shift Tijden",
-      path: "/instellingen/reserveringen/shift-tijden",
-      description: "Lunch en diner tijden (legacy)",
-      icon: Clock,
-    },
-    {
       id: "notificaties",
       label: "Notificaties",
       path: "/instellingen/reserveringen/notificaties",
