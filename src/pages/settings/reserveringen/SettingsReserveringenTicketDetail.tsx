@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, CreditCard, CalendarX, UserX, Bell } from "lucide-react";
 import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDetailLayout";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
@@ -8,11 +8,13 @@ import { NestoSelect } from "@/components/polar/NestoSelect";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { FormSection } from "@/components/polar/FormSection";
 import { PolicySetModal } from "@/components/settings/tickets/PolicySetModal";
+import { PolicySetDetailSheet } from "@/components/settings/tickets/PolicySetDetailSheet";
 import { useTickets } from "@/hooks/useTickets";
 import { useCreateTicket, useUpdateTicket } from "@/hooks/useTicketMutations";
 import { usePolicySets } from "@/hooks/usePolicySets";
 import { useUserContext } from "@/contexts/UserContext";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
+import { formatPaymentSummary, formatCancelSummary, formatNoshowSummary, formatReconfirmSummary } from "@/lib/policySetSummary";
 import { Loader2 } from "lucide-react";
 import type { TicketType } from "@/types/tickets";
 
@@ -48,9 +50,11 @@ export default function SettingsReserveringenTicketDetail() {
   const [policySetId, setPolicySetId] = useState<string>("__none__");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [policySheetOpen, setPolicySheetOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  const { data: policySets = [] } = usePolicySets(locationId);
+  const { data: policyData } = usePolicySets(locationId);
+  const policySets = policyData?.activePolicySets ?? [];
   const { mutate: createTicket, isPending: isCreating } = useCreateTicket(locationId);
   const { mutate: updateTicket, isPending: isUpdating } = useUpdateTicket(locationId);
   const isPending = isCreating || isUpdating;
@@ -114,8 +118,16 @@ export default function SettingsReserveringenTicketDetail() {
 
   const policyOptions = [
     { value: "__none__", label: "Geen beleid" },
-    ...policySets.map((p) => ({ value: p.id, label: p.name })),
+    ...policySets.map((p) => ({
+      value: p.id,
+      label: p.name,
+      description: p.description ?? undefined,
+    })),
   ];
+
+  const selectedPolicy = policySetId !== "__none__"
+    ? policySets.find((p) => p.id === policySetId)
+    : null;
 
   const breadcrumbs = buildBreadcrumbs(
     "reserveringen",
@@ -270,25 +282,49 @@ export default function SettingsReserveringenTicketDetail() {
           {/* Sectie 3 — Beleid */}
           <NestoCard className="p-6">
             <FormSection title="Beleid" description="Koppel een betalings- en annuleringsbeleid.">
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <NestoSelect
-                    label="Beleid"
-                    value={policySetId}
-                    onValueChange={setPolicySetId}
-                    options={policyOptions}
-                  />
+              <div className="space-y-3">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <NestoSelect
+                      label="Beleid"
+                      value={policySetId}
+                      onValueChange={setPolicySetId}
+                      options={policyOptions}
+                    />
+                  </div>
+                  <NestoButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPolicySheetOpen(true)}
+                    className="mb-0.5"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Nieuw beleid
+                  </NestoButton>
                 </div>
-                <NestoButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPolicyModalOpen(true)}
-                  className="mb-0.5"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Nieuw beleid
-                </NestoButton>
+
+                {/* Inline preview */}
+                {selectedPolicy && (
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CreditCard className="h-3.5 w-3.5" />
+                      <span>{formatPaymentSummary(selectedPolicy)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CalendarX className="h-3.5 w-3.5" />
+                      <span>{formatCancelSummary(selectedPolicy)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <UserX className="h-3.5 w-3.5" />
+                      <span>{formatNoshowSummary(selectedPolicy)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Bell className="h-3.5 w-3.5" />
+                      <span>{formatReconfirmSummary(selectedPolicy)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </FormSection>
           </NestoCard>
@@ -309,9 +345,9 @@ export default function SettingsReserveringenTicketDetail() {
         </form>
       </SettingsDetailLayout>
 
-      <PolicySetModal
-        open={policyModalOpen}
-        onOpenChange={setPolicyModalOpen}
+      <PolicySetDetailSheet
+        open={policySheetOpen}
+        onOpenChange={setPolicySheetOpen}
         locationId={locationId ?? ""}
         onCreated={(id) => setPolicySetId(id)}
       />

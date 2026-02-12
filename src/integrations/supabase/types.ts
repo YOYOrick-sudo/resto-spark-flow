@@ -1651,6 +1651,11 @@ export type Database = {
           policy_set_id: string | null
           short_description: string | null
           sort_order: number
+          squeeze_duration_minutes: number | null
+          squeeze_enabled: boolean
+          squeeze_gap_minutes: number
+          squeeze_limit_per_shift: number | null
+          squeeze_to_fixed_end_time: string | null
           status: string
           tags: Json
           ticket_type: string
@@ -1681,6 +1686,11 @@ export type Database = {
           policy_set_id?: string | null
           short_description?: string | null
           sort_order?: number
+          squeeze_duration_minutes?: number | null
+          squeeze_enabled?: boolean
+          squeeze_gap_minutes?: number
+          squeeze_limit_per_shift?: number | null
+          squeeze_to_fixed_end_time?: string | null
           status?: string
           tags?: Json
           ticket_type?: string
@@ -1711,6 +1721,11 @@ export type Database = {
           policy_set_id?: string | null
           short_description?: string | null
           sort_order?: number
+          squeeze_duration_minutes?: number | null
+          squeeze_enabled?: boolean
+          squeeze_gap_minutes?: number
+          squeeze_limit_per_shift?: number | null
+          squeeze_to_fixed_end_time?: string | null
           status?: string
           tags?: Json
           ticket_type?: string
