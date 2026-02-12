@@ -1,64 +1,55 @@
 
 
-# Archief-weergave voor afgeronde en afgewezen kandidaten
+# Toast Redesign — 2 Enterprise Varianten met Test Pagina
 
 ## Huidige situatie
 
-De StatusFilterPills bestaan al met 4 opties: Actief, Afgerond, Afgewezen, Alle. Maar bij het selecteren van "Afgerond" of "Afgewezen" worden kandidaten nog steeds in het Kanban board getoond. Dit werkt niet goed omdat:
+De toast gebruikt een 3px gekleurde left-border met gekleurde title-tekst. Dit geeft een "dashboard admin panel" gevoel, niet het subtiele Linear/Stripe/Notion niveau dat Nesto Polar nastreeft.
 
-- Hired kandidaten geen actieve fase meer hebben
-- Afgewezen kandidaten ook geen logische kolom hebben
-- Een pipeline-board is niet geschikt voor het scannen van historische data
+## Twee nieuwe varianten
 
-## Oplossing
+### Variant A: "Minimal Icon" (Linear-stijl)
 
-Wanneer de filter op **Afgerond**, **Afgewezen**, of **Alle** staat, toon een **tabel-weergave** in plaats van het Kanban board. Het board wordt alleen getoond bij "Actief".
+Subtiele toast met een klein icoon links (CheckCircle, XCircle, etc.) en neutrale tekst. Geen gekleurde borders, geen gekleurde titels. Het icoon is het enige kleur-accent.
 
-### Tabel kolommen
+- Achtergrond: `bg-card`
+- Shadow: subtiel enterprise shadow
+- Icoon: klein (16px), kleur per type (groen/rood/oranje/teal)
+- Titel: `text-foreground`, gewoon 14px medium
+- Beschrijving: `text-muted-foreground`, 13px
+- Border: 1px `border-border/60` — geen left-border accent
+- Radius: 10px
+- Compact: minder padding (12px 14px)
 
-| Kolom | Inhoud |
-|-------|--------|
-| Naam | Voornaam + achternaam |
-| E-mail | E-mailadres |
-| Status | Badge (Aangenomen / Afgewezen / Ingetrokken / Geen reactie / Verlopen) |
-| Laatste fase | De fase waar de kandidaat het laatst in zat |
-| Datum | `updated_at` als "relatieve" datum (bijv. "3 dagen geleden") |
+### Variant B: "Pill Snackbar" (Vercel/Sonner-stijl)
 
-De tabel is klikbaar — rij-klik navigeert naar de detail pagina, net als de candidate cards.
+Ultra-compact, donkere pill die onderaan verschijnt. Geen card-styling, maar een floating dark chip met wit icoon en witte tekst. Heel subtiel, verdwijnt snel.
+
+- Achtergrond: `hsl(var(--foreground))` (donker in light mode, licht in dark mode)
+- Tekst: `hsl(var(--background))` (inverse)
+- Icoon: 14px, wit/licht
+- Geen border, geen description — alleen titel
+- Radius: 999px (pill)
+- Shadow: `0 8px 24px rgba(0,0,0,0.15)`
+- Compact: `py-2.5 px-4`
+- Positie: bottom-center
+
+## Test pagina
+
+Een nieuwe route `/test-toasts` met een simpele pagina met:
+- Heading: "Toast Varianten"
+- 2 secties (Variant A en Variant B), elk met 4 buttons (Success, Error, Warning, Info)
+- Elke button triggert de bijbehorende toast-variant
+- De varianten gebruiken `toast.custom()` van Sonner om custom JSX te renderen
+
+Dit wordt een standalone test-pagina — geen wijzigingen aan de bestaande toast config. Na keuze wordt de gekozen variant de standaard en wordt de test-pagina verwijderd.
 
 ## Wijzigingen
 
-### Nieuw bestand: `src/components/onboarding/CandidateArchiveTable.tsx`
-
-Een tabel-component die de niet-actieve kandidaten toont met:
-- Kolommen: naam, e-mail, status (NestoBadge), laatste fase, datum
-- Klikbare rijen die navigeren naar `/onboarding/:id`
-- Lege state wanneer er geen kandidaten zijn
-- Gebruik van de standaard `Table` UI components
-
-### Bestand wijzigen: `src/pages/OnboardingPage.tsx`
-
-- Import `CandidateArchiveTable`
-- Conditie toevoegen: als `statusFilter === 'active'` toon het `PipelineBoard`, anders toon de `CandidateArchiveTable`
-- De tabel krijgt dezelfde `filteredCandidates` data
-
-### Geen database-wijzigingen nodig
-
-De `useOnboardingCandidates` hook haalt al alle kandidaten op inclusief `current_phase` relatie. De `onboarding_phase_logs` tabel bevat historische fase-data, maar voor de MVP volstaat de `current_phase` relatie die al beschikbaar is.
-
-## Technisch overzicht
-
-```text
-statusFilter === 'active'
-  --> PipelineBoard (kanban, bestaand)
-
-statusFilter === 'hired' | 'rejected' | 'all'
-  --> CandidateArchiveTable (tabel, nieuw)
-```
-
 | Bestand | Actie |
 |---------|-------|
-| `src/components/onboarding/CandidateArchiveTable.tsx` | Nieuw — archief tabel component |
-| `src/pages/OnboardingPage.tsx` | Wijzigen — conditionele weergave board vs. tabel |
-| `src/components/onboarding/index.ts` | Wijzigen — export toevoegen |
+| `src/pages/TestToasts.tsx` | Nieuw — test pagina met 2 varianten en trigger-buttons |
+| `src/App.tsx` | Route `/test-toasts` toevoegen (binnen protected routes) |
+
+Geen CSS-wijzigingen nodig — de custom toasts gebruiken inline Tailwind classes via `toast.custom()`. Na goedkeuring van een variant wordt die permanent in de CSS/config verwerkt.
 
