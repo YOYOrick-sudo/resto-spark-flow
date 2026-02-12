@@ -1,37 +1,79 @@
 
-# Toast V8 — Pure Enterprise
+# Toast V8 als Systeem-Standaard
 
-## Concept
+## Wat er moet gebeuren
 
-Geen dot, geen iconen, geen gekleurde borders. Puur typografie-gedreven — net als hoe Linear en Stripe hun notificaties doen. De enige kleur-hint zit in de titel tekst, en zelfs die is bewust ingetogen.
+De `nestoToast()` functie staat nu alleen in `TestToasts.tsx`. Dit plan maakt het de enige toast-methode in het hele platform.
 
-De card zelf is volledig neutraal. Status wordt gecommuniceerd door de titelkleur — subtiel genoeg dat het niet schreeuwt, duidelijk genoeg dat je het herkent.
+## Stappen
 
-## Wat verandert
+### 1. Nieuwe utility: `src/lib/nestoToast.tsx`
 
-| Element | V7 (nu) | V8 (nieuw) |
-|---------|---------|------------|
-| Dot | `w-1.5 h-1.5 rounded-full` | Verwijderd |
-| Titel | `text-[14px] font-semibold` + variant kleur `/80` | `text-[13px] font-medium tracking-tight` + variant kleur (volle sterkte) |
-| Beschrijving | `text-[13px] text-foreground/70` | `text-[12.5px] text-muted-foreground` — iets kleiner, meer hiërarchie |
-| Card padding | `px-5 py-4` | `px-4 py-3.5` — compacter, meer enterprise density |
-| Card width | `min-w-[320px] max-w-[420px]` | `min-w-[280px] max-w-[380px]` — iets smaller, minder opdringerig |
-| Shadow | Groot diffuus | Iets strakker: `0_4px_24px_rgba(0,0,0,0.06)` — minder "floating", meer grounded |
-| Beschrijving indent | `pl-[14px]` (dot compensatie) | `pl-0` — geen dot meer, dus geen indent |
+Extract de `nestoToast` functie en `variantStyles` uit `TestToasts.tsx` naar een eigen bestand. Exporteer convenience-methodes:
 
-## Kleurmapping
+```text
+nestoToast.success(title, desc?)
+nestoToast.error(title, desc?)
+nestoToast.warning(title, desc?)
+nestoToast.info(title, desc?)
+```
 
-De titel gebruikt de volle status kleur maar door `font-medium` (niet bold) voelt het gedempter:
+Dit maakt migratie eenvoudig: `toast.success("X")` wordt `nestoToast.success("X")`.
 
-| Variant | Titel kleur |
-|---------|-------------|
-| Success | `text-success` |
-| Error | `text-error` |
-| Warning | `text-warning` |
-| Info | `text-primary` |
+### 2. Migratie — Sonner-aanroepen (20+ bestanden)
 
-## Wijzigingen
+Alle bestanden die `import { toast } from "sonner"` gebruiken worden gemigreerd naar `import { nestoToast } from "@/lib/nestoToast"`.
 
-| Bestand | Actie |
-|---------|-------|
-| `src/pages/TestToasts.tsx` | Dot verwijderen, kleurmapping vereenvoudigen (alleen titel kleur), card compacter maken, shadow strakker, beschrijving kleiner + geen indent. Paginatitel updaten naar "Toast V8". |
+Betreft o.a.:
+- `useCreateCandidate.ts`, `useAdvancePhase.ts`, `useRejectCandidate.ts`
+- `useTicketMutations.ts`, `useTableMutations.ts`, `useTableGroups.ts`
+- `useDeletePhase.ts`, `useCreatePhase.ts`, `useResetOnboardingPhases.ts`
+- `useReservationSettings.ts`, `usePolicySets.ts`, `useUpdatePhaseOwner.ts`
+- `useToggleTask.ts`, `useSaveEvaluation.ts`
+- `Reserveringen.tsx`, `SettingsReserveringenPacing.tsx`
+- `TableGroupModal.tsx`
+- `TestToasts.tsx` (import vanuit lib, functie verwijderen)
+
+### 3. Migratie — Radix/useToast-aanroepen (4 bestanden)
+
+Bestanden die het oude Radix toast-systeem (`useToast` / `@/hooks/use-toast`) gebruiken:
+- `useShifts.ts` (5 mutaties)
+- `useShiftExceptions.ts` (4 mutaties)
+- `useSendMessage.ts`
+- `ReservationGridView.tsx`
+
+Deze worden ook gemigreerd naar `nestoToast`.
+
+### 4. Opruimen — Oude toast-infrastructuur verwijderen
+
+Na migratie zijn deze bestanden overbodig:
+- `src/components/ui/toaster.tsx` — Radix Toaster component
+- `src/components/ui/toast.tsx` — Radix Toast primitives
+- `src/components/ui/use-toast.ts` — Re-export wrapper
+- `src/hooks/use-toast.ts` — Radix toast hook + state machine
+
+En in `App.tsx`:
+- `<Toaster />` (Radix) verwijderen — alleen `<Sonner />` behouden (die rendert de custom toasts)
+
+### 5. Documentatie updaten
+
+`docs/design/TOAST_NOTIFICATIONS.md` bijwerken met het V8 patroon en de nieuwe import-conventie.
+
+---
+
+## Technische details
+
+| Onderdeel | Actie |
+|-----------|-------|
+| `src/lib/nestoToast.tsx` | Nieuw bestand met V8 toast utility |
+| 20+ hooks/components | `toast.success()` wordt `nestoToast.success()` |
+| 4 bestanden met `useToast` | Migreren van Radix naar `nestoToast` |
+| 4 oude toast-bestanden | Verwijderen |
+| `App.tsx` | `<Toaster />` import en element verwijderen |
+| `docs/design/TOAST_NOTIFICATIONS.md` | Updaten naar V8 standaard |
+
+## Resultaat
+
+- Een toast-systeem in plaats van twee
+- Consistent V8 design overal
+- Simpelere API: `nestoToast.success("Opgeslagen")`
