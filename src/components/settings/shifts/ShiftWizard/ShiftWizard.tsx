@@ -200,8 +200,8 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
   const unlinkCount = getUnlinkedTicketCount();
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card shrink-0">
         <h2 className="text-lg font-semibold">
           {editingShift ? "Shift bewerken" : "Nieuwe shift"}
         </h2>
