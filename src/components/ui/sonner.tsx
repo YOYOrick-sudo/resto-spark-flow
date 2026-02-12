@@ -10,20 +10,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       position="bottom-right"
-      offset="24px 40px"
+      offset={24}
       gap={12}
       duration={4000}
+      style={{ right: '40px' }}
       toastOptions={{
         unstyled: true,
-        classNames: {
-          toast: 'nesto-toast',
-          title: 'nesto-toast-title',
-          description: 'nesto-toast-description',
-          success: 'nesto-toast-success',
-          error: 'nesto-toast-error',
-          warning: 'nesto-toast-warning',
-          info: 'nesto-toast-info',
-        },
       }}
       {...props}
     />
