@@ -2,7 +2,7 @@ import { toast } from "sonner";
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// ── Variant A V3: Whisper ──
+// ── Variant A V4: Whisper (bottom-center) ──
 
 const toastA = {
   success: (msg: string, desc?: string) =>
@@ -17,7 +17,7 @@ const toastA = {
           <X className="h-3 w-3" />
         </button>
       </div>
-    )),
+    ), { position: "bottom-center" }),
   error: (msg: string, desc?: string) =>
     toast.custom((t) => (
       <div className="group bg-popover border border-border/25 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.25)] dark:border-border/40 px-3 py-2 flex items-center gap-2.5 min-w-[260px] max-w-[360px]">
@@ -30,7 +30,7 @@ const toastA = {
           <X className="h-3 w-3" />
         </button>
       </div>
-    )),
+    ), { position: "bottom-center" }),
   warning: (msg: string, desc?: string) =>
     toast.custom((t) => (
       <div className="group bg-popover border border-border/25 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.25)] dark:border-border/40 px-3 py-2 flex items-center gap-2.5 min-w-[260px] max-w-[360px]">
@@ -43,7 +43,7 @@ const toastA = {
           <X className="h-3 w-3" />
         </button>
       </div>
-    )),
+    ), { position: "bottom-center" }),
   info: (msg: string, desc?: string) =>
     toast.custom((t) => (
       <div className="group bg-popover border border-border/25 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.25)] dark:border-border/40 px-3 py-2 flex items-center gap-2.5 min-w-[260px] max-w-[360px]">
@@ -56,51 +56,47 @@ const toastA = {
           <X className="h-3 w-3" />
         </button>
       </div>
-    )),
+    ), { position: "bottom-center" }),
 };
 
-// ── Variant B V3: Ghost Bar ──
+// ── Variant B V4: Inline Status ──
 
 const toastB = {
   success: (msg: string) =>
     toast.custom(
       () => (
-        <div className="bg-foreground/80 backdrop-blur-xl border border-white/[0.06] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.12),0_1px_4px_rgba(0,0,0,0.06)] px-3.5 py-2 flex items-center gap-2 min-w-[220px] max-w-[320px]">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/80 shrink-0" />
-          <p className="text-[13px] font-normal text-background/90">{msg}</p>
+        <div className="bg-foreground/[0.03] border-l-2 border-success/40 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.03)] px-3 py-2 flex items-center max-w-[300px]">
+          <p className="text-[13px] font-normal text-foreground/70">{msg}</p>
         </div>
       ),
-      { position: "bottom-center" }
+      { position: "bottom-center", duration: 3000 }
     ),
   error: (msg: string) =>
     toast.custom(
       () => (
-        <div className="bg-foreground/80 backdrop-blur-xl border border-white/[0.06] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.12),0_1px_4px_rgba(0,0,0,0.06)] px-3.5 py-2 flex items-center gap-2 min-w-[220px] max-w-[320px]">
-          <XCircle className="h-3.5 w-3.5 text-rose-400/80 shrink-0" />
-          <p className="text-[13px] font-normal text-background/90">{msg}</p>
+        <div className="bg-foreground/[0.03] border-l-2 border-error/40 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.03)] px-3 py-2 flex items-center max-w-[300px]">
+          <p className="text-[13px] font-normal text-foreground/70">{msg}</p>
         </div>
       ),
-      { position: "bottom-center" }
+      { position: "bottom-center", duration: 3000 }
     ),
   warning: (msg: string) =>
     toast.custom(
       () => (
-        <div className="bg-foreground/80 backdrop-blur-xl border border-white/[0.06] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.12),0_1px_4px_rgba(0,0,0,0.06)] px-3.5 py-2 flex items-center gap-2 min-w-[220px] max-w-[320px]">
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-400/80 shrink-0" />
-          <p className="text-[13px] font-normal text-background/90">{msg}</p>
+        <div className="bg-foreground/[0.03] border-l-2 border-warning/40 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.03)] px-3 py-2 flex items-center max-w-[300px]">
+          <p className="text-[13px] font-normal text-foreground/70">{msg}</p>
         </div>
       ),
-      { position: "bottom-center" }
+      { position: "bottom-center", duration: 3000 }
     ),
   info: (msg: string) =>
     toast.custom(
       () => (
-        <div className="bg-foreground/80 backdrop-blur-xl border border-white/[0.06] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.12),0_1px_4px_rgba(0,0,0,0.06)] px-3.5 py-2 flex items-center gap-2 min-w-[220px] max-w-[320px]">
-          <Info className="h-3.5 w-3.5 text-teal-400/80 shrink-0" />
-          <p className="text-[13px] font-normal text-background/90">{msg}</p>
+        <div className="bg-foreground/[0.03] border-l-2 border-primary/40 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.03)] px-3 py-2 flex items-center max-w-[300px]">
+          <p className="text-[13px] font-normal text-foreground/70">{msg}</p>
         </div>
       ),
-      { position: "bottom-center" }
+      { position: "bottom-center", duration: 3000 }
     ),
 };
 
@@ -110,15 +106,15 @@ export default function TestToasts() {
   return (
     <div className="p-8 max-w-2xl mx-auto space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Toast Varianten V3</h1>
-        <p className="text-muted-foreground text-sm mt-1">Nog subtieler. Vergelijk de twee stijlen.</p>
+        <h1 className="text-2xl font-semibold text-foreground">Toast Varianten V4</h1>
+        <p className="text-muted-foreground text-sm mt-1">Bottom-center positie. Vergelijk Whisper vs Inline Status.</p>
       </div>
 
       {/* Variant A */}
       <section className="space-y-4">
         <div>
           <h2 className="text-lg font-medium text-foreground">Variant A — Whisper</h2>
-          <p className="text-sm text-muted-foreground">Bijna onzichtbaar. Gedempte iconen, lichtere tekst, minimale shadow.</p>
+          <p className="text-sm text-muted-foreground">Subtiele card, nu bottom-center. Gedempte iconen en tekst.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => toastA.success("Area aangemaakt", "De nieuwe area is beschikbaar")}>Success</Button>
@@ -131,8 +127,8 @@ export default function TestToasts() {
       {/* Variant B */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-medium text-foreground">Variant B — Ghost Bar</h2>
-          <p className="text-sm text-muted-foreground">Semi-transparant, gedempte kleuren, lichter gewicht.</p>
+          <h2 className="text-lg font-medium text-foreground">Variant B — Inline Status</h2>
+          <p className="text-sm text-muted-foreground">Ultra-minimaal. Alleen tekst + gekleurd streepje links. 3s auto-dismiss.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => toastB.success("Area aangemaakt")}>Success</Button>
