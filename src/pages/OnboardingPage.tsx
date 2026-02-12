@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/polar/PageHeader';
-import { PipelineBoard, StatusFilterPills, AddCandidateModal } from '@/components/onboarding';
+import { PipelineBoard, StatusFilterPills, AddCandidateModal, CandidateArchiveTable } from '@/components/onboarding';
 import type { StatusFilter } from '@/components/onboarding';
 import { useUserContext } from '@/contexts/UserContext';
 import { useOnboardingPhases } from '@/hooks/useOnboardingPhases';
@@ -63,16 +63,20 @@ export default function OnboardingPage() {
               <Skeleton key={i} className="min-w-[280px] h-[300px] rounded-lg" />
             ))}
           </div>
-        ) : phases && phases.length > 0 ? (
-          <PipelineBoard
-            phases={phases}
-            candidates={filteredCandidates}
-            onCandidateClick={(id) => navigate(`/onboarding/${id}`)}
-          />
+        ) : statusFilter === 'active' ? (
+          phases && phases.length > 0 ? (
+            <PipelineBoard
+              phases={phases}
+              candidates={filteredCandidates}
+              onCandidateClick={(id) => navigate(`/onboarding/${id}`)}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              Geen onboarding fasen geconfigureerd.
+            </p>
+          )
         ) : (
-          <p className="text-sm text-muted-foreground py-8 text-center">
-            Geen onboarding fasen geconfigureerd.
-          </p>
+          <CandidateArchiveTable candidates={filteredCandidates} />
         )}
       </div>
 
