@@ -211,9 +211,9 @@ function ShiftWizardContent({ onClose }: { onClose: () => void }) {
         </NestoButton>
       </div>
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <ShiftWizardSidebar />
-        <div className="flex-1 p-5">
+        <div className="flex-1 p-5 overflow-y-auto">
           {renderStep()}
         </div>
       </div>
@@ -245,7 +245,7 @@ export function ShiftWizard({ open, onOpenChange, locationId, editingShift }: Sh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden rounded-card" hideCloseButton>
+      <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden rounded-card top-[5vh] translate-y-0 max-h-[90vh] flex flex-col" hideCloseButton>
         {isReady ? (
           <ShiftWizardProvider
             locationId={locationId}

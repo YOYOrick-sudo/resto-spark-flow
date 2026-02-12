@@ -6,7 +6,9 @@ import { NestoBadge } from "@/components/polar/NestoBadge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { FieldHelp } from "@/components/polar/FieldHelp";
 import { useShiftWizard, type ShiftTicketOverrides } from "../ShiftWizardContext";
 import { useTickets, type TicketWithMeta } from "@/hooks/useTickets";
 import { useAreasWithTables } from "@/hooks/useAreasWithTables";
@@ -29,6 +31,16 @@ function countOverrides(o: ShiftTicketOverrides | undefined): number {
   if (o.showEndTime) count++;
   if (o.waitlistEnabled) count++;
   return count;
+}
+
+/** Section header with optional FieldHelp tooltip */
+function SectionHeader({ label, children }: { label: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[13px] font-medium text-foreground">{label}</span>
+      {children}
+    </div>
+  );
 }
 
 interface TicketConfigPanelProps {
@@ -63,7 +75,12 @@ function TicketConfigPanel({ ticket, overrides, areas, defaultOpen, onSetOverrid
       <CollapsibleTrigger asChild>
         <button
           type="button"
-          className="w-full flex items-center gap-2 p-3 rounded-dropdown border border-border hover:bg-accent/30 transition-all text-left"
+          className={cn(
+            "w-full flex items-center gap-2 p-3 rounded-dropdown border border-border transition-all text-left",
+            open
+              ? "bg-secondary/40 border-l-2 border-l-primary"
+              : "bg-secondary/20 hover:bg-secondary/40"
+          )}
         >
           {open ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
           <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ticket.color }} />
@@ -76,11 +93,15 @@ function TicketConfigPanel({ ticket, overrides, areas, defaultOpen, onSetOverrid
         </button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="border border-t-0 border-border rounded-b-dropdown p-4 space-y-5">
+        <div className="border border-t-0 border-border rounded-b-dropdown p-4 space-y-4">
           {/* Duration & Buffer */}
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tafeltijd & buffer</Label>
-            <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="bg-secondary/50 rounded-card p-4 space-y-3">
+            <SectionHeader label="Tafeltijd & buffer">
+              <FieldHelp>
+                <p>Duur bepaalt hoe lang een tafel bezet is. Buffer is de opruimtijd tussen reserveringen.</p>
+              </FieldHelp>
+            </SectionHeader>
+            <div className="grid grid-cols-2 gap-3">
               <NestoInput
                 type="number"
                 placeholder={String(ticket.duration_minutes)}
@@ -99,9 +120,13 @@ function TicketConfigPanel({ ticket, overrides, areas, defaultOpen, onSetOverrid
           </div>
 
           {/* Party Size */}
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Groepsgrootte</Label>
-            <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="bg-secondary/50 rounded-card p-4 space-y-3">
+            <SectionHeader label="Groepsgrootte">
+              <FieldHelp>
+                <p>Beperk het aantal gasten per reservering voor dit ticket in deze shift. Leeg = standaard van het ticket.</p>
+              </FieldHelp>
+            </SectionHeader>
+            <div className="grid grid-cols-2 gap-3">
               <NestoInput
                 type="number"
                 placeholder={String(ticket.min_party_size)}
@@ -120,9 +145,13 @@ function TicketConfigPanel({ ticket, overrides, areas, defaultOpen, onSetOverrid
           </div>
 
           {/* Pacing */}
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pacing</Label>
-            <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="bg-secondary/50 rounded-card p-4 space-y-3">
+            <SectionHeader label="Pacing">
+              <FieldHelp>
+                <p>Pacing beperkt hoeveel gasten tegelijk kunnen arriveren per tijdslot. Dit voorkomt piekdrukte in de keuken.</p>
+              </FieldHelp>
+            </SectionHeader>
+            <div className="grid grid-cols-2 gap-3">
               <NestoInput
                 type="number"
                 placeholder="Geen limiet"
@@ -143,9 +172,13 @@ function TicketConfigPanel({ ticket, overrides, areas, defaultOpen, onSetOverrid
           </div>
 
           {/* Seating Limits */}
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Seating limieten</Label>
-            <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="bg-secondary/50 rounded-card p-4 space-y-3">
+            <SectionHeader label="Seating limieten">
+              <FieldHelp>
+                <p>Beperk het totaal aantal gasten of reserveringen dat tegelijk in de shift kan zitten.</p>
+              </FieldHelp>
+            </SectionHeader>
+            <div className="grid grid-cols-2 gap-3">
               <NestoInput
                 type="number"
                 placeholder="Geen limiet"
@@ -164,105 +197,113 @@ function TicketConfigPanel({ ticket, overrides, areas, defaultOpen, onSetOverrid
           </div>
 
           {/* Areas */}
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Gebieden</Label>
-            <div className="mt-2 space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={!useSpecificAreas}
-                  onChange={() => onSetOverride("areas", null)}
-                  className="accent-primary"
-                />
-                <span className="text-sm">Alle gebieden ({areas.length})</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={useSpecificAreas}
-                  onChange={() => onSetOverride("areas", [])}
-                  className="accent-primary"
-                />
-                <span className="text-sm">Specifieke gebieden</span>
-              </label>
-              {useSpecificAreas && (
-                <div className="pl-6 space-y-1.5">
-                  {areas.map((area) => {
-                    const tableCount = area.tables.length;
-                    const seatCount = area.tables.reduce((sum, t) => sum + t.max_capacity, 0);
-                    return (
-                      <label key={area.id} className="flex items-center gap-2 cursor-pointer">
-                        <Checkbox
-                          checked={selectedAreas.includes(area.id)}
-                          onCheckedChange={() => toggleArea(area.id)}
-                        />
-                        <span className="text-sm">{area.name}</span>
-                        <span className="text-xs text-muted-foreground">({tableCount}t, {seatCount}s)</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="flex items-center gap-2 mt-1">
-                <Switch
-                  checked={overrides?.showAreaName ?? false}
-                  onCheckedChange={(v) => onSetOverride("showAreaName", v)}
-                />
-                <Label className="text-sm">Toon area naam in widget</Label>
+          <div className="bg-secondary/50 rounded-card p-4 space-y-3">
+            <SectionHeader label="Gebieden">
+              <FieldHelp>
+                <p>Kies in welke gebieden dit ticket beschikbaar is. Standaard: alle gebieden.</p>
+              </FieldHelp>
+            </SectionHeader>
+            <RadioGroup
+              value={useSpecificAreas ? "specific" : "all"}
+              onValueChange={(v) => onSetOverride("areas", v === "all" ? null : [])}
+              className="space-y-2"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="all" id={`areas-all-${ticket.id}`} />
+                <Label htmlFor={`areas-all-${ticket.id}`} className="text-sm cursor-pointer">
+                  Alle gebieden ({areas.length})
+                </Label>
               </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="specific" id={`areas-specific-${ticket.id}`} />
+                <Label htmlFor={`areas-specific-${ticket.id}`} className="text-sm cursor-pointer">
+                  Specifieke gebieden
+                </Label>
+              </div>
+            </RadioGroup>
+            {useSpecificAreas && (
+              <div className="pl-6 space-y-1.5">
+                {areas.map((area) => {
+                  const tableCount = area.tables.length;
+                  const seatCount = area.tables.reduce((sum, t) => sum + t.max_capacity, 0);
+                  return (
+                    <label key={area.id} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={selectedAreas.includes(area.id)}
+                        onCheckedChange={() => toggleArea(area.id)}
+                      />
+                      <span className="text-sm">{area.name}</span>
+                      <span className="text-xs text-muted-foreground">({tableCount}t, {seatCount}s)</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex items-center gap-2 mt-1">
+              <Switch
+                checked={overrides?.showAreaName ?? false}
+                onCheckedChange={(v) => onSetOverride("showAreaName", v)}
+              />
+              <Label className="text-sm">Toon area naam in widget</Label>
             </div>
           </div>
 
           {/* Squeeze */}
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Squeeze</Label>
-            <div className="mt-2 space-y-3">
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={overrides?.squeezeEnabled ?? false}
-                  onCheckedChange={(v) => onSetOverride("squeezeEnabled", v)}
-                />
-                <Label className="text-sm">Squeeze inschakelen</Label>
-              </div>
-              {overrides?.squeezeEnabled && (
-                <div className="grid grid-cols-2 gap-3">
-                  <NestoInput
-                    type="number"
-                    placeholder="Geen"
-                    value={overrides?.squeezeDuration ?? ""}
-                    onChange={(e) => handleNumberInput("squeezeDuration", e.target.value)}
-                    label="Duur (min)"
-                  />
-                  <NestoInput
-                    type="number"
-                    placeholder="Geen"
-                    value={overrides?.squeezeGap ?? ""}
-                    onChange={(e) => handleNumberInput("squeezeGap", e.target.value)}
-                    label="Gap (min)"
-                  />
-                  <NestoInput
-                    type="time"
-                    placeholder="Geen"
-                    value={overrides?.squeezeFixedEndTime ?? ""}
-                    onChange={(e) => onSetOverride("squeezeFixedEndTime", e.target.value || null)}
-                    label="Vaste eindtijd"
-                  />
-                  <NestoInput
-                    type="number"
-                    placeholder="Geen"
-                    value={overrides?.squeezeLimit ?? ""}
-                    onChange={(e) => handleNumberInput("squeezeLimit", e.target.value)}
-                    label="Max per shift"
-                  />
-                </div>
-              )}
+          <div className="bg-secondary/50 rounded-card p-4 space-y-3">
+            <SectionHeader label="Squeeze">
+              <FieldHelp>
+                <p>Squeeze verkort de verblijfsduur bij hoge bezetting, zodat je extra reserveringen kunt plaatsen.</p>
+              </FieldHelp>
+            </SectionHeader>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={overrides?.squeezeEnabled ?? false}
+                onCheckedChange={(v) => onSetOverride("squeezeEnabled", v)}
+              />
+              <Label className="text-sm">Squeeze inschakelen</Label>
             </div>
+            {overrides?.squeezeEnabled && (
+              <div className="grid grid-cols-2 gap-3">
+                <NestoInput
+                  type="number"
+                  placeholder="Geen"
+                  value={overrides?.squeezeDuration ?? ""}
+                  onChange={(e) => handleNumberInput("squeezeDuration", e.target.value)}
+                  label="Duur (min)"
+                />
+                <NestoInput
+                  type="number"
+                  placeholder="Geen"
+                  value={overrides?.squeezeGap ?? ""}
+                  onChange={(e) => handleNumberInput("squeezeGap", e.target.value)}
+                  label="Gap (min)"
+                />
+                <NestoInput
+                  type="time"
+                  placeholder="Geen"
+                  value={overrides?.squeezeFixedEndTime ?? ""}
+                  onChange={(e) => onSetOverride("squeezeFixedEndTime", e.target.value || null)}
+                  label="Vaste eindtijd"
+                />
+                <NestoInput
+                  type="number"
+                  placeholder="Geen"
+                  value={overrides?.squeezeLimit ?? ""}
+                  onChange={(e) => handleNumberInput("squeezeLimit", e.target.value)}
+                  label="Max per shift"
+                />
+              </div>
+            )}
           </div>
 
           {/* Display */}
-          <div>
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Weergave</Label>
-            <div className="mt-2 flex gap-6">
+          <div className="bg-secondary/50 rounded-card p-4 space-y-3">
+            <SectionHeader label="Weergave">
+              <FieldHelp>
+                <p>Bepaal welke informatie gasten zien in de boekingswidget.</p>
+              </FieldHelp>
+            </SectionHeader>
+            <div className="flex gap-6">
               <div className="flex items-center gap-2">
                 <Switch
                   checked={overrides?.showEndTime ?? false}
