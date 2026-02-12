@@ -1,55 +1,52 @@
 
 
-# Toast Redesign — 2 Enterprise Varianten met Test Pagina
+# Toast Redesign V2 — Enterprise Upgrade
 
-## Huidige situatie
+## Wat er nu mis is
 
-De toast gebruikt een 3px gekleurde left-border met gekleurde title-tekst. Dit geeft een "dashboard admin panel" gevoel, niet het subtiele Linear/Stripe/Notion niveau dat Nesto Polar nastreeft.
+**Variant A:** Ziet er uit als een generieke notificatie-card. De border is te zichtbaar, de shadow te zwak, en het geheel oogt als een standaard component library toast — niet enterprise-level.
 
-## Twee nieuwe varianten
+**Variant B:** De witte pill op donkere achtergrond ziet er goedkoop uit. Het contrast is te hard, er is geen subtiliteit, en het mist finesse.
 
-### Variant A: "Minimal Icon" (Linear-stijl)
+## Nieuwe richting
 
-Subtiele toast met een klein icoon links (CheckCircle, XCircle, etc.) en neutrale tekst. Geen gekleurde borders, geen gekleurde titels. Het icoon is het enige kleur-accent.
+### Variant A V2: "Notion Inline" — Ultra-subtiel
 
-- Achtergrond: `bg-card`
-- Shadow: subtiel enterprise shadow
-- Icoon: klein (16px), kleur per type (groen/rood/oranje/teal)
-- Titel: `text-foreground`, gewoon 14px medium
-- Beschrijving: `text-muted-foreground`, 13px
-- Border: 1px `border-border/60` — geen left-border accent
-- Radius: 10px
-- Compact: minder padding (12px 14px)
+Gebaseerd op hoe Notion en Linear hun toasts doen: bijna onzichtbaar, maar met net genoeg visuele aanwijzing.
 
-### Variant B: "Pill Snackbar" (Vercel/Sonner-stijl)
+- Achtergrond: `bg-popover` (zelfde als dropdown menus, niet `bg-card`)
+- Shadow: diepere, gespreide enterprise shadow: `0 4px 16px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)`
+- Border: `border border-border/40` — bijna onzichtbaar
+- Icoon: 15px, met subtiele achtergrondcirkel (`w-6 h-6 rounded-full bg-success/10` met icoon `text-success`)
+- Titel: `text-[13px] font-medium text-foreground` — kleiner, subtieler
+- Beschrijving: `text-[12px] text-muted-foreground`
+- Radius: `rounded-xl` (12px, passend bij Nesto Polar)
+- Padding: `py-2.5 px-3` — compact
+- Close button: verborgen, verschijnt alleen op hover van de toast
+- Min-width: `280px`, max-width: `380px` — smaller
+- Dark mode: `dark:bg-popover dark:border-border/60` met sterkere shadow
 
-Ultra-compact, donkere pill die onderaan verschijnt. Geen card-styling, maar een floating dark chip met wit icoon en witte tekst. Heel subtiel, verdwijnt snel.
+### Variant B V2: "Glass Bar" — Frosted floating bar
 
-- Achtergrond: `hsl(var(--foreground))` (donker in light mode, licht in dark mode)
-- Tekst: `hsl(var(--background))` (inverse)
-- Icoon: 14px, wit/licht
-- Geen border, geen description — alleen titel
-- Radius: 999px (pill)
-- Shadow: `0 8px 24px rgba(0,0,0,0.15)`
-- Compact: `py-2.5 px-4`
+Een semi-transparante balk met backdrop-blur, gecentreerd onderaan. Denk aan de macOS notificatie-stijl of de Arc browser command bar.
+
+- Achtergrond: `bg-foreground/90` (90% opacity, niet 100% — subtiel)
+- Backdrop: `backdrop-blur-xl` voor een frosted glass effect
+- Tekst: `text-background` (inverse)
+- Icoon: 14px, met een subtiele kleur-tint (niet puur wit maar licht gekleurd: success = `text-emerald-300`, error = `text-rose-300`)
+- Radius: `rounded-xl` (12px, niet pill — professioneler)
+- Shadow: `0 8px 32px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.1)` — dieper, meer lagen
+- Padding: `py-2.5 px-4`
 - Positie: bottom-center
-
-## Test pagina
-
-Een nieuwe route `/test-toasts` met een simpele pagina met:
-- Heading: "Toast Varianten"
-- 2 secties (Variant A en Variant B), elk met 4 buttons (Success, Error, Warning, Info)
-- Elke button triggert de bijbehorende toast-variant
-- De varianten gebruiken `toast.custom()` van Sonner om custom JSX te renderen
-
-Dit wordt een standalone test-pagina — geen wijzigingen aan de bestaande toast config. Na keuze wordt de gekozen variant de standaard en wordt de test-pagina verwijderd.
+- Min-width: `240px`
+- Geen close button — auto-dismiss only (clean)
+- Subtiele border: `border border-white/10` voor glass effect
 
 ## Wijzigingen
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/TestToasts.tsx` | Nieuw — test pagina met 2 varianten en trigger-buttons |
-| `src/App.tsx` | Route `/test-toasts` toevoegen (binnen protected routes) |
+| `src/pages/TestToasts.tsx` | Beide varianten vervangen met V2 versies |
 
-Geen CSS-wijzigingen nodig — de custom toasts gebruiken inline Tailwind classes via `toast.custom()`. Na goedkeuring van een variant wordt die permanent in de CSS/config verwerkt.
+Geen andere bestanden worden aangepast. Alleen de test pagina wordt bijgewerkt.
 
