@@ -1,127 +1,102 @@
 
 
-# Policy Sets Beheer + Squeeze Defaults + Inline Preview (v2)
+# ShiftWizard Enterprise Polish + Info Tooltips + Popup Fix
 
-## Wijzigingen t.o.v. vorig voorstel
+## Probleem
 
-### Wijziging 1: Description veld in Basis-sectie
+De ShiftWizard configuratie-stap (stap 3) mist enterprise-kwaliteit op meerdere vlakken:
 
-De "Basis" sectie in `PolicySetDetailSheet` krijgt naast "Naam" ook een optioneel "Beschrijving" veld (textarea, max 200 tekens). Dit veld:
+1. **Geen info tooltips** bij secties als Pacing, Squeeze, Seating Limieten
+2. **Uppercase sectie-labels** (`PACING`, `SEATING LIMIETEN`) — voelt als een formulier, niet als enterprise software
+3. **Geen visuele groepering** van secties (velden lopen in elkaar over)
+4. **Raw HTML radio buttons** bij Gebieden (geen Radix-componenten)
+5. **Popup verspringt** wanneer content-hoogte verandert (collapsibles openen, squeeze toggle) — door `translate-y-[-50%]` centering
+6. **Geen scroll** in het content-area — bij meerdere tickets groeit de modal voorbij het scherm
 
-- Wordt opgeslagen in `policy_sets.description` (kolom bestaat al in de database)
-- Wordt getoond op de `PolicySetCard` als subtekst onder de naam (indien gevuld)
-- Wordt getoond in de policy set dropdown op de ticket detail pagina (als secondary text)
-- Placeholder: "Bijv. voor groepen vanaf 8 personen"
+## Oplossing
 
-Geen database migratie nodig — `description` kolom bestaat al.
+### 1. Popup verspringen fixen (ShiftWizard.tsx + dialog.tsx)
 
-### Wijziging 2: Archiveer-guard met blokkade
+Het probleem is dat `DialogContent` verticaal gecentreerd wordt met `top-[50%] translate-y-[-50%]`. Wanneer de content-hoogte verandert (collapsible opent, squeeze velden verschijnen), herberekent de browser de positie en springt het venster.
 
-Bij archiveren checkt `useArchivePolicySet` eerst het aantal actieve gekoppelde tickets:
+**Fix:** De ShiftWizard dialog krijgt een vaste hoogte met intern scrollbaar content-area:
+
+- `DialogContent` voor de wizard: verwijder centering, gebruik `top-[5vh]` met `translate-y-0`
+- Wizard content-area (`flex-1 p-5`): wordt scrollbaar met `overflow-y-auto` en een `max-h` berekend op basis van viewport
+- Header en footer blijven sticky (al het geval door flex layout)
+
+Dit voorkomt dat de dialog herspringt bij content-veranderingen.
+
+### 2. Enterprise Form Grouping in ConfigStep
+
+Vervang de huidige platte layout door het bestaande Enterprise Form Grouping patroon:
+
+Elke sectie (Tafeltijd & Buffer, Groepsgrootte, Pacing, etc.) wordt gewrapped in:
 
 ```text
-SELECT count(*) FROM tickets 
-WHERE policy_set_id = :id AND status = 'active'
+bg-secondary/50 rounded-card p-4 space-y-3
 ```
 
-- **0 actieve tickets**: archiveer direct (met ConfirmDialog)
-- **1+ actieve tickets**: blokkeer met foutmelding via ConfirmDialog variant:
-  - Titel: "Beleid kan niet gearchiveerd worden"
-  - Tekst: "Dit beleid is gekoppeld aan X actieve ticket(s). Koppel deze tickets eerst aan een ander beleid voordat je dit beleid archiveert."
-  - Alleen een "Begrepen" knop, geen destructieve actie
-  - Lijst met de namen van de gekoppelde tickets (klikbaar, navigeert naar ticket detail)
+Dit is consistent met hoe ShiftExceptionModal en BulkExceptionModal al werken.
 
-De guard zit in de UI-laag (pre-check voor de mutation), niet als database constraint — consistent met hoe andere archiveer-flows werken in Nesto.
+### 3. Sectie-labels upgraden
 
----
+Vervang de uppercase `Label` elementen door sentence-case headers met optionele FieldHelp:
 
-## Volledige scope (inclusief wijzigingen)
+**Van:**
+```text
+<Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+  PACING
+</Label>
+```
 
-### 1. Squeeze Defaults op tickets tabel
+**Naar:**
+```text
+<div className="flex items-center gap-1.5">
+  <span className="text-[13px] font-medium text-foreground">Pacing</span>
+  <FieldHelp>
+    <p>Pacing bepaalt hoeveel gasten per tijdslot kunnen arriveren...</p>
+  </FieldHelp>
+</div>
+```
 
-Database migratie: 5 kolommen toevoegen aan `tickets`:
+### 4. Info tooltips toevoegen
 
-| Kolom | Type | Default |
-|-------|------|---------|
-| squeeze_enabled | boolean | false |
-| squeeze_duration_minutes | integer | nullable |
-| squeeze_gap_minutes | integer | 0 |
-| squeeze_to_fixed_end_time | time | nullable |
-| squeeze_limit_per_shift | integer | nullable |
+Per sectie een FieldHelp met contextuele uitleg:
 
-Update `get_shift_ticket_config` RPC: COALESCE shift_tickets overrides met tickets defaults.
+| Sectie | Tooltip tekst |
+|--------|--------------|
+| Tafeltijd & buffer | "Duur bepaalt hoe lang een tafel bezet is. Buffer is de opruimtijd tussen reserveringen." |
+| Groepsgrootte | "Beperk het aantal gasten per reservering voor dit ticket in deze shift. Leeg = standaard van het ticket." |
+| Pacing | "Pacing beperkt hoeveel gasten tegelijk kunnen arriveren per tijdslot. Dit voorkomt piekdrukte in de keuken." |
+| Seating limieten | "Beperk het totaal aantal gasten of reserveringen dat tegelijk in de shift kan zitten." |
+| Gebieden | "Kies in welke gebieden dit ticket beschikbaar is. Standaard: alle gebieden." |
+| Squeeze | "Squeeze verkort de verblijfsduur bij hoge bezetting, zodat je extra reserveringen kunt plaatsen." |
+| Weergave | "Bepaal welke informatie gasten zien in de boekingswidget." |
 
-### 2. Hooks (`src/hooks/usePolicySets.ts`)
+### 5. Raw HTML radio buttons vervangen
 
-| Hook | Functie |
-|------|---------|
-| `usePolicySets` | Uitbreiden: alle velden + ticketCount via count query |
-| `useCreatePolicySet` | Bestaand, blijft |
-| `usePolicySet(id)` | **Nieuw** — Enkel policy set + gekoppelde ticket namen |
-| `useUpdatePolicySet` | **Nieuw** — Update alle velden inclusief description |
-| `useArchivePolicySet` | **Nieuw** — Pre-check actieve tickets, blokkeer of archiveer |
-| `useRestorePolicySet` | **Nieuw** — Restore (is_active = true) |
+De Gebieden sectie gebruikt nu `<input type="radio">`. Vervang door Radix `RadioGroup` + `RadioGroupItem` voor consistentie met het design systeem.
 
-### 3. Overzichtspagina (`SettingsReserveringenBeleid.tsx`)
+### 6. Collapsible trigger verfijnen
 
-Route: `/instellingen/reserveringen/beleid`
+De ticket-header in het collapsible panel krijgt een subtielere hover-state en een meer enterprise uitstraling:
 
-Kaarten grid met `PolicySetCard`:
-- Naam + beschrijving (indien gevuld)
-- 4 regels leesbare samenvatting (betaling, annulering, no-show, reconfirmatie)
-- Badge: "X tickets"
-- Klik opent `PolicySetDetailSheet`
+- Achtergrond: `bg-secondary/30` in plaats van transparant
+- Hover: `hover:bg-secondary/50`
+- Open state: linker-border accent (`border-l-2 border-l-primary`)
 
-Header: "+ Nieuw beleid" knop. Archief sectie: collapsible onderaan.
-
-### 4. Detail Sheet (`PolicySetDetailSheet.tsx`)
-
-Sheet van rechts, 5 secties:
-1. **Basis** — Naam + Beschrijving (textarea, optioneel)
-2. **Betaling** — Type dropdown + bedrag (conditioneel)
-3. **Annulering** — Type dropdown + uren (conditioneel)
-4. **No-show** — Type dropdown + minuten + kosten (conditioneel)
-5. **Reconfirmatie** — Enabled toggle + uren + verplicht toggle
-
-Onderaan: "Gekoppelde tickets" lijst (read-only). InfoAlert als meer dan 1 ticket gekoppeld.
-
-### 5. Inline Preview op Ticket Detail
-
-In de beleid-sectie van `SettingsReserveringenTicketDetail.tsx`:
-- Preview-card met 4 regels samenvatting van geselecteerde policy set
-- Beschrijving getoond als secondary text in de dropdown
-- "+ Nieuw beleid" opent `PolicySetDetailSheet`
-
-### 6. Samenvattingshelper (`policySetSummary.ts`)
-
-Gedeelde functies voor leesbare teksten:
-- `formatPaymentSummary(policySet)` — "Geen betaling" / "EUR 25,00 p.p. deposit"
-- `formatCancelSummary(policySet)` — "Gratis annuleren" / "Tot 24u voor aanvang"
-- `formatNoshowSummary(policySet)` — "Geen actie" / "Markeren na 15 min"
-- `formatReconfirmSummary(policySet)` — "Uit" / "24u voor, verplicht"
-
-### 7. Bestanden overzicht
+## Bestanden die wijzigen
 
 | Bestand | Actie |
 |---------|-------|
-| **SQL migratie** | Squeeze kolommen op tickets + update RPC |
-| `src/hooks/usePolicySets.ts` | Uitbreiden met 4 nieuwe hooks |
-| `src/pages/settings/reserveringen/SettingsReserveringenBeleid.tsx` | **Nieuw** |
-| `src/components/settings/tickets/PolicySetCard.tsx` | **Nieuw** |
-| `src/components/settings/tickets/PolicySetDetailSheet.tsx` | **Nieuw** |
-| `src/components/settings/tickets/PolicySetsSection.tsx` | **Nieuw** |
-| `src/components/settings/tickets/policySetSummary.ts` | **Nieuw** |
-| `src/pages/settings/reserveringen/SettingsReserveringenTicketDetail.tsx` | Beleid-sectie met inline preview |
-| `src/lib/settingsRouteConfig.ts` | Sectie "beleid" toevoegen |
-| `src/App.tsx` | Route toevoegen |
-| `src/pages/settings/reserveringen/index.ts` | Export toevoegen |
-| `docs/ARCHITECTURE_ALIGNMENT.md` | **Nieuw** — Referentiedocument |
-| `docs/ROADMAP.md` | Status 4.4 bijwerken |
+| `src/components/settings/shifts/ShiftWizard/steps/ConfigStep.tsx` | Secties groeperen, labels upgraden, FieldHelp toevoegen, RadioGroup voor gebieden |
+| `src/components/settings/shifts/ShiftWizard/ShiftWizard.tsx` | Scrollbaar content-area, vaste dialog hoogte |
 
-### 8. Wat NIET verandert
+## Wat NIET verandert
 
-- PolicySetModal blijft als quick-create in ShiftWizard/ticket detail
-- TicketModal blijft voor ShiftWizard
-- Bestaande tickets UI en hooks intact
-- ShiftWizard squeeze-velden op shift_tickets blijven (nu met fallback)
+- ShiftWizardContext, Footer, Sidebar — blijven intact
+- Alle andere wizard steps (Times, Tickets, Capacity, Review) — geen wijzigingen
+- Bestaande functionaliteit en data-flow — puur visuele upgrade
+- `dialog.tsx` base component — niet aanpassen, wizard-specifieke overrides via className
 
