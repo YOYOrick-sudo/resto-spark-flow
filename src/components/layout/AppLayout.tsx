@@ -82,7 +82,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0">
           {/* Mobile Header */}
-          <header className="md:hidden flex items-center h-14 px-4 border-b border-border bg-secondary">
+          <header className="md:hidden flex items-center h-14 px-4 border-b border-white/10 bg-[hsl(220,15%,13%)]">
             <NestoButton
               variant="ghost"
               size="icon"
