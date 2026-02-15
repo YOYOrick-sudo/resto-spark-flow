@@ -32,19 +32,19 @@ export default function Dashboard() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-2xl font-semibold text-foreground">{getGreeting()}</span>
+        <span className="text-h1 text-foreground">{getGreeting()}</span>
         <span className="text-sm text-muted-foreground">{dateLabel}</span>
       </div>
 
       {urgentCount > 0 && (
-        <div className="flex items-center justify-between gap-2 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg py-2 px-3">
+        <div className="flex items-center justify-between gap-2 bg-warning/5 dark:bg-warning/10 border border-warning/30 dark:border-warning/40 rounded-lg py-2 px-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
-            <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+            <span className="text-sm font-medium text-warning">
               {urgentCount === 1 ? '1 signaal vereist aandacht' : `${urgentCount} signalen vereisen aandacht`}
             </span>
           </div>
-          <Link to="/assistent" className="inline-flex items-center gap-0.5 text-sm text-orange-700 dark:text-orange-300 hover:underline shrink-0">
+          <Link to="/assistent" className="inline-flex items-center gap-0.5 text-sm text-warning hover:underline shrink-0">
             Bekijken <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>

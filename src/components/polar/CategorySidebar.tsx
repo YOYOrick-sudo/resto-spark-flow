@@ -72,7 +72,7 @@ export function CategorySidebar({
               <div className="flex items-center gap-2">
                 {item.badge && (
                   <span
-                    className="rounded-full bg-pending px-2 py-0.5 text-xs font-medium text-white"
+                    className="rounded-full bg-pending px-2 py-0.5 text-xs font-medium text-primary-foreground"
                   >
                     {item.badge}
                   </span>

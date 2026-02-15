@@ -90,6 +90,13 @@ export default {
         "selected-border": "hsl(var(--selected-border))",
         "selected-bg": "hsl(var(--selected-background))",
       },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        card: "var(--shadow-card)",
+        hover: "var(--shadow-hover)",
+        toast: "var(--shadow-toast)",
+        "toast-dark": "0 4px 24px rgba(0,0,0,0.3)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

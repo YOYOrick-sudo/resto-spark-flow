@@ -53,8 +53,8 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
           <AreaChart data={mockData} margin={{ top: 8, right: 12, bottom: 20, left: 12 }}>
             <defs>
               <linearGradient id="reservationGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#1d979e" stopOpacity={0.15} />
-                <stop offset="100%" stopColor="#1d979e" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
               </linearGradient>
             </defs>
             <XAxis
@@ -71,7 +71,7 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
                     y={y + 4}
                     textAnchor="middle"
                     fontSize={11}
-                    fill={isLast ? '#1d979e' : '#ACAEB3'}
+                    fill={isLast ? 'hsl(183,70%,37%)' : 'hsl(220,4%,68%)'}
                     fontWeight={isLast ? 600 : 400}
                   >
                     {payload.value}
@@ -83,11 +83,11 @@ export function ReservationsTile({ todayCount }: ReservationsTileProps) {
             <Area
               type="monotone"
               dataKey="count"
-              stroke="#1d979e"
+              stroke="hsl(183,70%,37%)"
               strokeWidth={2}
               fill="url(#reservationGradient)"
               dot={false}
-              activeDot={{ r: 5, fill: "#1d979e", stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: "hsl(183,70%,37%)", stroke: "hsl(var(--card))", strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>

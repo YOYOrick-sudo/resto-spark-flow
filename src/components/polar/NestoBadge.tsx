@@ -15,7 +15,7 @@ const badgeVariants = cva(
         error: "bg-error-light text-error",
         outline: "border border-border bg-transparent text-foreground",
         "outline-error": "border border-destructive bg-transparent text-destructive",
-        soon: "bg-pending text-white",
+        soon: "bg-pending text-primary-foreground",
       },
       size: {
         default: "text-xs px-2.5 py-1",

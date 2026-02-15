@@ -197,7 +197,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                     'w-full flex items-center px-2.5 py-[5px] text-small transition-colors duration-150 rounded-lg',
                                     'border border-transparent',
                                     isSubActive
-                                      ? 'text-[#1d979e] font-medium hover:text-[#1d979e]'
+                                      ? 'text-primary font-medium hover:text-primary'
                                       : 'text-muted-foreground font-medium hover:text-foreground'
                                   )}
                                 >
@@ -232,7 +232,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     <Icon size={16} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
                     <span>{item.label}</span>
                     {item.id === 'assistent' && hasAttentionSignals && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-auto flex-shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-warning ml-auto flex-shrink-0" />
                     )}
                   </button>
                 )}
