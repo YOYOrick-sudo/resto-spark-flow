@@ -46,6 +46,7 @@ export function SearchBar({
         <button
           type="button"
           onClick={handleClear}
+          aria-label="Zoekopdracht wissen"
           className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           <X className="h-4 w-4" />
