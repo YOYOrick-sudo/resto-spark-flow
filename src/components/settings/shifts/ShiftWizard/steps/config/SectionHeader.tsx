@@ -8,7 +8,7 @@ interface SectionHeaderProps {
 export function SectionHeader({ label, children }: SectionHeaderProps) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[13px] font-medium text-foreground">{label}</span>
+      <span className="text-label text-foreground">{label}</span>
       {children}
     </div>
   );

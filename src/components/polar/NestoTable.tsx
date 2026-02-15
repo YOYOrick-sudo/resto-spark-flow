@@ -81,7 +81,7 @@ export function NestoTable<T extends Record<string, unknown>>({
                 {columns.map((column) => (
                   <TableCell
                     key={column.key}
-                    className={cn("px-4 py-3.5 text-[14px]", column.className)}
+                    className={cn("px-4 py-3.5 text-secondary", column.className)}
                   >
                     {column.render
                       ? column.render(item)

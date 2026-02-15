@@ -88,7 +88,7 @@ export function ShiftsLivePreviewPanel({
   if (isLoading) {
     return (
       <NestoCard className="p-5 space-y-4 border border-border">
-        <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <h4 className="text-caption text-muted-foreground uppercase tracking-widest">
           Live Preview
         </h4>
         <div className="py-8 text-center">
@@ -102,7 +102,7 @@ export function ShiftsLivePreviewPanel({
   if (shifts.length === 0) {
     return (
       <NestoCard className="p-5 space-y-4 border border-border">
-        <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <h4 className="text-caption text-muted-foreground uppercase tracking-widest">
           Live Preview
         </h4>
         <div className="py-8 text-center space-y-3">
@@ -124,7 +124,7 @@ export function ShiftsLivePreviewPanel({
     <NestoCard className="p-5 space-y-5 overflow-hidden border border-border">
       {/* Header with subtle gradient accent */}
       <div className="relative">
-        <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <h4 className="text-caption text-muted-foreground uppercase tracking-widest">
           Live Preview
         </h4>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -188,7 +188,7 @@ export function ShiftsLivePreviewPanel({
         </div>
       ) : isDayActive ? (
         <div className="space-y-2.5">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 text-caption text-muted-foreground uppercase tracking-wider">
             <Clock className="h-3 w-3" />
             <span>Beschikbare tijden</span>
           </div>
@@ -231,7 +231,7 @@ export function ShiftsLivePreviewPanel({
 
       {/* Footer — minimal */}
       <div className="pt-3 border-t border-border/40">
-        <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+        <p className="text-caption text-muted-foreground flex items-start gap-1.5">
           <Info className="h-3 w-3 shrink-0 mt-0.5" />
           <span>Preview toont aankomsttijden op basis van shifts.</span>
         </p>

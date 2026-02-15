@@ -202,9 +202,9 @@ export function EmailTemplateEditor({ templateKey, template, onChange }: EmailTe
 
           {showPreview && (
             <div className="bg-secondary/50 rounded-card p-4 border border-border/40 space-y-2">
-              <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Onderwerp</p>
+              <p className="text-caption uppercase tracking-wider text-muted-foreground">Onderwerp</p>
               <p className="text-sm font-semibold mb-3">{renderPreview(localSubject)}</p>
-              <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Body</p>
+              <p className="text-caption uppercase tracking-wider text-muted-foreground">Body</p>
               <div className="text-sm whitespace-pre-wrap tabular-nums">{renderPreview(localBody)}</div>
             </div>
           )}

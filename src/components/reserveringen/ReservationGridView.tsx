@@ -227,8 +227,8 @@ function SeatedCountRow({
               <TooltipTrigger asChild>
                 <div
                   onClick={() => onSlotClick?.(time)}
-                  className={cn(
-                    "text-[11px] flex items-center justify-center py-2 cursor-pointer transition-colors hover:bg-primary/10",
+                    className={cn(
+                      "text-caption flex items-center justify-center py-2 cursor-pointer transition-colors hover:bg-primary/10",
                     index % 4 === 0 ? "border-l border-border" : "border-l border-border/50",
                     index === 0 && "border-l-0"
                   )}
@@ -319,7 +319,7 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
       >
         {/* NU label at top - sticky */}
         <div className="sticky top-1 -translate-x-1/2 w-fit">
-          <div className="bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded shadow-md whitespace-nowrap">
+          <div className="bg-destructive text-destructive-foreground text-caption font-bold px-1.5 py-0.5 rounded shadow-md whitespace-nowrap">
             NU
           </div>
         </div>

@@ -133,7 +133,7 @@ export function ReminderSettingsSection() {
 
         {/* Notification channels */}
         <div className="pt-4 border-t border-border/50 space-y-3">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Notificatiekanalen</p>
+          <p className="text-caption text-muted-foreground uppercase tracking-wider">Notificatiekanalen</p>
           <div className="flex items-center justify-between">
             <Label className="text-sm">Email</Label>
             <NestoBadge variant="primary" size="sm" dot>Altijd aan</NestoBadge>

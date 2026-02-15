@@ -281,7 +281,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         </span>
 
         {/* Guest name - truncated */}
-        <span className={cn("truncate text-foreground/80 font-medium min-w-0", isCompact ? "text-[11px]" : "text-xs")}>
+        <span className={cn("truncate text-foreground/80 font-medium min-w-0", isCompact ? "text-caption" : "text-xs")}>
           {guestName}
         </span>
 
@@ -299,7 +299,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         {displayPosition.width > 140 && (
           <span
             className={cn(
-              "text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity",
+              "text-caption px-1.5 py-0.5 rounded font-bold flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity",
               reservation.shift === "ED"
                 ? "bg-primary/20 text-primary"
                 : "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400"

@@ -80,7 +80,7 @@ export function ComposeMessageModal({
           disabled={isSending}
         />
         <div>
-          <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">
+          <label className="text-label text-muted-foreground mb-1.5 block">
             Bericht
           </label>
           <Textarea

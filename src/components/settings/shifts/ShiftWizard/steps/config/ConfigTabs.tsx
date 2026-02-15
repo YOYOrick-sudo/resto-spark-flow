@@ -22,7 +22,7 @@ export function ConfigTabs({ activeTab, onTabChange }: ConfigTabsProps) {
           type="button"
           onClick={() => onTabChange(tab.id)}
           className={cn(
-            "relative pb-2 text-[13px] font-medium transition-colors",
+            "relative pb-2 text-small font-medium transition-colors",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30",
             activeTab === tab.id
               ? "text-primary"

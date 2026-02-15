@@ -303,7 +303,7 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
             
             {/* Preset color picker */}
             <div className="space-y-1.5">
-              <label className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+              <label className="text-caption uppercase text-muted-foreground">
                 Kleur
               </label>
               <div className="flex gap-2 pt-1">

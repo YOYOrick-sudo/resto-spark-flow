@@ -90,7 +90,7 @@ export function SortableShiftRow({
 
         {/* Priority badge */}
         <div className="flex items-center justify-center">
-          <span className="w-6 h-6 text-[11px] font-semibold tabular-nums text-muted-foreground flex items-center justify-center rounded-md bg-muted border border-border/60">
+          <span className="w-6 h-6 text-caption tabular-nums text-muted-foreground flex items-center justify-center rounded-md bg-muted border border-border/60">
             {priority}
           </span>
         </div>
@@ -109,7 +109,7 @@ export function SortableShiftRow({
             style={{ backgroundColor: shift.color }}
           />
           <span className="font-semibold text-sm truncate">{shift.name}</span>
-          <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-control shrink-0 font-medium">
+          <span className="text-caption text-muted-foreground bg-muted px-2 py-0.5 rounded-control shrink-0">
             {shift.short_name}
           </span>
         </div>
@@ -120,7 +120,7 @@ export function SortableShiftRow({
             <span
               key={day}
               className={cn(
-                "w-[18px] h-[18px] flex items-center justify-center text-[10px] rounded-[4px] font-semibold transition-colors",
+                "w-[18px] h-[18px] flex items-center justify-center text-caption rounded-[4px] transition-colors",
                 shift.days_of_week.includes(day)
                   ? "bg-primary/15 text-primary font-bold"
                   : "text-muted-foreground/40"

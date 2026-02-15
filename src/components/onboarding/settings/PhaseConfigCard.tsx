@@ -146,7 +146,7 @@ export function PhaseConfigCard({ phase, index, onUpdate, onDelete, onExplicitAc
           <div className="border-t border-border/40 pt-4 mt-4">
             {/* Group 2: Taken */}
             <div className="flex items-center gap-2 mb-3">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Taken</p>
+              <p className="text-caption text-muted-foreground uppercase tracking-wider">Taken</p>
               <NestoBadge variant="default" size="sm">{tasks.length}</NestoBadge>
             </div>
             <TaskTemplateList

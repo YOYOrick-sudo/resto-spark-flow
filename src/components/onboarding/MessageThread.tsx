@@ -62,7 +62,7 @@ function MessageBubble({ message }: { message: Message }) {
         <span className="text-sm font-semibold text-foreground">
           {message.sender_name}
         </span>
-        <span className="text-[11px] text-muted-foreground ml-auto">
+        <span className="text-caption text-muted-foreground ml-auto">
           {formatDateTimeCompact(message.created_at)}
         </span>
       </div>
@@ -78,7 +78,7 @@ function MessageBubble({ message }: { message: Message }) {
       {isLong && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary-hover transition-colors duration-150"
+          className="mt-1.5 inline-flex items-center gap-1 text-caption text-primary hover:text-primary-hover transition-colors duration-150"
         >
           {expanded ? (
             <>Minder tonen <ChevronUp className="h-3 w-3" /></>

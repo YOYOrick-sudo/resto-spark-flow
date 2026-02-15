@@ -32,7 +32,7 @@ export function StatCard({
     >
       {/* Header with label and icon */}
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="text-caption uppercase text-muted-foreground">
           {label}
         </span>
         {Icon && (
@@ -44,7 +44,7 @@ export function StatCard({
 
       {/* Value */}
       <div className="flex items-baseline gap-1.5">
-        <span className="text-[36px] font-bold text-foreground leading-none">
+        <span className="text-display text-foreground leading-none">
           {value}
         </span>
         {unit && (

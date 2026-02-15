@@ -80,7 +80,7 @@ export function CategorySidebar({
                 {item.count !== undefined && (
                   <span
                     className={cn(
-                      "text-[13px] font-semibold",
+                      "text-small font-semibold",
                       isSelected ? "text-primary" : "text-muted-foreground"
                     )}
                   >
