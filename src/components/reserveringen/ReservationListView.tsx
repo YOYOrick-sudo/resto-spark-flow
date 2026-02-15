@@ -30,7 +30,7 @@ function StatusDot({ status, density = "compact" }: { status: Reservation["statu
   const isCompact = density === "compact";
   return (
     <span
-      className={cn("inline-block rounded-full flex-shrink-0", isCompact ? "h-2 w-2" : "h-2.5 w-2.5")}
+      className={cn("inline-block rounded-full flex-shrink-0", isCompact ? "h-2.5 w-2.5" : "h-2.5 w-2.5")}
       style={{ backgroundColor: config.dotColor }}
       title={config.label}
     />
@@ -86,9 +86,9 @@ export function ReservationListView({
       {Array.from(groupedReservations.entries()).map(([timeSlot, reservationsInSlot]) => (
         <div key={timeSlot}>
           {/* Time slot header - sticky */}
-          <div className={cn(
+           <div className={cn(
             "sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 border-b border-border shadow-sm",
-            isCompact ? "py-1" : "py-2"
+            isCompact ? "py-2" : "py-3"
           )}>
             <span className={cn("font-semibold text-foreground", isCompact ? "text-xs" : "text-sm")}>
               {timeSlot}
@@ -99,7 +99,7 @@ export function ReservationListView({
           </div>
 
           {/* Reservations in this time slot */}
-          <div className={cn("divide-y", isCompact ? "divide-border/30" : "divide-border")}>
+          <div className={cn("divide-y", isCompact ? "divide-border/50" : "divide-border")}>
             {reservationsInSlot.map((reservation) => (
               <ReservationRow
                 key={reservation.id}
@@ -133,7 +133,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
     <div
       className={cn(
         "flex items-center px-4 hover:bg-muted/30 cursor-pointer transition-colors duration-150",
-        isCompact ? "gap-3 py-1.5" : "gap-4 py-3",
+        isCompact ? "gap-3 py-3" : "gap-4 py-4",
         reservation.status === "cancelled" && "opacity-50",
         reservation.status === "no_show" && "opacity-60"
       )}
@@ -194,7 +194,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
       {/* Status badge */}
       <span className={cn(
         "inline-flex items-center gap-1.5 rounded-full font-medium justify-center",
-        isCompact ? "text-caption px-1.5 py-0 min-w-[80px]" : "text-xs px-2.5 py-1 min-w-[90px]",
+        isCompact ? "text-xs px-2.5 py-1 min-w-[85px]" : "text-xs px-2.5 py-1 min-w-[90px]",
         statusConfig.textClass,
         statusConfig.bgClass,
         statusConfig.borderClass,
