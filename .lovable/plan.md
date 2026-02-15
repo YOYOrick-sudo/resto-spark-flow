@@ -1,95 +1,41 @@
 
+# Fix: Dag-badge spacing en styling
 
-# Polar UI Unificatie
+## Probleem
+De dag-badges in de Shifts tabel en wizards plakken aan elkaar (links in je screenshot). Ze missen horizontale padding en hebben te weinig gap. De correcte versie (rechts) toont losse pills met duidelijke ruimte ertussen.
 
-## Overzicht
-Button import vervangen, `nesto-card-base` CSS class verwijderen en stub pagina's opwaarderen met PageHeader + EmptyState. NestoSelect label styling gelijktrekken met NestoInput.
+## Betrokken componenten
 
-## Stap 1: Button unificatie — AppLayout.tsx
+### 1. Interactieve toggles (moeten pill-shaped worden)
 
-Het enige custom bestand dat `@/components/ui/button` importeert is `AppLayout.tsx` (de 5 hits in `src/components/ui/` zijn ShadCN-intern en blijven ongewijzigd).
+| Bestand | Huidige styling | Fix |
+|---------|----------------|-----|
+| `TimesStep.tsx` (regel 114, 123) | `gap-1.5`, `w-9 h-9 rounded-button` | `gap-2`, verwijder `w-9 h-9`, voeg `px-3 py-1.5 rounded-control` toe |
+| `ShiftModal.tsx` (regel 268, 277) | `gap-1.5`, `w-10 h-10 rounded-button` | `gap-2`, verwijder `w-10 h-10`, voeg `px-3 py-1.5 rounded-control` toe |
 
-- Vervang `import { Button } from '@/components/ui/button'` door `import { NestoButton } from '@/components/polar/NestoButton'`
-- `<Button variant="ghost" size="icon">` wordt `<NestoButton variant="ghost" size="icon">`
+### 2. Tabelrij badges (moeten leesbaar zijn)
 
-## Stap 2: nesto-card-base verwijderen
+| Bestand | Huidige styling | Fix |
+|---------|----------------|-----|
+| `SortableShiftRow.tsx` (regel 118, 123) | `gap-[3px]`, `w-[18px] h-[18px] rounded-[4px]` | `gap-1`, `px-1.5 py-0.5 rounded-control` (verwijder fixed w/h) |
+| `ShiftsTable.tsx` (gearchiveerd, regel 234, 239) | `gap-0.5`, `px-1 py-0.5 rounded` | `gap-1`, `px-1.5 py-0.5 rounded-control` |
 
-### 2a. CSS class verwijderen uit `src/index.css`
-De `.nesto-card-base` class definitie wordt verwijderd uit `@layer components`.
+### 3. Read-only overzicht (kleine aanpassing)
 
-### 2b. Stub pagina's opwaarderen (11 bestanden)
-Elke pagina die `nesto-card-base` gebruikt krijgt PageHeader + EmptyState in plaats van raw `<h1>` + `<div className="nesto-card-base">`:
+| Bestand | Huidige styling | Fix |
+|---------|----------------|-----|
+| `ReviewStep.tsx` (regel 94, 101) | `gap-1`, `w-6 h-6 rounded-full` | `gap-1.5`, `px-2 py-1 rounded-control` (verwijder `w-6 h-6`, pill in plaats van cirkel) |
 
-| Bestand | Titel | Lege-state tekst | Icoon |
-|---------|-------|-------------------|-------|
-| `Recepten.tsx` | Recepten | Nog geen recepten toegevoegd | BookOpen |
-| `Halffabricaten.tsx` | Halffabricaten | Nog geen halffabricaten toegevoegd | Layers |
-| `Kaartbeheer.tsx` | Kaartbeheer | Nog geen gerechten toegevoegd | UtensilsCrossed |
-| `Kostprijzen.tsx` | Kostprijzen | Nog geen kostprijzen berekend | Calculator |
-| `MepTaken.tsx` | MEP Taken | Nog geen MEP taken aangemaakt | ClipboardList |
-| `Taken.tsx` | Taken & Checklists | Nog geen taken aangemaakt | CheckSquare |
-| `Inkoop.tsx` | Inkoop | Nog geen bestellingen gevonden | ShoppingCart |
-| `SettingsVoorkeuren.tsx` | Voorkeuren | Configuratie volgt binnenkort | Settings |
-| `SettingsLeveranciers.tsx` | Leveranciers | Configuratie volgt binnenkort | Truck |
-| `SettingsInkoop.tsx` | Inkoop Instellingen | Configuratie volgt binnenkort | ShoppingBag |
+### NIET gewijzigd
+- `ShiftsLivePreviewPanel.tsx` — ronde selectorknoppen, ander UI-patroon (dag picker)
 
-Elke stub wordt:
-```tsx
-import { PageHeader, EmptyState } from "@/components/polar";
-import { BookOpen } from "lucide-react";
+## Resultaat
 
-export default function Recepten() {
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Recepten" subtitle="Beheer alle recepten voor je restaurant." />
-      <EmptyState
-        icon={BookOpen}
-        title="Nog geen recepten toegevoegd"
-        description="Voeg je eerste recept toe om te beginnen."
-      />
-    </div>
-  );
-}
-```
+| Eigenschap | Oud (broken) | Nieuw |
+|------------|-------------|-------|
+| Badge breedte | Fixed (w-9/w-10/w-[18px]) | Auto (content + padding) |
+| Padding | Geen of minimaal | px-3 py-1.5 (interactive), px-1.5 py-0.5 (tabel) |
+| Gap | 3-6px | 8px (interactive), 4px (tabel) |
+| Border-radius | Mix van rounded-button/rounded-[4px]/rounded-full | `rounded-control` (6px) overal |
 
-### 2c. Detail stub pagina's (3 bestanden)
-`ReceptenDetail.tsx`, `HalffabricatenDetail.tsx`, `KaartbeheerDetail.tsx` — zelfde patroon maar met `DetailPageLayout` of simpel PageHeader + EmptyState.
-
-### 2d. SettingsKeuken.tsx
-De 4 `nesto-card-base` divs worden vervangen door `<EmptyState>` componenten (zonder wrapper div, de EmptyState is al gestyled).
-
-## Stap 3: NestoSelect label fix
-
-Huidige NestoSelect label: `mb-1.5 block text-xs text-muted-foreground`
-NestoInput label: `mb-2 block text-label text-muted-foreground`
-
-Fix NestoSelect label naar: `mb-2 block text-label text-muted-foreground` — identiek aan NestoInput.
-
-## Stap 4: Border-radius tokens
-
-De border-radius tokens bestaan al in `tailwind.config.ts` (`rounded-card`, `rounded-card-sm`, `rounded-button`, `rounded-control`, `rounded-dropdown`). Er is een hardcoded `rounded-2xl` in `Ingredienten.tsx` (regel 394) die vervangen wordt door `rounded-card`.
-
-## Bestanden overzicht
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/layout/AppLayout.tsx` | Button import naar NestoButton |
-| `src/index.css` | Verwijder `.nesto-card-base` class |
-| `src/components/polar/NestoSelect.tsx` | Label styling gelijktrekken |
-| `src/pages/Recepten.tsx` | PageHeader + EmptyState |
-| `src/pages/Halffabricaten.tsx` | PageHeader + EmptyState |
-| `src/pages/Kaartbeheer.tsx` | PageHeader + EmptyState |
-| `src/pages/Kostprijzen.tsx` | PageHeader + EmptyState |
-| `src/pages/MepTaken.tsx` | PageHeader + EmptyState |
-| `src/pages/Taken.tsx` | PageHeader + EmptyState |
-| `src/pages/Inkoop.tsx` | PageHeader + EmptyState |
-| `src/pages/SettingsVoorkeuren.tsx` | PageHeader + EmptyState |
-| `src/pages/SettingsLeveranciers.tsx` | PageHeader + EmptyState |
-| `src/pages/SettingsInkoop.tsx` | PageHeader + EmptyState |
-| `src/pages/SettingsKeuken.tsx` | EmptyState vervangt nesto-card-base |
-| `src/pages/ReceptenDetail.tsx` | PageHeader + EmptyState |
-| `src/pages/HalffabricatenDetail.tsx` | PageHeader + EmptyState |
-| `src/pages/KaartbeheerDetail.tsx` | PageHeader + EmptyState |
-| `src/pages/Ingredienten.tsx` | rounded-2xl naar rounded-card |
-
-Totaal: 18 bestanden gewijzigd.
+Totaal: 5 bestanden, alleen styling classes aangepast.
