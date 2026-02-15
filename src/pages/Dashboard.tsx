@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
+import { PageHeader } from '@/components/polar/PageHeader';
 import { ReservationsTile } from '@/components/dashboard/ReservationsTile';
 import { KeukenTile } from '@/components/dashboard/KeukenTile';
 import { ReceptenTile } from '@/components/dashboard/ReceptenTile';
@@ -31,10 +32,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span className="text-h1 text-foreground">{getGreeting()}</span>
-        <span className="text-sm text-muted-foreground">{dateLabel}</span>
-      </div>
+      <PageHeader title={getGreeting()} subtitle={dateLabel} />
 
       {urgentCount > 0 && (
         <div className="flex items-center justify-between gap-2 bg-warning/5 dark:bg-warning/10 border border-warning/30 dark:border-warning/40 rounded-lg py-2 px-3">

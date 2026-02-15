@@ -65,15 +65,6 @@ const App = () => (
                 {/* Public routes */}
                 <Route path="/auth" element={<AuthPage />} />
                 
-                {/* Protected routes - Full-bleed layout (no padding) */}
-                <Route element={
-                  <ProtectedRoute>
-                    <AppShell fullBleed />
-                  </ProtectedRoute>
-                }>
-                  <Route path="/reserveringen" element={<Reserveringen />} />
-                </Route>
-
                 {/* Protected routes - Layout wrapper with persistent sidebar */}
                 <Route element={
                   <ProtectedRoute>
@@ -83,6 +74,9 @@ const App = () => (
                   {/* Dashboard */}
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Navigate to="/" replace />} />
+                  
+                  {/* Reserveringen */}
+                  <Route path="/reserveringen" element={<Reserveringen />} />
                   
                   {/* Assistent */}
                   <Route path="/assistent" element={<Assistent />} />

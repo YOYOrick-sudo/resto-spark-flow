@@ -7,11 +7,10 @@ import { NestoLogo } from '@/components/polar/NestoLogo';
 
 interface AppLayoutProps {
   children: ReactNode;
-  fullBleed?: boolean;
 }
 
 export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
-  function AppLayout({ children, fullBleed }, ref) {
+  function AppLayout({ children }, ref) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [commandOpen, setCommandOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -98,11 +97,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
           {/* Page Content */}
           <div
             id="main-content"
-            className={
-              fullBleed
-                ? 'flex-1 overflow-auto scroll-smooth'
-                : 'flex-1 py-6 px-8 lg:py-8 lg:px-12 xl:px-16 overflow-auto scroll-smooth'
-            }
+            className="flex-1 py-6 px-8 lg:py-8 lg:px-12 xl:px-16 overflow-auto scroll-smooth"
           >
             {children}
           </div>

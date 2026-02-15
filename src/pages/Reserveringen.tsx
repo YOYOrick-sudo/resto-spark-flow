@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { NestoButton } from "@/components/polar/NestoButton";
+import { PageHeader } from "@/components/polar/PageHeader";
 import { SearchBar } from "@/components/polar/SearchBar";
 import { ViewToggle, type ViewType } from "@/components/reserveringen/ViewToggle";
 import { useDensity } from "@/components/reserveringen/DensityToggle";
@@ -104,41 +104,47 @@ export default function Reserveringen() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex flex-col gap-4 p-4 pb-0">
-        {/* Top row: View toggle, density toggle, date navigator, search, new button */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <ViewToggle activeView={activeView} onViewChange={setActiveView} />
-          
-          <DateNavigator
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-          />
-
-          <div className="flex-1 max-w-xs ml-auto">
-            <SearchBar
-              placeholder="Zoek op naam, telefoon..."
-              value={searchQuery}
-              onChange={setSearchQuery}
-            />
-          </div>
-
-          <NestoButton onClick={handleNewReservation} leftIcon={<Plus className="h-4 w-4" />}>
+      <PageHeader
+        title="Reserveringen"
+        actions={
+          <button
+            onClick={handleNewReservation}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
             Reservering
-          </NestoButton>
-        </div>
+          </button>
+        }
+      />
 
-        {/* Filters row */}
-        <ReservationFilters
-          filters={filters}
-          onFiltersChange={setFilters}
-          totalCount={reservationsForDate.length}
-          filteredCount={filteredReservations.length}
+      {/* Toolbar */}
+      <div className="flex items-center gap-4 flex-wrap pt-4">
+        <ViewToggle activeView={activeView} onViewChange={setActiveView} />
+        
+        <DateNavigator
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
         />
+
+        <div className="flex-1 max-w-xs ml-auto">
+          <SearchBar
+            placeholder="Zoek op naam, telefoon..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
+        </div>
       </div>
 
+      {/* Filters row */}
+      <ReservationFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        totalCount={reservationsForDate.length}
+        filteredCount={filteredReservations.length}
+      />
+
       {/* Content area */}
-      <div className={cn("flex-1 p-4 pt-2", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}>
+      <div className={cn("flex-1 pt-2", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}>
         <div className={cn("bg-card border border-border rounded-2xl overflow-hidden", activeView === "grid" && "h-full")}>
           {activeView === "list" && (
             <ReservationListView
