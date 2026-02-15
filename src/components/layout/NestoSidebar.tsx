@@ -153,7 +153,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         type="button"
                         onClick={() => handleExpandableClick(item)}
                         className={cn(
-                          'group w-full flex items-center gap-3 px-2.5 py-[5px] rounded-lg text-xs transition-colors duration-150',
+'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-150',
                           'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                           hasActiveChild
                             ? 'bg-card border-border text-foreground font-medium'
@@ -181,7 +181,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                             if (subItem.disabled) {
                               return (
                                 <li key={subItem.id}>
-                                  <div className="flex items-center gap-3 px-2.5 py-[5px] text-xs text-muted-foreground opacity-40 cursor-default border border-transparent">
+                                  <div className="flex items-center gap-3 px-2.5 py-1.5 text-[13px] text-muted-foreground opacity-40 cursor-default border border-transparent">
                                     <span>{subItem.label}</span>
                                   </div>
                                 </li>
@@ -194,7 +194,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center px-2.5 py-[5px] text-xs transition-colors duration-150 rounded-lg',
+                                    'w-full flex items-center px-2.5 py-1.5 text-[13px] transition-colors duration-150 rounded-lg',
                                     'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                                     isSubActive
                                       ? 'text-primary font-medium hover:text-primary'
@@ -212,7 +212,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                   </Collapsible.Root>
                 ) : item.disabled ? (
                   /* Disabled item */
-                  <div className="flex items-center gap-3 px-2.5 py-[5px] text-xs text-muted-foreground opacity-40 cursor-default">
+                  <div className="flex items-center gap-3 px-2.5 py-1.5 text-[13px] text-muted-foreground opacity-40 cursor-default">
                     <Icon size={16} className="flex-shrink-0" />
                     <span>{item.label}</span>
                   </div>
@@ -222,7 +222,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     type="button"
                     onClick={() => { if (item.path) handleNavigation(item.path); }}
                     className={cn(
-                      'group w-full flex items-center gap-3 px-2.5 py-[5px] rounded-lg text-xs transition-colors duration-150',
+                      'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-150',
                       'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                       isActive
                         ? 'bg-card border-border text-foreground font-medium'
