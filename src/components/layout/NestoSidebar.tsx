@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Zap, PanelLeft, Search, Building2 } from 'lucide-react';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
-import * as Collapsible from '@radix-ui/react-collapsible';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { useSignals } from '@/hooks/useSignals';
@@ -18,13 +17,50 @@ interface NestoSidebarProps {
   onToggleCollapse?: () => void;
 }
 
+function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [maxHeight, setMaxHeight] = useState<string>(isOpen ? 'none' : '0px');
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    if (isOpen) {
+      setMaxHeight(el.scrollHeight + 'px');
+      // After transition, remove max-height constraint so content can grow dynamically
+      const timer = setTimeout(() => setMaxHeight('none'), 200);
+      return () => clearTimeout(timer);
+    } else {
+      // Force a reflow: set to current height first, then to 0
+      setMaxHeight(el.scrollHeight + 'px');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setMaxHeight('0px');
+        });
+      });
+    }
+  }, [isOpen]);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        maxHeight,
+        overflow: 'hidden',
+        transition: 'max-height 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 0, collapsed, onToggleCollapse }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
-    const group = getExpandedGroupFromPath(location.pathname);
-    return group ? [group] : [];
+  const [expandedModule, setExpandedModule] = useState<string | null>(() => {
+    return getExpandedGroupFromPath(location.pathname);
   });
   
   const activeItemId = getActiveItemFromPath(location.pathname);
@@ -37,21 +73,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
 
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
-    
-    if (groupToExpand) {
-      setExpandedGroups((prev) => {
-        if (prev.includes(groupToExpand)) return prev;
-        return [...prev, groupToExpand];
-      });
-      
-      const timer = setTimeout(() => {
-        setExpandedGroups((prev) => prev.filter((id) => id === groupToExpand));
-      }, 150);
-      
-      return () => clearTimeout(timer);
-    } else {
-      setExpandedGroups((prev) => prev.length === 0 ? prev : []);
-    }
+    setExpandedModule(groupToExpand);
   }, [location.pathname]);
 
   const handleNavigation = useCallback((path: string) => {
@@ -61,6 +83,9 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
   }, [location.pathname, navigate, onNavigate]);
 
   const handleExpandableClick = useCallback((item: MenuItem) => {
+    // Toggle: if same module, close it; otherwise open the new one
+    setExpandedModule(prev => prev === item.id ? null : item.id);
+    
     const firstActiveSubItem = item.subItems?.find((sub) => !sub.disabled && sub.path);
     if (firstActiveSubItem?.path && location.pathname !== firstActiveSubItem.path) {
       navigate(firstActiveSubItem.path);
@@ -128,7 +153,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
         <ul className={cn("px-2", collapsed && "px-1")}>
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-            const isExpanded = expandedGroups.includes(item.id);
+            const isExpanded = expandedModule === item.id;
             const isActive = activeItemId === item.id;
             const hasActiveChild = item.subItems?.some((sub) => activeItemId === sub.id);
             const prevItem = index > 0 ? menuItems[index - 1] : null;
@@ -185,7 +210,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
               );
             }
 
-            // Expanded mode (existing behavior)
+            // Expanded mode
             return (
               <li key={item.id}>
                 {/* Section label */}
@@ -199,41 +224,31 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
 
                 {/* Expandable group */}
                 {item.expandable && item.subItems ? (
-                  <Collapsible.Root
-                    open={isExpanded || !!hasActiveChild}
-                    onOpenChange={(nextOpen) => {
-                      setExpandedGroups((prev) =>
-                        nextOpen
-                          ? prev.includes(item.id) ? prev : [...prev, item.id]
-                          : prev.filter((id) => id !== item.id)
-                      );
-                    }}
-                  >
-                    <Collapsible.Trigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => handleExpandableClick(item)}
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleExpandableClick(item)}
+                      className={cn(
+                        'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
+                        'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
+                        hasActiveChild
+                          ? 'bg-card border-border text-foreground font-medium'
+                          : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
+                      )}
+                    >
+                      <Icon size={16} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronDown 
+                        size={16} 
                         className={cn(
-'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
-                          'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
-                          hasActiveChild
-                            ? 'bg-card border-border text-foreground font-medium'
-                            : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
+                          'text-muted-foreground transition-transform duration-200',
+                          (isExpanded || hasActiveChild) ? 'rotate-90' : 'rotate-0'
                         )}
-                      >
-                        <Icon size={16} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
-                        <span className="flex-1 text-left">{item.label}</span>
-                        <ChevronDown 
-                          size={16} 
-                          className={cn(
-                            'text-muted-foreground transition-transform duration-200',
-                            (isExpanded || hasActiveChild) && 'rotate-180'
-                          )} 
-                        />
-                      </button>
-                    </Collapsible.Trigger>
+                        style={{ transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)' }}
+                      />
+                    </button>
                     
-                    <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up" style={{ willChange: 'height' }}>
+                    <ExpandableContent isOpen={isExpanded || !!hasActiveChild}>
                       <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
                         <ul>
                           {item.subItems.map((subItem) => {
@@ -274,8 +289,8 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                           })}
                         </ul>
                       </div>
-                    </Collapsible.Content>
-                  </Collapsible.Root>
+                    </ExpandableContent>
+                  </>
                 ) : item.disabled ? (
                   /* Disabled item */
                   <Tooltip>
