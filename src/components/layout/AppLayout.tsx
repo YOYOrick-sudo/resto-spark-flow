@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect, forwardRef } from 'react';
 import { NestoSidebar } from './NestoSidebar';
 import { CommandPalette } from './CommandPalette';
 import { Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoLogo } from '@/components/polar/NestoLogo';
 
 interface AppLayoutProps {
@@ -55,14 +55,14 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
         <main className="flex-1 flex flex-col min-w-0">
           {/* Mobile Header */}
           <header className="lg:hidden flex items-center h-14 px-4 border-b border-border bg-secondary">
-            <Button
+            <NestoButton
               variant="ghost"
               size="icon"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Sluit menu' : 'Open menu'}
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </Button>
+            </NestoButton>
             <span className="ml-3"><NestoLogo size="sm" showIcon={false} /></span>
           </header>
 

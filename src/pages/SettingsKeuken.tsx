@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { SettingsPageLayout } from "@/components/polar/SettingsPageLayout";
+import { SettingsPageLayout, EmptyState } from "@/components/polar";
+import { ClipboardList, Printer, Plug, ShoppingCart } from "lucide-react";
 
 const sections = [
   { id: "mep-defaults", label: "MEP defaults" },
@@ -24,9 +25,12 @@ export default function SettingsKeuken() {
           <p className="text-sm text-muted-foreground">
             Configureer standaard MEP taak instellingen.
           </p>
-          <div className="nesto-card-base p-6">
-            <p className="text-muted-foreground">MEP defaults configuratie komt hier.</p>
-          </div>
+          <EmptyState
+            icon={ClipboardList}
+            title="MEP defaults configuratie"
+            description="Deze instellingen worden binnenkort beschikbaar."
+            size="sm"
+          />
         </div>
       )}
 
@@ -36,9 +40,12 @@ export default function SettingsKeuken() {
           <p className="text-sm text-muted-foreground">
             Beheer label templates en print instellingen.
           </p>
-          <div className="nesto-card-base p-6">
-            <p className="text-muted-foreground">Labels & printen configuratie komt hier.</p>
-          </div>
+          <EmptyState
+            icon={Printer}
+            title="Labels & printen configuratie"
+            description="Deze instellingen worden binnenkort beschikbaar."
+            size="sm"
+          />
         </div>
       )}
 
@@ -48,9 +55,12 @@ export default function SettingsKeuken() {
           <p className="text-sm text-muted-foreground">
             Koppel externe systemen aan de keuken module.
           </p>
-          <div className="nesto-card-base p-6">
-            <p className="text-muted-foreground">Integraties configuratie komt hier.</p>
-          </div>
+          <EmptyState
+            icon={Plug}
+            title="Integraties configuratie"
+            description="Deze instellingen worden binnenkort beschikbaar."
+            size="sm"
+          />
         </div>
       )}
 
@@ -60,9 +70,12 @@ export default function SettingsKeuken() {
           <p className="text-sm text-muted-foreground">
             Instellingen voor inkoop en bestellingen.
           </p>
-          <div className="nesto-card-base p-6">
-            <p className="text-muted-foreground">Inkoop configuratie komt hier.</p>
-          </div>
+          <EmptyState
+            icon={ShoppingCart}
+            title="Inkoop configuratie"
+            description="Deze instellingen worden binnenkort beschikbaar."
+            size="sm"
+          />
         </div>
       )}
     </SettingsPageLayout>

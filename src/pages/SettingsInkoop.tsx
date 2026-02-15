@@ -1,13 +1,15 @@
+import { PageHeader, EmptyState } from "@/components/polar";
+import { ShoppingBag } from "lucide-react";
+
 export default function SettingsInkoop() {
   return (
     <div className="space-y-6">
-      <h1>Inkoop Instellingen</h1>
-      <p className="text-muted-foreground">
-        Configureer inkoop en bestellingen.
-      </p>
-      <div className="nesto-card-base">
-        <p className="text-muted-foreground">Inkoop configuratie komt hier.</p>
-      </div>
+      <PageHeader title="Inkoop Instellingen" subtitle="Configureer inkoop en bestellingen." />
+      <EmptyState
+        icon={ShoppingBag}
+        title="Configuratie volgt binnenkort"
+        description="Inkoop configuratie wordt in een volgende versie beschikbaar."
+      />
     </div>
   );
 }
