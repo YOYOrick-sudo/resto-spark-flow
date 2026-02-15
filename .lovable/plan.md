@@ -1,53 +1,37 @@
 
 
-# Error Boundaries toevoegen
+# NestoLogo in witte kleur
 
-## Waarom
+## Aandachtspunt: contrast
 
-Zonder Error Boundaries crasht een fout in een willekeurige pagina-component de hele React app (wit scherm). Met Error Boundaries wordt alleen het getroffen onderdeel vervangen door een nette foutmelding, terwijl sidebar en navigatie intact blijven.
+Het logo wordt overal wit. Op lichte achtergronden (sidebar `bg-secondary`, auth-pagina, 404-pagina) is wit onzichtbaar. Daarom worden de achtergronden van die plekken aangepast naar een donkere kleur zodat het witte logo goed zichtbaar is.
 
-## Wat er verandert
+## Wijzigingen
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/polar/NestoErrorBoundary.tsx` | Nieuw bestand: class component met friendly error UI |
-| `src/components/polar/index.ts` | Export toevoegen |
-| `src/components/layout/AppShell.tsx` | `<Outlet>` wrappen in `<NestoErrorBoundary>` (isoleert pagina-crashes) |
-| `src/App.tsx` | `<Routes>` wrappen in `<NestoErrorBoundary>` (vangt app-brede crashes) |
+| Bestand | Wat verandert |
+|---------|---------------|
+| `NestoLogo.tsx` | Woordmerk van `text-primary` (teal) naar `text-white`; icoon-rect van `fill-primary` naar `fill-white`, N-letter van `fill="white"` naar `fill="currentColor"` met `text-primary` (teal N op wit blokje) |
+| `NestoSidebar.tsx` | Sidebar achtergrond van `bg-secondary` naar `bg-[hsl(220,15%,13%)]` (donker) zodat wit logo zichtbaar is. Tekst- en menu-item kleuren aanpassen voor contrast op donkere achtergrond |
+| `AppLayout.tsx` | Mobiele header achtergrond donker maken (zelfde kleur als sidebar) |
+| `Auth.tsx` | Pagina-achtergrond of logo-sectie donker maken zodat wit logo zichtbaar is |
+| `NotFound.tsx` | Logo-sectie of achtergrond aanpassen voor contrast |
+| `NestoErrorBoundary.tsx` | Geen logo aanwezig, geen wijziging nodig |
 
-## Technische details
+## Technisch detail
 
-### 1. `NestoErrorBoundary.tsx`
-
-- React class component (vereist voor Error Boundaries)
-- `componentDidCatch`: logt error naar `console.error` (later vervangbaar door Sentry)
-- Fallback UI met bestaande Polar componenten:
-  - `NestoCard` wrapper
-  - `AlertTriangle` icon uit lucide-react
-  - Titel: "Er ging iets mis"
-  - Beschrijving: "Dit onderdeel kon niet worden geladen. Probeer de pagina te vernieuwen."
-  - `NestoButton`: "Pagina vernieuwen" (`window.location.reload()`)
-  - `NestoButton variant="ghost"`: "Terug naar Dashboard" (link naar `/`)
-- Accepteert optionele `fallback` prop voor custom error UI
-
-### 2. `AppShell.tsx`
-
-Wrap `<Outlet />` in `<NestoErrorBoundary>` zodat een crash in een pagina-component alleen die pagina raakt. De sidebar en navigatie blijven functioneren.
-
-### 3. `App.tsx`
-
-Wrap de gehele `<Routes>` in een `<NestoErrorBoundary>` als vangnet voor crashes buiten de AppShell (bijv. auth pagina, 404).
-
-### Resultaat
+### NestoLogo.tsx
 
 ```text
-NestoErrorBoundary (app-niveau)
-  +-- Routes
-       +-- /auth
-       +-- AppShell (sidebar + navigatie)
-            +-- NestoErrorBoundary (pagina-niveau)
-                 +-- <Outlet /> (actieve pagina)
+Icoon:  rect fill="white" (was fill-primary)
+        path fill wordt teal (zodat de N zichtbaar is op het witte vlak)
+Tekst:  "nesto" wordt text-white (was text-primary)
 ```
 
-Een crash in een pagina toont de error UI alleen in het content-gebied. Sidebar en navigatie blijven bruikbaar.
+### NestoSidebar.tsx
+
+De sidebar krijgt een donkere achtergrond. Menu-items, labels, chevrons en active states worden aangepast naar lichte kleuren die werken op de donkere achtergrond. De hover- en active-states gebruiken `white/10` en `white/20` in plaats van de huidige lichte kleuren.
+
+### Auth.tsx en NotFound.tsx
+
+De logo-secties krijgen een donkere achtergrond of het logo wordt op een donker vlak geplaatst zodat het witte woordmerk leesbaar blijft.
 
