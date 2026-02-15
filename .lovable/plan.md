@@ -1,25 +1,37 @@
 
 
-# Fix Reserveringen: herstel compacte layout
+# Reserveringen: titel terug + meer ademruimte
 
-## Probleem
+## Wat er mis is
 
-De vorige edit verwijderde alleen de `import` van `PageHeader`, maar het component staat nog op regel 108-119. Dit veroorzaakt een build error EN de layout is niet hersteld naar de compacte versie.
+Vergeleken met jouw referentie-screenshot is de huidige versie te krap:
 
-## Wijziging in `src/pages/Reserveringen.tsx`
+| Element | Nu | Gewenst (jouw screenshot) |
+|---------|-----|---------------------------|
+| Pagina titel | Ontbreekt | "Reserveringen" titel bovenaan |
+| Ruimte toolbar - filters | Geen gap | Duidelijke verticale ruimte (pt-4) |
+| Ruimte filters - content | pt-2 (minimaal) | Meer ademruimte (pt-4) |
+| Lijst rij padding | py-1.5 (compact) | Ruimer: py-3 (compact) / py-4 (comfortable) |
+| Status badges | Klein (text-caption, px-1.5) | Groter: text-xs, px-2.5 py-1 |
+| Timeslot headers | py-1 (compact) | Ruimer: py-2 |
 
-1. Verwijder het `<PageHeader>` blok (regels 108-119)
-2. Verplaats de "+ Reservering" button naar de toolbar-rij, rechts naast de SearchBar
-3. Verwijder de extra `pt-4` spacing van de toolbar (was nodig vanwege PageHeader border, nu niet meer)
+## Wijzigingen
 
-De resulterende structuur:
+### 1. `src/pages/Reserveringen.tsx`
+- Titel "Reserveringen" terugzetten bovenaan (als h1, zonder PageHeader border -- gewoon een simpele titel)
+- Toolbar krijgt `pt-4` spacing onder de titel
+- Filters krijgen `pt-3` voor meer ruimte
+- Content area krijgt `pt-4` in plaats van `pt-2`
 
-```text
-Row 1: [ViewToggle] [DateNavigator] ...spacer... [SearchBar] [+ Reservering]
-Row 2: [Status] [Shift] [Type] ...spacer... [21 reserveringen]
-Row 3+: Content (list/grid/calendar)
-Footer: Stats bar
-```
+### 2. `src/components/reserveringen/ReservationListView.tsx`
+- Rij padding verhogen: compact van `py-1.5` naar `py-3`, comfortable van `py-3` naar `py-4`
+- Status badges vergroten: compact krijgt `text-xs px-2.5 py-1` (nu `text-caption px-1.5 py-0`)
+- Status dot iets groter in compact mode
+- Timeslot headers: compact van `py-1` naar `py-2`
+- Divider tussen rijen iets duidelijker
 
-Alleen `src/pages/Reserveringen.tsx` wordt aangepast.
+### 3. `src/components/reserveringen/ReservationFilters.tsx`
+- Filter dropdowns iets breder (status 160px, shift 160px, type 200px)
+- Gap tussen filters van `gap-2` naar `gap-3`
 
+Dit herstelt de ruimtelijke, enterprise-achtige uitstraling van je referentie zonder de functionaliteit te wijzigen.
