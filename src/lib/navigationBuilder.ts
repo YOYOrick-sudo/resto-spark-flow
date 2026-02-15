@@ -1,6 +1,3 @@
-// ============================================
-// FASE 4.1: NAVIGATION BUILDER
-// ============================================
 
 import type { UserContext, ModuleKey } from '@/types/auth';
 import { menuItems, type MenuItem, type SubMenuItem } from './navigation';

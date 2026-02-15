@@ -1,7 +1,3 @@
-// ============================================
-// FASE 4.3.B: Shift Validation Utilities
-// Enterprise overlap checking for shifts
-// ============================================
 
 import type { Shift } from "@/types/shifts";
 

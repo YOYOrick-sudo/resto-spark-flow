@@ -1,7 +1,3 @@
-// ============================================
-// FASE 4.3.D: Bulk Exception Preview
-// Preview component showing generated dates and conflicts
-// ============================================
 
 import { useMemo } from "react";
 import { AlertCircle, AlertTriangle, Info } from "lucide-react";

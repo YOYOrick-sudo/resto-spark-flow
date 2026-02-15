@@ -1,8 +1,3 @@
-// ============================================
-// FASE 4.3.A + 4.3.D: Shift Exceptions Hooks
-// Query and mutation hooks for shift exception management
-// Includes bulk create for enterprise recurring patterns
-// ============================================
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

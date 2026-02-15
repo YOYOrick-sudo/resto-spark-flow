@@ -1,8 +1,3 @@
-// ============================================
-// FASE 4.3.D: Bulk Exception Modal
-// Enterprise-grade bulk exception generator
-// Using NestoModal for consistent Polar styling
-// ============================================
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { format, addYears } from "date-fns";

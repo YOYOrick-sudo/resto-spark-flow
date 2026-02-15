@@ -1,6 +1,3 @@
-// ============================================
-// FASE 4.1: PERMISSION HOOK
-// ============================================
 
 import { useUserContext } from '@/contexts/UserContext';
 

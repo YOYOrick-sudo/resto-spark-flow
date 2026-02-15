@@ -1,6 +1,3 @@
-// ============================================
-// FASE 4.1: AUTH & ACCESS CONTROL TYPES
-// ============================================
 
 // Platform roles (global, not per org)
 export type PlatformRole = 'platform_admin' | 'support';

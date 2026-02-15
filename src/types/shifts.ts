@@ -1,7 +1,3 @@
-// ============================================
-// FASE 4.3.A: Shifts Foundation Types
-// Enterprise-grade shift management types
-// ============================================
 
 /**
  * Shift exception type enum - matches database enum

@@ -1,6 +1,3 @@
-// ============================================
-// FASE 4.1: AUTH PAGE (LOGIN + SIGNUP)
-// ============================================
 
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';

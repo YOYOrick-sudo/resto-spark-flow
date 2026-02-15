@@ -1,7 +1,3 @@
-// ============================================
-// FASE 4.3.D: Bulk Exception Generator
-// Date generation utilities for recurring patterns
-// ============================================
 
 import {
   addDays,

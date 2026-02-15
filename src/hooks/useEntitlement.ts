@@ -1,6 +1,3 @@
-// ============================================
-// FASE 4.1: ENTITLEMENT HOOK
-// ============================================
 
 import { useUserContext } from '@/contexts/UserContext';
 import type { ModuleKey } from '@/types/auth';

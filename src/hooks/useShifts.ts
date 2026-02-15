@@ -1,7 +1,3 @@
-// ============================================
-// FASE 4.3.A: Shifts Hooks
-// Query and mutation hooks for shift management
-// ============================================
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

@@ -1,6 +1,3 @@
-// ============================================
-// FASE 4.1: AUTH CONTEXT
-// ============================================
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
