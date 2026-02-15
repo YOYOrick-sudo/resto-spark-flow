@@ -98,5 +98,8 @@ export type { TitleHelpProps, TitleHelpTipProps } from "./TitleHelp";
 export { FieldHelp, FieldHelpExample } from "./FieldHelp";
 export type { FieldHelpProps, FieldHelpExampleProps } from "./FieldHelp";
 
+export { NestoLogo } from "./NestoLogo";
+export type { NestoLogoProps } from "./NestoLogo";
+
 // Re-export toast from sonner for easy access
 export { toast } from 'sonner';

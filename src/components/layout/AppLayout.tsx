@@ -3,6 +3,7 @@ import { NestoSidebar } from './NestoSidebar';
 import { CommandPalette } from './CommandPalette';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { NestoLogo } from '@/components/polar/NestoLogo';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -62,7 +63,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </Button>
-            <span className="ml-3 text-xl font-semibold text-primary">nesto</span>
+            <span className="ml-3"><NestoLogo size="sm" showIcon={false} /></span>
           </header>
 
           {/* Page Content */}

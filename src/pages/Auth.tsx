@@ -5,10 +5,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { NestoButton } from '@/components/polar';
-import { NestoInput } from '@/components/polar';
-import { NestoCard } from '@/components/polar';
-import { NestoTabs } from '@/components/polar';
+import { NestoButton, NestoInput, NestoCard, NestoTabs, NestoLogo } from '@/components/polar';
 import { z } from 'zod';
 
 // Validation schemas
@@ -114,7 +111,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Nesto</h1>
+          <NestoLogo size="lg" />
           <p className="text-muted-foreground mt-2">
             Horeca management platform
           </p>
