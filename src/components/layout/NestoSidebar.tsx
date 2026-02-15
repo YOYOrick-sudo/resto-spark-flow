@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
 
 import { useSignals } from '@/hooks/useSignals';
+import { NestoLogo } from '@/components/polar/NestoLogo';
 
 
 interface NestoSidebarProps {
@@ -73,12 +74,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
       {/* Header */}
       <div className="p-4">
         <div className="flex items-center justify-between">
-          <span 
-            className="text-xl font-extrabold tracking-tight text-foreground"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
-            nesto
-          </span>
+          <NestoLogo size="md" />
           <div className="flex items-center gap-1">
             <button
               type="button"
