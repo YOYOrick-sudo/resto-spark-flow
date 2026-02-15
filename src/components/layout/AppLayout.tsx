@@ -91,7 +91,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </NestoButton>
-            <span className="ml-3"><NestoLogo size="sm" showIcon={false} /></span>
+            <span className="ml-3"><NestoLogo size="sm" showIcon={false} variant="white" /></span>
           </header>
 
           {/* Page Content */}

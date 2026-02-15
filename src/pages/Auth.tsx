@@ -107,9 +107,9 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         {/* Logo/Header */}
-        <div className="text-center mb-8 bg-[hsl(220,15%,13%)] rounded-card p-6">
-          <NestoLogo size="lg" />
-          <p className="text-white/50 mt-2">
+        <div className="text-center mb-8">
+          <NestoLogo size="lg" className="justify-center" />
+          <p className="text-muted-foreground mt-2">
             Horeca management platform
           </p>
         </div>
