@@ -1,84 +1,95 @@
 
 
-# Design Tokens: Kleuren & Shadows Standaardisatie
+# Polar UI Unificatie
 
 ## Overzicht
-Alle hardcoded kleuren (hex, rgba, bg-white) en inline shadows vervangen door design tokens. NestoCard hover-logica vereenvoudigen van JavaScript naar pure CSS. Geen visuele veranderingen -- puur technische opschoning.
+Button import vervangen, `nesto-card-base` CSS class verwijderen en stub pagina's opwaarderen met PageHeader + EmptyState. NestoSelect label styling gelijktrekken met NestoInput.
 
-## Stap 1: Shadow tokens toevoegen
+## Stap 1: Button unificatie — AppLayout.tsx
 
-### 1a. CSS variabelen in `src/index.css` (`:root` blok)
-Vier nieuwe custom properties:
-- `--shadow-sm`: subtiele schaduw voor lichte elementen
-- `--shadow-card`: standaard card schaduw
-- `--shadow-hover`: hover-state schaduw
-- `--shadow-toast`: toast notificatie schaduw
+Het enige custom bestand dat `@/components/ui/button` importeert is `AppLayout.tsx` (de 5 hits in `src/components/ui/` zijn ShadCN-intern en blijven ongewijzigd).
 
-### 1b. Tailwind config (`tailwind.config.ts`)
-Toevoegen onder `theme.extend.boxShadow`:
-- `sm`, `card`, `hover`, `toast`, `toast-dark`
+- Vervang `import { Button } from '@/components/ui/button'` door `import { NestoButton } from '@/components/polar/NestoButton'`
+- `<Button variant="ghost" size="icon">` wordt `<NestoButton variant="ghost" size="icon">`
 
-## Stap 2: NestoCard refactor (belangrijkste wijziging)
+## Stap 2: nesto-card-base verwijderen
 
-Verwijder alle inline `style={{ boxShadow }}` en JavaScript `onMouseEnter`/`onMouseLeave` handlers. Vervang door:
-- `shadow-card` (standaard)
-- `hover:shadow-hover` (hoverable)
-- `shadow-none` (nested)
-- `border border-border/50` altijd (niet alleen dark mode)
+### 2a. CSS class verwijderen uit `src/index.css`
+De `.nesto-card-base` class definitie wordt verwijderd uit `@layer components`.
 
-## Stap 3: Inline shadow vervanging in andere componenten
+### 2b. Stub pagina's opwaarderen (11 bestanden)
+Elke pagina die `nesto-card-base` gebruikt krijgt PageHeader + EmptyState in plaats van raw `<h1>` + `<div className="nesto-card-base">`:
 
-| Bestand | Huidig | Nieuw |
-|---------|--------|-------|
-| `StatCard.tsx` | inline `style={{ boxShadow }}` | `shadow-card` class |
-| `FormSection.tsx` | inline `style={{ boxShadow }}` | `shadow-card` class |
-| `nestoToast.tsx` | `shadow-[0_4px_24px_rgba...]` | `shadow-toast dark:shadow-toast-dark` |
-| `MessageThread.tsx` | `shadow-[0_1px_3px_rgba...]` | `shadow-card dark:shadow-none` |
-| `ReservationListView.tsx` | `shadow-[0_1px_3px_rgba(0,0,0,0.05)]` | `shadow-sm` |
-| `index.css .nesto-card-base` | inline `box-shadow` | `shadow-sm` |
+| Bestand | Titel | Lege-state tekst | Icoon |
+|---------|-------|-------------------|-------|
+| `Recepten.tsx` | Recepten | Nog geen recepten toegevoegd | BookOpen |
+| `Halffabricaten.tsx` | Halffabricaten | Nog geen halffabricaten toegevoegd | Layers |
+| `Kaartbeheer.tsx` | Kaartbeheer | Nog geen gerechten toegevoegd | UtensilsCrossed |
+| `Kostprijzen.tsx` | Kostprijzen | Nog geen kostprijzen berekend | Calculator |
+| `MepTaken.tsx` | MEP Taken | Nog geen MEP taken aangemaakt | ClipboardList |
+| `Taken.tsx` | Taken & Checklists | Nog geen taken aangemaakt | CheckSquare |
+| `Inkoop.tsx` | Inkoop | Nog geen bestellingen gevonden | ShoppingCart |
+| `SettingsVoorkeuren.tsx` | Voorkeuren | Configuratie volgt binnenkort | Settings |
+| `SettingsLeveranciers.tsx` | Leveranciers | Configuratie volgt binnenkort | Truck |
+| `SettingsInkoop.tsx` | Inkoop Instellingen | Configuratie volgt binnenkort | ShoppingBag |
 
-## Stap 4: Kleur vervanging
+Elke stub wordt:
+```tsx
+import { PageHeader, EmptyState } from "@/components/polar";
+import { BookOpen } from "lucide-react";
 
-| Bestand | Huidig | Nieuw |
-|---------|--------|-------|
-| `NestoSidebar.tsx` | `text-[#1d979e]` | `text-primary` |
-| `Dashboard.tsx` | `bg-orange-50/50`, `text-orange-500`, etc. | `bg-warning/5`, `text-warning`, etc. |
-| `Dashboard.tsx` | `text-2xl font-semibold` | `text-h1` |
-| `NestoSelect.tsx` | `bg-white dark:bg-card` | `bg-card` |
-| `CategorySidebar.tsx` | `text-white` op badge | `text-primary-foreground` |
-| `NestoBadge.tsx` | `text-white` op soon-variant | `text-primary-foreground` |
-| `ReservationsTile.tsx` | `stopColor="#1d979e"`, `stroke="#1d979e"` | `hsl(var(--primary))` waar mogelijk, HSL-strings voor SVG tick renderers |
+export default function Recepten() {
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Recepten" subtitle="Beheer alle recepten voor je restaurant." />
+      <EmptyState
+        icon={BookOpen}
+        title="Nog geen recepten toegevoegd"
+        description="Voeg je eerste recept toe om te beginnen."
+      />
+    </div>
+  );
+}
+```
 
-### NIET gewijzigd
-- `src/components/ui/*` (ShadCN bestanden)
-- Shift/Ticket kleur-presets (user-selectable data)
-- `SettingsCommunicatie.tsx` (hex als business data default)
-- `ReceptenTile.tsx` decoratief gradient patroon
+### 2c. Detail stub pagina's (3 bestanden)
+`ReceptenDetail.tsx`, `HalffabricatenDetail.tsx`, `KaartbeheerDetail.tsx` — zelfde patroon maar met `DetailPageLayout` of simpel PageHeader + EmptyState.
+
+### 2d. SettingsKeuken.tsx
+De 4 `nesto-card-base` divs worden vervangen door `<EmptyState>` componenten (zonder wrapper div, de EmptyState is al gestyled).
+
+## Stap 3: NestoSelect label fix
+
+Huidige NestoSelect label: `mb-1.5 block text-xs text-muted-foreground`
+NestoInput label: `mb-2 block text-label text-muted-foreground`
+
+Fix NestoSelect label naar: `mb-2 block text-label text-muted-foreground` — identiek aan NestoInput.
+
+## Stap 4: Border-radius tokens
+
+De border-radius tokens bestaan al in `tailwind.config.ts` (`rounded-card`, `rounded-card-sm`, `rounded-button`, `rounded-control`, `rounded-dropdown`). Er is een hardcoded `rounded-2xl` in `Ingredienten.tsx` (regel 394) die vervangen wordt door `rounded-card`.
 
 ## Bestanden overzicht
 
-| Actie | Bestand |
-|-------|---------|
-| Bewerkt | `src/index.css` (4 shadow CSS vars) |
-| Bewerkt | `tailwind.config.ts` (boxShadow extend) |
-| Bewerkt | `src/components/polar/NestoCard.tsx` |
-| Bewerkt | `src/components/polar/StatCard.tsx` |
-| Bewerkt | `src/components/polar/FormSection.tsx` |
-| Bewerkt | `src/components/polar/NestoSelect.tsx` |
-| Bewerkt | `src/components/polar/CategorySidebar.tsx` |
-| Bewerkt | `src/components/polar/NestoBadge.tsx` |
-| Bewerkt | `src/lib/nestoToast.tsx` |
-| Bewerkt | `src/components/layout/NestoSidebar.tsx` |
-| Bewerkt | `src/components/onboarding/MessageThread.tsx` |
-| Bewerkt | `src/components/reserveringen/ReservationListView.tsx` |
-| Bewerkt | `src/components/dashboard/ReservationsTile.tsx` |
-| Bewerkt | `src/pages/Dashboard.tsx` |
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/layout/AppLayout.tsx` | Button import naar NestoButton |
+| `src/index.css` | Verwijder `.nesto-card-base` class |
+| `src/components/polar/NestoSelect.tsx` | Label styling gelijktrekken |
+| `src/pages/Recepten.tsx` | PageHeader + EmptyState |
+| `src/pages/Halffabricaten.tsx` | PageHeader + EmptyState |
+| `src/pages/Kaartbeheer.tsx` | PageHeader + EmptyState |
+| `src/pages/Kostprijzen.tsx` | PageHeader + EmptyState |
+| `src/pages/MepTaken.tsx` | PageHeader + EmptyState |
+| `src/pages/Taken.tsx` | PageHeader + EmptyState |
+| `src/pages/Inkoop.tsx` | PageHeader + EmptyState |
+| `src/pages/SettingsVoorkeuren.tsx` | PageHeader + EmptyState |
+| `src/pages/SettingsLeveranciers.tsx` | PageHeader + EmptyState |
+| `src/pages/SettingsInkoop.tsx` | PageHeader + EmptyState |
+| `src/pages/SettingsKeuken.tsx` | EmptyState vervangt nesto-card-base |
+| `src/pages/ReceptenDetail.tsx` | PageHeader + EmptyState |
+| `src/pages/HalffabricatenDetail.tsx` | PageHeader + EmptyState |
+| `src/pages/KaartbeheerDetail.tsx` | PageHeader + EmptyState |
+| `src/pages/Ingredienten.tsx` | rounded-2xl naar rounded-card |
 
-Totaal: 14 bestanden gewijzigd, 0 nieuw, 0 verwijderd.
-
-## Validatie
-Na afloop mag `grep` in `src/components/` (excl. `ui/`) geen resultaten meer tonen voor:
-- `rgba(` in inline styles of Tailwind arbitrary values (behalve ReceptenTile patroon)
-- `bg-white`
-- `text-[#` hex kleuren
-- Inline `style={{ boxShadow` op cards
+Totaal: 18 bestanden gewijzigd.
