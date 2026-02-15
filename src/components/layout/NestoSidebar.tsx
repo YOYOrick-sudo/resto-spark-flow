@@ -174,14 +174,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     
                     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up" style={{ willChange: 'height' }}>
                       <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
-                        <ul className="space-y-0.5">
+                        <ul>
                           {item.subItems.map((subItem) => {
                             const isSubActive = activeItemId === subItem.id;
                             
                             if (subItem.disabled) {
                               return (
                                 <li key={subItem.id}>
-                                  <div className="flex items-center gap-3 px-2.5 py-1.5 text-[13px] text-muted-foreground opacity-40 cursor-default border border-transparent">
+                                  <div className="flex items-center gap-3 px-2.5 py-1 text-[13px] text-muted-foreground opacity-40 cursor-default border border-transparent">
                                     <span>{subItem.label}</span>
                                   </div>
                                 </li>
@@ -194,7 +194,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center px-2.5 py-1.5 text-[13px] transition-colors duration-150 rounded-lg',
+                                    'w-full flex items-center px-2.5 py-1 text-[13px] transition-colors duration-150 rounded-lg',
                                     'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                                     isSubActive
                                       ? 'text-primary font-medium hover:text-primary'
