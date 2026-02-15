@@ -27,6 +27,9 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
 
     return (
       <div ref={ref} className="h-screen flex w-full bg-card overflow-hidden">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground focus:rounded-button">
+          Ga naar inhoud
+        </a>
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex w-60 flex-shrink-0 sticky top-0 h-screen">
           <NestoSidebar onSearchClick={() => setCommandOpen(true)} />
@@ -67,7 +70,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 py-6 px-8 lg:py-8 lg:px-12 xl:px-16 overflow-auto scroll-smooth">
+          <div id="main-content" className="flex-1 py-6 px-8 lg:py-8 lg:px-12 xl:px-16 overflow-auto scroll-smooth">
             {children}
           </div>
         </main>

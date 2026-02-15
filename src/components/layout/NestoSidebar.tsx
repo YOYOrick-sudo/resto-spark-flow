@@ -78,7 +78,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0 relative"
+              className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
               aria-label="Notificaties"
             >
               <Zap size={18} strokeWidth={0} className="fill-foreground" />
@@ -88,7 +88,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
             </button>
             <button
               type="button"
-              className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-0"
+              className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label="Panel"
             >
               <PanelLeft size={18} strokeWidth={2} className="text-foreground" />
@@ -154,7 +154,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         onClick={() => handleExpandableClick(item)}
                         className={cn(
                           'group w-full flex items-center gap-3 px-2.5 py-[5px] rounded-lg text-small transition-colors duration-150',
-                          'border',
+                          'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                           hasActiveChild
                             ? 'bg-card border-border text-foreground font-medium'
                             : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
@@ -195,7 +195,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
                                     'w-full flex items-center px-2.5 py-[5px] text-small transition-colors duration-150 rounded-lg',
-                                    'border border-transparent',
+                                    'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                                     isSubActive
                                       ? 'text-primary font-medium hover:text-primary'
                                       : 'text-muted-foreground font-medium hover:text-foreground'
@@ -223,7 +223,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     onClick={() => { if (item.path) handleNavigation(item.path); }}
                     className={cn(
                       'group w-full flex items-center gap-3 px-2.5 py-[5px] rounded-lg text-small transition-colors duration-150',
-                      'border border-transparent',
+                      'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                       isActive
                         ? 'bg-card border-border text-foreground font-medium'
                         : 'text-muted-foreground font-medium hover:text-foreground'

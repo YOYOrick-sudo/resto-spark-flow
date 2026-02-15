@@ -23,13 +23,15 @@ export function NestoTabs({
 }: NestoTabsProps) {
   return (
     <div className={cn("border-b border-border", className)}>
-      <nav className="flex gap-6" aria-label="Tabs">
+      <nav className="flex gap-6" role="tablist" aria-label="Tabs">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
 
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
               onClick={() => !tab.disabled && onTabChange(tab.id)}
               disabled={tab.disabled}
               className={cn(
