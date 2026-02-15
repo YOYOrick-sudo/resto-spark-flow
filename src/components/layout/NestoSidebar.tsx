@@ -8,17 +8,27 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [maxHeight, setMaxHeight] = useState(isOpen ? 'none' : '0px');
+  const prevOpen = useRef(isOpen);
 
   useEffect(() => {
-    if (isOpen) {
-      const el = ref.current;
-      if (el) setMaxHeight(el.scrollHeight + 'px');
-    } else {
-      setMaxHeight('0px');
+    const el = ref.current;
+    if (!el) return;
+
+    if (isOpen && !prevOpen.current) {
+      // Opening: set scrollHeight so it animates from 0 to full
+      setMaxHeight(el.scrollHeight + 'px');
+    } else if (!isOpen && prevOpen.current) {
+      // Closing: first pin to current scrollHeight, then animate to 0 next frame
+      setMaxHeight(el.scrollHeight + 'px');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setMaxHeight('0px');
+        });
+      });
     }
+    prevOpen.current = isOpen;
   }, [isOpen]);
 
-  // After open transition ends, set to 'none' so dynamic content isn't clipped
   const handleTransitionEnd = useCallback(() => {
     if (isOpen) setMaxHeight('none');
   }, [isOpen]);
@@ -29,7 +39,7 @@ function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: Re
       style={{
         maxHeight,
         overflow: 'hidden',
-        transition: 'max-height 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
       onTransitionEnd={handleTransitionEnd}
     >
