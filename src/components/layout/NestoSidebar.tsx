@@ -143,9 +143,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                 return (
                   <li key={item.id}>
                     {showSectionLabel && <div className="pt-3" />}
-                    <div className="flex items-center justify-center py-1.5 opacity-40">
-                      <Icon size={16} className="text-muted-foreground" />
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center py-1.5 opacity-40 cursor-default">
+                          <Icon size={16} className="text-muted-foreground" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8}>Binnenkort beschikbaar</TooltipContent>
+                    </Tooltip>
                   </li>
                 );
               }
@@ -237,9 +242,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                             if (subItem.disabled) {
                               return (
                                 <li key={subItem.id}>
-                                  <div className="flex items-center gap-3 px-2.5 py-1 text-[13px] text-muted-foreground opacity-40 cursor-default border border-transparent">
-                                    <span>{subItem.label}</span>
-                                  </div>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-3 px-2.5 py-1 text-[13px] text-muted-foreground opacity-40 cursor-default border border-transparent">
+                                        <span>{subItem.label}</span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" sideOffset={8}>Binnenkort beschikbaar</TooltipContent>
+                                  </Tooltip>
                                 </li>
                               );
                             }
@@ -268,10 +278,15 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                   </Collapsible.Root>
                 ) : item.disabled ? (
                   /* Disabled item */
-                  <div className="flex items-center gap-3 px-2.5 py-1.5 text-[13px] text-muted-foreground opacity-40 cursor-default">
-                    <Icon size={16} className="flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-3 px-2.5 py-1.5 text-[13px] text-muted-foreground opacity-40 cursor-default">
+                        <Icon size={16} className="flex-shrink-0" />
+                        <span>{item.label}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8}>Binnenkort beschikbaar</TooltipContent>
+                  </Tooltip>
                 ) : (
                   /* Regular link item */
                   <button

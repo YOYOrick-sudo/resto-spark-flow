@@ -1,5 +1,6 @@
 import { List, LayoutGrid, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type ViewType = "list" | "grid" | "calendar";
 
@@ -30,6 +31,25 @@ export function ViewToggle({
       {views.map((view) => {
         const Icon = view.icon;
         const isActive = activeView === view.id;
+        const isDisabled = view.id === "calendar";
+
+        if (isDisabled) {
+          return (
+            <Tooltip key={view.id}>
+              <TooltipTrigger asChild>
+                <span
+                  className="p-2 rounded-md text-muted-foreground/40 cursor-default"
+                  tabIndex={0}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4}>
+                Binnenkort beschikbaar
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
 
         return (
           <button
