@@ -1,37 +1,43 @@
 
 
-# Reserveringen: titel terug + meer ademruimte
+# Sidebar: smooth single-expand mechaniek
 
-## Wat er mis is
+## Wat verandert
 
-Vergeleken met jouw referentie-screenshot is de huidige versie te krap:
+| Aspect | Nu | Straks |
+|--------|-----|--------|
+| Expand mechaniek | Radix `Collapsible.Root` met data-state animaties | Eigen `max-height` + `overflow: hidden` + cubic-bezier transition |
+| State | `expandedGroups: string[]` (meerdere open) | `expandedModule: string | null` (single-expand) |
+| Chevron | `rotate-180` bij open | `rotate(90deg)` bij open, zelfde 0.2s transition |
+| Wisseling | Twee aparte open/dicht acties | Een vloeiende wisseling: oude dicht + nieuwe open tegelijk |
 
-| Element | Nu | Gewenst (jouw screenshot) |
-|---------|-----|---------------------------|
-| Pagina titel | Ontbreekt | "Reserveringen" titel bovenaan |
-| Ruimte toolbar - filters | Geen gap | Duidelijke verticale ruimte (pt-4) |
-| Ruimte filters - content | pt-2 (minimaal) | Meer ademruimte (pt-4) |
-| Lijst rij padding | py-1.5 (compact) | Ruimer: py-3 (compact) / py-4 (comfortable) |
-| Status badges | Klein (text-caption, px-1.5) | Groter: text-xs, px-2.5 py-1 |
-| Timeslot headers | py-1 (compact) | Ruimer: py-2 |
+## Technische aanpak
 
-## Wijzigingen
+### `src/components/layout/NestoSidebar.tsx`
 
-### 1. `src/pages/Reserveringen.tsx`
-- Titel "Reserveringen" terugzetten bovenaan (als h1, zonder PageHeader border -- gewoon een simpele titel)
-- Toolbar krijgt `pt-4` spacing onder de titel
-- Filters krijgen `pt-3` voor meer ruimte
-- Content area krijgt `pt-4` in plaats van `pt-2`
+1. **State vereenvoudigen**
+   - `expandedGroups: string[]` wordt `expandedModule: string | null`
+   - `useEffect` voor route-sync wordt simpeler: zet `expandedModule` op de groep van het actieve pad
 
-### 2. `src/components/reserveringen/ReservationListView.tsx`
-- Rij padding verhogen: compact van `py-1.5` naar `py-3`, comfortable van `py-3` naar `py-4`
-- Status badges vergroten: compact krijgt `text-xs px-2.5 py-1` (nu `text-caption px-1.5 py-0`)
-- Status dot iets groter in compact mode
-- Timeslot headers: compact van `py-1` naar `py-2`
-- Divider tussen rijen iets duidelijker
+2. **Radix Collapsible verwijderen**
+   - Geen `Collapsible.Root`, `Collapsible.Trigger`, `Collapsible.Content` meer
+   - Import van `@radix-ui/react-collapsible` verwijderen
 
-### 3. `src/components/reserveringen/ReservationFilters.tsx`
-- Filter dropdowns iets breder (status 160px, shift 160px, type 200px)
-- Gap tussen filters van `gap-2` naar `gap-3`
+3. **Eigen expand container**
+   - De sub-items wrapper krijgt een `ref` (useRef) om de werkelijke hoogte te meten
+   - Inline style: `maxHeight` op `0` (dicht) of `scrollHeight + "px"` (open)
+   - CSS transition: `max-height 0.2s cubic-bezier(0.4, 0, 0.2, 1)`, `overflow: hidden`
 
-Dit herstelt de ruimtelijke, enterprise-achtige uitstraling van je referentie zonder de functionaliteit te wijzigen.
+4. **Single-expand logica**
+   - Klik op parent: als `expandedModule === item.id` dan `null`, anders `item.id`
+   - Omdat er maar een state variabele is, klapt de oude automatisch dicht (max-height naar 0) terwijl de nieuwe opent -- een vloeiende wisseling
+
+5. **Chevron**
+   - Van `rotate-180` naar `rotate-90` bij open
+   - Zelfde `transition-transform duration-200` met cubic-bezier easing
+
+6. **Route-sync**
+   - Bij navigatie: `expandedModule` wordt automatisch de groep van het actieve pad
+   - Als een actief child in een groep zit, blijft die groep open (niet dichtklappen)
+
+Alleen `src/components/layout/NestoSidebar.tsx` wordt aangepast.
