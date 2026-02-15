@@ -7,7 +7,7 @@ export default function SettingsLeveranciers() {
       <PageHeader title="Leveranciers" subtitle="Beheer leverancier integraties en koppelingen." />
       <EmptyState
         icon={Truck}
-        title="Configuratie volgt binnenkort"
+        title="Leveranciers"
         description="Leverancier koppelingen worden in een volgende versie beschikbaar."
       />
     </div>

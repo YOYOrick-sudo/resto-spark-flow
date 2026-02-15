@@ -13,6 +13,7 @@ import {
   type DataTableColumn,
   type FilterDefinition,
 } from "@/components/polar";
+import { nestoToast } from "@/lib/nestoToast";
 
 // ============================================================================
 // Types
@@ -34,6 +35,7 @@ interface Ingredient {
 // Mock Data
 // ============================================================================
 
+// TODO: Replace with Supabase query via useIngredienten hook
 const mockIngredienten: Ingredient[] = [
   {
     id: "1",
@@ -175,19 +177,13 @@ const filterDefinitions: FilterDefinition[] = [
 
 export default function Ingredienten() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoading] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState("");
   const [filterValues, setFilterValues] = React.useState<Record<string, string>>({});
   const [sortColumn, setSortColumn] = React.useState<string>("naam");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = React.useState(1);
   const pageSize = 10;
-
-  // Simulate loading
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Filter and search logic
   const filteredData = React.useMemo(() => {
@@ -351,13 +347,13 @@ export default function Ingredienten() {
         actions={[
           {
             label: "Importeren",
-            onClick: () => console.log("Import"),
+            onClick: () => nestoToast.info("Import functie komt binnenkort"),
             variant: "outline",
             icon: Upload,
           },
           {
             label: "Nieuw ingrediënt",
-            onClick: () => console.log("Add new"),
+            onClick: () => nestoToast.info("Nieuw ingrediënt komt binnenkort"),
             icon: Plus,
           },
         ]}

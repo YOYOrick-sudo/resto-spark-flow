@@ -271,7 +271,7 @@ export default function SettingsCommunicatie() {
                 <p className="text-xs text-muted-foreground">Directe berichten via WhatsApp Business</p>
               </div>
             </div>
-            <NestoBadge variant="default" size="sm">Binnenkort</NestoBadge>
+            <span className="text-xs text-muted-foreground">Binnenkort beschikbaar</span>
           </div>
         </div>
       </NestoCard>

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Calendar } from "lucide-react";
+import { EmptyState } from "@/components/polar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/polar/PageHeader";
@@ -14,6 +15,7 @@ import {
   ReservationFilters,
   type ReservationFiltersState,
 } from "@/components/reserveringen/ReservationFilters";
+// TODO: Replace with Supabase query via useReservations hook
 import {
   mockReservations,
   getReservationsForDate,
@@ -166,8 +168,12 @@ export default function Reserveringen() {
           )}
 
           {activeView === "calendar" && (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              Kalender weergave komt in Fase 4d
+            <div className="flex items-center justify-center py-16">
+              <EmptyState
+                icon={Calendar}
+                title="Kalenderweergave"
+                description="Deze weergave wordt binnenkort beschikbaar."
+              />
             </div>
           )}
         </div>
