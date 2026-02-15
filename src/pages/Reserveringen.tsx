@@ -105,21 +105,8 @@ export default function Reserveringen() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader
-        title="Reserveringen"
-        actions={
-          <button
-            onClick={handleNewReservation}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Reservering
-          </button>
-        }
-      />
-
       {/* Toolbar */}
-      <div className="flex items-center gap-4 flex-wrap pt-4">
+      <div className="flex items-center gap-4 flex-wrap">
         <ViewToggle activeView={activeView} onViewChange={setActiveView} />
         
         <DateNavigator
@@ -134,6 +121,14 @@ export default function Reserveringen() {
             onChange={setSearchQuery}
           />
         </div>
+
+        <button
+          onClick={handleNewReservation}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Reservering
+        </button>
       </div>
 
       {/* Filters row */}
