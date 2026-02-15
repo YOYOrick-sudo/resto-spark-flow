@@ -1,37 +1,37 @@
 
 
-# Logo thema-bewust maken: wit in dark mode, zwart in light mode
+# NestoLogo in witte kleur
 
-## Overzicht
+## Aandachtspunt: contrast
 
-Het NestoLogo component wordt thema-bewust. In dark mode blijft alles zoals nu (wit woordmerk, wit icoon met teal N). In light mode wordt het woordmerk zwart en het icoon zwart met teal N.
-
-De sidebar blijft altijd donker (enterprise look) en gebruikt altijd de witte variant. De overige plekken (Auth, 404) worden teruggebracht naar thema-bewuste achtergronden.
+Het logo wordt overal wit. Op lichte achtergronden (sidebar `bg-secondary`, auth-pagina, 404-pagina) is wit onzichtbaar. Daarom worden de achtergronden van die plekken aangepast naar een donkere kleur zodat het witte logo goed zichtbaar is.
 
 ## Wijzigingen
 
 | Bestand | Wat verandert |
-|---------|-----------|
-| `NestoLogo.tsx` | Woordmerk: `text-white` wordt `text-foreground` (zwart in light, wit in dark). Icoon rect: `fill="white"` wordt `fill="currentColor"` met `text-foreground`. Nieuwe optionele `variant` prop: `"auto"` (volgt thema, standaard) of `"white"` (altijd wit, voor donkere achtergronden). |
-| `NestoSidebar.tsx` | Logo aanroep krijgt `variant="white"` zodat het altijd wit blijft op de donkere sidebar. |
-| `AppLayout.tsx` | Mobiele header logo krijgt `variant="white"` (header blijft donker). |
-| `Auth.tsx` | Donkere logo-sectie verwijderen. Logo gebruikt standaard `variant="auto"` zodat het meebeweegt met het thema. Achtergrond wordt weer `bg-background`. |
-| `NotFound.tsx` | Terug naar `bg-background` met thema-bewuste kleuren. Logo gebruikt standaard variant. |
+|---------|---------------|
+| `NestoLogo.tsx` | Woordmerk van `text-primary` (teal) naar `text-white`; icoon-rect van `fill-primary` naar `fill-white`, N-letter van `fill="white"` naar `fill="currentColor"` met `text-primary` (teal N op wit blokje) |
+| `NestoSidebar.tsx` | Sidebar achtergrond van `bg-secondary` naar `bg-[hsl(220,15%,13%)]` (donker) zodat wit logo zichtbaar is. Tekst- en menu-item kleuren aanpassen voor contrast op donkere achtergrond |
+| `AppLayout.tsx` | Mobiele header achtergrond donker maken (zelfde kleur als sidebar) |
+| `Auth.tsx` | Pagina-achtergrond of logo-sectie donker maken zodat wit logo zichtbaar is |
+| `NotFound.tsx` | Logo-sectie of achtergrond aanpassen voor contrast |
+| `NestoErrorBoundary.tsx` | Geen logo aanwezig, geen wijziging nodig |
 
 ## Technisch detail
 
 ### NestoLogo.tsx
 
-- Nieuwe prop: `variant?: 'auto' | 'white'`
-- `variant="white"`: huidige gedrag (alles wit, teal N)
-- `variant="auto"` (standaard): icoon en woordmerk gebruiken `text-foreground` (volgt thema automatisch via Tailwind dark mode classes)
-- Het icoon-rect krijgt `className` met de juiste kleur, de N-path blijft `fill-primary`
+```text
+Icoon:  rect fill="white" (was fill-primary)
+        path fill wordt teal (zodat de N zichtbaar is op het witte vlak)
+Tekst:  "nesto" wordt text-white (was text-primary)
+```
 
-### Sidebar en mobiele header
+### NestoSidebar.tsx
 
-Geen visuele verandering: deze blijven donker en gebruiken `variant="white"`.
+De sidebar krijgt een donkere achtergrond. Menu-items, labels, chevrons en active states worden aangepast naar lichte kleuren die werken op de donkere achtergrond. De hover- en active-states gebruiken `white/10` en `white/20` in plaats van de huidige lichte kleuren.
 
 ### Auth.tsx en NotFound.tsx
 
-Deze pagina's worden weer thema-bewust: `bg-background`, `text-foreground`. Het logo past automatisch mee.
+De logo-secties krijgen een donkere achtergrond of het logo wordt op een donker vlak geplaatst zodat het witte woordmerk leesbaar blijft.
 

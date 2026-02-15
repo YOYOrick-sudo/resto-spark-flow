@@ -82,7 +82,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0">
           {/* Mobile Header */}
-          <header className="md:hidden flex items-center h-14 px-4 border-b border-white/10 bg-[hsl(220,15%,13%)]">
+          <header className="md:hidden flex items-center h-14 px-4 border-b border-border bg-secondary">
             <NestoButton
               variant="ghost"
               size="icon"
@@ -91,7 +91,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </NestoButton>
-            <span className="ml-3"><NestoLogo size="sm" showIcon={false} variant="white" /></span>
+            <span className="ml-3"><NestoLogo size="sm" showIcon={false} /></span>
           </header>
 
           {/* Page Content */}
