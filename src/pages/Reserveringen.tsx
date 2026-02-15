@@ -105,8 +105,11 @@ export default function Reserveringen() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Page title */}
+      <h1 className="text-2xl font-semibold text-foreground">Reserveringen</h1>
+
       {/* Toolbar */}
-      <div className="flex items-center gap-4 flex-wrap">
+      <div className="flex items-center gap-4 flex-wrap pt-4">
         <ViewToggle activeView={activeView} onViewChange={setActiveView} />
         
         <DateNavigator
@@ -133,6 +136,7 @@ export default function Reserveringen() {
 
       {/* Filters row */}
       <ReservationFilters
+        className="pt-3"
         filters={filters}
         onFiltersChange={setFilters}
         totalCount={reservationsForDate.length}
@@ -140,7 +144,7 @@ export default function Reserveringen() {
       />
 
       {/* Content area */}
-      <div className={cn("flex-1 pt-2", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}>
+      <div className={cn("flex-1 pt-4", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}>
         <div className={cn("bg-card border border-border rounded-2xl overflow-hidden", activeView === "grid" && "h-full")}>
           {activeView === "list" && (
             <ReservationListView

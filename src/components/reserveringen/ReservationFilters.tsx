@@ -62,27 +62,27 @@ export function ReservationFilters({
   return (
     <div className={cn("flex items-center gap-4 flex-wrap", className)}>
       {/* Filter dropdowns */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <NestoSelect
           options={statusOptions}
           value={filters.status}
           onValueChange={(value) => handleFilterChange("status", value)}
           placeholder="Status"
-          className="w-[140px]"
+          className="w-[160px]"
         />
         <NestoSelect
           options={shiftOptions}
           value={filters.shift}
           onValueChange={(value) => handleFilterChange("shift", value)}
           placeholder="Shift"
-          className="w-[140px]"
+          className="w-[160px]"
         />
         <NestoSelect
           options={ticketTypeOptions}
           value={filters.ticketType}
           onValueChange={(value) => handleFilterChange("ticketType", value)}
           placeholder="Type"
-          className="w-[180px]"
+          className="w-[200px]"
         />
       </div>
 
