@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 export interface NestoLogoProps {
   size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
+  showWordmark?: boolean;
   className?: string;
 }
 
@@ -31,18 +32,20 @@ function NestoIcon({ size }: { size: number }) {
   );
 }
 
-export function NestoLogo({ size = 'md', showIcon = true, className }: NestoLogoProps) {
+export function NestoLogo({ size = 'md', showIcon = true, showWordmark = true, className }: NestoLogoProps) {
   const { text, icon } = sizeMap[size];
 
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       {showIcon && <NestoIcon size={icon} />}
-      <span
-        className={cn(text, 'font-extrabold tracking-tight text-primary')}
-        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      >
-        nesto
-      </span>
+      {showWordmark && (
+        <span
+          className={cn(text, 'font-extrabold tracking-tight text-primary')}
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          nesto
+        </span>
+      )}
     </span>
   );
 }

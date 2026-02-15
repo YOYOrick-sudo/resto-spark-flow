@@ -4,6 +4,7 @@ import { ChevronDown, Zap, PanelLeft, Search, Building2 } from 'lucide-react';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import * as Collapsible from '@radix-ui/react-collapsible';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { useSignals } from '@/hooks/useSignals';
 import { NestoLogo } from '@/components/polar/NestoLogo';
@@ -13,9 +14,11 @@ interface NestoSidebarProps {
   onNavigate?: () => void;
   onSearchClick?: () => void;
   unreadNotifications?: number;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 0 }: NestoSidebarProps) {
+export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 0, collapsed, onToggleCollapse }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -36,13 +39,11 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
     
     if (groupToExpand) {
-      // First, add the new group immediately
       setExpandedGroups((prev) => {
         if (prev.includes(groupToExpand)) return prev;
         return [...prev, groupToExpand];
       });
       
-      // Then collapse old groups after a short delay (stagger effect)
       const timer = setTimeout(() => {
         setExpandedGroups((prev) => prev.filter((id) => id === groupToExpand));
       }, 150);
@@ -52,8 +53,6 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
       setExpandedGroups((prev) => prev.length === 0 ? prev : []);
     }
   }, [location.pathname]);
-
-  
 
   const handleNavigation = useCallback((path: string) => {
     if (location.pathname === path) return;
@@ -70,53 +69,63 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
   }, [location.pathname, navigate, onNavigate]);
 
   return (
-    <div className="h-full w-60 flex flex-col bg-secondary border-r border-border">
+    <div className={cn(
+      "h-full flex flex-col bg-secondary border-r border-border transition-all duration-200",
+      collapsed ? "w-14" : "w-60"
+    )}>
       {/* Header */}
-      <div className="p-4">
-        <div className="flex items-center justify-between">
-          <NestoLogo size="md" />
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
-              aria-label="Notificaties"
-            >
-              <Zap size={18} strokeWidth={0} className="fill-foreground" />
-              {unreadNotifications > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-              )}
-            </button>
-            <button
-              type="button"
-              className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              aria-label="Panel"
-            >
-              <PanelLeft size={18} strokeWidth={2} className="text-foreground" />
-            </button>
+      <div className={cn("p-4", collapsed && "px-2 py-4 flex justify-center")}>
+        {collapsed ? (
+          <NestoLogo size="sm" showWordmark={false} />
+        ) : (
+          <div className="flex items-center justify-between">
+            <NestoLogo size="md" />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
+                aria-label="Notificaties"
+              >
+                <Zap size={18} strokeWidth={0} className="fill-foreground" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                aria-label="Sidebar inklappen"
+              >
+                <PanelLeft size={18} strokeWidth={2} className="text-foreground" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Search bar */}
-      <div className="px-4 mt-2 mb-4">
-        <button
-          type="button"
-          onClick={() => onSearchClick?.()}
-          className="relative group w-full"
-        >
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <div className="w-full h-9 pl-9 pr-12 bg-background border-[1.5px] border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
-            Zoeken...
-          </div>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
-            ⌘K
-          </span>
-        </button>
-      </div>
+      {/* Search bar - hidden when collapsed */}
+      {!collapsed && (
+        <div className="px-4 mt-2 mb-4">
+          <button
+            type="button"
+            onClick={() => onSearchClick?.()}
+            className="relative group w-full"
+          >
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <div className="w-full h-9 pl-9 pr-12 bg-background border-[1.5px] border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
+              Zoeken...
+            </div>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
+              ⌘K
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2">
-        <ul className="px-2">
+        <ul className={cn("px-2", collapsed && "px-1")}>
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             const isExpanded = expandedGroups.includes(item.id);
@@ -125,6 +134,53 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
             const prevItem = index > 0 ? menuItems[index - 1] : null;
             const showSectionLabel = item.section && (!prevItem || prevItem.section !== item.section);
 
+            // Collapsed mode: icon-only with tooltip
+            if (collapsed) {
+              const isItemActive = isActive || hasActiveChild;
+              const path = item.path || item.subItems?.find((s) => !s.disabled && s.path)?.path;
+
+              if (item.disabled) {
+                return (
+                  <li key={item.id}>
+                    {showSectionLabel && <div className="pt-3" />}
+                    <div className="flex items-center justify-center py-1.5 opacity-40">
+                      <Icon size={16} className="text-muted-foreground" />
+                    </div>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={item.id}>
+                  {showSectionLabel && <div className="pt-3" />}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => path && handleNavigation(path)}
+                        className={cn(
+                          'w-full flex items-center justify-center py-1.5 rounded-lg transition-colors duration-200',
+                          'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
+                          isItemActive
+                            ? 'bg-card border-border text-foreground'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        <Icon size={16} className={cn("flex-shrink-0", isItemActive && "text-primary")} />
+                        {item.id === 'assistent' && hasAttentionSignals && (
+                          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-warning" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8}>
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                </li>
+              );
+            }
+
+            // Expanded mode (existing behavior)
             return (
               <li key={item.id}>
                 {/* Section label */}
@@ -153,7 +209,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         type="button"
                         onClick={() => handleExpandableClick(item)}
                         className={cn(
-'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-150',
+'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
                           'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                           hasActiveChild
                             ? 'bg-card border-border text-foreground font-medium'
@@ -194,7 +250,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center px-2.5 py-1 text-[13px] transition-colors duration-150 rounded-lg',
+                                    'w-full flex items-center px-2.5 py-1 text-[13px] transition-colors duration-200 rounded-lg',
                                     'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                                     isSubActive
                                       ? 'text-primary font-medium hover:text-primary'
@@ -222,7 +278,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     type="button"
                     onClick={() => { if (item.path) handleNavigation(item.path); }}
                     className={cn(
-                      'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-150',
+                      'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
                       'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                       isActive
                         ? 'bg-card border-border text-foreground font-medium'
@@ -243,19 +299,40 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-border px-3 pt-3 pb-3 space-y-2">
-        <div className="flex items-center gap-2 px-2.5">
-          <Building2 size={16} className="text-muted-foreground flex-shrink-0" />
-          <span className="text-sm font-medium text-foreground truncate">Restaurant Demo</span>
-        </div>
-        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+      {collapsed ? (
+        <div className="border-t border-border px-1 py-3 flex flex-col items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+                aria-label="Sidebar uitklappen"
+              >
+                <PanelLeft size={16} className="text-muted-foreground" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>Sidebar uitklappen</TooltipContent>
+          </Tooltip>
           <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center flex-shrink-0">
             JD
           </div>
-          <span className="text-sm text-foreground truncate flex-1">Jan de Vries</span>
-          <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
         </div>
-      </div>
+      ) : (
+        <div className="border-t border-border px-3 pt-3 pb-3 space-y-2">
+          <div className="flex items-center gap-2 px-2.5">
+            <Building2 size={16} className="text-muted-foreground flex-shrink-0" />
+            <span className="text-sm font-medium text-foreground truncate">Restaurant Demo</span>
+          </div>
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+            <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center flex-shrink-0">
+              JD
+            </div>
+            <span className="text-sm text-foreground truncate flex-1">Jan de Vries</span>
+            <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
