@@ -1,50 +1,34 @@
 
 
-# Coherent layout systeem: geen fullBleed, PageHeader overal
+# Fix: Onboarding pagina's afstemmen op systeemstandaard
 
-## Probleem
+## Het probleem
 
-1. **Reserveringen** is de enige pagina met een `fullBleed` uitzondering -- dit breekt de systeemeenheid. Alle andere pagina's krijgen de standaard AppLayout padding.
-2. **Reserveringen** en **Dashboard** missen een `PageHeader` terwijl alle andere modules er een hebben.
-3. Het `fullBleed` concept introduceert een tweede layoutvariant die onderhoudslast verhoogt.
+AppLayout geeft al padding aan alle pagina's. Maar OnboardingPage en OnboardingDetail voegen eigen `p-6` / `px-6` padding toe, waardoor ze smaller lijken en niet uitlijnen met de rest.
 
-## Aanpak
-
-Het `fullBleed` concept wordt verwijderd. Alle pagina's gebruiken dezelfde AppLayout padding. Pagina's die het scherm vullen (Reserveringen) rekenen hun interne spacing relatief aan de content area, niet aan hun eigen padding.
+**Systeemstandaard** (Dashboard, Reserveringen, Assistent volgen dit al):
+- AppLayout geeft `py-6 px-8 lg:py-8 lg:px-12 xl:px-16`
+- Pagina's voegen GEEN eigen padding toe
+- Root element is `<div className="space-y-...">` of `<div className="flex flex-col h-full">`
+- Begint met `<PageHeader>`
 
 ## Wijzigingen
 
-### 1. Verwijder fullBleed concept
+### 1. OnboardingPage.tsx
 
-**App.tsx** -- De aparte `<AppShell fullBleed />` route-groep voor Reserveringen wordt verwijderd. De Reserveringen-route verhuist naar de standaard route-groep.
+- Verwijder de wrapper `<div className="p-6 pb-0 space-y-4">` rond PageHeader en filters -- PageHeader en StatusFilterPills komen direct in de root div
+- Verwijder `px-6 pb-6` van de content area -- wordt gewoon `pt-4`
+- Root div blijft `flex flex-col h-full`
 
-**AppLayout.tsx** -- De `fullBleed` prop wordt verwijderd. Er is nog maar een padding-variant.
+### 2. OnboardingDetail.tsx
 
-**AppShell.tsx** -- De `fullBleed` prop wordt verwijderd.
-
-### 2. Reserveringen: voeg PageHeader toe, verwijder eigen padding
-
-**Reserveringen.tsx**:
-- Voeg een `PageHeader` toe met titel "Reserveringen" en de "Nieuwe Reservering" button als action
-- Verwijder de interne `p-4` padding op header en content area (AppLayout geeft al padding)
-- De toolbar (ViewToggle, DateNavigator, SearchBar) en filters komen direct onder de PageHeader
-- De content card en footer blijven ongewijzigd
-
-### 3. Dashboard: voeg PageHeader toe
-
-**Dashboard.tsx**:
-- Vervang de custom greeting-header door een `PageHeader` met de begroeting als titel en de datum als subtitle
-- Het urgente-signalen-alert en de grid blijven ongewijzigd
-
-## Technisch overzicht
+- Verwijder `p-6` van de drie root containers (loading state regel 126, not-found state regel 136, main content regel 146)
+- Content layout blijft ongewijzigd
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/App.tsx` | Reserveringen-route verplaatsen naar standaard route-groep, fullBleed route-groep verwijderen |
-| `src/components/layout/AppLayout.tsx` | `fullBleed` prop verwijderen, altijd standaard padding |
-| `src/components/layout/AppShell.tsx` | `fullBleed` prop verwijderen |
-| `src/pages/Reserveringen.tsx` | `PageHeader` toevoegen, eigen `p-4` padding verwijderen |
-| `src/pages/Dashboard.tsx` | Custom header vervangen door `PageHeader` |
+| `src/pages/OnboardingPage.tsx` | Verwijder `p-6 pb-0` wrapper en `px-6 pb-6` van content |
+| `src/pages/OnboardingDetail.tsx` | Verwijder `p-6` van 3 root containers |
 
 Geen andere bestanden worden aangepast.
 
