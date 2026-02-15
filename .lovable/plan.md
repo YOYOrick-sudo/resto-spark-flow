@@ -1,41 +1,66 @@
 
-# Fix: Dag-badge spacing en styling
 
-## Probleem
-De dag-badges in de Shifts tabel en wizards plakken aan elkaar (links in je screenshot). Ze missen horizontale padding en hebben te weinig gap. De correcte versie (rechts) toont losse pills met duidelijke ruimte ertussen.
+# WCAG 2.1 AA Accessibility Fixes
 
-## Betrokken componenten
+## Scope
+6 bestanden worden aangepast. Geen andere bestanden worden geraakt.
 
-### 1. Interactieve toggles (moeten pill-shaped worden)
+## Stap 1: Focus states herstellen — NestoSidebar.tsx
 
-| Bestand | Huidige styling | Fix |
-|---------|----------------|-----|
-| `TimesStep.tsx` (regel 114, 123) | `gap-1.5`, `w-9 h-9 rounded-button` | `gap-2`, verwijder `w-9 h-9`, voeg `px-3 py-1.5 rounded-control` toe |
-| `ShiftModal.tsx` (regel 268, 277) | `gap-1.5`, `w-10 h-10 rounded-button` | `gap-2`, verwijder `w-10 h-10`, voeg `px-3 py-1.5 rounded-control` toe |
+De sidebar heeft op 2 plaatsen `focus-visible:outline-none focus-visible:ring-0` (regels 81 en 91), wat focus volledig verbergt.
 
-### 2. Tabelrij badges (moeten leesbaar zijn)
+**Fix:** Vervang in beide gevallen door `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`.
 
-| Bestand | Huidige styling | Fix |
-|---------|----------------|-----|
-| `SortableShiftRow.tsx` (regel 118, 123) | `gap-[3px]`, `w-[18px] h-[18px] rounded-[4px]` | `gap-1`, `px-1.5 py-0.5 rounded-control` (verwijder fixed w/h) |
-| `ShiftsTable.tsx` (gearchiveerd, regel 234, 239) | `gap-0.5`, `px-1 py-0.5 rounded` | `gap-1`, `px-1.5 py-0.5 rounded-control` |
+Daarnaast: de interactieve menu-buttons (expandable trigger regel 155, sub-items regel 196, regular items regel 224) missen focus-visible classes. Voeg `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` toe aan elk.
 
-### 3. Read-only overzicht (kleine aanpassing)
+**Controle NestoButton, NestoInput, NestoSelect, NestoTabs:**
+- NestoButton: heeft al correcte `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` -- OK
+- NestoInput: heeft `focus:!border-primary focus:outline-none focus:ring-0` -- dit is een bewuste keuze (border-focus in plaats van ring), consistent met form inputs. Laten staan.
+- NestoSelect: zelfde als NestoInput -- OK
+- NestoTabs: heeft al correcte `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` -- OK
 
-| Bestand | Huidige styling | Fix |
-|---------|----------------|-----|
-| `ReviewStep.tsx` (regel 94, 101) | `gap-1`, `w-6 h-6 rounded-full` | `gap-1.5`, `px-2 py-1 rounded-control` (verwijder `w-6 h-6`, pill in plaats van cirkel) |
+## Stap 2: Skip-to-content link — AppLayout.tsx
 
-### NIET gewijzigd
-- `ShiftsLivePreviewPanel.tsx` — ronde selectorknoppen, ander UI-patroon (dag picker)
+Voeg bovenaan de root div een verborgen skip-link toe:
+```tsx
+<a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground focus:rounded-button">
+  Ga naar inhoud
+</a>
+```
 
-## Resultaat
+Voeg `id="main-content"` toe aan de page content div (regel 70).
 
-| Eigenschap | Oud (broken) | Nieuw |
-|------------|-------------|-------|
-| Badge breedte | Fixed (w-9/w-10/w-[18px]) | Auto (content + padding) |
-| Padding | Geen of minimaal | px-3 py-1.5 (interactive), px-1.5 py-0.5 (tabel) |
-| Gap | 3-6px | 8px (interactive), 4px (tabel) |
-| Border-radius | Mix van rounded-button/rounded-[4px]/rounded-full | `rounded-control` (6px) overal |
+## Stap 3: Aria attributen
 
-Totaal: 5 bestanden, alleen styling classes aangepast.
+### SearchBar.tsx (clear button)
+Voeg `aria-label="Zoekopdracht wissen"` toe aan de clear button (regel 45).
+
+### NestoTabs.tsx
+- Tab container `nav` heeft al `aria-label="Tabs"` -- voeg `role="tablist"` toe (regel 31)
+- Elke tab button: voeg `role="tab"` en `aria-selected={isActive}` toe (regel 36)
+
+### NestoModal.tsx
+De DialogContent van ShadCN gebruikt al `aria-labelledby` en `aria-describedby` via Radix Dialog primitives. Geen wijziging nodig.
+
+## Stap 4: Kleurcontrast — index.css
+
+`--text-tertiary: 220 4% 68%` op witte achtergrond:
+- HSL(220, 4%, 68%) = circa #AAABAE
+- Contrast ratio tegen wit (#FFF): ~2.7:1 -- **FAALT** voor normal text (4.5:1 vereist)
+
+**Fix:** Wijzig naar `220 4% 46%` (circa #707276), wat een contrast ratio van ~5.3:1 geeft -- passeert AA.
+
+## Bestanden overzicht
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/components/layout/NestoSidebar.tsx` | Focus states herstellen op 5 buttons |
+| `src/components/layout/AppLayout.tsx` | Skip-to-content link + id="main-content" |
+| `src/components/polar/SearchBar.tsx` | aria-label op clear button |
+| `src/components/polar/NestoTabs.tsx` | role="tablist", role="tab", aria-selected |
+| `src/index.css` | --text-tertiary lightness 68% naar 46% |
+
+NestoModal.tsx wordt NIET aangepast (Radix Dialog regelt aria al correct).
+
+Totaal: 5 bestanden, geen visuele regressies buiten betere focus-ringen en iets donkerder tertiaire tekst.
+
