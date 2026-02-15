@@ -1,13 +1,15 @@
+import { PageHeader, EmptyState } from "@/components/polar";
+import { UtensilsCrossed } from "lucide-react";
+
 export default function Kaartbeheer() {
   return (
     <div className="space-y-6">
-      <h1>Kaartbeheer</h1>
-      <p className="text-muted-foreground">
-        Beheer alle gerechten op je menukaart.
-      </p>
-      <div className="nesto-card-base">
-        <p className="text-muted-foreground">Geen gerechten gevonden.</p>
-      </div>
+      <PageHeader title="Kaartbeheer" subtitle="Beheer alle gerechten op je menukaart." />
+      <EmptyState
+        icon={UtensilsCrossed}
+        title="Nog geen gerechten toegevoegd"
+        description="Voeg je eerste gerecht toe om te beginnen."
+      />
     </div>
   );
 }

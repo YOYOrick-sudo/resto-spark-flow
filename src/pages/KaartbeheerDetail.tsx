@@ -1,17 +1,18 @@
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router-dom";
+import { PageHeader, EmptyState } from "@/components/polar";
+import { UtensilsCrossed } from "lucide-react";
 
 export default function KaartbeheerDetail() {
   const { id } = useParams();
 
   return (
     <div className="space-y-6">
-      <h1>Gerecht</h1>
-      <p className="text-muted-foreground">
-        Details voor gerecht #{id}
-      </p>
-      <div className="nesto-card-base">
-        <p className="text-muted-foreground">Gerecht niet gevonden.</p>
-      </div>
+      <PageHeader title="Gerecht" subtitle={`Details voor gerecht #${id}`} />
+      <EmptyState
+        icon={UtensilsCrossed}
+        title="Gerecht niet gevonden"
+        description="Dit gerecht bestaat niet of is verwijderd."
+      />
     </div>
   );
 }

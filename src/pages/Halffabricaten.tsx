@@ -1,13 +1,15 @@
+import { PageHeader, EmptyState } from "@/components/polar";
+import { Layers } from "lucide-react";
+
 export default function Halffabricaten() {
   return (
     <div className="space-y-6">
-      <h1>Halffabricaten</h1>
-      <p className="text-muted-foreground">
-        Beheer halffabricaten en voorbereidingen.
-      </p>
-      <div className="nesto-card-base">
-        <p className="text-muted-foreground">Geen halffabricaten gevonden.</p>
-      </div>
+      <PageHeader title="Halffabricaten" subtitle="Beheer halffabricaten en voorbereidingen." />
+      <EmptyState
+        icon={Layers}
+        title="Nog geen halffabricaten toegevoegd"
+        description="Voeg je eerste halffabricaat toe om te beginnen."
+      />
     </div>
   );
 }

@@ -1,17 +1,18 @@
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router-dom";
+import { PageHeader, EmptyState } from "@/components/polar";
+import { Layers } from "lucide-react";
 
 export default function HalffabricatenDetail() {
   const { id } = useParams();
 
   return (
     <div className="space-y-6">
-      <h1>Halffabricaat</h1>
-      <p className="text-muted-foreground">
-        Details voor halffabricaat #{id}
-      </p>
-      <div className="nesto-card-base">
-        <p className="text-muted-foreground">Halffabricaat niet gevonden.</p>
-      </div>
+      <PageHeader title="Halffabricaat" subtitle={`Details voor halffabricaat #${id}`} />
+      <EmptyState
+        icon={Layers}
+        title="Halffabricaat niet gevonden"
+        description="Dit halffabricaat bestaat niet of is verwijderd."
+      />
     </div>
   );
 }

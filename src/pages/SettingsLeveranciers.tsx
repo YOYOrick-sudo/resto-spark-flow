@@ -1,13 +1,15 @@
+import { PageHeader, EmptyState } from "@/components/polar";
+import { Truck } from "lucide-react";
+
 export default function SettingsLeveranciers() {
   return (
     <div className="space-y-6">
-      <h1>Leveranciers</h1>
-      <p className="text-muted-foreground">
-        Beheer leverancier integraties en koppelingen.
-      </p>
-      <div className="nesto-card-base">
-        <p className="text-muted-foreground">Leveranciers configuratie komt hier.</p>
-      </div>
+      <PageHeader title="Leveranciers" subtitle="Beheer leverancier integraties en koppelingen." />
+      <EmptyState
+        icon={Truck}
+        title="Configuratie volgt binnenkort"
+        description="Leverancier koppelingen worden in een volgende versie beschikbaar."
+      />
     </div>
   );
 }

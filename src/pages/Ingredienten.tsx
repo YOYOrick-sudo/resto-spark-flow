@@ -391,7 +391,7 @@ export default function Ingredienten() {
           {isLoading ? (
             <TableSkeleton rows={6} columns={6} />
           ) : filteredData.length === 0 && (searchValue || Object.keys(filterValues).length > 0) ? (
-            <div className="rounded-2xl border border-border bg-card p-12">
+            <div className="rounded-card border border-border bg-card p-12">
               <EmptyState
                 icon={AlertCircle}
                 title="Geen resultaten gevonden"
