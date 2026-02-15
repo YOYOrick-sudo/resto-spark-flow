@@ -1,30 +1,28 @@
 
 
-# Sidebar sub-menu: vloeiende open/dicht animatie
+# Sidebar sub-menu: animatie fix
 
-## Wat er verandert
+## Het probleem
 
-Alleen de animatie-techniek van het uitklappen/inklappen wordt vervangen. Niets aan de visuele styling, layout, state-logica of het gedrag wijzigt.
+De huidige `ExpandableContent` heeft een bug in de close-animatie:
 
-| Aspect | Nu | Straks |
-|--------|-----|--------|
-| Animatie | Radix `Collapsible.Content` met `animate-collapsible-down/up` (abrupt, geen echte height-transitie) | Eigen `max-height` transitie met `overflow: hidden` en `cubic-bezier(0.4, 0, 0.2, 1)` (vloeiend) |
-| Chevron | Identiek | Identiek (geen wijziging) |
-| State logica | `expandedGroups[]` | Identiek (geen wijziging) |
-| Visuele styling | Alles | Identiek (geen wijziging) |
+1. Na het openen wordt `maxHeight` op `'none'` gezet (via `onTransitionEnd`) zodat dynamische content niet geklipt wordt
+2. Bij dichtklappen gaat het van `none` naar `0px` — maar de browser kan niet animeren vanaf `none`, dus het springt direct dicht
 
-## Technisch (alleen `NestoSidebar.tsx`)
+## De fix
 
-1. Maak een klein helper-component `ExpandableContent` binnen hetzelfde bestand dat:
-   - Een `ref` gebruikt om `scrollHeight` te meten
-   - `max-height: 0` (dicht) of `scrollHeight + "px"` (open) als inline style zet
-   - `overflow: hidden` en `transition: max-height 0.2s cubic-bezier(0.4, 0, 0.2, 1)` toepast
+Bij het sluiten moet er eerst de huidige `scrollHeight` als numerieke waarde worden gezet, en pas in het volgende frame `0px`. Zo heeft de browser een startwaarde om vanaf te animeren.
 
-2. Vervang `Collapsible.Root` / `Collapsible.Trigger` / `Collapsible.Content` door:
-   - De bestaande trigger-button (als gewone button, geen Radix wrapper)
-   - `<ExpandableContent isOpen={...}>` om de sub-items heen
+| Stap | Nu | Straks |
+|------|-----|--------|
+| Openen | `0px` naar `scrollHeight` naar `none` | Identiek |
+| Sluiten | `none` naar `0px` (geen animatie!) | `none` naar `scrollHeight` (1 frame) naar `0px` (geanimeerd) |
 
-3. Verwijder de `import * as Collapsible` regel
+## Technisch (alleen `NestoSidebar.tsx`, regels 8-38)
 
-Alles wat je nu ziet in de sidebar (kleuren, spacing, icons, chevron richting, active states, section labels, collapsed mode) blijft exact hetzelfde.
+De `ExpandableContent` component wordt aangepast:
+
+- Bij `isOpen` false: eerst `scrollHeight + "px"` zetten, dan via `requestAnimationFrame` naar `"0px"`
+- Dit geeft de browser een concreet startpunt voor de transition
+- Geen andere bestanden, geen visuele of gedragswijzigingen
 
