@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserContextProvider } from "@/contexts/UserContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { NestoErrorBoundary } from "@/components/polar/NestoErrorBoundary";
 
 // Pages
 import { AppShell } from "./components/layout/AppShell";
@@ -61,6 +62,7 @@ const App = () => (
           <TooltipProvider>
             <Sonner />
             <BrowserRouter>
+              <NestoErrorBoundary>
               <Routes>
                 {/* Public routes */}
                 <Route path="/auth" element={<AuthPage />} />
@@ -131,6 +133,7 @@ const App = () => (
                 {/* Catch-all outside layout */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </NestoErrorBoundary>
             </BrowserRouter>
           </TooltipProvider>
         </UserContextProvider>
