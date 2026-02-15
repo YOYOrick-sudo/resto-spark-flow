@@ -1,56 +1,33 @@
 
 
-# ConfigStep Redesign: Tabs in plaats van Scroll
+# docs/MODULE_CHECKLIST.md aanmaken
 
-## Probleem
+## Wat
+Een nieuw bestand `docs/MODULE_CHECKLIST.md` met de door jou opgegeven checklist, met 1 correctie:
 
-De configuratie-stap toont 7 secties (Tafeltijd, Groepsgrootte, Pacing, Seating, Gebieden, Squeeze, Weergave) in een lange verticale lijst. Je moet scrollen om alles te zien, wat onoverzichtelijk voelt en niet enterprise-waardig is.
+## Correctie: Punt 6 — Route toevoegen
 
-## Oplossing: Interne tabs per ticket
+Het project gebruikt momenteel **directe imports**, geen `lazy()` + `Suspense`. Alle 30+ pagina's worden bovenaan `App.tsx` geimporteerd (regel 11-52) en direct als element meegegeven aan `<Route>`.
 
-De 7 secties worden gegroepeerd in **3 tabs** binnen elk ticket-panel. Zo past alles zonder scrollen in het zichtbare gebied.
-
-```text
-Ticket "Reservering"
-  [Basis]  [Capaciteit]  [Geavanceerd]
-  ─────────────────────────────────────
-  Tafeltijd & buffer     (alleen bij Basis)
-  Groepsgrootte          (alleen bij Basis)
+**Jouw versie:**
+```
+const Page = lazy(() => import('./pages/Page'))
+<Suspense fallback={<PageSkeleton />}>
 ```
 
-### Tab-indeling
+**Aangepast naar actueel patroon:**
+```
+// Bovenaan App.tsx:
+import Finance from "./pages/Finance";
 
-| Tab | Secties | Waarom samen |
-|-----|---------|--------------|
-| **Basis** | Tafeltijd & buffer, Groepsgrootte | Meest aangepaste velden, altijd relevant |
-| **Capaciteit** | Pacing, Seating limieten, Gebieden | Allemaal over hoeveel gasten/waar |
-| **Geavanceerd** | Squeeze, Weergave | Optionele power-user instellingen |
+// In Routes:
+<Route path="/finance" element={<Finance />} />
+```
 
-### Extra verbeteringen
+Met een opmerking dat lazy loading een toekomstige optimalisatie is (Fase 14).
 
-1. **1 ticket = geen collapsible**: Als er maar 1 ticket geselecteerd is, wordt het ticket-panel direct getoond zonder de klik-om-te-openen wrapper. Minder nesting = cleaner.
+## Overige inhoud
+Exact zoals jij het hebt geschreven — punten 1-5, 7, 8, 9 kloppen allemaal met de codebase.
 
-2. **Compactere tabs**: Gebruik een kleinere tab-variant (text-[13px], gap-4, pb-2) zodat het past binnen het ticket-panel zonder te dominant te zijn.
-
-3. **Pacing interval referentie**: Bij de pacing sectie wordt het gekozen arrival interval uit stap 1 getoond als context-tekst: "Per slot van X minuten" (waar X het interval is).
-
-## Technische wijzigingen
-
-### Bestand: `src/components/settings/shifts/ShiftWizard/steps/ConfigStep.tsx`
-
-**TicketConfigPanel** wordt herschreven:
-- Nieuwe state: `activeTab` ("basis" | "capaciteit" | "geavanceerd")
-- Tabs renderen met een compacte inline tab-bar (geen NestoTabs component, want die heeft border-bottom en is te groot voor nested gebruik)
-- Elke tab toont alleen zijn eigen 2-3 secties
-- Bij 1 ticket: skip de Collapsible wrapper, render direct de tab-content
-
-**ConfigStep** wrapper:
-- Check `activeTickets.length === 1` om de collapsible te skippen
-- Arrival interval uit context (`useShiftWizard`) doorpipen naar pacing sectie
-
-### Wat NIET verandert
-
-- ShiftWizardContext, Footer, Sidebar, ShiftWizard.tsx -- intact
-- Alle velden en overrides -- exact dezelfde functionaliteit
-- Andere wizard steps -- geen wijzigingen
-- De `bg-secondary/50 rounded-card p-4` grouping per sectie blijft binnen elke tab
+## Technisch
+1 nieuw bestand: `docs/MODULE_CHECKLIST.md`. Geen bestaande bestanden worden gewijzigd.
