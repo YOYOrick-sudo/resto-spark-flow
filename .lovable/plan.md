@@ -1,68 +1,50 @@
 
 
-# Standaardiseer layout, spacing en sidebar
+# Coherent layout systeem: geen fullBleed, PageHeader overal
 
-## Overzicht
-4 bestanden worden aangepast: AppLayout.tsx, Reserveringen.tsx, Dashboard.tsx, NestoSidebar.tsx.
+## Probleem
 
-## Stap 1 — Page padding & fullBleed prop (AppLayout.tsx)
+1. **Reserveringen** is de enige pagina met een `fullBleed` uitzondering -- dit breekt de systeemeenheid. Alle andere pagina's krijgen de standaard AppLayout padding.
+2. **Reserveringen** en **Dashboard** missen een `PageHeader` terwijl alle andere modules er een hebben.
+3. Het `fullBleed` concept introduceert een tweede layoutvariant die onderhoudslast verhoogt.
 
-De `AppLayoutProps` interface krijgt een optionele `fullBleed?: boolean` prop. Wanneer `fullBleed` true is, wordt de page content div zonder padding gerenderd (`p-0`). De standaard padding (`py-6 px-8 lg:py-8 lg:px-12 xl:px-16`) blijft ongewijzigd voor normale pagina's.
+## Aanpak
 
-## Stap 2 — Reserveringen padding verwijderen (Reserveringen.tsx)
+Het `fullBleed` concept wordt verwijderd. Alle pagina's gebruiken dezelfde AppLayout padding. Pagina's die het scherm vullen (Reserveringen) rekenen hun interne spacing relatief aan de content area, niet aan hun eigen padding.
 
-De Reserveringen-pagina heeft eigen padding (`p-4` op regel 108 en 141). Deze pagina wordt gewrapped met `fullBleed` in de router, en de interne `p-4` classes worden verwijderd (de AppLayout padding is al voldoende). Alternatief: als Reserveringen echt edge-to-edge moet (grid view), dan wordt `fullBleed` gebruikt en blijft de interne padding behouden.
+## Wijzigingen
 
-Na inspectie: de Reserveringen-pagina heeft een eigen header/footer layout die het hele scherm vult (`h-full`). Dit is een full-bleed pagina. De `p-4` wordt behouden maar AppLayout wrapped deze route met `fullBleed`.
+### 1. Verwijder fullBleed concept
 
-**Aanpak:** AppLayout krijgt de `fullBleed` prop. In `App.tsx` wordt de Reserveringen-route gewrapped met `fullBleed`. De `p-4` in Reserveringen.tsx blijft (eigen interne spacing).
+**App.tsx** -- De aparte `<AppShell fullBleed />` route-groep voor Reserveringen wordt verwijderd. De Reserveringen-route verhuist naar de standaard route-groep.
 
-## Stap 3 — Dashboard grid (Dashboard.tsx)
+**AppLayout.tsx** -- De `fullBleed` prop wordt verwijderd. Er is nog maar een padding-variant.
 
-Regel 53: `grid-cols-1 sm:grid-cols-2` wordt `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`. De derde tile (ReceptenTile) staat dan naast de andere twee op grote schermen.
+**AppShell.tsx** -- De `fullBleed` prop wordt verwijderd.
 
-## Stap 4 — Sidebar collapsed mode (NestoSidebar.tsx + AppLayout.tsx)
+### 2. Reserveringen: voeg PageHeader toe, verwijder eigen padding
 
-Een collapsed state wordt toegevoegd voor schermen 768-1024px:
-- NestoSidebar krijgt een `collapsed?: boolean` prop en een `onToggleCollapse` callback
-- In collapsed mode: breedte wordt 56px, alleen iconen worden getoond, labels/search/footer verborgen
-- AppLayout beheert de state: standaard collapsed op `md` breakpoint (768-1024px), expanded op `lg+`
-- Een collapse-knop onderaan de sidebar (PanelLeft icoon) togglet de state
-- De bestaande `PanelLeft` button in de header wordt de toggle
+**Reserveringen.tsx**:
+- Voeg een `PageHeader` toe met titel "Reserveringen" en de "Nieuwe Reservering" button als action
+- Verwijder de interne `p-4` padding op header en content area (AppLayout geeft al padding)
+- De toolbar (ViewToggle, DateNavigator, SearchBar) en filters komen direct onder de PageHeader
+- De content card en footer blijven ongewijzigd
+
+### 3. Dashboard: voeg PageHeader toe
+
+**Dashboard.tsx**:
+- Vervang de custom greeting-header door een `PageHeader` met de begroeting als titel en de datum als subtitle
+- Het urgente-signalen-alert en de grid blijven ongewijzigd
+
+## Technisch overzicht
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/components/layout/AppLayout.tsx` | `fullBleed` prop, collapsed state, sidebar op md breakpoint tonen (was lg), `id="main-content"` conditioneel padding |
-| `src/components/layout/NestoSidebar.tsx` | `collapsed` prop, icon-only mode, collapse toggle button, duration-150 naar duration-200 (3x) |
-| `src/pages/Reserveringen.tsx` | Geen wijziging (blijft eigen padding, fullBleed via route) |
-| `src/pages/Dashboard.tsx` | Grid naar lg:grid-cols-3 |
-| `src/App.tsx` | Reserveringen route met fullBleed prop |
+| `src/App.tsx` | Reserveringen-route verplaatsen naar standaard route-groep, fullBleed route-groep verwijderen |
+| `src/components/layout/AppLayout.tsx` | `fullBleed` prop verwijderen, altijd standaard padding |
+| `src/components/layout/AppShell.tsx` | `fullBleed` prop verwijderen |
+| `src/pages/Reserveringen.tsx` | `PageHeader` toevoegen, eigen `p-4` padding verwijderen |
+| `src/pages/Dashboard.tsx` | Custom header vervangen door `PageHeader` |
 
-## Stap 5 — Transition durations (NestoSidebar.tsx)
-
-3 instances van `duration-150` op regels 156, 197, 225 worden `duration-200`.
-
-## Technisch detail
-
-### AppLayout.tsx wijzigingen:
-- Interface: `fullBleed?: boolean` toevoegen
-- Sidebar aside: `hidden lg:flex` wordt `hidden md:flex` zodat de sidebar ook op tablets zichtbaar is
-- Collapsed state: `const [sidebarCollapsed, setSidebarCollapsed] = useState(false)` + media query listener voor automatisch collapsed onder 1024px
-- Sidebar breedte: `w-60` wordt conditioneel `w-14` (collapsed) of `w-60` (expanded)
-- Page content div: conditioneel `p-0` wanneer `fullBleed` true is
-- Mobile header: `lg:hidden` wordt `md:hidden`
-
-### NestoSidebar.tsx wijzigingen:
-- Props: `collapsed?: boolean`, `onToggleCollapse?: () => void`
-- Root div: `w-60` wordt conditioneel `w-14` of `w-60` met `transition-all duration-200`
-- Collapsed mode: header toont alleen logo-icoon, search/nav-labels/footer verborgen
-- Nav items: in collapsed mode alleen icoon met tooltip
-- PanelLeft button roept `onToggleCollapse` aan
-- `duration-150` (3x) wordt `duration-200`
-
-### Dashboard.tsx:
-- Regel 53: `sm:grid-cols-2` wordt `sm:grid-cols-2 lg:grid-cols-3`
-
-### App.tsx:
-- Reserveringen route wrapper krijgt `fullBleed` prop
+Geen andere bestanden worden aangepast.
 
