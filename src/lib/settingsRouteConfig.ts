@@ -175,7 +175,7 @@ export function buildBreadcrumbs(
   itemLabel?: string
 ): Array<{ label: string; path?: string }> {
   const crumbs: Array<{ label: string; path?: string }> = [
-    { label: "Settings", path: "/instellingen/voorkeuren" },
+    { label: "Instellingen", path: "/instellingen/voorkeuren" },
   ];
 
   const module = getModuleConfig(moduleId);

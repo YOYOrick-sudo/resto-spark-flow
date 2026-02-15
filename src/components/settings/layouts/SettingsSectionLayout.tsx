@@ -40,7 +40,7 @@ export function SettingsSectionLayout({
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/instellingen/voorkeuren">Settings</Link>
+                <Link to="/instellingen/voorkeuren">Instellingen</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />

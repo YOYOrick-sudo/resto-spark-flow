@@ -1,7 +1,3 @@
-// ============================================
-// FASE 4.4A: Tickets & Beleid Types
-// Lees docs/FASE_4_4_TICKETS.md voor het volledige concept
-// ============================================
 
 // ============================================
 // Enums & Constants

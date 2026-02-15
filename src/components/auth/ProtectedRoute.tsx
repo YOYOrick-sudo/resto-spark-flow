@@ -1,6 +1,3 @@
-// ============================================
-// FASE 4.1: PROTECTED ROUTE WRAPPER
-// ============================================
 
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';

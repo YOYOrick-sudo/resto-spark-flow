@@ -1,6 +1,3 @@
-// ============================================
-// FASE 4.1: USER CONTEXT (CENTRAL SOURCE OF TRUTH)
-// ============================================
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';

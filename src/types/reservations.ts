@@ -1,5 +1,3 @@
-// Fase 4.2: Areas, Tables & TableGroups Types
-// ============================================
 
 export type FillOrderType = 'first_available' | 'round_robin' | 'priority' | 'custom';
 
