@@ -23,10 +23,10 @@ function NestoIcon({ size }: { size: number }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <rect width="32" height="32" rx="8" className="fill-primary" />
+      <rect width="32" height="32" rx="8" fill="white" />
       <path
         d="M10 23V9h2.4l7.2 10.2V9H22v14h-2.4L12.4 12.8V23H10Z"
-        fill="white"
+        className="fill-primary"
       />
     </svg>
   );
@@ -40,7 +40,7 @@ export function NestoLogo({ size = 'md', showIcon = true, showWordmark = true, c
       {showIcon && <NestoIcon size={icon} />}
       {showWordmark && (
         <span
-          className={cn(text, 'font-extrabold tracking-tight text-primary')}
+          className={cn(text, 'font-extrabold tracking-tight text-white')}
           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
         >
           nesto
