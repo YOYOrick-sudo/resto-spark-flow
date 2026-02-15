@@ -3,7 +3,6 @@ import { Plus, Calendar } from "lucide-react";
 import { EmptyState } from "@/components/polar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { PageHeader } from "@/components/polar/PageHeader";
 import { SearchBar } from "@/components/polar/SearchBar";
 import { ViewToggle, type ViewType } from "@/components/reserveringen/ViewToggle";
 import { useDensity } from "@/components/reserveringen/DensityToggle";
