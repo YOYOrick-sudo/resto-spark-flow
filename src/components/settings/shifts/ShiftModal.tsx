@@ -265,7 +265,7 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
         {/* Section: Actieve dagen - Toggle buttons */}
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground">Actieve dagen</h4>
-          <div className="flex gap-1.5">
+          <div className="flex gap-2">
             {ALL_WEEKDAYS.map((day) => {
               const isSelected = selectedDays.includes(day);
               return (
@@ -274,7 +274,7 @@ export function ShiftModal({ open, onOpenChange, locationId, editingShift }: Shi
                   type="button"
                   onClick={() => toggleDay(day)}
                   className={cn(
-                    "w-10 h-10 rounded-button text-sm font-medium transition-colors",
+                    "px-3 py-1.5 rounded-control text-sm font-medium transition-colors",
                     isSelected
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
