@@ -25,10 +25,9 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "bg-card rounded-2xl p-6 space-y-4 dark:border dark:border-border",
+        "bg-card rounded-2xl p-6 space-y-4 border border-border/50 shadow-card",
         className
       )}
-      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)" }}
     >
       {/* Header with label and icon */}
       <div className="flex items-center justify-between">

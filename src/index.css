@@ -138,6 +138,12 @@
     --sidebar-accent-foreground: 240 11% 10%;
     --sidebar-border: 180 4% 93%;
     --sidebar-ring: 177 70% 37%;
+
+    /* Shadow tokens */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-toast: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.03);
   }
 
   .dark {
@@ -317,8 +323,7 @@
 /* Component Baselines */
 @layer components {
   .nesto-card-base {
-    @apply rounded-xl bg-card border border-border p-6;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
+    @apply rounded-xl bg-card border border-border p-6 shadow-sm;
   }
 
   .nesto-button-primary {

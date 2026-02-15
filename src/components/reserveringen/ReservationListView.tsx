@@ -87,7 +87,7 @@ export function ReservationListView({
         <div key={timeSlot}>
           {/* Time slot header - sticky */}
           <div className={cn(
-            "sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 border-b border-border shadow-[0_1px_3px_rgba(0,0,0,0.05)]",
+            "sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 border-b border-border shadow-sm",
             isCompact ? "py-1" : "py-2"
           )}>
             <span className={cn("font-semibold text-foreground", isCompact ? "text-xs" : "text-sm")}>

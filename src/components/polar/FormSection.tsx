@@ -22,10 +22,9 @@ export function FormSection({
   return (
     <div
       className={cn(
-        "bg-card rounded-2xl p-6 space-y-5 dark:border dark:border-border",
+        "bg-card rounded-2xl p-6 space-y-5 border border-border/50 shadow-card",
         className
       )}
-      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)" }}
     >
       {/* Header */}
       <div className="space-y-1">

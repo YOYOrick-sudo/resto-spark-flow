@@ -52,7 +52,7 @@ function MessageBubble({ message }: { message: Message }) {
 
   return (
     <div
-      className={`bg-card rounded-lg p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)] dark:shadow-none dark:border dark:border-border ${
+      className={`bg-card rounded-lg p-4 shadow-card dark:shadow-none border border-border/50 ${
         isOutbound ? 'border-l-2 border-l-primary' : ''
       }`}
     >
