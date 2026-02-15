@@ -40,7 +40,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-6 pb-0 space-y-4">
         <PageHeader
           title="Onboarding"
           subtitle="Beheer je kandidaten pipeline"
@@ -54,9 +53,8 @@ export default function OnboardingPage() {
           ]}
         />
         <StatusFilterPills value={statusFilter} onChange={setStatusFilter} />
-      </div>
 
-      <div className="flex-1 min-h-0 px-6 pb-6 pt-4 overflow-x-auto">
+      <div className="flex-1 min-h-0 pt-4 overflow-x-auto">
         {isLoading ? (
           <div className="flex gap-4">
             {Array.from({ length: 4 }).map((_, i) => (

@@ -123,7 +123,7 @@ export default function OnboardingDetail() {
 
   if (candidatesLoading) {
     return (
-      <div className="p-6 space-y-4">
+      <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-64 w-full" />
@@ -133,7 +133,7 @@ export default function OnboardingDetail() {
 
   if (!candidate) {
     return (
-      <div className="p-6">
+      <div>
         <p className="text-muted-foreground">Kandidaat niet gevonden.</p>
       </div>
     );
@@ -143,7 +143,7 @@ export default function OnboardingDetail() {
   const currentPhase = candidate.current_phase as { name: string } | null;
 
   return (
-    <div className="p-6">
+    <div>
       <DetailPageLayout
         title={`${candidate.first_name} ${candidate.last_name}`}
         backLabel="Terug naar pipeline"
