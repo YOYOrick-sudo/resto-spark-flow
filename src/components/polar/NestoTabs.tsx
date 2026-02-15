@@ -33,7 +33,7 @@ export function NestoTabs({
               onClick={() => !tab.disabled && onTabChange(tab.id)}
               disabled={tab.disabled}
               className={cn(
-                "relative flex items-center gap-2 pb-3 text-[15px] font-medium transition-colors",
+                "relative flex items-center gap-2 pb-3 text-body font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 isActive
                   ? "text-primary"

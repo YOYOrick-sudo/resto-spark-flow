@@ -130,7 +130,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
   return (
     <div className="space-y-3">
       {/* Table header */}
-      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-2 pb-2 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
+      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-2 pb-2 text-caption text-muted-foreground uppercase tracking-wider">
         <span></span>
         <span className="text-center">Prio</span>
         <span>Tijden</span>
@@ -236,7 +236,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
                       <span
                         key={day}
                         className={cn(
-                          "px-1 py-0.5 text-[10px] rounded",
+                          "px-1 py-0.5 text-caption rounded",
                           shift.days_of_week.includes(day)
                             ? "bg-muted-foreground/20 text-muted-foreground"
                             : "opacity-30"

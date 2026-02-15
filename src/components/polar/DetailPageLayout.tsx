@@ -32,7 +32,7 @@ export function DetailPageLayout({
       {/* Back button */}
       <Link
         to={backHref}
-        className="inline-flex items-center gap-1.5 text-[15px] text-muted-foreground hover:text-foreground transition-colors mb-4 w-fit"
+        className="inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground transition-colors mb-4 w-fit"
       >
         <ChevronLeft className="h-4 w-4" />
         <span>{backLabel}</span>
@@ -40,7 +40,7 @@ export function DetailPageLayout({
 
       {/* Title row */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[28px] font-semibold text-foreground leading-tight">
+        <h1 className="text-h1 text-foreground">
           {title}
         </h1>
         {headerActions && (

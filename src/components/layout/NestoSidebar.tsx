@@ -108,7 +108,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
           <div className="w-full h-9 pl-9 pr-12 bg-background border-[1.5px] border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
             Zoeken...
           </div>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
             ⌘K
           </span>
         </button>
@@ -130,7 +130,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                 {/* Section label */}
                 {showSectionLabel && (
                   <div className="px-3 pt-5 pb-1">
-                    <span className="text-[11px] font-medium text-muted-foreground/60 tracking-widest uppercase">
+                    <span className="text-caption text-muted-foreground/60 tracking-widest uppercase">
                       {item.section}
                     </span>
                   </div>
@@ -153,7 +153,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         type="button"
                         onClick={() => handleExpandableClick(item)}
                         className={cn(
-                          'group w-full flex items-center gap-3 px-2.5 py-[5px] rounded-lg text-[13px] transition-colors duration-150',
+                          'group w-full flex items-center gap-3 px-2.5 py-[5px] rounded-lg text-small transition-colors duration-150',
                           'border',
                           hasActiveChild
                             ? 'bg-card border-border text-foreground font-medium'
@@ -181,7 +181,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                             if (subItem.disabled) {
                               return (
                                 <li key={subItem.id}>
-                                  <div className="flex items-center gap-3 px-2.5 py-[5px] text-[13px] text-muted-foreground opacity-40 cursor-default border border-transparent">
+                                  <div className="flex items-center gap-3 px-2.5 py-[5px] text-small text-muted-foreground opacity-40 cursor-default border border-transparent">
                                     <span>{subItem.label}</span>
                                   </div>
                                 </li>
@@ -194,7 +194,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center px-2.5 py-[5px] text-[13px] transition-colors duration-150 rounded-lg',
+                                    'w-full flex items-center px-2.5 py-[5px] text-small transition-colors duration-150 rounded-lg',
                                     'border border-transparent',
                                     isSubActive
                                       ? 'text-[#1d979e] font-medium hover:text-[#1d979e]'
@@ -212,7 +212,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                   </Collapsible.Root>
                 ) : item.disabled ? (
                   /* Disabled item */
-                  <div className="flex items-center gap-3 px-2.5 py-[5px] text-[13px] text-muted-foreground opacity-40 cursor-default">
+                  <div className="flex items-center gap-3 px-2.5 py-[5px] text-small text-muted-foreground opacity-40 cursor-default">
                     <Icon size={16} className="flex-shrink-0" />
                     <span>{item.label}</span>
                   </div>
@@ -222,7 +222,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     type="button"
                     onClick={() => { if (item.path) handleNavigation(item.path); }}
                     className={cn(
-                      'group w-full flex items-center gap-3 px-2.5 py-[5px] rounded-lg text-[13px] transition-colors duration-150',
+                      'group w-full flex items-center gap-3 px-2.5 py-[5px] rounded-lg text-small transition-colors duration-150',
                       'border border-transparent',
                       isActive
                         ? 'bg-card border-border text-foreground font-medium'

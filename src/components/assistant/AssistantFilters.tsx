@@ -40,7 +40,7 @@ export function AssistantFilters({
                 type="button"
                 onClick={() => onModuleChange(module.value as SignalModule | 'all')}
                 className={cn(
-                  "px-3 py-1.5 text-[13px] font-medium rounded-button transition-all duration-200",
+                  "px-3 py-1.5 text-small font-medium rounded-button transition-all duration-200",
                   "border-[1.5px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                   isSelected
                     ? "bg-primary/10 border-primary text-primary"

@@ -38,14 +38,14 @@ export function PageHeader({
       )}
     >
       <div className="space-y-1">
-        <h1 className="text-[28px] font-semibold text-foreground leading-tight">
+        <h1 className="text-h1 text-foreground">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-[15px] text-muted-foreground">{subtitle}</p>
+          <p className="text-body text-muted-foreground">{subtitle}</p>
         )}
         {description && (
-          <p className="text-[15px] text-muted-foreground">{description}</p>
+          <p className="text-body text-muted-foreground">{description}</p>
         )}
       </div>
       {actions && (

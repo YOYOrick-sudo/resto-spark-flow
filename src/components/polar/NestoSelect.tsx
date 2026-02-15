@@ -65,7 +65,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
             ref={ref}
             id={id}
             className={cn(
-              "h-10 w-full rounded-button border-[1.5px] border-border bg-white dark:bg-card px-3 py-2.5 text-[15px]",
+              "h-10 w-full rounded-button border-[1.5px] border-border bg-white dark:bg-card px-3 py-2.5 text-body",
               "focus:!border-primary focus:ring-0 focus:ring-offset-0",
               "data-[placeholder]:text-muted-foreground",
               error && "border-destructive focus:border-destructive",
@@ -81,7 +81,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
                   key={option.value}
                   value={option.value}
                   disabled={option.disabled}
-                  className="cursor-pointer text-[15px] focus:bg-accent"
+                  className="cursor-pointer text-body focus:bg-accent"
                 >
                   {option.label}
                 </SelectItem>
@@ -97,7 +97,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
                       key={option.value}
                       value={option.value}
                       disabled={option.disabled}
-                      className="cursor-pointer text-[15px] focus:bg-accent"
+                      className="cursor-pointer text-body focus:bg-accent"
                     >
                       {option.label}
                     </SelectItem>

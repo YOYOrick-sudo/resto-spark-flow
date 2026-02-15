@@ -50,11 +50,11 @@ export function CandidateArchiveTable({ candidates }: CandidateArchiveTableProps
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-4 pb-2">Naam</TableHead>
-            <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-4 pb-2">E-mail</TableHead>
-            <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-4 pb-2">Status</TableHead>
-            <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-4 pb-2">Laatste fase</TableHead>
-            <TableHead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-4 pb-2">Datum</TableHead>
+            <TableHead className="text-caption text-muted-foreground uppercase tracking-wider px-4 pb-2">Naam</TableHead>
+            <TableHead className="text-caption text-muted-foreground uppercase tracking-wider px-4 pb-2">E-mail</TableHead>
+            <TableHead className="text-caption text-muted-foreground uppercase tracking-wider px-4 pb-2">Status</TableHead>
+            <TableHead className="text-caption text-muted-foreground uppercase tracking-wider px-4 pb-2">Laatste fase</TableHead>
+            <TableHead className="text-caption text-muted-foreground uppercase tracking-wider px-4 pb-2">Datum</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-border/50">

@@ -86,7 +86,7 @@ export function AssistantItemCard({ item }: AssistantItemCardProps) {
               {item.title}
             </span>
             {item.kind === 'insight' && (
-              <NestoBadge variant="primary" className="text-[10px] px-1.5 py-0.5">
+              <NestoBadge variant="primary" className="text-caption px-1.5 py-0.5">
                 <Lightbulb className="h-3 w-3 mr-1" />
                 Insight
               </NestoBadge>
@@ -101,7 +101,7 @@ export function AssistantItemCard({ item }: AssistantItemCardProps) {
 
         {/* Meta */}
         <div className="flex items-center gap-2 shrink-0">
-          <NestoBadge variant={moduleVariant} className="text-[10px]">
+          <NestoBadge variant={moduleVariant} className="text-caption">
             {moduleLabel}
           </NestoBadge>
           <span className="text-xs text-muted-foreground whitespace-nowrap">

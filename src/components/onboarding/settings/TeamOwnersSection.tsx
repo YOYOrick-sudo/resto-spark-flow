@@ -116,9 +116,9 @@ export function TeamOwnersSection() {
       <NestoCard className="p-0 overflow-hidden">
         {/* Header — floating enterprise style */}
         <div className="grid grid-cols-[auto_1fr_1fr] gap-4 px-4 py-2.5 border-b border-border/50">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-6">#</span>
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Fase</span>
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <span className="text-caption text-muted-foreground uppercase tracking-wider w-6">#</span>
+          <span className="text-caption text-muted-foreground uppercase tracking-wider">Fase</span>
+          <span className="text-caption text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
             Verantwoordelijke
             <TitleHelp title="Wie ontvangt reminders?">
               <p className="text-muted-foreground">Verantwoordelijken ontvangen herinneringen wanneer taken in hun fase te lang openstaan.</p>

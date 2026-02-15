@@ -194,7 +194,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
       {/* Status badge */}
       <span className={cn(
         "inline-flex items-center gap-1.5 rounded-full font-medium justify-center",
-        isCompact ? "text-[11px] px-1.5 py-0 min-w-[80px]" : "text-xs px-2.5 py-1 min-w-[90px]",
+        isCompact ? "text-caption px-1.5 py-0 min-w-[80px]" : "text-xs px-2.5 py-1 min-w-[90px]",
         statusConfig.textClass,
         statusConfig.bgClass,
         statusConfig.borderClass,
