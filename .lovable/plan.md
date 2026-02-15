@@ -1,33 +1,56 @@
 
 
-# docs/MODULE_CHECKLIST.md aanmaken
+# NestoLogo Component + Branding Overhaul
 
-## Wat
-Een nieuw bestand `docs/MODULE_CHECKLIST.md` met de door jou opgegeven checklist, met 1 correctie:
+## Wat wordt gebouwd
 
-## Correctie: Punt 6 — Route toevoegen
+Een herbruikbaar `<NestoLogo />` component dat overal in de app wordt gebruikt, plus een complete favicon/branding update.
 
-Het project gebruikt momenteel **directe imports**, geen `lazy()` + `Suspense`. Alle 30+ pagina's worden bovenaan `App.tsx` geimporteerd (regel 11-52) en direct als element meegegeven aan `<Route>`.
+## 1. Nieuw component: `src/components/polar/NestoLogo.tsx`
 
-**Jouw versie:**
-```
-const Page = lazy(() => import('./pages/Page'))
-<Suspense fallback={<PageSkeleton />}>
-```
+**Props:**
+- `size?: 'sm' | 'md' | 'lg'` (default `'md'`)
+- `showIcon?: boolean` (default `true`)
 
-**Aangepast naar actueel patroon:**
-```
-// Bovenaan App.tsx:
-import Finance from "./pages/Finance";
+**Rendering:**
+- Optioneel SVG-icoon links: een gestileerde "N" in teal (gebaseerd op de geüploade afbeelding)
+- Tekst "nesto" in Plus Jakarta Sans, `font-extrabold`, lowercase
+- Kleur: `text-primary` (teal)
+- Maten: `sm` = `text-lg`, `md` = `text-2xl`, `lg` = `text-3xl`
+- Icoon schaalt mee met de tekst
 
-// In Routes:
-<Route path="/finance" element={<Finance />} />
-```
+Export toevoegen aan `src/components/polar/index.ts`.
 
-Met een opmerking dat lazy loading een toekomstige optimalisatie is (Fase 14).
+## 2. Vervanging van alle logo-instanties
 
-## Overige inhoud
-Exact zoals jij het hebt geschreven — punten 1-5, 7, 8, 9 kloppen allemaal met de codebase.
+| Locatie | Huidig | Nieuw |
+|---------|--------|-------|
+| `NestoSidebar.tsx` (regel 76-81) | `<span>` met inline fontFamily style, `text-foreground` | `<NestoLogo size="md" />` |
+| `Auth.tsx` (regel 117) | `<h1 className="text-3xl font-bold text-foreground">Nesto</h1>` | `<NestoLogo size="lg" showIcon={true} />` |
+| `AppLayout.tsx` (regel 65) | `<span className="ml-3 text-xl font-semibold text-primary">nesto</span>` | `<NestoLogo size="sm" showIcon={false} />` |
 
-## Technisch
-1 nieuw bestand: `docs/MODULE_CHECKLIST.md`. Geen bestaande bestanden worden gewijzigd.
+**Opmerking:** De sidebar-versie verandert van `text-foreground` naar `text-primary` (teal). Dit is een bewuste branding-keuze.
+
+## 3. Favicon & meta tags
+
+- Maak een inline SVG favicon (`public/favicon.svg`) met de teal "N"
+- Update `index.html`:
+  - `<title>` wordt `Nesto — Horeca Management Platform`
+  - Voeg `<link rel="icon" href="/favicon.svg" type="image/svg+xml">` toe
+  - Update OG tags naar Nesto branding (titel + beschrijving)
+  - Verwijder Lovable placeholder OG image referenties
+
+**Let op:** Een echte `apple-touch-icon.png` (180x180 PNG) en `favicon.ico` kunnen niet programmatisch als pixel-perfect bestanden worden gegenereerd. De SVG favicon werkt in alle moderne browsers. Voor productie (Fase 14) moet een designer de PNG/ICO versies aanleveren.
+
+## 4. Bestanden overzicht
+
+| Actie | Bestand |
+|-------|---------|
+| Nieuw | `src/components/polar/NestoLogo.tsx` |
+| Nieuw | `public/favicon.svg` |
+| Bewerkt | `src/components/polar/index.ts` — export toevoegen |
+| Bewerkt | `src/components/layout/NestoSidebar.tsx` — logo vervangen |
+| Bewerkt | `src/components/layout/AppLayout.tsx` — mobile header logo vervangen |
+| Bewerkt | `src/pages/Auth.tsx` — auth page logo vervangen |
+| Bewerkt | `index.html` — title, favicon, OG tags |
+
