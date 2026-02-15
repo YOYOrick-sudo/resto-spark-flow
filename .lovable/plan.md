@@ -1,32 +1,25 @@
 
 
-# Reserveringen terug naar originele layout
+# Fix Reserveringen: herstel compacte layout
 
-## Verschil huidige vs. gewenste situatie
+## Probleem
 
-| Element | Nu (nieuw) | Gewenst (jouw screenshot) |
-|---------|-----------|---------------------------|
-| Titel "Reserveringen" | Grote PageHeader met border-bottom | Geen titel -- toolbar IS de eerste rij |
-| "+ Reservering" button | In PageHeader rechts | Rechts op de toolbar-rij, naast zoekbalk |
-| Toolbar | Tweede rij onder PageHeader | Eerste rij: view toggles + datum + zoek + button |
-| Filters | Derde rij | Tweede rij (direct onder toolbar) |
+De vorige edit verwijderde alleen de `import` van `PageHeader`, maar het component staat nog op regel 108-119. Dit veroorzaakt een build error EN de layout is niet hersteld naar de compacte versie.
 
-## Wijziging
+## Wijziging in `src/pages/Reserveringen.tsx`
 
-**`src/pages/Reserveringen.tsx`**
+1. Verwijder het `<PageHeader>` blok (regels 108-119)
+2. Verplaats de "+ Reservering" button naar de toolbar-rij, rechts naast de SearchBar
+3. Verwijder de extra `pt-4` spacing van de toolbar (was nodig vanwege PageHeader border, nu niet meer)
 
-1. Verwijder de `<PageHeader>` component en de import
-2. Verplaats de "+ Reservering" button naar de toolbar-rij (rechts naast de SearchBar)
-3. De toolbar wordt weer de eerste rij in de pagina
-4. Filters blijven op de tweede rij
-
-De structuur wordt:
+De resulterende structuur:
 
 ```text
-Row 1: [ViewToggle] [DateNavigator] ... [SearchBar] [+ Reservering button]
-Row 2: [Status filter] [Shift filter] [Type filter] ... [21 reserveringen]
+Row 1: [ViewToggle] [DateNavigator] ...spacer... [SearchBar] [+ Reservering]
+Row 2: [Status] [Shift] [Type] ...spacer... [21 reserveringen]
 Row 3+: Content (list/grid/calendar)
 Footer: Stats bar
 ```
 
-Alleen `src/pages/Reserveringen.tsx` wordt aangepast. Geen andere bestanden.
+Alleen `src/pages/Reserveringen.tsx` wordt aangepast.
+
