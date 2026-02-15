@@ -1,56 +1,74 @@
 
+# UI Vertaling naar Nederlands + Opruiming
 
-# NestoLogo Component + Branding Overhaul
+## Overzicht
+Alle Engelse tekst in de UI vertalen naar Nederlands, FASE-comments verwijderen uit ~17 bestanden, en de test-toasts route opruimen.
 
-## Wat wordt gebouwd
+## Wijzigingen
 
-Een herbruikbaar `<NestoLogo />` component dat overal in de app wordt gebruikt, plus een complete favicon/branding update.
+### 1. Navigatie labels (`src/lib/navigation.ts`)
+- `'Finance'` --> `'Financien'`
+- `'Settings'` --> `'Instellingen'`
+- Sub-items `'Finance'`, `'Support'`, `'Documentatie'` zijn al Nederlands (behalve `'Finance'` en `'HRM'`)
+- `'Finance'` sub-item --> `'Financien'`
+- `'HRM'` mag blijven (internationaal begrip, net als "Dashboard")
 
-## 1. Nieuw component: `src/components/polar/NestoLogo.tsx`
+### 2. Breadcrumbs: "Settings" --> "Instellingen" (4 bestanden)
+- `src/lib/settingsRouteConfig.ts` regel 178: `"Settings"` --> `"Instellingen"`
+- `src/components/polar/SettingsPageLayout.tsx` regel 41: `>Settings<` --> `>Instellingen<`
+- `src/components/settings/layouts/SettingsModuleLayout.tsx` regel 31: `>Settings<` --> `>Instellingen<`
+- `src/components/settings/layouts/SettingsSectionLayout.tsx` regel 43: `>Settings<` --> `>Instellingen<`
 
-**Props:**
-- `size?: 'sm' | 'md' | 'lg'` (default `'md'`)
-- `showIcon?: boolean` (default `true`)
+### 3. NotFound.tsx — volledige herschrijving
+- Vertaal teksten naar Nederlands
+- Gebruik `<NestoCard>` en `<NestoButton>` i.p.v. raw HTML
+- "Pagina niet gevonden" + "Terug naar Dashboard"
 
-**Rendering:**
-- Optioneel SVG-icoon links: een gestileerde "N" in teal (gebaseerd op de geüploade afbeelding)
-- Tekst "nesto" in Plus Jakarta Sans, `font-extrabold`, lowercase
-- Kleur: `text-primary` (teal)
-- Maten: `sm` = `text-lg`, `md` = `text-2xl`, `lg` = `text-3xl`
-- Icoon schaalt mee met de tekst
+### 4. Auth.tsx
+- Verwijder FASE-comment header (regels 1-3)
+- Tekst is al volledig Nederlands — geen vertaling nodig
 
-Export toevoegen aan `src/components/polar/index.ts`.
+### 5. FASE-comments verwijderen (17 bestanden)
+Verwijder het `// ====` + `// FASE ...` + `// ====` header-blok uit:
 
-## 2. Vervanging van alle logo-instanties
+| Bestand | Regels |
+|---------|--------|
+| `src/contexts/AuthContext.tsx` | 1-3 |
+| `src/contexts/UserContext.tsx` | 1-3 |
+| `src/pages/Auth.tsx` | 1-3 |
+| `src/components/auth/ProtectedRoute.tsx` | 1-3 |
+| `src/hooks/usePermission.ts` | 1-3 |
+| `src/hooks/useEntitlement.ts` | 1-3 |
+| `src/hooks/useShifts.ts` | 1-4 |
+| `src/hooks/useShiftExceptions.ts` | 1-4 |
+| `src/types/auth.ts` | 1-3 |
+| `src/types/shifts.ts` | 1-4 |
+| `src/types/reservations.ts` | 1-2 |
+| `src/types/tickets.ts` | 1-4 |
+| `src/lib/navigationBuilder.ts` | 1-3 |
+| `src/lib/shiftValidation.ts` | 1-4 |
+| `src/lib/bulkExceptionGenerator.ts` | 1-4 |
+| `src/components/settings/shifts/exceptions/BulkExceptionModal.tsx` | 1-4 |
+| `src/components/settings/shifts/exceptions/BulkExceptionPreview.tsx` | 1-4 |
 
-| Locatie | Huidig | Nieuw |
-|---------|--------|-------|
-| `NestoSidebar.tsx` (regel 76-81) | `<span>` met inline fontFamily style, `text-foreground` | `<NestoLogo size="md" />` |
-| `Auth.tsx` (regel 117) | `<h1 className="text-3xl font-bold text-foreground">Nesto</h1>` | `<NestoLogo size="lg" showIcon={true} />` |
-| `AppLayout.tsx` (regel 65) | `<span className="ml-3 text-xl font-semibold text-primary">nesto</span>` | `<NestoLogo size="sm" showIcon={false} />` |
+**Let op:** "Fase" als UI-tekst (bijv. "Fase verwijderen" in onboarding) blijft staan — dat is functionele Nederlandse tekst, geen development comment.
 
-**Opmerking:** De sidebar-versie verandert van `text-foreground` naar `text-primary` (teal). Dit is een bewuste branding-keuze.
+### 6. Test-toasts route verwijderen
+- `src/App.tsx`: verwijder import van `TestToasts` (regel 36) en de route (regel 100)
+- `src/pages/TestToasts.tsx`: verwijder het bestand
 
-## 3. Favicon & meta tags
-
-- Maak een inline SVG favicon (`public/favicon.svg`) met de teal "N"
-- Update `index.html`:
-  - `<title>` wordt `Nesto — Horeca Management Platform`
-  - Voeg `<link rel="icon" href="/favicon.svg" type="image/svg+xml">` toe
-  - Update OG tags naar Nesto branding (titel + beschrijving)
-  - Verwijder Lovable placeholder OG image referenties
-
-**Let op:** Een echte `apple-touch-icon.png` (180x180 PNG) en `favicon.ico` kunnen niet programmatisch als pixel-perfect bestanden worden gegenereerd. De SVG favicon werkt in alle moderne browsers. Voor productie (Fase 14) moet een designer de PNG/ICO versies aanleveren.
-
-## 4. Bestanden overzicht
+### 7. Samenvatting bestanden
 
 | Actie | Bestand |
 |-------|---------|
-| Nieuw | `src/components/polar/NestoLogo.tsx` |
-| Nieuw | `public/favicon.svg` |
-| Bewerkt | `src/components/polar/index.ts` — export toevoegen |
-| Bewerkt | `src/components/layout/NestoSidebar.tsx` — logo vervangen |
-| Bewerkt | `src/components/layout/AppLayout.tsx` — mobile header logo vervangen |
-| Bewerkt | `src/pages/Auth.tsx` — auth page logo vervangen |
-| Bewerkt | `index.html` — title, favicon, OG tags |
+| Bewerkt | `src/lib/navigation.ts` (labels) |
+| Bewerkt | `src/lib/settingsRouteConfig.ts` (breadcrumb) |
+| Bewerkt | `src/components/polar/SettingsPageLayout.tsx` (breadcrumb) |
+| Bewerkt | `src/components/settings/layouts/SettingsModuleLayout.tsx` (breadcrumb) |
+| Bewerkt | `src/components/settings/layouts/SettingsSectionLayout.tsx` (breadcrumb) |
+| Herschreven | `src/pages/NotFound.tsx` (NL + Polar UI) |
+| Bewerkt | `src/App.tsx` (route + import verwijderd) |
+| Verwijderd | `src/pages/TestToasts.tsx` |
+| Bewerkt (17x) | FASE-comments verwijderd uit alle bovengenoemde bestanden |
 
+Totaal: ~22 bestanden gewijzigd, 1 verwijderd.
