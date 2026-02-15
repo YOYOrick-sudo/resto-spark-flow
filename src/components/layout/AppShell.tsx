@@ -1,9 +1,13 @@
 import { Outlet } from 'react-router-dom';
 import { AppLayout } from './AppLayout';
 
-export function AppShell() {
+interface AppShellProps {
+  fullBleed?: boolean;
+}
+
+export function AppShell({ fullBleed }: AppShellProps) {
   return (
-    <AppLayout>
+    <AppLayout fullBleed={fullBleed}>
       <Outlet />
     </AppLayout>
   );
