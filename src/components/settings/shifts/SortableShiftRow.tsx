@@ -115,12 +115,12 @@ export function SortableShiftRow({
         </div>
 
         {/* Days */}
-        <div className="flex gap-[3px]">
+        <div className="flex gap-1">
           {ALL_WEEKDAYS.map((day) => (
             <span
               key={day}
               className={cn(
-                "w-[18px] h-[18px] flex items-center justify-center text-caption rounded-[4px] transition-colors",
+                "px-1.5 py-0.5 flex items-center justify-center text-caption rounded-control transition-colors",
                 shift.days_of_week.includes(day)
                   ? "bg-primary/15 text-primary font-bold"
                   : "text-muted-foreground/40"

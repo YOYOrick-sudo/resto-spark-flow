@@ -231,12 +231,12 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
                   <span className="text-xs text-muted-foreground/70 tabular-nums">
                     {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                   </span>
-                  <div className="flex gap-0.5 ml-2">
+                  <div className="flex gap-1 ml-2">
                     {ALL_WEEKDAYS.map((day) => (
                       <span
                         key={day}
                         className={cn(
-                          "px-1 py-0.5 text-caption rounded",
+                          "px-1.5 py-0.5 text-caption rounded-control",
                           shift.days_of_week.includes(day)
                             ? "bg-muted-foreground/20 text-muted-foreground"
                             : "opacity-30"

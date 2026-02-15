@@ -111,7 +111,7 @@ export function TimesStep() {
       {/* Days row */}
       <div className="space-y-2">
         <span className="text-sm font-medium text-muted-foreground">Actieve dagen</span>
-        <div className="flex gap-1.5">
+        <div className="flex gap-2">
           {ALL_WEEKDAYS.map((day) => {
             const isSelected = daysOfWeek.includes(day);
             return (
@@ -120,7 +120,7 @@ export function TimesStep() {
                 type="button"
                 onClick={() => toggleDay(day)}
                 className={cn(
-                  "w-9 h-9 rounded-button text-sm font-medium transition-colors",
+                  "px-3 py-1.5 rounded-control text-sm font-medium transition-colors",
                   isSelected
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"

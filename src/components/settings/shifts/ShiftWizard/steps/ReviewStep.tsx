@@ -91,14 +91,14 @@ export function ReviewStep() {
           </ReviewSection>
 
           <ReviewSection icon={Calendar} title="Dagen">
-            <div className="flex gap-1 mt-1">
+            <div className="flex gap-1.5 mt-1">
               {[1, 2, 3, 4, 5, 6, 7].map((day) => {
                 const isActive = daysOfWeek.includes(day);
                 return (
                   <span
                     key={day}
                     className={cn(
-                      "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
+                      "px-2 py-1 rounded-control flex items-center justify-center text-xs font-medium",
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted/50 text-muted-foreground"
