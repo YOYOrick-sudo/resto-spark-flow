@@ -1,10 +1,42 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Zap, PanelLeft, Search, Building2 } from 'lucide-react';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
-import * as Collapsible from '@radix-ui/react-collapsible';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [maxHeight, setMaxHeight] = useState(isOpen ? 'none' : '0px');
+
+  useEffect(() => {
+    if (isOpen) {
+      const el = ref.current;
+      if (el) setMaxHeight(el.scrollHeight + 'px');
+    } else {
+      setMaxHeight('0px');
+    }
+  }, [isOpen]);
+
+  // After open transition ends, set to 'none' so dynamic content isn't clipped
+  const handleTransitionEnd = useCallback(() => {
+    if (isOpen) setMaxHeight('none');
+  }, [isOpen]);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        maxHeight,
+        overflow: 'hidden',
+        transition: 'max-height 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+      onTransitionEnd={handleTransitionEnd}
+    >
+      {children}
+    </div>
+  );
+}
 
 import { useSignals } from '@/hooks/useSignals';
 import { NestoLogo } from '@/components/polar/NestoLogo';
@@ -199,41 +231,38 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
 
                 {/* Expandable group */}
                 {item.expandable && item.subItems ? (
-                  <Collapsible.Root
-                    open={isExpanded || !!hasActiveChild}
-                    onOpenChange={(nextOpen) => {
-                      setExpandedGroups((prev) =>
-                        nextOpen
-                          ? prev.includes(item.id) ? prev : [...prev, item.id]
-                          : prev.filter((id) => id !== item.id)
-                      );
-                    }}
-                  >
-                    <Collapsible.Trigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => handleExpandableClick(item)}
-                        className={cn(
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const isCurrentlyOpen = isExpanded || !!hasActiveChild;
+                        setExpandedGroups((prev) =>
+                          isCurrentlyOpen
+                            ? prev.filter((id) => id !== item.id)
+                            : prev.includes(item.id) ? prev : [...prev, item.id]
+                        );
+                        handleExpandableClick(item);
+                      }}
+                      className={cn(
 'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
-                          'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
-                          hasActiveChild
-                            ? 'bg-card border-border text-foreground font-medium'
-                            : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
-                        )}
-                      >
-                        <Icon size={16} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
-                        <span className="flex-1 text-left">{item.label}</span>
-                        <ChevronDown 
-                          size={16} 
-                          className={cn(
-                            'text-muted-foreground transition-transform duration-200',
-                            (isExpanded || hasActiveChild) && 'rotate-180'
-                          )} 
-                        />
-                      </button>
-                    </Collapsible.Trigger>
+                        'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
+                        hasActiveChild
+                          ? 'bg-card border-border text-foreground font-medium'
+                          : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
+                      )}
+                    >
+                      <Icon size={16} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronDown 
+                        size={16} 
+                        className={cn(
+                          'text-muted-foreground transition-transform duration-200',
+                          (isExpanded || hasActiveChild) && 'rotate-180'
+                        )} 
+                      />
+                    </button>
                     
-                    <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up" style={{ willChange: 'height' }}>
+                    <ExpandableContent isOpen={isExpanded || !!hasActiveChild}>
                       <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
                         <ul>
                           {item.subItems.map((subItem) => {
@@ -274,8 +303,8 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                           })}
                         </ul>
                       </div>
-                    </Collapsible.Content>
-                  </Collapsible.Root>
+                    </ExpandableContent>
+                  </>
                 ) : item.disabled ? (
                   /* Disabled item */
                   <Tooltip>
