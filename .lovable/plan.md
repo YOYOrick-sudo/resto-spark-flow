@@ -1,78 +1,55 @@
 
 
-# Fase 4.6 Correctieve Migratie — 5 Fixes + View Enhancement
+# Areas Settings — Design Polish
 
-## Wat wordt gefixt
+Visuele verbeteringen op de Areas settings pagina om te voldoen aan de Enterprise Design Guide (Linear/Stripe/Polar esthetiek). Functionaliteit en UX blijven exact hetzelfde.
 
-| # | Issue | Ernst | Fix |
+## Gevonden design-issues
+
+| # | Issue | Regel | Fix |
 |---|-------|-------|-----|
-| 1 | `pending` i.p.v. `draft` in enum + defaults + RPCs + TypeScript | BLOCKING | `ALTER TYPE RENAME VALUE`, update defaults, RPCs, types |
-| 2 | Transitiematrix: seated->no_show, confirmed->option, terminal states niet terminal | BLOCKING | Herschrijf matrix in RPC + TypeScript |
-| 3 | Risicoscore gewichten: kanaal/termijn omgewisseld, dag-van-de-week ontbreekt | MEDIUM | Herschrijf `calculate_no_show_risk` met correcte 40/20/20/10/10 verdeling |
-| 4 | Walk-in kan geen `seated` initial status krijgen | BLOCKING | Walk-in uitzondering in `create_reservation` |
-| 5 | BEFORE INSERT trigger kan score niet berekenen (rij bestaat nog niet) | MEDIUM | Drop BEFORE INSERT, maak AFTER INSERT trigger |
-| + | View mist `suggested_overbook_covers` en shift name join | Enhancement | Herschrijf `shift_risk_summary` view |
+| 1 | AreaCard header heeft `bg-muted/30` achtergrond + `border-b` | "Floating headers" -- geen achtergrondkleur, typografie doet het werk | Verwijder bg-muted/30, vervang border-b door subtiele `divide-y divide-border/50` op content |
+| 2 | Tafel kolomkoppen gebruiken `text-xs` zonder uppercase/tracking | Enterprise tables: `text-[11px] font-semibold uppercase tracking-wider` | Update header row styling |
+| 3 | Row hover is `hover:bg-muted/50` | Enterprise tables: `hover:bg-accent/40 transition-colors duration-150` | Corrigeer hover kleur |
+| 4 | NestoSelect in header toont "Eerst..." (afgekapt) | Select breedte te krap (w-36) voor langste optie | Vergroot naar w-44 |
+| 5 | Tabel rijen missen `divide-y divide-border/50` scheiding | Enterprise tables: rijen gescheiden door dividers, niet los zwevend | Wrap tabelrijen in `divide-y divide-border/50` container |
+| 6 | Add-knoppen ("+ Tafel", "+ Meerdere") staan los onderaan | Enterprise: subtielere inline-actie met `text-muted-foreground` stijl | Verplaats naar een nettere `border-t border-border/40` footer |
+| 7 | Archived section collapsible trigger padding inconsistent | Enterprise: compact density `py-2.5 px-3` | Consistente padding |
+| 8 | AreaCard header padding is p-4, content ook p-4 | NestoCard default is p-6 maar card heeft `overflow-hidden` en eigen padding -- content padding moet matchen | Standaardiseer naar px-5 py-4 voor header, px-5 pb-5 voor content |
+| 9 | DragOverlay area card heeft `bg-muted/30` | Consistent met fix 1: verwijder achtergrond | Schone overlay |
 
-## Implementatie
-
-### Stap 1: SQL Migratie
-
-Een enkele migratie met alle 5 fixes:
-
-**Enum rename**
-- `ALTER TYPE reservation_status RENAME VALUE 'pending' TO 'draft'`
-- `ALTER TABLE reservations ALTER COLUMN status SET DEFAULT 'draft'`
-
-**transition_reservation_status (FIX 2)**
-Gecorrigeerde matrix:
-```text
-draft:            [confirmed, cancelled, pending_payment, option]
-pending_payment:  [confirmed, cancelled]
-option:           [confirmed, cancelled]
-confirmed:        [seated, cancelled, no_show]
-seated:           [completed]
-completed:        []  (terminal)
-no_show:          []  (terminal)
-cancelled:        []  (terminal)
-```
-Plus: zet timestamps (seated_at, completed_at, cancelled_at, no_show_marked_at, cancelled_by, cancellation_reason) bij relevante transities.
-
-**create_reservation (FIX 4)**
-Walk-in uitzondering:
-- Als `_channel = 'walk_in'`: vereist `_initial_status = 'seated'`, zet `seated_at = now()`
-- Anders: valideer tegen `draft, confirmed, option, pending_payment`
-
-**calculate_no_show_risk (FIX 3)**
-Correcte gewichten volgens spec:
-- Factor 1: Gasthistorie — 40 punten max (40%). Nieuwe gast = 6 punten (~15%)
-- Factor 2: Groepsgrootte — 20 punten max (20%). 1-2p=2, 3-4p=6, 5-6p=12, 7+=20
-- Factor 3: Boekingstermijn — 20 punten max (20%). 0-1d=1, 2-7d=4, 8-14d=10, 15-30d=15, 30+=20
-- Factor 4: Kanaal — 10 punten max (10%). walk_in=0, phone=1, operator=2, whatsapp=3, widget=6, google=10
-- Factor 5: Dag van de week — 10 punten max (10%). Ma-Do=2, Vr=5, Za=10, Zo=4
-
-**Trigger fix (FIX 5)**
-- DROP de BEFORE INSERT trigger `trg_calculate_no_show_risk_insert`
-- Nieuwe functie `fn_calculate_no_show_risk_after_insert()` die UPDATE na insert doet
-- Nieuwe AFTER INSERT trigger
-
-**View enhancement**
-Herschrijf `shift_risk_summary` met:
-- JOIN naar shifts voor `shift_name`
-- `ROUND(SUM(r.no_show_risk_score / 100.0 * r.party_size)) AS suggested_overbook_covers`
-- Behoudt `security_invoker = true`
-
-### Stap 2: TypeScript Updates
-
-**`src/types/reservation.ts`**
-- `ReservationStatus`: `'pending'` wordt `'draft'`
-- `ALLOWED_TRANSITIONS`: gecorrigeerde matrix (draft als start, terminal states leeg)
-
-### Bestanden die wijzigen
+## Bestanden die wijzigen
 
 | Bestand | Wijziging |
 |---------|-----------|
-| Nieuwe SQL migratie | Enum rename, 3 functies herschreven, trigger fix, view herschreven |
-| `src/types/reservation.ts` | `pending` -> `draft`, ALLOWED_TRANSITIONS gecorrigeerd |
+| `src/components/settings/tables/AreaCard.tsx` | Header styling (geen bg), kolomkoppen enterprise-stijl, row dividers, footer styling, select breedte, padding |
+| `src/components/settings/tables/SortableTableRow.tsx` | Hover kleur naar `hover:bg-accent/40`, verwijder rounded-lg van rij (dividers doen het werk) |
+| `src/components/settings/tables/AreasSection.tsx` | DragOverlay styling, archived section padding |
 
-Hooks hoeven niet te wijzigen — ze gebruiken types, geen hardcoded strings.
+## Technische details per bestand
+
+### AreaCard.tsx
+- Header: `p-4 border-b bg-muted/30` wordt `px-5 py-3.5` (geen border-b, geen bg)
+- Kolomkoppen: `text-xs text-muted-foreground` wordt `text-[11px] font-semibold text-muted-foreground uppercase tracking-wider`
+- Kolomheader `border-b` wordt `pb-2` (floating, geen border)
+- Content wrapper: `p-4 space-y-2` wordt `px-5 pb-5 pt-3`
+- Tabel rijen wrapper: voeg `divide-y divide-border/50` toe
+- Add-knoppen sectie: `flex gap-2 pt-2` wordt `flex gap-2 pt-3 border-t border-border/40 mt-1`
+- NestoSelect breedte: `w-36` wordt `w-44`
+- Empty state: verfijn padding
+
+### SortableTableRow.tsx
+- Verwijder `rounded-lg` van de rij (dividers scheiden nu)
+- Hover: `hover:bg-muted/50` wordt `hover:bg-accent/40`
+- Transition: behoudt `transition-colors` (al 150ms default)
+
+### AreasSection.tsx
+- DragOverlay: verwijder `bg-muted/30` uit de header div
+- Archived section: padding consistent met compact density
+
+## Wat NIET wijzigt
+- Geen UX wijzigingen (collapse, DnD, sorting, modals, actions)
+- Geen structuur/layout wijzigingen
+- Geen nieuwe componenten
+- Archived section behoudt `bg-muted/30 rounded-lg` (correct per design rules voor gearchiveerde/secundaire content)
 
