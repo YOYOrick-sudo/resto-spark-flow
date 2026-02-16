@@ -9,7 +9,7 @@ export interface AvailabilityRequest {
   date: string;            // YYYY-MM-DD
   party_size: number;
   ticket_id?: string | null;
-  channel?: 'widget' | 'operator' | 'google' | 'whatsapp';
+  channel?: 'widget' | 'operator' | 'google' | 'whatsapp' | 'phone';
   overbooking_covers?: number;
 }
 

@@ -494,34 +494,38 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const userClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const isServiceRole = token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    // Verify location access
-    const { data: access } = await supabaseAdmin
-      .from('user_location_roles')
-      .select('id')
-      .eq('user_id', claimsData.claims.sub)
-      .eq('location_id', body.location_id)
-      .limit(1);
-
-    if (!access || access.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Forbidden: no access to this location' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    if (!isServiceRole) {
+      const userClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } } }
       );
+
+      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+      if (claimsErr || !claimsData?.claims) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verify location access
+      const { data: access } = await supabaseAdmin
+        .from('user_location_roles')
+        .select('id')
+        .eq('user_id', claimsData.claims.sub)
+        .eq('location_id', body.location_id)
+        .limit(1);
+
+      if (!access || access.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: no access to this location' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Load engine data (reuses shared module)
