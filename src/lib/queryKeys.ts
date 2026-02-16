@@ -59,6 +59,18 @@ export const queryKeys = {
 
   /** Shift-ticket links for a specific shift */
   shiftTickets: (shiftId: string) => ['shift-tickets', shiftId] as const,
+
+  // ============================================
+  // FASE 4.5.B: Availability & Diagnostics
+  // ============================================
+
+  /** Availability check results */
+  availability: (locationId: string, date: string, partySize: number, ticketId?: string) =>
+    ['availability', locationId, date, partySize, ticketId] as const,
+
+  /** Diagnose slot results (on-demand, used as mutation key reference) */
+  diagnoseSlot: (locationId: string, date: string, time: string, partySize: number, ticketId: string) =>
+    ['diagnose-slot', locationId, date, time, partySize, ticketId] as const,
 } as const;
 
 export type QueryKeys = typeof queryKeys;
