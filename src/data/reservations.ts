@@ -1,5 +1,10 @@
 // ============================================================================
-// RESERVATIONS MODULE - Types & Mock Data
+// @deprecated — Fase 4.7a: alle exports zijn verplaatst.
+// Pacing: src/data/pacingMockData.ts
+// Utils: src/lib/reservationUtils.ts
+// Types: src/types/reservation.ts
+// Data: useReservations hook
+// Dit bestand wordt verwijderd in 4.7b.
 // ============================================================================
 
 // --- Types ---
