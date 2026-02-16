@@ -1,175 +1,78 @@
 
-# Fase 4.6 — Reservation Model + Status Machine + AI Feature 1
 
-## Checkpoint Antwoorden
+# Fase 4.6 Correctieve Migratie — 5 Fixes + View Enhancement
 
-### 1. Mock data die vervangen moet worden
-Ja, `src/data/reservations.ts` (1172 regels) bevat mock types, mock data, en helper functies. **10 bestanden** importeren hieruit:
-- `src/pages/Reserveringen.tsx` — mockReservations, helpers, types
-- `src/pages/Dashboard.tsx` — mockReservations
-- `src/pages/settings/reserveringen/SettingsReserveringenShiftTijden.tsx` — mockPacingSettings
-- `src/pages/settings/reserveringen/SettingsReserveringenPacing.tsx` — mockPacingSettings, mockTables
-- `src/components/reserveringen/ReservationGridView.tsx` — helpers, types
-- `src/components/reserveringen/ReservationListView.tsx` — helpers, types
-- `src/components/reserveringen/ReservationBlock.tsx` — types, GridTimeConfig
-- `src/components/reserveringen/TableRow.tsx` — types, GridTimeConfig
-- `src/components/reserveringen/ReservationFilters.tsx` — ReservationStatus type
-- `src/components/reserveringen/QuickReservationPanel.tsx` — helpers
+## Wat wordt gefixt
 
-**Actie in deze fase**: De mock data wordt NIET verwijderd (UI refactor = 4.7). Wel worden de nieuwe types in `src/types/reservation.ts` aangemaakt. De bestaande UI blijft werken op mock data tot 4.7.
+| # | Issue | Ernst | Fix |
+|---|-------|-------|-----|
+| 1 | `pending` i.p.v. `draft` in enum + defaults + RPCs + TypeScript | BLOCKING | `ALTER TYPE RENAME VALUE`, update defaults, RPCs, types |
+| 2 | Transitiematrix: seated->no_show, confirmed->option, terminal states niet terminal | BLOCKING | Herschrijf matrix in RPC + TypeScript |
+| 3 | Risicoscore gewichten: kanaal/termijn omgewisseld, dag-van-de-week ontbreekt | MEDIUM | Herschrijf `calculate_no_show_risk` met correcte 40/20/20/10/10 verdeling |
+| 4 | Walk-in kan geen `seated` initial status krijgen | BLOCKING | Walk-in uitzondering in `create_reservation` |
+| 5 | BEFORE INSERT trigger kan score niet berekenen (rij bestaat nog niet) | MEDIUM | Drop BEFORE INSERT, maak AFTER INSERT trigger |
+| + | View mist `suggested_overbook_covers` en shift name join | Enhancement | Herschrijf `shift_risk_summary` view |
 
-### 2. create_reservation RPC: SECURITY DEFINER
-Bevestigd. SECURITY DEFINER is noodzakelijk omdat:
-- De audit_log tabel geen directe INSERT RLS policy heeft (append-only via functies)
-- De functie moet altijd naar audit_log kunnen schrijven, ongeacht de aanroepende user
-- Zelfde patroon als `transition_reservation_status`
+## Implementatie
 
-### 3. shift_risk_summary view
-De query is correct. Eén aanpassing: de view moet `status IN ('confirmed', 'option', 'pending_payment')` filteren, niet 'seated' (seated gasten zijn al aanwezig, geen no-show risico meer).
+### Stap 1: SQL Migratie
 
-### 4. walk_in channel
-Wordt toegevoegd aan `_shared/availabilityEngine.ts` channel type. De engine hoeft geen speciale logica voor walk_in te hebben — walk-ins gaan niet door de availability check.
+Een enkele migratie met alle 5 fixes:
 
-### 5. Trigger idempotentie
-Alle triggers gebruiken `NEW.status IS DISTINCT FROM OLD.status` guards. Dubbel uitvoeren levert geen foute data op:
-- `trg_update_customer_stats`: increment alleen bij statuswijziging (guard)
-- `trg_calculate_no_show_risk`: overschrijft score (idempotent)
-- `trg_audit_reservation_update`: logt dezelfde wijziging nogmaals (acceptabel, maar guard voorkomt dit)
+**Enum rename**
+- `ALTER TYPE reservation_status RENAME VALUE 'pending' TO 'draft'`
+- `ALTER TABLE reservations ALTER COLUMN status SET DEFAULT 'draft'`
 
-### 6. pg_trgm extension
-**Niet geactiveerd.** Moet via migratie worden geactiveerd (`CREATE EXTENSION IF NOT EXISTS pg_trgm`) voor fuzzy customer search index.
+**transition_reservation_status (FIX 2)**
+Gecorrigeerde matrix:
+```text
+draft:            [confirmed, cancelled, pending_payment, option]
+pending_payment:  [confirmed, cancelled]
+option:           [confirmed, cancelled]
+confirmed:        [seated, cancelled, no_show]
+seated:           [completed]
+completed:        []  (terminal)
+no_show:          []  (terminal)
+cancelled:        []  (terminal)
+```
+Plus: zet timestamps (seated_at, completed_at, cancelled_at, no_show_marked_at, cancelled_by, cancellation_reason) bij relevante transities.
 
-## Implementatieplan
+**create_reservation (FIX 4)**
+Walk-in uitzondering:
+- Als `_channel = 'walk_in'`: vereist `_initial_status = 'seated'`, zet `seated_at = now()`
+- Anders: valideer tegen `draft, confirmed, option, pending_payment`
 
-### Deel 1: Database Migratie (SQL)
+**calculate_no_show_risk (FIX 3)**
+Correcte gewichten volgens spec:
+- Factor 1: Gasthistorie — 40 punten max (40%). Nieuwe gast = 6 punten (~15%)
+- Factor 2: Groepsgrootte — 20 punten max (20%). 1-2p=2, 3-4p=6, 5-6p=12, 7+=20
+- Factor 3: Boekingstermijn — 20 punten max (20%). 0-1d=1, 2-7d=4, 8-14d=10, 15-30d=15, 30+=20
+- Factor 4: Kanaal — 10 punten max (10%). walk_in=0, phone=1, operator=2, whatsapp=3, widget=6, google=10
+- Factor 5: Dag van de week — 10 punten max (10%). Ma-Do=2, Vr=5, Za=10, Zo=4
 
-Eén grote migratie met:
+**Trigger fix (FIX 5)**
+- DROP de BEFORE INSERT trigger `trg_calculate_no_show_risk_insert`
+- Nieuwe functie `fn_calculate_no_show_risk_after_insert()` die UPDATE na insert doet
+- Nieuwe AFTER INSERT trigger
 
-**Extensions**
-- `CREATE EXTENSION IF NOT EXISTS pg_trgm`
+**View enhancement**
+Herschrijf `shift_risk_summary` met:
+- JOIN naar shifts voor `shift_name`
+- `ROUND(SUM(r.no_show_risk_score / 100.0 * r.party_size)) AS suggested_overbook_covers`
+- Behoudt `security_invoker = true`
 
-**Enums**
-- `reservation_status` (8 waarden)
-- `reservation_channel` (6 waarden incl. walk_in)
+### Stap 2: TypeScript Updates
 
-**Tabellen**
-- `customers` — met partial unique indexes op email en phone, CHECK constraint voor minimaal 1 contactmethode, trigram index op naam
-- `reservations` — met alle kolommen uit de specificatie, indexes op location+date, customer, shift+date, status, manage_token, table+date
-- `audit_log` — append-only, indexes op entity en location
+**`src/types/reservation.ts`**
+- `ReservationStatus`: `'pending'` wordt `'draft'`
+- `ALLOWED_TRANSITIONS`: gecorrigeerde matrix (draft als start, terminal states leeg)
 
-**Functies**
-- `calculate_no_show_risk(_reservation_id UUID)` — PL/pgSQL gewogen score berekening
-- `transition_reservation_status(...)` — SECURITY DEFINER, status machine met hardcoded transitiematrix, audit logging
-- `create_reservation(...)` — SECURITY DEFINER, berekent end_time, valideert initial_status, audit logging
-- `fn_update_customer_stats()` — trigger functie voor customer statistieken
-- `fn_calculate_no_show_risk()` — trigger functie die calculate_no_show_risk aanroept
-- `fn_audit_reservation_update()` — trigger functie voor audit logging van veldwijzigingen
+### Bestanden die wijzigen
 
-**Triggers**
-- `trg_update_customer_stats` op reservations (AFTER UPDATE, wanneer status wijzigt)
-- `trg_calculate_no_show_risk` op reservations (AFTER INSERT of UPDATE van customer_id, party_size, channel, reservation_date)
-- `trg_audit_reservation_update` op reservations (AFTER UPDATE, logt veldwijzigingen behalve status en updated_at)
-- `trg_reservations_updated_at` op reservations (BEFORE UPDATE, zet updated_at)
+| Bestand | Wijziging |
+|---------|-----------|
+| Nieuwe SQL migratie | Enum rename, 3 functies herschreven, trigger fix, view herschreven |
+| `src/types/reservation.ts` | `pending` -> `draft`, ALLOWED_TRANSITIONS gecorrigeerd |
 
-**View**
-- `shift_risk_summary` — aggregeert risicoscores per shift+datum
+Hooks hoeven niet te wijzigen — ze gebruiken types, geen hardcoded strings.
 
-**RLS**
-- `customers`: SELECT en ALL policies via user_location_roles
-- `reservations`: SELECT en ALL policies via user_location_roles
-- `audit_log`: SELECT only via user_location_roles, geen INSERT/UPDATE/DELETE policies (via SECURITY DEFINER functies)
-
-**Realtime**
-- `ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations` — voor live updates in de UI later
-
-### Deel 2: Availability Engine Update
-
-**`supabase/functions/_shared/availabilityEngine.ts`**
-- Voeg `'walk_in'` toe aan channel type
-- Vervang reservations stub (lege array op regel 423) door echte query:
-  - Query `reservations` tabel met status IN ('confirmed', 'seated', 'option', 'pending_payment')
-  - Filter op location_id, reservation_date
-  - Map naar ExistingReservation interface
-
-**`supabase/functions/check-availability/index.ts`**
-- Geen wijzigingen nodig (gebruikt al data.reservations uit loadEngineData)
-
-**`supabase/functions/diagnose-slot/index.ts`**
-- Geen wijzigingen nodig (gebruikt al data.reservations uit loadEngineData)
-
-### Deel 3: NoShowRisk Signal Provider
-
-**`supabase/functions/evaluate-signals/index.ts`**
-- Voeg NoShowRiskSignalProvider toe als inline provider (zelfde patroon als configProvider en onboardingProvider)
-- Twee signals: `high_noshow_risk_shift` (warning) en `high_risk_reservations_today` (info)
-- Entitlement guard: alleen als reservations module enabled
-
-### Deel 4: React Types en Hooks
-
-**`src/types/reservation.ts`** (nieuw)
-- ReservationStatus, ReservationChannel types
-- Reservation, Customer, AuditLogEntry interfaces
-- ALLOWED_TRANSITIONS matrix
-
-**`src/lib/queryKeys.ts`** (update)
-- Voeg 7 nieuwe keys toe: reservations, reservation, customers, customer, auditLog, customerReservations, shiftRiskSummary
-
-**Hooks** (allemaal nieuw):
-- `src/hooks/useReservations.ts` — useQuery met joins
-- `src/hooks/useReservation.ts` — single reservation
-- `src/hooks/useCreateReservation.ts` — useMutation op create_reservation RPC
-- `src/hooks/useTransitionStatus.ts` — useMutation op transition_reservation_status RPC
-- `src/hooks/useCustomers.ts` — useQuery met debounced search
-- `src/hooks/useCustomer.ts` — single customer
-- `src/hooks/useCreateCustomer.ts` — useMutation
-- `src/hooks/useUpdateCustomer.ts` — useMutation
-- `src/hooks/useAuditLog.ts` — useQuery voor audit entries
-- `src/hooks/useReservationsByCustomer.ts` — bezoekhistorie
-
-### Deel 5: Geen UI wijzigingen
-
-De bestaande reserveringen UI (`src/pages/Reserveringen.tsx` en componenten) blijft ongewijzigd op mock data. Migratie naar echte data gebeurt in Fase 4.7.
-
-## Technische details
-
-### start_time < end_time constraint
-De CHECK constraint `start_time < end_time` wordt NIET toegevoegd. Shifts kunnen over middernacht gaan (bijv. 22:00-02:00). De validatie gebeurt in de `create_reservation` RPC die `end_time` berekent.
-
-### Audit log insert pattern
-De audit_log heeft geen directe INSERT RLS policy. Inserts gaan uitsluitend via SECURITY DEFINER functies (`create_reservation`, `transition_reservation_status`, en de `fn_audit_reservation_update` trigger functie). Dit garandeert dat de audit log niet te manipuleren is door clients.
-
-### Customer deduplicatie
-Partial unique indexes op `(location_id, email) WHERE email IS NOT NULL` en `(location_id, phone_number) WHERE phone_number IS NOT NULL` voorkomen duplicaten per locatie. De `create_reservation` RPC doet GEEN automatische customer-dedup — dat is de verantwoordelijkheid van de UI/caller.
-
-### Risk score bij walk-ins
-Walk-ins krijgen ook een risicoscore via de trigger, maar deze is academisch (walk-in gasten zijn al fysiek aanwezig). De score wordt berekend maar niet gebruikt voor walk-ins.
-
-## Implementatievolgorde
-
-1. Database migratie (enums, tabellen, functies, triggers, view, RLS)
-2. `_shared/availabilityEngine.ts` — walk_in channel + reservations query
-3. `evaluate-signals/index.ts` — NoShowRisk provider
-4. `src/types/reservation.ts` — client types
-5. `src/lib/queryKeys.ts` — nieuwe keys
-6. Alle hooks (10 bestanden)
-7. Deploy edge functions
-
-## Bestanden die wijzigen/ontstaan
-
-| Bestand | Actie |
-|---------|-------|
-| Database migratie | SQL (enums, 3 tabellen, 6 functies, 4 triggers, 1 view, RLS) |
-| `supabase/functions/_shared/availabilityEngine.ts` | walk_in channel + reservations query |
-| `supabase/functions/evaluate-signals/index.ts` | NoShowRisk signal provider |
-| `src/types/reservation.ts` | Nieuw — client types |
-| `src/lib/queryKeys.ts` | Update — 7 nieuwe keys |
-| `src/hooks/useReservations.ts` | Nieuw |
-| `src/hooks/useReservation.ts` | Nieuw |
-| `src/hooks/useCreateReservation.ts` | Nieuw |
-| `src/hooks/useTransitionStatus.ts` | Nieuw |
-| `src/hooks/useCustomers.ts` | Nieuw |
-| `src/hooks/useCustomer.ts` | Nieuw |
-| `src/hooks/useCreateCustomer.ts` | Nieuw |
-| `src/hooks/useUpdateCustomer.ts` | Nieuw |
-| `src/hooks/useAuditLog.ts` | Nieuw |
-| `src/hooks/useReservationsByCustomer.ts` | Nieuw |
