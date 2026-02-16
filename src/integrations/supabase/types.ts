@@ -2044,6 +2044,8 @@ export type Database = {
           location_id: string | null
           reservation_date: string | null
           shift_id: string | null
+          shift_name: string | null
+          suggested_overbook_covers: number | null
           total_covers: number | null
           total_reservations: number | null
         }
@@ -2284,7 +2286,7 @@ export type Database = {
         | "whatsapp"
         | "walk_in"
       reservation_status:
-        | "pending"
+        | "draft"
         | "confirmed"
         | "option"
         | "pending_payment"
@@ -2450,7 +2452,7 @@ export const Constants = {
         "walk_in",
       ],
       reservation_status: [
-        "pending",
+        "draft",
         "confirmed",
         "option",
         "pending_payment",
