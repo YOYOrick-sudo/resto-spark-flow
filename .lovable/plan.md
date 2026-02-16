@@ -1,106 +1,175 @@
 
-# Fase 4.5.C — Availability Engine: Validatie & Edge Cases
+# Fase 4.6 — Reservation Model + Status Machine + AI Feature 1
 
-## Wat wordt gedaan
+## Checkpoint Antwoorden
 
-1. **Phone channel fix** in `_shared/availabilityEngine.ts`, `check-availability/index.ts`, en `diagnose-slot/index.ts`
-2. **Test Edge Function** (`test-availability-engine`) die alle 14 scenario's uitvoert tegen de live edge functions
-3. **Cleanup**: test function verwijderen na succesvolle uitvoering
-4. **Notitie**: `pacing_arrivals_limit` bestaat NIET op `shift_tickets` — genoteerd als toekomstige uitbreiding, niet blokkerend
+### 1. Mock data die vervangen moet worden
+Ja, `src/data/reservations.ts` (1172 regels) bevat mock types, mock data, en helper functies. **10 bestanden** importeren hieruit:
+- `src/pages/Reserveringen.tsx` — mockReservations, helpers, types
+- `src/pages/Dashboard.tsx` — mockReservations
+- `src/pages/settings/reserveringen/SettingsReserveringenShiftTijden.tsx` — mockPacingSettings
+- `src/pages/settings/reserveringen/SettingsReserveringenPacing.tsx` — mockPacingSettings, mockTables
+- `src/components/reserveringen/ReservationGridView.tsx` — helpers, types
+- `src/components/reserveringen/ReservationListView.tsx` — helpers, types
+- `src/components/reserveringen/ReservationBlock.tsx` — types, GridTimeConfig
+- `src/components/reserveringen/TableRow.tsx` — types, GridTimeConfig
+- `src/components/reserveringen/ReservationFilters.tsx` — ReservationStatus type
+- `src/components/reserveringen/QuickReservationPanel.tsx` — helpers
 
-## DB Schema Bevinding
+**Actie in deze fase**: De mock data wordt NIET verwijderd (UI refactor = 4.7). Wel worden de nieuwe types in `src/types/reservation.ts` aangemaakt. De bestaande UI blijft werken op mock data tot 4.7.
 
-`pacing_arrivals_limit` kolom bestaat niet. De enige pacing kolom is `pacing_limit` (covers per interval). Een aparte arrivals-limiet (max reserveringen per interval, ongeacht grootte) is een logische toekomstige uitbreiding maar niet nodig voor v1.
+### 2. create_reservation RPC: SECURITY DEFINER
+Bevestigd. SECURITY DEFINER is noodzakelijk omdat:
+- De audit_log tabel geen directe INSERT RLS policy heeft (append-only via functies)
+- De functie moet altijd naar audit_log kunnen schrijven, ongeacht de aanroepende user
+- Zelfde patroon als `transition_reservation_status`
 
-## Stap 1: Phone Channel Fix
+### 3. shift_risk_summary view
+De query is correct. Eén aanpassing: de view moet `status IN ('confirmed', 'option', 'pending_payment')` filteren, niet 'seated' (seated gasten zijn al aanwezig, geen no-show risico meer).
 
-### `_shared/availabilityEngine.ts` (line 12)
-```text
-channel?: 'widget' | 'operator' | 'google' | 'whatsapp' | 'phone';
-```
+### 4. walk_in channel
+Wordt toegevoegd aan `_shared/availabilityEngine.ts` channel type. De engine hoeft geen speciale logica voor walk_in te hebben — walk-ins gaan niet door de availability check.
 
-### `check-availability/index.ts` (lines 150-154)
-Toevoegen aan channelMap:
-```text
-phone: perms?.phone ?? true,
-```
+### 5. Trigger idempotentie
+Alle triggers gebruiken `NEW.status IS DISTINCT FROM OLD.status` guards. Dubbel uitvoeren levert geen foute data op:
+- `trg_update_customer_stats`: increment alleen bij statuswijziging (guard)
+- `trg_calculate_no_show_risk`: overschrijft score (idempotent)
+- `trg_audit_reservation_update`: logt dezelfde wijziging nogmaals (acceptabel, maar guard voorkomt dit)
 
-### `diagnose-slot/index.ts`
-Channel check is altijd `passed: true` voor operator, dus geen functionele wijziging nodig. Maar het type moet consistent zijn voor toekomstige uitbreidbaarheid.
+### 6. pg_trgm extension
+**Niet geactiveerd.** Moet via migratie worden geactiveerd (`CREATE EXTENSION IF NOT EXISTS pg_trgm`) voor fuzzy customer search index.
 
-## Stap 2: Test Edge Function
+## Implementatieplan
 
-Maakt een `supabase/functions/test-availability-engine/index.ts` die:
+### Deel 1: Database Migratie (SQL)
 
-1. Eigen testdata aanmaakt via service_role_key (tijdelijke shift, ticket, shift_ticket, area, tables)
-2. Per scenario de `check-availability` en/of `diagnose-slot` Edge Function aanroept via `fetch()`
-3. Output vergelijkt met verwachte waarden
-4. Alles opruimt (testdata verwijderen)
-5. JSON rapport retourneert met per test: naam, passed/failed, detail, duur in ms
+Eén grote migratie met:
 
-### Testdata Setup
+**Extensions**
+- `CREATE EXTENSION IF NOT EXISTS pg_trgm`
 
-De test function maakt de volgende tijdelijke records:
-- **Shift**: "Test Shift" op alle dagen, 17:00-23:00, interval 15 min
-- **Ticket**: "Test Ticket" met configureerbare min/max party, booking window, etc.
-- **Shift-Ticket**: Koppeling met pacing_limit, channel_permissions, etc.
-- **Area**: "Test Area"
-- **Tables**: T1 (2-4p), T2 (2-4p), T3 (4-8p), T4 (1-1p, voor party_size=1 test)
+**Enums**
+- `reservation_status` (8 waarden)
+- `reservation_channel` (6 waarden incl. walk_in)
 
-Per test worden specifieke parameters aangepast (booking_window, party_size, channel_permissions, shift_exceptions).
+**Tabellen**
+- `customers` — met partial unique indexes op email en phone, CHECK constraint voor minimaal 1 contactmethode, trigram index op naam
+- `reservations` — met alle kolommen uit de specificatie, indexes op location+date, customer, shift+date, status, manage_token, table+date
+- `audit_log` — append-only, indexes op entity en location
 
-### De 14 Tests
+**Functies**
+- `calculate_no_show_risk(_reservation_id UUID)` — PL/pgSQL gewogen score berekening
+- `transition_reservation_status(...)` — SECURITY DEFINER, status machine met hardcoded transitiematrix, audit logging
+- `create_reservation(...)` — SECURITY DEFINER, berekent end_time, valideert initial_status, audit logging
+- `fn_update_customer_stats()` — trigger functie voor customer statistieken
+- `fn_calculate_no_show_risk()` — trigger functie die calculate_no_show_risk aanroept
+- `fn_audit_reservation_update()` — trigger functie voor audit logging van veldwijzigingen
 
-| # | Test | Method | Key assertion |
-|---|------|--------|--------------|
-| 1 | Shift Exception: Closed | check-availability | Geen slots voor gesloten shift |
-| 2 | Shift Exception: Modified Times | check-availability | Slots alleen binnen 18:00-22:00 |
-| 3 | Location-Wide Closed | check-availability | Helemaal geen slots |
-| 4 | Party Size Grenzen | check-availability | 1=party_size, 2=ok, 8=ok, 9=party_size |
-| 5 | Party Size 1 | check-availability | tables_full als geen min_capacity=1 tafel |
-| 6 | Booking Window: Te Ver Vooruit | check-availability (widget) | Alle slots booking_window |
-| 7 | Booking Window: Te Kort | check-availability (widget) | Vroege slots blocked, late slots ok |
-| 8 | Booking Window: Large Party | check-availability (widget) | party_size=6 blocked <24u, party_size=4 ok |
-| 9 | Channel Permissions | check-availability | widget blocked als widget=false, operator altijd ok |
-| 10 | Squeeze Alleen Bij Vol | check-availability | Geen squeeze slots (stub leeg = niet vol) |
-| 11 | Table Group | check-availability | T3 (4-8p) match voor party_size=4 |
-| 12 | Diagnose: Alle Constraints | diagnose-slot | available=true, 6 constraints met passed=true |
-| 13 | Diagnose: Setting Location | diagnose-slot | Geen UUIDs in setting_location strings |
-| 14 | Performance | check-availability | Response time <500ms |
+**Triggers**
+- `trg_update_customer_stats` op reservations (AFTER UPDATE, wanneer status wijzigt)
+- `trg_calculate_no_show_risk` op reservations (AFTER INSERT of UPDATE van customer_id, party_size, channel, reservation_date)
+- `trg_audit_reservation_update` op reservations (AFTER UPDATE, logt veldwijzigingen behalve status en updated_at)
+- `trg_reservations_updated_at` op reservations (BEFORE UPDATE, zet updated_at)
 
-### Testmethodologie
+**View**
+- `shift_risk_summary` — aggregeert risicoscores per shift+datum
 
-Elke test volgt dit patroon:
-1. Insert/update testdata voor het specifieke scenario
-2. `fetch()` naar check-availability of diagnose-slot met de juiste parameters
-3. Assert op de verwachte output
-4. Cleanup van scenario-specifieke data (shift_exceptions, etc.)
+**RLS**
+- `customers`: SELECT en ALL policies via user_location_roles
+- `reservations`: SELECT en ALL policies via user_location_roles
+- `audit_log`: SELECT only via user_location_roles, geen INSERT/UPDATE/DELETE policies (via SECURITY DEFINER functies)
 
-Timing wordt gemeten met `performance.now()` rond de fetch call.
+**Realtime**
+- `ALTER PUBLICATION supabase_realtime ADD TABLE public.reservations` — voor live updates in de UI later
 
-## Stap 3: Uitvoering & Rapportage
+### Deel 2: Availability Engine Update
 
-Na deployment van de test function, wordt deze aangeroepen via `curl_edge_functions`. Het resultaat is een JSON array met per test: naam, status, detail, en duur.
+**`supabase/functions/_shared/availabilityEngine.ts`**
+- Voeg `'walk_in'` toe aan channel type
+- Vervang reservations stub (lege array op regel 423) door echte query:
+  - Query `reservations` tabel met status IN ('confirmed', 'seated', 'option', 'pending_payment')
+  - Filter op location_id, reservation_date
+  - Map naar ExistingReservation interface
 
-## Stap 4: Cleanup
+**`supabase/functions/check-availability/index.ts`**
+- Geen wijzigingen nodig (gebruikt al data.reservations uit loadEngineData)
 
-Na succesvolle uitvoering:
-- Testdata verwijderen uit de database
-- Test edge function verwijderen (code + deployment)
+**`supabase/functions/diagnose-slot/index.ts`**
+- Geen wijzigingen nodig (gebruikt al data.reservations uit loadEngineData)
 
-## Bestanden die wijzigen
+### Deel 3: NoShowRisk Signal Provider
 
-| Bestand | Actie |
-|---------|-------|
-| `supabase/functions/_shared/availabilityEngine.ts` | Phone channel toevoegen aan type |
-| `supabase/functions/check-availability/index.ts` | Phone toevoegen aan channelMap |
-| `supabase/functions/test-availability-engine/index.ts` | Nieuw (tijdelijk) |
-| `supabase/config.toml` | test function config (tijdelijk) |
+**`supabase/functions/evaluate-signals/index.ts`**
+- Voeg NoShowRiskSignalProvider toe als inline provider (zelfde patroon als configProvider en onboardingProvider)
+- Twee signals: `high_noshow_risk_shift` (warning) en `high_risk_reservations_today` (info)
+- Entitlement guard: alleen als reservations module enabled
+
+### Deel 4: React Types en Hooks
+
+**`src/types/reservation.ts`** (nieuw)
+- ReservationStatus, ReservationChannel types
+- Reservation, Customer, AuditLogEntry interfaces
+- ALLOWED_TRANSITIONS matrix
+
+**`src/lib/queryKeys.ts`** (update)
+- Voeg 7 nieuwe keys toe: reservations, reservation, customers, customer, auditLog, customerReservations, shiftRiskSummary
+
+**Hooks** (allemaal nieuw):
+- `src/hooks/useReservations.ts` — useQuery met joins
+- `src/hooks/useReservation.ts` — single reservation
+- `src/hooks/useCreateReservation.ts` — useMutation op create_reservation RPC
+- `src/hooks/useTransitionStatus.ts` — useMutation op transition_reservation_status RPC
+- `src/hooks/useCustomers.ts` — useQuery met debounced search
+- `src/hooks/useCustomer.ts` — single customer
+- `src/hooks/useCreateCustomer.ts` — useMutation
+- `src/hooks/useUpdateCustomer.ts` — useMutation
+- `src/hooks/useAuditLog.ts` — useQuery voor audit entries
+- `src/hooks/useReservationsByCustomer.ts` — bezoekhistorie
+
+### Deel 5: Geen UI wijzigingen
+
+De bestaande reserveringen UI (`src/pages/Reserveringen.tsx` en componenten) blijft ongewijzigd op mock data. Migratie naar echte data gebeurt in Fase 4.7.
+
+## Technische details
+
+### start_time < end_time constraint
+De CHECK constraint `start_time < end_time` wordt NIET toegevoegd. Shifts kunnen over middernacht gaan (bijv. 22:00-02:00). De validatie gebeurt in de `create_reservation` RPC die `end_time` berekent.
+
+### Audit log insert pattern
+De audit_log heeft geen directe INSERT RLS policy. Inserts gaan uitsluitend via SECURITY DEFINER functies (`create_reservation`, `transition_reservation_status`, en de `fn_audit_reservation_update` trigger functie). Dit garandeert dat de audit log niet te manipuleren is door clients.
+
+### Customer deduplicatie
+Partial unique indexes op `(location_id, email) WHERE email IS NOT NULL` en `(location_id, phone_number) WHERE phone_number IS NOT NULL` voorkomen duplicaten per locatie. De `create_reservation` RPC doet GEEN automatische customer-dedup — dat is de verantwoordelijkheid van de UI/caller.
+
+### Risk score bij walk-ins
+Walk-ins krijgen ook een risicoscore via de trigger, maar deze is academisch (walk-in gasten zijn al fysiek aanwezig). De score wordt berekend maar niet gebruikt voor walk-ins.
 
 ## Implementatievolgorde
 
-1. Phone channel fix (3 bestanden)
-2. Deploy check-availability + diagnose-slot
-3. Test Edge Function schrijven + deployen
-4. Tests uitvoeren en resultaten rapporteren
-5. Test function + testdata cleanup
+1. Database migratie (enums, tabellen, functies, triggers, view, RLS)
+2. `_shared/availabilityEngine.ts` — walk_in channel + reservations query
+3. `evaluate-signals/index.ts` — NoShowRisk provider
+4. `src/types/reservation.ts` — client types
+5. `src/lib/queryKeys.ts` — nieuwe keys
+6. Alle hooks (10 bestanden)
+7. Deploy edge functions
+
+## Bestanden die wijzigen/ontstaan
+
+| Bestand | Actie |
+|---------|-------|
+| Database migratie | SQL (enums, 3 tabellen, 6 functies, 4 triggers, 1 view, RLS) |
+| `supabase/functions/_shared/availabilityEngine.ts` | walk_in channel + reservations query |
+| `supabase/functions/evaluate-signals/index.ts` | NoShowRisk signal provider |
+| `src/types/reservation.ts` | Nieuw — client types |
+| `src/lib/queryKeys.ts` | Update — 7 nieuwe keys |
+| `src/hooks/useReservations.ts` | Nieuw |
+| `src/hooks/useReservation.ts` | Nieuw |
+| `src/hooks/useCreateReservation.ts` | Nieuw |
+| `src/hooks/useTransitionStatus.ts` | Nieuw |
+| `src/hooks/useCustomers.ts` | Nieuw |
+| `src/hooks/useCustomer.ts` | Nieuw |
+| `src/hooks/useCreateCustomer.ts` | Nieuw |
+| `src/hooks/useUpdateCustomer.ts` | Nieuw |
+| `src/hooks/useAuditLog.ts` | Nieuw |
+| `src/hooks/useReservationsByCustomer.ts` | Nieuw |
