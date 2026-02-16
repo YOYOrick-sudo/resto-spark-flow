@@ -94,3 +94,108 @@ export const ALLOWED_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]>
   no_show: [],
   cancelled: [],
 };
+
+// --- Status visual config (migrated from mock data) ---
+
+export const STATUS_CONFIG: Record<ReservationStatus, {
+  label: string;
+  dotColor: string;
+  showDot: boolean;
+  textClass: string;
+  bgClass: string;
+  borderClass: string;
+}> = {
+  draft: {
+    label: 'Concept',
+    dotColor: '#B8B5B0',
+    showDot: true,
+    textClass: 'text-muted-foreground',
+    bgClass: 'bg-muted/40',
+    borderClass: '',
+  },
+  confirmed: {
+    label: 'Bevestigd',
+    dotColor: '#1d979e',
+    showDot: true,
+    textClass: 'text-primary',
+    bgClass: 'bg-primary/[0.08]',
+    borderClass: '',
+  },
+  pending_payment: {
+    label: 'Wacht op betaling',
+    dotColor: '#F59E0B',
+    showDot: true,
+    textClass: 'text-warning',
+    bgClass: 'bg-warning/10',
+    borderClass: '',
+  },
+  option: {
+    label: 'Optie',
+    dotColor: '#6366F1',
+    showDot: true,
+    textClass: 'text-primary',
+    bgClass: 'bg-primary/10',
+    borderClass: '',
+  },
+  seated: {
+    label: 'Gezeten',
+    dotColor: '#14B8A6',
+    showDot: true,
+    textClass: 'text-primary',
+    bgClass: 'bg-primary/15',
+    borderClass: '',
+  },
+  completed: {
+    label: 'Afgerond',
+    dotColor: '#D1CCC7',
+    showDot: true,
+    textClass: 'text-muted-foreground opacity-50',
+    bgClass: '',
+    borderClass: '',
+  },
+  no_show: {
+    label: 'No-show',
+    dotColor: '#E87461',
+    showDot: true,
+    textClass: 'text-destructive',
+    bgClass: 'bg-destructive/10',
+    borderClass: 'border border-destructive/20',
+  },
+  cancelled: {
+    label: 'Geannuleerd',
+    dotColor: '',
+    showDot: false,
+    textClass: 'text-muted-foreground line-through',
+    bgClass: '',
+    borderClass: '',
+  },
+};
+
+export const STATUS_LABELS: Record<ReservationStatus, string> = {
+  draft: 'Concept',
+  pending_payment: 'Wacht op betaling',
+  option: 'Optie',
+  confirmed: 'Bevestigd',
+  seated: 'Gezeten',
+  completed: 'Afgerond',
+  no_show: 'No-show',
+  cancelled: 'Geannuleerd',
+};
+
+export const CHANNEL_LABELS: Record<ReservationChannel, string> = {
+  widget: 'Widget',
+  operator: 'Operator',
+  phone: 'Telefoon',
+  google: 'Google',
+  whatsapp: 'WhatsApp',
+  walk_in: 'Walk-in',
+};
+
+export const CHANNEL_ICONS: Record<ReservationChannel, string> = {
+  widget: '🌐',
+  operator: '👤',
+  phone: '📞',
+  google: '🔍',
+  whatsapp: '💬',
+  walk_in: '🚶',
+};

@@ -1,6 +1,6 @@
 import { NestoSelect, type SelectOption } from "@/components/polar/NestoSelect";
 import { cn } from "@/lib/utils";
-import type { ReservationStatus } from "@/data/reservations";
+import { STATUS_CONFIG, type ReservationStatus } from "@/types/reservation";
 
 export interface ReservationFiltersState {
   status: string;
@@ -18,29 +18,18 @@ interface ReservationFiltersProps {
 
 const statusOptions: SelectOption[] = [
   { value: "all", label: "Alle statussen" },
-  { value: "pending", label: "Pending" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "checked_in", label: "Checked in" },
-  { value: "seated", label: "Seated" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "no_show", label: "No show" },
+  ...Object.entries(STATUS_CONFIG).map(([value, config]) => ({
+    value,
+    label: config.label,
+  })),
 ];
 
 const shiftOptions: SelectOption[] = [
   { value: "all", label: "Alle shifts" },
-  { value: "ED", label: "Early Dinner (ED)" },
-  { value: "LD", label: "Late Dinner (LD)" },
 ];
 
 const ticketTypeOptions: SelectOption[] = [
   { value: "all", label: "Alle types" },
-  { value: "Regular", label: "Regular" },
-  { value: "Chef's Table Experience", label: "Chef's Table Experience" },
-  { value: "Celebration Package", label: "Celebration Package" },
-  { value: "Business Dinner", label: "Business Dinner" },
-  { value: "Group Dining", label: "Group Dining" },
-  { value: "Walk-in", label: "Walk-in" },
 ];
 
 export function ReservationFilters({
