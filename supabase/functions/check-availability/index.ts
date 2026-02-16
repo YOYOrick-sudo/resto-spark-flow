@@ -151,6 +151,7 @@ function evaluateSlot(
       widget: perms?.widget ?? true,
       google: perms?.google ?? false,
       whatsapp: perms?.widget ?? true,
+      phone: perms?.phone ?? true,
     };
     if (channelMap[channel] === false) {
       return unavailable('channel_blocked');
