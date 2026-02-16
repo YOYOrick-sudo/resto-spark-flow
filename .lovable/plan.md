@@ -1,122 +1,106 @@
 
+# Fase 4.5.C — Availability Engine: Validatie & Edge Cases
 
-# Fase 4.5.B — Availability Hook + Diagnose Slot
+## Wat wordt gedaan
 
-## Overzicht
+1. **Phone channel fix** in `_shared/availabilityEngine.ts`, `check-availability/index.ts`, en `diagnose-slot/index.ts`
+2. **Test Edge Function** (`test-availability-engine`) die alle 14 scenario's uitvoert tegen de live edge functions
+3. **Cleanup**: test function verwijderen na succesvolle uitvoering
+4. **Notitie**: `pacing_arrivals_limit` bestaat NIET op `shift_tickets` — genoteerd als toekomstige uitbreiding, niet blokkerend
 
-Drie deliverables: (1) gedeelde engine module, (2) diagnose-slot Edge Function, (3) twee React hooks. Geen UI.
+## DB Schema Bevinding
 
-## Bevestigingen
+`pacing_arrivals_limit` kolom bestaat niet. De enige pacing kolom is `pacing_limit` (covers per interval). Een aparte arrivals-limiet (max reserveringen per interval, ongeacht grootte) is een logische toekomstige uitbreiding maar niet nodig voor v1.
 
-- `_shared/availabilityEngine.ts`: Bevestigd. Types, helpers en `loadEngineData` worden geextraheerd uit `check-availability/index.ts` naar dit gedeelde bestand. Beide Edge Functions importeren hieruit.
-- `useDiagnoseSlot` als `useMutation`: Bevestigd. On-demand actie, geen auto-fetch.
-- `setting_location` in diagnose output: Toegevoegd. Elke blocking constraint krijgt een leesbaar pad zoals `"Shift Diner → Regular Dinner → Pacing: 12 covers"`.
+## Stap 1: Phone Channel Fix
 
-## Wat er gebouwd wordt
-
-| # | Bestand | Type | Beschrijving |
-|---|---------|------|-------------|
-| 1 | `supabase/functions/_shared/availabilityEngine.ts` | Shared module | Types, time helpers, `loadEngineData`, `mapTicket` -- geextraheerd uit check-availability |
-| 2 | `supabase/functions/check-availability/index.ts` | Refactor | Importeert types en data loader uit `_shared/`. Engine logica + HTTP handler blijven hier |
-| 3 | `supabase/functions/diagnose-slot/index.ts` | Nieuwe Edge Function | Evalueert ALLE constraints voor een specifiek slot. Output bevat `blocking_constraints` met `setting_location`, plus `all_constraints` en `squeeze_possible` |
-| 4 | `src/types/availability.ts` | TypeScript types | Client-side interfaces voor request/response van beide Edge Functions |
-| 5 | `src/hooks/useCheckAvailability.ts` | React Hook | `useQuery` wrapper rond `check-availability`. Auto-channel detectie (operator/widget) |
-| 6 | `src/hooks/useDiagnoseSlot.ts` | React Hook | `useMutation` wrapper rond `diagnose-slot`. On-demand diagnostiek |
-| 7 | `src/lib/queryKeys.ts` | Update | Twee nieuwe keys: `availability` en `diagnoseSlot` |
-
-## Diagnose-slot Output (met setting_location)
-
+### `_shared/availabilityEngine.ts` (line 12)
 ```text
-{
-  available: false,
-  blocking_constraints: [
-    {
-      type: "pacing_full",
-      detail: "12/12 covers in dit interval",
-      current_value: 12,
-      limit_value: 12,
-      setting_location: "Shift Diner → Regular Dinner → Pacing"
-    },
-    {
-      type: "tables_full",
-      detail: "Geen tafel beschikbaar voor 6 personen",
-      tables_checked: 8,
-      tables_capacity_match: 2,
-      tables_occupied: 2,
-      setting_location: "Tafels → Restaurant (area)"
-    }
-  ],
-  all_constraints: [
-    { type: "booking_window", passed: true, setting_location: "Ticket Regular Dinner → Boekingsvenster" },
-    { type: "party_size", passed: true, setting_location: "Shift Diner → Regular Dinner → Groepsgrootte" },
-    { type: "channel_blocked", passed: true, setting_location: "Shift Diner → Regular Dinner → Kanalen" },
-    { type: "pacing_full", passed: false, ... },
-    { type: "max_covers", passed: true, setting_location: "Shift Diner → Regular Dinner → Zitplaatsen" },
-    { type: "tables_full", passed: false, ... }
-  ],
-  squeeze_possible: true,
-  squeeze_duration: 90
-}
+channel?: 'widget' | 'operator' | 'google' | 'whatsapp' | 'phone';
 ```
 
-De `setting_location` is een leesbaar pad dat de operator vertelt WAAR de blokkerende instelling staat. Dit wordt opgebouwd uit shift name, ticket name, en constraint type.
-
-## Technische details
-
-### 1. _shared/availabilityEngine.ts
-
-Bevat:
-- Alle type interfaces (EffectiveShift, TicketData, ShiftTicketConfig, TableData, TableGroupData, ExistingReservation, EngineData)
-- Time helpers (`timeToMinutes`, `minutesToTime`, `generateSlotTimes`, `getNowInTimezone`)
-- `loadEngineData()` functie
-- `mapTicket()` helper
-
-### 2. check-availability refactor
-
-Importeert types en data loading uit `_shared/availabilityEngine.ts`. Behoudt:
-- Engine logica (`checkAvailability`, `evaluateSlot`, `trySqueezeOrFail`)
-- Reservation helpers (`getReservationsInInterval`, `getShiftTotalCovers`)
-- Table availability checks (`checkTableAvailability`, `isTableFree`)
-- HTTP handler
-
-### 3. diagnose-slot Edge Function
-
-Verschil met check-availability:
-- Input: specifiek slot (location_id, date, time, party_size, ticket_id) -- ticket_id is verplicht
-- Evalueert ALLE 6 constraints, stopt niet bij eerste faal
-- Elke constraint rapporteert: type, passed, detail, current_value, limit_value, setting_location
-- Berekent squeeze_possible en squeeze_duration
-- Auth: JWT verplicht + location access check (alleen operators)
-- Hergebruikt `loadEngineData` uit `_shared/`
-
-### 4. React Hooks
-
-**useCheckAvailability:**
-- `useQuery` met `supabase.functions.invoke('check-availability', { body })`
-- Channel auto-detectie via `useAuth()`: ingelogd = 'operator', anders = 'widget'
-- `enabled`: alleen als location_id, date, party_size aanwezig
-- `staleTime`: 30 seconden
-
-**useDiagnoseSlot:**
-- `useMutation` met `supabase.functions.invoke('diagnose-slot', { body })`
-- Retourneert `{ mutate: diagnose, data, isLoading, error }`
-- Geen auto-fetch, alleen on-demand
-
-### 5. Config.toml
-
-Toevoegen:
+### `check-availability/index.ts` (lines 150-154)
+Toevoegen aan channelMap:
 ```text
-[functions.diagnose-slot]
-verify_jwt = false
+phone: perms?.phone ?? true,
 ```
+
+### `diagnose-slot/index.ts`
+Channel check is altijd `passed: true` voor operator, dus geen functionele wijziging nodig. Maar het type moet consistent zijn voor toekomstige uitbreidbaarheid.
+
+## Stap 2: Test Edge Function
+
+Maakt een `supabase/functions/test-availability-engine/index.ts` die:
+
+1. Eigen testdata aanmaakt via service_role_key (tijdelijke shift, ticket, shift_ticket, area, tables)
+2. Per scenario de `check-availability` en/of `diagnose-slot` Edge Function aanroept via `fetch()`
+3. Output vergelijkt met verwachte waarden
+4. Alles opruimt (testdata verwijderen)
+5. JSON rapport retourneert met per test: naam, passed/failed, detail, duur in ms
+
+### Testdata Setup
+
+De test function maakt de volgende tijdelijke records:
+- **Shift**: "Test Shift" op alle dagen, 17:00-23:00, interval 15 min
+- **Ticket**: "Test Ticket" met configureerbare min/max party, booking window, etc.
+- **Shift-Ticket**: Koppeling met pacing_limit, channel_permissions, etc.
+- **Area**: "Test Area"
+- **Tables**: T1 (2-4p), T2 (2-4p), T3 (4-8p), T4 (1-1p, voor party_size=1 test)
+
+Per test worden specifieke parameters aangepast (booking_window, party_size, channel_permissions, shift_exceptions).
+
+### De 14 Tests
+
+| # | Test | Method | Key assertion |
+|---|------|--------|--------------|
+| 1 | Shift Exception: Closed | check-availability | Geen slots voor gesloten shift |
+| 2 | Shift Exception: Modified Times | check-availability | Slots alleen binnen 18:00-22:00 |
+| 3 | Location-Wide Closed | check-availability | Helemaal geen slots |
+| 4 | Party Size Grenzen | check-availability | 1=party_size, 2=ok, 8=ok, 9=party_size |
+| 5 | Party Size 1 | check-availability | tables_full als geen min_capacity=1 tafel |
+| 6 | Booking Window: Te Ver Vooruit | check-availability (widget) | Alle slots booking_window |
+| 7 | Booking Window: Te Kort | check-availability (widget) | Vroege slots blocked, late slots ok |
+| 8 | Booking Window: Large Party | check-availability (widget) | party_size=6 blocked <24u, party_size=4 ok |
+| 9 | Channel Permissions | check-availability | widget blocked als widget=false, operator altijd ok |
+| 10 | Squeeze Alleen Bij Vol | check-availability | Geen squeeze slots (stub leeg = niet vol) |
+| 11 | Table Group | check-availability | T3 (4-8p) match voor party_size=4 |
+| 12 | Diagnose: Alle Constraints | diagnose-slot | available=true, 6 constraints met passed=true |
+| 13 | Diagnose: Setting Location | diagnose-slot | Geen UUIDs in setting_location strings |
+| 14 | Performance | check-availability | Response time <500ms |
+
+### Testmethodologie
+
+Elke test volgt dit patroon:
+1. Insert/update testdata voor het specifieke scenario
+2. `fetch()` naar check-availability of diagnose-slot met de juiste parameters
+3. Assert op de verwachte output
+4. Cleanup van scenario-specifieke data (shift_exceptions, etc.)
+
+Timing wordt gemeten met `performance.now()` rond de fetch call.
+
+## Stap 3: Uitvoering & Rapportage
+
+Na deployment van de test function, wordt deze aangeroepen via `curl_edge_functions`. Het resultaat is een JSON array met per test: naam, status, detail, en duur.
+
+## Stap 4: Cleanup
+
+Na succesvolle uitvoering:
+- Testdata verwijderen uit de database
+- Test edge function verwijderen (code + deployment)
+
+## Bestanden die wijzigen
+
+| Bestand | Actie |
+|---------|-------|
+| `supabase/functions/_shared/availabilityEngine.ts` | Phone channel toevoegen aan type |
+| `supabase/functions/check-availability/index.ts` | Phone toevoegen aan channelMap |
+| `supabase/functions/test-availability-engine/index.ts` | Nieuw (tijdelijk) |
+| `supabase/config.toml` | test function config (tijdelijk) |
 
 ## Implementatievolgorde
 
-1. `_shared/availabilityEngine.ts` -- extract types + data loader
-2. Refactor `check-availability/index.ts` -- import uit _shared
-3. `diagnose-slot/index.ts` -- nieuwe Edge Function
-4. `src/types/availability.ts` -- client types
-5. `src/lib/queryKeys.ts` -- nieuwe keys
-6. `src/hooks/useCheckAvailability.ts`
-7. `src/hooks/useDiagnoseSlot.ts`
-
+1. Phone channel fix (3 bestanden)
+2. Deploy check-availability + diagnose-slot
+3. Test Edge Function schrijven + deployen
+4. Tests uitvoeren en resultaten rapporteren
+5. Test function + testdata cleanup
