@@ -266,7 +266,7 @@ export function AreasSection({ locationId, externalAddTrigger }: AreasSectionPro
               style={{ willChange: 'transform' }}
             >
               {/* Match AreaCard header exactly */}
-              <div className="flex items-center gap-2 p-4 bg-muted/30">
+              <div className="flex items-center gap-2 px-5 py-3.5">
                 <button className="cursor-grabbing p-1 hover:bg-muted rounded">
                   <GripVertical className="h-4 w-4 text-primary" />
                 </button>
@@ -285,8 +285,8 @@ export function AreasSection({ locationId, externalAddTrigger }: AreasSectionPro
 
       {/* Centralized Archived Section */}
       {hasArchivedContent && (
-        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="mt-6 bg-muted/30 rounded-lg p-4">
-          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
+        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen} className="mt-6 bg-muted/30 rounded-lg px-4 py-3">
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1">
             <ChevronRight className={`h-4 w-4 transition-transform ${archivedOpen ? 'rotate-90' : ''}`} />
             <Archive className="h-4 w-4" />
             Gearchiveerd ({archivedAreas.length} areas, {allArchivedTables.length} tafels)

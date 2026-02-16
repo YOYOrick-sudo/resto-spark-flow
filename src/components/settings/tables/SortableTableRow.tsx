@@ -54,7 +54,7 @@ export function SortableTableRow({ id, table, priority, isDragDisabled, onEdit, 
     <div 
       ref={setNodeRef} 
       style={style} 
-      className="grid grid-cols-[32px_40px_1fr_80px_80px_40px_48px_32px] items-center gap-2 py-2 px-1 rounded-lg hover:bg-muted/50 transition-colors group"
+      className="grid grid-cols-[32px_40px_1fr_80px_80px_40px_48px_32px] items-center gap-2 py-2 px-1 hover:bg-accent/40 transition-colors group"
     >
       {/* Drag handle with tooltip when disabled */}
       <TooltipProvider delayDuration={300}>
