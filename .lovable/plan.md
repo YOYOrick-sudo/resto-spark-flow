@@ -1,37 +1,122 @@
 
 
-# NestoLogo in witte kleur
+# Fase 4.5.B — Availability Hook + Diagnose Slot
 
-## Aandachtspunt: contrast
+## Overzicht
 
-Het logo wordt overal wit. Op lichte achtergronden (sidebar `bg-secondary`, auth-pagina, 404-pagina) is wit onzichtbaar. Daarom worden de achtergronden van die plekken aangepast naar een donkere kleur zodat het witte logo goed zichtbaar is.
+Drie deliverables: (1) gedeelde engine module, (2) diagnose-slot Edge Function, (3) twee React hooks. Geen UI.
 
-## Wijzigingen
+## Bevestigingen
 
-| Bestand | Wat verandert |
-|---------|---------------|
-| `NestoLogo.tsx` | Woordmerk van `text-primary` (teal) naar `text-white`; icoon-rect van `fill-primary` naar `fill-white`, N-letter van `fill="white"` naar `fill="currentColor"` met `text-primary` (teal N op wit blokje) |
-| `NestoSidebar.tsx` | Sidebar achtergrond van `bg-secondary` naar `bg-[hsl(220,15%,13%)]` (donker) zodat wit logo zichtbaar is. Tekst- en menu-item kleuren aanpassen voor contrast op donkere achtergrond |
-| `AppLayout.tsx` | Mobiele header achtergrond donker maken (zelfde kleur als sidebar) |
-| `Auth.tsx` | Pagina-achtergrond of logo-sectie donker maken zodat wit logo zichtbaar is |
-| `NotFound.tsx` | Logo-sectie of achtergrond aanpassen voor contrast |
-| `NestoErrorBoundary.tsx` | Geen logo aanwezig, geen wijziging nodig |
+- `_shared/availabilityEngine.ts`: Bevestigd. Types, helpers en `loadEngineData` worden geextraheerd uit `check-availability/index.ts` naar dit gedeelde bestand. Beide Edge Functions importeren hieruit.
+- `useDiagnoseSlot` als `useMutation`: Bevestigd. On-demand actie, geen auto-fetch.
+- `setting_location` in diagnose output: Toegevoegd. Elke blocking constraint krijgt een leesbaar pad zoals `"Shift Diner → Regular Dinner → Pacing: 12 covers"`.
 
-## Technisch detail
+## Wat er gebouwd wordt
 
-### NestoLogo.tsx
+| # | Bestand | Type | Beschrijving |
+|---|---------|------|-------------|
+| 1 | `supabase/functions/_shared/availabilityEngine.ts` | Shared module | Types, time helpers, `loadEngineData`, `mapTicket` -- geextraheerd uit check-availability |
+| 2 | `supabase/functions/check-availability/index.ts` | Refactor | Importeert types en data loader uit `_shared/`. Engine logica + HTTP handler blijven hier |
+| 3 | `supabase/functions/diagnose-slot/index.ts` | Nieuwe Edge Function | Evalueert ALLE constraints voor een specifiek slot. Output bevat `blocking_constraints` met `setting_location`, plus `all_constraints` en `squeeze_possible` |
+| 4 | `src/types/availability.ts` | TypeScript types | Client-side interfaces voor request/response van beide Edge Functions |
+| 5 | `src/hooks/useCheckAvailability.ts` | React Hook | `useQuery` wrapper rond `check-availability`. Auto-channel detectie (operator/widget) |
+| 6 | `src/hooks/useDiagnoseSlot.ts` | React Hook | `useMutation` wrapper rond `diagnose-slot`. On-demand diagnostiek |
+| 7 | `src/lib/queryKeys.ts` | Update | Twee nieuwe keys: `availability` en `diagnoseSlot` |
+
+## Diagnose-slot Output (met setting_location)
 
 ```text
-Icoon:  rect fill="white" (was fill-primary)
-        path fill wordt teal (zodat de N zichtbaar is op het witte vlak)
-Tekst:  "nesto" wordt text-white (was text-primary)
+{
+  available: false,
+  blocking_constraints: [
+    {
+      type: "pacing_full",
+      detail: "12/12 covers in dit interval",
+      current_value: 12,
+      limit_value: 12,
+      setting_location: "Shift Diner → Regular Dinner → Pacing"
+    },
+    {
+      type: "tables_full",
+      detail: "Geen tafel beschikbaar voor 6 personen",
+      tables_checked: 8,
+      tables_capacity_match: 2,
+      tables_occupied: 2,
+      setting_location: "Tafels → Restaurant (area)"
+    }
+  ],
+  all_constraints: [
+    { type: "booking_window", passed: true, setting_location: "Ticket Regular Dinner → Boekingsvenster" },
+    { type: "party_size", passed: true, setting_location: "Shift Diner → Regular Dinner → Groepsgrootte" },
+    { type: "channel_blocked", passed: true, setting_location: "Shift Diner → Regular Dinner → Kanalen" },
+    { type: "pacing_full", passed: false, ... },
+    { type: "max_covers", passed: true, setting_location: "Shift Diner → Regular Dinner → Zitplaatsen" },
+    { type: "tables_full", passed: false, ... }
+  ],
+  squeeze_possible: true,
+  squeeze_duration: 90
+}
 ```
 
-### NestoSidebar.tsx
+De `setting_location` is een leesbaar pad dat de operator vertelt WAAR de blokkerende instelling staat. Dit wordt opgebouwd uit shift name, ticket name, en constraint type.
 
-De sidebar krijgt een donkere achtergrond. Menu-items, labels, chevrons en active states worden aangepast naar lichte kleuren die werken op de donkere achtergrond. De hover- en active-states gebruiken `white/10` en `white/20` in plaats van de huidige lichte kleuren.
+## Technische details
 
-### Auth.tsx en NotFound.tsx
+### 1. _shared/availabilityEngine.ts
 
-De logo-secties krijgen een donkere achtergrond of het logo wordt op een donker vlak geplaatst zodat het witte woordmerk leesbaar blijft.
+Bevat:
+- Alle type interfaces (EffectiveShift, TicketData, ShiftTicketConfig, TableData, TableGroupData, ExistingReservation, EngineData)
+- Time helpers (`timeToMinutes`, `minutesToTime`, `generateSlotTimes`, `getNowInTimezone`)
+- `loadEngineData()` functie
+- `mapTicket()` helper
+
+### 2. check-availability refactor
+
+Importeert types en data loading uit `_shared/availabilityEngine.ts`. Behoudt:
+- Engine logica (`checkAvailability`, `evaluateSlot`, `trySqueezeOrFail`)
+- Reservation helpers (`getReservationsInInterval`, `getShiftTotalCovers`)
+- Table availability checks (`checkTableAvailability`, `isTableFree`)
+- HTTP handler
+
+### 3. diagnose-slot Edge Function
+
+Verschil met check-availability:
+- Input: specifiek slot (location_id, date, time, party_size, ticket_id) -- ticket_id is verplicht
+- Evalueert ALLE 6 constraints, stopt niet bij eerste faal
+- Elke constraint rapporteert: type, passed, detail, current_value, limit_value, setting_location
+- Berekent squeeze_possible en squeeze_duration
+- Auth: JWT verplicht + location access check (alleen operators)
+- Hergebruikt `loadEngineData` uit `_shared/`
+
+### 4. React Hooks
+
+**useCheckAvailability:**
+- `useQuery` met `supabase.functions.invoke('check-availability', { body })`
+- Channel auto-detectie via `useAuth()`: ingelogd = 'operator', anders = 'widget'
+- `enabled`: alleen als location_id, date, party_size aanwezig
+- `staleTime`: 30 seconden
+
+**useDiagnoseSlot:**
+- `useMutation` met `supabase.functions.invoke('diagnose-slot', { body })`
+- Retourneert `{ mutate: diagnose, data, isLoading, error }`
+- Geen auto-fetch, alleen on-demand
+
+### 5. Config.toml
+
+Toevoegen:
+```text
+[functions.diagnose-slot]
+verify_jwt = false
+```
+
+## Implementatievolgorde
+
+1. `_shared/availabilityEngine.ts` -- extract types + data loader
+2. Refactor `check-availability/index.ts` -- import uit _shared
+3. `diagnose-slot/index.ts` -- nieuwe Edge Function
+4. `src/types/availability.ts` -- client types
+5. `src/lib/queryKeys.ts` -- nieuwe keys
+6. `src/hooks/useCheckAvailability.ts`
+7. `src/hooks/useDiagnoseSlot.ts`
 
