@@ -233,7 +233,7 @@ export function AreaCard({
     <NestoCard className="overflow-hidden">
       {/* Header */}
       <Collapsible open={isOpen} onOpenChange={handleToggle}>
-        <div className="flex items-center gap-2 p-4 border-b bg-muted/30">
+        <div className="flex items-center gap-2 px-5 py-3.5">
           {/* Drag handle (if provided) */}
           {dragHandle}
 
@@ -250,7 +250,7 @@ export function AreaCard({
           </CollapsibleTrigger>
 
           {/* Fill order */}
-          <div className="w-36">
+          <div className="w-44">
             <NestoSelect
               value={area.fill_order}
               onValueChange={handleFillOrderChange}
@@ -289,10 +289,10 @@ export function AreaCard({
 
         {/* Content */}
         <CollapsibleContent>
-          <div className="p-4 space-y-2">
+          <div className="px-5 pb-5 pt-3 space-y-0">
             {/* Table header row with sortable columns */}
             {activeTables.length > 0 && (
-              <div className="grid grid-cols-[32px_40px_1fr_80px_80px_40px_48px_32px] items-center gap-2 px-1 pb-2 border-b text-xs text-muted-foreground">
+              <div className="grid grid-cols-[32px_40px_1fr_80px_80px_40px_48px_32px] items-center gap-2 px-1 pb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 <div></div>
                 <SortableHeader label="Prio" column="priority" className="justify-center" />
                 <SortableHeader label="Naam" column="name" />
@@ -314,17 +314,19 @@ export function AreaCard({
               onDragCancel={handleTableDragCancel}
             >
               <SortableContext items={dndItems.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                {dndItems.map((table) => (
-                  <SortableTableRow
-                    key={table.id}
-                    id={table.id}
-                    table={table}
-                    priority={priorityMap.get(table.id) ?? 0}
-                    isDragDisabled={!isDragEnabled}
-                    onEdit={() => onEditTable(table)}
-                    locationId={effectiveLocationId}
-                  />
-                ))}
+                <div className="divide-y divide-border/50">
+                  {dndItems.map((table) => (
+                    <SortableTableRow
+                      key={table.id}
+                      id={table.id}
+                      table={table}
+                      priority={priorityMap.get(table.id) ?? 0}
+                      isDragDisabled={!isDragEnabled}
+                      onEdit={() => onEditTable(table)}
+                      locationId={effectiveLocationId}
+                    />
+                  ))}
+                </div>
               </SortableContext>
               
               {/* Minimal DragOverlay - Notion-style */}
@@ -352,7 +354,7 @@ export function AreaCard({
             )}
 
             {/* Add table buttons */}
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-3 border-t border-border/40 mt-1">
               <NestoButton variant="outline" size="sm" onClick={onAddTable}>
                 <Plus className="h-3 w-3 mr-1" />
                 Tafel
