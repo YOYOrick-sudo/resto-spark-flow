@@ -6,7 +6,7 @@ import { NestoButton } from "@/components/polar/NestoButton";
 import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/settings/context";
 import { TitleHelp } from "@/components/polar/TitleHelp";
 import { nestoToast } from "@/lib/nestoToast";
-import { mockPacingSettings, updatePacingSettings } from "@/data/reservations";
+import { mockPacingSettings, updatePacingSettings } from "@/data/pacingMockData";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 
 /**

@@ -1,13 +1,12 @@
 import { useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+import type { Reservation } from "@/types/reservation";
+import type { Table } from "@/types/reservations";
 import {
-  Table,
-  Reservation,
-  getReservationsForTableMutable,
-  GridTimeConfig,
+  type GridTimeConfig,
   defaultGridConfig,
-} from "@/data/reservations";
+} from "@/lib/reservationUtils";
 import { ReservationBlock } from "./ReservationBlock";
 import type { DensityType } from "./DensityToggle";
 
@@ -23,31 +22,27 @@ interface TableRowProps {
   activeReservationId?: string | null;
   isDropTarget?: boolean;
   ghostStartTime?: string | null;
-  refreshKey?: number;
   isDropAnimating?: boolean;
   density?: DensityType;
+  reservations: Reservation[];
 }
 
-// Constants - must match ReservationGridView
 const STICKY_COL_WIDTH = 140;
 
-// Status dot for table online bookability
 function TableStatusDot({ table }: { table: Table }) {
-  // Green = online bookable, Red = offline
-  const dotColor = table.isOnlineBookable 
-    ? "bg-emerald-500"  // Online
-    : "bg-red-500";     // Offline
-  
+  const dotColor = table.is_online_bookable
+    ? "bg-emerald-500"
+    : "bg-red-500";
   return <span className={cn("w-2 h-2 rounded-full flex-shrink-0", dotColor)} />;
 }
 
-// Generate quarter-hour slots for the grid
 function generateQuarterSlots(startHour: number, endHour: number): string[] {
   const slots: string[] = [];
   for (let hour = startHour; hour < endHour; hour++) {
     for (let quarter = 0; quarter < 4; quarter++) {
       const minutes = quarter * 15;
-      slots.push(`${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+      const displayHour = hour >= 24 ? hour - 24 : hour;
+      slots.push(`${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
     }
   }
   return slots;
@@ -65,27 +60,20 @@ export function TableRow({
   activeReservationId = null,
   isDropTarget = false,
   ghostStartTime = null,
-  refreshKey = 0,
   isDropAnimating = false,
   density = "compact",
+  reservations,
 }: TableRowProps) {
   const isCompact = density === "compact";
-  const reservations = useMemo(
-    () => getReservationsForTableMutable(date, table.id),
-    [date, table.id, refreshKey]
-  );
 
-  // Calculate grid width and quarter width
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
   const quarterWidth = 15 * config.pixelsPerMinute;
-  
-  // Generate all quarter-hour slots
+
   const quarterSlots = useMemo(
     () => generateQuarterSlots(config.startHour, config.endHour),
     [config.startHour, config.endHour]
   );
 
-  // Make the grid area droppable
   const { setNodeRef, isOver } = useDroppable({
     id: `table-${table.id}`,
     data: { tableId: table.id, date },
@@ -100,29 +88,24 @@ export function TableRow({
         isDropTarget && "bg-primary/5"
       )}
     >
-      {/* Sticky left column - Table info - horizontal layout */}
-      <div 
+      <div
         className={cn(
           "sticky left-0 z-30 flex-shrink-0 flex items-center justify-between px-3 border-r-2 border-border",
           isOdd ? "bg-secondary" : "bg-card"
         )}
         style={{ width: `${STICKY_COL_WIDTH}px` }}
       >
-        {/* Table number - left side */}
         <span className="text-sm font-semibold text-foreground">
-          {table.number}
+          {table.display_label}
         </span>
-        
-        {/* Capacity + dot - right side */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground italic">
-            {table.minCapacity}-{table.maxCapacity}
+            {table.min_capacity}-{table.max_capacity}
           </span>
           <TableStatusDot table={table} />
         </div>
       </div>
 
-      {/* Grid area for reservation blocks - droppable */}
       <div
         ref={setNodeRef}
         className={cn(
@@ -131,7 +114,6 @@ export function TableRow({
         )}
         style={{ width: `${gridWidth}px` }}
       >
-        {/* Clickable quarter-hour cells (background layer) */}
         <div className="absolute inset-0 flex">
           {quarterSlots.map((time, index) => (
             <div
@@ -140,16 +122,14 @@ export function TableRow({
               className={cn(
                 "h-full cursor-pointer transition-colors hover:bg-primary/10",
                 index % 4 === 0 ? "border-l border-border/50" : "border-l border-border/20",
-                // Highlight specific 15-min cell as drop target
                 isDropTarget && ghostStartTime === time && "bg-primary/20 ring-2 ring-primary ring-inset"
               )}
               style={{ width: `${quarterWidth}px` }}
-              title={`Tafel ${table.number} om ${time} - Klik om toe te voegen`}
+              title={`Tafel ${table.display_label} om ${time} - Klik om toe te voegen`}
             />
           ))}
         </div>
-        
-        {/* Reservation blocks (foreground layer) */}
+
         <div className="absolute inset-0 z-10">
           {reservations
             .filter((r) => r.status !== "cancelled" && r.status !== "no_show")

@@ -6,7 +6,7 @@ import { ReservationsTile } from '@/components/dashboard/ReservationsTile';
 import { KeukenTile } from '@/components/dashboard/KeukenTile';
 import { ReceptenTile } from '@/components/dashboard/ReceptenTile';
 import { useSignals } from '@/hooks/useSignals';
-import { mockReservations } from '@/data/reservations';
+import { useReservations } from '@/hooks/useReservations';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -20,9 +20,11 @@ export default function Dashboard() {
   const dateLabel = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
   const { signals } = useSignals();
 
-  const todayReservations = useMemo(
-    () => mockReservations.filter((r) => r.date === today && r.status !== 'cancelled'),
-    [today]
+  const { data: reservations } = useReservations({ date: today });
+
+  const todayCount = useMemo(
+    () => (reservations ?? []).filter((r) => r.status !== 'cancelled').length,
+    [reservations]
   );
 
   const urgentCount = useMemo(
@@ -49,7 +51,7 @@ export default function Dashboard() {
       )}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch mt-8">
-        <ReservationsTile todayCount={todayReservations.length} />
+        <ReservationsTile todayCount={todayCount} />
         <KeukenTile />
         <ReceptenTile />
       </div>

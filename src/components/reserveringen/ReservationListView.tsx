@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Star, MoreHorizontal, MessageSquare, Phone } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -9,12 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Reservation,
-  reservationStatusConfig,
-  getTableNumbers,
-  getGuestDisplayName,
-} from "@/data/reservations";
+import type { Reservation } from "@/types/reservation";
+import { STATUS_CONFIG, ALLOWED_TRANSITIONS } from "@/types/reservation";
+import { getDisplayName, isWalkIn } from "@/lib/reservationUtils";
 import type { DensityType } from "./DensityToggle";
 
 interface ReservationListViewProps {
@@ -24,35 +21,28 @@ interface ReservationListViewProps {
   density?: DensityType;
 }
 
-// Status dot component
 function StatusDot({ status, density = "compact" }: { status: Reservation["status"]; density?: DensityType }) {
-  const config = reservationStatusConfig[status];
-  const isCompact = density === "compact";
+  const config = STATUS_CONFIG[status];
+  if (!config) return null;
   return (
     <span
-      className={cn("inline-block rounded-full flex-shrink-0", isCompact ? "h-2.5 w-2.5" : "h-2.5 w-2.5")}
+      className={cn("inline-block rounded-full flex-shrink-0 h-2.5 w-2.5")}
       style={{ backgroundColor: config.dotColor }}
       title={config.label}
     />
   );
 }
 
-// Group reservations by time slot
 function groupByTimeSlot(reservations: Reservation[]): Map<string, Reservation[]> {
   const groups = new Map<string, Reservation[]>();
-  
-  const sorted = [...reservations].sort((a, b) => 
-    a.startTime.localeCompare(b.startTime)
-  );
-
+  const sorted = [...reservations].sort((a, b) => a.start_time.localeCompare(b.start_time));
   sorted.forEach((reservation) => {
-    const timeSlot = reservation.startTime;
+    const timeSlot = reservation.start_time;
     if (!groups.has(timeSlot)) {
       groups.set(timeSlot, []);
     }
     groups.get(timeSlot)!.push(reservation);
   });
-
   return groups;
 }
 
@@ -62,10 +52,7 @@ export function ReservationListView({
   onStatusChange,
   density = "compact",
 }: ReservationListViewProps) {
-  const groupedReservations = useMemo(
-    () => groupByTimeSlot(reservations),
-    [reservations]
-  );
+  const groupedReservations = useMemo(() => groupByTimeSlot(reservations), [reservations]);
   const isCompact = density === "compact";
 
   if (reservations.length === 0) {
@@ -85,8 +72,7 @@ export function ReservationListView({
     <div className="space-y-0">
       {Array.from(groupedReservations.entries()).map(([timeSlot, reservationsInSlot]) => (
         <div key={timeSlot}>
-          {/* Time slot header - sticky */}
-           <div className={cn(
+          <div className={cn(
             "sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 border-b border-border shadow-sm",
             isCompact ? "py-2" : "py-3"
           )}>
@@ -98,7 +84,6 @@ export function ReservationListView({
             </span>
           </div>
 
-          {/* Reservations in this time slot */}
           <div className={cn("divide-y", isCompact ? "divide-border/50" : "divide-border")}>
             {reservationsInSlot.map((reservation) => (
               <ReservationRow
@@ -124,10 +109,12 @@ interface ReservationRowProps {
 }
 
 function ReservationRow({ reservation, onClick, onStatusChange, density }: ReservationRowProps) {
-  const statusConfig = reservationStatusConfig[reservation.status];
-  const guestName = getGuestDisplayName(reservation);
-  const tableNumbers = getTableNumbers(reservation.tableIds);
+  const statusConfig = STATUS_CONFIG[reservation.status];
+  const guestName = getDisplayName(reservation);
+  const tableLabel = reservation.table_label || '—';
+  const walkIn = isWalkIn(reservation);
   const isCompact = density === "compact";
+  const allowedNextStatuses = ALLOWED_TRANSITIONS[reservation.status] ?? [];
 
   return (
     <div
@@ -139,76 +126,64 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
       )}
       onClick={onClick}
     >
-      {/* Status dot */}
       <StatusDot status={reservation.status} density={density} />
 
-      {/* Guest name + indicators */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          {reservation.isVip && (
-            <Star className={cn("text-pending fill-pending flex-shrink-0", isCompact ? "h-3 w-3" : "h-3.5 w-3.5")} />
-          )}
           <span className="font-medium text-foreground truncate text-sm">
             {guestName}
           </span>
-          {reservation.isWalkIn && (
-            <NestoBadge variant="outline" size="sm">
-              WALK-IN
-            </NestoBadge>
+          {walkIn && (
+            <NestoBadge variant="outline" size="sm">WALK-IN</NestoBadge>
           )}
-          {reservation.phone && (
+          {reservation.customer?.phone_number && (
             <Phone className={cn("text-muted-foreground flex-shrink-0", isCompact ? "h-2.5 w-2.5" : "h-3 w-3")} />
           )}
         </div>
       </div>
 
-      {/* Guests + Tables */}
       <div className={cn("flex items-center gap-1 text-muted-foreground", isCompact ? "text-xs min-w-[70px]" : "text-sm min-w-[80px]")}>
-        <span className="font-medium text-foreground">{reservation.guests}p</span>
-        {tableNumbers && (
+        <span className="font-medium text-foreground">{reservation.party_size}p</span>
+        {tableLabel !== '—' && (
           <>
             <span>•</span>
-            <span>T{tableNumbers}</span>
+            <span>{tableLabel}</span>
           </>
         )}
       </div>
 
-      {/* Notes indicator */}
       <div className={cn("truncate", isCompact ? "w-[100px]" : "w-[120px]")}>
-        {reservation.notes && (
+        {reservation.guest_notes && (
           <span className={cn("text-muted-foreground/70 italic truncate", isCompact ? "text-xs" : "text-sm")}>
-            {reservation.notes}
+            {reservation.guest_notes}
           </span>
         )}
       </div>
 
-      {/* Shift badge */}
-      <NestoBadge
-        variant="outline"
-        size="sm"
-        className="w-10 justify-center text-muted-foreground"
-      >
-        {reservation.shift}
-      </NestoBadge>
+      {reservation.shift_name && (
+        <NestoBadge variant="outline" size="sm" className="w-10 justify-center text-muted-foreground">
+          {reservation.shift_name}
+        </NestoBadge>
+      )}
 
-      {/* Status badge */}
-      <span className={cn(
-        "inline-flex items-center gap-1.5 rounded-full font-medium justify-center",
-        isCompact ? "text-xs px-2.5 py-1 min-w-[85px]" : "text-xs px-2.5 py-1 min-w-[90px]",
-        statusConfig.textClass,
-        statusConfig.bgClass,
-        statusConfig.borderClass,
-      )}>
-        {statusConfig.showDot && (
-          <span
-            className={cn("rounded-full flex-shrink-0", isCompact ? "w-1.5 h-1.5" : "w-2 h-2")}
-            style={{ backgroundColor: statusConfig.dotColor }}
-          />
-        )}
-        {statusConfig.label}
-      </span>
+      {statusConfig && (
+        <span className={cn(
+          "inline-flex items-center gap-1.5 rounded-full font-medium justify-center",
+          isCompact ? "text-xs px-2.5 py-1 min-w-[85px]" : "text-xs px-2.5 py-1 min-w-[90px]",
+          statusConfig.textClass,
+          statusConfig.bgClass,
+          statusConfig.borderClass,
+        )}>
+          {statusConfig.showDot && (
+            <span
+              className={cn("rounded-full flex-shrink-0", isCompact ? "w-1.5 h-1.5" : "w-2 h-2")}
+              style={{ backgroundColor: statusConfig.dotColor }}
+            />
+          )}
+          {statusConfig.label}
+        </span>
+      )}
 
-      {/* Actions menu */}
       <DropdownMenu>
         <DropdownMenuTrigger
           className="p-1.5 rounded-md hover:bg-secondary transition-colors"
@@ -217,22 +192,19 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
           <MoreHorizontal className={cn("text-muted-foreground", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(reservation, "checked_in"); }}>
-            Check in
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(reservation, "seated"); }}>
-            Seat
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(reservation, "completed"); }}>
-            Complete
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(reservation, "no_show"); }} className="text-warning">
-            No show
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange?.(reservation, "cancelled"); }} className="text-destructive">
-            Cancel
-          </DropdownMenuItem>
+          {allowedNextStatuses.map((nextStatus) => {
+            const nextConfig = STATUS_CONFIG[nextStatus];
+            const isDestructive = nextStatus === 'cancelled' || nextStatus === 'no_show';
+            return (
+              <DropdownMenuItem
+                key={nextStatus}
+                onClick={(e) => { e.stopPropagation(); onStatusChange?.(reservation, nextStatus); }}
+                className={isDestructive ? 'text-destructive' : undefined}
+              >
+                {nextConfig?.label ?? nextStatus}
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

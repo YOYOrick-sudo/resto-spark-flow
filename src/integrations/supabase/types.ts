@@ -1222,6 +1222,7 @@ export type Database = {
           no_show_risk_score: number | null
           party_size: number
           reservation_date: string
+          risk_factors: Json | null
           shift_id: string
           start_time: string
           status: Database["public"]["Enums"]["reservation_status"]
@@ -1245,6 +1246,7 @@ export type Database = {
           no_show_risk_score?: number | null
           party_size: number
           reservation_date: string
+          risk_factors?: Json | null
           shift_id: string
           start_time: string
           status?: Database["public"]["Enums"]["reservation_status"]
@@ -1268,6 +1270,7 @@ export type Database = {
           no_show_risk_score?: number | null
           party_size?: number
           reservation_date?: string
+          risk_factors?: Json | null
           shift_id?: string
           start_time?: string
           status?: Database["public"]["Enums"]["reservation_status"]

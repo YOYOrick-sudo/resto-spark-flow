@@ -14,18 +14,12 @@ import {
   ReservationFilters,
   type ReservationFiltersState,
 } from "@/components/reserveringen/ReservationFilters";
-// TODO: Replace with Supabase query via useReservations hook
-import {
-  mockReservations,
-  getReservationsForDate,
-  getTotalGuestsForDate,
-  getGuestDisplayName,
-  type Reservation,
-} from "@/data/reservations";
+import { useReservations } from "@/hooks/useReservations";
+import { getDisplayName } from "@/lib/reservationUtils";
+import type { Reservation } from "@/types/reservation";
 import { nestoToast } from "@/lib/nestoToast";
 
 export default function Reserveringen() {
-  // State
   const [activeView, setActiveView] = useState<ViewType>("list");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,20 +30,9 @@ export default function Reserveringen() {
     ticketType: "all",
   });
 
-  // Get formatted date for filtering
   const dateString = format(selectedDate, "yyyy-MM-dd");
-  
-  // Refresh key to force re-fetch after updates
-  const [refreshKey, setRefreshKey] = useState(0);
-  
-  const handleReservationUpdate = useCallback(() => {
-    setRefreshKey(k => k + 1);
-  }, []);
 
-  // Filter reservations
-  const reservationsForDate = useMemo(() => {
-    return getReservationsForDate(dateString);
-  }, [dateString, refreshKey]);
+  const { data: reservationsForDate = [], isLoading } = useReservations({ date: dateString });
 
   const filteredReservations = useMemo(() => {
     let result = reservationsForDate;
@@ -57,11 +40,11 @@ export default function Reserveringen() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter((r) => {
-        const guestName = getGuestDisplayName(r).toLowerCase();
+        const guestName = getDisplayName(r).toLowerCase();
         return (
           guestName.includes(query) ||
-          r.phone.includes(query) ||
-          r.email.toLowerCase().includes(query)
+          (r.customer?.phone_number || '').includes(query) ||
+          (r.customer?.email || '').toLowerCase().includes(query)
         );
       });
     }
@@ -71,28 +54,32 @@ export default function Reserveringen() {
     }
 
     if (filters.shift && filters.shift !== "all") {
-      result = result.filter((r) => r.shift === filters.shift);
+      result = result.filter((r) => r.shift_name === filters.shift);
     }
 
     if (filters.ticketType && filters.ticketType !== "all") {
-      result = result.filter((r) => r.ticketType === filters.ticketType);
+      result = result.filter((r) => r.ticket_name === filters.ticketType);
     }
 
     return result;
   }, [reservationsForDate, searchQuery, filters]);
 
-  // Calculate stats
-  const totalGuests = getTotalGuestsForDate(dateString);
+  const totalGuests = useMemo(
+    () => reservationsForDate
+      .filter(r => r.status !== 'cancelled' && r.status !== 'no_show')
+      .reduce((sum, r) => sum + r.party_size, 0),
+    [reservationsForDate]
+  );
+
   const waitingCount = reservationsForDate.filter(
-    (r) => r.status === "pending" || r.status === "confirmed"
+    (r) => r.status === "draft" || r.status === "confirmed"
   ).length;
 
   const currentHour = new Date().getHours();
   const isOpen = currentHour >= 16 && currentHour < 23;
 
-  // Handlers
   const handleReservationClick = (reservation: Reservation) => {
-    nestoToast.info(`Reservering: ${getGuestDisplayName(reservation)}`);
+    nestoToast.info(`Reservering: ${getDisplayName(reservation)}`);
   };
 
   const handleStatusChange = (reservation: Reservation, newStatus: Reservation["status"]) => {
@@ -105,13 +92,11 @@ export default function Reserveringen() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Page title */}
       <h1 className="text-2xl font-semibold text-foreground">Reserveringen</h1>
 
-      {/* Toolbar */}
       <div className="flex items-center gap-4 flex-wrap pt-4">
         <ViewToggle activeView={activeView} onViewChange={setActiveView} />
-        
+
         <DateNavigator
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
@@ -134,7 +119,6 @@ export default function Reserveringen() {
         </button>
       </div>
 
-      {/* Filters row */}
       <ReservationFilters
         className="pt-3"
         filters={filters}
@@ -143,7 +127,6 @@ export default function Reserveringen() {
         filteredCount={filteredReservations.length}
       />
 
-      {/* Content area */}
       <div className={cn("flex-1 pt-4", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}>
         <div className={cn("bg-card border border-border rounded-2xl overflow-hidden", activeView === "grid" && "h-full")}>
           {activeView === "list" && (
@@ -160,7 +143,6 @@ export default function Reserveringen() {
               selectedDate={selectedDate}
               reservations={filteredReservations}
               onReservationClick={handleReservationClick}
-              onReservationUpdate={handleReservationUpdate}
               density={density}
             />
           )}
@@ -177,7 +159,6 @@ export default function Reserveringen() {
         </div>
       </div>
 
-      {/* Footer */}
       <ReservationFooter
         totalGuests={totalGuests}
         waitingCount={waitingCount}

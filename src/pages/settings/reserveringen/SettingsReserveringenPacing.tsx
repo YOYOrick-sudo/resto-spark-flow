@@ -14,7 +14,7 @@ import {
   mockPacingSettings,
   updatePacingSettings,
   mockTables,
-} from "@/data/reservations";
+} from "@/data/pacingMockData";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 
 export default function SettingsReserveringenPacing() {
@@ -38,19 +38,16 @@ export default function SettingsReserveringenPacing() {
   const maxHourly = Math.max(hourlyDefault, hourlyLunch, hourlyDinner);
   const turnsPerHour = seatCapacity > 0 ? maxHourly / seatCapacity : 0;
 
-  // Determine if shifts differ from each other
   const hasShiftOverrides =
     settings.lunchLimit !== settings.defaultLimitPerQuarter ||
     settings.dinnerLimit !== settings.defaultLimitPerQuarter;
 
-  // Operationeel: max 4 regels, geen duplicaten
   const insights: InsightItem[] = [
     { label: "Zitcapaciteit", value: String(seatCapacity), unit: "stoelen" },
     { label: "Max instroom/uur", value: String(maxHourly), unit: "gasten" },
     { label: "Turns/uur", value: `${turnsPerHour.toFixed(1)}×` },
   ];
 
-  // Conditionele 4e regel: alleen als shifts verschillen en een shift afwijkt van max
   if (hourlyLunch !== hourlyDinner) {
     if (hourlyLunch < maxHourly) {
       insights.push({ label: "Lunch instroom/uur", value: String(hourlyLunch), unit: "gasten" });
@@ -59,7 +56,6 @@ export default function SettingsReserveringenPacing() {
     }
   }
 
-  // Signalen: hard cap met 2 expliciete variabelen
   const okCheck: HealthCheck | null = hasShiftOverrides
     ? { status: "ok", message: "Shift-specifieke pacing actief." }
     : null;
@@ -84,7 +80,6 @@ export default function SettingsReserveringenPacing() {
 
   const checks = [okCheck, riskCheck].filter(Boolean) as HealthCheck[];
 
-  // Context: max 2 constateringen, geen coaching
   const context: string[] = [
     `Diner: ${hourlyDinner} gasten/uur bij ${seatCapacity} stoelen.`,
   ];
