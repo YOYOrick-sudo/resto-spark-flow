@@ -3,7 +3,7 @@
 // ============================================
 
 export type ReservationStatus =
-  | 'pending'
+  | 'draft'
   | 'confirmed'
   | 'option'
   | 'pending_payment'
@@ -85,12 +85,12 @@ export interface AuditLogEntry {
  * Used for UI to show valid next statuses.
  */
 export const ALLOWED_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
-  pending: ['confirmed', 'cancelled', 'pending_payment'],
-  confirmed: ['seated', 'cancelled', 'no_show', 'option'],
-  option: ['confirmed', 'cancelled', 'pending_payment'],
+  draft: ['confirmed', 'cancelled', 'pending_payment', 'option'],
   pending_payment: ['confirmed', 'cancelled'],
-  seated: ['completed', 'no_show'],
+  option: ['confirmed', 'cancelled'],
+  confirmed: ['seated', 'cancelled', 'no_show'],
+  seated: ['completed'],
   completed: [],
-  no_show: ['confirmed'],
-  cancelled: ['confirmed'],
+  no_show: [],
+  cancelled: [],
 };
