@@ -9,7 +9,7 @@ export interface AvailabilityRequest {
   date: string;            // YYYY-MM-DD
   party_size: number;
   ticket_id?: string | null;
-  channel?: 'widget' | 'operator' | 'google' | 'whatsapp' | 'phone';
+  channel?: 'widget' | 'operator' | 'google' | 'whatsapp' | 'phone' | 'walk_in';
   overbooking_covers?: number;
 }
 
@@ -419,8 +419,25 @@ export async function loadEngineData(
       .map((m: any) => m.table_id),
   }));
 
-  // 7. Reservations stub
-  const reservations: ExistingReservation[] = [];
+  // 7. Load existing reservations for this date
+  const { data: resRows } = await supabase
+    .from('reservations')
+    .select('id, shift_id, ticket_id, table_id, start_time, end_time, party_size, is_squeeze')
+    .eq('location_id', req.location_id)
+    .eq('reservation_date', req.date)
+    .in('status', ['confirmed', 'seated', 'option', 'pending_payment']);
+
+  const reservations: ExistingReservation[] = (resRows || []).map((r: any) => ({
+    id: r.id,
+    shift_id: r.shift_id,
+    ticket_id: r.ticket_id,
+    table_id: r.table_id,
+    table_group_id: null, // reservations are assigned to individual tables, not groups
+    start_time: r.start_time,
+    end_time: r.end_time,
+    party_size: r.party_size,
+    is_squeeze: r.is_squeeze,
+  }));
 
   return {
     shifts: activeShifts,

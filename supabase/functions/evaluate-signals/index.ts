@@ -557,10 +557,131 @@ const onboardingProvider: SignalProvider = {
 };
 
 // ============================================
+// NO-SHOW RISK SIGNAL PROVIDER
+// ============================================
+
+const noShowRiskProvider: SignalProvider = {
+  name: 'noshow_risk',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const drafts: SignalDraft[] = [];
+
+    const hasRes = await hasReservationsEntitlement(locationId);
+    if (!hasRes) return drafts;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    // 1. High risk shift: avg risk >= 40 for any shift today
+    const { data: shiftRisks } = await supabaseAdmin
+      .from('shift_risk_summary')
+      .select('*')
+      .eq('location_id', locationId)
+      .eq('reservation_date', today);
+
+    for (const sr of (shiftRisks || [])) {
+      if (sr.avg_risk_score >= 40) {
+        // Get shift name
+        const { data: shift } = await supabaseAdmin
+          .from('shifts')
+          .select('name')
+          .eq('id', sr.shift_id)
+          .single();
+
+        drafts.push({
+          organization_id: orgId,
+          location_id: locationId,
+          module: 'reserveringen',
+          signal_type: 'high_noshow_risk_shift',
+          kind: 'signal',
+          severity: 'warning',
+          title: `Hoog no-show risico: ${shift?.name ?? 'shift'}`,
+          message: `${sr.high_risk_count} reservering(en) met hoog risico (gem. score ${sr.avg_risk_score}). ${sr.high_risk_covers} covers.`,
+          action_path: '/reserveringen',
+          dedup_key: `high_noshow_risk_shift:${locationId}:${sr.shift_id}:${today}`,
+          actionable: true,
+          priority: 20,
+          cooldown_hours: 12,
+          payload: {
+            shift_id: sr.shift_id,
+            shift_name: shift?.name,
+            date: today,
+            avg_risk: sr.avg_risk_score,
+            high_risk_count: sr.high_risk_count,
+            high_risk_covers: sr.high_risk_covers,
+          },
+        });
+      }
+    }
+
+    // 2. Summary: high risk reservations today (info)
+    const { data: highRisk } = await supabaseAdmin
+      .from('reservations')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('reservation_date', today)
+      .in('status', ['confirmed', 'option', 'pending_payment'])
+      .gte('no_show_risk_score', 50);
+
+    if (highRisk && highRisk.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'reserveringen',
+        signal_type: 'high_risk_reservations_today',
+        kind: 'insight',
+        severity: 'info',
+        title: `${highRisk.length} reservering(en) met hoog no-show risico vandaag`,
+        message: 'Overweeg herbevestiging te vragen of overbooking in te plannen.',
+        action_path: '/reserveringen',
+        dedup_key: `high_risk_reservations_today:${locationId}:${today}`,
+        actionable: false,
+        priority: 35,
+        cooldown_hours: 12,
+        payload: { count: highRisk.length, date: today },
+      });
+    }
+
+    return drafts;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const resolved: string[] = [];
+
+    const hasRes = await hasReservationsEntitlement(locationId);
+    if (!hasRes) {
+      return ['high_noshow_risk_shift', 'high_risk_reservations_today'];
+    }
+
+    // These signals are date-specific and cooldown-based, so no explicit resolve needed.
+    // They naturally expire via cooldown_until. But resolve if date has passed.
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { data: staleSignals } = await supabaseAdmin
+      .from('signals')
+      .select('id, payload')
+      .eq('location_id', locationId)
+      .in('signal_type', ['high_noshow_risk_shift', 'high_risk_reservations_today'])
+      .eq('status', 'active');
+
+    for (const s of (staleSignals || [])) {
+      const signalDate = (s.payload as any)?.date;
+      if (signalDate && signalDate < today) {
+        await supabaseAdmin
+          .from('signals')
+          .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+          .eq('id', s.id);
+      }
+    }
+
+    return resolved;
+  },
+};
+
+// ============================================
 // SIGNAL ENGINE
 // ============================================
 
-const providers: SignalProvider[] = [configProvider, onboardingProvider];
+const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider];
 
 async function processLocation(locationId: string, orgId: string) {
   const results = { created: 0, resolved: 0, skipped: 0 };

@@ -71,6 +71,38 @@ export const queryKeys = {
   /** Diagnose slot results (on-demand, used as mutation key reference) */
   diagnoseSlot: (locationId: string, date: string, time: string, partySize: number, ticketId: string) =>
     ['diagnose-slot', locationId, date, time, partySize, ticketId] as const,
+
+  // ============================================
+  // FASE 4.6: Reservations & Customers
+  // ============================================
+
+  /** Reservations list for a location + date */
+  reservations: (locationId: string, date?: string) =>
+    ['reservations', locationId, date] as const,
+
+  /** Single reservation by ID */
+  reservation: (reservationId: string) =>
+    ['reservation', reservationId] as const,
+
+  /** Customers list for a location */
+  customers: (locationId: string) =>
+    ['customers', locationId] as const,
+
+  /** Single customer by ID */
+  customer: (customerId: string) =>
+    ['customer', customerId] as const,
+
+  /** Audit log for an entity */
+  auditLog: (entityType: string, entityId: string) =>
+    ['audit-log', entityType, entityId] as const,
+
+  /** Reservations by customer (visit history) */
+  customerReservations: (customerId: string) =>
+    ['customer-reservations', customerId] as const,
+
+  /** Shift risk summary for a location + date */
+  shiftRiskSummary: (locationId: string, date: string) =>
+    ['shift-risk-summary', locationId, date] as const,
 } as const;
 
 export type QueryKeys = typeof queryKeys;

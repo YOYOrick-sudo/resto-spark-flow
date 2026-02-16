@@ -55,6 +55,50 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          changes: Json
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          location_id: string
+          metadata: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          changes?: Json
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          location_id: string
+          metadata?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          changes?: Json
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          location_id?: string
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_settings: {
         Row: {
           brand_color: string | null
@@ -130,6 +174,71 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          first_visit_at: string | null
+          id: string
+          language: string
+          last_name: string
+          last_visit_at: string | null
+          location_id: string
+          notes: string | null
+          phone_number: string | null
+          tags: Json
+          total_cancellations: number
+          total_no_shows: number
+          total_visits: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name: string
+          first_visit_at?: string | null
+          id?: string
+          language?: string
+          last_name: string
+          last_visit_at?: string | null
+          location_id: string
+          notes?: string | null
+          phone_number?: string | null
+          tags?: Json
+          total_cancellations?: number
+          total_no_shows?: number
+          total_visits?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          first_visit_at?: string | null
+          id?: string
+          language?: string
+          last_name?: string
+          last_visit_at?: string | null
+          location_id?: string
+          notes?: string | null
+          phone_number?: string | null
+          tags?: Json
+          total_cancellations?: number
+          total_no_shows?: number
+          total_visits?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
@@ -1096,6 +1205,121 @@ export type Database = {
           },
         ]
       }
+      reservations: {
+        Row: {
+          channel: Database["public"]["Enums"]["reservation_channel"]
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          duration_minutes: number
+          end_time: string
+          guest_notes: string | null
+          id: string
+          internal_notes: string | null
+          is_squeeze: boolean
+          location_id: string
+          manage_token: string
+          no_show_risk_score: number | null
+          party_size: number
+          reservation_date: string
+          shift_id: string
+          start_time: string
+          status: Database["public"]["Enums"]["reservation_status"]
+          table_id: string | null
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: Database["public"]["Enums"]["reservation_channel"]
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          duration_minutes: number
+          end_time: string
+          guest_notes?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_squeeze?: boolean
+          location_id: string
+          manage_token?: string
+          no_show_risk_score?: number | null
+          party_size: number
+          reservation_date: string
+          shift_id: string
+          start_time: string
+          status?: Database["public"]["Enums"]["reservation_status"]
+          table_id?: string | null
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["reservation_channel"]
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          duration_minutes?: number
+          end_time?: string
+          guest_notes?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_squeeze?: boolean
+          location_id?: string
+          manage_token?: string
+          no_show_risk_score?: number | null
+          party_size?: number
+          reservation_date?: string
+          shift_id?: string
+          start_time?: string
+          status?: Database["public"]["Enums"]["reservation_status"]
+          table_id?: string | null
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permission_sets: {
         Row: {
           id: string
@@ -1812,7 +2036,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      shift_risk_summary: {
+        Row: {
+          avg_risk_score: number | null
+          high_risk_count: number | null
+          high_risk_covers: number | null
+          location_id: string | null
+          reservation_date: string | null
+          shift_id: string | null
+          total_covers: number | null
+          total_reservations: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       advance_onboarding_phase: {
@@ -1820,6 +2071,29 @@ export type Database = {
         Returns: Json
       }
       archive_area: { Args: { _area_id: string }; Returns: Json }
+      calculate_no_show_risk: {
+        Args: { _reservation_id: string }
+        Returns: number
+      }
+      create_reservation: {
+        Args: {
+          _actor_id?: string
+          _channel?: Database["public"]["Enums"]["reservation_channel"]
+          _customer_id: string
+          _guest_notes?: string
+          _initial_status?: Database["public"]["Enums"]["reservation_status"]
+          _internal_notes?: string
+          _location_id: string
+          _party_size: number
+          _reservation_date: string
+          _shift_id: string
+          _squeeze?: boolean
+          _start_time: string
+          _table_id?: string
+          _ticket_id: string
+        }
+        Returns: string
+      }
       get_bookable_tickets: {
         Args: { _date: string; _location_id: string }
         Returns: {
@@ -1952,6 +2226,15 @@ export type Database = {
         Args: { _table_a_id: string; _table_b_id: string }
         Returns: undefined
       }
+      transition_reservation_status: {
+        Args: {
+          _actor_id?: string
+          _new_status: Database["public"]["Enums"]["reservation_status"]
+          _reason?: string
+          _reservation_id: string
+        }
+        Returns: string
+      }
       user_has_location_access: {
         Args: { _location_id: string; _user_id: string }
         Returns: boolean
@@ -1993,6 +2276,22 @@ export type Database = {
         | "no_response"
         | "expired"
       platform_role: "platform_admin" | "support"
+      reservation_channel:
+        | "widget"
+        | "operator"
+        | "phone"
+        | "google"
+        | "whatsapp"
+        | "walk_in"
+      reservation_status:
+        | "pending"
+        | "confirmed"
+        | "option"
+        | "pending_payment"
+        | "seated"
+        | "completed"
+        | "no_show"
+        | "cancelled"
       shift_exception_type: "closed" | "modified" | "special"
     }
     CompositeTypes: {
@@ -2142,6 +2441,24 @@ export const Constants = {
         "expired",
       ],
       platform_role: ["platform_admin", "support"],
+      reservation_channel: [
+        "widget",
+        "operator",
+        "phone",
+        "google",
+        "whatsapp",
+        "walk_in",
+      ],
+      reservation_status: [
+        "pending",
+        "confirmed",
+        "option",
+        "pending_payment",
+        "seated",
+        "completed",
+        "no_show",
+        "cancelled",
+      ],
       shift_exception_type: ["closed", "modified", "special"],
     },
   },
