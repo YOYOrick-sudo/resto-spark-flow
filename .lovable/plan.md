@@ -1,57 +1,60 @@
 
+# Fix ReservationsTile: gasten-telling en echte grafiekdata
 
-# Fix: Radix Select.Item empty value crash
+## Probleem 1: Hero getal toont aantal reserveringen i.p.v. gasten
 
-## Probleem
-Radix UI `<Select.Item>` crasht bij `value=""`. Dit breekt de Walk-in sheet en het Create formulier bij het openen van de tafel-select.
+Het Dashboard berekent `todayCount` als het **aantal** reserveringen (`.length`). Dit moet de **som van party_size** worden zodat het totaal aantal gasten wordt getoond.
 
-## Oplossing
-Vervang de lege string door een sentinel waarde `"__none__"` op twee plekken in `src/components/reservations/CreateReservationSheet.tsx`.
+### Wijziging in `src/pages/Dashboard.tsx`
 
-### Wijziging 1 — Create flow tafel select (regel 290-293)
-
-**Was:**
+Hernoem `todayCount` naar `todayGuests` en bereken de som:
 ```typescript
-<Select value={tableId || ''} onValueChange={(v) => setTableId(v || null)}>
-  ...
-  <SelectItem value="">Niet toegewezen</SelectItem>
+const todayGuests = useMemo(
+  () => (reservations ?? [])
+    .filter((r) => r.status !== 'cancelled')
+    .reduce((sum, r) => sum + r.party_size, 0),
+  [reservations]
+);
 ```
 
-**Wordt:**
+Voeg daarnaast een query toe voor de **afgelopen 7 dagen** aan reserveringsdata. Dit kan door `useReservations` zonder datumfilter te gebruiken en in de component te groeperen, of door een aparte lichtgewicht query toe te voegen.
+
+De meest efficiente aanpak: een nieuwe hook `useWeeklyGuestCounts` die een simpele Supabase query doet voor de afgelopen 7 dagen, gegroepeerd per dag.
+
+## Probleem 2: Grafiek gebruikt hardcoded mock data
+
+De grafiek toont statische getallen (16, 19, 14, 24, 28, 32, 20). Dit moet worden vervangen door echte data: per dag het totaal aantal gasten (party_size) van de afgelopen 7 dagen.
+
+### Nieuwe hook: `src/hooks/useWeeklyGuestCounts.ts`
+
+Simpele hook die de afgelopen 7 dagen ophaalt:
 ```typescript
-<Select value={tableId || '__none__'} onValueChange={(v) => setTableId(v === '__none__' ? null : v)}>
-  ...
-  <SelectItem value="__none__">Niet toegewezen</SelectItem>
+// Query: reservations van vandaag - 6 dagen t/m vandaag
+// Groepeer per reservation_date, som party_size
+// Retourneer array van { date, day, count }
 ```
 
-### Wijziging 2 — Walk-in tafel select (regel 471-474)
+Gebruikt een RPC of gewone select + client-side groepering. Aangezien er waarschijnlijk weinig data is (max ~100 reserveringen per week), is client-side groepering prima.
 
-Identieke wijziging als hierboven.
+### Wijziging in `src/components/dashboard/ReservationsTile.tsx`
 
-### Na de fix: E2E verificatie
+- Verwijder de hardcoded `mockData` array
+- Accepteer `weeklyData` als prop (of gebruik de hook intern)
+- Toon de echte data in de AreaChart
+- Tooltip tekst wijzigen van "reserveringen" naar "gasten"
+- Label "vandaag" behouden bij het hero getal
 
-1. Open de Walk-in sheet via de knop
-2. Stel party size in en klik "Walk-in registreren"
-3. Verifieer in de database:
+### Wijziging in `src/pages/Dashboard.tsx`
 
-```sql
-SELECT customer_id, no_show_risk_score, risk_factors, channel, status
-FROM reservations ORDER BY created_at DESC LIMIT 1;
-```
-
-Verwacht resultaat:
-- `customer_id` = NULL
-- `risk_factors` = gevulde JSONB (niet NULL)
-- `channel` = walk_in
-- `status` = seated
-
-4. Verifieer dat de walk-in in de lijst verschijnt (LEFT JOIN test)
+- Bereken `todayGuests` als som van `party_size`
+- Haal weekdata op en geef door aan `ReservationsTile`
 
 ---
 
-## Bestanden
+## Technisch overzicht
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/components/reservations/CreateReservationSheet.tsx` | 2x `value=""` vervangen door `value="__none__"` + handler aanpassing |
-
+| `src/hooks/useWeeklyGuestCounts.ts` | Nieuw — haalt 7 dagen reserveringsdata op |
+| `src/pages/Dashboard.tsx` | `todayCount` wordt `todayGuests` (som party_size) + weekdata ophalen |
+| `src/components/dashboard/ReservationsTile.tsx` | Mock data vervangen door echte weekdata, tooltip "gasten" |
