@@ -43,6 +43,7 @@ export interface Reservation {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  checked_in_at?: string | null;
   // Future fields (nullable until their phases)
   payment_status?: string | null;
   option_expires_at?: string | null;

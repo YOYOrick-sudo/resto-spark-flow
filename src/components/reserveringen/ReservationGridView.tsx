@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useRef, useState, useCallback } from "react";
+import { useTransitionStatus } from "@/hooks/useTransitionStatus";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, pointerWithin, useSensor, useSensors, PointerSensor, TouchSensor } from "@dnd-kit/core";
@@ -262,6 +263,7 @@ export function ReservationGridView({
   density = "compact",
 }: ReservationGridViewProps) {
   const isCompact = density === "compact";
+  const transition = useTransitionStatus();
   const containerRef = useRef<HTMLDivElement>(null);
   const [seatedExpanded, setSeatedExpanded] = useState(true);
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
@@ -364,9 +366,18 @@ export function ReservationGridView({
     return false;
   }, []);
 
-  const handleCheckIn = useCallback((_reservation: Reservation) => {
-    nestoToast.info("Inchecken wordt binnenkort beschikbaar");
-  }, []);
+  const handleCheckIn = useCallback((reservation: Reservation) => {
+    if (reservation.status !== 'confirmed') return;
+    transition.mutate({
+      reservation_id: reservation.id,
+      new_status: 'seated' as const,
+      location_id: reservation.location_id,
+      customer_id: reservation.customer_id,
+    }, {
+      onSuccess: () => nestoToast.success('Ingecheckt'),
+      onError: (err) => nestoToast.error(err.message),
+    });
+  }, [transition]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (event.active.data.current?.reservation) {

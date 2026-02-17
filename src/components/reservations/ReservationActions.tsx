@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { nestoToast } from '@/lib/nestoToast';
 import type { Reservation, ReservationStatus } from '@/types/reservation';
 import { STATUS_LABELS, ALLOWED_TRANSITIONS } from '@/types/reservation';
+import { TableMoveDialog } from './TableMoveDialog';
 
 interface ReservationActionsProps {
   reservation: Reservation;
@@ -71,7 +72,7 @@ function getActionsForStatus(reservation: Reservation): ActionButton[] {
     case 'seated':
       actions.push(
         { key: 'complete', label: 'Afronden', icon: Check, targetStatus: 'completed', variant: 'primary' },
-        { key: 'move_ph', label: 'Tafel wijzigen', icon: ArrowRightLeft, disabled: true, tooltip: 'Beschikbaar in (4.8)' },
+        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
       );
       break;
     case 'no_show':
@@ -97,13 +98,17 @@ export function ReservationActions({ reservation, className }: ReservationAction
   } | null>(null);
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideStatus, setOverrideStatus] = useState<ReservationStatus | null>(null);
-
+  const [tableMoveOpen, setTableMoveOpen] = useState(false);
   const actions = getActionsForStatus(reservation);
   const canOverride = context?.role === 'owner' || context?.role === 'manager' || context?.is_platform_admin;
   const terminalStatuses: ReservationStatus[] = ['completed', 'no_show', 'cancelled'];
   const isTerminal = terminalStatuses.includes(reservation.status);
 
   const handleAction = (action: ActionButton) => {
+    if (action.key === 'move_table') {
+      setTableMoveOpen(true);
+      return;
+    }
     if (!action.targetStatus) return;
 
     if (action.destructive) {
@@ -269,6 +274,15 @@ export function ReservationActions({ reservation, className }: ReservationAction
           </div>
         </div>
       )}
+
+      {/* Table move dialog */}
+      <TableMoveDialog
+        open={tableMoveOpen}
+        onOpenChange={setTableMoveOpen}
+        reservationId={reservation.id}
+        currentTableId={reservation.table_id}
+        locationId={reservation.location_id}
+      />
     </TooltipProvider>
   );
 }

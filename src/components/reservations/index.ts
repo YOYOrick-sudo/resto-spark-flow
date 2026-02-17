@@ -5,3 +5,4 @@ export { CustomerCard } from './CustomerCard';
 export { RiskScoreSection } from './RiskScoreSection';
 export { AuditLogTimeline } from './AuditLogTimeline';
 export { CreateReservationSheet, WalkInSheet } from './CreateReservationSheet';
+export { TableMoveDialog } from './TableMoveDialog';

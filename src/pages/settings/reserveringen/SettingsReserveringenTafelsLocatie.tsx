@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { SettingsDetailLayout } from "@/components/settings/layouts";
 import { LocationSettingsCard } from "@/components/settings/tables";
 import { SettingsInsightPanel, InsightItem, HealthCheck } from "@/components/settings/context";
+import { CheckinSettingsCard } from "@/components/settings/checkin/CheckinSettingsCard";
 import { useUserContext } from "@/contexts/UserContext";
 import { useReservationSettings } from "@/hooks/useReservationSettings";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
@@ -88,8 +89,9 @@ export default function SettingsReserveringenTafelsLocatie() {
         ) : undefined
       }
     >
-      <div className="max-w-2xl">
+      <div className="max-w-2xl space-y-6">
         <LocationSettingsCard locationId={currentLocation?.id} />
+        <CheckinSettingsCard locationId={currentLocation?.id} />
       </div>
     </SettingsDetailLayout>
   );

@@ -23,7 +23,16 @@ function formatAction(entry: AuditLogEntry): string {
       const newStatus = changes?.new_status as string || '';
       const label = STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS] || newStatus;
       const reason = metadata?.reason as string;
-      return reason ? `Status → ${label} — ${reason}` : `Status → ${label}`;
+      const moveToNow = metadata?.move_to_now === true;
+      const originalStart = metadata?.original_start_time as string;
+      let text = reason ? `Status → ${label} — ${reason}` : `Status → ${label}`;
+      if (moveToNow && originalStart) {
+        text += ` (oorspronkelijk: ${originalStart})`;
+      }
+      return text;
+    }
+    case 'table_moved': {
+      return 'Tafel gewijzigd';
     }
     case 'field_update': {
       const entries = Object.entries(changes || {});

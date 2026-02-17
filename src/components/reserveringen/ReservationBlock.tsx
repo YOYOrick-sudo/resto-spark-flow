@@ -52,7 +52,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
   // Long-press state for iPad check-in
   const longPressTimerRef = useRef<number | null>(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
-  const canCheckIn = (reservation.status === "confirmed" || reservation.status === "draft") && onCheckIn;
+  const canCheckIn = reservation.status === "confirmed" && onCheckIn;
 
   useEffect(() => {
     return () => {

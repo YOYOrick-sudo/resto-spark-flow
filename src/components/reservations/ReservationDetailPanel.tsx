@@ -1,6 +1,7 @@
 import { DetailPanel } from '@/components/polar/DetailPanel';
 import { useReservation } from '@/hooks/useReservation';
 import { STATUS_CONFIG } from '@/types/reservation';
+import { formatDateTimeCompact } from '@/lib/datetime';
 import { getDisplayName, getTableLabel } from '@/lib/reservationUtils';
 import { Spinner } from '@/components/polar/LoadingStates';
 import { ReservationBadges } from './ReservationBadges';
@@ -70,6 +71,13 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
               <span>•</span>
               <span>{reservation.start_time}–{reservation.end_time}</span>
             </div>
+
+            {/* Checked-in-at indicator */}
+            {reservation.status === 'seated' && reservation.checked_in_at && (
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Ingecheckt om {formatDateTimeCompact(reservation.checked_in_at)}
+              </p>
+            )}
 
             {/* Badges */}
             <ReservationBadges reservation={reservation} className="mt-3" />

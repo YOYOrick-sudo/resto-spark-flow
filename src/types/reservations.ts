@@ -88,6 +88,10 @@ export interface ReservationSettings {
   default_squeeze_duration_minutes: number;
   waitlist_auto_invite_enabled: boolean;
   max_parallel_invites: number;
+  checkin_window_minutes: number;
+  no_show_after_minutes: number;
+  auto_no_show_enabled: boolean;
+  move_to_now_on_checkin: boolean;
   created_at: string;
   updated_at: string;
 }
