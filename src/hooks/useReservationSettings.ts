@@ -56,5 +56,9 @@ export const defaultReservationSettings: Omit<ReservationSettings, 'id' | 'locat
   squeeze_enabled: true,
   default_squeeze_duration_minutes: 90,
   waitlist_auto_invite_enabled: true,
-  max_parallel_invites: 1
+  max_parallel_invites: 1,
+  checkin_window_minutes: 15,
+  no_show_after_minutes: 15,
+  auto_no_show_enabled: false,
+  move_to_now_on_checkin: false
 };

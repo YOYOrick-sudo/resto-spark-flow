@@ -1156,7 +1156,9 @@ export type Database = {
         Row: {
           allow_multi_table: boolean
           auto_assign: boolean
+          auto_no_show_enabled: boolean
           booking_cutoff_minutes: number
+          checkin_window_minutes: number
           created_at: string
           default_buffer_minutes: number
           default_duration_minutes: number
@@ -1164,6 +1166,8 @@ export type Database = {
           id: string
           location_id: string
           max_parallel_invites: number
+          move_to_now_on_checkin: boolean
+          no_show_after_minutes: number
           squeeze_enabled: boolean
           updated_at: string
           waitlist_auto_invite_enabled: boolean
@@ -1171,7 +1175,9 @@ export type Database = {
         Insert: {
           allow_multi_table?: boolean
           auto_assign?: boolean
+          auto_no_show_enabled?: boolean
           booking_cutoff_minutes?: number
+          checkin_window_minutes?: number
           created_at?: string
           default_buffer_minutes?: number
           default_duration_minutes?: number
@@ -1179,6 +1185,8 @@ export type Database = {
           id?: string
           location_id: string
           max_parallel_invites?: number
+          move_to_now_on_checkin?: boolean
+          no_show_after_minutes?: number
           squeeze_enabled?: boolean
           updated_at?: string
           waitlist_auto_invite_enabled?: boolean
@@ -1186,7 +1194,9 @@ export type Database = {
         Update: {
           allow_multi_table?: boolean
           auto_assign?: boolean
+          auto_no_show_enabled?: boolean
           booking_cutoff_minutes?: number
+          checkin_window_minutes?: number
           created_at?: string
           default_buffer_minutes?: number
           default_duration_minutes?: number
@@ -1194,6 +1204,8 @@ export type Database = {
           id?: string
           location_id?: string
           max_parallel_invites?: number
+          move_to_now_on_checkin?: boolean
+          no_show_after_minutes?: number
           squeeze_enabled?: boolean
           updated_at?: string
           waitlist_auto_invite_enabled?: boolean
@@ -1211,6 +1223,7 @@ export type Database = {
       reservations: {
         Row: {
           channel: Database["public"]["Enums"]["reservation_channel"]
+          checked_in_at: string | null
           created_at: string
           created_by: string | null
           customer_id: string | null
@@ -1235,6 +1248,7 @@ export type Database = {
         }
         Insert: {
           channel?: Database["public"]["Enums"]["reservation_channel"]
+          checked_in_at?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -1259,6 +1273,7 @@ export type Database = {
         }
         Update: {
           channel?: Database["public"]["Enums"]["reservation_channel"]
+          checked_in_at?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -2098,6 +2113,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_auto_mark_no_shows: { Args: never; Returns: number }
       get_bookable_tickets: {
         Args: { _date: string; _location_id: string }
         Returns: {
@@ -2178,6 +2194,14 @@ export type Database = {
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       is_platform_user: { Args: { _user_id: string }; Returns: boolean }
+      move_reservation_table: {
+        Args: {
+          _actor_id?: string
+          _new_table_id: string
+          _reservation_id: string
+        }
+        Returns: undefined
+      }
       reorder_areas: {
         Args: { _area_ids: string[]; _location_id: string }
         Returns: Json
