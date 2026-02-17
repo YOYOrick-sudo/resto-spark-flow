@@ -1,78 +1,51 @@
 
 
-# Fix 3 problemen + Walk-in E2E test
+# Fix: Radix Select.Item empty value crash
 
-## Probleem 1: Backfill bestaande reserveringen
+## Probleem
+Radix UI `<Select.Item>` crasht bij `value=""`. Dit breekt de Walk-in sheet en het Create formulier bij het openen van de tafel-select.
 
-Er zijn 2 reserveringen met `risk_factors = NULL` en `no_show_risk_score = 0.00`. De BEFORE UPDATE trigger (`trg_calculate_no_show_risk_update`) herberekent bij elke update. We triggeren een no-op update om de risk data te vullen.
+## Oplossing
+Vervang de lege string door een sentinel waarde `"__none__"` op twee plekken in `src/components/reservations/CreateReservationSheet.tsx`.
 
-**Actie:** Voer een UPDATE uit via een SQL migratie (het data-update pad):
-```sql
-UPDATE reservations SET party_size = party_size WHERE risk_factors IS NULL;
-```
+### Wijziging 1 — Create flow tafel select (regel 290-293)
 
-Dit triggert `fn_calculate_no_show_risk()` via de BEFORE UPDATE trigger, waardoor `risk_factors` en `no_show_risk_score` correct worden gevuld.
-
-## Probleem 2: handleStatusChange stub in Reserveringen.tsx
-
-De `handleStatusChange` op regel 91-93 is een lege stub die alleen een toast toont. Dit wordt doorgegeven aan `ReservationListView` als `onStatusChange`, waar het in de dropdown menu items wordt aangeroepen (regel 235). Status transities vanuit de lijst werken daardoor niet.
-
-**Twee opties:**
-- **Optie A (aanbevolen):** Vervang de stub door een werkende `useTransitionStatus` call. Dit maakt inline status changes vanuit de list view werkend.
-- **Optie B:** Verwijder de dropdown menu uit de list view en laat status changes alleen via het detail panel lopen.
-
-**Optie A implementatie:**
-
-In `src/pages/Reserveringen.tsx`:
-- Importeer `useTransitionStatus`
-- Vervang `handleStatusChange` door:
+**Was:**
 ```typescript
-const transition = useTransitionStatus();
-
-const handleStatusChange = useCallback((reservation: Reservation, newStatus: Reservation["status"]) => {
-  transition.mutate({
-    reservation_id: reservation.id,
-    new_status: newStatus,
-    location_id: reservation.location_id,
-    customer_id: reservation.customer_id,
-  }, {
-    onSuccess: () => {
-      nestoToast.success(`Status gewijzigd naar: ${STATUS_LABELS[newStatus] || newStatus}`);
-    },
-    onError: (err) => {
-      nestoToast.error(`Fout: ${err.message}`);
-    },
-  });
-}, [transition]);
+<Select value={tableId || ''} onValueChange={(v) => setTableId(v || null)}>
+  ...
+  <SelectItem value="">Niet toegewezen</SelectItem>
 ```
 
-Importeer ook `STATUS_LABELS` uit `@/types/reservation`.
-
-## Probleem 3: Emoji in ReservationActions override dialog
-
-Regel 249 in `ReservationActions.tsx` bevat `⚠️` emoji. `AlertTriangle` is al geimporteerd in het bestand (vanuit het import block, regel 1-5 -- het moet nog worden toegevoegd aan de imports).
-
-**Actie:** In `src/components/reservations/ReservationActions.tsx`:
-- Voeg `AlertTriangle` toe aan de lucide-react import op regel 2-5
-- Vervang regel 248-250:
-```
-<p className="text-sm text-muted-foreground mb-4">
-  ⚠️ Dit wijkt af van de standaard workflow en wordt gelogd.
-</p>
-```
-met:
-```
-<div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
-  <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
-  <p>Dit wijkt af van de standaard workflow en wordt gelogd.</p>
-</div>
+**Wordt:**
+```typescript
+<Select value={tableId || '__none__'} onValueChange={(v) => setTableId(v === '__none__' ? null : v)}>
+  ...
+  <SelectItem value="__none__">Niet toegewezen</SelectItem>
 ```
 
-## Walk-in E2E test
+### Wijziging 2 — Walk-in tafel select (regel 471-474)
 
-Na de fixes: maak een walk-in aan via de Walk-in knop en verifieer:
-1. Reservering verschijnt in de lijst (LEFT JOIN test)
-2. Database check: `customer_id = NULL`, `risk_factors` gevuld, `channel = walk_in`, `status = seated`
+Identieke wijziging als hierboven.
+
+### Na de fix: E2E verificatie
+
+1. Open de Walk-in sheet via de knop
+2. Stel party size in en klik "Walk-in registreren"
+3. Verifieer in de database:
+
+```sql
+SELECT customer_id, no_show_risk_score, risk_factors, channel, status
+FROM reservations ORDER BY created_at DESC LIMIT 1;
+```
+
+Verwacht resultaat:
+- `customer_id` = NULL
+- `risk_factors` = gevulde JSONB (niet NULL)
+- `channel` = walk_in
+- `status` = seated
+
+4. Verifieer dat de walk-in in de lijst verschijnt (LEFT JOIN test)
 
 ---
 
@@ -80,7 +53,5 @@ Na de fixes: maak een walk-in aan via de Walk-in knop en verifieer:
 
 | Bestand | Wijziging |
 |---------|-----------|
-| SQL (data update) | Backfill risk_factors voor bestaande reserveringen |
-| `src/pages/Reserveringen.tsx` | Vervang handleStatusChange stub door useTransitionStatus call |
-| `src/components/reservations/ReservationActions.tsx` | Vervang emoji door AlertTriangle Lucide icon |
+| `src/components/reservations/CreateReservationSheet.tsx` | 2x `value=""` vervangen door `value="__none__"` + handler aanpassing |
 
