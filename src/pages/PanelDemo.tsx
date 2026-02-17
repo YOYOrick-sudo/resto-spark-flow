@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Clock, Users, Phone, Mail, CalendarDays, UserCheck, Star, Plus, Minus } from 'lucide-react';
-import { NestoBadge } from '@/components/polar/NestoBadge';
 import { cn } from '@/lib/utils';
 import { NestoButton } from '@/components/polar/NestoButton';
 
@@ -90,15 +89,18 @@ function DetailPanelDemo() {
               <span>19:00–21:00</span>
             </div>
 
-            <NestoBadge variant="success" dot className="mt-3">Bevestigd</NestoBadge>
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 mt-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Bevestigd
+            </span>
 
             <div className="flex flex-wrap gap-1.5 mt-3">
-              <NestoBadge variant="warning" size="sm">
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20">
                 <Star className="h-3 w-3" /> VIP
-              </NestoBadge>
-              <NestoBadge size="sm">
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground border border-border/50">
                 🎂 Verjaardag
-              </NestoBadge>
+              </span>
             </div>
 
             <div className="mt-3 p-2.5 rounded-lg bg-muted/30 border border-border/50">
@@ -193,11 +195,11 @@ function FormPanelDemo() {
           <div>
             <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">Datum & tijd</label>
             <div className="grid grid-cols-2 gap-3">
-              <div className="px-3 py-2.5 rounded-button border border-input bg-background text-sm flex items-center gap-2">
+              <div className="px-3 py-2.5 rounded-control border border-input bg-background text-sm flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
                 <span>17 feb 2026</span>
               </div>
-              <div className="px-3 py-2.5 rounded-button border border-input bg-background text-sm flex items-center gap-2">
+              <div className="px-3 py-2.5 rounded-control border border-input bg-background text-sm flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span>19:30</span>
               </div>
@@ -233,7 +235,7 @@ function FormPanelDemo() {
                 <button
                   key={shift}
                   className={cn(
-                    "px-3 py-2.5 rounded-button border text-sm font-medium transition-colors",
+                    "px-3 py-2.5 rounded-control border text-sm font-medium transition-colors",
                     shift === 'Diner' 
                       ? 'border-primary bg-primary/5 text-primary' 
                       : 'border-input bg-background text-muted-foreground hover:bg-secondary'
@@ -253,7 +255,7 @@ function FormPanelDemo() {
                 <input 
                   type="text"
                   placeholder="Voornaam Achternaam"
-                    className="w-full px-3 py-2.5 rounded-button border border-input bg-background text-sm placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30"
+                  className="w-full px-3 py-2.5 rounded-control border border-input bg-background text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -262,7 +264,7 @@ function FormPanelDemo() {
                   <input 
                     type="tel"
                     placeholder="+31 6..."
-                    className="w-full px-3 py-2.5 rounded-button border border-input bg-background text-sm placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30"
+                    className="w-full px-3 py-2.5 rounded-control border border-input bg-background text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
                   />
                 </div>
                 <div>
@@ -270,7 +272,7 @@ function FormPanelDemo() {
                   <input 
                     type="email"
                     placeholder="gast@..."
-                    className="w-full px-3 py-2.5 rounded-button border border-input bg-background text-sm placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30"
+                    className="w-full px-3 py-2.5 rounded-control border border-input bg-background text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
                   />
                 </div>
               </div>
@@ -282,7 +284,7 @@ function FormPanelDemo() {
             <textarea
               rows={3}
               placeholder="Bijzonderheden, allergieën..."
-              className="w-full px-3 py-2.5 rounded-button border border-input bg-background text-sm placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 resize-none"
+              className="w-full px-3 py-2.5 rounded-control border border-input bg-background text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 resize-none"
             />
           </div>
         </div>
