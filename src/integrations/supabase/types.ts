@@ -2076,10 +2076,6 @@ export type Database = {
         Returns: Json
       }
       archive_area: { Args: { _area_id: string }; Returns: Json }
-      calculate_no_show_risk: {
-        Args: { _reservation_id: string }
-        Returns: number
-      }
       create_reservation: {
         Args: {
           _actor_id?: string
