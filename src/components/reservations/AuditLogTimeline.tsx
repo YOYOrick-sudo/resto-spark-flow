@@ -36,7 +36,7 @@ function formatAction(entry: AuditLogEntry): string {
     }
     case 'option_extended': {
       const newExpiry = changes?.new_expires_at as string;
-      return newExpiry ? `Optie verlengd tot ${newExpiry}` : 'Optie verlengd';
+      return newExpiry ? `Optie verlengd tot ${formatDateTimeCompact(newExpiry)}` : 'Optie verlengd';
     }
     case 'field_update': {
       const entries = Object.entries(changes || {});

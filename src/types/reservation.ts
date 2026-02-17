@@ -146,7 +146,7 @@ export const STATUS_CONFIG: Record<ReservationStatus, {
     borderClass: '',
   },
   seated: {
-    label: 'Gezeten',
+    label: 'Ingecheckt',
     dotColor: '#14B8A6',
     showDot: true,
     textClass: 'text-primary',
@@ -154,7 +154,7 @@ export const STATUS_CONFIG: Record<ReservationStatus, {
     borderClass: '',
   },
   completed: {
-    label: 'Afgerond',
+    label: 'Uitgecheckt',
     dotColor: '#D1CCC7',
     showDot: true,
     textClass: 'text-muted-foreground opacity-50',
@@ -184,8 +184,8 @@ export const STATUS_LABELS: Record<ReservationStatus, string> = {
   pending_payment: 'Wacht op betaling',
   option: 'Optie',
   confirmed: 'Bevestigd',
-  seated: 'Gezeten',
-  completed: 'Afgerond',
+  seated: 'Ingecheckt',
+  completed: 'Uitgecheckt',
   no_show: 'No-show',
   cancelled: 'Geannuleerd',
 };

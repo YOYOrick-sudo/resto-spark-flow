@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle } from 'lucide-react';
+import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateCustomer } from '@/hooks/useCreateCustomer';
@@ -14,7 +13,8 @@ import { useShiftTickets } from '@/hooks/useShiftTickets';
 import { useAreasWithTables } from '@/hooks/useAreasWithTables';
 import { useUserContext } from '@/contexts/UserContext';
 import { useReservations } from '@/hooks/useReservations';
-import { checkTimeConflict } from '@/lib/reservationUtils';
+import { checkTimeConflict, formatTime, timeToMinutes } from '@/lib/reservationUtils';
+import { formatDateShort } from '@/lib/datetime';
 import { nestoToast } from '@/lib/nestoToast';
 import { format } from 'date-fns';
 import type { Customer, ReservationStatus, ReservationChannel } from '@/types/reservation';
@@ -26,6 +26,39 @@ interface CreateReservationSheetProps {
 }
 
 type Step = 'customer' | 'details' | 'confirm';
+
+const STEPS: { key: Step; label: string }[] = [
+  { key: 'customer', label: 'Klant' },
+  { key: 'details', label: 'Details' },
+  { key: 'confirm', label: 'Bevestig' },
+];
+
+function StepIndicator({ current }: { current: Step }) {
+  return (
+    <div className="flex items-center gap-2 mb-1">
+      {STEPS.map((s, i) => {
+        const isActive = s.key === current;
+        const isDone = STEPS.findIndex(x => x.key === current) > i;
+        return (
+          <div key={s.key} className="flex items-center gap-2">
+            {i > 0 && <div className={cn("h-px w-6", isDone ? "bg-primary" : "bg-border")} />}
+            <div className={cn(
+              "flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium transition-colors",
+              isActive ? "bg-primary text-primary-foreground" :
+              isDone ? "bg-primary/20 text-primary" :
+              "bg-muted text-muted-foreground"
+            )}>
+              {isDone ? <Check className="h-3 w-3" /> : i + 1}
+            </div>
+            <span className={cn("text-xs font-medium", isActive ? "text-foreground" : "text-muted-foreground")}>
+              {s.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function CreateReservationSheet({ open, onClose, defaultDate }: CreateReservationSheetProps) {
   const { currentLocation, context } = useUserContext();
@@ -52,7 +85,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const [channel, setChannel] = useState<ReservationChannel>('operator');
   const [guestNotes, setGuestNotes] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
-  const [squeeze, setSqueeze] = useState(false);
   const [initialStatus, setInitialStatus] = useState<ReservationStatus>('confirmed');
 
   const { data: customers = [] } = useCustomers(searchTerm);
@@ -63,10 +95,45 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const { data: areasWithTables = [] } = useAreasWithTables(locationId);
   const { data: reservationsForDate = [] } = useReservations({ date });
 
+  // Auto-detect shift based on selected time
+  const detectedShift = useMemo(() => {
+    if (!startTime || shifts.length === 0) return null;
+    const startMinutes = timeToMinutes(startTime);
+    return shifts.find(s => {
+      if (!s.is_active) return false;
+      const shiftStart = timeToMinutes(s.start_time);
+      const shiftEnd = timeToMinutes(s.end_time);
+      // Handle overnight
+      if (shiftEnd <= shiftStart) {
+        return startMinutes >= shiftStart || startMinutes < shiftEnd;
+      }
+      return startMinutes >= shiftStart && startMinutes < shiftEnd;
+    }) || null;
+  }, [startTime, shifts]);
+
+  // Auto-set shiftId when detected shift changes
+  useEffect(() => {
+    if (detectedShift) {
+      setShiftId(detectedShift.id);
+    } else {
+      setShiftId('');
+    }
+  }, [detectedShift]);
+
+  // Auto-select ticket if only one active
+  useEffect(() => {
+    const activeTickets = shiftTickets.filter(st => st.is_active);
+    if (activeTickets.length === 1) {
+      setTicketId(activeTickets[0].ticket_id);
+    } else if (activeTickets.length === 0) {
+      setTicketId('');
+    }
+  }, [shiftTickets]);
+
   // Overlap warning
   const overlapWarning = useMemo(() => {
     if (!tableId || !startTime) return null;
-    const result = checkTimeConflict(reservationsForDate, tableId, startTime, startTime); // simplified
+    const result = checkTimeConflict(reservationsForDate, tableId, startTime, startTime);
     return result.hasConflict ? result.conflictingReservation : null;
   }, [tableId, startTime, reservationsForDate]);
 
@@ -75,6 +142,8 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
       (a.tables || []).map((t) => ({ ...t, area_name: a.name }))
     );
   }, [areasWithTables]);
+
+  const activeTickets = useMemo(() => shiftTickets.filter(st => st.is_active), [shiftTickets]);
 
   const resetForm = () => {
     setStep('customer');
@@ -87,7 +156,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
     setPartySize(2); setStartTime('19:00');
     setTableId(null); setChannel('operator');
     setGuestNotes(''); setInternalNotes('');
-    setSqueeze(false); setInitialStatus('confirmed');
+    setInitialStatus('confirmed');
   };
 
   const handleClose = () => {
@@ -129,7 +198,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
         guest_notes: guestNotes || null,
         internal_notes: internalNotes || null,
         initial_status: initialStatus,
-        squeeze,
+        squeeze: false,
         actor_id: context?.user_id ?? null,
       });
       nestoToast.success('Reservering aangemaakt');
@@ -142,18 +211,19 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   return (
     <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
       <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 flex flex-col">
-        <SheetHeader className="p-4 border-b border-border/50">
+        <SheetHeader className="p-5 border-b border-border/50 space-y-3">
+          <StepIndicator current={step} />
           <SheetTitle className="text-base">
-            {step === 'customer' && 'Stap 1: Klant'}
-            {step === 'details' && 'Stap 2: Details'}
-            {step === 'confirm' && 'Stap 3: Bevestig'}
+            {step === 'customer' && 'Klant selecteren'}
+            {step === 'details' && 'Reserveringsdetails'}
+            {step === 'confirm' && 'Bevestig reservering'}
           </SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-5">
           {/* STEP 1: Customer */}
           {step === 'customer' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Walk-in option */}
               <button
                 onClick={() => { setIsWalkIn(true); setSelectedCustomer(null); setStep('details'); }}
@@ -189,7 +259,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                       <p className="text-sm font-medium truncate">{c.first_name} {c.last_name}</p>
                       <p className="text-xs text-muted-foreground truncate">{c.email || c.phone_number || '—'}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground">{c.total_visits} bezoeken</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">{c.total_visits} bezoeken</span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </button>
                 ))}
@@ -227,51 +297,60 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
 
           {/* STEP 2: Details */}
           {step === 'details' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs mb-1.5 block">Datum</Label>
+                  <Label className="text-label text-muted-foreground mb-1.5 block">Datum</Label>
                   <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
                 </div>
                 <div>
-                  <Label className="text-xs mb-1.5 block">Tijdslot</Label>
+                  <Label className="text-label text-muted-foreground mb-1.5 block">Tijdslot</Label>
                   <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} step="900" />
                 </div>
               </div>
 
+              {/* Auto-detected shift (read-only) */}
               <div>
-                <Label className="text-xs mb-1.5 block">Shift</Label>
-                <Select value={shiftId} onValueChange={setShiftId}>
-                  <SelectTrigger><SelectValue placeholder="Kies shift" /></SelectTrigger>
-                  <SelectContent>
-                    {shifts.filter((s) => s.is_active).map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-label text-muted-foreground mb-1.5 block">Shift</Label>
+                {detectedShift ? (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-button border border-border bg-muted/30 text-sm">
+                    <span className="font-medium text-foreground">{detectedShift.name}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {formatTime(detectedShift.start_time)}–{formatTime(detectedShift.end_time)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-button border border-warning/30 bg-warning/5 text-sm">
+                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                    <span className="text-warning text-xs">Geen shift voor dit tijdslot</span>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <Label className="text-xs mb-1.5 block">Ticket</Label>
-                <Select value={ticketId} onValueChange={setTicketId}>
-                  <SelectTrigger><SelectValue placeholder="Kies ticket" /></SelectTrigger>
-                  <SelectContent>
-                    {shiftTickets.filter((st) => st.is_active).map((st) => (
-                      <SelectItem key={st.ticket_id} value={st.ticket_id}>
-                        {st.tickets?.name || st.ticket_id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Ticket — only show if multiple active tickets */}
+              {activeTickets.length > 1 && (
+                <div>
+                  <Label className="text-label text-muted-foreground mb-1.5 block">Ticket</Label>
+                  <Select value={ticketId} onValueChange={setTicketId}>
+                    <SelectTrigger><SelectValue placeholder="Kies ticket" /></SelectTrigger>
+                    <SelectContent>
+                      {activeTickets.map((st) => (
+                        <SelectItem key={st.ticket_id} value={st.ticket_id}>
+                          {st.tickets?.name || st.ticket_id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs mb-1.5 block">Aantal personen</Label>
+                  <Label className="text-label text-muted-foreground mb-1.5 block">Aantal personen</Label>
                   <Input type="number" min={1} max={20} value={partySize} onChange={e => setPartySize(Number(e.target.value))} />
                 </div>
                 <div>
-                  <Label className="text-xs mb-1.5 block">Kanaal</Label>
+                  <Label className="text-label text-muted-foreground mb-1.5 block">Kanaal</Label>
                   <Select value={channel} onValueChange={(v) => setChannel(v as ReservationChannel)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -286,7 +365,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
               </div>
 
               <div>
-                <Label className="text-xs mb-1.5 block">Tafel (optioneel)</Label>
+                <Label className="text-label text-muted-foreground mb-1.5 block">Tafel (optioneel)</Label>
                 <Select value={tableId || '__none__'} onValueChange={(v) => setTableId(v === '__none__' ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="Niet toegewezen" /></SelectTrigger>
                   <SelectContent>
@@ -305,42 +384,40 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm">
                   <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                   <p className="text-warning">
-                    Let op: Deze tafel is al bezet om {overlapWarning.start_time}–{overlapWarning.end_time}.
+                    Let op: Deze tafel is al bezet om {formatTime(overlapWarning.start_time)}–{formatTime(overlapWarning.end_time)}.
                   </p>
                 </div>
               )}
 
               <div>
-                <Label className="text-xs mb-1.5 block">Gast notities</Label>
+                <Label className="text-label text-muted-foreground mb-1.5 block">Gast notities</Label>
                 <textarea className="w-full rounded-button border-[1.5px] border-input bg-background px-3 py-2 text-sm min-h-[60px] resize-none focus-visible:outline-none focus-visible:!border-primary" value={guestNotes} onChange={e => setGuestNotes(e.target.value)} />
               </div>
 
               <div>
-                <Label className="text-xs mb-1.5 block">Interne notities</Label>
+                <Label className="text-label text-muted-foreground mb-1.5 block">Interne notities</Label>
                 <textarea className="w-full rounded-button border-[1.5px] border-input bg-background px-3 py-2 text-sm min-h-[60px] resize-none focus-visible:outline-none focus-visible:!border-primary" value={internalNotes} onChange={e => setInternalNotes(e.target.value)} />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Switch checked={squeeze} onCheckedChange={setSqueeze} />
-                <Label className="text-sm">Squeeze reservering</Label>
               </div>
             </div>
           )}
 
           {/* STEP 3: Confirm */}
           {step === 'confirm' && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-2">
+            <div className="space-y-5">
+              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-2.5">
                 <p className="text-sm"><span className="text-muted-foreground">Klant:</span> {isWalkIn ? 'Walk-in' : selectedCustomer ? `${selectedCustomer.first_name} ${selectedCustomer.last_name}` : '—'}</p>
-                <p className="text-sm"><span className="text-muted-foreground">Datum:</span> {date}</p>
-                <p className="text-sm"><span className="text-muted-foreground">Tijd:</span> {startTime}</p>
-                <p className="text-sm"><span className="text-muted-foreground">Personen:</span> {partySize}</p>
+                <p className="text-sm"><span className="text-muted-foreground">Datum:</span> {formatDateShort(date)}</p>
+                <p className="text-sm"><span className="text-muted-foreground">Tijd:</span> {formatTime(startTime)}</p>
+                <p className="text-sm"><span className="text-muted-foreground">Shift:</span> {detectedShift?.name || '—'}</p>
+                <p className="text-sm"><span className="text-muted-foreground">Personen:</span> <span className="tabular-nums">{partySize}</span></p>
                 <p className="text-sm"><span className="text-muted-foreground">Kanaal:</span> {channel}</p>
-                {squeeze && <p className="text-sm text-primary font-medium">Squeeze reservering</p>}
+                {tableId && (
+                  <p className="text-sm"><span className="text-muted-foreground">Tafel:</span> {allTables.find(t => t.id === tableId)?.display_label || '—'}</p>
+                )}
               </div>
 
               <div>
-                <Label className="text-xs mb-1.5 block">Initiële status</Label>
+                <Label className="text-label text-muted-foreground mb-1.5 block">Initiële status</Label>
                 <Select value={initialStatus} onValueChange={(v) => setInitialStatus(v as ReservationStatus)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -391,11 +468,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
 }
 
 // Walk-in shortcut component
-interface WalkInShortcutProps {
-  onSubmit: () => void;
-  className?: string;
-}
-
 export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { currentLocation, context } = useUserContext();
   const locationId = currentLocation?.id;
@@ -455,19 +527,19 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-[360px] p-0 flex flex-col">
-        <SheetHeader className="p-4 border-b border-border/50">
+        <SheetHeader className="p-5 border-b border-border/50">
           <SheetTitle className="text-base flex items-center gap-2">
             <Footprints className="h-5 w-5" />
             Walk-in registreren
           </SheetTitle>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <div>
-            <Label className="text-xs mb-1.5 block">Aantal personen</Label>
+            <Label className="text-label text-muted-foreground mb-1.5 block">Aantal personen</Label>
             <Input type="number" min={1} max={20} value={partySize} onChange={e => setPartySize(Number(e.target.value))} />
           </div>
           <div>
-            <Label className="text-xs mb-1.5 block">Tafel (optioneel)</Label>
+            <Label className="text-label text-muted-foreground mb-1.5 block">Tafel (optioneel)</Label>
             <Select value={tableId || '__none__'} onValueChange={(v) => setTableId(v === '__none__' ? null : v)}>
               <SelectTrigger><SelectValue placeholder="Niet toegewezen" /></SelectTrigger>
               <SelectContent>
@@ -481,7 +553,7 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
             </Select>
           </div>
           <p className="text-xs text-muted-foreground">
-            Datum: vandaag • Tijd: nu • Status: direct gezeten • Kanaal: walk-in
+            Datum: vandaag • Tijd: nu • Status: direct ingecheckt • Kanaal: walk-in
           </p>
         </div>
         <div className="p-4 border-t border-border/50">

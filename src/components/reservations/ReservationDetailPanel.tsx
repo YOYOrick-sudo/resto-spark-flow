@@ -2,7 +2,7 @@ import { DetailPanel } from '@/components/polar/DetailPanel';
 import { useReservation } from '@/hooks/useReservation';
 import { STATUS_CONFIG } from '@/types/reservation';
 import { formatDateTimeCompact } from '@/lib/datetime';
-import { getDisplayName, getTableLabel } from '@/lib/reservationUtils';
+import { getDisplayName, formatTime } from '@/lib/reservationUtils';
 import { Spinner } from '@/components/polar/LoadingStates';
 import { ReservationBadges } from './ReservationBadges';
 import { ReservationActions } from './ReservationActions';
@@ -22,7 +22,7 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
   const { data: reservation, isLoading, error } = useReservation(reservationId);
 
   return (
-    <DetailPanel open={open} onClose={onClose} title="Reservering" width="w-[460px]">
+    <DetailPanel open={open} onClose={onClose} title="Reservering" width="w-[420px]">
       {isLoading && (
         <div className="flex items-center justify-center py-16">
           <Spinner />
@@ -30,7 +30,7 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
       )}
 
       {error && (
-        <div className="p-4 text-sm text-destructive">
+        <div className="p-5 text-sm text-destructive">
           Fout bij laden: {error.message}
         </div>
       )}
@@ -38,7 +38,7 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
       {reservation && (
         <div className="divide-y divide-border/50">
           {/* Section 1: Header + Summary */}
-          <div className="p-4">
+          <div className="p-5">
             {/* Status badge */}
             {STATUS_CONFIG[reservation.status] && (
               <span className={cn(
@@ -67,10 +67,14 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
               <span className="font-medium text-foreground">{reservation.party_size}p</span>
               <span>•</span>
               <span>{reservation.shift_name || '—'}</span>
+              {reservation.table_label && (
+                <>
+                  <span>•</span>
+                  <span>{reservation.table_label}</span>
+                </>
+              )}
               <span>•</span>
-              <span>{getTableLabel(reservation)}</span>
-              <span>•</span>
-              <span>{reservation.start_time}–{reservation.end_time}</span>
+              <span>{formatTime(reservation.start_time)}–{formatTime(reservation.end_time)}</span>
             </div>
 
             {/* Checked-in-at indicator */}

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Mail, Phone, UserPlus, CalendarDays, AlertTriangle, Eye } from 'lucide-react';
+import { Mail, Phone, UserPlus, CalendarDays, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useReservationsByCustomer } from '@/hooks/useReservationsByCustomer';
 import { STATUS_CONFIG } from '@/types/reservation';
-import type { Customer, Reservation } from '@/types/reservation';
-import { formatDateTimeCompact } from '@/lib/datetime';
+import type { Customer } from '@/types/reservation';
+import { formatDateShort } from '@/lib/datetime';
+import { formatTime } from '@/lib/reservationUtils';
 
 interface CustomerCardProps {
   customer?: Customer;
@@ -15,7 +16,7 @@ interface CustomerCardProps {
 export function CustomerCard({ customer, reservationId, className }: CustomerCardProps) {
   if (!customer) {
     return (
-      <div className={cn('p-4', className)}>
+      <div className={cn('p-5', className)}>
         <h3 className="text-sm font-semibold text-foreground mb-3">Klantgegevens</h3>
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <div className="rounded-full bg-muted p-3 mb-3">
@@ -37,12 +38,12 @@ export function CustomerCard({ customer, reservationId, className }: CustomerCar
   }
 
   return (
-    <div className={cn('p-4', className)}>
+    <div className={cn('p-5', className)}>
       <h3 className="text-sm font-semibold text-foreground mb-3">Klantgegevens</h3>
 
       {/* Contact info */}
       <div className="space-y-2 mb-4">
-        <p className="text-sm font-medium text-foreground">
+        <p className="text-base font-semibold text-foreground">
           {customer.first_name} {customer.last_name}
         </p>
         {customer.email && (
@@ -60,21 +61,21 @@ export function CustomerCard({ customer, reservationId, className }: CustomerCar
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="text-center p-2 rounded-lg bg-muted/50">
-          <p className="text-lg font-semibold text-foreground">{customer.total_visits}</p>
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="text-center p-1.5 rounded-lg bg-muted/50">
+          <p className="text-lg font-semibold text-foreground tabular-nums">{customer.total_visits}</p>
           <p className="text-xs text-muted-foreground">Bezoeken</p>
         </div>
-        <div className="text-center p-2 rounded-lg bg-muted/50">
-          <p className={cn("text-lg font-semibold", customer.total_no_shows > 0 ? "text-destructive" : "text-foreground")}>
+        <div className="text-center p-1.5 rounded-lg bg-muted/50">
+          <p className={cn("text-lg font-semibold tabular-nums", customer.total_no_shows > 0 ? "text-destructive" : "text-foreground")}>
             {customer.total_no_shows}
           </p>
           <p className="text-xs text-muted-foreground">No-shows</p>
         </div>
-        <div className="text-center p-2 rounded-lg bg-muted/50">
+        <div className="text-center p-1.5 rounded-lg bg-muted/50">
           <p className="text-xs text-muted-foreground mt-1">Laatste bezoek</p>
           <p className="text-xs font-medium text-foreground">
-            {customer.last_visit_at ? formatDateTimeCompact(customer.last_visit_at) : '—'}
+            {customer.last_visit_at ? formatDateShort(customer.last_visit_at) : '—'}
           </p>
         </div>
       </div>
@@ -111,9 +112,9 @@ function VisitHistory({ customerId }: { customerId: string }) {
           return (
             <div key={v.id} className="flex items-center gap-2 text-xs text-muted-foreground">
               <CalendarDays className="h-3 w-3 flex-shrink-0" />
-              <span>{v.reservation_date}</span>
+              <span>{formatDateShort(v.reservation_date)}</span>
               <span>•</span>
-              <span>{v.party_size}p</span>
+              <span className="tabular-nums">{v.party_size}p</span>
               {v.shift_name && <span className="text-foreground/60">{v.shift_name}</span>}
               {v.table_label && <span>T{v.table_label}</span>}
               {statusCfg && (
