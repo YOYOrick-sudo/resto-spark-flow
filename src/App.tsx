@@ -24,6 +24,7 @@ import Inkoop from "./pages/Inkoop";
 import Kaartbeheer from "./pages/Kaartbeheer";
 import KaartbeheerDetail from "./pages/KaartbeheerDetail";
 import Taken from "./pages/Taken";
+import PanelDemo from "./pages/PanelDemo";
 import SettingsVoorkeuren from "./pages/SettingsVoorkeuren";
 import SettingsKeuken from "./pages/SettingsKeuken";
 import SettingsInkoop from "./pages/SettingsInkoop";
@@ -66,6 +67,7 @@ const App = () => (
               <Routes>
                 {/* Public routes */}
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/panel-demo" element={<PanelDemo />} />
                 
                 {/* Protected routes - Layout wrapper with persistent sidebar */}
                 <Route element={
