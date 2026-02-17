@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/lib/queryKeys';
-import type { ReservationStatus } from '@/types/reservation';
+import type { Reservation, ReservationStatus } from '@/types/reservation';
 
 interface TransitionParams {
   reservation_id: string;
@@ -30,7 +30,52 @@ export function useTransitionStatus() {
       if (error) throw error;
       return data as string;
     },
-    onSuccess: (_, params) => {
+
+    onMutate: async (params) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.reservations(params.location_id),
+        exact: false,
+      });
+
+      // Snapshot all matching reservation-list queries
+      const snapshots = queryClient.getQueriesData<Reservation[]>({
+        queryKey: queryKeys.reservations(params.location_id),
+      });
+
+      // Optimistically update status in every cached list
+      for (const [key] of snapshots) {
+        queryClient.setQueryData<Reservation[]>(key, (old) =>
+          old?.map((r) =>
+            r.id === params.reservation_id
+              ? {
+                  ...r,
+                  status: params.new_status,
+                  ...(params.new_status === 'seated'
+                    ? { checked_in_at: new Date().toISOString() }
+                    : {}),
+                  ...(params.new_status === 'confirmed'
+                    ? { checked_in_at: null }
+                    : {}),
+                }
+              : r,
+          ),
+        );
+      }
+
+      return { snapshots };
+    },
+
+    onError: (_err, params, context) => {
+      // Rollback to snapshots
+      if (context?.snapshots) {
+        for (const [key, data] of context.snapshots) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
+
+    onSettled: (_, __, params) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.reservations(params.location_id),
         exact: false,
