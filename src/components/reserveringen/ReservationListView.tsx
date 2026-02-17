@@ -14,7 +14,7 @@ import { getDisplayName, isWalkIn, formatTime } from "@/lib/reservationUtils";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
 import type { DensityType } from "./DensityToggle";
 
-const GRID_COLS = "grid grid-cols-[12px_1fr_50px_60px_24px_100px_110px_90px_32px] items-center";
+const GRID_COLS = "grid grid-cols-[12px_1fr_48px_56px_120px_110px_80px_32px] items-center";
 
 const CHANNEL_ICON_MAP: Record<ReservationChannel, React.FC<{ className?: string }>> = {
   widget: Globe,
@@ -65,12 +65,11 @@ function groupByTimeSlot(reservations: Reservation[]): Map<string, Reservation[]
 
 function ColumnHeader() {
   return (
-    <div className={cn(GRID_COLS, "px-4 pb-2 pt-1")}>
+    <div className={cn(GRID_COLS, "px-4 pb-2 pt-1 sticky top-0 z-20 bg-card border-b border-border")}>
       <span />
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Naam</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Pers</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tafel</span>
-      <span />
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shift</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Acties</span>
@@ -107,10 +106,10 @@ export function ReservationListView({
       {Array.from(groupedReservations.entries()).map(([timeSlot, reservationsInSlot]) => (
         <div key={timeSlot}>
           <div className={cn(
-            "sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 border-b border-border shadow-sm",
-            isCompact ? "py-2" : "py-3"
+            "px-4 border-b border-border bg-muted/30",
+            isCompact ? "py-1.5" : "py-2"
           )}>
-            <span className={cn("font-semibold text-foreground", isCompact ? "text-xs" : "text-sm")}>
+            <span className={cn("font-semibold text-muted-foreground", isCompact ? "text-xs" : "text-sm")}>
               {formatTime(timeSlot)}
             </span>
             <span className={cn("text-muted-foreground ml-2", isCompact ? "text-xs" : "text-sm")}>
@@ -155,7 +154,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
       className={cn(
         GRID_COLS,
         "px-4 hover:bg-accent/40 cursor-pointer transition-colors duration-150",
-        isCompact ? "py-3" : "py-4",
+        isCompact ? "py-2" : "py-3",
         reservation.status === "cancelled" && "opacity-50",
         reservation.status === "no_show" && "opacity-60"
       )}
@@ -183,12 +182,9 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
       {/* Tafel */}
       <span className="text-sm text-muted-foreground truncate">{tableLabel}</span>
 
-      {/* Kanaal */}
-      <ChannelIcon channel={reservation.channel} />
-
       {/* Shift */}
       {reservation.shift_name ? (
-        <NestoBadge variant="outline" size="sm" className="truncate justify-center text-muted-foreground max-w-[96px]">
+        <NestoBadge variant="outline" size="sm" className="truncate justify-center text-muted-foreground max-w-[116px]">
           {reservation.shift_name}
         </NestoBadge>
       ) : <span />}
@@ -216,8 +212,8 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
         )}
       </div>
 
-      {/* Acties (vaste breedte) */}
-      <div className="flex items-center justify-end gap-1">
+      {/* Acties (vaste breedte, verspringt niet) */}
+      <div className="flex items-center justify-end gap-1 min-w-0">
         {reservation.status === 'confirmed' && onStatusChange && (
           <button
             onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'seated'); }}
