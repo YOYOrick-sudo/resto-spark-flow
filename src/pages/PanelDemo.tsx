@@ -75,12 +75,7 @@ function DetailPanelDemo() {
     <PanelShell title="Jan de Vries" renderContent={(titleRef) => (
         <div className="divide-y divide-border/50">
           <div className="p-5 pr-14">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 mb-3">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Bevestigd
-            </span>
-
-            <p className="text-[13px] font-medium text-muted-foreground mb-0.5">Reservering</p>
+            <p className="text-[13px] font-medium text-muted-foreground">Reservering</p>
             <h2 ref={titleRef} className="text-lg font-semibold text-foreground">Jan de Vries</h2>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
@@ -92,6 +87,11 @@ function DetailPanelDemo() {
               <span>•</span>
               <span>19:00–21:00</span>
             </div>
+
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 mt-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Bevestigd
+            </span>
 
             <div className="flex flex-wrap gap-1.5 mt-3">
               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20">
