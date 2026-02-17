@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Check, X, UserCheck, AlertOctagon, Clock, CreditCard,
-  Send, ArrowRightLeft, RefreshCw, Ban, MoreHorizontal,
+  Send, ArrowRightLeft, RefreshCw, Ban, MoreHorizontal, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTransitionStatus } from '@/hooks/useTransitionStatus';
@@ -245,9 +245,10 @@ export function ReservationActions({ reservation, className }: ReservationAction
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOverrideOpen(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-semibold mb-1">Operator Override</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              ⚠️ Dit wijkt af van de standaard workflow en wordt gelogd.
-            </p>
+            <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
+              <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+              <p>Dit wijkt af van de standaard workflow en wordt gelogd.</p>
+            </div>
             <div className="space-y-1.5">
               {overrideTargets.map((s) => (
                 <button

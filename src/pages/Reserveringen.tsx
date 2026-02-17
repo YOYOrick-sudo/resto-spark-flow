@@ -17,7 +17,9 @@ import {
 import { useReservations } from "@/hooks/useReservations";
 import { getDisplayName } from "@/lib/reservationUtils";
 import type { Reservation } from "@/types/reservation";
+import { STATUS_LABELS } from "@/types/reservation";
 import { nestoToast } from "@/lib/nestoToast";
+import { useTransitionStatus } from "@/hooks/useTransitionStatus";
 import { ReservationDetailPanel, CreateReservationSheet, WalkInSheet } from "@/components/reservations";
 
 export default function Reserveringen() {
@@ -88,9 +90,23 @@ export default function Reserveringen() {
     setSelectedReservationId(reservation.id);
   }, []);
 
-  const handleStatusChange = (reservation: Reservation, newStatus: Reservation["status"]) => {
-    nestoToast.success(`Status gewijzigd naar: ${newStatus}`);
-  };
+  const transition = useTransitionStatus();
+
+  const handleStatusChange = useCallback((reservation: Reservation, newStatus: Reservation["status"]) => {
+    transition.mutate({
+      reservation_id: reservation.id,
+      new_status: newStatus,
+      location_id: reservation.location_id,
+      customer_id: reservation.customer_id,
+    }, {
+      onSuccess: () => {
+        nestoToast.success(`Status gewijzigd naar: ${STATUS_LABELS[newStatus] || newStatus}`);
+      },
+      onError: (err: Error) => {
+        nestoToast.error(`Fout: ${err.message}`);
+      },
+    });
+  }, [transition]);
 
   const detailPanelOpen = selectedReservationId !== null;
 
