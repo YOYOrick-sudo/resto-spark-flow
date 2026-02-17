@@ -1,370 +1,316 @@
 
-# Fase 4.7a — Plumbing: Database + Type Mapping + Data Layer Swap
+
+# Fase 4.7b — Reservation Detail Panel + Create Flow + Acties
 
 ## Overzicht
 
-Deze fase vervangt alle mock data imports voor reserveringen door echte database queries. Na afloop draait de reserveringen pagina (Grid View, List View, Pacing row, filters) volledig op Supabase data. Het detail panel en create flow volgen in 4.7b.
+Dit is een grote fase die voortbouwt op 4.7a. Het omvat: database migraties (customer_id nullable, BEFORE INSERT trigger, override op transition RPC), 7 nieuwe UI-componenten, realtime subscription, en een create/walk-in flow. De 4 toevoegingen uit de review zijn geintegreerd.
+
+**Score-schaal waarschuwing:** Integer 0-100 is canoniek. De AI_FEATURE_1_RISK_SCORE.md documentatie beschrijft de score als float 0.0-1.0 -- dat is een initieel ontwerp, NIET de implementatie. De 4.6 database gebruikt integer 0-100. Alle UI-code in deze fase MOET de 0-100 schaal gebruiken. Geen conversies, geen floats.
 
 ---
 
-## Deel 0: Scope Inventarisatie
+## Deel 1: Database Migratie (1 migratiebestand)
 
-### 10 bestanden die importeren uit `src/data/reservations.ts`
+Alle database-wijzigingen in een enkele migratie:
 
-| # | Bestand | Wat het importeert | Actie in 4.7a |
-|---|---------|-------------------|---------------|
-| 1 | `Reserveringen.tsx` (pagina) | `mockReservations`, `getReservationsForDate`, `getTotalGuestsForDate`, `getGuestDisplayName`, type `Reservation` | Vervang door `useReservations` hook + adapter helpers |
-| 2 | `ReservationGridView.tsx` | 16 functies (zie breakdown) | Grootste refactor: split in pure utils vs hook-backed |
-| 3 | `ReservationBlock.tsx` | `getGuestDisplayName`, `calculateBlockPosition`, `timeToMinutes`, `minutesToTime`, `GridTimeConfig`, `defaultGridConfig` | Verplaats pure utils, vervang naam helper |
-| 4 | `TableRow.tsx` | `Table`, `Reservation`, `getReservationsForTableMutable`, `GridTimeConfig`, `defaultGridConfig` | Ontvang reservations via props i.p.v. interne fetch |
-| 5 | `ReservationListView.tsx` | `Reservation`, `reservationStatusConfig`, `getTableNumbers`, `getGuestDisplayName` | Vervang door adapter helpers + nieuwe statusConfig |
-| 6 | `ReservationFilters.tsx` | type `ReservationStatus` | Vervang import naar `src/types/reservation.ts` |
-| 7 | `QuickReservationPanel.tsx` | `Table`, `getTablesByZone`, `getActiveZones`, `checkTimeConflict`, `timeToMinutes`, `minutesToTime` | Disable/placeholder -- panel krijgt "coming soon" state |
-| 8 | `Dashboard.tsx` | `mockReservations` | Vervang door `useReservations` hook |
-| 9 | `SettingsReserveringenPacing.tsx` | `mockPacingSettings`, `updatePacingSettings`, `mockTables` | Verplaats pacing mock naar apart bestand |
-| 10 | `SettingsReserveringenShiftTijden.tsx` | `mockPacingSettings`, `updatePacingSettings` | Verplaats pacing mock naar apart bestand |
-
-### Grid View 16 functies -- categorisering
-
-| Functie | Categorie | Actie |
-|---------|-----------|-------|
-| `timeToMinutes` | Pure utility | Verplaats naar `src/lib/reservationUtils.ts` |
-| `minutesToTime` | Pure utility | Verplaats naar `src/lib/reservationUtils.ts` |
-| `GridTimeConfig` (type) | Pure utility | Verplaats naar `src/lib/reservationUtils.ts` |
-| `defaultGridConfig` | Pure utility | Verplaats naar `src/lib/reservationUtils.ts` |
-| `getHourLabels` | Pure utility | Verplaats naar `src/lib/reservationUtils.ts` |
-| `calculateBlockPosition` | Pure utility | Verplaats naar `src/lib/reservationUtils.ts` |
-| `getTimeSlots` | Pure utility | Verplaats naar `src/lib/reservationUtils.ts` |
-| `getActiveZones` | Mock-specifiek | Vervang door `useAreasForGrid` hook |
-| `getTablesByZone` | Mock-specifiek | Vervang door areas[].tables uit hook |
-| `getSeatedCountAtTime` | Mock-specifiek | Bereken client-side uit hook data |
-| `getPacingLimitForTime` | Mock-specifiek | Verplaats naar pacing mock (voorlopig) |
-| `getShiftForTime` | Mock-specifiek | Vervang door shift data uit `useShifts` |
-| `getTableById` | Mock-specifiek | Vervang door lookup in areas data |
-| `getReservationsForDate` | Mock-specifiek | Vervang door `useReservations` hook |
-| `getReservationsForTableMutable` | Mock-specifiek | Vervang door client-side filter op hook data |
-| `checkTimeConflict` | Mock-specifiek | Verplaats pure logica naar utils, data komt van hook |
-| `updateReservationPosition` | Mutatie (DnD) | **Disable in 4.7a** -- DnD wordt read-only |
-| `updateReservationDuration` | Mutatie (DnD) | **Disable in 4.7a** -- resize wordt read-only |
-| `checkInReservation` | Mutatie | **Disable in 4.7a** -- komt in 4.7b via RPC |
-| `addReservation` | Mutatie | **Disable in 4.7a** -- komt in 4.7b via create flow |
-| `updateReservationStatus` | Mutatie | **Disable in 4.7a** -- komt in 4.7b via RPC |
-
-### Kritieke bug: Grid View dubbele data-fetch
-
-`ReservationGridView` ontvangt `reservations` als prop maar negeert die volledig. Intern roept het `getReservationsForDate(dateString)` aan (regel 422-424) en geeft die door aan alle child components. Dit betekent:
-
-1. Filters van de parent pagina hebben geen effect op de Grid View
-2. Data wordt dubbel opgehaald
-3. Na de mock-swap zou de Grid View alsnog mock data tonen
-
-**Fix:** Grid View moet `reservations` prop gebruiken als single source of truth. `TableRow` moet reservations via props krijgen, niet intern ophalen.
-
----
-
-## Deel 1: Database Migratie
-
-### 1.1 `risk_factors` kolom toevoegen
+### 1A. customer_id nullable + FK ON DELETE SET NULL
 
 ```text
+-- Drop bestaande FK (ON DELETE RESTRICT)
+ALTER TABLE public.reservations DROP CONSTRAINT reservations_customer_id_fkey;
+
+-- Maak nullable
+ALTER TABLE public.reservations ALTER COLUMN customer_id DROP NOT NULL;
+
+-- Hermaak FK met ON DELETE SET NULL
 ALTER TABLE public.reservations
-ADD COLUMN risk_factors JSONB;
+  ADD CONSTRAINT reservations_customer_id_fkey
+  FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE SET NULL;
 ```
 
-### 1.2 `calculate_no_show_risk` functie herschrijven
-
-De bestaande functie berekent een totaalscore. Die logica wordt gesplitst in individuele variabelen zodat per factor een jsonb entry kan worden geschreven.
-
-De score-logica (gewichten, ranges) verandert NIET -- alleen de opslag wordt uitgebreid:
+### 1B. actor_type op audit_log
 
 ```text
-UPDATE public.reservations
-SET
-  no_show_risk_score = LEAST(_score, 100),
-  risk_factors = jsonb_build_object(
-    'guest_history', jsonb_build_object('score', _guest_score, 'weight', 40, 'detail', ...),
-    'party_size',    jsonb_build_object('score', _party_score, 'weight', 20, 'detail', ...),
-    'booking_lead',  jsonb_build_object('score', _lead_score,  'weight', 20, 'detail', ...),
-    'channel',       jsonb_build_object('score', _chan_score,   'weight', 10, 'detail', ...),
-    'day_of_week',   jsonb_build_object('score', _day_score,   'weight', 10, 'detail', ...)
-  )
-WHERE id = _reservation_id;
+ALTER TABLE public.audit_log ADD COLUMN actor_type TEXT NOT NULL DEFAULT 'user';
 ```
 
-### 1.3 AFTER INSERT trigger bijwerken
+Mogelijke waarden: user, system, webhook, ai_agent. Default 'user' voor alle bestaande en nieuwe entries.
 
-De trigger `fn_calculate_no_show_risk_after_insert` moet dezelfde risk_factors logica bevatten.
+### 1C. BEFORE INSERT trigger voor risk score
+
+De functie `fn_calculate_no_show_risk()` bestaat al en is correct qua logica, MAAR crashed bij customer_id = NULL (NOT FOUND branch zet score op 0 en returnt zonder risk_factors te vullen).
+
+Aanpak:
+- DROP en hercreeer de functie met walk-in veilige logica: bij NOT FOUND, gebruik default scores (guest_history score = 6, detail = "Onbekende gast / walk-in") EN vul risk_factors jsonb
+- Maak de ontbrekende BEFORE INSERT trigger:
+
+```text
+CREATE TRIGGER trg_calculate_risk_on_insert
+  BEFORE INSERT ON public.reservations
+  FOR EACH ROW
+  EXECUTE FUNCTION fn_calculate_no_show_risk();
+```
+
+### 1D. create_reservation RPC -- customer_id optioneel
+
+```text
+-- Hercreeer met _customer_id uuid DEFAULT NULL
+-- Bij NULL customer_id: sla customer-gerelateerde checks over
+```
+
+### 1E. transition_reservation_status -- override + beveiliging
+
+Hercreeer de RPC met extra parameter `_is_override BOOLEAN DEFAULT false`:
+
+- Bij `_is_override = true`:
+  - Permission check via `user_has_role_in_location(COALESCE(_actor_id, auth.uid()), _r.location_id, ARRAY['owner','manager'])`
+  - Terminal states (completed, no_show, cancelled) als BRON geblokkeerd, ook bij override
+  - `_reason` verplicht (RAISE als null)
+  - Sla transitiematrix over voor non-terminal bronstatussen
+- Actor: `COALESCE(_actor_id, auth.uid())` in audit_log
+- Metadata: `is_override: true` in audit_log entry
 
 ---
 
-## Deel 2: Pure Utilities Extractie
+## Deel 2: LEFT JOIN fix (KRITIEK)
 
-### Nieuw bestand: `src/lib/reservationUtils.ts`
+Na customer_id nullable worden, moeten alle Supabase joins met customers een LEFT JOIN gebruiken. Supabase default is INNER JOIN. Syntax: `customers!left:customer_id(...)`.
 
-Bevat alleen pure functies zonder data-afhankelijkheden:
+Betrokken hooks:
+- `useReservations` -- `customers:customer_id (...)` wordt `customers!left:customer_id (...)`
+- `useReservation` -- idem
+- Geen andere hooks joinen customers op reservations
 
-```text
-// Types
-export interface GridTimeConfig { startHour, endHour, intervalMinutes, pixelsPerMinute }
-export const defaultGridConfig: GridTimeConfig
-
-// Time helpers
-export function timeToMinutes(time: string): number
-export function minutesToTime(totalMinutes: number): string
-
-// Grid helpers
-export function getHourLabels(config: GridTimeConfig): string[]
-export function getTimeSlots(config: GridTimeConfig): string[]
-export function calculateBlockPosition(startTime, endTime, config): { left, width }
-
-// Conflict check (pure -- data wordt meegegeven, niet intern opgehaald)
-export function checkTimeConflict(
-  reservations: Reservation[],
-  tableId: string,
-  startTime: string,
-  endTime: string,
-  excludeId?: string
-): { hasConflict: boolean; conflictingReservation?: Reservation }
-
-// Seated count (pure -- berekent uit meegegeven reserveringen)
-export function getSeatedCountAtTime(
-  reservations: Reservation[],
-  time: string
-): number
-```
+Zonder deze fix verdwijnen walk-in reserveringen (customer_id = NULL) uit alle lijsten.
 
 ---
 
-## Deel 3: Adapter Layer + Type Constants
+## Deel 3: TypeScript Type Updates
 
-### 3.1 Status visuele config verplaatsen naar `src/types/reservation.ts`
+### Reservation interface -- nullable velden
 
-De mock heeft een uitgebreide `reservationStatusConfig` met dotColor, textClass, bgClass, borderClass. Deze wordt gekopieerd en aangepast:
-
-- `pending` wordt `draft` (label: "Concept")
-- `checked_in` wordt verwijderd (mapped naar `seated`)
-- Nieuwe statussen toegevoegd: `option`, `pending_payment`
-- Labels worden Nederlands
-
-```text
-export const STATUS_CONFIG: Record<ReservationStatus, {
-  label: string;
-  dotColor: string;
-  showDot: boolean;
-  textClass: string;
-  bgClass: string;
-  borderClass: string;
-}> = { ... }
+```typescript
+customer_id: string | null;              // was: string
+no_show_risk_score: number | null;       // was: number
+risk_factors?: Record<string, unknown> | null;
+payment_status?: string | null;          // toekomstig (Stripe 4.13)
+option_expires_at?: string | null;       // toekomstig (options 4.9)
+reconfirmed_at?: string | null;          // toekomstig (messaging 4.14)
+badges?: Record<string, unknown> | null; // toekomstig (badge data)
 ```
 
-### 3.2 Label constants (al in vorig plan besproken)
+### CHANNEL_ICONS -- emoji's vervangen door Lucide icon namen
 
-```text
-export const STATUS_LABELS: Record<ReservationStatus, string>
-export const CHANNEL_LABELS: Record<ReservationChannel, string>
-export const CHANNEL_ICONS: Record<ReservationChannel, string>
+```typescript
+export const CHANNEL_ICONS: Record<ReservationChannel, string> = {
+  widget: 'Globe',
+  operator: 'User',
+  phone: 'Phone',
+  google: 'Search',
+  whatsapp: 'MessageCircle',
+  walk_in: 'Footprints',
+};
 ```
 
-### 3.3 Display helpers in `src/lib/reservationUtils.ts`
+### useCreateReservation -- customer_id nullable
 
-```text
-// Naam weergave
-export function getDisplayName(r: Reservation): string {
-  if (r.channel === 'walk_in' && !r.customer) return 'Walk-in';
-  if (!r.customer) return 'Onbekende gast';
-  return [r.customer.first_name, r.customer.last_name].filter(Boolean).join(' ') || 'Onbekende gast';
-}
+```typescript
+customer_id: string | null;  // was: string
+```
 
-// Tafel label
-export function getTableLabel(r: Reservation): string {
-  return r.table_label || '--';
+### useTransitionStatus -- is_override param
+
+```typescript
+interface TransitionParams {
+  // ...bestaand...
+  is_override?: boolean;
 }
 ```
 
-### 3.4 Mock-to-DB veld mapping (referentie)
+---
 
-| Mock veld | Database veld | Notitie |
-|-----------|--------------|---------|
-| `guestFirstName` + `guestLastName` | `customer.first_name` + `customer.last_name` | Via join |
-| `phone` | `customer.phone_number` | Via join |
-| `email` | `customer.email` | Via join |
-| `date` | `reservation_date` | Format identiek (YYYY-MM-DD) |
-| `startTime` | `start_time` | Format identiek (HH:mm) |
-| `endTime` | `end_time` | Format identiek (HH:mm) |
-| `guests` | `party_size` | |
-| `tableIds[]` | `table_id` (single) | DB = single table, multi-table later |
-| `shift` ('ED'/'LD') | `shift_name` (via join) | |
-| `status` | `status` | `pending`->`draft`, `checked_in`->`seated` |
-| `notes` | `guest_notes` + `internal_notes` | Twee velden i.p.v. een |
-| `isVip` | Geen equivalent | Komt via customer tags later |
-| `isWalkIn` | `channel === 'walk_in'` | |
-| `ticketType` | `ticket_name` (via join) | |
-| `zone` / `zoneId` | `area` (via table -> area join) | |
+## Deel 4: Realtime Subscription
+
+Update `useReservations` met Supabase realtime, gefilterd op location_id:
+
+```typescript
+useEffect(() => {
+  if (!locationId) return;
+  const channel = supabase
+    .channel(`reservations-${locationId}`)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'reservations',
+      filter: `location_id=eq.${locationId}`,
+    }, () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations(locationId),
+        exact: false,
+      });
+    })
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}, [locationId, queryClient]);
+```
 
 ---
 
-## Deel 4: Component Refactoring (per bestand)
+## Deel 5: Nieuwe UI Componenten (7 stuks)
 
-### 4.1 `Reserveringen.tsx` (pagina)
+### 5.1 ReservationBadges.tsx
 
-**Wat verandert:**
-- Import `useReservations` i.p.v. mock functies
-- Gebruik `useReservations({ date: dateString })` voor data
-- Voeg loading/error states toe
-- Bereken `totalGuests` en `waitingCount` uit hook data
-- Geef gefilterde reservations als prop door aan Grid/List views
-- Status filter opties: gebruik `STATUS_CONFIG` keys
-- Zoekfunctie: gebruik `getDisplayName()` + `customer.phone_number` + `customer.email`
+Alle 11 badge-types met null-safe condities. Lucide iconen, geen emoji's.
 
-**Wat NIET verandert:**
-- Layout, toolbar, date navigator, view toggle, footer
-- Filter UX en gedrag
+| Badge | Conditie | Rendert nu? |
+|-------|----------|-------------|
+| Squeeze | `is_squeeze === true` | Ja |
+| Hoog risico | `no_show_risk_score !== null && >= 50` | Ja |
+| Verhoogd risico | `no_show_risk_score !== null && >= 30 && < 50` | Ja |
+| VIP | `Array.isArray(customer?.tags) && customer.tags.includes('vip')` | Ja |
+| Allergieeen | `reservation.badges?.allergies` | Nee |
+| Prepaid | `payment_status === 'paid'` | Nee |
+| Deposit | `payment_status === 'deposit_paid'` | Nee |
+| Optie verloopt | `status === 'option' && option_expires_at` | Nee |
+| Herbevestigd | `reconfirmed_at !== null` | Nee |
+| Wachtlijst | `badges?.waitlist_filled` | Nee |
+| Kanaal | altijd, tenzij walk_in of operator | Ja |
 
-### 4.2 `ReservationGridView.tsx` (grootste wijziging)
+### 5.2 CustomerCard.tsx
 
-**Wat verandert:**
+- Contactgegevens + bezoekstats
+- Bezoekhistorie via `useReservationsByCustomer`, max 5
+- "Toon alle bezoeken" link bij > 5
+- Klant notities
+- Als customer_id null: lege state "Geen klantgegevens gekoppeld" + **"Klant koppelen" knop** -- werkend: opent een zoek-/selectie-dialoog die `useCustomers` en `useUpdateReservation` (of een directe `.update()` call) gebruikt om een bestaande klant te koppelen aan de reservering. De hooks bestaan al; dit is geen placeholder.
 
-1. **Data source:** Verwijder interne `getReservationsForDate` call (de dubbele-fetch bug). Gebruik `reservations` prop als single source of truth.
+### 5.3 RiskScoreSection.tsx
 
-2. **Zones/Areas:** Vervang `getActiveZones()` + `getTablesByZone()` door `useAreasForGrid(locationId)`. Component krijgt `locationId` als nieuwe prop, of areas data wordt van parent doorgegeven.
+- Score weergave (0-100, integer schaal) met visuele indicator
+- Drempels: 0-29 = laag, 30-49 = verhoogd, 50-100 = hoog
+- Per-factor breakdown uit risk_factors jsonb
+- "Bevestiging sturen" placeholder bij score >= 50 AND confirmed
+- Null state: "Risicoscore wordt berekend..."
+- **Shift context**: onder de breakdown een regel "Shift gemiddeld: X%" via query op shift_risk_summary view
 
-3. **Pacing row (`SeatedCountRow`):** `getSeatedCountAtTime` wordt een pure functie die reservations als parameter krijgt. `getPacingLimitForTime` blijft voorlopig mock-based (via apart pacing bestand).
+### 5.4 AuditLogTimeline.tsx
 
-4. **DnD mutaties disablen:**
-   - `handleDragEnd`: toon toast "Verplaatsen wordt binnenkort beschikbaar" i.p.v. `updateReservationPosition`
-   - `handleResize`: toon toast "Aanpassen wordt binnenkort beschikbaar" i.p.v. `updateReservationDuration`
-   - `handleCheckIn`: toon toast "Inchecken wordt binnenkort beschikbaar" i.p.v. `checkInReservation`
-   - DnD framework (sensors, ghost, drop animation) blijft intact voor visuele feedback, maar de mutatie wordt niet uitgevoerd
+- Via `useAuditLog('reservation', reservationId)`
+- Per entry: actie, actor naam (of "Systeem"), timestamp via `formatDateTimeCompact()`
+- Override entries visueel onderscheidbaar (waarschuwingsbadge)
 
-5. **Quick reservation:** `handleQuickReservationSubmit` toont toast "Aanmaken wordt binnenkort beschikbaar" i.p.v. `addReservation`. Panel blijft openbaar maar submit is disabled.
+### 5.5 ReservationActions.tsx
 
-6. **Import cleanup:** Alle 16+ imports uit `data/reservations` worden vervangen door imports uit `lib/reservationUtils` + hooks.
+Actieknoppen per status:
 
-### 4.3 `TableRow.tsx`
+| Status | Werkend | Placeholder (disabled) |
+|--------|---------|----------------------|
+| draft | Bevestigen, Optie, Annuleren | Betaling aanvragen |
+| pending_payment | Annuleren | Betaallink opnieuw |
+| option | Bevestigen, Annuleren | Optie verlengen |
+| confirmed | Inchecken, No-show, Annuleren | Betaling aanvragen |
+| confirmed + risk>=50 | (bovenstaande) | Bevestiging sturen |
+| seated | Afronden | Tafel wijzigen |
+| completed | -- | -- |
+| no_show | -- | Terugbetalen, Kwijtschelden |
+| cancelled | -- | Terugbetalen, Kwijtschelden |
 
-**Wat verandert:**
-- Verwijder interne `getReservationsForTableMutable(date, table.id)` call
-- Ontvang `reservations` als prop (gefilterd op table_id door parent)
-- Import types en utils uit `lib/reservationUtils` i.p.v. `data/reservations`
+8 placeholder knoppen totaal.
 
-**Nieuwe prop:**
-```text
-interface TableRowProps {
-  ...bestaand...
-  reservations: Reservation[];  // <-- nieuw, gefilterd op deze tafel
-}
-```
+**Operator Override**: "Andere actie uitvoeren..." link, alleen voor manager/owner. Opent dialoog met alle statussen behalve huidige en terminal-als-bron. Verplicht reden, waarschuwingstekst, `is_override: true`.
 
-### 4.4 `ReservationBlock.tsx`
+### 5.6 ReservationDetailPanel.tsx
 
-**Wat verandert:**
-- Import `calculateBlockPosition`, `timeToMinutes`, `minutesToTime`, `GridTimeConfig`, `defaultGridConfig` uit `lib/reservationUtils`
-- Import `getDisplayName` uit `lib/reservationUtils`
-- Status styling: `checked_in` case verwijderen (mapped naar `seated`)
-- `pending` case verwijderen (mapped naar `draft`)
-- Type `Reservation` importeren uit `types/reservation`
-- `reservation.phone` check wordt `reservation.customer?.phone_number`
-- `reservation.isVip` wordt tijdelijk verwijderd (VIP indicator) -- geen database equivalent
-- `reservation.isWalkIn` wordt `reservation.channel === 'walk_in'`
-- `reservation.guests` wordt `reservation.party_size`
-- `reservation.shift` badge wordt `reservation.shift_name` (of verborgen als null)
+Wraps bestaand `DetailPanel` component. 4 secties:
+1. Header + samenvatting + ReservationBadges + ReservationActions
+2. CustomerCard (incl. "Klant koppelen" bij null customer)
+3. RiskScoreSection (incl. shift gemiddelde)
+4. AuditLogTimeline
 
-### 4.5 `ReservationListView.tsx`
+Data via `useReservation(reservationId)`.
 
-**Wat verandert:**
-- Import `STATUS_CONFIG` uit `types/reservation` i.p.v. `reservationStatusConfig` uit mock
-- Import `getDisplayName` uit `lib/reservationUtils`
-- `getTableNumbers(reservation.tableIds)` wordt `reservation.table_label || '--'`
-- Status dropdown menu: vervang `checked_in` door database statussen, gebruik `ALLOWED_TRANSITIONS` om alleen geldige opties te tonen
-- `reservation.guests` wordt `reservation.party_size`
-- `reservation.phone` wordt `reservation.customer?.phone_number`
-- `reservation.isVip` tijdelijk verwijderd
-- `reservation.isWalkIn` wordt `reservation.channel === 'walk_in'`
-- `reservation.notes` wordt `reservation.guest_notes`
-- `reservation.shift` badge wordt `reservation.shift_name`
+### 5.7 CreateReservationSheet.tsx
 
-### 4.6 `ReservationFilters.tsx`
+Sheet (side="right") met 3-staps flow:
 
-**Wat verandert:**
-- Import `ReservationStatus` uit `types/reservation` i.p.v. `data/reservations`
-- Status opties: gebruik `STATUS_CONFIG` keys + labels
-- Shift opties: hardcoded 'ED'/'LD' wordt dynamisch via `useShifts` (of voorlopig hardcoded met shift names)
-- Ticket type opties: hardcoded lijst wordt dynamisch via `useTickets` (of voorlopig vereenvoudigd)
-- Filter logica in parent past aan: `r.shift` wordt `r.shift_name`, `r.ticketType` wordt `r.ticket_name`
+**Stap 1: Klant**
+- Zoekbalk met `useCustomers(searchTerm)`
+- "Nieuwe klant" inline formulier
+- "Walk-in (zonder klant)" -- customer_id = null
 
-### 4.7 `QuickReservationPanel.tsx`
+**Stap 2: Details**
+- Datum, shift, ticket, party size, tijdslot, tafel (optioneel), kanaal, notities, squeeze
+- Overlap waarschuwing (client-side, niet-blokkerend)
 
-**Wat verandert:**
-- Functionaliteit wordt tijdelijk disabled
-- Submit knop toont "Binnenkort beschikbaar" en is disabled
-- Pure time utils (`timeToMinutes`, `minutesToTime`) importeren uit `lib/reservationUtils`
-- `getActiveZones`/`getTablesByZone`/`checkTimeConflict` worden verwijderd -- tafel selectie is placeholder
-- Component blijft renderen (geen visuele breuk) maar kan niet submitten
+**Stap 3: Bevestig**
+- Samenvatting + status keuze (confirmed/draft/option)
+- Submit via `useCreateReservation()`
 
-### 4.8 `Dashboard.tsx`
-
-**Wat verandert:**
-- Vervang `mockReservations` import door `useReservations` hook
-- `mockReservations.filter(r => r.date === today)` wordt `useReservations({ date: today })`
-- Toon loading state tijdens laden
-- Pas ReservationsTile aan om database `Reservation` type te accepteren
-
-### 4.9 `SettingsReserveringenPacing.tsx` + `SettingsReserveringenShiftTijden.tsx`
-
-**Wat verandert:**
-- Import `mockPacingSettings`, `updatePacingSettings`, `mockTables` uit **nieuw** bestand `src/data/pacingMockData.ts`
-- Geen functionele wijzigingen -- pacing settings blijven mock-based tot een latere fase
+**Walk-in shortcut**: aparte knop, vereenvoudigd formulier. Expliciete defaults:
+- `reservation_date` = vandaag (YYYY-MM-DD)
+- `start_time` = huidige tijd (afgerond op 15 min)
+- `channel` = `walk_in`
+- `status` = `seated` (direct ingecheckt)
+- `customer_id` = null
+- Alleen party size en tafel (optioneel) als input
 
 ---
 
-## Deel 5: Pacing Mock Isolatie
+## Deel 6: ConfirmDialog uitbreiding
 
-### Nieuw bestand: `src/data/pacingMockData.ts`
-
-Bevat alleen pacing-gerelateerde exports verplaatst uit `data/reservations.ts`:
-
-```text
-export interface PacingSettings { ... }
-export let mockPacingSettings: PacingSettings
-export function updatePacingSettings(...)
-export function getPacingLimitForTime(time: string): number
-```
-
-Dit bestand is expliciet tijdelijk en wordt vervangen wanneer pacing settings naar de database verhuizen.
+Voeg optionele `showReasonField?: boolean` prop toe aan bestaand `ConfirmDialog`:
+- Toont een tekstveld voor reden
+- `onConfirmWithReason?: (reason: string) => void`
+- Backward compatible
 
 ---
 
-## Deel 6: `data/reservations.ts` opruiming
+## Deel 7: View Updates
 
-Na alle bovenstaande wijzigingen zou `data/reservations.ts` geen imports meer hebben. Het bestand wordt **niet verwijderd** in 4.7a maar gemarkeerd als deprecated:
+### Reserveringen.tsx pagina
 
-```text
-// @deprecated -- alle exports zijn verplaatst.
-// Pacing: src/data/pacingMockData.ts
-// Utils: src/lib/reservationUtils.ts
-// Types: src/types/reservation.ts
-// Data: useReservations hook
-```
+- Layout wordt flex row: main content + DetailPanel
+- `selectedReservationId` state
+- Click handlers openen ReservationDetailPanel
+- "Reservering" knop opent CreateReservationSheet
+- Nieuwe "Walk-in" knop
 
-Verwijdering volgt in 4.7b na bevestiging dat niets meer importeert.
+### ReservationBlock (Grid View)
+
+- Risico-indicator: subtiele border/dot bij score >= 50 (rood) en 30-49 (oranje). Null-safe.
+- Squeeze indicator bij `is_squeeze === true`
+
+### ReservationListView
+
+- Extra kolom: risicoscore (percentage + kleur). Null-safe.
+- Extra kolom: kanaal (Lucide icoon)
+
+---
+
+## Deel 8: Opruiming
+
+- Verwijder `src/data/reservations.ts`
+- Grep check: geen resterende imports
+- Behoud: `pacingMockData.ts`, `assistantMockData.ts`
 
 ---
 
 ## Implementatievolgorde
 
-1. Database migratie: `risk_factors` kolom + functie update
-2. `src/lib/reservationUtils.ts` -- pure utilities extractie
-3. `src/types/reservation.ts` -- STATUS_CONFIG, labels, channel maps toevoegen
-4. `src/data/pacingMockData.ts` -- pacing mock isolatie
-5. `ReservationFilters.tsx` -- simpelste wijziging, type import swap
-6. `ReservationBlock.tsx` -- util imports + veld mapping
-7. `TableRow.tsx` -- reservations via props, verwijder interne fetch
-8. `ReservationListView.tsx` -- veld mapping + statusConfig swap
-9. `ReservationGridView.tsx` -- areas hook, dubbele-fetch fix, DnD disable, prop passthrough
-10. `QuickReservationPanel.tsx` -- disable submit, clean imports
-11. `Reserveringen.tsx` -- useReservations hook, loading/error, filter logica
-12. `Dashboard.tsx` -- useReservations hook
-13. Settings pacing pages -- import swap naar pacingMockData
+1. Database migratie: customer_id nullable + FK ON DELETE SET NULL + actor_type op audit_log + BEFORE INSERT trigger + fn fix voor NULL customer + create_reservation customer_id optional + transition override param
+2. LEFT JOIN fix: useReservations + useReservation `!left` syntax
+3. Types: Reservation interface nullable velden + CHANNEL_ICONS Lucide + hook params
+4. Realtime: Gefilterde subscription op useReservations
+5. ConfirmDialog: Reden-tekstveld prop
+6. ReservationBadges: 11 types, null-safe
+7. CustomerCard: Contact + bezoekhistorie + null state + "Klant koppelen" werkend
+8. RiskScoreSection: Score meter + breakdown + shift gemiddelde
+9. AuditLogTimeline: Entries + override styling
+10. ReservationActions: Werkend + placeholders + override
+11. ReservationDetailPanel: Wrapper met 4 secties
+12. CreateReservationSheet: 3-staps + walk-in shortcut
+13. Reserveringen pagina: Panel integratie + create + walk-in knop
+14. Grid/List View: Risico + squeeze indicators + kanaal kolom
+15. Opruiming: Mock data verwijderen
 
 ---
 
@@ -372,50 +318,92 @@ Verwijdering volgt in 4.7b na bevestiging dat niets meer importeert.
 
 | Bestand | Actie |
 |---------|-------|
-| SQL migratie | Nieuw -- `risk_factors` kolom + functie updates |
-| `src/lib/reservationUtils.ts` | Nieuw -- pure grid/time utilities + display helpers |
-| `src/data/pacingMockData.ts` | Nieuw -- geisoleerde pacing mock data |
-| `src/types/reservation.ts` | Update -- STATUS_CONFIG, labels, channel maps |
-| `src/components/reserveringen/ReservationGridView.tsx` | Update -- areas hook, prop passthrough, DnD disable |
-| `src/components/reserveringen/TableRow.tsx` | Update -- reservations via props |
-| `src/components/reserveringen/ReservationBlock.tsx` | Update -- imports + veld mapping |
-| `src/components/reserveringen/ReservationListView.tsx` | Update -- imports + veld mapping |
-| `src/components/reserveringen/ReservationFilters.tsx` | Update -- type import |
-| `src/components/reserveringen/QuickReservationPanel.tsx` | Update -- disable submit |
-| `src/pages/Reserveringen.tsx` | Update -- useReservations + loading/error |
-| `src/pages/Dashboard.tsx` | Update -- useReservations |
-| `src/pages/settings/reserveringen/SettingsReserveringenPacing.tsx` | Update -- import swap |
-| `src/pages/settings/reserveringen/SettingsReserveringenShiftTijden.tsx` | Update -- import swap |
-| `src/data/reservations.ts` | Deprecated marker (niet verwijderd) |
+| SQL migratie | Nieuw |
+| `src/hooks/useReservations.ts` | Update -- LEFT JOIN + realtime |
+| `src/hooks/useReservation.ts` | Update -- LEFT JOIN |
+| `src/hooks/useCreateReservation.ts` | Update -- customer_id nullable |
+| `src/hooks/useTransitionStatus.ts` | Update -- is_override param |
+| `src/types/reservation.ts` | Update -- nullable velden + Lucide icons |
+| `src/components/polar/ConfirmDialog.tsx` | Update -- reden-veld |
+| `src/components/reservations/ReservationBadges.tsx` | Nieuw |
+| `src/components/reservations/CustomerCard.tsx` | Nieuw |
+| `src/components/reservations/RiskScoreSection.tsx` | Nieuw |
+| `src/components/reservations/AuditLogTimeline.tsx` | Nieuw |
+| `src/components/reservations/ReservationActions.tsx` | Nieuw |
+| `src/components/reservations/ReservationDetailPanel.tsx` | Nieuw |
+| `src/components/reservations/CreateReservationSheet.tsx` | Nieuw |
+| `src/pages/Reserveringen.tsx` | Update -- panel + create |
+| `src/components/reserveringen/ReservationBlock.tsx` | Update -- risico indicator |
+| `src/components/reserveringen/ReservationListView.tsx` | Update -- extra kolommen |
+| `src/data/reservations.ts` | Verwijderen |
 
 ---
 
-## Wat NIET in 4.7a scope zit
+## Wat NIET in scope zit
 
-| Feature | Reden | Fase |
-|---------|-------|------|
-| ReservationDetailPanel | Feature, niet plumbing | 4.7b |
-| CreateReservationSheet | Feature, niet plumbing | 4.7b |
-| Status transitie acties | Feature | 4.7b |
-| Risk score UI | Feature | 4.7b |
-| Audit log timeline | Feature | 4.7b |
-| DnD mutaties (drag, resize, check-in) | Complex, needs RPCs | 4.7b of 4.8 |
-| Realtime subscription | Feature | 4.7b |
-| Mock data bestand verwijdering | Veiligheidscheck eerst | 4.7b |
-| Pacing naar database | Apart feature | Later |
+| Feature | Fase | Placeholder knop? |
+|---------|------|-------------------|
+| Availability check in create flow | 4.10 | Nee (handmatige time picker) |
+| Check-in window regels | 4.8 | Nee |
+| Auto no-show marking | 4.8 | Nee |
+| Option auto-expiry | 4.9 | Nee |
+| Tafel wijzigen (move table) | 4.8 | Ja (disabled) |
+| Betaling aanvragen/verwerken | 4.13 | Ja (disabled) |
+| Betaallink opnieuw sturen | 4.13 | Ja (disabled) |
+| Terugbetalen / Kwijtschelden | 4.13 | Ja (disabled) |
+| Optie verlengen | 4.9 | Ja (disabled) |
+| Bevestiging/reminder sturen | 4.14 | Ja (disabled) |
+| DnD mutaties | Later | Nee |
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Grid View toont reserveringen uit database (niet mock)
-- [ ] List View toont reserveringen uit database (niet mock)
-- [ ] Dashboard toont reserveringsdata uit database
-- [ ] Filters werken correct met database velden
-- [ ] Grid View bug gefixt: `reservations` prop wordt gebruikt, niet interne fetch
-- [ ] DnD is visueel intact maar mutaties tonen "binnenkort beschikbaar" toast
-- [ ] QuickReservationPanel submit is disabled
-- [ ] Pacing settings pagina's werken ongewijzigd (via geisoleerde mock)
-- [ ] `risk_factors` kolom bestaat en wordt gevuld bij nieuwe reserveringen
-- [ ] Geen TypeScript build errors
-- [ ] Geen runtime imports uit `data/reservations.ts` in reserveringen-gerelateerde componenten
+- [ ] customer_id is nullable, walk-in zonder klant mogelijk
+- [ ] FK is ON DELETE SET NULL (GDPR-ready)
+- [ ] actor_type kolom bestaat op audit_log
+- [ ] LEFT JOIN in useReservations + useReservation (walk-ins verschijnen in lijsten)
+- [ ] BEFORE INSERT trigger vuurt: no_show_risk_score en risk_factors gevuld
+- [ ] Risk functie werkt met customer_id = NULL
+- [ ] Detail panel opent bij klik, gebruikt bestaand DetailPanel component
+- [ ] Alle 4 secties tonen correcte data, null-safe
+- [ ] RiskScoreSection toont shift gemiddelde
+- [ ] 8 placeholder knoppen aanwezig
+- [ ] Override: alleen manager/owner, terminal states geblokkeerd, verplicht reden
+- [ ] ConfirmDialog heeft reden-tekstveld
+- [ ] Walk-in registratie werkt (customer_id = null, direct seated)
+- [ ] Walk-in defaults: datum=vandaag, tijd=nu, channel=walk_in, status=seated
+- [ ] Create flow met overlap waarschuwing
+- [ ] Realtime gefilterd op location_id
+- [ ] Alle 11 badge-types conditioneel, null-safe, Lucide iconen
+- [ ] CustomerCard toont "Klant koppelen" knop bij null customer (werkend, niet placeholder)
+- [ ] Score-schaal consistent 0-100 integer (NIET 0.0-1.0 float)
+- [ ] src/data/reservations.ts verwijderd
+- [ ] Geen build errors
+
+---
+
+## Checkpoint Vragen
+
+Na implementatie beantwoord deze 10 vragen:
+
+1. **Trigger**: Maak een reservering aan (met EN zonder customer). Zijn `no_show_risk_score` en `risk_factors` gevuld? Crashed de functie bij `customer_id = NULL`?
+
+2. **Walk-in**: Kun je een walk-in registreren zonder klant? Wordt `customer_id` als null opgeslagen? Status direct `seated`? Zijn datum=vandaag, tijd=nu, channel=`walk_in` correct als defaults ingevuld?
+
+3. **DetailPanel**: Gebruik je het bestaande `DetailPanel` component of een nieuwe Sheet? Indien nieuw: waarom?
+
+4. **Null-safety**: Is `no_show_risk_score` overal als `number | null` behandeld? Geen runtime crashes bij null scores?
+
+5. **Override beveiliging**: Kan een gewone operator (niet-manager) de override gebruiken? Worden terminal states (completed, no_show, cancelled) geblokkeerd als bron-status bij override?
+
+6. **Realtime**: Is de subscription gefilterd op `location_id`? Worden alleen relevante queries geinvalideerd?
+
+7. **Bevestigingsdialoog**: Heeft de dialoog een reden-tekstveld? Hoe is dit opgelost -- bestaand component uitgebreid of nieuw?
+
+8. **Placeholder knoppen**: Tel ze: betaling aanvragen (draft + confirmed), betaallink opnieuw sturen (pending_payment), optie verlengen (option), tafel wijzigen (seated), bevestiging sturen (confirmed + risico >= 50), terugbetalen + kwijtschelden (no_show + cancelled). Alle 8 aanwezig?
+
+9. **Klant koppelen**: Werkt de "Klant koppelen" knop in de CustomerCard bij een reservering zonder customer? Kan je een bestaande klant zoeken en koppelen?
+
+10. **Badges en score-schaal**: Zijn alle 11 badge condities geimplementeerd? Welke renderen nu al? Is de score-schaal overal 0-100 integer (niet 0.0-1.0)?
+
