@@ -34,13 +34,12 @@ export function useTransitionStatus() {
     onMutate: async (params) => {
       // Cancel outgoing refetches so they don't overwrite our optimistic update
       await queryClient.cancelQueries({
-        queryKey: queryKeys.reservations(params.location_id),
-        exact: false,
+        queryKey: ['reservations', params.location_id],
       });
 
       // Snapshot all matching reservation-list queries
       const snapshots = queryClient.getQueriesData<Reservation[]>({
-        queryKey: queryKeys.reservations(params.location_id),
+        queryKey: ['reservations', params.location_id],
       });
 
       // Optimistically update status in every cached list
