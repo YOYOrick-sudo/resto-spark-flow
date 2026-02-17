@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check } from 'lucide-react';
+import { NestoButton } from '@/components/polar/NestoButton';
 import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateCustomer } from '@/hooks/useCreateCustomer';
@@ -283,13 +284,16 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                   </div>
                   <Input placeholder="Email" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
                   <Input placeholder="Telefoon" value={newPhone} onChange={e => setNewPhone(e.target.value)} />
-                  <button
+                  <NestoButton
+                    variant="primary"
+                    size="sm"
                     onClick={handleCreateCustomer}
                     disabled={!newFirst || !newLast || createCustomer.isPending}
-                    className="w-full px-3 py-2 text-sm font-medium rounded-button bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    isLoading={createCustomer.isPending}
+                    className="w-full"
                   >
                     Aanmaken & doorgaan
-                  </button>
+                  </NestoButton>
                 </div>
               )}
             </div>
@@ -434,32 +438,36 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
         {/* Footer */}
         <div className="p-4 border-t border-border/50 flex gap-2">
           {step !== 'customer' && (
-            <button
+            <NestoButton
+              variant="outline"
+              size="sm"
               onClick={() => setStep(step === 'confirm' ? 'details' : 'customer')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-button border border-input bg-background hover:bg-secondary transition-colors"
+              leftIcon={<ChevronLeft className="h-4 w-4" />}
             >
-              <ChevronLeft className="h-4 w-4" />
               Terug
-            </button>
+            </NestoButton>
           )}
           {step === 'details' && (
-            <button
+            <NestoButton
+              variant="primary"
+              className="flex-1"
               onClick={() => setStep('confirm')}
               disabled={!shiftId || !ticketId}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium rounded-button bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              rightIcon={<ChevronRight className="h-4 w-4" />}
             >
               Doorgaan
-              <ChevronRight className="h-4 w-4" />
-            </button>
+            </NestoButton>
           )}
           {step === 'confirm' && (
-            <button
+            <NestoButton
+              variant="primary"
+              className="flex-1"
               onClick={handleSubmit}
               disabled={createReservation.isPending}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium rounded-button bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              isLoading={createReservation.isPending}
             >
-              {createReservation.isPending ? 'Bezig...' : 'Reservering aanmaken'}
-            </button>
+              Reservering aanmaken
+            </NestoButton>
           )}
         </div>
       </SheetContent>
@@ -557,13 +565,15 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
           </p>
         </div>
         <div className="p-4 border-t border-border/50">
-          <button
+          <NestoButton
+            variant="primary"
+            className="w-full"
             onClick={handleSubmit}
             disabled={createReservation.isPending}
-            className="w-full px-4 py-2 text-sm font-medium rounded-button bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            isLoading={createReservation.isPending}
           >
-            {createReservation.isPending ? 'Bezig...' : 'Walk-in registreren'}
-          </button>
+            Walk-in registreren
+          </NestoButton>
         </div>
       </SheetContent>
     </Sheet>

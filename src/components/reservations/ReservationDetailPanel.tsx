@@ -42,7 +42,7 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
             {/* Status badge */}
             {STATUS_CONFIG[reservation.status] && (
               <span className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium mb-3',
+                'inline-flex items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-medium mb-3',
                 STATUS_CONFIG[reservation.status].textClass,
                 STATUS_CONFIG[reservation.status].bgClass,
                 STATUS_CONFIG[reservation.status].borderClass,
