@@ -80,6 +80,7 @@ function DetailPanelDemo() {
               Bevestigd
             </span>
 
+            <p className="text-[13px] font-medium text-muted-foreground mb-0.5">Reservering</p>
             <h2 ref={titleRef} className="text-lg font-semibold text-foreground">Jan de Vries</h2>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
