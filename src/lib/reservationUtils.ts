@@ -91,6 +91,11 @@ export function getTableLabel(r: Reservation): string {
   return r.table_label || '—';
 }
 
+/** Strip seconds from HH:MM:SS → HH:MM */
+export function formatTime(time: string): string {
+  return time.slice(0, 5);
+}
+
 export function isWalkIn(r: Reservation): boolean {
   return r.channel === 'walk_in';
 }

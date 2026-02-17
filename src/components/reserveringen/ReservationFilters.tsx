@@ -16,11 +16,16 @@ interface ReservationFiltersProps {
   className?: string;
 }
 
+const statusOrder: ReservationStatus[] = [
+  'draft', 'confirmed', 'pending_payment', 'option',
+  'seated', 'completed', 'no_show', 'cancelled'
+];
+
 const statusOptions: SelectOption[] = [
   { value: "all", label: "Alle statussen" },
-  ...Object.entries(STATUS_CONFIG).map(([value, config]) => ({
-    value,
-    label: config.label,
+  ...statusOrder.map((status) => ({
+    value: status,
+    label: STATUS_CONFIG[status].label,
   })),
 ];
 

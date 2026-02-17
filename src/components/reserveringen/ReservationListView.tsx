@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, UserCheck, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Reservation, ReservationChannel } from "@/types/reservation";
 import { STATUS_CONFIG, ALLOWED_TRANSITIONS, CHANNEL_ICONS } from "@/types/reservation";
-import { getDisplayName, isWalkIn } from "@/lib/reservationUtils";
+import { getDisplayName, isWalkIn, formatTime } from "@/lib/reservationUtils";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
 import type { DensityType } from "./DensityToggle";
 
@@ -93,7 +93,7 @@ export function ReservationListView({
             isCompact ? "py-2" : "py-3"
           )}>
             <span className={cn("font-semibold text-foreground", isCompact ? "text-xs" : "text-sm")}>
-              {timeSlot}
+              {formatTime(timeSlot)}
             </span>
             <span className={cn("text-muted-foreground ml-2", isCompact ? "text-xs" : "text-sm")}>
               ({reservationsInSlot.length})
@@ -196,7 +196,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
       </div>
 
       {reservation.shift_name && (
-        <NestoBadge variant="outline" size="sm" className="w-10 justify-center text-muted-foreground">
+        <NestoBadge variant="outline" size="sm" className="min-w-[80px] max-w-[120px] truncate justify-center text-muted-foreground">
           {reservation.shift_name}
         </NestoBadge>
       )}
@@ -221,6 +221,26 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
 
       {reservation.status === 'option' && (
         <OptionBadge optionExpiresAt={reservation.option_expires_at} />
+      )}
+
+      {/* Quick check-in/out */}
+      {reservation.status === 'confirmed' && onStatusChange && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'seated'); }}
+          className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors flex-shrink-0"
+          title="Inchecken"
+        >
+          <UserCheck className="h-4 w-4" />
+        </button>
+      )}
+      {reservation.status === 'seated' && onStatusChange && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'completed'); }}
+          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors flex-shrink-0"
+          title="Uitchecken"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
       )}
 
       <DropdownMenu>

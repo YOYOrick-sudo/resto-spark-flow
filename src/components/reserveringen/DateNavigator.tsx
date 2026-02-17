@@ -30,7 +30,7 @@ export function DateNavigator({
 
   const formatQuickDay = (date: Date): string => {
     if (isToday(date)) return "Vandaag";
-    return format(date, "EEE", { locale: nl });
+    return format(date, "EEEEEE", { locale: nl });
   };
 
   return (

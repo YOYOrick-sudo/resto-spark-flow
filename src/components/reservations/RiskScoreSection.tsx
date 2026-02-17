@@ -53,7 +53,7 @@ export function RiskScoreSection({ reservation, className }: RiskScoreSectionPro
 
   if (score === null || score === undefined) {
     return (
-      <div className={cn('p-4', className)}>
+      <div className={cn('p-5', className)}>
         <h3 className="text-sm font-semibold text-foreground mb-3">Risicoscore</h3>
         <p className="text-sm text-muted-foreground italic">Risicoscore wordt berekend...</p>
       </div>
@@ -65,7 +65,7 @@ export function RiskScoreSection({ reservation, className }: RiskScoreSectionPro
   const barWidth = Math.min(Math.max(score, 0), 100);
 
   return (
-    <div className={cn('p-4', className)}>
+    <div className={cn('p-5', className)}>
       <h3 className="text-sm font-semibold text-foreground mb-3">Risicoscore</h3>
 
       {/* Score display */}
@@ -73,7 +73,7 @@ export function RiskScoreSection({ reservation, className }: RiskScoreSectionPro
         <RiskIcon className={cn('h-5 w-5', risk.colorClass)} />
         <div className="flex-1">
           <div className="flex items-baseline gap-2">
-            <span className={cn('text-2xl font-bold', risk.colorClass)}>{Math.round(score)}</span>
+            <span className={cn('text-2xl font-bold tabular-nums', risk.colorClass)}>{Math.round(score)}</span>
             <span className="text-sm text-muted-foreground">/ 100</span>
             <span className={cn('text-xs font-medium ml-auto', risk.colorClass)}>{risk.label}</span>
           </div>
@@ -92,37 +92,46 @@ export function RiskScoreSection({ reservation, className }: RiskScoreSectionPro
 
       {/* Factor breakdown */}
       {factors && (
-        <div className="space-y-2 mb-3">
-          {Object.entries(factors).map(([key, factor]) => {
-            if (!factor || typeof factor !== 'object') return null;
-            const f = factor as RiskFactor;
-            return (
-              <div key={key} className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground w-24 flex-shrink-0">
-                  {FACTOR_LABELS[key] || key}
-                </span>
-                <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-foreground/30 rounded-full"
-                    style={{ width: `${Math.min((f.score / f.weight) * 100, 100)}%` }}
-                  />
+        <TooltipProvider>
+          <div className="space-y-2 mb-3">
+            {Object.entries(factors).map(([key, factor]) => {
+              if (!factor || typeof factor !== 'object') return null;
+              const f = factor as RiskFactor;
+              return (
+                <div key={key} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground w-28 flex-shrink-0">
+                    {FACTOR_LABELS[key] || key}
+                  </span>
+                  <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-foreground/30 rounded-full"
+                      style={{ width: `${Math.min((f.score / f.weight) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-muted-foreground w-8 text-right font-mono tabular-nums">
+                    {Math.round(f.score)}
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground/60 w-20 truncate cursor-help">
+                        {f.detail}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[200px]">
+                      {f.detail}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-                <span className="text-muted-foreground w-8 text-right font-mono">
-                  {Math.round(f.score)}
-                </span>
-                <span className="text-muted-foreground/60 w-20 truncate" title={f.detail}>
-                  {f.detail}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       )}
 
       {/* Shift average */}
       {shiftRisk?.avg_risk_score !== undefined && shiftRisk.avg_risk_score !== null && (
         <p className="text-xs text-muted-foreground border-t border-border/50 pt-2 mt-2">
-          Shift gemiddeld: <span className="font-medium text-foreground">{Math.round(shiftRisk.avg_risk_score)}%</span>
+          Shift gemiddeld: <span className="font-medium text-foreground tabular-nums">{Math.round(shiftRisk.avg_risk_score)}%</span>
         </p>
       )}
 

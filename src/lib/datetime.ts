@@ -28,6 +28,17 @@ export function formatDateTimeCompact(iso: string): string {
   return `${day} ${month} ${time}`;
 }
 
+/**
+ * Format ISO date string to short Dutch format
+ * Example: "2026-02-17" → "17 feb"
+ */
+export function formatDateShort(iso: string): string {
+  const date = new Date(iso);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('nl-NL', { month: 'short' });
+  return `${day} ${month}`;
+}
+
 function isSameDay(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString();
 }

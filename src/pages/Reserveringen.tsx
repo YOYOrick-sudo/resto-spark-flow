@@ -113,7 +113,7 @@ export default function Reserveringen() {
   return (
     <div className="flex h-full">
       {/* Main content */}
-      <div className={cn("flex flex-col flex-1 min-w-0", detailPanelOpen && "lg:pr-0")}>
+      <div className="flex flex-col flex-1 min-w-0">
         <h1 className="text-2xl font-semibold text-foreground">Reserveringen</h1>
 
         <div className="flex items-center gap-4 flex-wrap pt-4">

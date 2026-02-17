@@ -20,6 +20,9 @@ import {
 import { getPacingLimitForTime } from "@/data/pacingMockData";
 import { useAreasForGrid } from "@/hooks/useAreasWithTables";
 import { useUserContext } from "@/contexts/UserContext";
+import { useShifts } from "@/hooks/useShifts";
+import { EmptyState } from "@/components/polar";
+import { Calendar } from "lucide-react";
 import { TableRow, STICKY_COL_WIDTH } from "./TableRow";
 import { nestoToast } from "@/lib/nestoToast";
 import { QuickReservationPanel } from "./QuickReservationPanel";
@@ -259,12 +262,48 @@ export function ReservationGridView({
   reservations,
   onReservationClick,
   onReservationUpdate,
-  config = defaultGridConfig,
+  config: configProp,
   density = "compact",
 }: ReservationGridViewProps) {
   const isCompact = density === "compact";
   const transition = useTransitionStatus();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic timeline based on active shifts
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+  const { data: shifts = [], isLoading: shiftsLoading } = useShifts(locationId);
+
+  const dynamicConfig = useMemo<GridTimeConfig>(() => {
+    if (configProp) return configProp;
+    if (shifts.length === 0) return defaultGridConfig;
+
+    let earliest = Infinity;
+    let latest = -Infinity;
+    for (const shift of shifts) {
+      const start = timeToMinutes(shift.start_time);
+      const end = timeToMinutes(shift.end_time);
+      // Handle overnight shifts
+      const effectiveEnd = end <= start ? end + 24 * 60 : end;
+      if (start < earliest) earliest = start;
+      if (effectiveEnd > latest) latest = effectiveEnd;
+    }
+
+    if (earliest === Infinity) return defaultGridConfig;
+
+    // 30 min buffer on each side
+    const startHour = Math.floor((earliest - 30) / 60);
+    const endHour = Math.ceil((latest + 30) / 60);
+
+    return {
+      startHour: Math.max(0, startHour),
+      endHour: Math.min(30, endHour), // max 30 for overnight
+      intervalMinutes: 15,
+      pixelsPerMinute: 2,
+    };
+  }, [configProp, shifts]);
+
+  const config = dynamicConfig;
   const [seatedExpanded, setSeatedExpanded] = useState(true);
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
   const [ghostPosition, setGhostPosition] = useState<GhostPosition | null>(null);
@@ -278,8 +317,6 @@ export function ReservationGridView({
   const dateString = format(selectedDate, "yyyy-MM-dd");
 
   // Use real areas from database
-  const { currentLocation } = useUserContext();
-  const locationId = currentLocation?.id;
   const { data: areas = [] } = useAreasForGrid(locationId);
 
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
