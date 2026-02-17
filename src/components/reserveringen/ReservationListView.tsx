@@ -252,14 +252,17 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
         </div>
       )}
 
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className="p-1.5 rounded-md hover:bg-secondary transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal className={cn("text-muted-foreground", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="p-1.5 rounded-md hover:bg-secondary transition-colors flex-shrink-0"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <MoreHorizontal className={cn("text-muted-foreground", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+          </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48 bg-card border-border">
+        <DropdownMenuContent align="end" className="w-48 bg-card border-border" onClick={(e) => e.stopPropagation()}>
           {allowedNextStatuses.map((nextStatus) => {
             const nextConfig = STATUS_CONFIG[nextStatus];
             const isDestructive = nextStatus === 'cancelled' || nextStatus === 'no_show';
