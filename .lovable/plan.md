@@ -1,30 +1,48 @@
 
 
-# Fix: Reservering verschijnt niet direct in de lijst
+# Reserveringen List View omzetten naar tabel-layout
 
-## Probleem
-Dezelfde query key mismatch als eerder bij de status transitions. Na het aanmaken van een reservering wordt `invalidateQueries` aangeroepen met key `['reservations', locationId, undefined]`, maar de cache bevat `['reservations', locationId, '2026-02-17']`. TanStack Query ziet `undefined !== '2026-02-17'` en slaat de invalidatie over.
+## Probleem 1: Check-in/out iconen
+De quick-action knoppen (inchecken, uitchecken, reset) verschijnen alleen bij specifieke statussen (`confirmed` en `seated`). Bij andere statussen is er geen knop zichtbaar, waardoor de kolom "verspringt". Dit maakt het onoverzichtelijk.
 
-De reservering verschijnt pas na de realtime Postgres change subscription (vertraagd), in plaats van direct.
+**Oplossing:** Een vaste actie-kolom rechts met altijd dezelfde breedte. De knoppen verschijnen alleen wanneer relevant, maar de ruimte blijft gereserveerd zodat niets verspringt.
 
-## Oplossing
-Gebruik een prefix-key zonder date parameter, zodat alle date-varianten geinvalideerd worden.
+## Probleem 2: Data staat niet netjes onder elkaar
+Het huidige flexbox-layout zorgt ervoor dat kolommen (personen, tafel, status, etc.) niet verticaal uitlijnen. Elke rij heeft variabele breedtes.
 
-## Wijziging
+**Oplossing:** Omzetten naar een tabel-structuur met:
+- Vaste kolomkoppen bovenaan (floating header style conform enterprise design pattern)
+- CSS Grid per rij met vaste kolombreedtes zodat alles netjes uitlijnt
 
-### `src/hooks/useCreateReservation.ts`
+## Visueel voorbeeld
 
-In de `onSuccess` callback (regel 49-52), verander:
-
-```typescript
-// Was:
-queryKey: queryKeys.reservations(params.location_id),
-
-// Wordt:
-queryKey: ['reservations', params.location_id],
+```text
+         Naam             Pers  Tafel  Kanaal  Shift        Status        Acties
+  -------|----------------|-----|------|-------|------------|-------------|-------
+  o      Jan de Vries      4p    T12    phone   Diner        Bevestigd    [v] ...
+  o      Lisa Bakker       2p    T5     web     Diner        Ingecheckt   [<][x] ...
+  o      Piet Jansen       6p    T8     walk    Lunch        Afgerond
 ```
 
-Dit zorgt ervoor dat TanStack Query via prefix-matching alle reserveringen-queries voor die locatie refetcht, ongeacht de datumparameter.
+## Technische wijzigingen
 
-Geen andere bestanden hoeven te wijzigen.
+### `src/components/reserveringen/ReservationListView.tsx`
+
+1. **Kolomheader toevoegen** boven de eerste tijdslot-groep
+   - Floating style: `text-[11px] font-semibold text-muted-foreground uppercase tracking-wider`
+   - Geen achtergrond (conform enterprise table pattern)
+
+2. **Rij omzetten naar CSS Grid**
+   - Grid template: `grid-cols-[12px_1fr_50px_60px_24px_100px_100px_90px_32px]`
+   - Kolommen: status-dot | naam | pers | tafel | kanaal | shift | status-badge | acties | menu
+
+3. **Vaste actie-kolom (90px)**
+   - Altijd dezelfde breedte gereserveerd
+   - `confirmed`: toont inchecken-knop (UserCheck)
+   - `seated`: toont reset-knop (RotateCcw) + uitchecken-knop (LogOut)  
+   - Andere statussen: lege ruimte (kolom blijft staan)
+
+4. **Tijdslot-headers** blijven als groepering bestaan (sticky), maar de kolomheader staat erboven
+
+5. **Risk score en guest notes** verplaatsen naar het detail panel (te veel kolommen maakt het rommelig)
 
