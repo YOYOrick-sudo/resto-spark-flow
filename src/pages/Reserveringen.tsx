@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { Plus, Footprints, Calendar } from "lucide-react";
+import { NestoButton } from "@/components/polar/NestoButton";
 import { EmptyState } from "@/components/polar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -132,21 +133,21 @@ export default function Reserveringen() {
             />
           </div>
 
-          <button
+          <NestoButton
+            variant="outline"
             onClick={() => setWalkInSheetOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-button border border-input bg-background text-sm font-medium hover:bg-secondary transition-colors"
+            leftIcon={<Footprints className="h-4 w-4" />}
           >
-            <Footprints className="h-4 w-4" />
             Walk-in
-          </button>
+          </NestoButton>
 
-          <button
+          <NestoButton
+            variant="primary"
             onClick={() => setCreateSheetOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            leftIcon={<Plus className="h-4 w-4" />}
           >
-            <Plus className="h-4 w-4" />
             Reservering
-          </button>
+          </NestoButton>
         </div>
 
         <ReservationFilters
