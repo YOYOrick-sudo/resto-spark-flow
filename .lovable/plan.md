@@ -1,318 +1,226 @@
 
-# Fase 4.8 — Check-in/Seat Flow met Regels
+# Fase 4.9.5 — Polish: Operator UI
 
 ## Overzicht
-Configureerbare check-in regels, automatische no-show marking, tafel wijzigen, en quick check-in interacties.
+Puur visuele en UX-verbeteringen over de volledige reserveringen module. Geen functionele wijzigingen, geen database changes.
 
 ---
 
-## Stap 1: Database Migratie
+## Stap 1: Status Labels Hernoemen
 
-Eén migratie met alle schema-wijzigingen:
+**Bestanden:** `src/types/reservation.ts`
 
-### 1A. Nieuwe kolommen op `reservation_settings`
-```sql
-ALTER TABLE public.reservation_settings
-  ADD COLUMN checkin_window_minutes INTEGER NOT NULL DEFAULT 15,
-  ADD COLUMN no_show_after_minutes INTEGER NOT NULL DEFAULT 15,
-  ADD COLUMN auto_no_show_enabled BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN move_to_now_on_checkin BOOLEAN NOT NULL DEFAULT false;
-```
+Wijzig in `STATUS_CONFIG` en `STATUS_LABELS`:
+- `seated.label`: "Gezeten" naar **"Ingecheckt"**
+- `completed.label`: "Afgerond" naar **"Uitgecheckt"**
 
-### 1B. `checked_in_at` op `reservations`
-```sql
-ALTER TABLE public.reservations
-  ADD COLUMN checked_in_at TIMESTAMPTZ;
-```
-
-### 1C. Partial index voor no-show candidates
-```sql
-CREATE INDEX idx_reservations_noshow_candidates
-  ON reservations (reservation_date, status, start_time)
-  WHERE status = 'confirmed';
-```
-
-### 1D. `fn_auto_mark_no_shows` SQL functie
-
-Met timezone-correctie via JOIN op `locations` en correcte `changes` + `actor_type` kolommen op `audit_log`:
-
-```sql
-CREATE OR REPLACE FUNCTION fn_auto_mark_no_shows()
-RETURNS INTEGER
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE _count INTEGER := 0; _r RECORD;
-BEGIN
-  FOR _r IN
-    SELECT r.id, r.location_id, r.start_time, r.reservation_date,
-           rs.no_show_after_minutes
-    FROM reservations r
-    JOIN reservation_settings rs ON rs.location_id = r.location_id
-    JOIN locations l ON l.id = r.location_id
-    WHERE r.status = 'confirmed'
-      AND rs.auto_no_show_enabled = true
-      AND r.reservation_date <= CURRENT_DATE
-      AND (r.reservation_date + r.start_time
-           + (rs.no_show_after_minutes || ' minutes')::INTERVAL)
-          < (NOW() AT TIME ZONE l.timezone)
-  LOOP
-    UPDATE reservations
-    SET status = 'no_show', updated_at = NOW()
-    WHERE id = _r.id AND status = 'confirmed';
-
-    INSERT INTO audit_log (
-      entity_type, entity_id, location_id,
-      action, actor_id, actor_type,
-      changes, metadata
-    ) VALUES (
-      'reservation', _r.id, _r.location_id,
-      'status_change', NULL, 'system',
-      jsonb_build_object('old_status','confirmed','new_status','no_show'),
-      jsonb_build_object('reason',
-        'Automatisch na ' || _r.no_show_after_minutes || ' minuten')
-    );
-    _count := _count + 1;
-  END LOOP;
-  RETURN _count;
-END; $$;
-```
-
-### 1E. pg_cron job
-```sql
-SELECT cron.schedule('auto-no-show','* * * * *',
-  $$SELECT fn_auto_mark_no_shows()$$);
-```
-
-### 1F. `move_reservation_table` RPC
-
-```sql
-CREATE OR REPLACE FUNCTION move_reservation_table(
-  _reservation_id UUID,
-  _new_table_id UUID,
-  _actor_id UUID DEFAULT NULL
-) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE _r reservations%ROWTYPE; _actor UUID; _old_table_id UUID;
-BEGIN
-  _actor := COALESCE(_actor_id, auth.uid());
-  SELECT * INTO _r FROM reservations WHERE id = _reservation_id FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Reservering niet gevonden'; END IF;
-  IF _r.status NOT IN ('seated','confirmed') THEN
-    RAISE EXCEPTION 'Tafel wijzigen alleen bij seated of confirmed';
-  END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM tables t JOIN areas a ON a.id = t.area_id
-    WHERE t.id = _new_table_id AND a.location_id = _r.location_id
-      AND t.is_active = true
-  ) THEN RAISE EXCEPTION 'Tafel niet gevonden of niet actief'; END IF;
-  _old_table_id := _r.table_id;
-  UPDATE reservations SET table_id = _new_table_id, updated_at = NOW()
-  WHERE id = _reservation_id;
-  INSERT INTO audit_log (
-    entity_type, entity_id, location_id,
-    action, actor_id, actor_type, changes, metadata
-  ) VALUES (
-    'reservation', _reservation_id, _r.location_id,
-    'table_moved', _actor, 'user',
-    jsonb_build_object('old_table_id',_old_table_id,'new_table_id',_new_table_id),
-    '{}'::jsonb
-  );
-END; $$;
-```
-
-### 1G. Update `transition_reservation_status` RPC
-
-Uitbreiding met:
-- Check-in window validatie bij `_new_status = 'seated'` en `_is_override = false`
-- `checked_in_at = NOW()` bij transitie naar `seated`
-- `move_to_now_on_checkin` logica: update `start_time` + log originele tijd
-- `updated_at = NOW()` bij alle updates
-
-Pseudo-code voor de seated-specifieke logica (toe te voegen na `_allowed` check, voor de UPDATE):
-
-```sql
-IF _new_status = 'seated' THEN
-  -- Check-in window validatie (alleen als geen override)
-  IF NOT _is_override THEN
-    SELECT checkin_window_minutes INTO _checkin_window
-    FROM reservation_settings WHERE location_id = _r.location_id;
-    
-    SELECT timezone INTO _tz FROM locations WHERE id = _r.location_id;
-    
-    IF (NOW() AT TIME ZONE COALESCE(_tz,'Europe/Amsterdam'))
-       < (_r.reservation_date + _r.start_time
-          - (_checkin_window || ' minutes')::INTERVAL) THEN
-      RAISE EXCEPTION 'Te vroeg om in te checken. Reservering begint om %',
-        _r.start_time;
-    END IF;
-  END IF;
-
-  -- Move-to-now logica
-  SELECT move_to_now_on_checkin INTO _move_to_now
-  FROM reservation_settings WHERE location_id = _r.location_id;
-  
-  IF _move_to_now THEN
-    _original_start := _r.start_time;
-    UPDATE reservations SET
-      status = _new_status,
-      checked_in_at = NOW(),
-      start_time = (NOW() AT TIME ZONE COALESCE(_tz,'Europe/Amsterdam'))::TIME,
-      updated_at = NOW()
-    WHERE id = _reservation_id;
-    _metadata := _metadata || jsonb_build_object(
-      'move_to_now', true, 'original_start_time', _original_start::text);
-  ELSE
-    UPDATE reservations SET
-      status = _new_status,
-      checked_in_at = NOW(),
-      updated_at = NOW()
-    WHERE id = _reservation_id;
-  END IF;
-ELSE
-  UPDATE reservations SET status = _new_status, updated_at = NOW()
-  WHERE id = _reservation_id;
-END IF;
-```
+Dit propageert automatisch naar List View, Grid View, Detail Panel, Status Filter, Audit Log en Override dialoog (alles leest uit dezelfde config).
 
 ---
 
-## Stap 2: TypeScript Types
+## Stap 2: Tijdformaten (HH:MM, geen seconden)
 
-### `src/types/reservation.ts`
-- Voeg `checked_in_at?: string | null` toe aan `Reservation` interface (regel ~46)
+**Probleem:** `start_time` en `end_time` komen als `"HH:MM:SS"` uit de database (Postgres `TIME` type). Wordt nu raw getoond.
 
-### `src/types/reservations.ts`
-- Voeg 4 kolommen toe aan `ReservationSettings` interface:
-  ```typescript
-  checkin_window_minutes: number;
-  no_show_after_minutes: number;
-  auto_no_show_enabled: boolean;
-  move_to_now_on_checkin: boolean;
-  ```
-
-### `src/hooks/useReservationSettings.ts`
-- Voeg de 4 nieuwe velden toe aan `defaultReservationSettings`:
-  ```typescript
-  checkin_window_minutes: 15,
-  no_show_after_minutes: 15,
-  auto_no_show_enabled: false,
-  move_to_now_on_checkin: false,
-  ```
-
----
-
-## Stap 3: Nieuwe Hook — `useMoveTable`
-
-**Nieuw bestand**: `src/hooks/useMoveTable.ts`
+**Oplossing:** Nieuwe utility in `src/lib/reservationUtils.ts`:
 
 ```typescript
-// RPC wrapper voor move_reservation_table
-// Invalideert: reservation, reservations, customerReservations, auditLog
+export function formatTime(time: string): string {
+  return time.slice(0, 5); // "19:00:00" -> "19:00"
+}
 ```
 
----
-
-## Stap 4: Settings UI — Check-in Instellingen Sectie
-
-**Nieuw bestand**: `src/components/settings/checkin/CheckinSettingsCard.tsx`
-
-Volgt het bestaande `LocationSettingsCard` patroon (autosave, debounced number inputs, immediate toggles):
-
-- **Check-in window** (nummer, minuten, default 15)
-- **Automatisch no-show** (toggle, default uit)
-- **No-show na** (nummer, minuten, default 15) — conditioneel zichtbaar als toggle aan
-- **Verplaats naar nu** (toggle, default uit)
-
-Integratie in `SettingsReserveringenTafelsLocatie.tsx`:
-- Importeer `CheckinSettingsCard`
-- Render onder de bestaande `LocationSettingsCard`
-- Geen nieuwe route nodig
+**Toepassen in:**
+- `ReservationDetailPanel.tsx` regel 73: `{formatTime(reservation.start_time)}–{formatTime(reservation.end_time)}`
+- `ReservationListView.tsx` time slot headers (al HH:MM, check)
+- `ReservationBlock.tsx` title attribute
+- `AuditLogTimeline.tsx` option_extended expiry display
+- `CreateReservationSheet.tsx` overlap waarschuwing en bevestigingsscherm
 
 ---
 
-## Stap 5: `TableMoveDialog` Component
+## Stap 3: Datumformaten
 
-**Nieuw bestand**: `src/components/reservations/TableMoveDialog.tsx`
+**Probleem:** `CustomerCard` toont `reservation_date` als `"2026-02-17"` (ISO).
 
-- Trigger: "Tafel wijzigen" knop in `ReservationActions`
-- Toont beschikbare tafels via `useAreasWithTables`, gegroepeerd per area
-- Huidige tafel gemarkeerd
-- Bij selectie: roep `useMoveTable` aan
-- Audit log entry automatisch via RPC
+**Oplossing:** Nieuwe utility in `src/lib/datetime.ts`:
 
----
+```typescript
+export function formatDateShort(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getDate()} ${date.toLocaleDateString('nl-NL', { month: 'short' })}`;
+  // "17 feb"
+}
+```
 
-## Stap 6: `ReservationActions` Update
-
-In `src/components/reservations/ReservationActions.tsx`:
-
-- Verwijder de disabled placeholder `move_ph` bij status `seated` (regel 74)
-- Voeg werkende "Tafel wijzigen" knop toe die `TableMoveDialog` opent
-- Voeg `useState` toe voor dialog open/close state
-
----
-
-## Stap 7: Quick Check-in — Grid View
-
-### `ReservationBlock.tsx`
-- Wijzig `canCheckIn` (regel ~55): verwijder `draft` — alleen `confirmed`:
-  ```typescript
-  const canCheckIn = reservation.status === "confirmed" && onCheckIn;
-  ```
-- Long-press threshold blijft 500ms (bestaande code)
-- Double-click handler bestaat al en roept `onCheckIn` aan
-
-### `ReservationGridView.tsx`
-- Vervang de placeholder `handleCheckIn` (regel 367-369):
-  ```typescript
-  const handleCheckIn = useCallback((reservation: Reservation) => {
-    transition.mutate({
-      reservation_id: reservation.id,
-      new_status: 'seated',
-      location_id: reservation.location_id,
-      customer_id: reservation.customer_id,
-    }, {
-      onSuccess: () => nestoToast.success('Ingecheckt'),
-      onError: (err) => nestoToast.error(err.message),
-    });
-  }, [transition]);
-  ```
-- Voeg `useTransitionStatus` import + instantie toe
+**Toepassen in:**
+- `CustomerCard.tsx` VisitHistory: `v.reservation_date` -> `formatDateShort(v.reservation_date)`
+- `AuditLogTimeline.tsx` timestamps (gebruikt al `formatDateTimeCompact`, OK)
+- `CreateReservationSheet.tsx` bevestigingsscherm: datum leesbaar
 
 ---
 
-## Stap 8: ListView Update
+## Stap 4: Detail Panel — Full-Height Side Sheet
 
-In `src/components/reserveringen/ReservationListView.tsx`:
+**Huidige situatie:** `DetailPanel` op desktop is een inline flex-shrink-0 panel binnen de flex container. Dit werkt, maar het panel leeft binnen het content-blok en heeft geen click-outside-to-close of overlay.
 
-- De dropdown toont al "Inchecken" (status "Gezeten") via `ALLOWED_TRANSITIONS` voor confirmed reserveringen
-- De `onStatusChange` handler in `Reserveringen.tsx` roept al `transition.mutate` aan
-- Check-in window validatie gebeurt server-side — bij "te vroeg" toont de bestaande `onError` handler de foutmelding als toast
-- **Geen code wijziging nodig** — werkt al correct
+**Gewenste wijzigingen aan `src/components/polar/DetailPanel.tsx`:**
 
----
+1. **Desktop:** Verander van inline panel naar een **fixed right overlay** met:
+   - `fixed top-0 right-0 bottom-0 z-40` positie
+   - Subtiele achtergrond-overlay (`bg-black/20`) die bij klik sluit
+   - Breedte: `w-[420px]` (was 460px, iets smaller per spec)
+   - Shadow: `shadow-xl` voor diepte
+   - Animate-in behouden
 
-## Stap 9: AuditLogTimeline Update
+2. **Click-outside:** Overlay div met `onClick={onClose}`
 
-In `src/components/reservations/AuditLogTimeline.tsx`:
+3. **Header:** Titel "Reservering" met X-knop, consistent met huidige
 
-- Voeg `table_moved` action type toe aan `formatAction`:
-  ```typescript
-  case 'table_moved': {
-    const oldId = changes?.old_table_id as string;
-    const newId = changes?.new_table_id as string;
-    return `Tafel gewijzigd`;
-  }
-  ```
-- Bij `status_change` naar `seated`: toon `checked_in_at` als die in metadata staat
-- Toon `move_to_now` info: "(oorspronkelijk: XX:XX)" als `metadata.move_to_now === true`
+**Impact:** `Reserveringen.tsx` hoeft niet meer de `detailPanelOpen` conditie te gebruiken voor layout — het panel zweeft er nu overheen.
 
 ---
 
-## Stap 10: Detail Panel Update
+## Stap 5: Detail Panel Content Polish
 
-In `src/components/reservations/ReservationDetailPanel.tsx`:
+**Bestand:** `src/components/reservations/ReservationDetailPanel.tsx`
 
-- Bij status `seated`: toon `checked_in_at` timestamp in de header samenvatting
-- Als `move_to_now` actief was (zichtbaar via audit log metadata of door `start_time` vergelijking): toon "(oorspronkelijk: XX:XX)" naast de starttijd
+### 5A. Header verbeteringen
+- Tijdformaat: `formatTime()` toepassen op start_time/end_time
+- Tafelnaam: als `table_label` leeg is, niet "—" tonen maar weglaten
+
+### 5B. Spacing
+- Secties: grotere `divide-y` gaps, of `space-y-1` achtergrondkleur verschil
+- Consistent `p-5` (was p-4) voor meer ademruimte
+
+---
+
+## Stap 6: CustomerCard Polish
+
+**Bestand:** `src/components/reservations/CustomerCard.tsx`
+
+- **Naam:** Groter: `text-base font-semibold` (was `text-sm font-medium`)
+- **Contact:** Houd `text-sm text-muted-foreground`, OK
+- **Stats kaartjes:** Verkleinde spacing: `gap-2` (was gap-3), padding `p-1.5` (was p-2)
+- **Bezoekhistorie datums:** `formatDateShort()` toepassen
+- **Status kleuren:** Gebruikt al `STATUS_CONFIG[v.status].textClass`, OK
+
+---
+
+## Stap 7: RiskScoreSection Polish
+
+**Bestand:** `src/components/reservations/RiskScoreSection.tsx`
+
+- **Factor labels truncatie:** Vergroot `w-24` naar `w-28` of `min-w-fit` met truncate + tooltip
+- **Detail tekst:** Vervang `w-20 truncate` door een Tooltip wrapper zodat volledige tekst zichtbaar is op hover
+- **Score bars:** Dunner: `h-0.5` (was h-1) voor minder visueel gewicht
+- **Overall progress bar:** Houd `h-1.5`, OK
+
+---
+
+## Stap 8: List View — Quick Check-in/out Knoppen
+
+**Bestand:** `src/components/reserveringen/ReservationListView.tsx`
+
+Voeg inline icoon-knoppen toe aan `ReservationRow`:
+
+- Bij `status === 'confirmed'`: toon `UserCheck` icoon-knop (check-in)
+  - `onClick` -> `onStatusChange(reservation, 'seated')`
+  - Styling: `p-1 rounded-md hover:bg-primary/10 text-primary`
+
+- Bij `status === 'seated'`: toon `LogOut` icoon-knop (check-out/afronden)
+  - `onClick` -> `onStatusChange(reservation, 'completed')`
+  - Styling: `p-1 rounded-md hover:bg-muted text-muted-foreground`
+
+Positie: voor het dropdown menu, na de status badge.
+
+---
+
+## Stap 9: List View — Ticket Naam Layout
+
+**Bestand:** `src/components/reserveringen/ReservationListView.tsx`
+
+Huidige shift badge (`w-10 justify-center`) is te smal voor langere namen. Wijzig:
+- `min-w-[80px] max-w-[120px] truncate` zodat "early dinner" op 1 regel past
+- Verwijder `w-10`-restrictie
+
+---
+
+## Stap 10: Status Filter Volgorde
+
+**Bestand:** `src/components/reserveringen/ReservationFilters.tsx`
+
+Huidige volgorde leest uit `STATUS_CONFIG` entries (objectvolgorde). Forceer expliciete volgorde:
+
+```typescript
+const statusOrder: ReservationStatus[] = [
+  'draft', 'confirmed', 'pending_payment', 'option',
+  'seated', 'completed', 'no_show', 'cancelled'
+];
+```
+
+Labels updaten automatisch door stap 1 (Ingecheckt, Uitgecheckt).
+
+---
+
+## Stap 11: Grid View — Timeline Bereik op Basis van Shifts
+
+**Bestand:** `src/components/reserveringen/ReservationGridView.tsx`
+
+**Huidige situatie:** `defaultGridConfig` is hardcoded: `startHour: 13, endHour: 25`.
+
+**Gewenste:** Dynamisch op basis van actieve shifts voor die dag.
+
+**Aanpak:**
+1. In `ReservationGridView`, gebruik de al beschikbare `useShifts(locationId)` of `useEffectiveShiftSchedule(locationId, dateString)` om shift-tijden te laden
+2. Bereken `startHour = Math.floor(earliestShiftStart / 60) - 0.5` (30min buffer)
+3. Bereken `endHour = Math.ceil(latestShiftEnd / 60) + 0.5` (30min buffer)
+4. Als er geen shifts zijn: toon EmptyState ("Geen shifts actief voor deze dag")
+5. De shift start/end_time is `"HH:MM:SS"` format — parse met `timeToMinutes()`
+
+**Fallback:** Als er geen shifts data is (loading/error), gebruik `defaultGridConfig`.
+
+---
+
+## Stap 12: Grid View — Dag-afkortingen Compacter
+
+**Bestand:** `src/components/reserveringen/DateNavigator.tsx` (vermoedelijk)
+
+Verander dag-afkortingen van 3 letters (woe, don, vri) naar 2 letters (wo, do, vr). Gebruik `date-fns` format met `'EEEEEE'` (ultra-short) of handmatige mapping.
+
+---
+
+## Stap 13: Create Sheet — Shift/Ticket Vereenvoudiging
+
+**Bestand:** `src/components/reservations/CreateReservationSheet.tsx`
+
+### 13A. Auto-detect shift op basis van tijdslot
+1. Na tijdslot wijziging: zoek welke shift `startTime` bevat (shift waar `start_time <= startTime < end_time`)
+2. Auto-set `shiftId` op die shift
+3. Toon shift naam als **read-only label** (niet als dropdown)
+4. Als geen shift matcht: toon waarschuwing "Geen shift voor dit tijdslot"
+
+### 13B. Auto-selecteer ticket
+1. Na shift bepaling: laad `shiftTickets`
+2. Als er precies 1 actief ticket is: auto-set `ticketId`, toon niet
+3. Als meerdere: toon select (toekomstig scenario)
+
+### 13C. Verwijder squeeze toggle
+- Verwijder de `Switch` + `Label` voor squeeze (regels 323-326)
+- Verwijder `squeeze` state en prop uit `handleSubmit`
+
+### 13D. Stappen polish
+- Step indicator: toon 3 cirkels/stappen bovenaan met actieve markering
+- Formulier spacing: `space-y-5` (was space-y-4)
+- Bevestigingsscherm: netter samenvatting met leesbare datum
+
+---
+
+## Stap 14: Audit Log — Datumformaat
+
+**Bestand:** `src/components/reservations/AuditLogTimeline.tsx`
+
+De `option_extended` actie toont raw `new_expires_at` timestamp. Format met `formatDateTimeCompact()` voor leesbare output.
 
 ---
 
@@ -320,30 +228,59 @@ In `src/components/reservations/ReservationDetailPanel.tsx`:
 
 | Bestand | Actie |
 |---------|-------|
-| SQL migratie | Nieuw — 4 kolommen settings + checked_in_at + index + fn_auto_mark_no_shows + move_reservation_table + transition RPC update + pg_cron |
-| `src/types/reservation.ts` | Update — `checked_in_at` |
-| `src/types/reservations.ts` | Update — 4 settings kolommen |
-| `src/hooks/useReservationSettings.ts` | Update — `defaultReservationSettings` |
-| `src/hooks/useMoveTable.ts` | Nieuw |
-| `src/components/settings/checkin/CheckinSettingsCard.tsx` | Nieuw |
-| `src/pages/settings/reserveringen/SettingsReserveringenTafelsLocatie.tsx` | Update — CheckinSettingsCard toevoegen |
-| `src/components/reservations/TableMoveDialog.tsx` | Nieuw |
-| `src/components/reservations/ReservationActions.tsx` | Update — tafel wijzigen werkend |
-| `src/components/reserveringen/ReservationBlock.tsx` | Update — canCheckIn alleen confirmed |
-| `src/components/reserveringen/ReservationGridView.tsx` | Update — handleCheckIn werkend |
-| `src/components/reservations/AuditLogTimeline.tsx` | Update — table_moved + move_to_now |
-| `src/components/reservations/ReservationDetailPanel.tsx` | Update — checked_in_at weergave |
+| `src/types/reservation.ts` | Status labels: seated -> Ingecheckt, completed -> Uitgecheckt |
+| `src/lib/reservationUtils.ts` | Nieuwe `formatTime()` utility |
+| `src/lib/datetime.ts` | Nieuwe `formatDateShort()` utility |
+| `src/components/polar/DetailPanel.tsx` | Fixed overlay ipv inline panel, click-outside, shadow |
+| `src/components/reservations/ReservationDetailPanel.tsx` | Tijd formatting, spacing, tafelnaam |
+| `src/components/reservations/CustomerCard.tsx` | Naam groter, stats compacter, datumformat |
+| `src/components/reservations/RiskScoreSection.tsx` | Factor labels breder/tooltip, bars dunner |
+| `src/components/reserveringen/ReservationListView.tsx` | Check-in/out knoppen, ticket naam, shift badge |
+| `src/components/reserveringen/ReservationFilters.tsx` | Status volgorde expliciet |
+| `src/components/reserveringen/ReservationGridView.tsx` | Dynamisch timeline bereik |
+| `src/components/reserveringen/DateNavigator.tsx` | Dag-afkortingen 2 letters |
+| `src/components/reservations/CreateReservationSheet.tsx` | Auto shift/ticket, squeeze weg, step indicator |
+| `src/components/reservations/AuditLogTimeline.tsx` | Expiry datum formatting |
+| `src/pages/Reserveringen.tsx` | Layout aanpassen voor overlay panel |
 
 ---
 
 ## Implementatievolgorde
 
-1. Database migratie (alle schema + RPC's + cron in 1 migratie)
-2. TypeScript types updaten
-3. `defaultReservationSettings` updaten
-4. `useMoveTable` hook
-5. `CheckinSettingsCard` + integratie in settings pagina
-6. `TableMoveDialog` + `ReservationActions` update
-7. `ReservationBlock` canCheckIn fix
-8. `ReservationGridView` handleCheckIn werkend
-9. `AuditLogTimeline` + `ReservationDetailPanel` updates
+1. Status labels (seated/completed) — propageert overal
+2. `formatTime()` + `formatDateShort()` utilities
+3. Detail Panel: overlay gedrag + click-outside
+4. Detail Panel content: spacing, tijd/datum formatting
+5. CustomerCard + RiskScoreSection polish
+6. List View: check-in/out knoppen + ticket naam
+7. Status filter volgorde
+8. Grid View: dynamisch timeline bereik
+9. DateNavigator: dag-afkortingen
+10. Create Sheet: shift/ticket auto-selectie, squeeze weg, stappen polish
+11. Audit Log: datum formatting
+
+---
+
+## Technische Notities
+
+### DetailPanel Overlay Pattern
+Het huidige inline-panel patroon (flex-shrink-0) wordt vervangen door een fixed overlay. Dit is een **bewuste architectuur-wijziging**: de Reserveringen pagina hoeft de panel-state niet meer te gebruiken om de main content te resizen. Het panel zweeft over de content heen, zoals een Stripe/Linear detail drawer.
+
+De `DetailPanel` component wordt generiek aangepast zodat andere modules het ook gebruiken.
+
+### Shift-based Timeline
+De `useShifts` hook retourneert `start_time` en `end_time` als `"HH:MM:SS"`. We gebruiken `timeToMinutes()` (al beschikbaar) om het bereik te berekenen. Buffer van 30 minuten (0.5 uur) aan beide kanten.
+
+### Status Kleur Consistentie
+De `STATUS_CONFIG` in `reservation.ts` is de single source of truth. Grid View blocks gebruiken hun eigen `getBlockStyles()` functie — deze moet geverifieerd worden tegen STATUS_CONFIG kleuren. Specifiek:
+- `seated` (Ingecheckt): emerald-kleuren in Grid, maar `text-primary / bg-primary/15` in STATUS_CONFIG
+- Dit is een bewust verschil (Grid blocks vs badges), maar moet consistent zijn binnen elke view
+
+### Enterprise Design Compliance
+Alle wijzigingen volgen:
+- Geen hardcoded hex kleuren — alleen design tokens
+- `rounded-button` (8px) voor interactieve elementen
+- `shadow-xl` voor overlay panels (niet `shadow-sm`)
+- `text-label text-muted-foreground` voor form labels
+- `tabular-nums` voor numerieke data
+- Tooltips voor getrunceerde tekst
