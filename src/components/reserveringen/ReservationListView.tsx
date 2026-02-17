@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -9,10 +9,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Reservation } from "@/types/reservation";
-import { STATUS_CONFIG, ALLOWED_TRANSITIONS } from "@/types/reservation";
+import type { Reservation, ReservationChannel } from "@/types/reservation";
+import { STATUS_CONFIG, ALLOWED_TRANSITIONS, CHANNEL_ICONS } from "@/types/reservation";
 import { getDisplayName, isWalkIn } from "@/lib/reservationUtils";
 import type { DensityType } from "./DensityToggle";
+
+const CHANNEL_ICON_MAP: Record<ReservationChannel, React.FC<{ className?: string }>> = {
+  widget: Globe,
+  operator: User,
+  phone: Phone,
+  google: Search,
+  whatsapp: MessageCircle,
+  walk_in: FootprintsIcon,
+};
+
+function ChannelIcon({ channel }: { channel: ReservationChannel }) {
+  const Icon = CHANNEL_ICON_MAP[channel];
+  if (!Icon || channel === 'operator') return null;
+  return <Icon className="h-3.5 w-3.5 text-muted-foreground" />;
+}
 
 interface ReservationListViewProps {
   reservations: Reservation[];
@@ -150,6 +165,25 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
             <span>{tableLabel}</span>
           </>
         )}
+      </div>
+
+      {/* Risk score */}
+      <div className={cn("flex-shrink-0", isCompact ? "w-[40px]" : "w-[50px]")}>
+        {reservation.no_show_risk_score !== null && reservation.no_show_risk_score > 0 ? (
+          <span className={cn(
+            "text-xs font-medium",
+            reservation.no_show_risk_score >= 50 ? "text-destructive" :
+            reservation.no_show_risk_score >= 30 ? "text-warning" :
+            "text-muted-foreground"
+          )}>
+            {reservation.no_show_risk_score}%
+          </span>
+        ) : null}
+      </div>
+
+      {/* Channel icon */}
+      <div className="flex-shrink-0 w-[20px]">
+        <ChannelIcon channel={reservation.channel} />
       </div>
 
       <div className={cn("truncate", isCompact ? "w-[100px]" : "w-[120px]")}>

@@ -242,6 +242,20 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
           {guestName}
         </span>
 
+        {reservation.is_squeeze && (
+          <span className="text-caption px-1 py-0.5 rounded bg-accent/20 text-accent-foreground font-bold flex-shrink-0" title="Squeeze">S</span>
+        )}
+
+        {reservation.no_show_risk_score !== null && reservation.no_show_risk_score >= 30 && (
+          <span
+            className={cn(
+              "w-2 h-2 rounded-full flex-shrink-0",
+              reservation.no_show_risk_score >= 50 ? "bg-destructive" : "bg-warning"
+            )}
+            title={`Risico: ${reservation.no_show_risk_score}%`}
+          />
+        )}
+
         {reservation.customer?.phone_number && !walkIn && displayPosition.width > 100 && (
           <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
         )}
