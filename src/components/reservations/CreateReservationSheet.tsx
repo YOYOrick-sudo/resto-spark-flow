@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
+import { NestoPanel } from '@/components/polar/NestoPanel';
 import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateCustomer } from '@/hooks/useCreateCustomer';
@@ -104,7 +104,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
       if (!s.is_active) return false;
       const shiftStart = timeToMinutes(s.start_time);
       const shiftEnd = timeToMinutes(s.end_time);
-      // Handle overnight
       if (shiftEnd <= shiftStart) {
         return startMinutes >= shiftStart || startMinutes < shiftEnd;
       }
@@ -209,23 +208,72 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
     }
   };
 
-  return (
-    <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 flex flex-col">
-        <SheetHeader className="p-5 border-b border-border/50 space-y-3">
-          <StepIndicator current={step} />
-          <SheetTitle className="text-base">
-            {step === 'customer' && 'Klant selecteren'}
-            {step === 'details' && 'Reserveringsdetails'}
-            {step === 'confirm' && 'Bevestig reservering'}
-          </SheetTitle>
-        </SheetHeader>
+  const stepTitle = step === 'customer' ? 'Klant selecteren'
+    : step === 'details' ? 'Reserveringsdetails'
+    : 'Bevestig reservering';
 
-        <div className="flex-1 overflow-y-auto p-5">
+  const footerContent = (
+    <div className="flex gap-2">
+      {step !== 'customer' && (
+        <NestoButton
+          variant="outline"
+          size="sm"
+          onClick={() => setStep(step === 'confirm' ? 'details' : 'customer')}
+          leftIcon={<ChevronLeft className="h-4 w-4" />}
+        >
+          Terug
+        </NestoButton>
+      )}
+      {step === 'customer' && (
+        <NestoButton variant="ghost" onClick={handleClose}>
+          Annuleren
+        </NestoButton>
+      )}
+      {step === 'details' && (
+        <NestoButton
+          variant="primary"
+          className="flex-1"
+          onClick={() => setStep('confirm')}
+          disabled={!shiftId || !ticketId}
+          rightIcon={<ChevronRight className="h-4 w-4" />}
+        >
+          Doorgaan
+        </NestoButton>
+      )}
+      {step === 'confirm' && (
+        <NestoButton
+          variant="primary"
+          className="flex-1"
+          onClick={handleSubmit}
+          disabled={createReservation.isPending}
+          isLoading={createReservation.isPending}
+        >
+          Reservering aanmaken
+        </NestoButton>
+      )}
+    </div>
+  );
+
+  return (
+    <NestoPanel
+      open={open}
+      onClose={handleClose}
+      title={stepTitle}
+      width="w-[480px]"
+      footer={footerContent}
+    >
+      {(titleRef) => (
+        <div className="p-5 pr-14 space-y-5">
+          <div>
+            <StepIndicator current={step} />
+            <h2 ref={titleRef} className="text-lg font-semibold text-foreground mt-2">
+              {stepTitle}
+            </h2>
+          </div>
+
           {/* STEP 1: Customer */}
           {step === 'customer' && (
             <div className="space-y-5">
-              {/* Walk-in option */}
               <button
                 onClick={() => { setIsWalkIn(true); setSelectedCustomer(null); setStep('details'); }}
                 className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 transition-colors text-left"
@@ -237,7 +285,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 </div>
               </button>
 
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -248,7 +295,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 />
               </div>
 
-              {/* Results */}
               <div className="space-y-1">
                 {customers.slice(0, 10).map((c) => (
                   <button
@@ -266,7 +312,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 ))}
               </div>
 
-              {/* New customer */}
               {!showNewCustomer ? (
                 <button
                   onClick={() => setShowNewCustomer(true)}
@@ -313,7 +358,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 </div>
               </div>
 
-              {/* Auto-detected shift (read-only) */}
               <div>
                 <Label className="text-label text-muted-foreground mb-1.5 block">Shift</Label>
                 {detectedShift ? (
@@ -331,7 +375,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 )}
               </div>
 
-              {/* Ticket — only show if multiple active tickets */}
               {activeTickets.length > 1 && (
                 <div>
                   <Label className="text-label text-muted-foreground mb-1.5 block">Ticket</Label>
@@ -383,7 +426,6 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 </Select>
               </div>
 
-              {/* Overlap warning */}
               {overlapWarning && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm">
                   <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
@@ -434,44 +476,8 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-border/50 flex gap-2">
-          {step !== 'customer' && (
-            <NestoButton
-              variant="outline"
-              size="sm"
-              onClick={() => setStep(step === 'confirm' ? 'details' : 'customer')}
-              leftIcon={<ChevronLeft className="h-4 w-4" />}
-            >
-              Terug
-            </NestoButton>
-          )}
-          {step === 'details' && (
-            <NestoButton
-              variant="primary"
-              className="flex-1"
-              onClick={() => setStep('confirm')}
-              disabled={!shiftId || !ticketId}
-              rightIcon={<ChevronRight className="h-4 w-4" />}
-            >
-              Doorgaan
-            </NestoButton>
-          )}
-          {step === 'confirm' && (
-            <NestoButton
-              variant="primary"
-              className="flex-1"
-              onClick={handleSubmit}
-              disabled={createReservation.isPending}
-              isLoading={createReservation.isPending}
-            >
-              Reservering aanmaken
-            </NestoButton>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+      )}
+    </NestoPanel>
   );
 }
 
@@ -486,7 +492,6 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
   const { data: areasWithTables = [] } = useAreasWithTables(locationId);
   const createReservation = useCreateReservation();
 
-  // Pick first active shift's first ticket
   const activeShift = shifts.find((s) => s.is_active);
   const { data: shiftTickets = [] } = useShiftTickets(activeShift?.id);
 
@@ -533,15 +538,30 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
   };
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-[360px] p-0 flex flex-col">
-        <SheetHeader className="p-5 border-b border-border/50">
-          <SheetTitle className="text-base flex items-center gap-2">
+    <NestoPanel
+      open={open}
+      onClose={onClose}
+      title="Walk-in registreren"
+      width="w-[400px]"
+      footer={
+        <NestoButton
+          variant="primary"
+          className="w-full"
+          onClick={handleSubmit}
+          disabled={createReservation.isPending}
+          isLoading={createReservation.isPending}
+        >
+          Walk-in registreren
+        </NestoButton>
+      }
+    >
+      {(titleRef) => (
+        <div className="p-5 pr-14 space-y-5">
+          <h2 ref={titleRef} className="text-lg font-semibold text-foreground flex items-center gap-2">
             <Footprints className="h-5 w-5" />
             Walk-in registreren
-          </SheetTitle>
-        </SheetHeader>
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          </h2>
+
           <div>
             <Label className="text-label text-muted-foreground mb-1.5 block">Aantal personen</Label>
             <Input type="number" min={1} max={20} value={partySize} onChange={e => setPartySize(Number(e.target.value))} />
@@ -564,18 +584,7 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
             Datum: vandaag • Tijd: nu • Status: direct ingecheckt • Kanaal: walk-in
           </p>
         </div>
-        <div className="p-4 border-t border-border/50">
-          <NestoButton
-            variant="primary"
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={createReservation.isPending}
-            isLoading={createReservation.isPending}
-          >
-            Walk-in registreren
-          </NestoButton>
-        </div>
-      </SheetContent>
-    </Sheet>
+      )}
+    </NestoPanel>
   );
 }
