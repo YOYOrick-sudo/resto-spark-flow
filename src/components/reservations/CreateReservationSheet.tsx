@@ -287,10 +287,10 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
 
               <div>
                 <Label className="text-xs mb-1.5 block">Tafel (optioneel)</Label>
-                <Select value={tableId || ''} onValueChange={(v) => setTableId(v || null)}>
+                <Select value={tableId || '__none__'} onValueChange={(v) => setTableId(v === '__none__' ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="Niet toegewezen" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Niet toegewezen</SelectItem>
+                    <SelectItem value="__none__">Niet toegewezen</SelectItem>
                     {allTables.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.display_label} ({t.area_name})
@@ -468,10 +468,10 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
           </div>
           <div>
             <Label className="text-xs mb-1.5 block">Tafel (optioneel)</Label>
-            <Select value={tableId || ''} onValueChange={(v) => setTableId(v || null)}>
+            <Select value={tableId || '__none__'} onValueChange={(v) => setTableId(v === '__none__' ? null : v)}>
               <SelectTrigger><SelectValue placeholder="Niet toegewezen" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Niet toegewezen</SelectItem>
+                <SelectItem value="__none__">Niet toegewezen</SelectItem>
                 {allTables.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.display_label} ({t.area_name})

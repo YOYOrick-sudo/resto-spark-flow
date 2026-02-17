@@ -13,7 +13,7 @@ export function useReservation(reservationId: string | null) {
         .from('reservations')
         .select(`
           *,
-          customers!left:customer_id (id, first_name, last_name, email, phone_number, language, tags, notes, total_visits, total_no_shows, total_cancellations, first_visit_at, last_visit_at),
+          customers:customer_id (id, first_name, last_name, email, phone_number, language, tags, notes, total_visits, total_no_shows, total_cancellations, first_visit_at, last_visit_at),
           shifts:shift_id (name),
           tickets:ticket_id (name),
           tables:table_id (display_label)
