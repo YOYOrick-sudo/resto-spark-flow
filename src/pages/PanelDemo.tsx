@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Clock, Users, Phone, Mail, CalendarDays, UserCheck, Star, Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NestoButton } from '@/components/polar/NestoButton';
 
 function PanelShell({ 
   title,
@@ -108,13 +109,12 @@ function DetailPanelDemo() {
             </div>
 
             <div className="flex gap-2 mt-4">
-              <button className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-                <UserCheck className="h-4 w-4" />
+              <NestoButton variant="primary" leftIcon={<UserCheck className="h-4 w-4" />} className="flex-1">
                 Inchecken
-              </button>
-              <button className="px-3 py-2 rounded-button border border-input bg-background text-sm font-medium hover:bg-secondary transition-colors">
+              </NestoButton>
+              <NestoButton variant="outline">
                 Bewerken
-              </button>
+              </NestoButton>
             </div>
           </div>
 
@@ -180,12 +180,12 @@ function FormPanelDemo() {
       title="Nieuwe reservering"
       footer={
         <div className="flex items-center justify-between">
-          <button className="px-4 py-2 rounded-button text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <NestoButton variant="ghost">
             Annuleren
-          </button>
-          <button className="px-5 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+          </NestoButton>
+          <NestoButton variant="primary">
             Reservering aanmaken
-          </button>
+          </NestoButton>
         </div>
       }
       renderContent={(titleRef) => (
