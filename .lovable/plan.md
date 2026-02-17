@@ -1,85 +1,65 @@
 
 
-# PanelDemo: Resterende Design System Afwijkingen
+# Design System Fixes Doorvoeren naar Reserveringen
 
-## Wat klopt al
-- Buttons gebruiken NestoButton met correcte varianten (primary=16px, outline/ghost=8px)
-- Stepper +/- buttons gebruiken `rounded-control` (6px) -- correct voor mini controls
-- Label styling `text-[13px] font-medium text-muted-foreground` -- correct
-- Padding p-5 -- correct per panel spec
-- tabular-nums op gast counter -- correct
+De PanelDemo is nu conform het design system. Dezelfde patronen moeten nu worden toegepast op de productiecomponenten van reserveringen.
 
-## Wat niet klopt
+## Overzicht afwijkingen
 
-### 1. Badges: raw spans i.p.v. NestoBadge
+### 1. ReservationDetailPanel -- Status badge (regels 44-57)
+**Huidig:** Raw `<span>` met `rounded-full`
+**Moet zijn:** `NestoBadge` component (gebruikt `rounded-control` / 6px)
 
-**Huidige situatie:** 3 badges zijn handmatig gebouwd met `rounded-full` (volledig rond).
+De status badge wordt nu handmatig opgebouwd met STATUS_CONFIG kleuren. Dit kan een NestoBadge worden, maar de STATUS_CONFIG mapping moet behouden blijven voor de dynamische kleuren. Oplossing: de `rounded-full` vervangen door `rounded-control` en de rest behouden, aangezien NestoBadge's vaste variant-kleuren niet matchen met de dynamische STATUS_CONFIG kleuren.
 
-| Badge | Huidig | Moet zijn |
-|-------|--------|-----------|
-| "Bevestigd" (regel 92) | `rounded-full` + handmatige kleuren | `NestoBadge variant="success" dot` |
-| "VIP" (regel 98) | `rounded-full` + amber kleuren | `NestoBadge variant="warning" size="sm"` |
-| "Verjaardag" (regel 101) | `rounded-full` + muted kleuren | `NestoBadge variant="default" size="sm"` |
+### 2. ReservationBadges -- Alle 11 conditionele badges (regel 103)
+**Huidig:** Raw `<span>` met `rounded-full`
+**Moet zijn:** `rounded-control` (6px) conform NestoBadge standaard
 
-Per design system: badges gebruiken `rounded-control` (6px), niet `rounded-full`.
+Zelfde situatie: dynamische kleuren per badge type, dus NestoBadge component past niet direct. We corrigeren de border-radius van `rounded-full` naar `rounded-control`.
 
-### 2. Inputs: verkeerde border-radius
+### 3. ReservationActions -- Alle actie-buttons (regels 165-196)
+**Huidig:** Raw `<button>` elementen
+**Moet zijn:** `NestoButton` component
 
-**Huidige situatie:** Alle inputs en faux-inputs gebruiken `rounded-control` (6px).
+Dit zorgt voor:
+- Primary buttons krijgen `rounded-button-primary` (16px) i.p.v. `rounded-button` (8px)
+- Consistente focus-visible, disabled, en hover states
+- Loading state support via `isLoading` prop
 
-Per BORDER_RADIUS.md: **inputs = `rounded-button` (8px)**.
+### 4. CreateReservationSheet -- "Aanmaken & doorgaan" button (regel 286-292)
+**Huidig:** Raw `<button>` met `rounded-button`
+**Moet zijn:** `NestoButton variant="primary"` (krijgt `rounded-button-primary` / 16px)
 
-Betreft:
-- Datum & tijd velden (regels 198, 202)
-- Naam input (regel 258)
-- Telefoon input (regel 267)
-- E-mail input (regel 275)
-- Notities textarea (regel 287)
+---
 
-### 3. Shift toggle buttons: verkeerde border-radius
+## Wijzigingen per bestand
 
-**Huidige situatie:** Lunch/Diner toggles gebruiken `rounded-control` (6px).
+### Bestand 1: `src/components/reservations/ReservationDetailPanel.tsx`
+- Import toevoegen: geen nieuwe imports nodig
+- Regel 45: `rounded-full` wijzigen naar `rounded-control`
 
-Dit zijn outline toggle buttons, geen mini controls. Per design system: **outline buttons = `rounded-button` (8px)**.
+### Bestand 2: `src/components/reservations/ReservationBadges.tsx`
+- Regel 103: `rounded-full` wijzigen naar `rounded-control`
 
-### 4. Focus ring: niet conform enterprise pattern
+### Bestand 3: `src/components/reservations/ReservationActions.tsx`
+- Import toevoegen: `NestoButton` uit `@/components/polar/NestoButton`
+- Disabled buttons (regels 165-175): vervangen door `NestoButton variant="outline" size="sm"` met `disabled` prop
+- Primary action buttons (regels 180-196): vervangen door `NestoButton` met juiste variant:
+  - `variant === 'primary'` wordt `NestoButton variant="primary" size="sm"`
+  - `destructive` wordt `NestoButton variant="danger" size="sm"`
+  - Default wordt `NestoButton variant="outline" size="sm"`
+- Alle buttons krijgen `leftIcon={<Icon />}` i.p.v. inline icon
 
-**Huidige situatie:** `focus:ring-2 focus:ring-ring focus:ring-offset-1`
+### Bestand 4: `src/components/reservations/CreateReservationSheet.tsx`
+- Import toevoegen: `NestoButton` uit `@/components/polar/NestoButton`
+- Regel 286-292: "Aanmaken & doorgaan" raw button vervangen door `NestoButton variant="primary"`
+- Footer buttons (rond regel 430+): Navigatie-buttons ("Vorige", "Volgende", "Reservering aanmaken") vervangen door NestoButton met juiste varianten
 
-Per enterprise functional patterns: **`focus-visible:ring-1 focus-visible:ring-primary/30`** (subtieler, alleen bij keyboard navigatie).
+---
 
-Betreft alle input, textarea, en shift toggle elementen.
-
-## Wijzigingen
-
-Bestand: `src/pages/PanelDemo.tsx`
-
-### 1. Import NestoBadge toevoegen
-Toevoegen: `import { NestoBadge } from '@/components/polar/NestoBadge'`
-
-### 2. Status badge "Bevestigd" (regel 92-95)
-Vervang de raw span door:
-```
-<NestoBadge variant="success" dot className="mt-3">Bevestigd</NestoBadge>
-```
-
-### 3. VIP en Verjaardag tags (regels 97-104)
-Vervang door:
-```
-<div className="flex flex-wrap gap-1.5 mt-3">
-  <NestoBadge variant="warning" size="sm">
-    <Star className="h-3 w-3" /> VIP
-  </NestoBadge>
-  <NestoBadge size="sm">
-    Verjaardag
-  </NestoBadge>
-</div>
-```
-
-### 4. Alle `rounded-control` op inputs/textareas wijzigen naar `rounded-button`
-Betreft 7 elementen (regels 198, 202, 238, 258, 267, 275, 287).
-
-### 5. Focus ring patroon bijwerken
-Op alle inputs en textarea:
-`focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1` wordt `focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30`
+## Wat niet wijzigt
+- De structuur en logica van alle componenten blijft identiek
+- STATUS_CONFIG mapping en dynamische kleuren blijven behouden
+- Alleen styling-elementen worden gecorrigeerd naar design system standaarden
 
