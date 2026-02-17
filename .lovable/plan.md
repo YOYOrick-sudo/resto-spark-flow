@@ -1,113 +1,52 @@
 
 
-# Fase 4.9.5b — Check-in/Uitcheck Flow
+# Fix: Directe UI-update bij Check-in/Uitcheck
 
-## Overzicht
-Drie wijzigingen: database transitie seated->confirmed met move-to-now undo, client-side transitiematrix, en twee icoon-knoppen naast elkaar bij ingecheckte reserveringen.
+## Probleem
+Na het klikken op check-in/uitcheck wacht de UI op een server-refetch voordat de status visueel verandert. Hierdoor blijven de oude knoppen zichtbaar en kan de gebruiker per ongeluk nogmaals klikken, wat "Invalid status transition" fouten veroorzaakt (bijv. confirmed -> confirmed).
 
----
+## Oplossing: Optimistic Updates in useTransitionStatus
 
-## Stap 1: Database Migratie
-
-Nieuwe migratie die `transition_reservation_status` uitbreidt.
-
-### 1A. Transitiematrix uitbreiden
-In de CASE-expressie, wijzig:
-```sql
-WHEN 'seated' THEN _new_status IN ('completed')
-```
-naar:
-```sql
-WHEN 'seated' THEN _new_status IN ('completed', 'confirmed')
-```
-
-### 1B. Undo check-in logica (inclusief move-to-now herstel)
-Nieuwe ELSIF branch voor seated -> confirmed:
-
-```sql
-ELSIF _new_status = 'confirmed' AND _r.status = 'seated' THEN
-  SELECT (metadata->>'original_start_time')::TIME INTO _original_start
-  FROM public.audit_log
-  WHERE entity_id = _reservation_id
-    AND action = 'status_change'
-    AND changes->>'new_status' = 'seated'
-  ORDER BY created_at DESC LIMIT 1;
-
-  UPDATE public.reservations SET
-    status = 'confirmed',
-    checked_in_at = NULL,
-    start_time = COALESCE(_original_start, start_time),
-    updated_at = NOW()
-  WHERE id = _reservation_id;
-```
-
-Belangrijk: `entity_id` is UUID type (geverifieerd tegen schema), dus **geen** `::text` cast nodig op `_reservation_id`.
-
-De `_original_start` variabele bestaat al in de functie (gedeclareerd voor move-to-now logica). Als er geen move-to-now was toegepast staat `original_start_time` niet in metadata, dus `_original_start` wordt NULL en `COALESCE` houdt de huidige `start_time`.
+De `useTransitionStatus` hook krijgt een `onMutate` callback die de lokale query-cache **direct** bijwerkt voordat de server-response binnenkomt. Bij een fout wordt de cache automatisch teruggedraaid via `onError`.
 
 ---
 
-## Stap 2: Client-side Transitiematrix
+## Technische Wijzigingen
 
-**Bestand:** `src/types/reservation.ts` regel 100
+### Bestand: `src/hooks/useTransitionStatus.ts`
 
-Wijzig:
-```typescript
-seated: ['completed'],
+Voeg optimistic update toe aan de mutation:
+
+```text
+onMutate -> snapshot huidige cache -> update status in cache -> return snapshot
+onError  -> rollback naar snapshot
+onSettled -> invalidate queries (vervangt huidige onSuccess)
 ```
-naar:
-```typescript
-seated: ['completed', 'confirmed'],
-```
 
-Dit propageert automatisch naar Grid View dropdown en Detail Panel acties.
+Concrete logica in `onMutate`:
+1. Cancel lopende refetches voor de reservations query
+2. Snapshot de huidige cache-data
+3. Update de reservering in de cache: zet `status` naar `new_status`, en als `new_status === 'seated'` ook `checked_in_at` op `new Date().toISOString()`
+4. Return de snapshot voor rollback
+
+Bij `onError`: herstel de cache naar de snapshot.
+Bij `onSettled` (vervangt `onSuccess`): invalideer alle relevante queries zodat de echte server-data wordt opgehaald.
+
+### Bestand: `src/pages/Reserveringen.tsx`
+
+Geen wijzigingen nodig — de `handleStatusChange` callback blijft hetzelfde. De optimistic update zit volledig in de hook.
 
 ---
 
-## Stap 3: List View — RotateCcw + LogOut naast elkaar
-
-**Bestand:** `src/components/reserveringen/ReservationListView.tsx`
-
-### 3A. Import
-Voeg `RotateCcw` toe aan lucide-react import (regel 2).
-
-### 3B. Seated knoppen
-Vervang de enkele LogOut-knop bij seated (regels 236-244) door twee knoppen in een flex container:
-
-```tsx
-{reservation.status === 'seated' && onStatusChange && (
-  <div className="flex items-center gap-1 flex-shrink-0">
-    <button
-      onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'confirmed'); }}
-      className="p-1.5 rounded-md hover:bg-muted text-muted-foreground/60 transition-colors"
-      title="Check-in ongedaan maken"
-    >
-      <RotateCcw className="h-3.5 w-3.5" />
-    </button>
-    <button
-      onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'completed'); }}
-      className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
-      title="Uitchecken"
-    >
-      <LogOut className="h-4 w-4" />
-    </button>
-  </div>
-)}
-```
-
-RotateCcw is visueel subtieler (kleiner icoon, lagere opacity) zodat uitchecken de primaire actie blijft.
-
----
+## Wat dit oplost
+- Status-knoppen veranderen **onmiddellijk** na klikken (geen wachttijd)
+- Gebruiker ziet direct de juiste knoppen (RotateCcw + LogOut na check-in)
+- Dubbel-klikken op dezelfde knop wordt voorkomen doordat de status al gewijzigd is in de lokale cache
+- Bij een server-fout wordt de oude status automatisch hersteld
 
 ## Bestanden
 
 | Bestand | Actie |
 |---------|-------|
-| SQL migratie (nieuw) | seated->confirmed in matrix + move-to-now undo via audit_log lookup (entity_id = UUID, geen cast) |
-| `src/types/reservation.ts` | ALLOWED_TRANSITIONS seated array uitbreiden |
-| `src/components/reserveringen/ReservationListView.tsx` | RotateCcw import + twee knoppen bij seated |
+| `src/hooks/useTransitionStatus.ts` | Optimistic update toevoegen (onMutate, onError, onSettled) |
 
-## Implementatievolgorde
-1. Database migratie
-2. Types update
-3. List View UI
