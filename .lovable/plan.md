@@ -1,35 +1,45 @@
 
 
-# PanelDemo: gelijke breedte + enterprise header
+# PanelDemo: Enterprise Polish
 
-## Wijzigingen
+## Breedte
+460px blijft — dit zit in het enterprise bereik (Linear 420-440px, Stripe 400px, Notion 440-480px).
 
-### 1. Beide panels zelfde breedte: 460px
-Zowel detail als form krijgen `w-[460px]` in plaats van 420/480.
+## Titel: Reveal Header patroon
 
-### 2. Header verbeteren: geen sticky, meer enterprise
+De titel scrollt mee met de content (zoals nu), maar zodra de titel uit beeld verdwijnt verschijnt er een compacte header bovenin met alleen de naam en de X-knop. Dit is het Notion-patroon.
 
-De huidige header met border-bottom die altijd zichtbaar blijft voelt inderdaad niet enterprise. Bij tools als Linear en Notion scrollt de header gewoon mee met de content -- de titel staat in de content zelf, niet in een vaste balk.
-
-Nieuw patroon:
-- **Alleen een X-knop** rechtsboven als floating element (absolute positioned, altijd zichtbaar)
-- **Geen aparte header-balk** met border-bottom
-- De **titel** staat als eerste element in de scrollbare content
-- Dit geeft meer ruimte en voelt cleaner
-
-Visueel verschil:
+### Hoe het werkt
 
 ```text
-  WAS:                          WORDT:
-  +------------------+          +------------------+
-  | Reservering    X |          |                X |  <- alleen X floating
-  |------------------|          |                  |
-  | [content]        |          | Reservering      |  <- titel in content
-  | [scrollt]        |          | [content]        |
-  +------------------+          | [scrollt mee]    |
-                                +------------------+
+Scroll positie = boven:         Scroll positie = onder:
++--------------------+          +--------------------+
+|                  X |          | Jan de Vries     X |  <- reveal header (h-10)
+|                    |          |    subtle shadow    |
+| Jan de Vries       |          |--------------------|
+| 4p · Diner · 19:00 |         | [Risicoscore]      |
+| [content...]       |          | [Activiteitenlog]  |
++--------------------+          +--------------------+
 ```
 
-### 3. Labels aanpassen
-Beide labels tonen "460px" en de beschrijving wordt aangepast.
+### Technische details
+
+1. **IntersectionObserver** op het titel-element detecteert wanneer de h2 uit beeld scrollt
+2. Reveal header: `h-10`, `bg-card`, `shadow-[0_1px_3px_rgba(0,0,0,0.04)]` (geen border)
+3. Transitie: `opacity` + `translate-y` met `duration-150` voor een subtiel verschijnen
+4. Zowel detail als form panel krijgen dit patroon
+5. De reveal header toont:
+   - Detail mode: gastnaam (of entity naam)
+   - Form mode: formulier titel ("Nieuwe reservering")
+   - X-knop rechts
+
+### Overige verbeteringen
+
+- Close button krijgt een subtielere `hover:bg-muted/50` in plaats van `hover:bg-secondary`
+- Footer buttons in form mode krijgen `rounded-button` (8px) conform het design system
+- Labels in form mode worden `text-[13px] font-medium text-muted-foreground` (design system standaard)
+
+## Bestanden
+
+Alleen `src/pages/PanelDemo.tsx` wordt aangepast.
 
