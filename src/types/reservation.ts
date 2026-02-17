@@ -23,7 +23,7 @@ export type ReservationChannel =
 export interface Reservation {
   id: string;
   location_id: string;
-  customer_id: string;
+  customer_id: string | null;
   shift_id: string;
   ticket_id: string;
   table_id: string | null;
@@ -38,10 +38,16 @@ export interface Reservation {
   guest_notes: string | null;
   internal_notes: string | null;
   manage_token: string;
-  no_show_risk_score: number;
+  no_show_risk_score: number | null;
+  risk_factors?: Record<string, unknown> | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Future fields (nullable until their phases)
+  payment_status?: string | null;
+  option_expires_at?: string | null;
+  reconfirmed_at?: string | null;
+  badges?: Record<string, unknown> | null;
   // Joined fields
   customer?: Customer;
   shift_name?: string;
@@ -192,10 +198,10 @@ export const CHANNEL_LABELS: Record<ReservationChannel, string> = {
 };
 
 export const CHANNEL_ICONS: Record<ReservationChannel, string> = {
-  widget: '🌐',
-  operator: '👤',
-  phone: '📞',
-  google: '🔍',
-  whatsapp: '💬',
-  walk_in: '🚶',
+  widget: 'Globe',
+  operator: 'User',
+  phone: 'Phone',
+  google: 'Search',
+  whatsapp: 'MessageCircle',
+  walk_in: 'Footprints',
 };

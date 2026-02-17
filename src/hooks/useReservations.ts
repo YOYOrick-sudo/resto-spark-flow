@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
 import { queryKeys } from '@/lib/queryKeys';
@@ -11,6 +12,27 @@ interface UseReservationsParams {
 export function useReservations({ date }: UseReservationsParams = {}) {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
+  const queryClient = useQueryClient();
+
+  // Realtime subscription filtered on location_id
+  useEffect(() => {
+    if (!locationId) return;
+    const channel = supabase
+      .channel(`reservations-${locationId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'reservations',
+        filter: `location_id=eq.${locationId}`,
+      }, () => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.reservations(locationId),
+          exact: false,
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [locationId, queryClient]);
 
   return useQuery<Reservation[]>({
     queryKey: queryKeys.reservations(locationId ?? '', date),
@@ -21,7 +43,7 @@ export function useReservations({ date }: UseReservationsParams = {}) {
         .from('reservations')
         .select(`
           *,
-          customers:customer_id (id, first_name, last_name, email, phone_number, total_visits, total_no_shows),
+          customers!left:customer_id (id, first_name, last_name, email, phone_number, total_visits, total_no_shows),
           shifts:shift_id (name),
           tickets:ticket_id (name),
           tables:table_id (display_label)

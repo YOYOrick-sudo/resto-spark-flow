@@ -8,9 +8,10 @@ interface TransitionParams {
   new_status: ReservationStatus;
   actor_id?: string | null;
   reason?: string | null;
+  is_override?: boolean;
   // For cache invalidation
   location_id: string;
-  customer_id?: string;
+  customer_id?: string | null;
 }
 
 export function useTransitionStatus() {
@@ -23,6 +24,7 @@ export function useTransitionStatus() {
         _new_status: params.new_status,
         _actor_id: params.actor_id ?? null,
         _reason: params.reason ?? null,
+        _is_override: params.is_override ?? false,
       });
 
       if (error) throw error;
