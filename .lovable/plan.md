@@ -1,52 +1,37 @@
 
 
-# Fix: Directe UI-update bij Check-in/Uitcheck
+# Fix: Query Key Matching in Optimistic Updates
 
 ## Probleem
-Na het klikken op check-in/uitcheck wacht de UI op een server-refetch voordat de status visueel verandert. Hierdoor blijven de oude knoppen zichtbaar en kan de gebruiker per ongeluk nogmaals klikken, wat "Invalid status transition" fouten veroorzaakt (bijv. confirmed -> confirmed).
+De optimistic update in `useTransitionStatus.ts` werkt niet omdat de query key niet matcht.
 
-## Oplossing: Optimistic Updates in useTransitionStatus
+- Cached key: `['reservations', 'locationId', '2026-02-17']`
+- Filter key: `['reservations', 'locationId', undefined]`
 
-De `useTransitionStatus` hook krijgt een `onMutate` callback die de lokale query-cache **direct** bijwerkt voordat de server-response binnenkomt. Bij een fout wordt de cache automatisch teruggedraaid via `onError`.
+TanStack Query's `partialDeepEqual` ziet `undefined !== '2026-02-17'` en slaat de cache-update over. Resultaat: de UI wacht op de server-refetch voordat de status visueel verandert.
 
----
+## Oplossing
+Gebruik een **prefix-key zonder date** voor het matchen van queries in `onMutate` en `cancelQueries`:
 
-## Technische Wijzigingen
+```typescript
+// Was (matcht NIET):
+queryKeys.reservations(params.location_id)
+// → ['reservations', 'abc', undefined]
+
+// Wordt (matcht WEL via prefix):
+['reservations', params.location_id]
+// → ['reservations', 'abc']  — matcht alle date-varianten
+```
+
+## Wijzigingen
 
 ### Bestand: `src/hooks/useTransitionStatus.ts`
 
-Voeg optimistic update toe aan de mutation:
+Twee plekken aanpassen:
 
-```text
-onMutate -> snapshot huidige cache -> update status in cache -> return snapshot
-onError  -> rollback naar snapshot
-onSettled -> invalidate queries (vervangt huidige onSuccess)
-```
+**1. `cancelQueries` (regel 36-39):** Verander `queryKey` van `queryKeys.reservations(params.location_id)` naar `['reservations', params.location_id]`
 
-Concrete logica in `onMutate`:
-1. Cancel lopende refetches voor de reservations query
-2. Snapshot de huidige cache-data
-3. Update de reservering in de cache: zet `status` naar `new_status`, en als `new_status === 'seated'` ook `checked_in_at` op `new Date().toISOString()`
-4. Return de snapshot voor rollback
+**2. `getQueriesData` (regel 42-44):** Verander `queryKey` van `queryKeys.reservations(params.location_id)` naar `['reservations', params.location_id]`
 
-Bij `onError`: herstel de cache naar de snapshot.
-Bij `onSettled` (vervangt `onSuccess`): invalideer alle relevante queries zodat de echte server-data wordt opgehaald.
-
-### Bestand: `src/pages/Reserveringen.tsx`
-
-Geen wijzigingen nodig — de `handleStatusChange` callback blijft hetzelfde. De optimistic update zit volledig in de hook.
-
----
-
-## Wat dit oplost
-- Status-knoppen veranderen **onmiddellijk** na klikken (geen wachttijd)
-- Gebruiker ziet direct de juiste knoppen (RotateCcw + LogOut na check-in)
-- Dubbel-klikken op dezelfde knop wordt voorkomen doordat de status al gewijzigd is in de lokale cache
-- Bij een server-fout wordt de oude status automatisch hersteld
-
-## Bestanden
-
-| Bestand | Actie |
-|---------|-------|
-| `src/hooks/useTransitionStatus.ts` | Optimistic update toevoegen (onMutate, onError, onSettled) |
+Geen andere bestanden hoeven te wijzigen. De icons (RotateCcw, LogOut, UserCheck) staan al correct in de code — ze verschijnen zodra de optimistic update daadwerkelijk de cache bijwerkt.
 
