@@ -6,14 +6,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Reservation, ReservationChannel } from "@/types/reservation";
-import { STATUS_CONFIG, ALLOWED_TRANSITIONS, CHANNEL_ICONS } from "@/types/reservation";
+import { STATUS_CONFIG, ALLOWED_TRANSITIONS } from "@/types/reservation";
 import { getDisplayName, isWalkIn, formatTime } from "@/lib/reservationUtils";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
 import type { DensityType } from "./DensityToggle";
+
+const GRID_COLS = "grid grid-cols-[12px_1fr_50px_60px_24px_100px_110px_90px_32px] items-center";
 
 const CHANNEL_ICON_MAP: Record<ReservationChannel, React.FC<{ className?: string }>> = {
   widget: Globe,
@@ -37,12 +38,12 @@ interface ReservationListViewProps {
   density?: DensityType;
 }
 
-function StatusDot({ status, density = "compact" }: { status: Reservation["status"]; density?: DensityType }) {
+function StatusDot({ status }: { status: Reservation["status"] }) {
   const config = STATUS_CONFIG[status];
   if (!config) return null;
   return (
     <span
-      className={cn("inline-block rounded-full flex-shrink-0 h-2.5 w-2.5")}
+      className="inline-block rounded-full flex-shrink-0 h-2.5 w-2.5"
       style={{ backgroundColor: config.dotColor }}
       title={config.label}
     />
@@ -60,6 +61,22 @@ function groupByTimeSlot(reservations: Reservation[]): Map<string, Reservation[]
     groups.get(timeSlot)!.push(reservation);
   });
   return groups;
+}
+
+function ColumnHeader() {
+  return (
+    <div className={cn(GRID_COLS, "px-4 pb-2 pt-1")}>
+      <span />
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Naam</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Pers</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tafel</span>
+      <span />
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shift</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Acties</span>
+      <span />
+    </div>
+  );
 }
 
 export function ReservationListView({
@@ -85,7 +102,8 @@ export function ReservationListView({
   }
 
   return (
-    <div className="space-y-0">
+    <div>
+      <ColumnHeader />
       {Array.from(groupedReservations.entries()).map(([timeSlot, reservationsInSlot]) => (
         <div key={timeSlot}>
           <div className={cn(
@@ -135,132 +153,110 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
   return (
     <div
       className={cn(
-        "flex items-center px-4 hover:bg-muted/30 cursor-pointer transition-colors duration-150",
-        isCompact ? "gap-3 py-3" : "gap-4 py-4",
+        GRID_COLS,
+        "px-4 hover:bg-accent/40 cursor-pointer transition-colors duration-150",
+        isCompact ? "py-3" : "py-4",
         reservation.status === "cancelled" && "opacity-50",
         reservation.status === "no_show" && "opacity-60"
       )}
       onClick={onClick}
     >
-      <StatusDot status={reservation.status} density={density} />
+      {/* Status dot */}
+      <StatusDot status={reservation.status} />
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-foreground truncate text-sm">
-            {guestName}
-          </span>
-          {walkIn && (
-            <NestoBadge variant="outline" size="sm">WALK-IN</NestoBadge>
-          )}
-          {reservation.customer?.phone_number && (
-            <Phone className={cn("text-muted-foreground flex-shrink-0", isCompact ? "h-2.5 w-2.5" : "h-3 w-3")} />
-          )}
-        </div>
+      {/* Naam */}
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-medium text-foreground truncate text-sm">
+          {guestName}
+        </span>
+        {walkIn && (
+          <NestoBadge variant="outline" size="sm">WALK-IN</NestoBadge>
+        )}
+        {reservation.customer?.phone_number && (
+          <Phone className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
+        )}
       </div>
 
-      <div className={cn("flex items-center gap-1 text-muted-foreground", isCompact ? "text-xs min-w-[70px]" : "text-sm min-w-[80px]")}>
-        <span className="font-medium text-foreground">{reservation.party_size}p</span>
-        {tableLabel !== '—' && (
+      {/* Personen */}
+      <span className="text-sm tabular-nums font-medium text-foreground">{reservation.party_size}p</span>
+
+      {/* Tafel */}
+      <span className="text-sm text-muted-foreground truncate">{tableLabel}</span>
+
+      {/* Kanaal */}
+      <ChannelIcon channel={reservation.channel} />
+
+      {/* Shift */}
+      {reservation.shift_name ? (
+        <NestoBadge variant="outline" size="sm" className="truncate justify-center text-muted-foreground max-w-[96px]">
+          {reservation.shift_name}
+        </NestoBadge>
+      ) : <span />}
+
+      {/* Status badge */}
+      <div className="flex items-center gap-1.5">
+        {statusConfig && (
+          <span className={cn(
+            "inline-flex items-center gap-1.5 rounded-full font-medium text-xs px-2.5 py-1",
+            statusConfig.textClass,
+            statusConfig.bgClass,
+            statusConfig.borderClass,
+          )}>
+            {statusConfig.showDot && (
+              <span
+                className="rounded-full flex-shrink-0 w-1.5 h-1.5"
+                style={{ backgroundColor: statusConfig.dotColor }}
+              />
+            )}
+            {statusConfig.label}
+          </span>
+        )}
+        {reservation.status === 'option' && (
+          <OptionBadge optionExpiresAt={reservation.option_expires_at} />
+        )}
+      </div>
+
+      {/* Acties (vaste breedte) */}
+      <div className="flex items-center justify-end gap-1">
+        {reservation.status === 'confirmed' && onStatusChange && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'seated'); }}
+            className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors"
+            title="Inchecken"
+          >
+            <UserCheck className="h-4 w-4" />
+          </button>
+        )}
+        {reservation.status === 'seated' && onStatusChange && (
           <>
-            <span>•</span>
-            <span>{tableLabel}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'confirmed'); }}
+              className="p-1.5 rounded-md hover:bg-muted text-muted-foreground/60 transition-colors"
+              title="Check-in ongedaan maken"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'completed'); }}
+              className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
+              title="Uitchecken"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </>
         )}
       </div>
 
-      {/* Risk score */}
-      <div className={cn("flex-shrink-0", isCompact ? "w-[40px]" : "w-[50px]")}>
-        {reservation.no_show_risk_score !== null && reservation.no_show_risk_score > 0 ? (
-          <span className={cn(
-            "text-xs font-medium",
-            reservation.no_show_risk_score >= 50 ? "text-destructive" :
-            reservation.no_show_risk_score >= 30 ? "text-warning" :
-            "text-muted-foreground"
-          )}>
-            {reservation.no_show_risk_score}%
-          </span>
-        ) : null}
-      </div>
-
-      {/* Channel icon */}
-      <div className="flex-shrink-0 w-[20px]">
-        <ChannelIcon channel={reservation.channel} />
-      </div>
-
-      <div className={cn("truncate", isCompact ? "w-[100px]" : "w-[120px]")}>
-        {reservation.guest_notes && (
-          <span className={cn("text-muted-foreground/70 italic truncate", isCompact ? "text-xs" : "text-sm")}>
-            {reservation.guest_notes}
-          </span>
-        )}
-      </div>
-
-      {reservation.shift_name && (
-        <NestoBadge variant="outline" size="sm" className="min-w-[80px] max-w-[120px] truncate justify-center text-muted-foreground">
-          {reservation.shift_name}
-        </NestoBadge>
-      )}
-
-      {statusConfig && (
-        <span className={cn(
-          "inline-flex items-center gap-1.5 rounded-full font-medium justify-center",
-          isCompact ? "text-xs px-2.5 py-1 min-w-[85px]" : "text-xs px-2.5 py-1 min-w-[90px]",
-          statusConfig.textClass,
-          statusConfig.bgClass,
-          statusConfig.borderClass,
-        )}>
-          {statusConfig.showDot && (
-            <span
-              className={cn("rounded-full flex-shrink-0", isCompact ? "w-1.5 h-1.5" : "w-2 h-2")}
-              style={{ backgroundColor: statusConfig.dotColor }}
-            />
-          )}
-          {statusConfig.label}
-        </span>
-      )}
-
-      {reservation.status === 'option' && (
-        <OptionBadge optionExpiresAt={reservation.option_expires_at} />
-      )}
-
-      {/* Quick check-in/out */}
-      {reservation.status === 'confirmed' && onStatusChange && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'seated'); }}
-          className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors flex-shrink-0"
-          title="Inchecken"
-        >
-          <UserCheck className="h-4 w-4" />
-        </button>
-      )}
-      {reservation.status === 'seated' && onStatusChange && (
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'confirmed'); }}
-            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground/60 transition-colors"
-            title="Check-in ongedaan maken"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'completed'); }}
-            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
-            title="Uitchecken"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {allowedNextStatuses.length > 0 && (
+      {/* Menu */}
+      {allowedNextStatuses.length > 0 ? (
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-1.5 rounded-md hover:bg-secondary transition-colors flex-shrink-0"
+              className="p-1.5 rounded-md hover:bg-secondary transition-colors"
               onClick={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <MoreHorizontal className={cn("text-muted-foreground", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+              <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48 bg-card border-border" onClick={(e) => e.stopPropagation()}>
@@ -279,7 +275,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
             })}
           </DropdownMenuContent>
         </DropdownMenu>
-      )}
+      ) : <span />}
     </div>
   );
 }
