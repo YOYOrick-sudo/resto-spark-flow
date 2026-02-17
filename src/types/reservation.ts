@@ -97,7 +97,7 @@ export const ALLOWED_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]>
   pending_payment: ['confirmed', 'cancelled'],
   option: ['confirmed', 'cancelled'],
   confirmed: ['seated', 'cancelled', 'no_show'],
-  seated: ['completed'],
+  seated: ['completed', 'confirmed'],
   completed: [],
   no_show: [],
   cancelled: [],
