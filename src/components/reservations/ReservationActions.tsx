@@ -4,6 +4,7 @@ import {
   Send, ArrowRightLeft, RefreshCw, Ban, MoreHorizontal, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NestoButton } from '@/components/polar/NestoButton';
 import { useTransitionStatus } from '@/hooks/useTransitionStatus';
 import { useUserContext } from '@/contexts/UserContext';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
@@ -162,13 +163,16 @@ export function ReservationActions({ reservation, className }: ReservationAction
             return (
               <Tooltip key={action.key}>
                 <TooltipTrigger asChild>
-                  <button
-                    disabled
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button border border-input bg-muted/50 text-muted-foreground cursor-not-allowed opacity-60"
-                  >
-                    <action.icon className="h-3.5 w-3.5" />
-                    {action.label}
-                  </button>
+                  <span>
+                    <NestoButton
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      leftIcon={<action.icon className="h-3.5 w-3.5" />}
+                    >
+                      {action.label}
+                    </NestoButton>
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent>{action.tooltip}</TooltipContent>
               </Tooltip>
@@ -177,22 +181,19 @@ export function ReservationActions({ reservation, className }: ReservationAction
 
           const Icon = action.icon;
           return (
-            <button
+            <NestoButton
               key={action.key}
+              variant={
+                action.variant === 'primary' ? 'primary' :
+                action.destructive ? 'danger' : 'outline'
+              }
+              size="sm"
               onClick={() => handleAction(action)}
               disabled={transition.isPending}
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-button border transition-colors',
-                action.variant === 'primary'
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 border-primary'
-                  : action.destructive
-                    ? 'border-destructive/30 text-destructive hover:bg-destructive/10'
-                    : 'border-input bg-background hover:bg-secondary'
-              )}
+              leftIcon={<Icon className="h-3.5 w-3.5" />}
             >
-              <Icon className="h-3.5 w-3.5" />
               {action.label}
-            </button>
+            </NestoButton>
           );
         })}
 
