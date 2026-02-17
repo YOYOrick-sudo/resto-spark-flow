@@ -58,9 +58,9 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const { data: customers = [] } = useCustomers(searchTerm);
   const createCustomer = useCreateCustomer();
   const createReservation = useCreateReservation();
-  const { data: shifts = [] } = useShifts() as any;
-  const { data: shiftTickets = [] } = useShiftTickets(shiftId || undefined) as any;
-  const { data: areasWithTables = [] } = useAreasWithTables() as any;
+  const { data: shifts = [] } = useShifts(locationId);
+  const { data: shiftTickets = [] } = useShiftTickets(shiftId || undefined);
+  const { data: areasWithTables = [] } = useAreasWithTables(locationId);
   const { data: reservationsForDate = [] } = useReservations({ date });
 
   // Overlap warning
@@ -71,8 +71,8 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   }, [tableId, startTime, reservationsForDate]);
 
   const allTables = useMemo(() => {
-    return areasWithTables.flatMap((a: any) =>
-      (a.tables || []).map((t: any) => ({ ...t, area_name: a.name }))
+    return (areasWithTables || []).flatMap((a) =>
+      (a.tables || []).map((t) => ({ ...t, area_name: a.name }))
     );
   }, [areasWithTables]);
 
@@ -244,7 +244,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 <Select value={shiftId} onValueChange={setShiftId}>
                   <SelectTrigger><SelectValue placeholder="Kies shift" /></SelectTrigger>
                   <SelectContent>
-                    {shifts.filter((s: any) => s.is_active).map((s: any) => (
+                    {shifts.filter((s) => s.is_active).map((s) => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -256,7 +256,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 <Select value={ticketId} onValueChange={setTicketId}>
                   <SelectTrigger><SelectValue placeholder="Kies ticket" /></SelectTrigger>
                   <SelectContent>
-                    {shiftTickets.filter((st: any) => st.is_active).map((st: any) => (
+                    {shiftTickets.filter((st) => st.is_active).map((st) => (
                       <SelectItem key={st.ticket_id} value={st.ticket_id}>
                         {st.tickets?.name || st.ticket_id}
                       </SelectItem>
@@ -291,7 +291,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                   <SelectTrigger><SelectValue placeholder="Niet toegewezen" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Niet toegewezen</SelectItem>
-                    {allTables.map((t: any) => (
+                    {allTables.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.display_label} ({t.area_name})
                       </SelectItem>
@@ -336,7 +336,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 <p className="text-sm"><span className="text-muted-foreground">Tijd:</span> {startTime}</p>
                 <p className="text-sm"><span className="text-muted-foreground">Personen:</span> {partySize}</p>
                 <p className="text-sm"><span className="text-muted-foreground">Kanaal:</span> {channel}</p>
-                {squeeze && <p className="text-sm text-violet-600 font-medium">Squeeze reservering</p>}
+                {squeeze && <p className="text-sm text-primary font-medium">Squeeze reservering</p>}
               </div>
 
               <div>
@@ -402,24 +402,24 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
   const [partySize, setPartySize] = useState(2);
   const [tableId, setTableId] = useState<string | null>(null);
 
-  const { data: shifts = [] } = useShifts() as any;
-  const { data: areasWithTables = [] } = useAreasWithTables() as any;
+  const { data: shifts = [] } = useShifts(locationId);
+  const { data: areasWithTables = [] } = useAreasWithTables(locationId);
   const createReservation = useCreateReservation();
 
   // Pick first active shift's first ticket
-  const activeShift = shifts.find((s: any) => s.is_active);
-  const { data: shiftTickets = [] } = useShiftTickets(activeShift?.id) as any;
+  const activeShift = shifts.find((s) => s.is_active);
+  const { data: shiftTickets = [] } = useShiftTickets(activeShift?.id);
 
   const allTables = useMemo(() => {
-    return areasWithTables.flatMap((a: any) =>
-      (a.tables || []).map((t: any) => ({ ...t, area_name: a.name }))
+    return (areasWithTables || []).flatMap((a) =>
+      (a.tables || []).map((t) => ({ ...t, area_name: a.name }))
     );
   }, [areasWithTables]);
 
   const handleSubmit = async () => {
     if (!locationId) return;
-    const activeShift = shifts.find((s: any) => s.is_active);
-    const ticket = shiftTickets.find((st: any) => st.is_active);
+    const activeShift = shifts.find((s) => s.is_active);
+    const ticket = shiftTickets.find((st) => st.is_active);
     if (!activeShift || !ticket) {
       nestoToast.error('Geen actieve shift of ticket gevonden');
       return;
@@ -472,7 +472,7 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
               <SelectTrigger><SelectValue placeholder="Niet toegewezen" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Niet toegewezen</SelectItem>
-                {allTables.map((t: any) => (
+                {allTables.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.display_label} ({t.area_name})
                   </SelectItem>

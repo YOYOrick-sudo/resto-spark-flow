@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus, Calendar } from "lucide-react";
+import { Plus, Footprints, Calendar } from "lucide-react";
 import { EmptyState } from "@/components/polar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -18,6 +18,7 @@ import { useReservations } from "@/hooks/useReservations";
 import { getDisplayName } from "@/lib/reservationUtils";
 import type { Reservation } from "@/types/reservation";
 import { nestoToast } from "@/lib/nestoToast";
+import { ReservationDetailPanel, CreateReservationSheet, WalkInSheet } from "@/components/reservations";
 
 export default function Reserveringen() {
   const [activeView, setActiveView] = useState<ViewType>("list");
@@ -29,6 +30,11 @@ export default function Reserveringen() {
     shift: "all",
     ticketType: "all",
   });
+
+  // Panel & sheet state
+  const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
+  const [walkInSheetOpen, setWalkInSheetOpen] = useState(false);
 
   const dateString = format(selectedDate, "yyyy-MM-dd");
 
@@ -78,93 +84,122 @@ export default function Reserveringen() {
   const currentHour = new Date().getHours();
   const isOpen = currentHour >= 16 && currentHour < 23;
 
-  const handleReservationClick = (reservation: Reservation) => {
-    nestoToast.info(`Reservering: ${getDisplayName(reservation)}`);
-  };
+  const handleReservationClick = useCallback((reservation: Reservation) => {
+    setSelectedReservationId(reservation.id);
+  }, []);
 
   const handleStatusChange = (reservation: Reservation, newStatus: Reservation["status"]) => {
     nestoToast.success(`Status gewijzigd naar: ${newStatus}`);
   };
 
-  const handleNewReservation = () => {
-    nestoToast.info("Nieuwe reservering maken...");
-  };
+  const detailPanelOpen = selectedReservationId !== null;
 
   return (
-    <div className="flex flex-col h-full">
-      <h1 className="text-2xl font-semibold text-foreground">Reserveringen</h1>
+    <div className="flex h-full">
+      {/* Main content */}
+      <div className={cn("flex flex-col flex-1 min-w-0", detailPanelOpen && "lg:pr-0")}>
+        <h1 className="text-2xl font-semibold text-foreground">Reserveringen</h1>
 
-      <div className="flex items-center gap-4 flex-wrap pt-4">
-        <ViewToggle activeView={activeView} onViewChange={setActiveView} />
+        <div className="flex items-center gap-4 flex-wrap pt-4">
+          <ViewToggle activeView={activeView} onViewChange={setActiveView} />
 
-        <DateNavigator
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
+          <DateNavigator
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+          />
+
+          <div className="flex-1 max-w-xs ml-auto">
+            <SearchBar
+              placeholder="Zoek op naam, telefoon..."
+              value={searchQuery}
+              onChange={setSearchQuery}
+            />
+          </div>
+
+          <button
+            onClick={() => setWalkInSheetOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-button border border-input bg-background text-sm font-medium hover:bg-secondary transition-colors"
+          >
+            <Footprints className="h-4 w-4" />
+            Walk-in
+          </button>
+
+          <button
+            onClick={() => setCreateSheetOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Reservering
+          </button>
+        </div>
+
+        <ReservationFilters
+          className="pt-3"
+          filters={filters}
+          onFiltersChange={setFilters}
+          totalCount={reservationsForDate.length}
+          filteredCount={filteredReservations.length}
         />
 
-        <div className="flex-1 max-w-xs ml-auto">
-          <SearchBar
-            placeholder="Zoek op naam, telefoon..."
-            value={searchQuery}
-            onChange={setSearchQuery}
-          />
+        <div className={cn("flex-1 pt-4", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}>
+          <div className={cn("bg-card border border-border rounded-2xl overflow-hidden", activeView === "grid" && "h-full")}>
+            {activeView === "list" && (
+              <ReservationListView
+                reservations={filteredReservations}
+                onReservationClick={handleReservationClick}
+                onStatusChange={handleStatusChange}
+                density={density}
+              />
+            )}
+
+            {activeView === "grid" && (
+              <ReservationGridView
+                selectedDate={selectedDate}
+                reservations={filteredReservations}
+                onReservationClick={handleReservationClick}
+                density={density}
+              />
+            )}
+
+            {activeView === "calendar" && (
+              <div className="flex items-center justify-center py-16">
+                <EmptyState
+                  icon={Calendar}
+                  title="Kalenderweergave"
+                  description="Deze weergave wordt binnenkort beschikbaar."
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        <button
-          onClick={handleNewReservation}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Reservering
-        </button>
+        <ReservationFooter
+          totalGuests={totalGuests}
+          waitingCount={waitingCount}
+          isOpen={isOpen}
+          density={density}
+          onDensityChange={setDensity}
+        />
       </div>
 
-      <ReservationFilters
-        className="pt-3"
-        filters={filters}
-        onFiltersChange={setFilters}
-        totalCount={reservationsForDate.length}
-        filteredCount={filteredReservations.length}
+      {/* Detail Panel */}
+      <ReservationDetailPanel
+        reservationId={selectedReservationId}
+        open={detailPanelOpen}
+        onClose={() => setSelectedReservationId(null)}
       />
 
-      <div className={cn("flex-1 pt-4", activeView === "grid" ? "overflow-hidden" : "overflow-auto")}>
-        <div className={cn("bg-card border border-border rounded-2xl overflow-hidden", activeView === "grid" && "h-full")}>
-          {activeView === "list" && (
-            <ReservationListView
-              reservations={filteredReservations}
-              onReservationClick={handleReservationClick}
-              onStatusChange={handleStatusChange}
-              density={density}
-            />
-          )}
+      {/* Create Sheet */}
+      <CreateReservationSheet
+        open={createSheetOpen}
+        onClose={() => setCreateSheetOpen(false)}
+        defaultDate={selectedDate}
+      />
 
-          {activeView === "grid" && (
-            <ReservationGridView
-              selectedDate={selectedDate}
-              reservations={filteredReservations}
-              onReservationClick={handleReservationClick}
-              density={density}
-            />
-          )}
-
-          {activeView === "calendar" && (
-            <div className="flex items-center justify-center py-16">
-              <EmptyState
-                icon={Calendar}
-                title="Kalenderweergave"
-                description="Deze weergave wordt binnenkort beschikbaar."
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <ReservationFooter
-        totalGuests={totalGuests}
-        waitingCount={waitingCount}
-        isOpen={isOpen}
-        density={density}
-        onDensityChange={setDensity}
+      {/* Walk-in Sheet */}
+      <WalkInSheet
+        open={walkInSheetOpen}
+        onClose={() => setWalkInSheetOpen(false)}
       />
     </div>
   );
