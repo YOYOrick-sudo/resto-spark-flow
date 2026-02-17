@@ -1,38 +1,22 @@
 import { useState } from 'react';
-import { X, ChevronRight, Clock, Users, MapPin, Phone, Mail, CalendarDays, UserCheck, Star, AlertTriangle, Plus, Minus } from 'lucide-react';
+import { X, Clock, Users, Phone, Mail, CalendarDays, UserCheck, Star, Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/**
- * Tijdelijke demo-pagina om de twee NestoPanel modes te tonen.
- * Verwijder na goedkeuring.
- */
-
 function PanelShell({ 
-  title, 
-  mode, 
   footer,
   children 
 }: { 
-  title: string; 
-  mode: 'detail' | 'form';
   footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn(
-      "flex flex-col bg-card border border-border/50 rounded-2xl overflow-hidden shadow-xl",
-      mode === 'detail' ? 'w-[420px]' : 'w-[480px]',
-      "h-[640px]"
-    )}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        <button className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-secondary transition-colors">
-          <X className="h-4 w-4 text-muted-foreground" />
-        </button>
-      </div>
+    <div className="relative flex flex-col bg-card border border-border/50 rounded-2xl overflow-hidden shadow-xl w-[460px] h-[640px]">
+      {/* Floating close button */}
+      <button className="absolute top-4 right-4 z-10 h-8 w-8 rounded-md flex items-center justify-center hover:bg-secondary transition-colors">
+        <X className="h-4 w-4 text-muted-foreground" />
+      </button>
 
-      {/* Content */}
+      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {children}
       </div>
@@ -49,10 +33,9 @@ function PanelShell({
 
 function DetailPanelDemo() {
   return (
-    <PanelShell title="Reservering" mode="detail">
+    <PanelShell>
       <div className="divide-y divide-border/50">
-        {/* Section 1: Header */}
-        <div className="p-5">
+        <div className="p-5 pr-14">
           <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 mb-3">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             Bevestigd
@@ -70,7 +53,6 @@ function DetailPanelDemo() {
             <span>19:00–21:00</span>
           </div>
 
-          {/* Badges */}
           <div className="flex flex-wrap gap-1.5 mt-3">
             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20">
               <Star className="h-3 w-3" /> VIP
@@ -80,13 +62,11 @@ function DetailPanelDemo() {
             </span>
           </div>
 
-          {/* Notes */}
           <div className="mt-3 p-2.5 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-xs font-medium text-muted-foreground mb-0.5">Gast notitie</p>
             <p className="text-sm text-foreground">Graag een tafel bij het raam, allergie voor noten.</p>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-2 mt-4">
             <button className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
               <UserCheck className="h-4 w-4" />
@@ -98,7 +78,6 @@ function DetailPanelDemo() {
           </div>
         </div>
 
-        {/* Section 2: Customer */}
         <div className="p-5">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Klantprofiel</h3>
           <div className="space-y-2.5">
@@ -117,7 +96,6 @@ function DetailPanelDemo() {
           </div>
         </div>
 
-        {/* Section 3: Risk */}
         <div className="p-5">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risicoscore</h3>
           <div className="flex items-center gap-3">
@@ -131,7 +109,6 @@ function DetailPanelDemo() {
           </div>
         </div>
 
-        {/* Section 4: Audit */}
         <div className="p-5">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Activiteitenlog</h3>
           <div className="space-y-3">
@@ -158,9 +135,7 @@ function FormPanelDemo() {
   const [guests, setGuests] = useState(2);
   
   return (
-    <PanelShell 
-      title="Nieuwe reservering" 
-      mode="form"
+    <PanelShell
       footer={
         <div className="flex items-center justify-between">
           <button className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -172,8 +147,9 @@ function FormPanelDemo() {
         </div>
       }
     >
-      <div className="p-5 space-y-5">
-        {/* Date & Time */}
+      <div className="p-5 pr-14 space-y-5">
+        <h2 className="text-lg font-semibold text-foreground">Nieuwe reservering</h2>
+
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block">Datum & tijd</label>
           <div className="grid grid-cols-2 gap-3">
@@ -188,7 +164,6 @@ function FormPanelDemo() {
           </div>
         </div>
 
-        {/* Guests */}
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block">Aantal gasten</label>
           <div className="flex items-center gap-3">
@@ -211,7 +186,6 @@ function FormPanelDemo() {
           </div>
         </div>
 
-        {/* Shift */}
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block">Shift</label>
           <div className="grid grid-cols-2 gap-2">
@@ -233,7 +207,6 @@ function FormPanelDemo() {
 
         <div className="border-t border-border/50 pt-5 mt-5">
           <h3 className="text-sm font-medium text-foreground mb-3">Gast gegevens</h3>
-          
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Naam</label>
@@ -264,7 +237,6 @@ function FormPanelDemo() {
           </div>
         </div>
 
-        {/* Notes */}
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Notities</label>
           <textarea
@@ -284,7 +256,7 @@ export default function PanelDemo() {
       <div className="max-w-5xl mx-auto">
         <h1 className="text-2xl font-semibold text-foreground mb-2">NestoPanel — Visueel Voorbeeld</h1>
         <p className="text-sm text-muted-foreground mb-8">
-          Twee modes, één component. Links: detail (info bekijken). Rechts: form (aanmaken/bewerken).
+          Beide modes 460px breed. Titel scrollt mee, alleen een floating X-knop blijft zichtbaar.
         </p>
 
         <div className="flex gap-8 flex-wrap">
@@ -293,7 +265,7 @@ export default function PanelDemo() {
               <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 text-xs font-medium border border-blue-500/20">
                 mode="detail"
               </span>
-              <span className="text-sm text-muted-foreground">420px · info paneel</span>
+              <span className="text-sm text-muted-foreground">460px · info paneel</span>
             </div>
             <DetailPanelDemo />
           </div>
@@ -303,7 +275,7 @@ export default function PanelDemo() {
               <span className="px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-600 text-xs font-medium border border-violet-500/20">
                 mode="form"
               </span>
-              <span className="text-sm text-muted-foreground">480px · formulier paneel</span>
+              <span className="text-sm text-muted-foreground">460px · formulier paneel</span>
             </div>
             <FormPanelDemo />
           </div>
