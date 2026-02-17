@@ -33,13 +33,13 @@ function PanelShell({
       {/* Reveal header */}
       <div
         className={cn(
-          "absolute top-0 left-0 right-0 z-10 h-10 flex items-center justify-between px-5 bg-card transition-all duration-150",
+          "absolute top-0 left-0 right-0 z-10 h-10 flex items-center justify-between px-5 bg-card/95 backdrop-blur-[2px] transition-all duration-200",
           titleVisible
-            ? "opacity-0 -translate-y-1 pointer-events-none"
-            : "opacity-100 translate-y-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+            ? "opacity-0 -translate-y-0.5 pointer-events-none"
+            : "opacity-100 translate-y-0 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         )}
       >
-        <span className="text-sm font-semibold text-foreground truncate pr-8">{title}</span>
+        <span className="text-[13px] font-medium text-foreground truncate pr-8">{title}</span>
         <button className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors shrink-0">
           <X className="h-4 w-4 text-muted-foreground" />
         </button>
