@@ -47,11 +47,11 @@ export function useCreateReservation() {
     },
     onSuccess: (_, params) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.reservations(params.location_id),
+        queryKey: ['reservations', params.location_id],
         exact: false,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.customers(params.location_id),
+        queryKey: ['customers', params.location_id],
         exact: false,
       });
     },
