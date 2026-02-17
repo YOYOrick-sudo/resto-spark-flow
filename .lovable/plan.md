@@ -1,65 +1,66 @@
 
+# Walk-in & +Reservering Buttons naar NestoButton
 
-# Design System Fixes Doorvoeren naar Reserveringen
+## Probleem
+De twee action buttons bovenaan de reserveringenpagina (`Reserveringen.tsx`, regels 107-121) zijn nog raw `<button>` elementen met handmatige styling. Ze moeten `NestoButton` worden.
 
-De PanelDemo is nu conform het design system. Dezelfde patronen moeten nu worden toegepast op de productiecomponenten van reserveringen.
+## Wat er ook speelt
+Er is een console warning: "Function components cannot be given refs" in `CreateReservationSheet`. Dit komt doordat een `ref` wordt doorgegeven aan een `Select` component. Dit moet ook opgelost worden.
 
-## Overzicht afwijkingen
+## Wijzigingen
 
-### 1. ReservationDetailPanel -- Status badge (regels 44-57)
-**Huidig:** Raw `<span>` met `rounded-full`
-**Moet zijn:** `NestoBadge` component (gebruikt `rounded-control` / 6px)
+### Bestand: `src/pages/Reserveringen.tsx`
 
-De status badge wordt nu handmatig opgebouwd met STATUS_CONFIG kleuren. Dit kan een NestoBadge worden, maar de STATUS_CONFIG mapping moet behouden blijven voor de dynamische kleuren. Oplossing: de `rounded-full` vervangen door `rounded-control` en de rest behouden, aangezien NestoBadge's vaste variant-kleuren niet matchen met de dynamische STATUS_CONFIG kleuren.
+**1. Import NestoButton toevoegen (regel 1-gebied)**
+Toevoegen: `import { NestoButton } from '@/components/polar/NestoButton'`
 
-### 2. ReservationBadges -- Alle 11 conditionele badges (regel 103)
-**Huidig:** Raw `<span>` met `rounded-full`
-**Moet zijn:** `rounded-control` (6px) conform NestoBadge standaard
+**2. Walk-in button (regels 107-114)**
+Van:
+```tsx
+<button
+  onClick={() => setWalkInSheetOpen(true)}
+  className="inline-flex items-center gap-2 px-4 py-2 rounded-button border border-input bg-background text-sm font-medium hover:bg-secondary transition-colors"
+>
+  <Footprints className="h-4 w-4" />
+  Walk-in
+</button>
+```
+Naar:
+```tsx
+<NestoButton
+  variant="outline"
+  onClick={() => setWalkInSheetOpen(true)}
+  leftIcon={<Footprints className="h-4 w-4" />}
+>
+  Walk-in
+</NestoButton>
+```
 
-Zelfde situatie: dynamische kleuren per badge type, dus NestoBadge component past niet direct. We corrigeren de border-radius van `rounded-full` naar `rounded-control`.
+**3. +Reservering button (regels 116-123)**
+Van:
+```tsx
+<button
+  onClick={() => setCreateSheetOpen(true)}
+  className="inline-flex items-center gap-2 px-4 py-2 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+>
+  <Plus className="h-4 w-4" />
+  Reservering
+</button>
+```
+Naar:
+```tsx
+<NestoButton
+  variant="primary"
+  onClick={() => setCreateSheetOpen(true)}
+  leftIcon={<Plus className="h-4 w-4" />}
+>
+  Reservering
+</NestoButton>
+```
 
-### 3. ReservationActions -- Alle actie-buttons (regels 165-196)
-**Huidig:** Raw `<button>` elementen
-**Moet zijn:** `NestoButton` component
+Dit geeft de primary button automatisch `rounded-button-primary` (16px) en de outline button `rounded-button` (8px), conform het design system.
 
-Dit zorgt voor:
-- Primary buttons krijgen `rounded-button-primary` (16px) i.p.v. `rounded-button` (8px)
-- Consistente focus-visible, disabled, en hover states
-- Loading state support via `isLoading` prop
-
-### 4. CreateReservationSheet -- "Aanmaken & doorgaan" button (regel 286-292)
-**Huidig:** Raw `<button>` met `rounded-button`
-**Moet zijn:** `NestoButton variant="primary"` (krijgt `rounded-button-primary` / 16px)
-
----
-
-## Wijzigingen per bestand
-
-### Bestand 1: `src/components/reservations/ReservationDetailPanel.tsx`
-- Import toevoegen: geen nieuwe imports nodig
-- Regel 45: `rounded-full` wijzigen naar `rounded-control`
-
-### Bestand 2: `src/components/reservations/ReservationBadges.tsx`
-- Regel 103: `rounded-full` wijzigen naar `rounded-control`
-
-### Bestand 3: `src/components/reservations/ReservationActions.tsx`
-- Import toevoegen: `NestoButton` uit `@/components/polar/NestoButton`
-- Disabled buttons (regels 165-175): vervangen door `NestoButton variant="outline" size="sm"` met `disabled` prop
-- Primary action buttons (regels 180-196): vervangen door `NestoButton` met juiste variant:
-  - `variant === 'primary'` wordt `NestoButton variant="primary" size="sm"`
-  - `destructive` wordt `NestoButton variant="danger" size="sm"`
-  - Default wordt `NestoButton variant="outline" size="sm"`
-- Alle buttons krijgen `leftIcon={<Icon />}` i.p.v. inline icon
-
-### Bestand 4: `src/components/reservations/CreateReservationSheet.tsx`
-- Import toevoegen: `NestoButton` uit `@/components/polar/NestoButton`
-- Regel 286-292: "Aanmaken & doorgaan" raw button vervangen door `NestoButton variant="primary"`
-- Footer buttons (rond regel 430+): Navigatie-buttons ("Vorige", "Volgende", "Reservering aanmaken") vervangen door NestoButton met juiste varianten
-
----
-
-## Wat niet wijzigt
-- De structuur en logica van alle componenten blijft identiek
-- STATUS_CONFIG mapping en dynamische kleuren blijven behouden
-- Alleen styling-elementen worden gecorrigeerd naar design system standaarden
-
+## Resultaat
+- Walk-in button: outline variant met correcte 8px radius, focus-visible state, en disabled support
+- +Reservering button: primary variant met correcte 16px radius
+- Beide buttons krijgen automatisch de juiste hover, focus en transition states van NestoButton
