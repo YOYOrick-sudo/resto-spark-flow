@@ -43,7 +43,7 @@ export function useReservations({ date }: UseReservationsParams = {}) {
         .from('reservations')
         .select(`
           *,
-          customers!left:customer_id (id, first_name, last_name, email, phone_number, total_visits, total_no_shows),
+          customers:customer_id (id, first_name, last_name, email, phone_number, total_visits, total_no_shows),
           shifts:shift_id (name),
           tickets:ticket_id (name),
           tables:table_id (display_label)
