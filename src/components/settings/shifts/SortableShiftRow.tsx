@@ -3,7 +3,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, MoreVertical, Archive } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import { DAY_LABELS, ALL_WEEKDAYS, type Shift } from "@/types/shifts";
@@ -55,75 +54,49 @@ export function SortableShiftRow({
       <div
         ref={setNodeRef}
         style={style}
-        className="relative grid grid-cols-[32px_40px_100px_1fr_200px_80px_32px] items-center gap-2 py-2.5 px-2 rounded-dropdown hover:bg-accent/40 transition-all duration-150 group"
+        className="relative grid grid-cols-[28px_32px_1fr_160px_60px_28px] items-center gap-1.5 py-2 px-2 rounded-dropdown hover:bg-accent/40 transition-all duration-150 group"
       >
-        {/* Subtle left color accent */}
-        <div
-          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          style={{ backgroundColor: shift.color }}
-        />
-
         {/* Drag handle */}
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                {...(isDragDisabled ? {} : { ...attributes, ...listeners })}
-                className={cn(
-                  "p-1 rounded transition-colors flex items-center justify-center",
-                  isDragDisabled
-                    ? "opacity-30 cursor-not-allowed"
-                    : "cursor-grab active:cursor-grabbing hover:bg-muted touch-none"
-                )}
-                aria-label="Versleep om te herschikken"
-              >
-                <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </TooltipTrigger>
-            {isDragDisabled && (
-              <TooltipContent side="right" className="max-w-[200px]">
-                Slepen is altijd beschikbaar (gesorteerd op prioriteit)
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
+        <button
+          {...(isDragDisabled ? {} : { ...attributes, ...listeners })}
+          className={cn(
+            "p-0.5 rounded transition-colors flex items-center justify-center",
+            isDragDisabled
+              ? "opacity-30 cursor-not-allowed"
+              : "cursor-grab active:cursor-grabbing hover:bg-muted touch-none"
+          )}
+          aria-label="Versleep om te herschikken"
+        >
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
 
         {/* Priority badge */}
-        <div className="flex items-center justify-center">
-          <span className="w-6 h-6 text-caption tabular-nums text-muted-foreground flex items-center justify-center rounded-md bg-muted border border-border/60">
-            {priority}
-          </span>
-        </div>
-
-        {/* Times */}
-        <span className="text-sm tabular-nums font-semibold text-foreground">
-          {formatTime(shift.start_time)}
-          <span className="text-muted-foreground/60 mx-0.5">–</span>
-          {formatTime(shift.end_time)}
+        <span className="w-5 h-5 text-caption tabular-nums text-muted-foreground flex items-center justify-center rounded bg-muted border border-border/60">
+          {priority}
         </span>
 
-        {/* Name + color dot + short name */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        {/* Name + color dot + times */}
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className="w-3 h-3 rounded-full shrink-0 ring-2 ring-background shadow-sm"
+            className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-background"
             style={{ backgroundColor: shift.color }}
           />
           <span className="font-semibold text-sm truncate">{shift.name}</span>
-          <span className="text-caption text-muted-foreground bg-muted px-2 py-0.5 rounded-control shrink-0">
-            {shift.short_name}
+          <span className="text-caption text-muted-foreground/70 tabular-nums shrink-0">
+            {formatTime(shift.start_time)}–{formatTime(shift.end_time)}
           </span>
         </div>
 
         {/* Days */}
-        <div className="flex gap-1">
+        <div className="flex gap-0.5">
           {ALL_WEEKDAYS.map((day) => (
             <span
               key={day}
               className={cn(
-                "px-1.5 py-0.5 flex items-center justify-center text-caption rounded-control transition-colors",
+                "w-5 h-5 flex items-center justify-center text-[10px] rounded transition-colors",
                 shift.days_of_week.includes(day)
                   ? "bg-primary/15 text-primary font-bold"
-                  : "text-muted-foreground/40"
+                  : "text-muted-foreground/30"
               )}
             >
               {DAY_LABELS[day]}
@@ -132,7 +105,7 @@ export function SortableShiftRow({
         </div>
 
         {/* Interval */}
-        <span className="text-xs text-foreground/70 text-center font-medium tabular-nums">
+        <span className="text-xs text-muted-foreground text-center tabular-nums">
           {formatInterval(shift.arrival_interval_minutes)}
         </span>
 
