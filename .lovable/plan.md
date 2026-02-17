@@ -1,34 +1,37 @@
 
+# Buttons in PanelDemo afstemmen op Design System
 
-# Detail Panel: Heldere Hiërarchie
+## Gevonden afwijkingen
 
-## Probleem
-De volgorde "status badge → context label → naam" is onduidelijk. De status badge en het kleine "Reservering" label botsen visueel.
+| Knop | Huidige situatie | Moet zijn |
+|------|-----------------|-----------|
+| "Inchecken" (detail) | raw `<button>` + `rounded-button` (8px) | `NestoButton` variant="primary" (16px) |
+| "Bewerken" (detail) | raw `<button>` + `rounded-button` | `NestoButton` variant="outline" (8px) |
+| "Annuleren" (form footer) | raw `<button>` + `rounded-button` | `NestoButton` variant="ghost" (8px) |
+| "Reservering aanmaken" (form footer) | raw `<button>` + `rounded-button` (8px) | `NestoButton` variant="primary" (16px) |
 
-## Oplossing
-Verplaats de status badge onder de summary-regel, zodat de hiërarchie wordt:
+Twee problemen:
+1. **Geen `NestoButton` gebruikt** -- raw `<button>` elementen missen de standaard focus-visible states, disabled styling, en loading support
+2. **Primary buttons hebben verkeerde radius** -- `rounded-button` (8px) i.p.v. `rounded-button-primary` (16px)
 
-1. **Context label** — "Reservering" (klein, muted)
-2. **Naam** — "Jan de Vries" (groot, bold)
-3. **Summary regel** — 4p · Diner · Tafel 12 · 19:00–21:00
-4. **Status badge** — [Bevestigd] (met mt-3)
+## Wijzigingen
 
-Dit volgt het Linear/Notion patroon: type eerst, dan entity, dan metadata inclusief status.
+Bestand: `src/pages/PanelDemo.tsx`
 
-## Technisch
+### 1. Import toevoegen
+Toevoegen aan de imports: `NestoButton` uit `@/components/polar/NestoButton`.
 
-Bestand: `src/pages/PanelDemo.tsx`, regels 77-94
+### 2. Detail mode buttons (regels 110-116)
+Vervang de twee raw buttons door:
+- `NestoButton` met `variant="primary"` + `leftIcon={<UserCheck />}` + `className="flex-1"` voor "Inchecken"
+- `NestoButton` met `variant="outline"` voor "Bewerken"
 
-Huidige volgorde:
-- Status badge (regels 78-81)
-- Context label "Reservering" (regel 83)
-- Naam h2 (regel 84)
-- Summary regel (regels 86-94)
+### 3. Form mode footer (regels 183-188)
+Vervang de twee raw buttons door:
+- `NestoButton` met `variant="ghost"` voor "Annuleren"
+- `NestoButton` met `variant="primary"` voor "Reservering aanmaken"
 
-Nieuwe volgorde:
-- Context label "Reservering" (zonder mb, direct boven naam)
-- Naam h2 (met ref)
-- Summary regel
-- Status badge (verplaatst naar onder summary, met mt-3)
-
-De badge styling blijft identiek, alleen de positie verandert.
+Dit zorgt ervoor dat:
+- Primary buttons automatisch `rounded-button-primary` (16px) krijgen
+- Outline/ghost buttons `rounded-button` (8px) krijgen
+- Focus-visible, disabled, en hover states consistent zijn met de rest van het systeem
