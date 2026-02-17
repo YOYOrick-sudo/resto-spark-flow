@@ -59,6 +59,7 @@ export type Database = {
         Row: {
           action: string
           actor_id: string | null
+          actor_type: string
           changes: Json
           created_at: string
           entity_id: string
@@ -70,6 +71,7 @@ export type Database = {
         Insert: {
           action: string
           actor_id?: string | null
+          actor_type?: string
           changes?: Json
           created_at?: string
           entity_id: string
@@ -81,6 +83,7 @@ export type Database = {
         Update: {
           action?: string
           actor_id?: string | null
+          actor_type?: string
           changes?: Json
           created_at?: string
           entity_id?: string
@@ -1210,7 +1213,7 @@ export type Database = {
           channel: Database["public"]["Enums"]["reservation_channel"]
           created_at: string
           created_by: string | null
-          customer_id: string
+          customer_id: string | null
           duration_minutes: number
           end_time: string
           guest_notes: string | null
@@ -1234,7 +1237,7 @@ export type Database = {
           channel?: Database["public"]["Enums"]["reservation_channel"]
           created_at?: string
           created_by?: string | null
-          customer_id: string
+          customer_id?: string | null
           duration_minutes: number
           end_time: string
           guest_notes?: string | null
@@ -1258,7 +1261,7 @@ export type Database = {
           channel?: Database["public"]["Enums"]["reservation_channel"]
           created_at?: string
           created_by?: string | null
-          customer_id?: string
+          customer_id?: string | null
           duration_minutes?: number
           end_time?: string
           guest_notes?: string | null
@@ -2080,18 +2083,18 @@ export type Database = {
         Args: {
           _actor_id?: string
           _channel?: Database["public"]["Enums"]["reservation_channel"]
-          _customer_id: string
+          _customer_id?: string
           _guest_notes?: string
           _initial_status?: Database["public"]["Enums"]["reservation_status"]
           _internal_notes?: string
           _location_id: string
-          _party_size: number
-          _reservation_date: string
-          _shift_id: string
+          _party_size?: number
+          _reservation_date?: string
+          _shift_id?: string
           _squeeze?: boolean
-          _start_time: string
+          _start_time?: string
           _table_id?: string
-          _ticket_id: string
+          _ticket_id?: string
         }
         Returns: string
       }
@@ -2227,15 +2230,26 @@ export type Database = {
         Args: { _table_a_id: string; _table_b_id: string }
         Returns: undefined
       }
-      transition_reservation_status: {
-        Args: {
-          _actor_id?: string
-          _new_status: Database["public"]["Enums"]["reservation_status"]
-          _reason?: string
-          _reservation_id: string
-        }
-        Returns: string
-      }
+      transition_reservation_status:
+        | {
+            Args: {
+              _actor_id?: string
+              _new_status: Database["public"]["Enums"]["reservation_status"]
+              _reason?: string
+              _reservation_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _actor_id?: string
+              _is_override?: boolean
+              _new_status: Database["public"]["Enums"]["reservation_status"]
+              _reason?: string
+              _reservation_id: string
+            }
+            Returns: string
+          }
       user_has_location_access: {
         Args: { _location_id: string; _user_id: string }
         Returns: boolean

@@ -1,0 +1,110 @@
+import { DetailPanel } from '@/components/polar/DetailPanel';
+import { useReservation } from '@/hooks/useReservation';
+import { STATUS_CONFIG } from '@/types/reservation';
+import { getDisplayName, getTableLabel } from '@/lib/reservationUtils';
+import { Spinner } from '@/components/polar/LoadingStates';
+import { ReservationBadges } from './ReservationBadges';
+import { ReservationActions } from './ReservationActions';
+import { CustomerCard } from './CustomerCard';
+import { RiskScoreSection } from './RiskScoreSection';
+import { AuditLogTimeline } from './AuditLogTimeline';
+import { cn } from '@/lib/utils';
+
+interface ReservationDetailPanelProps {
+  reservationId: string | null;
+  open: boolean;
+  onClose: () => void;
+}
+
+export function ReservationDetailPanel({ reservationId, open, onClose }: ReservationDetailPanelProps) {
+  const { data: reservation, isLoading, error } = useReservation(reservationId);
+
+  return (
+    <DetailPanel open={open} onClose={onClose} title="Reservering" width="w-[460px]">
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <Spinner />
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4 text-sm text-destructive">
+          Fout bij laden: {error.message}
+        </div>
+      )}
+
+      {reservation && (
+        <div className="divide-y divide-border/50">
+          {/* Section 1: Header + Summary */}
+          <div className="p-4">
+            {/* Status badge */}
+            {STATUS_CONFIG[reservation.status] && (
+              <span className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium mb-3',
+                STATUS_CONFIG[reservation.status].textClass,
+                STATUS_CONFIG[reservation.status].bgClass,
+                STATUS_CONFIG[reservation.status].borderClass,
+              )}>
+                {STATUS_CONFIG[reservation.status].showDot && (
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: STATUS_CONFIG[reservation.status].dotColor }}
+                  />
+                )}
+                {STATUS_CONFIG[reservation.status].label}
+              </span>
+            )}
+
+            {/* Guest name */}
+            <h2 className="text-lg font-semibold text-foreground">
+              {getDisplayName(reservation)}
+            </h2>
+
+            {/* Summary line */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 flex-wrap">
+              <span className="font-medium text-foreground">{reservation.party_size}p</span>
+              <span>•</span>
+              <span>{reservation.shift_name || '—'}</span>
+              <span>•</span>
+              <span>{getTableLabel(reservation)}</span>
+              <span>•</span>
+              <span>{reservation.start_time}–{reservation.end_time}</span>
+            </div>
+
+            {/* Badges */}
+            <ReservationBadges reservation={reservation} className="mt-3" />
+
+            {/* Notes */}
+            {reservation.guest_notes && (
+              <div className="mt-3 p-2.5 rounded-lg bg-muted/30 border border-border/50">
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">Gast notitie</p>
+                <p className="text-sm text-foreground">{reservation.guest_notes}</p>
+              </div>
+            )}
+            {reservation.internal_notes && (
+              <div className="mt-2 p-2.5 rounded-lg bg-muted/30 border border-border/50">
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">Interne notitie</p>
+                <p className="text-sm text-foreground">{reservation.internal_notes}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <ReservationActions reservation={reservation} className="mt-4" />
+          </div>
+
+          {/* Section 2: Customer Card */}
+          <CustomerCard
+            customer={reservation.customer}
+            reservationId={reservation.id}
+          />
+
+          {/* Section 3: Risk Score */}
+          <RiskScoreSection reservation={reservation} />
+
+          {/* Section 4: Audit Log */}
+          <AuditLogTimeline reservationId={reservation.id} />
+        </div>
+      )}
+    </DetailPanel>
+  );
+}

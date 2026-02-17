@@ -21,8 +21,12 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
+  onConfirmWithReason?: (reason: string) => void;
   variant?: "default" | "destructive";
   isLoading?: boolean;
+  showReasonField?: boolean;
+  reasonPlaceholder?: string;
+  reasonRequired?: boolean;
 }
 
 export function ConfirmDialog({
@@ -33,12 +37,28 @@ export function ConfirmDialog({
   confirmLabel = "Bevestigen",
   cancelLabel = "Annuleren",
   onConfirm,
+  onConfirmWithReason,
   variant = "default",
   isLoading = false,
+  showReasonField = false,
+  reasonPlaceholder = "Reden (optioneel)",
+  reasonRequired = false,
 }: ConfirmDialogProps) {
+  const [reason, setReason] = React.useState("");
+
+  React.useEffect(() => {
+    if (!open) setReason("");
+  }, [open]);
+
   const handleConfirm = () => {
-    onConfirm();
+    if (showReasonField && onConfirmWithReason) {
+      onConfirmWithReason(reason);
+    } else {
+      onConfirm();
+    }
   };
+
+  const confirmDisabled = isLoading || (showReasonField && reasonRequired && !reason.trim());
 
   const Icon = variant === "destructive" ? Trash2 : AlertTriangle;
 
@@ -74,13 +94,24 @@ export function ConfirmDialog({
             </div>
           </div>
         </AlertDialogHeader>
+        {showReasonField && (
+          <div className="mt-4">
+            <textarea
+              className="w-full rounded-button border-[1.5px] border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:!border-primary disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none"
+              placeholder={reasonPlaceholder}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+        )}
         <AlertDialogFooter className="mt-6">
           <AlertDialogCancel disabled={isLoading}>
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={confirmDisabled}
             className={cn(
               variant === "destructive" &&
                 "bg-destructive text-destructive-foreground hover:bg-destructive/90"

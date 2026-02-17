@@ -5,7 +5,7 @@ import type { ReservationStatus, ReservationChannel } from '@/types/reservation'
 
 interface CreateReservationParams {
   location_id: string;
-  customer_id: string;
+  customer_id: string | null;
   shift_id: string;
   ticket_id: string;
   reservation_date: string;
