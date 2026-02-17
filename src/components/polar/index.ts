@@ -101,6 +101,9 @@ export type { FieldHelpProps, FieldHelpExampleProps } from "./FieldHelp";
 export { NestoLogo } from "./NestoLogo";
 export type { NestoLogoProps } from "./NestoLogo";
 
+export { NestoPanel } from "./NestoPanel";
+export type { NestoPanelProps } from "./NestoPanel";
+
 export { NestoErrorBoundary } from "./NestoErrorBoundary";
 
 // Re-export toast from sonner for easy access
