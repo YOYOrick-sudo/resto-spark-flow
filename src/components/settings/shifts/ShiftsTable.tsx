@@ -130,7 +130,7 @@ export function ShiftsTable({ locationId }: ShiftsTableProps) {
   return (
     <div className="space-y-3">
       {/* Table header */}
-      <div className="grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 px-2 pb-2 text-caption text-muted-foreground uppercase tracking-wider">
+      <div className="grid grid-cols-[32px_40px_100px_1fr_200px_80px_32px] items-center gap-2 px-2 pb-2 text-caption text-muted-foreground uppercase tracking-wider">
         <span></span>
         <span className="text-center">Prio</span>
         <span>Tijden</span>

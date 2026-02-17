@@ -55,7 +55,7 @@ export function SortableShiftRow({
       <div
         ref={setNodeRef}
         style={style}
-        className="relative grid grid-cols-[32px_40px_100px_1fr_140px_80px_32px] items-center gap-2 py-2.5 px-2 rounded-dropdown hover:bg-accent/40 transition-all duration-150 group"
+        className="relative grid grid-cols-[32px_40px_100px_1fr_200px_80px_32px] items-center gap-2 py-2.5 px-2 rounded-dropdown hover:bg-accent/40 transition-all duration-150 group"
       >
         {/* Subtle left color accent */}
         <div
