@@ -3,6 +3,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { Phone, UserCheck, Footprints } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Reservation } from "@/types/reservation";
+import { OptionBadge } from "@/components/reservations/OptionBadge";
 import {
   getDisplayName,
   isWalkIn,
@@ -244,6 +245,10 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
 
         {reservation.is_squeeze && (
           <span className="text-caption px-1 py-0.5 rounded bg-accent/20 text-accent-foreground font-bold flex-shrink-0" title="Squeeze">S</span>
+        )}
+
+        {reservation.status === 'option' && (
+          <OptionBadge optionExpiresAt={reservation.option_expires_at} className="flex-shrink-0" />
         )}
 
         {reservation.no_show_risk_score !== null && reservation.no_show_risk_score >= 30 && (
