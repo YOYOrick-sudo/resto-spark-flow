@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, UserCheck, LogOut } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, UserCheck, LogOut, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -234,13 +234,22 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
         </button>
       )}
       {reservation.status === 'seated' && onStatusChange && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'completed'); }}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors flex-shrink-0"
-          title="Uitchecken"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'confirmed'); }}
+            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground/60 transition-colors"
+            title="Check-in ongedaan maken"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onStatusChange(reservation, 'completed'); }}
+            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
+            title="Uitchecken"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       )}
 
       <DropdownMenu>
