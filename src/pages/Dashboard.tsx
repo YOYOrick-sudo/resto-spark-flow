@@ -7,6 +7,7 @@ import { KeukenTile } from '@/components/dashboard/KeukenTile';
 import { ReceptenTile } from '@/components/dashboard/ReceptenTile';
 import { useSignals } from '@/hooks/useSignals';
 import { useReservations } from '@/hooks/useReservations';
+import { useWeeklyGuestCounts } from '@/hooks/useWeeklyGuestCounts';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -21,9 +22,12 @@ export default function Dashboard() {
   const { signals } = useSignals();
 
   const { data: reservations } = useReservations({ date: today });
+  const { data: weeklyData } = useWeeklyGuestCounts();
 
-  const todayCount = useMemo(
-    () => (reservations ?? []).filter((r) => r.status !== 'cancelled').length,
+  const todayGuests = useMemo(
+    () => (reservations ?? [])
+      .filter((r) => r.status !== 'cancelled')
+      .reduce((sum, r) => sum + r.party_size, 0),
     [reservations]
   );
 
@@ -51,7 +55,7 @@ export default function Dashboard() {
       )}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch mt-8">
-        <ReservationsTile todayCount={todayCount} />
+        <ReservationsTile todayGuests={todayGuests} weeklyData={weeklyData ?? []} />
         <KeukenTile />
         <ReceptenTile />
       </div>
