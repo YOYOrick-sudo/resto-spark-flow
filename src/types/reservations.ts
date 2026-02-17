@@ -92,6 +92,9 @@ export interface ReservationSettings {
   no_show_after_minutes: number;
   auto_no_show_enabled: boolean;
   move_to_now_on_checkin: boolean;
+  options_enabled: boolean;
+  option_default_expiry_hours: number;
+  option_auto_release: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -12,6 +12,7 @@ import { nestoToast } from '@/lib/nestoToast';
 import type { Reservation, ReservationStatus } from '@/types/reservation';
 import { STATUS_LABELS, ALLOWED_TRANSITIONS } from '@/types/reservation';
 import { TableMoveDialog } from './TableMoveDialog';
+import { ExtendOptionDialog } from './ExtendOptionDialog';
 
 interface ReservationActionsProps {
   reservation: Reservation;
@@ -53,7 +54,7 @@ function getActionsForStatus(reservation: Reservation): ActionButton[] {
       actions.push(
         { key: 'confirm', label: 'Bevestigen', icon: Check, targetStatus: 'confirmed', variant: 'primary' },
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
-        { key: 'extend_ph', label: 'Optie verlengen', icon: Clock, disabled: true, tooltip: 'Beschikbaar na options (4.9)' },
+        { key: 'extend', label: 'Optie verlengen', icon: Clock },
       );
       break;
     case 'confirmed':
@@ -99,6 +100,7 @@ export function ReservationActions({ reservation, className }: ReservationAction
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideStatus, setOverrideStatus] = useState<ReservationStatus | null>(null);
   const [tableMoveOpen, setTableMoveOpen] = useState(false);
+  const [extendOpen, setExtendOpen] = useState(false);
   const actions = getActionsForStatus(reservation);
   const canOverride = context?.role === 'owner' || context?.role === 'manager' || context?.is_platform_admin;
   const terminalStatuses: ReservationStatus[] = ['completed', 'no_show', 'cancelled'];
@@ -107,6 +109,10 @@ export function ReservationActions({ reservation, className }: ReservationAction
   const handleAction = (action: ActionButton) => {
     if (action.key === 'move_table') {
       setTableMoveOpen(true);
+      return;
+    }
+    if (action.key === 'extend') {
+      setExtendOpen(true);
       return;
     }
     if (!action.targetStatus) return;
@@ -282,6 +288,15 @@ export function ReservationActions({ reservation, className }: ReservationAction
         reservationId={reservation.id}
         currentTableId={reservation.table_id}
         locationId={reservation.location_id}
+      />
+
+      {/* Extend option dialog */}
+      <ExtendOptionDialog
+        open={extendOpen}
+        onOpenChange={setExtendOpen}
+        reservationId={reservation.id}
+        locationId={reservation.location_id}
+        currentExpiresAt={reservation.option_expires_at}
       />
     </TooltipProvider>
   );

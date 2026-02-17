@@ -12,6 +12,7 @@ import {
 import type { Reservation, ReservationChannel } from "@/types/reservation";
 import { STATUS_CONFIG, ALLOWED_TRANSITIONS, CHANNEL_ICONS } from "@/types/reservation";
 import { getDisplayName, isWalkIn } from "@/lib/reservationUtils";
+import { OptionBadge } from "@/components/reservations/OptionBadge";
 import type { DensityType } from "./DensityToggle";
 
 const CHANNEL_ICON_MAP: Record<ReservationChannel, React.FC<{ className?: string }>> = {
@@ -216,6 +217,10 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
           )}
           {statusConfig.label}
         </span>
+      )}
+
+      {reservation.status === 'option' && (
+        <OptionBadge optionExpiresAt={reservation.option_expires_at} />
       )}
 
       <DropdownMenu>

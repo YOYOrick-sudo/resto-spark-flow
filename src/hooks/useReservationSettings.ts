@@ -60,5 +60,8 @@ export const defaultReservationSettings: Omit<ReservationSettings, 'id' | 'locat
   checkin_window_minutes: 15,
   no_show_after_minutes: 15,
   auto_no_show_enabled: false,
-  move_to_now_on_checkin: false
+  move_to_now_on_checkin: false,
+  options_enabled: false,
+  option_default_expiry_hours: 24,
+  option_auto_release: true,
 };

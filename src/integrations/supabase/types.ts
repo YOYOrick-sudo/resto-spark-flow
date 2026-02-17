@@ -1168,6 +1168,9 @@ export type Database = {
           max_parallel_invites: number
           move_to_now_on_checkin: boolean
           no_show_after_minutes: number
+          option_auto_release: boolean
+          option_default_expiry_hours: number
+          options_enabled: boolean
           squeeze_enabled: boolean
           updated_at: string
           waitlist_auto_invite_enabled: boolean
@@ -1187,6 +1190,9 @@ export type Database = {
           max_parallel_invites?: number
           move_to_now_on_checkin?: boolean
           no_show_after_minutes?: number
+          option_auto_release?: boolean
+          option_default_expiry_hours?: number
+          options_enabled?: boolean
           squeeze_enabled?: boolean
           updated_at?: string
           waitlist_auto_invite_enabled?: boolean
@@ -1206,6 +1212,9 @@ export type Database = {
           max_parallel_invites?: number
           move_to_now_on_checkin?: boolean
           no_show_after_minutes?: number
+          option_auto_release?: boolean
+          option_default_expiry_hours?: number
+          options_enabled?: boolean
           squeeze_enabled?: boolean
           updated_at?: string
           waitlist_auto_invite_enabled?: boolean
@@ -1222,6 +1231,7 @@ export type Database = {
       }
       reservations: {
         Row: {
+          cancellation_reason: string | null
           channel: Database["public"]["Enums"]["reservation_channel"]
           checked_in_at: string | null
           created_at: string
@@ -1236,6 +1246,7 @@ export type Database = {
           location_id: string
           manage_token: string
           no_show_risk_score: number | null
+          option_expires_at: string | null
           party_size: number
           reservation_date: string
           risk_factors: Json | null
@@ -1247,6 +1258,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancellation_reason?: string | null
           channel?: Database["public"]["Enums"]["reservation_channel"]
           checked_in_at?: string | null
           created_at?: string
@@ -1261,6 +1273,7 @@ export type Database = {
           location_id: string
           manage_token?: string
           no_show_risk_score?: number | null
+          option_expires_at?: string | null
           party_size: number
           reservation_date: string
           risk_factors?: Json | null
@@ -1272,6 +1285,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancellation_reason?: string | null
           channel?: Database["public"]["Enums"]["reservation_channel"]
           checked_in_at?: string | null
           created_at?: string
@@ -1286,6 +1300,7 @@ export type Database = {
           location_id?: string
           manage_token?: string
           no_show_risk_score?: number | null
+          option_expires_at?: string | null
           party_size?: number
           reservation_date?: string
           risk_factors?: Json | null
@@ -2113,7 +2128,16 @@ export type Database = {
         }
         Returns: string
       }
+      extend_option: {
+        Args: {
+          _actor_id?: string
+          _extra_hours?: number
+          _reservation_id: string
+        }
+        Returns: string
+      }
       fn_auto_mark_no_shows: { Args: never; Returns: number }
+      fn_auto_release_options: { Args: never; Returns: number }
       get_bookable_tickets: {
         Args: { _date: string; _location_id: string }
         Returns: {
@@ -2254,26 +2278,16 @@ export type Database = {
         Args: { _table_a_id: string; _table_b_id: string }
         Returns: undefined
       }
-      transition_reservation_status:
-        | {
-            Args: {
-              _actor_id?: string
-              _new_status: Database["public"]["Enums"]["reservation_status"]
-              _reason?: string
-              _reservation_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _actor_id?: string
-              _is_override?: boolean
-              _new_status: Database["public"]["Enums"]["reservation_status"]
-              _reason?: string
-              _reservation_id: string
-            }
-            Returns: string
-          }
+      transition_reservation_status: {
+        Args: {
+          _actor_id?: string
+          _is_override?: boolean
+          _new_status: Database["public"]["Enums"]["reservation_status"]
+          _reason?: string
+          _reservation_id: string
+        }
+        Returns: string
+      }
       user_has_location_access: {
         Args: { _location_id: string; _user_id: string }
         Returns: boolean

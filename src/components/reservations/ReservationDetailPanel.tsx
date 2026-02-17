@@ -9,6 +9,7 @@ import { ReservationActions } from './ReservationActions';
 import { CustomerCard } from './CustomerCard';
 import { RiskScoreSection } from './RiskScoreSection';
 import { AuditLogTimeline } from './AuditLogTimeline';
+import { OptionBadge } from './OptionBadge';
 import { cn } from '@/lib/utils';
 
 interface ReservationDetailPanelProps {
@@ -77,6 +78,13 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
               <p className="text-xs text-muted-foreground mt-1.5">
                 Ingecheckt om {formatDateTimeCompact(reservation.checked_in_at)}
               </p>
+            )}
+
+            {/* Option countdown */}
+            {reservation.status === 'option' && (
+              <div className="mt-2">
+                <OptionBadge optionExpiresAt={reservation.option_expires_at} />
+              </div>
             )}
 
             {/* Badges */}

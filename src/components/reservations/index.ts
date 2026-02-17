@@ -6,3 +6,5 @@ export { RiskScoreSection } from './RiskScoreSection';
 export { AuditLogTimeline } from './AuditLogTimeline';
 export { CreateReservationSheet, WalkInSheet } from './CreateReservationSheet';
 export { TableMoveDialog } from './TableMoveDialog';
+export { OptionBadge } from './OptionBadge';
+export { ExtendOptionDialog } from './ExtendOptionDialog';
