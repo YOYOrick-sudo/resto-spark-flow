@@ -127,7 +127,7 @@ export default function Reserveringen() {
             onDateChange={setSelectedDate}
           />
 
-          <div className="flex-1 min-w-0 max-w-xs ml-auto">
+          <div className="flex-1 min-w-0 max-w-[220px] ml-auto overflow-hidden">
             <SearchBar
               placeholder="Zoek op naam, telefoon..."
               value={searchQuery}
