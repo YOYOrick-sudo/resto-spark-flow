@@ -4,7 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check, CalendarIcon, Clock, Sparkles } from 'lucide-react';
+import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check, CalendarIcon, Clock } from 'lucide-react';
+import { TableSelector } from './TableSelector';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoPanel } from '@/components/polar/NestoPanel';
 import { cn } from '@/lib/utils';
@@ -545,29 +546,23 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
 
               <div>
                 <Label className="text-label text-muted-foreground mb-1.5 block">Tafel</Label>
-                <Select
+                <TableSelector
                   value={tableMode === 'auto' ? '__auto__' : tableMode === 'manual' && tableId ? tableId : '__none__'}
-                  onValueChange={(v) => {
+                  onChange={(v) => {
                     if (v === '__auto__') { setTableMode('auto'); setTableId(null); }
                     else if (v === '__none__') { setTableMode('none'); setTableId(null); }
                     else { setTableMode('manual'); setTableId(v); }
                   }}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__auto__">
-                      <span className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Automatisch toewijzen</span>
-                    </SelectItem>
-                    <SelectItem value="__none__">Niet toegewezen</SelectItem>
-                    {allTables
-                      .filter(t => !partySize || (t.min_capacity <= partySize && t.max_capacity >= partySize))
-                      .map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.display_label} ({t.area_name})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                  areas={areasWithTables}
+                  partySize={partySize}
+                  date={dateString}
+                  startTime={startTime}
+                  effectiveDuration={effectiveDuration}
+                  reservationsForDate={reservationsForDate}
+                  recommendedTableId={preview?.assigned ? preview.table_id : null}
+                  autoAssignEnabled={settings?.auto_assign ?? true}
+                  shiftAreas={shiftTickets.find(st => st.ticket_id === ticketId)?.areas}
+                />
                 {tableMode === 'auto' && preview && (
                   <p className={cn("text-xs mt-1.5", preview.assigned ? "text-muted-foreground" : "text-warning")}>
                     {preview.assigned
