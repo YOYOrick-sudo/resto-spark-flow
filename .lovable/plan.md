@@ -1,59 +1,36 @@
 
-# ReservationDetailPanel overzetten naar NestoPanel
+
+# Ingecheckt status visueel onderscheiden van Bevestigd
 
 ## Probleem
-Het ReservationDetailPanel gebruikt het oude `DetailPanel` component, dat visueel afwijkt van het NestoPanel/PanelDemo ontwerp:
+Beide statussen gebruiken teal-varianten waardoor ze nauwelijks te onderscheiden zijn:
+- **Bevestigd**: dot `#1d979e`, `text-primary`, `bg-primary/[0.08]`
+- **Ingecheckt**: dot `#14B8A6`, `text-primary`, `bg-primary/15`
 
-| Aspect | DetailPanel (nu) | NestoPanel (gewenst) |
-|---|---|---|
-| Header | Statische bar met border-b | Reveal header (Notion-stijl) |
-| Achtergrond | bg-background | bg-card |
-| Border-radius | Geen | rounded-l-2xl |
-| Breedte | 420px | 460px (standaard) |
-| Close button | In header bar | Floating top-right |
-| Titel scroll | Vast in header | In content, reveal bij scrollen |
+## Oplossing
+Ingecheckt krijgt een groene (emerald) kleur die "aanwezig / actief" communiceert en duidelijk verschilt van het teal van Bevestigd.
 
-## Wijzigingen
+| Status | Dot kleur | Text | Achtergrond |
+|---|---|---|---|
+| Bevestigd (blijft) | `#1d979e` (teal) | `text-primary` | `bg-primary/[0.08]` |
+| Ingecheckt (nieuw) | `#10B981` (emerald) | `text-emerald-700` / dark: `text-emerald-400` | `bg-emerald-50` / dark: `bg-emerald-900/20` |
 
-### Bestand 1: `src/components/reservations/ReservationDetailPanel.tsx`
-- Import wijzigen: `DetailPanel` wordt `NestoPanel`
-- `children` aanpassen naar render-prop patroon: `(titleRef) => ...`
-- De titel "Reservering" als context-label boven de gastnaam plaatsen (via `titleRef`)
-- `width` prop verwijderen (default 460px)
+## Wijziging
 
-### Bestand 2: `src/components/polar/DetailPanel.tsx`
-- Verwijderen -- wordt nergens meer gebruikt na de migratie
+### Bestand: `src/types/reservation.ts`
 
-## Technische details
+De `seated` entry in `STATUS_CONFIG` wordt aangepast:
 
-De `NestoPanel` verwacht een render-prop:
-```tsx
-children: (titleRef: React.RefObject<HTMLHeadingElement>) => React.ReactNode
+```
+dotColor: '#10B981'        (was '#14B8A6')
+textClass: 'text-emerald-700 dark:text-emerald-400'  (was 'text-primary')
+bgClass: 'bg-emerald-50 dark:bg-emerald-900/20'      (was 'bg-primary/15')
 ```
 
-De content structuur wordt:
-```tsx
-<NestoPanel open={open} onClose={onClose} title="Reservering">
-  {(titleRef) => (
-    <>
-      {isLoading && <Spinner />}
-      {reservation && (
-        <div className="divide-y divide-border/50">
-          <div className="p-5">
-            <h2 ref={titleRef} className="text-lg font-semibold">
-              {getDisplayName(reservation)}
-            </h2>
-            {/* ...rest van de content */}
-          </div>
-        </div>
-      )}
-    </>
-  )}
-</NestoPanel>
-```
+## Wat niet wijzigt
+- Alle andere statussen blijven identiek
+- Geen componenten hoeven te wijzigen -- ze lezen allemaal uit STATUS_CONFIG
+- Grid view, list view, detail panel, badges werken automatisch mee
 
 ## Resultaat
-- Reservering detail panel wordt visueel identiek aan de +Reservering en Walk-in panels
-- Reveal header met "Reservering" verschijnt bij scrollen
-- Afgeronde linkerhoeken, bg-card, 460px breed
-- Het oude `DetailPanel` component wordt opgeruimd
+Bevestigd = teal (gereserveerd, komt nog), Ingecheckt = groen (is er, actief). Direct visueel onderscheidbaar.
