@@ -1,18 +1,29 @@
 
 
-# Filter dropdowns smaller maken
+# Filterrij dunner/compacter maken
 
-## Wijziging
+## Probleem
+De filterrij neemt nu evenveel visuele ruimte in als de toolbar erboven, terwijl het een secundaire rij is die niet altijd actief gebruikt wordt.
 
-**Bestand:** `src/components/reserveringen/ReservationFilters.tsx`
+## Oplossing
+Maak de select-elementen en search in deze rij kleiner (h-8 i.p.v. h-10) en gebruik kleinere tekst, zodat de rij visueel terugtrekt.
 
-De drie dropdowns zijn nu 160px, 160px en 200px breed. Door de placeholder-tekst korter te houden past een smallere breedte prima:
+## Wijzigingen
 
-| Dropdown | Huidig | Nieuw |
-|----------|--------|-------|
-| Status   | 160px  | 140px |
-| Shift    | 160px  | 130px |
-| Type     | 200px  | 130px |
+### 1. `src/components/polar/NestoSelect.tsx`
+- Voeg een optionele `size` prop toe (`"sm" | "default"`)
+- Bij `size="sm"`: gebruik `h-8 text-xs` i.p.v. `h-10 text-body` op de SelectTrigger
 
-Drie regels aanpassen (regels 70, 77, 84): de `className="w-[...]"` waarden verkleinen.
+### 2. `src/components/reserveringen/ReservationFilters.tsx`
+- Geef `size="sm"` mee aan alle drie de NestoSelect componenten
+- Verklein de gap tussen elementen van `gap-4` naar `gap-3`
+- Verklein de counter tekst van `text-sm` naar `text-xs`
+- Pas de SearchBar wrapper aan met een kleinere hoogte via className
+
+### 3. `src/components/polar/SearchBar.tsx`
+- Voeg een optionele `size` prop toe (`"sm" | "default"`)
+- Bij `size="sm"`: gebruik `h-8 text-xs` op het input-element
+
+## Resultaat
+De filterrij wordt ca. 8px dunner en voelt visueel als een subtiele, secundaire toolbar.
 
