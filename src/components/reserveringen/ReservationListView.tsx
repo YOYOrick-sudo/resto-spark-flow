@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Reservation, ReservationChannel } from "@/types/reservation";
 import { STATUS_CONFIG, ALLOWED_TRANSITIONS } from "@/types/reservation";
 import { getDisplayName, isWalkIn, formatTime } from "@/lib/reservationUtils";
@@ -35,6 +36,7 @@ interface ReservationListViewProps {
   reservations: Reservation[];
   onReservationClick?: (reservation: Reservation) => void;
   onStatusChange?: (reservation: Reservation, status: Reservation["status"]) => void;
+  onAssignTable?: (reservation: Reservation) => void;
   density?: DensityType;
 }
 
@@ -82,6 +84,7 @@ export function ReservationListView({
   reservations,
   onReservationClick,
   onStatusChange,
+  onAssignTable,
   density = "compact",
 }: ReservationListViewProps) {
   const groupedReservations = useMemo(() => groupByTimeSlot(reservations), [reservations]);
@@ -124,6 +127,7 @@ export function ReservationListView({
                 reservation={reservation}
                 onClick={() => onReservationClick?.(reservation)}
                 onStatusChange={onStatusChange}
+                onAssignTable={onAssignTable}
                 density={density}
               />
             ))}
@@ -138,13 +142,13 @@ interface ReservationRowProps {
   reservation: Reservation;
   onClick?: () => void;
   onStatusChange?: (reservation: Reservation, status: Reservation["status"]) => void;
+  onAssignTable?: (reservation: Reservation) => void;
   density: DensityType;
 }
 
-function ReservationRow({ reservation, onClick, onStatusChange, density }: ReservationRowProps) {
+function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, density }: ReservationRowProps) {
   const statusConfig = STATUS_CONFIG[reservation.status];
   const guestName = getDisplayName(reservation);
-  const tableLabel = reservation.table_label || '—';
   const walkIn = isWalkIn(reservation);
   const isCompact = density === "compact";
   const allowedNextStatuses = ALLOWED_TRANSITIONS[reservation.status] ?? [];
@@ -180,7 +184,25 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
       <span className="text-sm tabular-nums font-medium text-foreground">{reservation.party_size}p</span>
 
       {/* Tafel */}
-      <span className="text-sm text-muted-foreground truncate">{tableLabel}</span>
+      {/* Tafel */}
+      {reservation.table_id ? (
+        <span className="text-sm text-muted-foreground truncate">{reservation.table_label || '—'}</span>
+      ) : (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={(e) => { e.stopPropagation(); onAssignTable?.(reservation); }}
+                className="text-sm text-warning hover:text-warning/80 underline cursor-pointer truncate flex items-center gap-1"
+              >
+                <Sparkles className="h-3 w-3" />
+                Niet toegewezen
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Klik om automatisch een tafel toe te wijzen</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
 
       {/* Shift */}
       {reservation.shift_name ? (

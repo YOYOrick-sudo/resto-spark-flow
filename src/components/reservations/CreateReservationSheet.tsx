@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check, CalendarIcon, Clock } from 'lucide-react';
+import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check, CalendarIcon, Clock, Sparkles } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoPanel } from '@/components/polar/NestoPanel';
 import { cn } from '@/lib/utils';
@@ -16,12 +16,15 @@ import { useShiftTickets } from '@/hooks/useShiftTickets';
 import { useAreasWithTables } from '@/hooks/useAreasWithTables';
 import { useUserContext } from '@/contexts/UserContext';
 import { useReservations } from '@/hooks/useReservations';
+import { useReservationSettings } from '@/hooks/useReservationSettings';
+import { useAssignTable } from '@/hooks/useAssignTable';
+import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { checkTimeConflict, formatTime, timeToMinutes } from '@/lib/reservationUtils';
 import { formatDateShort } from '@/lib/datetime';
 import { nestoToast } from '@/lib/nestoToast';
-import { format, parse } from 'date-fns';
+import { format, parse, getISODay } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import type { Customer, ReservationStatus, ReservationChannel } from '@/types/reservation';
+import type { Customer, ReservationStatus, ReservationChannel, AssignTableResult } from '@/types/reservation';
 
 function generateTimeOptions(start: string, end: string, stepMinutes: number): string[] {
   const options: string[] = [];
@@ -103,19 +106,28 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const [partySize, setPartySize] = useState(2);
   const [startTime, setStartTime] = useState('19:00');
   const [tableId, setTableId] = useState<string | null>(null);
+  const [tableMode, setTableMode] = useState<'auto' | 'manual' | 'none'>('auto');
   const [channel, setChannel] = useState<ReservationChannel>('operator');
   const [guestNotes, setGuestNotes] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
   const [initialStatus, setInitialStatus] = useState<ReservationStatus>('confirmed');
+  const [preview, setPreview] = useState<AssignTableResult | null>(null);
 
   const { data: customers = [] } = useCustomers(searchTerm);
   const createCustomer = useCreateCustomer();
   const createReservation = useCreateReservation();
+  const assignTable = useAssignTable();
   const { data: shifts = [] } = useShifts(locationId);
   const { data: shiftTickets = [] } = useShiftTickets(shiftId || undefined);
   const { data: areasWithTables = [] } = useAreasWithTables(locationId);
+  const { data: settings } = useReservationSettings(locationId);
   const dateString = format(date, 'yyyy-MM-dd');
   const { data: reservationsForDate = [] } = useReservations({ date: dateString });
+
+  // Set default table mode based on auto_assign setting
+  useEffect(() => {
+    setTableMode(settings?.auto_assign ? 'auto' : 'none');
+  }, [settings?.auto_assign]);
 
   // Auto-detect shift based on selected time
   const detectedShift = useMemo(() => {
@@ -150,6 +162,47 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
       setTicketId('');
     }
   }, [shiftTickets]);
+
+  // Effective duration for filtering
+  const effectiveDuration = useMemo(() => {
+    if (!ticketId || !shiftId) return null;
+    const st = shiftTickets.find(s => s.ticket_id === ticketId);
+    return st?.override_duration_minutes ?? 120;
+  }, [ticketId, shiftId, shiftTickets]);
+
+  // Preview auto-assign (debounced)
+  const latestRequestRef = useRef(0);
+  const fetchPreview = useDebouncedCallback(useCallback(async () => {
+    if (tableMode !== 'auto' || !locationId || !shiftId || !ticketId || !effectiveDuration) {
+      setPreview(null);
+      return;
+    }
+    const requestId = ++latestRequestRef.current;
+    try {
+      const result = await assignTable.mutateAsync({
+        location_id: locationId,
+        date: dateString,
+        time: startTime,
+        party_size: partySize,
+        duration_minutes: effectiveDuration,
+        shift_id: shiftId,
+        ticket_id: ticketId,
+      });
+      if (requestId !== latestRequestRef.current) return;
+      setPreview(result);
+    } catch {
+      if (requestId !== latestRequestRef.current) return;
+      setPreview(null);
+    }
+  }, [tableMode, locationId, shiftId, ticketId, effectiveDuration, dateString, startTime, partySize, assignTable]), 500);
+
+  useEffect(() => {
+    if (tableMode === 'auto' && shiftId && ticketId) {
+      fetchPreview();
+    } else {
+      setPreview(null);
+    }
+  }, [tableMode, shiftId, ticketId, dateString, startTime, partySize]);
 
   // Overlap warning
   const overlapWarning = useMemo(() => {
@@ -206,7 +259,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const handleSubmit = async () => {
     if (!locationId || !shiftId || !ticketId) return;
     try {
-      await createReservation.mutateAsync({
+      const result = await createReservation.mutateAsync({
         location_id: locationId,
         customer_id: isWalkIn ? null : (selectedCustomer?.id ?? null),
         shift_id: shiftId,
@@ -215,14 +268,38 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
         start_time: startTime,
         party_size: partySize,
         channel,
-        table_id: tableId,
+        table_id: tableMode === 'manual' ? tableId : null,
         guest_notes: guestNotes || null,
         internal_notes: internalNotes || null,
         initial_status: initialStatus,
         squeeze: false,
         actor_id: context?.user_id ?? null,
       });
-      nestoToast.success('Reservering aangemaakt');
+
+      // Auto-assign after creation
+      if (tableMode === 'auto' && effectiveDuration && result?.id) {
+        try {
+          const assignResult = await assignTable.mutateAsync({
+            location_id: locationId,
+            date: format(date, 'yyyy-MM-dd'),
+            time: startTime,
+            party_size: partySize,
+            duration_minutes: effectiveDuration,
+            shift_id: shiftId,
+            ticket_id: ticketId,
+            reservation_id: result.id,
+          });
+          if (assignResult.assigned) {
+            nestoToast.success(`Reservering aangemaakt — ${assignResult.table_name} toegewezen`);
+          } else {
+            nestoToast.warning('Reservering aangemaakt zonder tafel');
+          }
+        } catch {
+          nestoToast.warning('Reservering aangemaakt, tafeltoewijzing mislukt');
+        }
+      } else {
+        nestoToast.success('Reservering aangemaakt');
+      }
       handleClose();
     } catch (err: any) {
       nestoToast.error(err.message);
@@ -464,21 +541,40 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
               </div>
 
               <div>
-                <Label className="text-label text-muted-foreground mb-1.5 block">Tafel (optioneel)</Label>
-                <Select value={tableId || '__none__'} onValueChange={(v) => setTableId(v === '__none__' ? null : v)}>
-                  <SelectTrigger><SelectValue placeholder="Niet toegewezen" /></SelectTrigger>
+                <Label className="text-label text-muted-foreground mb-1.5 block">Tafel</Label>
+                <Select
+                  value={tableMode === 'auto' ? '__auto__' : tableMode === 'manual' && tableId ? tableId : '__none__'}
+                  onValueChange={(v) => {
+                    if (v === '__auto__') { setTableMode('auto'); setTableId(null); }
+                    else if (v === '__none__') { setTableMode('none'); setTableId(null); }
+                    else { setTableMode('manual'); setTableId(v); }
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__auto__">
+                      <span className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Automatisch toewijzen</span>
+                    </SelectItem>
                     <SelectItem value="__none__">Niet toegewezen</SelectItem>
-                    {allTables.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.display_label} ({t.area_name})
-                      </SelectItem>
-                    ))}
+                    {allTables
+                      .filter(t => !partySize || (t.min_capacity <= partySize && t.max_capacity >= partySize))
+                      .map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.display_label} ({t.area_name})
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
+                {tableMode === 'auto' && preview && (
+                  <p className={cn("text-xs mt-1.5", preview.assigned ? "text-muted-foreground" : "text-warning")}>
+                    {preview.assigned
+                      ? `Suggestie: ${preview.table_name} (${preview.area_name})`
+                      : 'Geen tafel beschikbaar voor deze selectie'}
+                  </p>
+                )}
               </div>
 
-              {overlapWarning && (
+              {tableMode === 'manual' && overlapWarning && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm">
                   <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                   <p className="text-warning">
