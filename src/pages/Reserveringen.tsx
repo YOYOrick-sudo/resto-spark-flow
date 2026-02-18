@@ -53,7 +53,9 @@ export default function Reserveringen() {
         return (
           guestName.includes(query) ||
           (r.customer?.phone_number || '').includes(query) ||
-          (r.customer?.email || '').toLowerCase().includes(query)
+          (r.customer?.email || '').toLowerCase().includes(query) ||
+          (r.table_label || '').toLowerCase().includes(query) ||
+          (r.internal_notes || '').toLowerCase().includes(query)
         );
       });
     }
@@ -117,7 +119,7 @@ export default function Reserveringen() {
       <div className="flex flex-col flex-1 min-w-0">
         <h1 className="text-2xl font-semibold text-foreground">Reserveringen</h1>
 
-        <div className="flex items-center gap-4 flex-wrap pt-4">
+        <div className="flex items-center gap-3 pt-4">
           <ViewToggle activeView={activeView} onViewChange={setActiveView} />
 
           <DateNavigator
@@ -125,7 +127,7 @@ export default function Reserveringen() {
             onDateChange={setSelectedDate}
           />
 
-          <div className="flex-1 max-w-xs ml-auto">
+          <div className="flex-1 min-w-0 max-w-xs ml-auto">
             <SearchBar
               placeholder="Zoek op naam, telefoon..."
               value={searchQuery}
@@ -135,6 +137,7 @@ export default function Reserveringen() {
 
           <NestoButton
             variant="outline"
+            className="shrink-0"
             onClick={() => setWalkInSheetOpen(true)}
             leftIcon={<Footprints className="h-4 w-4" />}
           >
@@ -143,6 +146,7 @@ export default function Reserveringen() {
 
           <NestoButton
             variant="primary"
+            className="shrink-0"
             onClick={() => setCreateSheetOpen(true)}
             leftIcon={<Plus className="h-4 w-4" />}
           >
