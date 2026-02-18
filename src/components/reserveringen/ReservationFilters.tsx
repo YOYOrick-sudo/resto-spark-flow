@@ -86,7 +86,7 @@ export function ReservationFilters({
       </div>
 
       {/* Search */}
-      <div className="w-[220px]">
+      <div className="w-[180px]">
         <SearchBar
           placeholder="Zoek op naam, telefoon..."
           value={searchQuery}
