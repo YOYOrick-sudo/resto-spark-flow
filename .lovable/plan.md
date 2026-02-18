@@ -1,47 +1,26 @@
 
-# NestoPanel visueel volledig alignen met PanelDemo
 
-## Overzicht
-Er zijn 6 afwijkingen gevonden tussen het NestoPanel component en het PanelDemo ontwerp. Deze worden allemaal gecorrigeerd.
+# Inchecken icoon wijzigen: UserCheck → LogIn
 
-## Alle 6 afwijkingen en fixes
+## Waarom
+Het uitcheck-icoon is `LogOut` (pijl naar buiten / deur uit). Het inchecken-icoon is nu `UserCheck` — dat past visueel niet als tegenhanger. `LogIn` (pijl naar binnen / deur in) vormt een logisch paar met `LogOut`.
 
-| # | Wat | PanelDemo (gewenst) | NestoPanel (nu) | Fix |
-|---|---|---|---|---|
-| 1 | Reveal header hoogte | h-10 | h-12 | h-12 naar h-10 |
-| 2 | Reveal header font | font-medium | font-semibold | font-semibold naar font-medium |
-| 3 | Reveal header border | geen | border-b border-border/50 | border-b verwijderen |
-| 4 | Desktop border-radius | rounded-2xl | geen | rounded-l-2xl toevoegen |
-| 5 | +Reservering breedte | 460px (default) | 480px | width prop verwijderen |
-| 6 | Walk-in breedte | 460px (default) | 400px | width prop verwijderen |
+## Wijzigingen in 3 bestanden
 
-## Wijzigingen per bestand
+### 1. `src/components/reserveringen/ReservationListView.tsx`
+- Import: `UserCheck` vervangen door `LogIn`
+- Regel 223: `<UserCheck>` wordt `<LogIn>` bij de inchecken-knop
 
-### Bestand 1: `src/components/polar/NestoPanel.tsx`
+### 2. `src/components/reservations/ReservationActions.tsx`
+- Import: `UserCheck` vervangen door `LogIn`
+- Regel 63: `icon: UserCheck` wordt `icon: LogIn` bij de inchecken-actie
 
-**Reveal header (regel 60):**
-- `h-12` wordt `h-10`
-- `border-b border-border/50` wordt verwijderd uit de className
-
-**Reveal header titel (regel 66):**
-- `font-semibold` wordt `font-medium`
-
-**Desktop panel container (regel 110-111):**
-- `rounded-l-2xl` toevoegen aan de classNames zodat het panel afgeronde linkerhoeken krijgt
-
-### Bestand 2: `src/components/reservations/CreateReservationSheet.tsx`
-
-**CreateReservationSheet (regel 262):**
-- `width="w-[480px]"` verwijderen, zodat de default `w-[460px]` wordt gebruikt
-
-**WalkInSheet (regel 545):**
-- `width="w-[400px]"` verwijderen, zodat de default `w-[460px]` wordt gebruikt
-
-## Wat niet wijzigt
-- Alle form logica, state, hooks en data flows blijven identiek
-- De Reserveringen.tsx pagina hoeft niet te wijzigen
-- IntersectionObserver, footer, mobile Sheet fallback blijven ongewijzigd
-- Floating X-button positie en gedrag blijven hetzelfde
+### 3. `src/components/reserveringen/ReservationBlock.tsx`
+- Import: `UserCheck` vervangen door `LogIn`
+- Regel 235: `<UserCheck>` wordt `<LogIn>` bij het seated-status icoon in de grid view
 
 ## Resultaat
-Beide panels worden pixel-perfect gelijk aan het PanelDemo ontwerp: compacte reveal header (h-10) zonder border, font-medium titel, afgeronde linkerhoeken (rounded-l-2xl), en een consistente breedte van 460px.
+- Inchecken: `LogIn` (pijl naar binnen)
+- Uitchecken: `LogOut` (pijl naar buiten)
+- Duidelijk herkenbaar paar dat bij elkaar hoort
+
