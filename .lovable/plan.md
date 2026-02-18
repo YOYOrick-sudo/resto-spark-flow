@@ -1,24 +1,20 @@
 
-
-# Fix: TableSelector popover standaard onder de trigger openen
+# Fix: LogIn icoon visueel even groot maken als LogOut
 
 ## Probleem
-De popover opent nu boven de trigger-button. De gebruiker wil dat deze standaard **onder** de trigger opent.
+Het `LogIn` (inchecken) icoon oogt visueel kleiner dan het `LogOut` (uitchecken) icoon, ondanks dezelfde CSS afmetingen. Dit komt doordat de Lucide SVG-paden van `LogIn` minder visueel gewicht hebben dan `LogOut`.
 
 ## Oplossing
-In `src/components/reservations/TableSelector.tsx` regel 169: voeg `side="bottom"` toe aan de `PopoverContent`.
+Vergroot het `LogIn` icoon licht zodat het visueel matcht met `LogOut`.
 
-Huidige code:
-```
-<PopoverContent className="..." align="start" sideOffset={4}>
-```
+### Bestanden die gewijzigd worden:
 
-Nieuwe code:
-```
-<PopoverContent className="..." align="start" side="bottom" sideOffset={4}>
-```
+**1. `src/components/reserveringen/ReservationListView.tsx` (regel 245)**
+- Van: `<LogIn className="h-4 w-4" />`
+- Naar: `<LogIn className="h-[18px] w-[18px]" />`
 
-Radix Popover kiest standaard automatisch de kant met de meeste ruimte. Door `side="bottom"` expliciet te zetten, forceert het de dropdown naar onder.
+**2. `src/components/reserveringen/ReservationBlock.tsx` (regel 235)**
+- Van: `<LogIn className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />`
+- Naar: `<LogIn className="h-4 w-4 text-emerald-600 flex-shrink-0" />`
 
-### Bestand: `src/components/reservations/TableSelector.tsx`
-- Regel 169: `side="bottom"` toevoegen aan PopoverContent
+De `LogOut` iconen blijven ongewijzigd (`h-4 w-4`). Het `ReservationActions.tsx` bestand hoeft niet aangepast te worden omdat daar alleen icon-referenties worden doorgegeven (de rendering-grootte wordt elders bepaald).
