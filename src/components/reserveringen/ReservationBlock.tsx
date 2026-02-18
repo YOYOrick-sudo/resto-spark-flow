@@ -232,7 +232,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         {walkIn ? (
           <Footprints className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
         ) : reservation.status === "seated" ? (
-          <LogIn className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+          <LogIn className="h-4 w-4 text-emerald-600 flex-shrink-0" />
         ) : null}
 
         <span className={cn("text-foreground font-bold flex-shrink-0", isCompact ? "text-xs" : "text-sm")}>
