@@ -259,7 +259,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
       open={open}
       onClose={handleClose}
       title={stepTitle}
-      width="w-[480px]"
+      
       footer={footerContent}
     >
       {(titleRef) => (
@@ -542,7 +542,7 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
       open={open}
       onClose={onClose}
       title="Walk-in registreren"
-      width="w-[400px]"
+      
       footer={
         <NestoButton
           variant="primary"
