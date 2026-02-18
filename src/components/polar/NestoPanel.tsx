@@ -27,6 +27,7 @@ function useIsDesktop() {
 export function NestoPanel({ open, onClose, title, footer, children, width = 'w-[460px]' }: NestoPanelProps) {
   const isDesktop = useIsDesktop();
   const [titleVisible, setTitleVisible] = useState(true);
+  const [revealTitle, setRevealTitle] = useState('');
   const titleRef = useRef<HTMLHeadingElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -43,7 +44,12 @@ export function NestoPanel({ open, onClose, title, footer, children, width = 'w-
     if (!titleEl || !scrollEl) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => setTitleVisible(entry.isIntersecting),
+      ([entry]) => {
+        setTitleVisible(entry.isIntersecting);
+        if (!entry.isIntersecting && titleEl) {
+          setRevealTitle(titleEl.textContent || '');
+        }
+      },
       { root: scrollEl, threshold: 0 }
     );
     observer.observe(titleEl);
@@ -63,7 +69,7 @@ export function NestoPanel({ open, onClose, title, footer, children, width = 'w-
             : "opacity-100 translate-y-0 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         )}
       >
-        <span className="text-[13px] font-medium text-foreground truncate pr-8">{title}</span>
+        <span className="text-[13px] font-medium text-foreground truncate pr-8">{title}{revealTitle ? ` · ${revealTitle}` : ''}</span>
         <button
           onClick={onClose}
           className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors shrink-0"
