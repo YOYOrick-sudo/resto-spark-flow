@@ -1,20 +1,18 @@
 
 
-# SearchBar smaller maken
+# Filter dropdowns smaller maken
 
 ## Wijziging
 
-**Bestand:** `src/components/reserveringen/ReservationFilters.tsx` (regel 89)
+**Bestand:** `src/components/reserveringen/ReservationFilters.tsx`
 
-Verklein de SearchBar wrapper van `w-[220px]` naar `w-[180px]`:
+De drie dropdowns zijn nu 160px, 160px en 200px breed. Door de placeholder-tekst korter te houden past een smallere breedte prima:
 
-```
-// Van:
-<div className="w-[220px]">
+| Dropdown | Huidig | Nieuw |
+|----------|--------|-------|
+| Status   | 160px  | 140px |
+| Shift    | 160px  | 130px |
+| Type     | 200px  | 130px |
 
-// Naar:
-<div className="w-[180px]">
-```
-
-Eenregelige wijziging.
+Drie regels aanpassen (regels 70, 77, 84): de `className="w-[...]"` waarden verkleinen.
 
