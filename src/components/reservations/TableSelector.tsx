@@ -126,7 +126,7 @@ export function TableSelector({
 
   // Build display label for the trigger button
   const displayLabel = useMemo(() => {
-    if (value === '__auto__') return '✨ Automatisch toewijzen';
+    if (value === '__auto__') return 'Automatisch toewijzen';
     if (value === '__none__' || !value) return showNoneOption ? 'Niet toegewezen' : placeholder;
     // Find table name
     for (const area of areas) {
@@ -159,7 +159,8 @@ export function TableSelector({
             "disabled:cursor-not-allowed disabled:opacity-50"
           )}
         >
-          <span className={cn(!value || value === '__none__' ? 'text-muted-foreground' : 'text-foreground')}>
+          <span className={cn("flex items-center gap-2", !value || value === '__none__' ? 'text-muted-foreground' : 'text-foreground')}>
+            {value === '__auto__' && <Sparkles className="h-3.5 w-3.5 text-primary" />}
             {displayLabel}
           </span>
           <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
