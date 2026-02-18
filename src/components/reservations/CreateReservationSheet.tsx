@@ -276,8 +276,11 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
         actor_id: context?.user_id ?? null,
       });
 
+      // result is a UUID string from create_reservation RPC
+      const reservationId = result as string;
+
       // Auto-assign after creation
-      if (tableMode === 'auto' && effectiveDuration && result?.id) {
+      if (tableMode === 'auto' && effectiveDuration && reservationId) {
         try {
           const assignResult = await assignTable.mutateAsync({
             location_id: locationId,
@@ -287,7 +290,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
             duration_minutes: effectiveDuration,
             shift_id: shiftId,
             ticket_id: ticketId,
-            reservation_id: result.id,
+            reservation_id: reservationId,
           });
           if (assignResult.assigned) {
             nestoToast.success(`Reservering aangemaakt — ${assignResult.table_name} toegewezen`);
@@ -640,8 +643,21 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
   const { data: areasWithTables = [] } = useAreasWithTables(locationId);
   const createReservation = useCreateReservation();
 
-  const activeShift = shifts.find((s) => s.is_active);
-  const { data: shiftTickets = [] } = useShiftTickets(activeShift?.id);
+  // Time-based shift detection (fix: was using s.is_active which picks first active)
+  const currentShift = useMemo(() => {
+    const now = new Date();
+    const currentTimeStr = format(now, 'HH:mm:ss');
+    const currentDow = now.getDay() === 0 ? 7 : now.getDay(); // ISO: 1=Mon, 7=Sun
+    return shifts.find(s =>
+      s.is_active &&
+      (s.days_of_week as number[]).includes(currentDow) &&
+      currentTimeStr >= s.start_time &&
+      currentTimeStr <= s.end_time
+    ) || null;
+  }, [shifts]);
+
+  const { data: shiftTickets = [] } = useShiftTickets(currentShift?.id);
+  const assignTable = useAssignTable();
 
   const allTables = useMemo(() => {
     return (areasWithTables || []).flatMap((a) =>
@@ -651,10 +667,13 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
 
   const handleSubmit = async () => {
     if (!locationId) return;
-    const activeShift = shifts.find((s) => s.is_active);
+    if (!currentShift) {
+      nestoToast.error('Geen actieve shift op dit moment');
+      return;
+    }
     const ticket = shiftTickets.find((st) => st.is_active);
-    if (!activeShift || !ticket) {
-      nestoToast.error('Geen actieve shift of ticket gevonden');
+    if (!ticket) {
+      nestoToast.error('Geen actief ticket gevonden voor deze shift');
       return;
     }
 
@@ -665,10 +684,10 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
     const timeStr = `${String(timeDate.getHours()).padStart(2, '0')}:${String(timeDate.getMinutes()).padStart(2, '0')}`;
 
     try {
-      await createReservation.mutateAsync({
+      const reservationId = await createReservation.mutateAsync({
         location_id: locationId,
         customer_id: null,
-        shift_id: activeShift.id,
+        shift_id: currentShift.id,
         ticket_id: ticket.ticket_id,
         reservation_date: format(new Date(), 'yyyy-MM-dd'),
         start_time: timeStr,
@@ -678,7 +697,32 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
         initial_status: 'seated',
         actor_id: context?.user_id ?? null,
       });
-      nestoToast.success('Walk-in geregistreerd');
+
+      // Auto-assign if no table was manually selected
+      if (!tableId && reservationId) {
+        const duration = ticket.override_duration_minutes ?? 90;
+        try {
+          const assignResult = await assignTable.mutateAsync({
+            location_id: locationId,
+            date: format(new Date(), 'yyyy-MM-dd'),
+            time: timeStr,
+            party_size: partySize,
+            duration_minutes: duration,
+            shift_id: currentShift.id,
+            ticket_id: ticket.ticket_id,
+            reservation_id: reservationId as string,
+          });
+          if (assignResult.assigned) {
+            nestoToast.success(`Walk-in geregistreerd — ${assignResult.table_name} toegewezen`);
+          } else {
+            nestoToast.warning('Walk-in geregistreerd zonder tafel');
+          }
+        } catch {
+          nestoToast.warning('Walk-in geregistreerd, tafeltoewijzing mislukt');
+        }
+      } else {
+        nestoToast.success('Walk-in geregistreerd');
+      }
       onClose();
     } catch (err: any) {
       nestoToast.error(err.message);
