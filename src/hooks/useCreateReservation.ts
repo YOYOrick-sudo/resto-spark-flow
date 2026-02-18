@@ -49,10 +49,12 @@ export function useCreateReservation() {
       queryClient.invalidateQueries({
         queryKey: ['reservations', params.location_id],
         exact: false,
+        refetchType: 'all',
       });
       queryClient.invalidateQueries({
         queryKey: ['customers', params.location_id],
         exact: false,
+        refetchType: 'all',
       });
     },
   });

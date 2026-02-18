@@ -2,7 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { UserPlus, Search, Footprints, ChevronRight, ChevronLeft, AlertTriangle, Check, CalendarIcon, Clock } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoPanel } from '@/components/polar/NestoPanel';
 import { cn } from '@/lib/utils';
@@ -17,8 +19,26 @@ import { useReservations } from '@/hooks/useReservations';
 import { checkTimeConflict, formatTime, timeToMinutes } from '@/lib/reservationUtils';
 import { formatDateShort } from '@/lib/datetime';
 import { nestoToast } from '@/lib/nestoToast';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
+import { nl } from 'date-fns/locale';
 import type { Customer, ReservationStatus, ReservationChannel } from '@/types/reservation';
+
+function generateTimeOptions(start: string, end: string, stepMinutes: number): string[] {
+  const options: string[] = [];
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+  let current = startH * 60 + startM;
+  const last = endH * 60 + endM;
+  while (current <= last) {
+    const h = Math.floor(current / 60);
+    const m = current % 60;
+    options.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    current += stepMinutes;
+  }
+  return options;
+}
+
+const TIME_OPTIONS = generateTimeOptions('11:00', '23:45', 15);
 
 interface CreateReservationSheetProps {
   open: boolean;
@@ -77,7 +97,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const [newPhone, setNewPhone] = useState('');
 
   // Details
-  const [date, setDate] = useState(defaultDate ? format(defaultDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState<Date>(defaultDate || new Date());
   const [shiftId, setShiftId] = useState('');
   const [ticketId, setTicketId] = useState('');
   const [partySize, setPartySize] = useState(2);
@@ -94,7 +114,8 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const { data: shifts = [] } = useShifts(locationId);
   const { data: shiftTickets = [] } = useShiftTickets(shiftId || undefined);
   const { data: areasWithTables = [] } = useAreasWithTables(locationId);
-  const { data: reservationsForDate = [] } = useReservations({ date });
+  const dateString = format(date, 'yyyy-MM-dd');
+  const { data: reservationsForDate = [] } = useReservations({ date: dateString });
 
   // Auto-detect shift based on selected time
   const detectedShift = useMemo(() => {
@@ -190,7 +211,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
         customer_id: isWalkIn ? null : (selectedCustomer?.id ?? null),
         shift_id: shiftId,
         ticket_id: ticketId,
-        reservation_date: date,
+        reservation_date: format(date, 'yyyy-MM-dd'),
         start_time: startTime,
         party_size: partySize,
         channel,
@@ -350,11 +371,42 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-label text-muted-foreground mb-1.5 block">Datum</Label>
-                  <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className={cn(
+                        "flex h-10 w-full items-center gap-2 rounded-button border-[1.5px] border-input bg-background px-3 py-2 text-sm text-left",
+                        "hover:bg-muted/50 focus:outline-none focus:!border-primary transition-colors"
+                      )}>
+                        <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span>{format(date, 'EEE d MMM', { locale: nl })}</span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={(d) => d && setDate(d)}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <Label className="text-label text-muted-foreground mb-1.5 block">Tijdslot</Label>
-                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} step="900" />
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Select value={startTime} onValueChange={setStartTime}>
+                      <SelectTrigger className="pl-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIME_OPTIONS.map((t) => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
@@ -452,7 +504,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
             <div className="space-y-5">
               <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-2.5">
                 <p className="text-sm"><span className="text-muted-foreground">Klant:</span> {isWalkIn ? 'Walk-in' : selectedCustomer ? `${selectedCustomer.first_name} ${selectedCustomer.last_name}` : '—'}</p>
-                <p className="text-sm"><span className="text-muted-foreground">Datum:</span> {formatDateShort(date)}</p>
+                <p className="text-sm"><span className="text-muted-foreground">Datum:</span> {format(date, 'd MMM yyyy', { locale: nl })}</p>
                 <p className="text-sm"><span className="text-muted-foreground">Tijd:</span> {formatTime(startTime)}</p>
                 <p className="text-sm"><span className="text-muted-foreground">Shift:</span> {detectedShift?.name || '—'}</p>
                 <p className="text-sm"><span className="text-muted-foreground">Personen:</span> <span className="tabular-nums">{partySize}</span></p>

@@ -67,7 +67,7 @@ export function DateNavigator({
               size="sm"
               onClick={() => onDateChange(date)}
               className={cn(
-                "min-w-[60px]",
+                "px-2.5",
                 !isSelected && "text-muted-foreground"
               )}
             >
