@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Check, X, LogIn, AlertOctagon, Clock, CreditCard,
+  Check, X, LogIn, LogOut, AlertOctagon, Clock, CreditCard,
   Send, ArrowRightLeft, RefreshCw, Ban, MoreHorizontal, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -73,7 +73,7 @@ function getActionsForStatus(reservation: Reservation): ActionButton[] {
       break;
     case 'seated':
       actions.push(
-        { key: 'complete', label: 'Afronden', icon: Check, targetStatus: 'completed', variant: 'primary' },
+        { key: 'complete', label: 'Uitchecken', icon: LogOut, targetStatus: 'completed', variant: 'primary' },
         { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
       );
       break;
