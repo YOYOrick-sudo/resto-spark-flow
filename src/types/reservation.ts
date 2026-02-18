@@ -147,10 +147,10 @@ export const STATUS_CONFIG: Record<ReservationStatus, {
   },
   seated: {
     label: 'Ingecheckt',
-    dotColor: '#14B8A6',
+    dotColor: '#10B981',
     showDot: true,
-    textClass: 'text-primary',
-    bgClass: 'bg-primary/15',
+    textClass: 'text-emerald-700 dark:text-emerald-400',
+    bgClass: 'bg-emerald-50 dark:bg-emerald-900/20',
     borderClass: '',
   },
   completed: {
