@@ -1,23 +1,24 @@
 
 
-# Fix: Emoji vervangen door Lucide Sparkles icoon in TableSelector trigger
+# Fix: TableSelector popover standaard onder de trigger openen
 
 ## Probleem
-De trigger-button van de TableSelector toont `✨ Automatisch toewijzen` als tekst-emoji. Binnen de dropdown zelf wordt al correct het Lucide `Sparkles` icoon gebruikt, maar de trigger niet.
+De popover opent nu boven de trigger-button. De gebruiker wil dat deze standaard **onder** de trigger opent.
 
 ## Oplossing
-In `src/components/reservations/TableSelector.tsx`:
+In `src/components/reservations/TableSelector.tsx` regel 169: voeg `side="bottom"` toe aan de `PopoverContent`.
 
-1. **displayLabel aanpassen** (regel 129): Verander de return van een string naar een object/flag zodat de trigger weet dat het auto-mode is
-2. **Trigger button aanpassen** (regel 162-164): Render het Lucide `Sparkles` icoon inline voor de tekst wanneer `value === '__auto__'`, in plaats van een emoji-string
+Huidige code:
+```
+<PopoverContent className="..." align="start" sideOffset={4}>
+```
 
-Concreet:
-- `displayLabel` geeft `'Automatisch toewijzen'` terug (zonder emoji) bij `__auto__`
-- De trigger `<span>` krijgt een conditionele `Sparkles` icon prefix wanneer `value === '__auto__'`
+Nieuwe code:
+```
+<PopoverContent className="..." align="start" side="bottom" sideOffset={4}>
+```
+
+Radix Popover kiest standaard automatisch de kant met de meeste ruimte. Door `side="bottom"` expliciet te zetten, forceert het de dropdown naar onder.
 
 ### Bestand: `src/components/reservations/TableSelector.tsx`
-- Regel 129: `'✨ Automatisch toewijzen'` wordt `'Automatisch toewijzen'`
-- Regel 162-164: Sparkles icoon toevoegen voor de tekst in de trigger span
-
-Geen andere bestanden worden gewijzigd.
-
+- Regel 169: `side="bottom"` toevoegen aan PopoverContent
