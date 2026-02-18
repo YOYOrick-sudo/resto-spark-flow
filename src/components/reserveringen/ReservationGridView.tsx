@@ -1,6 +1,8 @@
 import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { useTransitionStatus } from "@/hooks/useTransitionStatus";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { useAssignTable } from "@/hooks/useAssignTable";
+import { ChevronDown, ChevronUp, Wand2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, pointerWithin, useSensor, useSensors, PointerSensor, TouchSensor } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
@@ -257,6 +259,85 @@ function GhostPreview({ position, hasConflict, guestCount, isDropAnimating = fal
   );
 }
 
+// Unassigned badge-list (collapsible, above areas)
+function UnassignedBadgeList({
+  reservations,
+  onReservationClick,
+  isCompact,
+  locationId,
+}: {
+  reservations: Reservation[];
+  onReservationClick?: (r: Reservation) => void;
+  isCompact: boolean;
+  locationId?: string;
+}) {
+  const [open, setOpen] = useState(true);
+  const assignTable = useAssignTable();
+
+  const unassigned = useMemo(
+    () => reservations.filter(r => !r.table_id && r.status !== 'cancelled' && r.status !== 'no_show'),
+    [reservations]
+  );
+
+  if (unassigned.length === 0) return null;
+
+  const handleAssign = async (r: Reservation) => {
+    if (!locationId) return;
+    assignTable.mutate({
+      location_id: r.location_id,
+      date: r.reservation_date,
+      time: r.start_time,
+      party_size: r.party_size,
+      duration_minutes: r.duration_minutes,
+      shift_id: r.shift_id,
+      ticket_id: r.ticket_id,
+      reservation_id: r.id,
+    });
+  };
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="border-b border-border bg-warning/5">
+        <CollapsibleTrigger className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-warning/10 transition-colors">
+          {open ? <ChevronUp className="h-3.5 w-3.5 text-warning" /> : <ChevronDown className="h-3.5 w-3.5 text-warning" />}
+          <span className="text-xs font-semibold text-warning">Niet toegewezen ({unassigned.length})</span>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="flex gap-2 px-3 pb-2 overflow-x-auto">
+            {unassigned.map((r) => (
+              <div
+                key={r.id}
+                className={cn(
+                  "flex-shrink-0 border border-warning/40 rounded-lg bg-card px-3 cursor-pointer hover:border-warning transition-colors",
+                  isCompact ? "py-1.5" : "py-2"
+                )}
+                onClick={() => onReservationClick?.(r)}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-foreground">{r.start_time.slice(0, 5)}</span>
+                  <span className="text-xs text-muted-foreground">{r.party_size}p</span>
+                  <span className="text-xs text-foreground truncate max-w-[100px]">
+                    {r.customer ? `${r.customer.first_name} ${r.customer.last_name}` : 'Gast'}
+                  </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleAssign(r); }}
+                    disabled={assignTable.isPending}
+                    className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors ml-1"
+                    title="Automatisch tafel toewijzen"
+                  >
+                    <Wand2 className="h-3 w-3" />
+                    <span>Wijs toe</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
 export function ReservationGridView({
   selectedDate,
   reservations,
@@ -468,6 +549,13 @@ export function ReservationGridView({
               onToggle={() => setSeatedExpanded(!seatedExpanded)}
               onSlotClick={handleSlotClick}
               isCompact={isCompact}
+            />
+
+            <UnassignedBadgeList
+              reservations={reservations}
+              onReservationClick={onReservationClick}
+              isCompact={isCompact}
+              locationId={locationId}
             />
 
             {areas.map((area) => {
