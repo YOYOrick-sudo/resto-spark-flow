@@ -1,4 +1,5 @@
 import { NestoSelect, type SelectOption } from "@/components/polar/NestoSelect";
+import { SearchBar } from "@/components/polar/SearchBar";
 import { cn } from "@/lib/utils";
 import { STATUS_CONFIG, type ReservationStatus } from "@/types/reservation";
 
@@ -11,6 +12,8 @@ export interface ReservationFiltersState {
 interface ReservationFiltersProps {
   filters: ReservationFiltersState;
   onFiltersChange: (filters: ReservationFiltersState) => void;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
   totalCount: number;
   filteredCount: number;
   className?: string;
@@ -40,6 +43,8 @@ const ticketTypeOptions: SelectOption[] = [
 export function ReservationFilters({
   filters,
   onFiltersChange,
+  searchQuery,
+  onSearchChange,
   totalCount,
   filteredCount,
   className,
@@ -77,6 +82,15 @@ export function ReservationFilters({
           onValueChange={(value) => handleFilterChange("ticketType", value)}
           placeholder="Type"
           className="w-[200px]"
+        />
+      </div>
+
+      {/* Search */}
+      <div className="w-[220px]">
+        <SearchBar
+          placeholder="Zoek op naam, telefoon..."
+          value={searchQuery}
+          onChange={onSearchChange}
         />
       </div>
 
