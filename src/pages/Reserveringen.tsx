@@ -127,13 +127,7 @@ export default function Reserveringen() {
             onDateChange={setSelectedDate}
           />
 
-          <div className="flex-1 min-w-0 max-w-[220px] ml-auto overflow-hidden">
-            <SearchBar
-              placeholder="Zoek op naam, telefoon..."
-              value={searchQuery}
-              onChange={setSearchQuery}
-            />
-          </div>
+          <div className="flex-1" />
 
           <NestoButton
             variant="outline"
@@ -158,6 +152,8 @@ export default function Reserveringen() {
           className="pt-3"
           filters={filters}
           onFiltersChange={setFilters}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
           totalCount={reservationsForDate.length}
           filteredCount={filteredReservations.length}
         />
