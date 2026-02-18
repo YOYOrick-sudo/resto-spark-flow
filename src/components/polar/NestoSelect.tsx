@@ -31,6 +31,7 @@ export interface NestoSelectProps {
   error?: string;
   disabled?: boolean;
   className?: string;
+  size?: "sm" | "default";
 }
 
 const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
@@ -45,6 +46,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
       error,
       disabled,
       className,
+      size = "default",
     },
     ref
   ) => {
@@ -65,7 +67,8 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
             ref={ref}
             id={id}
             className={cn(
-              "h-10 w-full rounded-button border-[1.5px] border-border bg-card px-3 py-2.5 text-body",
+              "w-full rounded-button border-[1.5px] border-border bg-card px-3",
+              size === "sm" ? "h-8 text-xs py-1.5" : "h-10 py-2.5 text-body",
               "focus:!border-primary focus:ring-0 focus:ring-offset-0",
               "data-[placeholder]:text-muted-foreground",
               error && "border-destructive focus:border-destructive",
