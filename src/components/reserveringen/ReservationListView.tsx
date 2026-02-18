@@ -15,7 +15,7 @@ import { getDisplayName, isWalkIn, formatTime } from "@/lib/reservationUtils";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
 import type { DensityType } from "./DensityToggle";
 
-const GRID_COLS = "grid grid-cols-[12px_1fr_48px_56px_120px_110px_80px_32px] items-center";
+const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_128px_120px_80px_32px] gap-x-3 items-center";
 
 const CHANNEL_ICON_MAP: Record<ReservationChannel, React.FC<{ className?: string }>> = {
   widget: Globe,
