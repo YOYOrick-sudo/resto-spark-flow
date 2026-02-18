@@ -242,7 +242,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
             className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors"
             title="Inchecken"
           >
-            <LogIn className="h-4 w-4" />
+            <LogIn className="h-[18px] w-[18px]" />
           </button>
         )}
         {reservation.status === 'seated' && onStatusChange && (
