@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { Spinner } from "@/components/polar/LoadingStates";
 import { useAreasWithTables } from "@/hooks/useAreasWithTables";
+import { useReservations } from "@/hooks/useReservations";
 import { useMoveTable } from "@/hooks/useMoveTable";
+import { TableSelector } from "./TableSelector";
 
 interface TableMoveDialogProps {
   open: boolean;
@@ -13,6 +13,10 @@ interface TableMoveDialogProps {
   reservationId: string;
   currentTableId: string | null;
   locationId: string;
+  partySize?: number;
+  reservationDate?: string;
+  startTime?: string;
+  durationMinutes?: number;
 }
 
 export function TableMoveDialog({
@@ -21,8 +25,13 @@ export function TableMoveDialog({
   reservationId,
   currentTableId,
   locationId,
+  partySize = 2,
+  reservationDate = '',
+  startTime = '19:00',
+  durationMinutes = 120,
 }: TableMoveDialogProps) {
   const { data: areas = [], isLoading } = useAreasWithTables(locationId);
+  const { data: reservationsForDate = [] } = useReservations({ date: reservationDate });
   const moveTable = useMoveTable();
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
 
@@ -38,10 +47,6 @@ export function TableMoveDialog({
       }
     );
   };
-
-  const activeAreas = areas.filter(
-    (a) => a.is_active && a.tables && a.tables.some((t) => t.is_active)
-  );
 
   return (
     <NestoModal
@@ -68,50 +73,20 @@ export function TableMoveDialog({
           <Spinner />
         </div>
       ) : (
-        <div className="space-y-4 max-h-80 overflow-y-auto">
-          {activeAreas.map((area) => (
-            <div key={area.id}>
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">
-                {area.name}
-              </h4>
-              <div className="grid grid-cols-3 gap-1.5">
-                {area.tables
-                  ?.filter((t) => t.is_active)
-                  .map((table) => {
-                    const isCurrent = table.id === currentTableId;
-                    const isSelected = table.id === selectedTableId;
-
-                    return (
-                      <button
-                        key={table.id}
-                        onClick={() => !isCurrent && setSelectedTableId(table.id)}
-                        disabled={isCurrent}
-                        className={cn(
-                          "flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors",
-                          isCurrent
-                            ? "border-primary bg-primary/10 text-primary cursor-default"
-                            : isSelected
-                              ? "border-primary bg-primary/5 ring-2 ring-primary"
-                              : "border-input hover:bg-secondary"
-                        )}
-                      >
-                        <span className="font-medium">{table.display_label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {table.min_capacity}-{table.max_capacity}p
-                        </span>
-                        {isCurrent && <Check className="h-3.5 w-3.5 text-primary ml-1" />}
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          ))}
-          {activeAreas.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Geen actieve tafels gevonden.
-            </p>
-          )}
-        </div>
+        <TableSelector
+          value={selectedTableId}
+          onChange={setSelectedTableId}
+          areas={areas}
+          partySize={partySize}
+          date={reservationDate}
+          startTime={startTime}
+          effectiveDuration={durationMinutes}
+          reservationsForDate={reservationsForDate}
+          currentTableId={currentTableId}
+          showAutoOption={false}
+          showNoneOption={false}
+          placeholder="Selecteer nieuwe tafel..."
+        />
       )}
     </NestoModal>
   );

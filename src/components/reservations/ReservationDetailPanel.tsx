@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Sparkles, ArrowRightLeft, Trash2 } from 'lucide-react';
 import { NestoPanel } from '@/components/polar/NestoPanel';
 import { NestoButton } from '@/components/polar/NestoButton';
@@ -7,6 +7,7 @@ import { useReservation } from '@/hooks/useReservation';
 import { useAssignTable } from '@/hooks/useAssignTable';
 import { useMoveTable } from '@/hooks/useMoveTable';
 import { useAreasWithTables } from '@/hooks/useAreasWithTables';
+import { useReservations } from '@/hooks/useReservations';
 import { useUserContext } from '@/contexts/UserContext';
 import { STATUS_CONFIG } from '@/types/reservation';
 import { formatDateTimeCompact } from '@/lib/datetime';
@@ -20,7 +21,7 @@ import { RiskScoreSection } from './RiskScoreSection';
 import { AuditLogTimeline } from './AuditLogTimeline';
 import { OptionBadge } from './OptionBadge';
 import { TableMoveDialog } from './TableMoveDialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TableSelector } from './TableSelector';
 import { cn } from '@/lib/utils';
 
 interface ReservationDetailPanelProps {
@@ -36,14 +37,11 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
   const assignTable = useAssignTable();
   const moveTable = useMoveTable();
   const { data: areasWithTables = [] } = useAreasWithTables(locationId);
+  const { data: reservationsForDate = [] } = useReservations(
+    reservation ? { date: reservation.reservation_date } : { date: '' },
+  );
   const [tableMoveOpen, setTableMoveOpen] = useState(false);
   const [showManualSelect, setShowManualSelect] = useState(false);
-
-  const allTables = useMemo(() => {
-    return (areasWithTables || []).flatMap((a) =>
-      (a.tables || []).map((t) => ({ ...t, area_name: a.name }))
-    );
-  }, [areasWithTables]);
 
   const isTerminal = reservation?.status === 'cancelled' || reservation?.status === 'no_show' || reservation?.status === 'completed';
 
@@ -221,20 +219,19 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
                         </NestoButton>
                       </div>
                       {showManualSelect && (
-                        <Select onValueChange={handleManualAssign}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecteer tafel..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allTables
-                              .filter(t => t.min_capacity <= reservation.party_size && t.max_capacity >= reservation.party_size)
-                              .map((t) => (
-                                <SelectItem key={t.id} value={t.id}>
-                                  {t.display_label} ({t.area_name})
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
+                        <TableSelector
+                          value={null}
+                          onChange={handleManualAssign}
+                          areas={areasWithTables}
+                          partySize={reservation.party_size}
+                          date={reservation.reservation_date}
+                          startTime={reservation.start_time}
+                          effectiveDuration={reservation.duration_minutes}
+                          reservationsForDate={reservationsForDate}
+                          showAutoOption={false}
+                          showNoneOption={false}
+                          placeholder="Selecteer tafel..."
+                        />
                       )}
                     </div>
                   )}
@@ -263,6 +260,10 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
               reservationId={reservation.id}
               currentTableId={reservation.table_id}
               locationId={reservation.location_id}
+              partySize={reservation.party_size}
+              reservationDate={reservation.reservation_date}
+              startTime={reservation.start_time}
+              durationMinutes={reservation.duration_minutes}
             />
           )}
         </>
