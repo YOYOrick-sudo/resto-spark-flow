@@ -1,27 +1,27 @@
 
-
-# Fix: SearchBar overlapt knoppen bij smaller scherm
+# Fix: SearchBar verdwijnt op smaller scherm
 
 ## Probleem
-De SearchBar wrapper heeft `flex-1 min-w-0 max-w-xs ml-auto`. Op volledig scherm werkt dit prima, maar bij smallere breedtes neemt de SearchBar nog steeds te veel ruimte in omdat:
-- `max-w-xs` = 320px, dat is heel breed voor een toolbar met meerdere elementen
-- De input zelf heeft een intrinsieke minimumbreedte waardoor `min-w-0` niet genoeg helpt
-- Er is geen `overflow-hidden` op de wrapper, waardoor de input visueel buiten zijn container kan lopen
+De toolbar bevat te veel elementen voor een enkele rij: ViewToggle + DateNavigator + quick-days + SearchBar + Walk-in + Reservering. Op smallere schermen wordt de SearchBar tot 0px gekrompen door `flex-1 min-w-0`, waardoor hij volledig verdwijnt.
 
 ## Oplossing
+Verplaats de SearchBar van de toolbar-rij naar de filterrij eronder (`ReservationFilters`-rij). Daar is ruimte genoeg en past het logisch — zoeken IS een filter.
 
-**Bestand:** `src/pages/Reserveringen.tsx` (regel 130)
+## Wijzigingen
 
-Wijzig de SearchBar wrapper classes van:
+**Bestand:** `src/pages/Reserveringen.tsx`
+
+1. Verwijder de SearchBar wrapper (regels 130-136) uit de toolbar div
+2. Plaats de SearchBar in de filterrij, naast de bestaande dropdowns (status, shift, type)
+3. De toolbar bevat dan alleen: ViewToggle, DateNavigator, Walk-in, Reservering — past altijd
+
+### Nieuwe toolbar structuur:
 ```
-flex-1 min-w-0 max-w-xs ml-auto
-```
-naar:
-```
-flex-1 min-w-0 max-w-[220px] ml-auto overflow-hidden
+Rij 1: [ViewToggle] [DateNavigator + quick-days] ............... [Walk-in] [Reservering]
+Rij 2: [Status ▾] [Shifts ▾] [Types ▾] [SearchBar___________]  2 reserveringen
 ```
 
-- `max-w-[220px]` i.p.v. `max-w-xs` (320px) -- geeft 100px meer ruimte aan de rest van de toolbar
-- `overflow-hidden` -- voorkomt dat de input visueel buiten de wrapper lekt
-
-Dit is een eenregelige CSS-wijziging, geen structurele verandering.
+### Technisch
+- SearchBar verplaatsen naar na de `ReservationFilters` component, op dezelfde rij
+- De filterrij wrapper aanpassen zodat SearchBar rechts uitlijnt met `ml-auto`
+- Geen nieuwe componenten nodig, alleen verplaatsing van bestaande elementen
