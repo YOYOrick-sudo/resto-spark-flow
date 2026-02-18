@@ -57,13 +57,13 @@ export function NestoPanel({ open, onClose, title, footer, children, width = 'w-
       {/* Reveal header — appears when in-content title scrolls out */}
       <div
         className={cn(
-          "absolute top-0 left-0 right-0 z-10 h-12 flex items-center justify-between px-5 bg-card/95 backdrop-blur-[2px] transition-all duration-200 border-b border-border/50",
+          "absolute top-0 left-0 right-0 z-10 h-10 flex items-center justify-between px-5 bg-card/95 backdrop-blur-[2px] transition-all duration-200",
           titleVisible
             ? "opacity-0 -translate-y-0.5 pointer-events-none"
             : "opacity-100 translate-y-0 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         )}
       >
-        <span className="text-[13px] font-semibold text-foreground truncate pr-8">{title}</span>
+        <span className="text-[13px] font-medium text-foreground truncate pr-8">{title}</span>
         <button
           onClick={onClose}
           className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors shrink-0"
@@ -108,7 +108,7 @@ export function NestoPanel({ open, onClose, title, footer, children, width = 'w-
         <div
           className={cn(
             'fixed top-0 right-0 bottom-0 z-40 flex flex-col bg-card overflow-hidden',
-            'border-l border-border/50 shadow-xl',
+            'border-l border-border/50 shadow-xl rounded-l-2xl',
             'animate-in slide-in-from-right-4 duration-200',
             width
           )}
