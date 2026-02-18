@@ -50,6 +50,7 @@ export interface Reservation {
   option_expires_at?: string | null;
   reconfirmed_at?: string | null;
   badges?: Record<string, unknown> | null;
+  table_group_id?: string | null;
   // Joined fields
   customer?: Customer;
   shift_name?: string;
@@ -207,3 +208,34 @@ export const CHANNEL_ICONS: Record<ReservationChannel, string> = {
   whatsapp: 'MessageCircle',
   walk_in: 'Footprints',
 };
+
+// --- Auto-Assign types ---
+
+export interface AssignTableParams {
+  location_id: string;
+  date: string;           // YYYY-MM-DD
+  time: string;           // HH:MM
+  party_size: number;
+  duration_minutes: number;
+  shift_id: string;
+  ticket_id: string;
+  reservation_id?: string;
+  preferred_area_id?: string;
+}
+
+export interface AssignTableResult {
+  assigned: boolean;
+  table_id?: string;
+  table_group_id?: string;
+  table_name?: string;
+  area_name?: string;
+  score?: number;
+  assignment_reason?: string;
+  reason?: string;
+  alternatives: Array<{
+    table_id: string;
+    table_name: string;
+    area_name: string;
+    score: number;
+  }>;
+}

@@ -4,7 +4,7 @@ import { nestoToast } from "@/lib/nestoToast";
 
 interface MoveTableParams {
   reservationId: string;
-  newTableId: string;
+  newTableId: string | null;
 }
 
 export function useMoveTable() {
@@ -18,11 +18,11 @@ export function useMoveTable() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["reservation"] });
       queryClient.invalidateQueries({ queryKey: ["reservations"] });
       queryClient.invalidateQueries({ queryKey: ["audit-log"] });
-      nestoToast.success("Tafel gewijzigd");
+      nestoToast.success(variables.newTableId ? "Tafel gewijzigd" : "Tafeltoewijzing verwijderd");
     },
     onError: (error: Error) => {
       nestoToast.error(`Fout: ${error.message}`);

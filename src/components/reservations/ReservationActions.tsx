@@ -41,12 +41,14 @@ function getActionsForStatus(reservation: Reservation): ActionButton[] {
       actions.push(
         { key: 'confirm', label: 'Bevestigen', icon: Check, targetStatus: 'confirmed', variant: 'primary' },
         { key: 'option', label: 'Optie', icon: Clock, targetStatus: 'option' },
+        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'payment_ph', label: 'Betaling aanvragen', icon: CreditCard, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },
       );
       break;
     case 'pending_payment':
       actions.push(
+        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'resend_ph', label: 'Betaallink opnieuw', icon: RefreshCw, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },
       );
@@ -54,6 +56,7 @@ function getActionsForStatus(reservation: Reservation): ActionButton[] {
     case 'option':
       actions.push(
         { key: 'confirm', label: 'Bevestigen', icon: Check, targetStatus: 'confirmed', variant: 'primary' },
+        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'extend', label: 'Optie verlengen', icon: Clock },
       );
@@ -61,6 +64,7 @@ function getActionsForStatus(reservation: Reservation): ActionButton[] {
     case 'confirmed':
       actions.push(
         { key: 'checkin', label: 'Inchecken', icon: LogIn, targetStatus: 'seated', variant: 'primary' },
+        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
         { key: 'noshow', label: 'No-show', icon: AlertOctagon, targetStatus: 'no_show', destructive: true },
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'payment_ph', label: 'Betaling aanvragen', icon: CreditCard, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },

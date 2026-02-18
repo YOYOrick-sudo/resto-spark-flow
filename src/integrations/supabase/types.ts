@@ -1253,6 +1253,7 @@ export type Database = {
           shift_id: string
           start_time: string
           status: Database["public"]["Enums"]["reservation_status"]
+          table_group_id: string | null
           table_id: string | null
           ticket_id: string
           updated_at: string
@@ -1280,6 +1281,7 @@ export type Database = {
           shift_id: string
           start_time: string
           status?: Database["public"]["Enums"]["reservation_status"]
+          table_group_id?: string | null
           table_id?: string | null
           ticket_id: string
           updated_at?: string
@@ -1307,6 +1309,7 @@ export type Database = {
           shift_id?: string
           start_time?: string
           status?: Database["public"]["Enums"]["reservation_status"]
+          table_group_id?: string | null
           table_id?: string | null
           ticket_id?: string
           updated_at?: string
@@ -1338,6 +1341,13 @@ export type Database = {
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_table_group_id_fkey"
+            columns: ["table_group_id"]
+            isOneToOne: false
+            referencedRelation: "table_groups"
             referencedColumns: ["id"]
           },
           {
@@ -2109,6 +2119,20 @@ export type Database = {
         Returns: Json
       }
       archive_area: { Args: { _area_id: string }; Returns: Json }
+      assign_best_table: {
+        Args: {
+          _date: string
+          _duration_minutes: number
+          _location_id: string
+          _party_size: number
+          _preferred_area_id?: string
+          _reservation_id?: string
+          _shift_id: string
+          _ticket_id: string
+          _time: string
+        }
+        Returns: Json
+      }
       create_reservation: {
         Args: {
           _actor_id?: string
@@ -2221,7 +2245,7 @@ export type Database = {
       move_reservation_table: {
         Args: {
           _actor_id?: string
-          _new_table_id: string
+          _new_table_id?: string
           _reservation_id: string
         }
         Returns: undefined
