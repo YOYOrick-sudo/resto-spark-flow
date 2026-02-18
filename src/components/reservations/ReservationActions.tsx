@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Check, X, UserCheck, AlertOctagon, Clock, CreditCard,
+  Check, X, LogIn, AlertOctagon, Clock, CreditCard,
   Send, ArrowRightLeft, RefreshCw, Ban, MoreHorizontal, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -60,7 +60,7 @@ function getActionsForStatus(reservation: Reservation): ActionButton[] {
       break;
     case 'confirmed':
       actions.push(
-        { key: 'checkin', label: 'Inchecken', icon: UserCheck, targetStatus: 'seated', variant: 'primary' },
+        { key: 'checkin', label: 'Inchecken', icon: LogIn, targetStatus: 'seated', variant: 'primary' },
         { key: 'noshow', label: 'No-show', icon: AlertOctagon, targetStatus: 'no_show', destructive: true },
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'payment_ph', label: 'Betaling aanvragen', icon: CreditCard, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },

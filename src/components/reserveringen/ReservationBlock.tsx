@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useRef, forwardRef, useEffect } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { Phone, UserCheck, Footprints } from "lucide-react";
+import { Phone, LogIn, Footprints } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Reservation } from "@/types/reservation";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
@@ -232,7 +232,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         {walkIn ? (
           <Footprints className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
         ) : reservation.status === "seated" ? (
-          <UserCheck className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+          <LogIn className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
         ) : null}
 
         <span className={cn("text-foreground font-bold flex-shrink-0", isCompact ? "text-xs" : "text-sm")}>

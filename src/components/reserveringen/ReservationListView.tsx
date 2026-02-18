@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, UserCheck, LogOut, RotateCcw } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -220,7 +220,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, density }: Reser
             className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors"
             title="Inchecken"
           >
-            <UserCheck className="h-4 w-4" />
+            <LogIn className="h-4 w-4" />
           </button>
         )}
         {reservation.status === 'seated' && onStatusChange && (
