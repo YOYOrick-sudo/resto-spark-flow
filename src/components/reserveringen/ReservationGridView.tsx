@@ -535,7 +535,7 @@ export function ReservationGridView({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd} onDragStart={handleDragStart} onDragMove={handleDragMove} collisionDetection={pointerWithin}>
-      <div className="relative h-full overflow-hidden border border-border rounded-lg bg-card">
+      <div className="relative h-full overflow-hidden bg-card">
         <div ref={containerRef} className="h-full overflow-auto">
           <div className="min-w-max relative" style={{ minWidth: `${totalWidth}px` }}>
             <GridLines config={config} />

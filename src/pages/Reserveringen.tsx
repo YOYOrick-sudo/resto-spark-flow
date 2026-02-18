@@ -21,6 +21,7 @@ import type { Reservation } from "@/types/reservation";
 import { STATUS_LABELS } from "@/types/reservation";
 import { nestoToast } from "@/lib/nestoToast";
 import { useTransitionStatus } from "@/hooks/useTransitionStatus";
+import { useAssignTable } from "@/hooks/useAssignTable";
 import { ReservationDetailPanel, CreateReservationSheet, WalkInSheet } from "@/components/reservations";
 
 export default function Reserveringen() {
@@ -94,6 +95,20 @@ export default function Reserveringen() {
   }, []);
 
   const transition = useTransitionStatus();
+  const assignTable = useAssignTable();
+
+  const handleAssignTable = useCallback((reservation: Reservation) => {
+    assignTable.mutate({
+      location_id: reservation.location_id,
+      date: reservation.reservation_date,
+      time: reservation.start_time,
+      party_size: reservation.party_size,
+      duration_minutes: reservation.duration_minutes,
+      shift_id: reservation.shift_id,
+      ticket_id: reservation.ticket_id,
+      reservation_id: reservation.id,
+    });
+  }, [assignTable]);
 
   const handleStatusChange = useCallback((reservation: Reservation, newStatus: Reservation["status"]) => {
     transition.mutate({
@@ -165,6 +180,7 @@ export default function Reserveringen() {
                 reservations={filteredReservations}
                 onReservationClick={handleReservationClick}
                 onStatusChange={handleStatusChange}
+                onAssignTable={handleAssignTable}
                 density={density}
               />
             )}
