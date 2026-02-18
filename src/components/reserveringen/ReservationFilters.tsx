@@ -67,21 +67,21 @@ export function ReservationFilters({
           value={filters.status}
           onValueChange={(value) => handleFilterChange("status", value)}
           placeholder="Status"
-          className="w-[160px]"
+          className="w-[140px]"
         />
         <NestoSelect
           options={shiftOptions}
           value={filters.shift}
           onValueChange={(value) => handleFilterChange("shift", value)}
           placeholder="Shift"
-          className="w-[160px]"
+          className="w-[130px]"
         />
         <NestoSelect
           options={ticketTypeOptions}
           value={filters.ticketType}
           onValueChange={(value) => handleFilterChange("ticketType", value)}
           placeholder="Type"
-          className="w-[200px]"
+          className="w-[130px]"
         />
       </div>
 
