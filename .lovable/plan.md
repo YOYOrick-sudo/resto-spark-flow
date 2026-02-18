@@ -1,61 +1,69 @@
 
-# Fase 4.5B — Test Resultaten & Fix Plan
 
-## Test Resultaten
+# TableSelector Component — Implementatieplan
 
-### Wat werkt correct
-- Database: `table_group_id` kolom op `reservations` is aangemaakt
-- Database: `assign_best_table` RPC bestaat met correcte signature en scoring logica
-- Database: `move_reservation_table` RPC is uitgebreid met NULL-support en verbreede status check
-- Hook: `useAssignTable` is correct geimplementeerd (preview/commit modes, cache invalidatie)
-- Hook: `useMoveTable` ondersteunt NULL (unassign)
-- Detail Panel: Toont "Geen tafel toegewezen" warning met "Automatisch toewijzen" en "Handmatig kiezen" knoppen
-- Detail Panel: Toont "Wijzig tafel" en "Verwijder toewijzing" bij assigned reserveringen
-- ReservationActions: "Tafel wijzigen" beschikbaar bij `draft`, `option`, `pending_payment`, `confirmed` (niet alleen `seated`)
-- CreateReservationSheet: "Automatisch toewijzen" dropdown optie met Sparkles icoon, preview suggestie, submit flow
-- WalkInSheet: Shift detectie gefixt (tijdgebaseerd + days_of_week), auto-assign na aanmaken
-- Grid View: `UnassignedBadgeList` component is gebouwd met collapsible, kaartjes en "Wijs toe" knoppen
-- List View: Oranje "Niet toegewezen" knop met tooltip
+## Overzicht
+Vervang de flat `<Select>` dropdown voor tafels door een enterprise-grade `<TableSelector>` component met zoekbalk, area-groepering, vrij/bezet tellers, en aanbevolen badge. Gebaseerd op Popover + Command (cmdk) pattern.
 
-### Gevonden bugs (3 stuks)
+## Stap 1: TableSelector component bouwen
 
-**Bug 1: List View `onAssignTable` prop niet doorgegeven**
-In `src/pages/Reserveringen.tsx` regel 164-169 wordt `ReservationListView` aangeroepen zonder `onAssignTable` prop. De component accepteert deze prop en het klikbare "Niet toegewezen" label roept `onAssignTable?.(reservation)` aan, maar zonder de prop doet de klik niets.
+Nieuw bestand: `src/components/reservations/TableSelector.tsx`
 
-**Fix:** Voeg een `handleAssignTable` callback toe in `Reserveringen.tsx` die `useAssignTable` aanroept, en geef deze door als `onAssignTable` prop.
+- Radix Popover als wrapper, cmdk Command als content
+- Trigger: button met geselecteerde tafel label, ChevronsUpDown icoon
+- Vaste opties bovenaan (niet gefilterd door zoekbalk):
+  - "Automatisch toewijzen" (Sparkles icoon)
+  - "Niet toegewezen"
+- CommandInput zoekbalk filtert op display_label en area name (client-side, instant)
+- CommandGroup per area met heading: `AREA NAAM · X van Y vrij`
+- CommandItem per tafel: `display_label · Xp`, disabled als bezet of niet-passend
+- Aanbevolen badge op recommendedTableId
+- "Toon alle tafels" toggle onderaan (default: alleen vrije + passende tafels)
+- Bezette tafels: disabled + grijs + "bezet HH:MM-HH:MM"
 
-**Bug 2: Grid View `UnassignedBadgeList` niet zichtbaar**
-De `UnassignedBadgeList` rendert boven de areas in de grid, maar is visueel niet zichtbaar ondanks dat er een unassigned reservering bestaat. De component zit achter de grid's `border border-border rounded-2xl overflow-hidden` wrapper. De badge-list rendert mogelijk correct maar valt buiten het zichtbare scrollgebied of wordt verborgen door de dubbele `overflow-hidden` wrapper (zowel op de parent als op de grid container).
+Props interface conform spec (`value`, `onChange`, `tables`, `partySize`, `date`, `startTime`, `effectiveDuration`, `reservationsForDate`, `recommendedTableId`, `autoAssignEnabled`, `shiftAreas`).
 
-**Fix:** Controleer de nesting van overflow containers en zorg dat de badge-list altijd zichtbaar is boven de timeline.
+Overlap-check logica: client-side berekening met reservationsForDate + effectiveDuration om te bepalen welke tafels bezet zijn en wanneer.
 
-**Bug 3: `useAssignTable` hook wordt dubbel geinstantieerd in Grid View**
-De `UnassignedBadgeList` component maakt een eigen `useAssignTable()` instantie aan (regel 275), terwijl de parent `ReservationGridView` dit niet doet. Dit is functioneel correct maar niet ideaal — de toast in `useAssignTable.onSuccess` toont bij elke toewijzing, ook vanuit de badge-list. Dit is eigenlijk gewenst gedrag.
+## Stap 2: Integreren in CreateReservationSheet
 
----
+Regels 546-578 in `CreateReservationSheet.tsx`: vervang de huidige `<Select>` door `<TableSelector>`.
 
-## Stappen
+- Pass `areasWithTables` (al beschikbaar), `reservationsForDate` (al beschikbaar), `effectiveDuration`, `partySize`, `date`, `startTime`
+- Pass `recommendedTableId` uit de `preview` state
+- Pass `autoAssignEnabled` uit `settings?.auto_assign`
+- Verwijder de `allTables` useMemo (niet meer nodig, TableSelector doet eigen groepering)
+- Preview suggestie tekst blijft onder de selector
 
-### Stap 1: Fix `onAssignTable` in Reserveringen.tsx
-- Importeer `useAssignTable` in `Reserveringen.tsx`
-- Maak een `handleAssignTable` callback die de assign RPC aanroept met commit mode
-- Geef `onAssignTable={handleAssignTable}` door aan `ReservationListView`
+## Stap 3: Integreren in ReservationDetailPanel
 
-### Stap 2: Fix UnassignedBadgeList zichtbaarheid
-- Debug de overflow/z-index nesting in ReservationGridView
-- De `UnassignedBadgeList` zit binnen `div.min-w-max.relative` (regel 540) wat correct is
-- Controleer of de `border border-border rounded-2xl overflow-hidden` wrapper in Reserveringen.tsx (regel 162) het probleem veroorzaakt
-- Mogelijk moet de badge-list buiten de scrollable grid geplaatst worden, of moet de `overflow-hidden` wrapper aangepast worden
+Regels 223-238: vervang de `<Select>` bij "Handmatig kiezen" door `<TableSelector>`.
 
-### Stap 3: Verify fix werkt
-- Test "Niet toegewezen" klik in List View
-- Test "Wijs toe" klik in Grid View badge-list
-- Verify toast feedback
+- Alleen manual mode (geen auto/none opties nodig, of auto verbergen)
+- Pass reservation's party_size, date, start_time, duration
+- Nodig: `useReservations` toevoegen voor reservationsForDate
+
+## Stap 4: Integreren in TableMoveDialog
+
+Vervang de huidige grid-layout (regels 71-113) door `<TableSelector>`.
+
+- Geen auto/none opties, alleen tafelselectie
+- Pass currentTableId voor "huidige tafel" indicator
+- Bij selectie: direct `setSelectedTableId`, submit via bestaande "Wijzigen" knop
 
 ---
 
 ## Technische details
 
+### Bestanden die aangemaakt worden:
+- `src/components/reservations/TableSelector.tsx`
+
 ### Bestanden die gewijzigd worden:
-- `src/pages/Reserveringen.tsx` — onAssignTable prop toevoegen + useAssignTable import
-- `src/components/reserveringen/ReservationGridView.tsx` — mogelijk badge-list positionering aanpassen
+- `src/components/reservations/CreateReservationSheet.tsx` (Select -> TableSelector)
+- `src/components/reservations/ReservationDetailPanel.tsx` (Select -> TableSelector + useReservations)
+- `src/components/reservations/TableMoveDialog.tsx` (grid layout -> TableSelector)
+- `src/components/reservations/index.ts` (export TableSelector)
+
+### Dependencies:
+- Geen nieuwe packages — gebruikt bestaande `cmdk` (Command), Radix Popover, lucide-react icons
+
