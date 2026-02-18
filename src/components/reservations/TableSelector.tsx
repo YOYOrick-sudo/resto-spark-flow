@@ -166,7 +166,7 @@ export function TableSelector({
           <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" sideOffset={4}>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" side="bottom" sideOffset={4}>
         <Command filter={(value, search) => {
           // Custom filter: search across table labels and area names
           if (!search) return 1;
