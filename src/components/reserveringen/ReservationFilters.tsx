@@ -59,14 +59,15 @@ export function ReservationFilters({
   const hasActiveFilters = filters.status !== "all" || filters.shift !== "all" || filters.ticketType !== "all";
 
   return (
-    <div className={cn("flex items-center gap-4 flex-wrap", className)}>
+    <div className={cn("flex items-center gap-3 flex-wrap", className)}>
       {/* Filter dropdowns */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <NestoSelect
           options={statusOptions}
           value={filters.status}
           onValueChange={(value) => handleFilterChange("status", value)}
           placeholder="Status"
+          size="sm"
           className="w-[140px]"
         />
         <NestoSelect
@@ -74,6 +75,7 @@ export function ReservationFilters({
           value={filters.shift}
           onValueChange={(value) => handleFilterChange("shift", value)}
           placeholder="Shift"
+          size="sm"
           className="w-[130px]"
         />
         <NestoSelect
@@ -81,6 +83,7 @@ export function ReservationFilters({
           value={filters.ticketType}
           onValueChange={(value) => handleFilterChange("ticketType", value)}
           placeholder="Type"
+          size="sm"
           className="w-[130px]"
         />
       </div>
@@ -91,11 +94,12 @@ export function ReservationFilters({
           placeholder="Zoek op naam, telefoon..."
           value={searchQuery}
           onChange={onSearchChange}
+          size="sm"
         />
       </div>
 
       {/* Counter */}
-      <div className="text-sm text-muted-foreground ml-auto">
+      <div className="text-xs text-muted-foreground ml-auto">
         {hasActiveFilters ? (
           <span>
             Tonen <span className="font-medium text-foreground">{filteredCount}</span> van{" "}
