@@ -1,20 +1,33 @@
 
-# Fix: LogIn icoon visueel even groot maken als LogOut
+# Meer ademruimte tussen kolommen in de Reserveringen lijst
 
 ## Probleem
-Het `LogIn` (inchecken) icoon oogt visueel kleiner dan het `LogOut` (uitchecken) icoon, ondanks dezelfde CSS afmetingen. Dit komt doordat de Lucide SVG-paden van `LogIn` minder visueel gewicht hebben dan `LogOut`.
+De kolommen Pers, Tafel, Shift en Status staan te dicht op elkaar, waardoor de tabel visueel druk en moeilijk scanbaar overkomt.
 
 ## Oplossing
-Vergroot het `LogIn` icoon licht zodat het visueel matcht met `LogOut`.
+De grid-template aanpassen met bredere kolommen en extra `gap` tussen de cellen.
 
-### Bestanden die gewijzigd worden:
+### Huidige grid-definitie
+```
+12px | 1fr | 48px | 56px | 120px | 110px | 80px | 32px
+dot  | naam| pers | tafel| shift | status| acties| menu
+```
 
-**1. `src/components/reserveringen/ReservationListView.tsx` (regel 245)**
-- Van: `<LogIn className="h-4 w-4" />`
-- Naar: `<LogIn className="h-[18px] w-[18px]" />`
+### Nieuwe grid-definitie
+```
+12px | 1fr | 56px | 72px | 128px | 120px | 80px | 32px
+dot  | naam| pers | tafel| shift | status| acties| menu
+```
 
-**2. `src/components/reserveringen/ReservationBlock.tsx` (regel 235)**
-- Van: `<LogIn className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />`
-- Naar: `<LogIn className="h-4 w-4 text-emerald-600 flex-shrink-0" />`
+Wijzigingen per kolom:
+- **Pers**: 48px naar 56px (+8px)
+- **Tafel**: 56px naar 72px (+16px)
+- **Shift**: 120px naar 128px (+8px)
+- **Status**: 110px naar 120px (+10px)
 
-De `LogOut` iconen blijven ongewijzigd (`h-4 w-4`). Het `ReservationActions.tsx` bestand hoeft niet aangepast te worden omdat daar alleen icon-referenties worden doorgegeven (de rendering-grootte wordt elders bepaald).
+Daarnaast wordt `gap-x-3` (12px) toegevoegd aan de grid om extra witruimte tussen alle kolommen te creeren.
+
+### Technisch
+
+**Bestand: `src/components/reserveringen/ReservationListView.tsx`**
+- Regel 18: De `GRID_COLS` constante aanpassen met de nieuwe kolombreedtes en `gap-x-3` toevoegen
