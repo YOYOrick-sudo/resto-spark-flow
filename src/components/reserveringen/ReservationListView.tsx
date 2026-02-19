@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -185,24 +185,25 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
       <span className="text-sm tabular-nums font-medium text-foreground">{reservation.party_size}p</span>
 
       {/* Tafel */}
-      {/* Tafel */}
       {reservation.table_id ? (
         <span className="text-sm text-muted-foreground truncate">{reservation.table_label || '—'}</span>
       ) : (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={(e) => { e.stopPropagation(); onAssignTable?.(reservation); }}
-                className="flex items-center gap-1.5 cursor-pointer group/assign"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">—</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Klik om tafel toe te wijzen</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="flex items-center gap-1">
+          <span className="text-sm text-muted-foreground">—</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onAssignTable?.(reservation); }}
+                  className="p-1 rounded-md text-warning hover:text-warning/80 hover:bg-warning/10 transition-colors"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Automatisch tafel toewijzen</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       )}
 
       {/* Shift / Ticket */}
