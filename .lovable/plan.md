@@ -1,33 +1,30 @@
 
 
-# Fix: Rode "NU"-lijn definitief achter alle sticky kolommen
+# Fix: "Niet toegewezen" sectie sticky maken (zoals Pacing)
 
-## Wat was het echte probleem?
+## Het echte probleem
+De "Niet toegewezen" sectie is NIET sticky, terwijl TimelineHeader en SeatedCountRow dat wel zijn. Sticky positionering creëert automatisch een correcte stacking context. Zonder sticky werkt de z-index niet betrouwbaar tegen de NowIndicator.
 
-De NowIndicator wrapper-div heeft **geen z-index**, waardoor de kinderen (de rode lijn met z-30) niet in een eigen stacking context zitten. Ze "lekken" naar de bovenliggende context en concurreren direct met de sticky secties. Ondanks dat die secties z-40 hebben, kan de browser de lijn er toch doorheen tonen afhankelijk van DOM-volgorde en rendering.
+## Wat wordt gewijzigd
 
-## De definitieve fix
+### 1. SeatedCountRow: vaste hoogte toevoegen
+De pacing-rij heeft nu geen expliciete hoogte. We voegen `h-8` (32px) toe zodat we een betrouwbare top-offset kunnen berekenen voor de "Niet toegewezen" rij.
 
-Geef de NowIndicator wrapper een eigen `z-20`. Dit creëert een stacking context waarin alle kinderen (z-10 glow, z-30 lijn) worden ingekapseld. Vanuit het bovenliggende niveau is de hele indicator nu z-20 -- altijd lager dan de z-40 sticky secties.
+### 2. UnassignedGridRow: sticky maken
+De buitenste wrapper-div (regel 304) krijgt sticky positionering:
 
-## Technische wijziging
+- **Was:** `className="relative z-40 border-b border-warning/30 bg-warning/5"`
+- **Wordt:** `className="sticky top-[72px] z-40 border-b border-warning/30 bg-warning/5"`
 
-### `src/components/reserveringen/ReservationGridView.tsx`
+De offset `72px` = TimelineHeader (40px) + SeatedCountRow (32px).
 
-**Regel 226** -- NowIndicator wrapper:
+## Stacking overzicht na fix
 
-- **Was:** `className="absolute top-0 bottom-0 right-0 overflow-hidden pointer-events-none"`
-- **Wordt:** `className="absolute top-0 bottom-0 right-0 z-20 overflow-hidden pointer-events-none"`
+```text
+top-0      : TimelineHeader    (sticky, z-40)
+top-[40px] : SeatedCountRow    (sticky, z-40, h-8 = 32px)
+top-[72px] : UnassignedGridRow (sticky, z-40) ← NIEUW
+             ZoneHeaders + TableRows (scrollbaar)
+```
 
-## Waarom is dit definitief?
-
-| Element | Z-index | Stacking context |
-|---|---|---|
-| NowIndicator wrapper | **z-20** (nieuw) | Eigen context, kapselt z-30 lijn in |
-| TimelineHeader | z-40 | Boven indicator |
-| SeatedCountRow | z-40 | Boven indicator |
-| UnassignedBadgeList | z-40 | Boven indicator |
-| TableRow sticky cellen | z-40 | Boven indicator |
-
-De rode lijn kan nooit meer door sticky kolommen lopen omdat de hele indicator in een lagere stacking context zit.
-
+Alle drie de sticky secties hebben z-40 en hun eigen stacking context, waardoor de NowIndicator (z-20) er nooit meer doorheen kan.
