@@ -1,66 +1,146 @@
 
+# Ronde 1: Widget V2 Foundation
 
-# AI Suggesties integreren in Kleurenpalet
+## Overzicht
 
-## Probleem
+Dit is de eerste van drie implementatierondes voor de Guest Widget V2 Enterprise Redesign. We leggen het fundament: database, API, slide-in panel, en de basis widget-container.
 
-Nu zijn er twee aparte secties die hetzelfde doen:
-1. Curated palette chips (statisch, altijd zichtbaar)
-2. AI suggesties (apart kaartje, na klik op knop)
+---
 
-Dit voelt dubbel -- twee rijen met kleurencombinaties.
+## Wat verandert
 
-## Nieuwe aanpak
+### 1. Database: `widget_style` kolom + validatie trigger
 
-De **curated palettes worden vervangen door AI-gegenereerde paletten** die automatisch laden wanneer het component mount. Geen aparte knop meer, geen apart kaartje -- de palette chips zelf zijn de AI suggesties.
+Nieuw veld op `widget_settings`:
 
-```text
-Kleurenpalet
-  [Warme Herfst ●●] [Oceaan Bries ●●] [Nacht & Goud ●●] [Custom ●●]
-  [sparkle] Nieuwe suggesties          <-- refresh knop (inline, subtiel)
+```sql
+ALTER TABLE public.widget_settings
+  ADD COLUMN widget_style text NOT NULL DEFAULT 'auto';
 
-  Hoofdkleur          Accentkleur
-  [swatch grid]       [swatch grid]
-  [#10B981___]        [#14B8A6___]
+CREATE OR REPLACE FUNCTION validate_widget_style()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.widget_style NOT IN ('auto', 'showcase', 'quick') THEN
+    RAISE EXCEPTION 'widget_style must be auto, showcase, or quick';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validate_widget_style
+  BEFORE INSERT OR UPDATE ON widget_settings
+  FOR EACH ROW EXECUTE FUNCTION validate_widget_style();
 ```
 
-## Hoe het werkt
+### 2. API: `/config` endpoint uitbreiden
 
-1. **Bij mount**: Component laadt 3 AI suggesties automatisch (edge function call)
-2. **Palette chips**: De 3 AI suggesties verschijnen als klikbare chips met naam + twee kleurcirkels
-3. **Custom chip**: Als de huidige kleuren niet matchen met een suggestie, verschijnt een "Custom" chip (actief)
-4. **Refresh knop**: Een klein "Nieuwe suggesties" knopje (met sparkle icon) haalt 3 nieuwe paletten op
-5. **Fallback**: Tijdens laden of bij een fout worden de 5 statische curated palettes getoond (zodat de UI nooit leeg is)
-6. **Tooltip**: Elke AI chip toont de reasoning als tooltip bij hover
+Het `public-booking-api/index.ts` `/config` endpoint wordt uitgebreid:
 
-## Wat verdwijnt
+- **Bug fix**: `.eq('is_active', true)` naar `.eq('status', 'active')` (tickets tabel heeft geen `is_active` kolom)
+- **Nieuw**: `widget_accent_color` en `widget_style` ophalen uit widget_settings
+- **Nieuw**: Tickets array met `id`, `name`, `display_title`, `description`, `short_description`, `image_url`, `min_party_size`, `max_party_size` retourneren
+- **Nieuw**: `active_ticket_count` veld
+- **Nieuw**: `accent_color` in response
 
-- De "Stel betere kleuren voor" knop
-- Het aparte AI suggesties kaartje met "Toepassen" knoppen
-- De NestoCard wrapper voor AI resultaten
+Response wordt:
+```text
+{
+  ...bestaande velden...
+  accent_color: "#14B8A6",
+  widget_style: "auto",
+  active_ticket_count: 2,
+  tickets: [
+    { id, name, display_title, description, short_description, 
+      image_url, min_party_size, max_party_size }
+  ]
+}
+```
 
-## Wat blijft
+### 3. `widget.js`: Slide-in panel i.p.v. centered modal
 
-- Swatch grids (hoofdkleur + accentkleur) -- ongewijzigd
-- Hex inputs -- ongewijzigd
-- Custom chip indicator -- ongewijzigd
+Het huidige centered modal overlay wordt vervangen door een rechter slide-in panel:
 
-## Technische details
+**Desktop (>=768px)**:
+- Panel: `position: fixed; right: 0; top: 0; bottom: 0; width: 420px; z-index: 99999`
+- Geen border-radius (edge-to-edge rechts)
+- Animatie: `translateX(100%) -> translateX(0)` in 300ms ease-out
+- Donkere backdrop links (`rgba(0,0,0,0.4)`)
+- X-knop rechtsboven (40x40 touch target)
 
-### Bestand: `ColorPaletteSelector.tsx`
+**Mobiel (<768px)**:
+- Fullscreen: `position: fixed; inset: 0; z-index: 99999`
+- X-knop rechtsboven (geen drag handle -- eenvoudiger en betrouwbaarder)
+- Animatie: `translateY(100%) -> translateY(0)` op mobiel
 
-Wijzigingen:
-- `useEffect` bij mount: roept `fetchSuggestions()` aan
-- `CURATED_PALETTES` wordt de fallback (getoond tijdens laden / bij error)
-- State `suggestions` wordt de primaire bron voor palette chips
-- De palette chips rendering gebruikt `suggestions ?? CURATED_PALETTES` (met mapping)
-- AI suggesties kaart (regels 230-271) wordt verwijderd
-- AI knop (regels 212-228) wordt vervangen door een compacte "Nieuwe suggesties" refresh link
-- Tooltip met `title` attribuut op elke AI chip voor de reasoning
+**Gedeeld**:
+- Body scroll lock
+- ESC toets + backdrop click + `nesto:close` postMessage
+- `nesto:resize` voor inline mode (ongewijzigd)
 
-### Edge function: geen wijzigingen nodig
+### 4. `BookingWidget.tsx`: Container redesign
 
-De `suggest-widget-colors` functie werkt al correct en retourneert 3 suggesties.
+De pagina wordt aangepast voor het panel-formaat:
 
-### Geen database wijzigingen nodig
+- `?embed=true`: verbergt logo + naam header en "Powered by Nesto" footer (al zo)
+- Panel header met logo (32px) + restaurant naam + X knop
+- Progress pill-dots worden verplaatst naar de header
+- Content krijgt panel padding (20px)
+- Geen `max-w-md` meer, widget vult beschikbare ruimte
 
+### 5. `BookingContext.tsx`: Nieuwe velden
+
+- `WidgetConfig` uitbreiden met `accent_color`, `widget_style`, `tickets`, `active_ticket_count`
+- `BookingStep` type wordt `1 | 2 | 3 | 4 | 5` (5 voor showcase mode)
+- Nieuwe state: `selectedTicket` (voor showcase mode, stap 1)
+- Auto-detectie logica: als `widget_style === 'auto'`, bepaal op basis van `active_ticket_count >= 2`
+- `effectiveStyle`: computed `'showcase' | 'quick'` waarde
+
+### 6. `BookingProgress.tsx`: Pill-dots
+
+- Geen genummerde cirkels meer, maar pill-dots
+- Actieve stap: 24px breed, bg-primary
+- Afgeronde stap: 8px breed, bg-primary/60
+- Toekomstige stap: 8px breed, bg-gray-200
+- Labels verwijderd
+- Dynamisch 4 of 5 dots afhankelijk van effectiveStyle
+
+### 7. Settings UI: Widget stijl selector
+
+In `SettingsReserveringenWidget.tsx`, nieuwe sectie in de "Weergave" card:
+
+- "Widget stijl" selector met 3 opties:
+  - **Auto** (standaard): "Automatisch gekozen op basis van aantal tickets"
+  - **Showcase**: "Gasten kiezen eerst een ticket (ticket-first)"
+  - **Quick**: "Direct naar datum en tijd (datum-first)"
+- Opgeslagen als `widget_style` in de database
+
+### 8. `useWidgetSettings.ts`
+
+- `widget_style` toevoegen aan de `WidgetSettings` interface
+
+---
+
+## Bestanden overzicht
+
+| Bestand | Actie | Wijziging |
+|---------|-------|-----------|
+| Migratie SQL | Nieuw | `widget_style` kolom + validatie trigger |
+| `supabase/functions/public-booking-api/index.ts` | Wijzigen | Config endpoint: tickets, accent, style + `is_active` bug fix |
+| `public/widget.js` | Wijzigen | Slide-in panel i.p.v. centered modal |
+| `src/pages/BookingWidget.tsx` | Wijzigen | Panel header, padding, embed awareness |
+| `src/contexts/BookingContext.tsx` | Wijzigen | `WidgetConfig` uitbreiden, 5-stap support, `selectedTicket` |
+| `src/components/booking/BookingProgress.tsx` | Wijzigen | Pill-dots, dynamisch 4/5 stappen |
+| `src/hooks/useWidgetSettings.ts` | Wijzigen | `widget_style` in interface |
+| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Wijzigen | Widget stijl selector in Weergave card |
+
+---
+
+## Niet in deze ronde
+
+- TicketSelectStep.tsx (Ronde 2: visuele redesign)
+- Kalender NL locale (Ronde 2)
+- Tijdslot grid redesign (Ronde 2)
+- Formulier redesign (Ronde 2)
+- Bevestiging animatie (Ronde 2)
+- Skeleton loading states (Ronde 3)
+- Micro-interacties (Ronde 3)
