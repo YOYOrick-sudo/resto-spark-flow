@@ -88,7 +88,7 @@ function TimelineHeader({ config }: { config: GridTimeConfig }) {
   const totalWidth = hourLabels.length * hourWidth;
 
   return (
-    <div className="sticky top-0 z-[60] flex border-b-2 border-border bg-card">
+    <div className="sticky top-0 z-[45] flex border-b-2 border-border bg-card">
       <div className="sticky left-0 z-[60] flex-shrink-0 bg-card border-r-2 border-border h-10" style={{ width: `${STICKY_COL_WIDTH}px` }} />
       <div className="relative h-10" style={{ width: `${totalWidth}px` }}>
         {hourLabels.map((_, hourIndex) => (
