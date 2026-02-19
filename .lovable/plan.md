@@ -1,52 +1,65 @@
 
 
-# "Niet toegewezen" als echte grid-rij
+# "Niet toegewezen" in lijstweergave opschonen
 
 ## Probleem
-De huidige "Niet toegewezen" sectie is een horizontale kaartjeslijst die los boven de grid staat. Dit breekt de visuele consistentie: het lijnt niet uit met de timeline en voelt als een ander component.
+De oranje "Niet toegewezen" tekst met Sparkles-icoon en underline in de Tafel-kolom ziet er druk en inconsistent uit. Het valt te veel op en past niet bij de rustige enterprise-stijl van de rest van de tabel.
 
-## Oplossing
-Vervang de kaartjeslijst door een rij die exact dezelfde structuur heeft als een gewone tafelrij:
-- 140px sticky linkerkolom met label "Niet toegew." en count
-- ReservationBlock componenten gepositioneerd op de juiste tijdstippen in de timeline
-- Subtiele warning-achtergrond zodat het opvalt als "actie nodig"
+## Drie opties
 
-```text
-Huidige situatie:
-+-----------------------------------------------+
-| v Niet toegewezen (1)                         |
-| [19:00 | 2p | Hansje Peter | Wijs toe]        |
-+-----------------------------------------------+
-| RESTAURANT                                    |
-| Tafel 1  2-4  *  |----[blok]------|           |
+### Optie A: Subtiel streepje met warning-dot (aanbevolen)
+Toon gewoon een `—` (em-dash) net als bij ontbrekende data, maar met een kleine oranje dot ervoor als visueel signaal. Klikbaar om toe te wijzen.
 
-Nieuwe situatie:
-+------------------+----[19:00 Hansje 2p]-------+
-| Niet toegew. (1) |                            |
-+------------------+----------------------------+
-| RESTAURANT       |                            |
-| Tafel 1  2-4  *  |----[blok]------|           |
+```
+TAFEL
+—          (gewone tekst, geen tafel)
+·  —       (oranje dot + dash = geen tafel, actie nodig)
+Tafel 1
 ```
 
-De blokken krijgen een oranje border-accent (`border-warning/60`) zodat ze visueel opvallen. "Wijs toe" knop verschijnt bij hover op het blok. Collapsible blijft behouden.
+- Rustig, past in de tabelstructuur
+- De oranje dot geeft net genoeg urgentie zonder te schreeuwen
+- Klik op de cel opent auto-assign (tooltip legt uit)
 
-## Technische wijzigingen
+### Optie B: Compact "—" met assign-icoon bij hover
+Toon een muted `—` standaard. Bij hover over de rij verschijnt een klein Wand2-icoon naast het streepje.
 
-### 1. `src/components/reserveringen/ReservationGridView.tsx`
+```
+TAFEL
+—              (standaard)
+— [wand]       (bij hover)
+Tafel 1
+```
 
-**UnassignedBadgeList herschrijven** (regels 263-338):
-- Sticky linkerkolom (140px) met "Niet toegew." label, count badge, en collapse toggle
-- Timeline-area met dezelfde breedte als de grid (`gridWidth`)
-- Per reservering een `ReservationBlock` renderen met dezelfde positioneringslogica (via `calculateBlockPosition`)
-- "Wijs toe" knop als overlay bij hover op een blok (kleine Wand2 icon)
-- Achtergrond: `bg-warning/5` voor de hele rij
-- Quarter-slot gridlijnen toevoegen (zelfde als in `TableRow`) voor visuele uitlijning
+- Nog rustiger dan optie A
+- Actie-icoon alleen zichtbaar wanneer relevant
 
-### 2. `src/components/reserveringen/ReservationBlock.tsx`
+### Optie C: Mini warning badge
+Een kleine badge met alleen "!" of een warning-driehoek, dezelfde stijl als de ticket-afkorting badge.
 
-**Optionele `variant` prop toevoegen**:
-- Nieuwe prop: `variant?: 'default' | 'unassigned'`
-- Bij `variant="unassigned"`: override de statuskleur met `border-warning/60 bg-warning/5`
-- Dit zorgt ervoor dat ongeacht de status, niet-toegewezen blokken altijd de oranje warning-stijl krijgen
+```
+TAFEL
+[!]
+Tafel 1
+```
 
-### Geen database- of backend-wijzigingen nodig.
+- Compact maar misschien te cryptisch
+
+## Aanbeveling: Optie A
+
+Een oranje dot (zelfde grootte als de status-dot links) gevolgd door een muted em-dash. Hele cel is klikbaar met tooltip "Klik om tafel toe te wijzen". Dit is:
+- Visueel rustig en consistent met de rest van de tabel
+- Duidelijk genoeg dat er iets mist (oranje dot = aandacht)
+- Enterprise-waardig (Stripe/Linear gebruiken vergelijkbare patronen voor ontbrekende data)
+
+## Technische wijziging
+
+### `src/components/reserveringen/ReservationListView.tsx`
+Regels 188-205 aanpassen:
+- Vervang de oranje "Niet toegewezen" tekst + Sparkles-icoon door:
+  - Een kleine oranje dot (`w-1.5 h-1.5 rounded-full bg-warning`)
+  - Gevolgd door een muted em-dash (`text-muted-foreground`)
+- Behoud de `onClick` handler voor auto-assign
+- Behoud de tooltip met uitleg
+- Voeg `cursor-pointer` toe zodat het klikbaar aanvoelt
+
