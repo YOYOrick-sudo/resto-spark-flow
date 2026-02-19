@@ -8,6 +8,7 @@ import {
   Link2,
   Ticket,
   Shield,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 
@@ -116,6 +117,13 @@ export const reserveringenConfig: SettingsModuleConfig = {
       path: "/instellingen/reserveringen/notificaties",
       description: "E-mail en SMS instellingen",
       icon: Bell,
+    },
+    {
+      id: "widget",
+      label: "Widget",
+      path: "/instellingen/reserveringen/widget",
+      description: "Publieke boekingswidget configureren",
+      icon: Globe,
     },
   ],
 };
