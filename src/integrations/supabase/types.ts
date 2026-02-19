@@ -1255,6 +1255,7 @@ export type Database = {
           status: Database["public"]["Enums"]["reservation_status"]
           table_group_id: string | null
           table_id: string | null
+          tags: Json
           ticket_id: string
           updated_at: string
         }
@@ -1283,6 +1284,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["reservation_status"]
           table_group_id?: string | null
           table_id?: string | null
+          tags?: Json
           ticket_id: string
           updated_at?: string
         }
@@ -1311,6 +1313,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["reservation_status"]
           table_group_id?: string | null
           table_id?: string | null
+          tags?: Json
           ticket_id?: string
           updated_at?: string
         }
@@ -2045,6 +2048,68 @@ export type Database = {
             foreignKeyName: "user_location_roles_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widget_settings: {
+        Row: {
+          booking_questions: Json
+          created_at: string
+          google_reserve_url: string | null
+          id: string
+          location_id: string
+          location_slug: string | null
+          show_end_time: boolean
+          show_nesto_branding: boolean
+          unavailable_text: string
+          updated_at: string
+          widget_enabled: boolean
+          widget_logo_url: string | null
+          widget_primary_color: string
+          widget_success_redirect_url: string | null
+          widget_welcome_text: string | null
+        }
+        Insert: {
+          booking_questions?: Json
+          created_at?: string
+          google_reserve_url?: string | null
+          id?: string
+          location_id: string
+          location_slug?: string | null
+          show_end_time?: boolean
+          show_nesto_branding?: boolean
+          unavailable_text?: string
+          updated_at?: string
+          widget_enabled?: boolean
+          widget_logo_url?: string | null
+          widget_primary_color?: string
+          widget_success_redirect_url?: string | null
+          widget_welcome_text?: string | null
+        }
+        Update: {
+          booking_questions?: Json
+          created_at?: string
+          google_reserve_url?: string | null
+          id?: string
+          location_id?: string
+          location_slug?: string | null
+          show_end_time?: boolean
+          show_nesto_branding?: boolean
+          unavailable_text?: string
+          updated_at?: string
+          widget_enabled?: boolean
+          widget_logo_url?: string | null
+          widget_primary_color?: string
+          widget_success_redirect_url?: string | null
+          widget_welcome_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_settings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
