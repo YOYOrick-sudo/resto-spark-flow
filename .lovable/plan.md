@@ -1,25 +1,24 @@
 
-# Fix: Panel overlay wordt bedekt door grid elementen
+# Fix: Wit blokje — NowLine doet mee met panel z-index
 
 ## Probleem
 
-Wanneer je in de **grid view** op "Reservering" of "Walk-in" klikt, opent het NestoPanel met een donkere achtergrond-overlay op `z-40`. Maar de grid view heeft elementen op `z-50` (de "NU" tijdslijn) die **boven** de overlay uitsteken. Hierdoor zijn reserveringsblokken en de tijdlijn zichtbaar door/over het panel heen — een rommelig visueel resultaat.
+De "NU" tijdslijn in de grid view heeft `z-50`, dezelfde z-index als het NestoPanel. Hierdoor kan de rode "NU"-lijn (en het bijbehorende rood/transparante achtergrondvlak) door de overlay van het panel heen zichtbaar zijn als een klein blokje.
 
 ## Oorzaak
 
-- NestoPanel backdrop overlay: `z-40`
-- NestoPanel zelf: `z-40`
-- Grid NowLine container: `z-50` (hoger, dus bovenop de overlay)
+- NowLine container: `z-50` (in `ReservationGridView.tsx` regel 233)
+- NestoPanel overlay + panel: `z-50` (in `NestoPanel.tsx`)
+- Omdat de NowLine een `absolute` element is binnen een parent die een stacking context creëert (via `overflow-hidden`), en het NestoPanel `fixed` is, kan het gedrag per browser/viewport verschillen.
 
 ## Oplossing
 
-Verhoog de z-index van het NestoPanel (zowel backdrop als panel) van `z-40` naar `z-50`. Dit zorgt ervoor dat het panel altijd boven alle grid-elementen verschijnt.
+Verlaag de z-index van de NowLine van `z-50` naar `z-30`. De NowLine hoeft alleen boven reserveringsblokken (die geen specifieke z-index hebben) en gridlijnen te staan, niet boven modals/panels. `z-30` is voldoende.
 
 ## Technisch
 
-### `src/components/polar/NestoPanel.tsx`
+### `src/components/reserveringen/ReservationGridView.tsx`
 
-1. **Backdrop overlay** (regel 111): Verander `z-40` naar `z-50`
-2. **Panel container** (regel 115): Verander `z-40` naar `z-50`
+1. **NowLine container** (regel 233): Verander `z-50` naar `z-30`
 
-Totaal: 1 bestand, 2 regels aangepast.
+Totaal: 1 bestand, 1 regel aangepast.
