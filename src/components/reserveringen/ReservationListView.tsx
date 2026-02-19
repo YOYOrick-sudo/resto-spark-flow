@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -193,13 +193,13 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
             <TooltipTrigger asChild>
               <button
                 onClick={(e) => { e.stopPropagation(); onAssignTable?.(reservation); }}
-                className="text-sm text-warning hover:text-warning/80 underline cursor-pointer truncate flex items-center gap-1"
+                className="flex items-center gap-1.5 cursor-pointer group/assign"
               >
-                <Sparkles className="h-3 w-3" />
-                Niet toegewezen
+                <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" />
+                <span className="text-sm text-muted-foreground">—</span>
               </button>
             </TooltipTrigger>
-            <TooltipContent>Klik om automatisch een tafel toe te wijzen</TooltipContent>
+            <TooltipContent>Klik om tafel toe te wijzen</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       )}
