@@ -1,39 +1,37 @@
 
 
-# Fix: Rode NU-lijn mag NIET door de linkerkolom lopen
+# Fix: Rode NU-lijn moet doorlopen tot bovenaan (door de tijdlijn-header)
 
-## Wat ik begrijp
+## Probleem
 
-De rode lijn loopt nu correct ononderbroken door het tijdlijn-gedeelte (rechts) -- dat is goed. Maar de lijn loopt nu OOK door de linkerkolom (140px breed, met tafelnamen, "Pacing", "Niet toegew.", area-headers). Dat mag niet. De linkerkolom moet de lijn volledig blokkeren.
+De TimelineHeader (met de uur-labels 16:00, 17:00, etc.) blokkeert de rode lijn bovenaan. De hele header-rij staat op `z-[60]` met een opaque `bg-card` achtergrond. Omdat de NowIndicator op `z-50` staat, wordt de lijn afgedekt door de header -- ook in het tijdlijn-gedeelte rechts.
 
 ## Oorzaak
 
-De NowIndicator is verhoogd naar `z-50`. Alle sticky linkerkolommen staan op `z-40`. Omdat `z-50 > z-40` schildert de rode lijn BOVEN de sticky linkerkolom wanneer deze overlapt (bij horizontaal scrollen schuift de NowIndicator onder de sticky kolom, maar de hogere z-index laat hem er bovenop verschijnen).
+Op regel 91 staat:
+```
+<div className="sticky top-0 z-[60] flex border-b-2 border-border bg-card">
+```
+
+De hele rij (links EN rechts) is `z-[60]` met `bg-card`. Dit blokkeert de rode lijn (`z-50`) overal in de header, inclusief het rechter tijdlijn-gedeelte waar de lijn WEL zichtbaar moet zijn.
 
 ## Oplossing
 
-Verhoog de z-index van alle sticky linkerkolommen van `z-40` naar `z-[60]`. Dan is de volgorde:
+Splits de z-index van de TimelineHeader:
 
-| Element | z-index | Resultaat |
-|---------|---------|-----------|
-| Sticky linkerkolommen | z-[60] | Blokkeert de rode lijn |
-| NowIndicator | z-50 | Boven tijdlijn-content, onder linkerkolom |
-| Overige rij-achtergronden | z-10/z-20 | Onder alles |
+1. **Buitenste wrapper (regel 91):** Verlaag van `z-[60]` naar `z-[45]`. Dit zorgt dat de NowIndicator (`z-50`) BOVEN de header-achtergrond wordt getekend in het tijdlijn-gedeelte.
+2. **Linkerkolom (regel 92):** Behoud `z-[60]`. Dit blokkeert de rode lijn in de labelkolom.
 
-## Technische wijzigingen
+De header blijft sticky en zichtbaar, maar de rode lijn schijnt er in het rechtergedeelte doorheen. De linkerkolom (140px) blokkeert de lijn nog steeds.
+
+## Technische wijziging
 
 ### `src/components/reserveringen/ReservationGridView.tsx`
 
-Alle `z-40` op sticky left-kolommen en sticky top-rijen worden `z-[60]`:
+**Regel 91:**
+- Was: `z-[60]`
+- Wordt: `z-[45]`
 
-1. **TimelineHeader** (regel 91-92): twee `z-40` naar `z-[60]`
-2. **SeatedCountRow** (regel 161-162): twee `z-40` naar `z-[60]`
-3. **ZoneHeader** (regel 195): `z-40` naar `z-[60]`
-4. **UnassignedGridRow wrapper** (regel 304): `z-40` naar `z-[60]`
-5. **UnassignedGridRow sticky left** (regel 309): `z-40` naar `z-[60]`
+(Regel 92 blijft `z-[60]` -- alleen de linkerkolom behoudt de hoge z-index.)
 
-### `src/components/reserveringen/TableRow.tsx`
-
-6. **TableRow sticky left** (regel 93): `z-40` naar `z-[60]`
-
-Totaal: 7 keer `z-40` vervangen door `z-[60]` in 2 bestanden.
+Resultaat: 1 regel aanpassen.
