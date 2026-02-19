@@ -1,43 +1,33 @@
 
-# Fix: "Niet toegewezen" moet eruitzien en werken als Pacing-blok
 
-## Twee problemen gevonden
+# Fix: "Niet toegewezen" licht oranje achtergrond behouden maar wel opaque
 
-### 1. Achtergrond is transparant
-De "Niet toegewezen" sectie gebruikt `bg-warning/5` (5% opacity). De rode "NU"-lijn schijnt er gewoon doorheen omdat de achtergrond bijna doorzichtig is. De pacing-rij gebruikt `bg-secondary` -- volledig opaque -- daarom werkt het daar wel.
+## Probleem
+De achtergrond is nu `bg-secondary` (grijs) maar moet de licht-oranje tint behouden die het eerder had. Tegelijkertijd moet de achtergrond opaque blijven zodat de rode lijn er niet doorheen schijnt.
 
-### 2. Grid-lijnen zichtbaar
-De "Niet toegewezen" sectie rendert dezelfde 15-minuten grid-streepjes als de tabelrijen (regels 323-334 in `UnassignedGridRow`). De pacing-rij heeft dit niet -- die heeft solide cellen met data. Hierdoor lijkt "Niet toegewezen" op een gewone tabelrij in plaats van op een header-achtig blok.
+## Oplossing
+Gebruik een opaque oranje achtergrond in plaats van een transparante. Dit doen we door `bg-warning/5` (transparant) te vervangen door een CSS-truc: een opaque achtergrond met een warning-overlay erop.
 
-## Wat wordt gewijzigd
+Concreet: we gebruiken een dubbele achtergrond via een `before` pseudo-element, of simpeler: we zetten `bg-secondary` als basis en voegen een `before`-laag toe met de warning-kleur.
+
+De eenvoudigste aanpak: vervang `bg-secondary` door een inline style met een opaque kleur die overeenkomt met warning/5 op een witte/kaart-achtergrond. Maar dat is fragiel met dark mode.
+
+Betere aanpak: gebruik `bg-secondary` als opaque basis en leg er `bg-warning/5` overheen via een extra div. Zo is de onderlaag opaque (blokkeert rode lijn) en de bovenlaag geeft de oranje tint.
+
+## Technische wijzigingen
 
 ### `src/components/reserveringen/ReservationGridView.tsx` -- UnassignedGridRow
 
 **Buitenste wrapper (regel 304):**
-- Was: `bg-warning/5`
-- Wordt: `bg-secondary` (opaque, zelfde als pacing)
+- Was: `bg-secondary`
+- Wordt: `bg-secondary` met een extra `after` overlay voor de warning-tint
+- Implementatie: voeg `relative` toe en een inner `<div className="absolute inset-0 bg-warning/5 pointer-events-none" />` als eerste kind
 
 **Sticky linkerkolom (regel 309):**
-- Was: `bg-warning/5`
-- Wordt: `bg-secondary` (opaque, consistent)
+- Zelfde aanpak: `bg-secondary relative` met een `<div className="absolute inset-0 bg-warning/5 pointer-events-none" />` als eerste kind
 
-**De warning-kleur behouden we via de tekst en badge** (die zijn al oranje/warning gestyled), niet via de achtergrond.
+Dit geeft:
+- Opaque `bg-secondary` basis die de rode lijn blokkeert
+- Licht-oranje tint via de transparante warning-overlay erboven
+- Werkt correct in zowel light als dark mode
 
-**Quarter-slot grid lines verwijderen (regels 323-334):**
-De `<div className="absolute inset-0 flex">` met alle quarter-slot divs wordt verwijderd. De reservatieblokken worden direct op een schone achtergrond getoond, net zoals de pacing-rij schone cellen heeft.
-
-**Border-styling aanpassen:**
-- Was: `border-b border-warning/30`
-- Wordt: `border-b-2 border-border` (zelfde als pacing)
-
-## Visueel resultaat
-
-```text
-TimelineHeader  : bg-card      | opaque | geen grid-lijnen | border-b-2
-SeatedCountRow  : bg-secondary | opaque | eigen cellen     | border-b-2
-Niet toegewezen : bg-secondary | opaque | geen grid-lijnen | border-b-2  <-- NA FIX
-ZoneHeaders     : bg-secondary | ...
-TableRows       : bg-card      | grid-lijnen zichtbaar
-```
-
-De rode lijn kan niet meer door een opaque achtergrond schijnen, en de sectie ziet er visueel uit als een zusterelement van de pacing-rij.
