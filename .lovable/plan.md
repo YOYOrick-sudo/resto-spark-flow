@@ -1,33 +1,39 @@
 
 
-# Fix: Rode NU-lijn ononderbroken door het hele tijdlijn-gedeelte
+# Fix: Rode NU-lijn mag NIET door de linkerkolom lopen
 
 ## Wat ik begrijp
 
-De rode NU-lijn moet van boven tot onder ONONDERBROKEN doorlopen in het rechter tijdlijn-gedeelte -- door alles heen: pacing, "Niet toegewezen", area-headers, tafelrijen. Nergens gaten. De lijn mag alleen niet in de linkerkolom (140px) verschijnen. Dat laatste klopt al: de NowIndicator begint op `left: 140px`.
+De rode lijn loopt nu correct ononderbroken door het tijdlijn-gedeelte (rechts) -- dat is goed. Maar de lijn loopt nu OOK door de linkerkolom (140px breed, met tafelnamen, "Pacing", "Niet toegew.", area-headers). Dat mag niet. De linkerkolom moet de lijn volledig blokkeren.
 
 ## Oorzaak
 
-De NowIndicator staat op `z-20`. Maar:
-- SeatedCountRow (Pacing): `z-40` + `bg-secondary` -- blokkeert de lijn
-- UnassignedGridRow: `z-40` op de wrapper -- blokkeert de lijn
-- ZoneHeader: `bg-secondary` (opaque) -- schildert over de lijn
-
-Al deze elementen liggen boven de lijn in de z-volgorde.
+De NowIndicator is verhoogd naar `z-50`. Alle sticky linkerkolommen staan op `z-40`. Omdat `z-50 > z-40` schildert de rode lijn BOVEN de sticky linkerkolom wanneer deze overlapt (bij horizontaal scrollen schuift de NowIndicator onder de sticky kolom, maar de hogere z-index laat hem er bovenop verschijnen).
 
 ## Oplossing
 
-Eenregelige fix: verhoog de z-index van de NowIndicator van `z-20` naar `z-50`.
+Verhoog de z-index van alle sticky linkerkolommen van `z-40` naar `z-[60]`. Dan is de volgorde:
 
-De NowIndicator begint al op `left: 140px`, dus hij overlapt nooit met de sticky linkerkolommen. Door de z-index te verhogen wordt de lijn boven alle timeline-elementen getekend, terwijl de linkerkolom er niet door geraakt wordt.
+| Element | z-index | Resultaat |
+|---------|---------|-----------|
+| Sticky linkerkolommen | z-[60] | Blokkeert de rode lijn |
+| NowIndicator | z-50 | Boven tijdlijn-content, onder linkerkolom |
+| Overige rij-achtergronden | z-10/z-20 | Onder alles |
 
-## Technische wijziging
+## Technische wijzigingen
 
-### `src/components/reserveringen/ReservationGridView.tsx` -- NowIndicator (regel 226)
+### `src/components/reserveringen/ReservationGridView.tsx`
 
-Wijzig de container z-index:
-- Was: `z-20`
-- Wordt: `z-50`
+Alle `z-40` op sticky left-kolommen en sticky top-rijen worden `z-[60]`:
 
-Dat is alles. De rode lijn loopt dan ononderbroken door pacing, "Niet toegewezen", area-headers en tafelrijen in het tijdlijn-gedeelte.
+1. **TimelineHeader** (regel 91-92): twee `z-40` naar `z-[60]`
+2. **SeatedCountRow** (regel 161-162): twee `z-40` naar `z-[60]`
+3. **ZoneHeader** (regel 195): `z-40` naar `z-[60]`
+4. **UnassignedGridRow wrapper** (regel 304): `z-40` naar `z-[60]`
+5. **UnassignedGridRow sticky left** (regel 309): `z-40` naar `z-[60]`
 
+### `src/components/reserveringen/TableRow.tsx`
+
+6. **TableRow sticky left** (regel 93): `z-40` naar `z-[60]`
+
+Totaal: 7 keer `z-40` vervangen door `z-[60]` in 2 bestanden.
