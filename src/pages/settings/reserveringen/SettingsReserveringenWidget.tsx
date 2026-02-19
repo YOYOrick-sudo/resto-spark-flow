@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { SettingsDetailLayout } from '@/components/settings/layouts/SettingsDetailLayout';
 import { NestoCard } from '@/components/polar/NestoCard';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { NestoInput } from '@/components/polar/NestoInput';
 import { Switch } from '@/components/ui/switch';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { NestoSelect } from '@/components/polar/NestoSelect';
+import { Textarea } from '@/components/ui/textarea';
 import { BookingQuestionsEditor } from '@/components/settings/widget/BookingQuestionsEditor';
 import { EmbedModeSelector, type EmbedMode } from '@/components/settings/widget/EmbedModeSelector';
 import { EmbedCodePreview } from '@/components/settings/widget/EmbedCodePreview';
@@ -34,6 +33,9 @@ interface LocalSettings {
   widget_success_redirect_url: string;
   booking_questions: BookingQuestion[];
 }
+
+const sectionHeader = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4";
+const sectionDivider = "border-t border-border/50 pt-5 mt-5";
 
 export default function SettingsReserveringenWidget() {
   const { data: settings, isLoading } = useWidgetSettings();
@@ -135,127 +137,129 @@ export default function SettingsReserveringenWidget() {
       breadcrumbs={breadcrumbs}
     >
       <div className="space-y-6">
-        {/* Section 1: Algemeen */}
+        {/* Card 1: Configuratie */}
         <NestoCard className="p-6">
-          <h3 className="text-sm font-semibold mb-4">Algemeen</h3>
-          <div className="bg-secondary/50 rounded-card p-4 space-y-4">
-            <div className="flex items-center justify-between">
+          {/* Widget aan/uit */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Widget inschakelen</p>
+              <p className="text-xs text-muted-foreground">Maak de boekingswidget zichtbaar voor gasten</p>
+            </div>
+            <Switch checked={local.widget_enabled} onCheckedChange={v => updateField('widget_enabled', v)} />
+          </div>
+
+          {/* Basis */}
+          <div className={sectionDivider}>
+            <h4 className={sectionHeader}>Basis</h4>
+            <div className="space-y-4">
               <div>
-                <Label className="text-sm">Widget inschakelen</Label>
-                <p className="text-xs text-muted-foreground">Maak de boekingswidget zichtbaar voor gasten</p>
+                <NestoInput
+                  label="Locatie slug"
+                  value={local.location_slug}
+                  onChange={e => updateField('location_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  placeholder="bijv. restaurant-de-kok"
+                  error={local.location_slug && !isValidSlug(local.location_slug) ? 'Alleen kleine letters, cijfers en streepjes.' : undefined}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Unieke identifier in de widget URL.</p>
               </div>
-              <Switch checked={local.widget_enabled} onCheckedChange={v => updateField('widget_enabled', v)} />
-            </div>
 
-            <div>
-              <Label className="text-sm mb-1.5">Locatie slug</Label>
-              <Input
-                value={local.location_slug}
-                onChange={e => updateField('location_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="bijv. restaurant-de-kok"
-                className="text-sm"
-              />
-              {local.location_slug && !isValidSlug(local.location_slug) && (
-                <p className="text-xs text-destructive mt-1">Alleen kleine letters, cijfers en streepjes.</p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">Unieke identifier in de widget URL.</p>
-            </div>
+              <div className="w-full">
+                <label className="mb-2 block text-label text-muted-foreground">Welkomsttekst</label>
+                <Textarea
+                  value={local.widget_welcome_text}
+                  onChange={e => updateField('widget_welcome_text', e.target.value)}
+                  placeholder="Welkom! Reserveer een tafel bij ons."
+                  className="text-body min-h-[60px] border-[1.5px] border-border bg-card rounded-button focus:!border-primary focus:outline-none focus:ring-0"
+                  rows={2}
+                />
+              </div>
 
-            <div>
-              <Label className="text-sm mb-1.5">Welkomsttekst</Label>
-              <Textarea
-                value={local.widget_welcome_text}
-                onChange={e => updateField('widget_welcome_text', e.target.value)}
-                placeholder="Welkom! Reserveer een tafel bij ons."
-                className="text-sm min-h-[60px]"
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label className="text-sm mb-1.5">Niet-beschikbaar tekst</Label>
               <NestoSelect
+                label="Niet-beschikbaar tekst"
                 value={local.unavailable_text}
                 onValueChange={v => updateField('unavailable_text', v)}
                 options={unavailableOptions}
               />
-            </div>
 
-            <div className="flex items-center justify-between">
               <div>
-                <Label className="text-sm">Eindtijd tonen</Label>
-                <p className="text-xs text-muted-foreground">Toon de verwachte eindtijd bij elk tijdslot</p>
+                <NestoInput
+                  label="Redirect URL na boeking"
+                  value={local.widget_success_redirect_url}
+                  onChange={e => updateField('widget_success_redirect_url', e.target.value)}
+                  placeholder="https://mijnrestaurant.nl/bedankt"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Optioneel: stuur gasten naar deze URL na een succesvolle boeking.</p>
               </div>
-              <Switch checked={local.show_end_time} onCheckedChange={v => updateField('show_end_time', v)} />
             </div>
+          </div>
 
-            <div className="flex items-center justify-between">
+          {/* Weergave */}
+          <div className={sectionDivider}>
+            <h4 className={sectionHeader}>Weergave</h4>
+            <div className="divide-y divide-border/50">
+              <div className="flex items-center justify-between py-4 first:pt-0">
+                <div>
+                  <p className="text-sm font-medium">Eindtijd tonen</p>
+                  <p className="text-xs text-muted-foreground">Toon de verwachte eindtijd bij elk tijdslot</p>
+                </div>
+                <Switch checked={local.show_end_time} onCheckedChange={v => updateField('show_end_time', v)} />
+              </div>
+              <div className="flex items-center justify-between py-4">
+                <div>
+                  <p className="text-sm font-medium">Nesto branding tonen</p>
+                  <p className="text-xs text-muted-foreground">"Powered by Nesto" onderaan de widget</p>
+                </div>
+                <Switch checked={local.show_nesto_branding} onCheckedChange={v => updateField('show_nesto_branding', v)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Branding */}
+          <div className={sectionDivider}>
+            <h4 className={sectionHeader}>Branding</h4>
+            <div className="space-y-4">
               <div>
-                <Label className="text-sm">Nesto branding tonen</Label>
-                <p className="text-xs text-muted-foreground">"Powered by Nesto" onderaan de widget</p>
+                <label className="mb-2 block text-label text-muted-foreground">Widget kleur</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => colorInputRef.current?.click()}
+                    className="h-8 w-8 rounded-control border border-border cursor-pointer hover:ring-2 hover:ring-primary/30 transition-shadow"
+                    style={{ backgroundColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }}
+                  />
+                  <NestoInput
+                    value={local.widget_primary_color}
+                    onChange={e => updateField('widget_primary_color', e.target.value)}
+                    className="w-[120px]"
+                    placeholder="#10B981"
+                    maxLength={7}
+                  />
+                  <input
+                    ref={colorInputRef}
+                    type="color"
+                    value={isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981'}
+                    onChange={e => updateField('widget_primary_color', e.target.value)}
+                    className="sr-only"
+                    tabIndex={-1}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Kleur van knoppen en accenten in de widget.</p>
               </div>
-              <Switch checked={local.show_nesto_branding} onCheckedChange={v => updateField('show_nesto_branding', v)} />
-            </div>
 
-            <div>
-              <Label className="text-sm mb-1.5">Redirect URL na boeking</Label>
-              <Input
-                value={local.widget_success_redirect_url}
-                onChange={e => updateField('widget_success_redirect_url', e.target.value)}
-                placeholder="https://mijnrestaurant.nl/bedankt"
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Optioneel: stuur gasten naar deze URL na een succesvolle boeking.</p>
+              <div>
+                <NestoInput
+                  label="Widget logo URL"
+                  value={local.widget_logo_url}
+                  onChange={e => updateField('widget_logo_url', e.target.value)}
+                  placeholder="https://..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">Logo dat bovenaan de widget wordt getoond.</p>
+              </div>
             </div>
           </div>
         </NestoCard>
 
-        {/* Section 2: Branding */}
-        <NestoCard className="p-6">
-          <h3 className="text-sm font-semibold mb-4">Branding</h3>
-          <div className="bg-secondary/50 rounded-card p-4 space-y-4">
-            <div>
-              <Label className="text-sm mb-1.5">Widget kleur</Label>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => colorInputRef.current?.click()}
-                  className="h-8 w-8 rounded-control border border-border cursor-pointer hover:ring-2 hover:ring-primary/30 transition-shadow"
-                  style={{ backgroundColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }}
-                />
-                <Input
-                  value={local.widget_primary_color}
-                  onChange={e => updateField('widget_primary_color', e.target.value)}
-                  className="text-sm w-[120px]"
-                  placeholder="#10B981"
-                  maxLength={7}
-                />
-                <input
-                  ref={colorInputRef}
-                  type="color"
-                  value={isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981'}
-                  onChange={e => updateField('widget_primary_color', e.target.value)}
-                  className="sr-only"
-                  tabIndex={-1}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Kleur van knoppen en accenten in de widget.</p>
-            </div>
-
-            <div>
-              <Label className="text-sm mb-1.5">Widget logo URL</Label>
-              <Input
-                value={local.widget_logo_url}
-                onChange={e => updateField('widget_logo_url', e.target.value)}
-                placeholder="https://..."
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Logo dat bovenaan de widget wordt getoond.</p>
-            </div>
-          </div>
-        </NestoCard>
-
-        {/* Section 3: Booking Questions */}
+        {/* Card 2: Boekingsvragen */}
         <NestoCard className="p-6">
           <h3 className="text-sm font-semibold mb-1">Boekingsvragen</h3>
           <p className="text-xs text-muted-foreground mb-4">
@@ -267,7 +271,7 @@ export default function SettingsReserveringenWidget() {
           />
         </NestoCard>
 
-        {/* Section 4: Integratie */}
+        {/* Card 3: Integratie */}
         {local.widget_enabled && local.location_slug && (
           <NestoCard className="p-6">
             <h3 className="text-sm font-semibold mb-1">Integratie</h3>
@@ -275,91 +279,83 @@ export default function SettingsReserveringenWidget() {
               Kies hoe je de widget op je website wilt tonen.
             </p>
 
-            <div className="space-y-6">
-              {/* 1. Mode selector */}
-              <EmbedModeSelector value={embedMode} onChange={setEmbedMode} />
+            <EmbedModeSelector value={embedMode} onChange={setEmbedMode} />
 
-              {/* 2. Mode-specifieke configuratie */}
-              {embedMode === 'button' && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Knopconfiguratie</h4>
-                  <div className="bg-secondary/50 rounded-card-sm p-4 space-y-3">
-                    <div>
-                      <Label className="text-sm mb-1.5">Knoptekst</Label>
-                      <Input
-                        value={buttonLabel}
-                        onChange={e => setButtonLabel(e.target.value)}
-                        placeholder="Reserveer"
-                        className="text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-sm mb-1.5">Positie</Label>
-                      <NestoSelect
-                        value={buttonPosition}
-                        onValueChange={setButtonPosition}
-                        options={positionOptions}
-                      />
-                    </div>
-                  </div>
+            {/* Mode-specifieke configuratie */}
+            {embedMode === 'button' && (
+              <div className={sectionDivider}>
+                <h4 className={sectionHeader}>Knopconfiguratie</h4>
+                <div className="space-y-4">
+                  <NestoInput
+                    label="Knoptekst"
+                    value={buttonLabel}
+                    onChange={e => setButtonLabel(e.target.value)}
+                    placeholder="Reserveer"
+                  />
+                  <NestoSelect
+                    label="Positie"
+                    value={buttonPosition}
+                    onValueChange={setButtonPosition}
+                    options={positionOptions}
+                  />
                 </div>
-              )}
-
-              {embedMode === 'inline' && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Container</h4>
-                  <div className="bg-secondary/50 rounded-card-sm p-4">
-                    <p className="text-xs text-muted-foreground">
-                      Plaats een <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono">&lt;div id="nesto-booking"&gt;&lt;/div&gt;</code> op je website waar de widget moet verschijnen. De widget vult automatisch deze container.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {embedMode === 'link' && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Widget URL</h4>
-                  <div className="bg-secondary/50 rounded-card-sm p-4 flex items-center justify-between gap-3">
-                    <p className="text-sm font-mono truncate min-w-0">{baseUrl}/book/{local.location_slug}</p>
-                    <a
-                      href={`${baseUrl}/book/${local.location_slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                    >
-                      Open <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {/* 3. Test je integratie */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Test je integratie</h4>
-                <WidgetLivePreview
-                  mode={embedMode}
-                  slug={local.location_slug}
-                  color={local.widget_primary_color}
-                  buttonLabel={buttonLabel}
-                  buttonPosition={buttonPosition}
-                  baseUrl={baseUrl}
-                />
               </div>
+            )}
 
-              {/* 4. Installatiecode */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {embedMode === 'link' ? 'Widget URL' : 'Installatiecode'}
-                </h4>
-                <EmbedCodePreview
-                  mode={embedMode}
-                  slug={local.location_slug}
-                  color={local.widget_primary_color}
-                  buttonLabel={buttonLabel}
-                  buttonPosition={buttonPosition}
-                  baseUrl={baseUrl}
-                />
+            {embedMode === 'inline' && (
+              <div className={sectionDivider}>
+                <h4 className={sectionHeader}>Container</h4>
+                <div className="bg-secondary/50 rounded-card-sm p-4">
+                  <p className="text-xs text-muted-foreground">
+                    Plaats een <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono">&lt;div id="nesto-booking"&gt;&lt;/div&gt;</code> op je website waar de widget moet verschijnen.
+                  </p>
+                </div>
               </div>
+            )}
+
+            {embedMode === 'link' && (
+              <div className={sectionDivider}>
+                <h4 className={sectionHeader}>Widget URL</h4>
+                <div className="bg-secondary/50 rounded-card-sm p-4 flex items-center justify-between gap-3">
+                  <p className="text-sm font-mono truncate min-w-0">{baseUrl}/book/{local.location_slug}</p>
+                  <a
+                    href={`${baseUrl}/book/${local.location_slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                  >
+                    Open <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Test je integratie */}
+            <div className={sectionDivider}>
+              <h4 className={sectionHeader}>Test je integratie</h4>
+              <WidgetLivePreview
+                mode={embedMode}
+                slug={local.location_slug}
+                color={local.widget_primary_color}
+                buttonLabel={buttonLabel}
+                buttonPosition={buttonPosition}
+                baseUrl={baseUrl}
+              />
+            </div>
+
+            {/* Installatiecode */}
+            <div className={sectionDivider}>
+              <h4 className={sectionHeader}>
+                {embedMode === 'link' ? 'Widget URL' : 'Installatiecode'}
+              </h4>
+              <EmbedCodePreview
+                mode={embedMode}
+                slug={local.location_slug}
+                color={local.widget_primary_color}
+                buttonLabel={buttonLabel}
+                buttonPosition={buttonPosition}
+                baseUrl={baseUrl}
+              />
             </div>
           </NestoCard>
         )}
