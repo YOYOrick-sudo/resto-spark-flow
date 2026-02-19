@@ -1,0 +1,1 @@
+ALTER TABLE widget_settings ADD COLUMN widget_button_logo_url text DEFAULT NULL;

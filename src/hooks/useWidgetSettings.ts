@@ -18,6 +18,7 @@ export interface WidgetSettings {
   show_nesto_branding: boolean;
   booking_questions: BookingQuestion[];
   widget_button_style: string;
+  widget_button_logo_url: string | null;
   google_reserve_url: string | null;
   created_at: string;
   updated_at: string;
