@@ -34,14 +34,7 @@ const CURATED_PALETTES: PaletteOption[] = [
   { name: 'Rose & Berry', primary: '#EC4899', accent: '#F43F5E' },
 ];
 
-const SWATCH_COLORS = [
-  '#10B981', '#059669', '#0EA5E9', '#6366F1',
-  '#8B5CF6', '#EC4899', '#F43F5E', '#EF4444',
-  '#F97316', '#F59E0B', '#84CC16', '#14B8A6',
-  '#06B6D4', '#3B82F6', '#A855F7', '#1F2937',
-];
-
-function SwatchGrid({
+function ColorPickerField({
   label,
   sublabel,
   value,
@@ -61,40 +54,35 @@ function SwatchGrid({
   return (
     <div className="flex-1 min-w-0">
       <label className="mb-1.5 block text-sm font-medium">{label}</label>
-      <p className="text-xs text-muted-foreground mb-3">{sublabel}</p>
-      <div className="flex flex-wrap gap-2 mb-3">
-        {SWATCH_COLORS.map(color => {
-          const isActive = value.toUpperCase() === color.toUpperCase();
-          return (
-            <button
-              key={color}
-              type="button"
-              onClick={() => onChange(color)}
-              className={`h-6 w-6 rounded-full border transition-shadow flex items-center justify-center ${
-                isActive
-                  ? 'ring-2 ring-primary ring-offset-2 border-transparent'
-                  : 'border-border hover:ring-2 hover:ring-primary/30 hover:ring-offset-1'
-              }`}
-              style={{ backgroundColor: color }}
-              title={color}
-            >
-              {isActive && <Check className="h-3 w-3 text-white drop-shadow-sm" />}
-            </button>
-          );
-        })}
+      <p className="text-xs text-muted-foreground mb-2">{sublabel}</p>
+      <div className="flex items-center gap-3">
+        <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden border border-border cursor-pointer shadow-sm">
+          <input
+            type="color"
+            value={isValidHex(value) ? value : '#000000'}
+            onChange={e => {
+              const c = e.target.value;
+              setLocalHex(c);
+              onChange(c);
+            }}
+            className="absolute inset-0 h-[150%] w-[150%] -top-[25%] -left-[25%] cursor-pointer border-0 p-0"
+            style={{ appearance: 'none', WebkitAppearance: 'none' }}
+            title="Kies een kleur"
+          />
+        </div>
+        <NestoInput
+          value={localHex}
+          onChange={e => {
+            const v = e.target.value;
+            setLocalHex(v);
+            if (isValidHex(v)) onChange(v);
+          }}
+          className="w-[120px] font-mono uppercase"
+          placeholder="#10B981"
+          maxLength={7}
+          error={localHex && !isValidHex(localHex) ? 'Ongeldige hex kleur' : undefined}
+        />
       </div>
-      <NestoInput
-        value={localHex}
-        onChange={e => {
-          const v = e.target.value;
-          setLocalHex(v);
-          if (isValidHex(v)) onChange(v);
-        }}
-        className="w-[120px]"
-        placeholder="#10B981"
-        maxLength={7}
-        error={localHex && !isValidHex(localHex) ? 'Ongeldige hex kleur' : undefined}
-      />
     </div>
   );
 }
@@ -243,13 +231,13 @@ export function ColorPaletteSelector({
 
         {/* Dual swatch grids */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <SwatchGrid
+          <ColorPickerField
             label="Hoofdkleur"
             sublabel="Knoppen & CTA's"
             value={primaryColor}
             onChange={onPrimaryChange}
           />
-          <SwatchGrid
+          <ColorPickerField
             label="Accentkleur"
             sublabel="Badges & highlights"
             value={accentColor}
