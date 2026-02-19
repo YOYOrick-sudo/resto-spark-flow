@@ -333,20 +333,18 @@ export default function SettingsReserveringenWidget() {
                 </div>
               )}
 
-              {/* 3. Visuele preview (button & inline only) */}
-              {embedMode !== 'link' && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preview</h4>
-                  <WidgetLivePreview
-                    mode={embedMode}
-                    slug={local.location_slug}
-                    color={local.widget_primary_color}
-                    buttonLabel={buttonLabel}
-                    buttonPosition={buttonPosition}
-                    baseUrl={baseUrl}
-                  />
-                </div>
-              )}
+              {/* 3. Test je integratie */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Test je integratie</h4>
+                <WidgetLivePreview
+                  mode={embedMode}
+                  slug={local.location_slug}
+                  color={local.widget_primary_color}
+                  buttonLabel={buttonLabel}
+                  buttonPosition={buttonPosition}
+                  baseUrl={baseUrl}
+                />
+              </div>
 
               {/* 4. Installatiecode */}
               <div className="space-y-2">
