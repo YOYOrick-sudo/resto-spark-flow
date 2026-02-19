@@ -1,33 +1,28 @@
 
-# Meer ademruimte tussen kolommen in de Reserveringen lijst
+# Ticket afkorting toevoegen aan Reserveringen Lijst
 
-## Probleem
-De kolommen Pers, Tafel, Shift en Status staan te dicht op elkaar, waardoor de tabel visueel druk en moeilijk scanbaar overkomt.
+## Wat verandert er
+De "Shift" kolom in de lijstweergave wordt uitgebreid: naast de shift-naam komt er een compacte 2-letter badge met de ticket-afkorting (bijv. "LD" voor "Late Dinner"). De afkorting wordt automatisch gegenereerd uit de eerste letters van elk woord.
 
-## Oplossing
-De grid-template aanpassen met bredere kolommen en extra `gap` tussen de cellen.
-
-### Huidige grid-definitie
+## Visueel resultaat
 ```
-12px | 1fr | 48px | 56px | 120px | 110px | 80px | 32px
-dot  | naam| pers | tafel| shift | status| acties| menu
+Shift kolom:  [Diner] LD
 ```
+De shift-naam blijft als outline badge, en daarnaast verschijnt een kleine compacte badge met de ticket-afkorting. Een tooltip toont de volledige ticket-naam bij hover.
 
-### Nieuwe grid-definitie
-```
-12px | 1fr | 56px | 72px | 128px | 120px | 80px | 32px
-dot  | naam| pers | tafel| shift | status| acties| menu
-```
+## Technische wijzigingen
 
-Wijzigingen per kolom:
-- **Pers**: 48px naar 56px (+8px)
-- **Tafel**: 56px naar 72px (+16px)
-- **Shift**: 120px naar 128px (+8px)
-- **Status**: 110px naar 120px (+10px)
+### 1. Helper functie: afkorting genereren
+In `src/lib/reservationUtils.ts` wordt een `getTicketAbbreviation` functie toegevoegd:
+- "Late Dinner" wordt "LD"
+- "Standaard" wordt "ST" (eerste 2 letters bij enkele woorden)
+- Max 3 karakters
 
-Daarnaast wordt `gap-x-3` (12px) toegevoegd aan de grid om extra witruimte tussen alle kolommen te creeren.
+### 2. `src/components/reserveringen/ReservationListView.tsx`
+- **Grid aanpassing**: De shift-kolom iets breder maken (128px naar 160px) om ruimte te bieden voor shift + ticket badge
+- **Kolomkop**: "Shift" hernoemen naar "Shift / Ticket"
+- **Rij-render**: Naast de shift-badge een kleine ticket-afkorting badge tonen met tooltip voor de volledige naam
+- De `ticket_name` is al beschikbaar op het `Reservation` type (joined field)
 
-### Technisch
-
-**Bestand: `src/components/reserveringen/ReservationListView.tsx`**
-- Regel 18: De `GRID_COLS` constante aanpassen met de nieuwe kolombreedtes en `gap-x-3` toevoegen
+### 3. Grid view (`ReservationBlock.tsx`)
+- Geen wijziging nodig; de ticket-info wordt alleen in de lijstweergave getoond (grid-blokken hebben te weinig ruimte)
