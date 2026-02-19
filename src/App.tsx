@@ -33,6 +33,7 @@ import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
 import BookingWidget from "./pages/BookingWidget";
 import ManageReservation from "./pages/ManageReservation";
+import WidgetPreviewDemo from "./pages/WidgetPreviewDemo";
 import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
@@ -73,7 +74,7 @@ const App = () => (
                 <Route path="/book/:slug" element={<BookingWidget />} />
                 <Route path="/manage/:token" element={<ManageReservation />} />
                 <Route path="/panel-demo" element={<PanelDemo />} />
-                <Route path="/panel-demo" element={<PanelDemo />} />
+                <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
                 
                 {/* Protected routes - Layout wrapper with persistent sidebar */}
                 <Route element={

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { ExternalLink } from 'lucide-react';
 import type { EmbedMode } from './EmbedModeSelector';
-import { ExternalLink, X } from 'lucide-react';
+import { NestoButton } from '@/components/polar/NestoButton';
 
 interface WidgetLivePreviewProps {
   mode: EmbedMode;
@@ -42,9 +42,19 @@ function MockPageContent() {
   );
 }
 
+function buildPreviewUrl(baseUrl: string, slug: string, mode: EmbedMode, label: string, position: string, color: string) {
+  const params = new URLSearchParams({
+    slug,
+    mode,
+    label,
+    position,
+    color,
+  });
+  return `${baseUrl}/widget-preview?${params.toString()}`;
+}
+
 export function WidgetLivePreview({ mode, slug, color, buttonLabel, buttonPosition, baseUrl }: WidgetLivePreviewProps) {
-  const [overlayOpen, setOverlayOpen] = useState(false);
-  const widgetUrl = `${baseUrl}/book/${slug}?embed=true`;
+  const previewUrl = buildPreviewUrl(baseUrl, slug, mode, buttonLabel, buttonPosition, color);
 
   if (mode === 'link') {
     return (
@@ -68,20 +78,16 @@ export function WidgetLivePreview({ mode, slug, color, buttonLabel, buttonPositi
   const isLeft = buttonPosition === 'bottom-left';
 
   return (
-    <div className="rounded-card border border-border/50 overflow-hidden bg-background shadow-card">
-      <BrowserChrome url="https://mijnrestaurant.nl" />
+    <div className="space-y-3">
+      <div className="rounded-card border border-border/50 overflow-hidden bg-background shadow-card">
+        <BrowserChrome url="https://mijnrestaurant.nl" />
 
-      {/* Mock website area */}
-      <div className="relative bg-muted/10" style={{ minHeight: mode === 'inline' ? 420 : 280 }}>
-        {mode === 'button' && (
-          <>
-            <MockPageContent />
+        <div className="relative bg-muted/10" style={{ minHeight: mode === 'inline' ? 300 : 220 }}>
+          <MockPageContent />
 
-            {/* Floating button */}
-            <button
-              type="button"
-              onClick={() => setOverlayOpen(true)}
-              className="absolute shadow-lg text-white text-sm font-medium px-5 py-2.5 rounded-full transition-transform hover:scale-105"
+          {mode === 'button' && (
+            <div
+              className="absolute shadow-lg text-white text-sm font-medium px-5 py-2.5 rounded-full pointer-events-none"
               style={{
                 backgroundColor: color,
                 bottom: 16,
@@ -89,44 +95,28 @@ export function WidgetLivePreview({ mode, slug, color, buttonLabel, buttonPositi
               }}
             >
               {buttonLabel || 'Reserveer'}
-            </button>
-
-            {/* Overlay inside preview */}
-            {overlayOpen && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
-                <div className="relative bg-background rounded-lg shadow-2xl overflow-hidden" style={{ width: '90%', maxWidth: 420, height: '85%' }}>
-                  <button
-                    type="button"
-                    onClick={() => setOverlayOpen(false)}
-                    className="absolute top-2 right-2 z-20 p-1 rounded-full bg-background/80 hover:bg-muted border border-border/50 text-muted-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                  <iframe
-                    src={widgetUrl}
-                    title="Widget preview"
-                    className="w-full h-full border-0"
-                    style={{ transform: 'scale(0.65)', transformOrigin: 'top center', width: '154%', height: '154%' }}
-                  />
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {mode === 'inline' && (
-          <div className="p-4">
-            <div className="rounded-lg border border-border/40 overflow-hidden bg-background" style={{ height: 400 }}>
-              <iframe
-                src={widgetUrl}
-                title="Widget preview"
-                className="border-0"
-                style={{ transform: 'scale(0.65)', transformOrigin: 'top left', width: '154%', height: '154%' }}
-              />
             </div>
-          </div>
-        )}
+          )}
+
+          {mode === 'inline' && (
+            <div className="px-6 pb-6">
+              <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center py-10">
+                <span className="text-sm font-medium text-primary/60">Nesto Booking Widget</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      <NestoButton
+        variant="outline"
+        size="sm"
+        className="w-full"
+        onClick={() => window.open(previewUrl, '_blank')}
+      >
+        <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+        Open live preview
+      </NestoButton>
     </div>
   );
 }
