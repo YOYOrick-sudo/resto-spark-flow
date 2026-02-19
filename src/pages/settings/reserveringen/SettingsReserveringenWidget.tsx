@@ -17,6 +17,7 @@ import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { usePermission } from '@/hooks/usePermission';
 import { buildBreadcrumbs } from '@/lib/settingsRouteConfig';
 import { nestoToast } from '@/lib/nestoToast';
+import { ColorPaletteSelector } from '@/components/settings/widget/ColorPaletteSelector';
 import { Check, ExternalLink } from 'lucide-react';
 
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
@@ -30,6 +31,7 @@ interface LocalSettings {
   show_end_time: boolean;
   show_nesto_branding: boolean;
   widget_primary_color: string;
+  widget_accent_color: string;
   widget_logo_url: string;
   widget_success_redirect_url: string;
   booking_questions: BookingQuestion[];
@@ -42,6 +44,7 @@ const PRESET_COLORS = [
   '#F97316', '#F59E0B', '#84CC16', '#14B8A6',
   '#06B6D4', '#3B82F6', '#A855F7', '#1F2937',
 ];
+
 
 const sectionHeader = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4";
 const sectionDivider = "border-t border-border/50 pt-5 mt-5";
@@ -70,6 +73,7 @@ export default function SettingsReserveringenWidget() {
     show_end_time: true,
     show_nesto_branding: true,
     widget_primary_color: '#10B981',
+    widget_accent_color: '#14B8A6',
     widget_logo_url: '',
     widget_success_redirect_url: '',
     booking_questions: [],
@@ -86,6 +90,7 @@ export default function SettingsReserveringenWidget() {
         show_end_time: settings.show_end_time,
         show_nesto_branding: settings.show_nesto_branding,
         widget_primary_color: settings.widget_primary_color || '#10B981',
+        widget_accent_color: (settings as any).widget_accent_color || '#14B8A6',
         widget_logo_url: settings.widget_logo_url || '',
         widget_success_redirect_url: settings.widget_success_redirect_url || '',
         booking_questions: (settings.booking_questions as BookingQuestion[]) || [],
@@ -232,40 +237,13 @@ export default function SettingsReserveringenWidget() {
         <NestoCard className="p-6">
           <CardHeader title="Branding" description="Kleuren, logo en knoopstijl van de widget." />
           <div className="space-y-5">
-            {/* Color swatches */}
-            <div>
-              <label className="mb-2 block text-label text-muted-foreground">Widget kleur</label>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {PRESET_COLORS.map(color => {
-                  const isActive = local.widget_primary_color.toUpperCase() === color.toUpperCase();
-                  return (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => updateField('widget_primary_color', color)}
-                      className={`h-6 w-6 rounded-full border transition-shadow flex items-center justify-center ${
-                        isActive
-                          ? 'ring-2 ring-primary ring-offset-2 border-transparent'
-                          : 'border-border hover:ring-2 hover:ring-primary/30 hover:ring-offset-1'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    >
-                      {isActive && <Check className="h-3 w-3 text-white drop-shadow-sm" />}
-                    </button>
-                  );
-                })}
-              </div>
-              <NestoInput
-                value={local.widget_primary_color}
-                onChange={e => updateField('widget_primary_color', e.target.value)}
-                className="w-[120px]"
-                placeholder="#10B981"
-                maxLength={7}
-                error={local.widget_primary_color && !isValidHex(local.widget_primary_color) ? 'Ongeldige hex kleur' : undefined}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Kleur van knoppen en accenten in de widget.</p>
-            </div>
+            {/* Color palette selector */}
+            <ColorPaletteSelector
+              primaryColor={local.widget_primary_color}
+              accentColor={local.widget_accent_color}
+              onPrimaryChange={color => updateField('widget_primary_color', color)}
+              onAccentChange={color => updateField('widget_accent_color', color)}
+            />
 
             {/* Logo upload */}
             <WidgetLogoUpload logoUrl={local.widget_logo_url || null} />
