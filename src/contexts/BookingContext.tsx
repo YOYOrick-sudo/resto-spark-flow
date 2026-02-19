@@ -1,15 +1,28 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 // ============================================
 // Types
 // ============================================
 
+export interface TicketInfo {
+  id: string;
+  name: string;
+  display_title: string;
+  description: string | null;
+  short_description: string | null;
+  image_url: string | null;
+  min_party_size: number;
+  max_party_size: number;
+}
+
 export interface WidgetConfig {
   location_id: string;
   location_name: string | null;
   timezone: string;
   primary_color: string;
+  accent_color: string;
+  widget_style: 'auto' | 'showcase' | 'quick';
   logo_url: string | null;
   welcome_text: string | null;
   success_redirect_url: string | null;
@@ -20,6 +33,8 @@ export interface WidgetConfig {
   google_reserve_url: string | null;
   min_party_size: number;
   max_party_size: number;
+  active_ticket_count: number;
+  tickets: TicketInfo[];
 }
 
 export interface BookingQuestion {
@@ -64,6 +79,7 @@ export interface BookingData {
   party_size: number;
   selectedSlot: AvailableSlot | null;
   selectedShift: AvailableShift | null;
+  selectedTicket: TicketInfo | null;
 }
 
 export interface BookingResult {
@@ -72,13 +88,18 @@ export interface BookingResult {
   manage_token: string | null;
 }
 
-export type BookingStep = 1 | 2 | 3 | 4;
+export type WidgetStyle = 'showcase' | 'quick';
+export type BookingStep = 1 | 2 | 3 | 4 | 5;
 
 interface BookingContextValue {
   // Config
   config: WidgetConfig | null;
   configLoading: boolean;
   configError: string | null;
+
+  // Effective style
+  effectiveStyle: WidgetStyle;
+  totalSteps: number;
 
   // Step navigation
   step: BookingStep;
@@ -90,6 +111,7 @@ interface BookingContextValue {
   setDate: (date: string | null) => void;
   setPartySize: (size: number) => void;
   setSelectedSlot: (slot: AvailableSlot | null, shift: AvailableShift | null) => void;
+  setSelectedTicket: (ticket: TicketInfo | null) => void;
 
   // Guest data
   guestData: GuestData;
@@ -142,6 +164,7 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
     party_size: 2,
     selectedSlot: null,
     selectedShift: null,
+    selectedTicket: null,
   });
 
   // Guest data
@@ -165,6 +188,17 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableDatesLoading, setAvailableDatesLoading] = useState(false);
 
+  // Computed: effective style & total steps
+  const effectiveStyle = useMemo<WidgetStyle>(() => {
+    if (!config) return 'quick';
+    if (config.widget_style === 'showcase') return 'showcase';
+    if (config.widget_style === 'quick') return 'quick';
+    // auto: showcase when 2+ tickets
+    return config.active_ticket_count >= 2 ? 'showcase' : 'quick';
+  }, [config]);
+
+  const totalSteps = effectiveStyle === 'showcase' ? 5 : 4;
+
   // Load config on mount
   useEffect(() => {
     let cancelled = false;
@@ -172,12 +206,6 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
       setConfigLoading(true);
       setConfigError(null);
       try {
-        const { data: result, error } = await supabase.functions.invoke('public-booking-api', {
-          body: null,
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        // We need to call with query params - use fetch directly
         const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-booking-api/config?slug=${encodeURIComponent(slug)}`;
         const res = await fetch(baseUrl, {
           headers: {
@@ -211,6 +239,10 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
 
   const setSelectedSlot = useCallback((slot: AvailableSlot | null, shift: AvailableShift | null) => {
     setData(prev => ({ ...prev, selectedSlot: slot, selectedShift: shift }));
+  }, []);
+
+  const setSelectedTicket = useCallback((ticket: TicketInfo | null) => {
+    setData(prev => ({ ...prev, selectedTicket: ticket, selectedSlot: null, selectedShift: null }));
   }, []);
 
   // Load availability for a specific date
@@ -305,16 +337,24 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Booking failed');
       setBookingResult(result);
-      setStep(4);
+      setStep(totalSteps as BookingStep); // Go to confirmation (4 or 5)
     } catch (err: any) {
       setBookingError(err.message || 'Er ging iets mis bij het boeken.');
     } finally {
       setBookingLoading(false);
     }
-  }, [config, data, guestData, setStep]);
+  }, [config, data, guestData, totalSteps]);
 
   // Determine if user can proceed
   const canGoNext = (() => {
+    if (effectiveStyle === 'showcase') {
+      if (step === 1) return !!data.selectedTicket;
+      if (step === 2) return !!data.date && data.party_size > 0;
+      if (step === 3) return !!data.selectedSlot;
+      if (step === 4) return !!(guestData.first_name && guestData.last_name && guestData.email);
+      return false;
+    }
+    // quick mode
     if (step === 1) return !!data.date && data.party_size > 0;
     if (step === 2) return !!data.selectedSlot;
     if (step === 3) return !!(guestData.first_name && guestData.last_name && guestData.email);
@@ -325,8 +365,9 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
     <BookingContext.Provider
       value={{
         config, configLoading, configError,
+        effectiveStyle, totalSteps,
         step, setStep, canGoNext,
-        data, setDate, setPartySize, setSelectedSlot,
+        data, setDate, setPartySize, setSelectedSlot, setSelectedTicket,
         guestData, setGuestData,
         bookingResult, bookingLoading, bookingError, submitBooking,
         availableShifts, availabilityLoading,

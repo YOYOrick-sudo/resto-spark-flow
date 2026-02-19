@@ -76,7 +76,8 @@ async function handleConfig(url: URL) {
     .from('widget_settings')
     .select(`
       location_id, widget_enabled, location_slug,
-      widget_primary_color, widget_logo_url, widget_welcome_text,
+      widget_primary_color, widget_accent_color, widget_style,
+      widget_logo_url, widget_welcome_text,
       widget_success_redirect_url, unavailable_text, show_end_time,
       show_nesto_branding, booking_questions, google_reserve_url
     `)
@@ -86,19 +87,14 @@ async function handleConfig(url: URL) {
 
   if (error || !data) return errorResponse('Widget not found or disabled', 404);
 
-  // Also fetch location name for display
-  const { data: loc } = await admin
-    .from('locations')
-    .select('name, timezone')
-    .eq('id', data.location_id)
-    .single();
-
-  // Fetch min/max party size from active tickets
-  const { data: tickets } = await admin
-    .from('tickets')
-    .select('min_party_size, max_party_size')
-    .eq('location_id', data.location_id)
-    .eq('is_active', true);
+  // Fetch location name + active tickets in parallel
+  const [{ data: loc }, { data: tickets }] = await Promise.all([
+    admin.from('locations').select('name, timezone').eq('id', data.location_id).single(),
+    admin.from('tickets')
+      .select('id, name, display_title, description, short_description, image_url, min_party_size, max_party_size')
+      .eq('location_id', data.location_id)
+      .eq('status', 'active'),
+  ]);
 
   let minParty = 1;
   let maxParty = 20;
@@ -112,6 +108,8 @@ async function handleConfig(url: URL) {
     location_name: loc?.name ?? null,
     timezone: loc?.timezone ?? 'Europe/Amsterdam',
     primary_color: data.widget_primary_color,
+    accent_color: (data as any).widget_accent_color ?? '#14B8A6',
+    widget_style: (data as any).widget_style ?? 'auto',
     logo_url: data.widget_logo_url,
     welcome_text: data.widget_welcome_text,
     success_redirect_url: data.widget_success_redirect_url,
@@ -122,6 +120,17 @@ async function handleConfig(url: URL) {
     google_reserve_url: data.google_reserve_url,
     min_party_size: minParty,
     max_party_size: maxParty,
+    active_ticket_count: tickets?.length ?? 0,
+    tickets: (tickets ?? []).map(t => ({
+      id: t.id,
+      name: t.name,
+      display_title: t.display_title,
+      description: t.description,
+      short_description: t.short_description,
+      image_url: t.image_url,
+      min_party_size: t.min_party_size,
+      max_party_size: t.max_party_size,
+    })),
   });
 }
 

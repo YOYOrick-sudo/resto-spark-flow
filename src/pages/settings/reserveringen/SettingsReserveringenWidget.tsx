@@ -32,6 +32,7 @@ interface LocalSettings {
   show_nesto_branding: boolean;
   widget_primary_color: string;
   widget_accent_color: string;
+  widget_style: 'auto' | 'showcase' | 'quick';
   widget_logo_url: string;
   widget_success_redirect_url: string;
   booking_questions: BookingQuestion[];
@@ -74,6 +75,7 @@ export default function SettingsReserveringenWidget() {
     show_nesto_branding: true,
     widget_primary_color: '#10B981',
     widget_accent_color: '#14B8A6',
+    widget_style: 'auto',
     widget_logo_url: '',
     widget_success_redirect_url: '',
     booking_questions: [],
@@ -91,6 +93,7 @@ export default function SettingsReserveringenWidget() {
         show_nesto_branding: settings.show_nesto_branding,
         widget_primary_color: settings.widget_primary_color || '#10B981',
         widget_accent_color: settings.widget_accent_color || '#14B8A6',
+        widget_style: settings.widget_style || 'auto',
         widget_logo_url: settings.widget_logo_url || '',
         widget_success_redirect_url: settings.widget_success_redirect_url || '',
         booking_questions: (settings.booking_questions as BookingQuestion[]) || [],
@@ -221,7 +224,36 @@ export default function SettingsReserveringenWidget() {
         <NestoCard className="p-6">
           <CardHeader title="Weergave" description="Bepaal wat gasten zien in de widget." />
           <div className="divide-y divide-border/50">
-            <div className="flex items-center justify-between py-4 first:pt-0">
+            {/* Widget stijl selector */}
+            <div className="pb-4">
+              <label className="mb-2 block text-label text-muted-foreground">Widget stijl</label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { value: 'auto' as const, label: 'Auto', desc: 'Op basis van aantal tickets' },
+                  { value: 'showcase' as const, label: 'Showcase', desc: 'Ticket-first selectie' },
+                  { value: 'quick' as const, label: 'Quick', desc: 'Direct naar datum & tijd' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => updateField('widget_style', opt.value)}
+                    className={`flex flex-col items-center gap-1 px-3 py-3 border rounded-card text-center transition-colors ${
+                      local.widget_style === opt.value
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    <span className="text-sm font-medium">{opt.label}</span>
+                    <span className="text-[11px] leading-tight opacity-70">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Auto kiest Showcase bij 2+ tickets, anders Quick.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between py-4">
               <div>
                 <p className="text-sm font-medium">Eindtijd tonen</p>
                 <p className="text-xs text-muted-foreground">Toon de verwachte eindtijd bij elk tijdslot</p>
