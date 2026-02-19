@@ -1,163 +1,155 @@
 
 
-# Floating Button: Enterprise Upgrade + Preload Optimalisatie
+# Floating Reserveerknop: Enterprise Redesign V2
 
-## Overzicht
+## Probleem
 
-De floating "Reserveer" knop op de website van de klant wordt volledig opgewaardeerd naar enterprise-niveau. Twee pijlers: (1) visueel redesign met Nesto-karakter, en (2) preload-strategie die de widget perceptief instant maakt.
-
----
-
-## 1. Visueel Redesign (widget.js)
-
-### Vorm en afmetingen
-- Border-radius: `16px` (Nesto primary radius, weg van generieke pill/50px)
-- Padding: `14px 24px`
-- Hoogte: circa 48px
-
-### Icoon
-- Inline SVG kalender-icoon links van de tekst, 18x18px, wit, `stroke-width: 2`
-- Geeft direct context: "dit is voor reserveren"
-
-### Typografie
-- Font: Plus Jakarta Sans via Google Fonts `<link>` inject (alleen weight 600)
-- Fallback: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
-- Font-size: `14px`, font-weight: `600`, letter-spacing: `0.02em`
-- Font wordt alleen geladen als het nog niet beschikbaar is (check via `document.fonts`)
-
-### Schaduw en diepte
-- Rust: `0 2px 8px rgba(0,0,0,0.08), 0 4px 20px {color}40`
-- Hover: `0 4px 12px rgba(0,0,0,0.10), 0 6px 28px {color}50`
-- Glassmorphism-touch: `backdrop-filter: blur(8px)`, achtergrond `{color}F0` (94% opaque)
-
-### Hover en animatie
-- `translateY(-2px)` + schaduw verdieping (behouden)
-- `filter: brightness(1.08)` voor lichter hover-effect (geen hardcoded hex)
-
-### Entrance animatie
-- Knop start met `opacity: 0; transform: translateY(12px)`
-- Na 400ms page-load delay: fade-in + slide-up, 300ms ease-out
-- Nieuwe keyframe: `nestoButtonEntrance`
-
-### Pulse dot (optioneel)
-- 8px groene dot rechtsboven op de knop
-- Subtiele pulse animatie (scale 1 -> 1.4, opacity 1 -> 0)
-- Aan/uit via `data-pulse="true"` attribuut (default: uit)
-
-### Mobiele aanpassingen
-- Compacter: padding `12px 20px`, font-size `13px`, icoon 16x16px
-- Positie: gecentreerd onderaan (`left: 50%; transform: translateX(-50%)`)
-- Bottom offset: `16px`
+De huidige knop is een afgeronde pill (`border-radius: 16px`) met een platte kleurvulling. Het ziet er functioneel maar generiek uit -- vergelijkbaar met elke standaard booking widget. Voor een enterprise SaaS platform moet deze knop premium aanvoelen, visueel onderscheidend zijn, en vertrouwen wekken bij gasten.
 
 ---
 
-## 2. Preload Optimalisatie (widget.js)
+## Wat verandert
 
-Dit is de kern van de performance-upgrade. Het iframe wordt niet meer pas bij klik aangemaakt, maar progressief voorgeladen.
+### 1. Vorm: Van pill naar refined rectangle
 
-### Stap 1: Preconnect bij page load
-Direct bij widget-initialisatie: injecteer een `<link rel="preconnect">` naar de widget host URL. Dit zorgt dat DNS lookup, TCP handshake en TLS negotiatie al klaar zijn voordat het iframe geladen wordt.
+De huidige `16px` radius voelt nog steeds als een pill op een compacte knop. De nieuwe vorm:
 
-### Stap 2: Hover-preload
-Bij `mouseenter` op de floating button:
-- Maak het iframe aan in een verborgen container: `position: fixed; opacity: 0; pointer-events: none; width: 420px; height: 100vh`
-- Het iframe begint te laden (React app + /config API call)
-- Boolean `preloaded` flag om dubbele creatie te voorkomen
-- Container wordt buiten viewport geplaatst maar niet `display: none` (anders laden browsers niet)
+- **Desktop**: `border-radius: 14px` -- iets scherper, meer "app-achtig"
+- **Twee lagen**: De knop krijgt een subtiele **inner border** (`box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15)`) die diepte geeft, zoals frosted glass knoppen in macOS/Linear
+- **Grotere padding**: `16px 28px` voor meer ademruimte en premium gevoel
 
-### Stap 3: Klik = verplaats, niet herladen
-Bij klik op de knop:
-- Als hover-preload gelukt is (`preloaded === true`): verplaats het bestaande iframe uit de hidden container naar het panel. Geen tweede load.
-- `iframe.style.opacity = '1'` + `pointer-events: auto`
-- Het iframe is al interactief
+### 2. Achtergrond: Gradient in plaats van flat color
 
-### Stap 4: Fallback skeleton (mobiel / snel klikken)
-Als het iframe nog niet geladen is bij klik (geen hover, of mobiel):
-- Toon een skeleton loading state in het panel
-- Skeleton bevat:
-  - Restaurant logo bovenaan (uit nieuw `data-logo` attribuut) + naam (uit `data-name` attribuut)
-  - Daaronder: pulserende blokjes die het booking formulier simuleren (kalender-achtige grid, buttons)
-  - Pure CSS animatie, geen dependencies
-- Luister naar iframe `load` event: zodra geladen, fade skeleton uit en toon iframe
-- Fallback timeout: na 8 seconden, toon toch het iframe (zelfs als load event niet gevuurd)
+De platte `background: {color}F0` wordt een subtiele **verticale gradient**:
 
-### Nieuwe data-attributen
-- `data-logo`: URL naar restaurant logo (optioneel, voor skeleton)
-- `data-name`: Restaurant naam (optioneel, voor skeleton)
+```text
+background: linear-gradient(
+  180deg,
+  {color}  0%,          -- originele kleur bovenaan
+  {darken 8%}  100%     -- 8% donkerder onderaan
+)
+```
 
----
+Dit geeft de knop een 3D-achtig, "verhoogd" gevoel zonder overdreven te zijn. De darkening wordt berekend in JavaScript (HSL lightness -8%).
 
-## 3. Settings UI Uitbreiding
+### 3. Icoon upgrade: Animated on hover
 
-In `SettingsReserveringenWidget.tsx`, de "Knopconfiguratie" sectie (regel 342-359) uitbreiden:
+Het huidige statische kalender-icoon wordt interactief:
 
-- **Pulse indicator**: Toggle aan/uit
-- De embed code preview (`EmbedCodePreview`) krijgt de nieuwe `data-logo` en `data-name` attributen mee in de gegenereerde code
+- **Rust**: Kalender-icoon op `opacity: 0.85`
+- **Hover**: Icoon krijgt `transform: translateX(1px)` en `opacity: 1` -- subtiele "nudge" die uitnodigt
+
+### 4. Tekst verfijning
+
+- **Letter-spacing**: Van `0.02em` naar `0.03em` -- meer luxe uitstraling
+- **Font-size**: Van `14px` naar `15px` op desktop voor betere leesbaarheid
+- **Text-shadow**: `0 1px 1px rgba(0,0,0,0.08)` voor subtiele diepte op de tekst
+
+### 5. Schaduw systeem: Drie lagen
+
+De huidige twee-laags shadow wordt een drie-laags systeem:
+
+```text
+Rust:
+  0 1px 2px rgba(0,0,0,0.06),        -- tight contact shadow
+  0 4px 12px rgba(0,0,0,0.08),       -- medium elevation
+  0 8px 32px {color}30               -- gekleurde ambient glow
+
+Hover:
+  0 2px 4px rgba(0,0,0,0.08),        -- tight lifts slightly
+  0 8px 20px rgba(0,0,0,0.12),       -- medium deepens
+  0 12px 48px {color}40              -- glow intensifies
+```
+
+De drie lagen geven een "floating" effect dat veel meer diepte heeft dan de huidige twee lagen.
+
+### 6. Hover: Meer dramatisch
+
+- `translateY(-3px)` in plaats van `-2px` -- meer "lift" gevoel
+- `filter: brightness(1.06)` -- subtieler dan de huidige `1.08`
+- De schaduw-transitie creëert het gevoel dat de knop echt van het scherm loskomt
+
+### 7. Active/press state (nieuw)
+
+Er is nu geen press feedback. Toevoegen:
+
+- `transform: translateY(0px) scale(0.98)` -- knop drukt in
+- `filter: brightness(0.96)` -- iets donkerder
+- Schaduw terug naar rust-niveau
+- `transition-duration: 0.1s` -- snellere response
+
+### 8. Entrance animatie: Meer dramatisch
+
+De huidige entrance is simpel (fade + slide up 12px). Upgrade:
+
+```text
+@keyframes nestoButtonEntrance {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.92); }
+  60%  { opacity: 1; transform: translateY(-3px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+```
+
+Dit geeft een "bounce" effect: de knop schiet iets voorbij zijn eindpositie en settelt dan. Meer playful en opvallend, maar niet overdreven (totaal 400ms).
+
+### 9. Pulse dot: Gepolijst
+
+De huidige pulse dot is een simpele groene cirkel. Upgrade:
+
+- Dubbele ring: `box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(16,185,129,0.2)` -- witte ring + subtiele groene glow
+- Grotere dot: `10px` in plaats van `8px`
+- Positie: `top: -4px; right: -4px`
+
+### 10. Mobiel: Touch-optimized
+
+- Padding: `14px 22px` (groter dan huidige `12px 20px`)
+- `border-radius: 14px`
+- Active state via `:active` pseudo (via `touchstart`/`touchend` events)
+- Bottom offset: `20px` (meer ruimte van edge)
 
 ---
 
 ## Technische details
 
-### iframe lifecycle in widget.js
+### HSL darkening helper
 
-```text
-Page Load
-  |
-  +--> Inject <link rel="preconnect">
-  +--> Inject Google Fonts <link>
-  +--> Inject keyframes CSS
-  +--> Render floating button (met entrance animatie)
-  |
-Button Hover (desktop)
-  |
-  +--> Maak hidden iframe container aan
-  +--> iframe.src = iframeSrc (begint laden)
-  +--> preloaded = true
-  |
-Button Click
-  |
-  +--> Is preloaded?
-  |     |
-  |     YES --> Verplaats iframe naar panel, toon direct
-  |     NO  --> Maak iframe + skeleton in panel
-  |             |
-  |             +--> iframe.onload --> fade skeleton uit
-  |
-Panel Close
-  |
-  +--> Verwijder overlay + panel
-  +--> iframe NIET verwijderen, terug naar hidden container
-  +--> Volgende klik = weer instant (iframe is nog geladen)
+Nieuwe functie in widget.js om de gradient te berekenen:
+
+```javascript
+function darkenHex(hex, percent) {
+  // Parse hex to RGB, convert to HSL, reduce L by percent, convert back
+  // Returns new hex string
+}
 ```
 
-### Skeleton HTML structuur (pure DOM, geen React)
+### Event handling voor active state
 
-```text
-+-------------------------------+
-|  [logo]  Restaurant Naam      |  <- data-logo + data-name
-+-------------------------------+
-|  ████████████████████████████  |  <- header bar
-|                                |
-|  ██  ██  ██  ██  ██  ██  ██   |  <- kalender grid
-|  ██  ██  ██  ██  ██  ██  ██   |
-|  ██  ██  ██  ██  ██  ██  ██   |
-|  ██  ██  ██  ██  ██  ██  ██   |
-|                                |
-|  ████████████████████████████  |  <- CTA knop
-+-------------------------------+
+Omdat inline styles geen `:active` pseudo-class ondersteunen, wordt dit via events gedaan:
+
+```javascript
+btn.addEventListener('pointerdown', function() {
+  btn.style.transform = 'translateY(0) scale(0.98)';
+  btn.style.filter = 'brightness(0.96)';
+  // reset shadow to rest level
+});
+btn.addEventListener('pointerup', function() {
+  // restore hover or rest state
+});
 ```
 
-Alle blokjes: `background: #f3f4f6`, `border-radius: 8px`, CSS `@keyframes nesto-pulse` animatie.
+### Backwards compatible
+
+Alle bestaande `data-` attributen blijven werken. De knop is visueel beter maar de API verandert niet.
 
 ---
 
-## Bestanden overzicht
+## Bestand
 
 | Bestand | Actie | Samenvatting |
 |---------|-------|--------------|
-| `public/widget.js` | Herschrijven | Enterprise knop design, preconnect, hover-preload, skeleton fallback, iframe hergebruik |
-| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Wijzigen | Pulse toggle, data-logo/data-name in embed code |
-| `src/components/settings/widget/EmbedCodePreview.tsx` | Wijzigen | Nieuwe attributen in gegenereerde script tag |
+| `public/widget.js` | Wijzigen | Gradient bg, 3-laags shadow, active state, bounce entrance, enhanced pulse dot, icoon hover animatie, text-shadow, grotere padding |
 
-### Geen database wijzigingen nodig
+### Geen database of settings wijzigingen nodig
+
+De bestaande configuratie-opties (kleur, label, positie, pulse) blijven ongewijzigd. Dit is puur een visuele upgrade van de knop zelf.
 
