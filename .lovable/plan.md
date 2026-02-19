@@ -1,87 +1,70 @@
 
 
-# Widget Settings pagina solider maken
+# Preview link integreren per embed mode
 
-## Huidige problemen
+## Wat verandert
 
-1. De "Open live preview" knop staat los van de embed mode -- het is onduidelijk dat die knop de gekozen mode simuleert
-2. De Integratie-sectie is een enkel groot blok waarin alles op een hoop staat (mode selector, preview, config, code)
-3. Button-specifieke configuratie (knoptekst, positie) zit in een los `bg-secondary` blokje zonder duidelijke koppeling aan de mode
-4. De embed code en de preview knop staan gescheiden -- de operator moet scrollen om beide te vinden
+De statische mockup (mock browser met placeholder blokjes) wordt vervangen door een compacte **"Test je integratie"** link-kaart die direct per embed mode verschijnt. Elke mode krijgt zijn eigen preview-link die de `/widget-preview` demo-pagina opent met de juiste parameters.
 
-## Oplossing
+## Nieuwe structuur per mode
 
-De Integratie-sectie herstructureren naar een helder, stapsgewijs layout per gekozen mode:
+### Floating knop
+```
+Knopconfiguratie
+  [Knoptekst]  [Positie]
 
-### Nieuwe structuur van sectie 4 (Integratie)
+Test je integratie
+  Bekijk hoe de floating knop eruitziet op een voorbeeldwebsite.
+  [Open testpagina ->]
 
-```text
-+--------------------------------------------------+
-|  Integratie                                       |
-|  Kies hoe je de widget op je website wilt tonen.  |
-|                                                   |
-|  [Floating knop] [Inline embed] [Alleen link]     |  <- EmbedModeSelector (blijft)
-|                                                   |
-|  +----------------------------------------------+ |
-|  | Configuratie                         [Preview]| |  <- Per-mode config + preview link
-|  |                                               | |
-|  | (button: knoptekst + positie)                 | |
-|  | (inline: container ID info)                   | |
-|  | (link: directe URL met open knop)             | |
-|  +----------------------------------------------+ |
-|                                                   |
-|  +----------------------------------------------+ |
-|  | Visuele preview (mock browser)                | |  <- Lichtgewicht mockup
-|  |  [mock content + knop/widget placeholder]     | |
-|  +----------------------------------------------+ |
-|                                                   |
-|  +----------------------------------------------+ |
-|  | Embed code                          [Kopieer] | |  <- Code block
-|  +----------------------------------------------+ |
-+--------------------------------------------------+
+Installatiecode
+  [code block]
 ```
 
-### Concrete wijzigingen
+### Inline embed
+```
+Container
+  Plaats een <div id="nesto-booking"> op je website...
 
-**`WidgetLivePreview.tsx`** -- Aanpassen:
-- De "Open live preview" knop verplaatsen naar een meer prominente positie: rechtsboven in de mock browser chrome als een icoontje (ExternalLink), zodat het duidelijk gekoppeld is aan de visuele preview
-- Bij link mode: de preview link tonen als primaire actie naast de URL (huidige opzet is al goed, kleine polish)
+Test je integratie
+  Bekijk hoe de inline widget eruitziet op een voorbeeldwebsite.
+  [Open testpagina ->]
 
-**`SettingsReserveringenWidget.tsx`** -- Herstructureren:
-- De Integratie-sectie opdelen in duidelijke subsecties met labels
-- Button mode config (knoptekst + positie) krijgt een subsectie-header "Knopconfiguratie"
-- Inline mode krijgt een informatief blokje over het container-element (`<div id="nesto-booking">`)
-- De embed code subsectie krijgt een duidelijke header "Installatiecode" (of "Widget URL" bij link mode)
-- Elke subsectie binnen de kaart gescheiden door subtiele dividers
+Installatiecode
+  [code block]
+```
 
-**`EmbedCodePreview.tsx`** -- Kleine verbetering:
-- De "Open widget" knop hernoemen naar "Open in nieuw tabblad"
-- Bij link mode: de URL prominenter tonen met een kopieer-icoontje inline
+### Alleen link
+```
+Widget URL
+  https://.../{slug}   [Open ->]
 
-### Geen nieuwe bestanden nodig
+Test je integratie
+  Open de hosted boekingspagina om te testen.
+  [Open testpagina ->]
+```
 
-Alle wijzigingen zijn refactoring van bestaande componenten.
+## Technische aanpak
 
-## Technische details
+### `WidgetLivePreview.tsx` -- Herschrijven
 
-### `SettingsReserveringenWidget.tsx`
+De mock browser + placeholder content wordt vervangen door een simpele kaart:
 
-De Integratie NestoCard wordt intern opgedeeld met `divide-y divide-border/40` of aparte `bg-secondary/50` blokken per subsectie:
+- `bg-secondary/50 rounded-card-sm p-4` container
+- Korte beschrijving per mode (hoe het eruitziet op een echte website)
+- Een prominente link/knop: "Open testpagina" met ExternalLink icoon
+- De link opent `/widget-preview?slug=...&mode=...&label=...&position=...&color=...` in een nieuw tabblad
+- Werkt nu ook voor **link** mode (was eerder `return null`)
 
-1. **Mode selector** (bovenaan, altijd zichtbaar)
-2. **Mode-specifieke configuratie** (alleen bij button mode: knoptekst + positie; bij inline: container-id uitleg; bij link: URL)
-3. **Visuele preview** (mockup met "Open preview" link in de browser chrome)
-4. **Installatiecode** (code block met kopieerknop)
+### `SettingsReserveringenWidget.tsx` -- Kleine aanpassing
 
-### `WidgetLivePreview.tsx`
+- De "Preview" subsectie-header hernoemen naar "Test je integratie"
+- De `WidgetLivePreview` wordt nu ook getoond bij `link` mode (niet meer gefilterd met `embedMode !== 'link'`)
 
-De "Open live preview" knop verhuist van een losse full-width knop onder de mockup naar een compact linkje in de browser chrome balk (naast de URL). Dit maakt het visueel duidelijker dat je "deze website" opent in een echt tabblad.
-
-### Bestanden die wijzigen
+## Bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Integratie-sectie herstructureren met subsecties, inline mode info blok, dividers |
-| `src/components/settings/widget/WidgetLivePreview.tsx` | Preview-knop naar browser chrome verplaatsen, compacter |
-| `src/components/settings/widget/EmbedCodePreview.tsx` | Kleine label-aanpassingen |
+| `src/components/settings/widget/WidgetLivePreview.tsx` | Herschrijven: mock browser vervangen door compacte test-link kaart |
+| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Preview sectie tonen voor alle modes, header aanpassen |
 
