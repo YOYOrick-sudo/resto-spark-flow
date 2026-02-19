@@ -301,7 +301,7 @@ function UnassignedGridRow({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="border-b border-warning/30 bg-warning/5">
+      <div className="relative z-40 border-b border-warning/30 bg-warning/5">
         {/* Row: sticky label + timeline */}
         <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
           {/* Sticky left column */}
