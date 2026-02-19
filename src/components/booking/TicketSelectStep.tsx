@@ -30,12 +30,11 @@ export function TicketSelectStep() {
               role="option"
               aria-selected={isSelected}
               onClick={() => handleSelect(ticket)}
-              className="w-full text-left rounded-xl border overflow-hidden transition-all duration-150 hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              className="w-full text-left rounded-2xl overflow-hidden transition-all duration-150 hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               style={{
-                borderColor: isSelected ? primaryColor : 'rgba(0,0,0,0.06)',
                 backgroundColor: isSelected ? `${primaryColor}08` : '#fff',
                 boxShadow: isSelected
-                  ? `0 0 0 1px ${primaryColor}, 0 4px 12px -2px rgba(0,0,0,0.08)`
+                  ? `inset 0 0 0 2px ${primaryColor}, 0 4px 12px -2px rgba(0,0,0,0.08)`
                   : '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)',
                 // @ts-ignore
                 '--tw-ring-color': primaryColor,
