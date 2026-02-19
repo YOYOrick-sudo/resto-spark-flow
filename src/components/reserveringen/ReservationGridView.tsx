@@ -88,8 +88,8 @@ function TimelineHeader({ config }: { config: GridTimeConfig }) {
   const totalWidth = hourLabels.length * hourWidth;
 
   return (
-    <div className="sticky top-0 z-40 flex border-b-2 border-border bg-card">
-      <div className="sticky left-0 z-40 flex-shrink-0 bg-card border-r-2 border-border h-10" style={{ width: `${STICKY_COL_WIDTH}px` }} />
+    <div className="sticky top-0 z-[60] flex border-b-2 border-border bg-card">
+      <div className="sticky left-0 z-[60] flex-shrink-0 bg-card border-r-2 border-border h-10" style={{ width: `${STICKY_COL_WIDTH}px` }} />
       <div className="relative h-10" style={{ width: `${totalWidth}px` }}>
         {hourLabels.map((_, hourIndex) => (
           <div key={hourIndex} className="absolute top-0 bottom-0">
@@ -158,8 +158,8 @@ function SeatedCountRow({
   }, [reservations, quarterSlots]);
 
   return (
-    <div className="flex h-8 border-b-2 border-border bg-secondary sticky top-[40px] z-40">
-      <div className={cn("sticky left-0 z-40 flex-shrink-0 flex items-center justify-between px-3 bg-secondary border-r-2 border-border", isCompact ? "py-1" : "py-2")} style={{ width: `${STICKY_COL_WIDTH}px` }}>
+    <div className="flex h-8 border-b-2 border-border bg-secondary sticky top-[40px] z-[60]">
+      <div className={cn("sticky left-0 z-[60] flex-shrink-0 flex items-center justify-between px-3 bg-secondary border-r-2 border-border", isCompact ? "py-1" : "py-2")} style={{ width: `${STICKY_COL_WIDTH}px` }}>
         <span className="text-xs font-semibold text-muted-foreground">Pacing</span>
         <button onClick={onToggle} className="p-0.5 hover:bg-muted rounded transition-colors">
           {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -192,7 +192,7 @@ function SeatedCountRow({
 function ZoneHeader({ name, isCompact = false }: { name: string; isCompact?: boolean }) {
   return (
     <div className={cn("flex bg-secondary border-b border-t border-border", isCompact ? "h-7" : "h-8")}>
-      <div className="sticky left-0 z-40 flex-shrink-0 bg-secondary border-r-2 border-border flex items-center px-3" style={{ width: `${STICKY_COL_WIDTH}px` }}>
+      <div className="sticky left-0 z-[60] flex-shrink-0 bg-secondary border-r-2 border-border flex items-center px-3" style={{ width: `${STICKY_COL_WIDTH}px` }}>
         <span className="text-xs font-bold text-foreground uppercase tracking-wide whitespace-nowrap">{name}</span>
       </div>
       <div className="flex-1" />
@@ -301,12 +301,12 @@ function UnassignedGridRow({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="sticky top-[72px] z-40 border-b-2 border-border">
+      <div className="sticky top-[72px] z-[60] border-b-2 border-border">
         {/* Row: sticky label + timeline */}
         <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
           {/* Sticky left column - opaque to block red line */}
           <div
-            className="sticky left-0 z-40 flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-secondary relative"
+            className="sticky left-0 z-[60] flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-secondary relative"
             style={{ width: `${STICKY_COL_WIDTH}px` }}
           >
             <div className="absolute inset-0 bg-warning/5 pointer-events-none" />
