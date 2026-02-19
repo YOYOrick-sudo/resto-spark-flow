@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useRef, forwardRef, useEffect } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { Phone, LogIn, Footprints } from "lucide-react";
+import { Phone, LogIn, Footprints, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Reservation } from "@/types/reservation";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
@@ -22,8 +22,10 @@ interface ReservationBlockProps {
   onClick?: (reservation: Reservation) => void;
   onCheckIn?: (reservation: Reservation) => void;
   onResize?: (reservationId: string, newStartTime: string, newEndTime: string) => boolean;
+  onAssign?: (reservation: Reservation) => void;
   isBeingDragged?: boolean;
   density?: DensityType;
+  variant?: 'default' | 'unassigned';
 }
 
 export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps>(
@@ -33,8 +35,10 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
     onClick,
     onCheckIn,
     onResize,
+    onAssign,
     isBeingDragged = false,
     density = "compact",
+    variant = "default",
   }, forwardedRef) {
   const isCompact = density === "compact";
   const position = useMemo(
@@ -98,6 +102,9 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
   }, [setNodeRef, forwardedRef]);
 
   const getBlockStyles = () => {
+    if (variant === 'unassigned') {
+      return "bg-warning/10 border-warning/60 dark:bg-warning/15 dark:border-warning/50";
+    }
     switch (reservation.status) {
       case "seated":
         return "bg-emerald-100 border-emerald-400 dark:bg-emerald-900/40 dark:border-emerald-600";
@@ -271,6 +278,16 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
           </span>
         )}
       </div>
+
+      {variant === 'unassigned' && onAssign && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onAssign(reservation); }}
+          className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-warning text-warning-foreground rounded p-0.5 z-20"
+          title="Automatisch tafel toewijzen"
+        >
+          <Wand2 className="h-3 w-3" />
+        </button>
+      )}
 
       {canResize && (
         <div
