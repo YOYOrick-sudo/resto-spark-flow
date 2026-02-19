@@ -1,39 +1,51 @@
 
-# Rollback + correcte fix: NU-lijn en NestoPanel overlay
 
-## Wat ging er mis
+# Fix: Doorschemerende tafels + te donkere overlay
 
-De NU-lijn container ging van `z-50` naar `z-20`, maar de sticky headers in de Grid View (TimelineHeader, Pacing, AreaHeaders) gebruiken `z-[45]`. Door `z-20` zit de NU-lijn nu **onder** die sticky headers en wordt afgedekt. Daarom loopt de rode lijn niet meer door.
+## Probleem 1: Tafels zichtbaar door overlay
 
-De overlay fix in NestoPanel is correct doorgevoerd (`bg-black/40 backdrop-blur-[2px]`), maar het overlay zit op `z-40` terwijl de NU-lijn op `z-50` zat — dat was het oorspronkelijke probleem. De oplossing is niet de NU-lijn verlagen, maar het **NestoPanel verhogen**.
+De sticky kolom-elementen in de Grid View (area headers, tafelnamen) gebruiken `z-[60]`. De NestoPanel overlay zit ook op `z-[60]`. Gelijk z-niveau betekent dat DOM-volgorde bepaalt wat "wint" — en de grid elementen staan eerder in de DOM, maar door sticky positioning blijven ze zichtbaar.
 
-## Correcte aanpak
+**Fix:** NestoPanel overlay en panel van `z-[60]` naar `z-[70]` tillen. Dit dekt alle grid-elementen af.
 
-### Wijziging 1: NU-lijn terug naar z-50
+## Probleem 2: Overlay te donker
 
-**Bestand:** `src/components/reserveringen/ReservationGridView.tsx` (regel 233)
+We hebben eerder `bg-black/40` ingesteld. Het design system (MODAL_PATTERNS.md) schrijft voor:
+- `bg-black/20 backdrop-blur-sm`
+- Lichtere overlay met blur voor een moderne, cleanere look
 
-| Nu (kapot) | Wordt (hersteld) |
-|------------|-----------------|
-| `z-20` | `z-50` |
+**Fix:** Overlay terugzetten naar `bg-black/20 backdrop-blur-sm` conform design system.
 
-De NU-lijn moet boven de sticky headers (`z-[45]`) blijven, dus `z-50` is correct.
+## Wijzigingen
 
-### Wijziging 2: NestoPanel overlay en panel naar z-[60]
+### `src/components/polar/NestoPanel.tsx` — 2 regels
 
-**Bestand:** `src/components/polar/NestoPanel.tsx` (regel 111 en 114-119)
+**Regel 111 (overlay):**
+```
+Was:  z-[60] bg-black/40 backdrop-blur-[2px]
+Wordt: z-[70] bg-black/20 backdrop-blur-sm
+```
 
-| Element | Nu | Wordt |
-|---------|-----|-------|
-| Overlay (backdrop) | `z-40` | `z-[60]` |
-| Panel (content) | `z-40` | `z-[60]` |
+**Regel 116 (panel container):**
+```
+Was:  z-[60]
+Wordt: z-[70]
+```
 
-Door de NestoPanel naar `z-[60]` te tillen komt alles boven de NU-lijn (`z-50`) en de sticky headers (`z-[45]`). Het panel bedekt dan alles correct.
+## Z-index overzicht na fix
+
+| Element | Z-index |
+|---------|---------|
+| Reserveringsblokken | z-10 |
+| Sticky headers (timeline, pacing, areas) | z-[45] |
+| NU-lijn container | z-50 |
+| Sticky left-column cellen | z-[60] |
+| **NestoPanel overlay + panel** | **z-[70]** |
 
 ## Scope
 
-- 2 bestanden, exact dezelfde als vorige keer
-- NU-lijn: 1 regel rollback (`z-20` terug naar `z-50`)
-- NestoPanel: 2x `z-40` wordt `z-[60]` (overlay + panel container)
-- Overlay styling (`bg-black/40 backdrop-blur-[2px]`) blijft behouden
-- Geen andere bestanden worden aangeraakt
+- 1 bestand, 2 regels
+- Geen Grid View wijzigingen
+- Geen Sheet/SheetContent wijzigingen
+- Alle panels profiteren automatisch
+
