@@ -301,12 +301,12 @@ function UnassignedGridRow({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="sticky top-[72px] z-40 border-b border-warning/30 bg-warning/5">
+      <div className="sticky top-[72px] z-40 border-b-2 border-border bg-secondary">
         {/* Row: sticky label + timeline */}
         <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
           {/* Sticky left column */}
           <div
-            className="sticky left-0 z-40 flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-warning/5"
+            className="sticky left-0 z-40 flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-secondary"
             style={{ width: `${STICKY_COL_WIDTH}px` }}
           >
             <CollapsibleTrigger className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -319,20 +319,6 @@ function UnassignedGridRow({
           {/* Timeline area with blocks */}
           <CollapsibleContent asChild forceMount className="data-[state=closed]:hidden">
             <div className="relative flex-shrink-0" style={{ width: `${gridWidth}px` }}>
-              {/* Quarter-slot grid lines */}
-              <div className="absolute inset-0 flex">
-                {quarterSlots.map((time, index) => (
-                  <div
-                    key={time}
-                    className={cn(
-                      "h-full",
-                      index % 4 === 0 ? "border-l border-border/50" : "border-l border-border/20"
-                    )}
-                    style={{ width: `${quarterWidth}px` }}
-                  />
-                ))}
-              </div>
-
               {/* Reservation blocks */}
               <div className="absolute inset-0 z-10">
                 {unassigned.map((r) => (
