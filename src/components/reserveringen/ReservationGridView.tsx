@@ -301,11 +301,10 @@ function UnassignedGridRow({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="sticky top-[72px] z-40 border-b-2 border-border bg-secondary relative">
-        <div className="absolute inset-0 bg-warning/5 pointer-events-none" />
+      <div className="sticky top-[72px] z-40 border-b-2 border-border">
         {/* Row: sticky label + timeline */}
-        <div className={cn("flex relative", isCompact ? "h-9" : "h-12")}>
-          {/* Sticky left column */}
+        <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
+          {/* Sticky left column - opaque to block red line */}
           <div
             className="sticky left-0 z-40 flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-secondary relative"
             style={{ width: `${STICKY_COL_WIDTH}px` }}
@@ -318,9 +317,9 @@ function UnassignedGridRow({
             </CollapsibleTrigger>
           </div>
 
-          {/* Timeline area with blocks */}
-          <CollapsibleContent asChild forceMount className="data-[state=closed]:hidden">
-            <div className="relative flex-shrink-0" style={{ width: `${gridWidth}px` }}>
+          {/* Timeline area - transparent bg so red line shows through */}
+          <div className="relative flex-shrink-0 bg-warning/5" style={{ width: `${gridWidth}px` }}>
+            <CollapsibleContent forceMount className="data-[state=closed]:hidden">
               {/* Reservation blocks */}
               <div className="absolute inset-0 z-10">
                 {unassigned.map((r) => (
@@ -347,8 +346,8 @@ function UnassignedGridRow({
                   />
                 ))}
               </div>
-            </div>
-          </CollapsibleContent>
+            </CollapsibleContent>
+          </div>
         </div>
       </div>
     </Collapsible>
