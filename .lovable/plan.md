@@ -1,24 +1,34 @@
 
 
-# Verwijder expand/collapse uit "Niet toegewezen" rij
+# Check-in knop altijd zichtbaar + naam langer
 
 ## Wat verandert
 
-De chevron-knop en het inklapbare gedrag van de "Niet toegewezen" rij worden verwijderd. De rij blijft altijd zichtbaar staan (zoals de gebruiker wil).
+### 1. Check-in knop — altijd zichtbaar, touch + muis
+De check-in knop wordt een permanent zichtbare knop (geen hover nodig) aan de rechterkant van het reserveringsblok. Alleen voor reserveringen met status `confirmed`. De knop:
+- Is altijd zichtbaar (geen `opacity-0 group-hover:opacity-100`)
+- Werkt met touch (iPad) en muis
+- Gebruikt het `LogIn` icoon in een emerald/groen stijl
+- Stopt event propagation zodat het blok niet opent bij klik op de knop
 
-## Technische wijzigingen
+### 2. Naam meer ruimte
+De gastnaam krijgt `flex-1` zodat deze alle beschikbare ruimte pakt voordat hij afkapt.
 
-### `src/components/reserveringen/ReservationGridView.tsx`
+## Technisch
 
-1. **Verwijder Collapsible wrapper** (regels 316, 366): De `<Collapsible>` en `</Collapsible>` tags worden verwijderd. De content wordt altijd getoond.
+### `src/components/reserveringen/ReservationBlock.tsx`
 
-2. **Verwijder CollapsibleTrigger** (regel 326-330): Vervang door een gewone `div` met dezelfde styling, maar zonder de chevron-iconen. Tekst "Niet toegew." en de count-badge blijven.
+1. **Check-in knop toevoegen** — Nieuwe `button` element naast de unassigned-knop (rond regel 280):
+   - Conditie: `canCheckIn` (status === confirmed en onCheckIn prop aanwezig)
+   - Styling: `absolute right-1 top-1/2 -translate-y-1/2` met emerald achtergrond, altijd `opacity-100`
+   - `onClick`: stopt propagation, roept `onCheckIn(reservation)` aan
+   - `LogIn` icoon (al geimporteerd)
 
-3. **Verwijder CollapsibleContent** (regel 335, 362): De wrapper `<CollapsibleContent forceMount>` wordt verwijderd, de inhoud (reservation blocks) blijft direct staan.
+2. **Naam meer ruimte** (regel 249-251):
+   - Voeg `flex-1` toe aan de naam-span
+   - Behoud `truncate` voor overflow maar geef de naam prioriteit over optionele elementen
 
-4. **State opruimen** (regel 291): Verwijder `const [open, setOpen] = useState(true);`
+3. **Content padding aanpassen**: wanneer canCheckIn actief is, voeg `pr-7` toe aan de content-div zodat de naam niet onder de knop verdwijnt
 
-5. **Imports opruimen**: Verwijder `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` als ze nergens anders in het bestand worden gebruikt. `ChevronUp` en `ChevronDown` ook verwijderen als ze nu nergens meer nodig zijn.
-
-Totaal: 1 bestand, ~15 regels aangepast/verwijderd.
+Totaal: 1 bestand, ~8 regels aangepast/toegevoegd.
 
