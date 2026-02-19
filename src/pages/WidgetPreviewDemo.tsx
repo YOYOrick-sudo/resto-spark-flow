@@ -8,6 +8,7 @@ export default function WidgetPreviewDemo() {
   const label = params.get('label') || 'Reserveer';
   const position = params.get('position') || 'bottom-right';
   const color = params.get('color') || '#1d979e';
+  const accent = params.get('accent') || '';
   const logo = params.get('logo') || '';
   const name = params.get('name') || '';
   const buttonLogo = params.get('buttonLogo') || '';
@@ -25,6 +26,7 @@ export default function WidgetPreviewDemo() {
     if (logo) script.setAttribute('data-logo', logo);
     if (name) script.setAttribute('data-name', name);
     if (buttonLogo) script.setAttribute('data-button-logo', buttonLogo);
+    if (accent) script.setAttribute('data-accent', accent);
     document.body.appendChild(script);
 
     return () => {
@@ -37,7 +39,7 @@ export default function WidgetPreviewDemo() {
         if (btn.getAttribute('aria-label') === label) btn.remove();
       });
     };
-  }, [slug, mode, label, position, color, logo, name, buttonLogo]);
+  }, [slug, mode, label, position, color, accent, logo, name, buttonLogo]);
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#2d2d2d] font-sans">

@@ -407,6 +407,7 @@ export default function SettingsReserveringenWidget() {
                 mode={embedMode}
                 slug={local.location_slug}
                 color={local.widget_primary_color}
+                accentColor={local.widget_accent_color}
                 buttonLabel={buttonLabel}
                 buttonPosition={buttonPosition}
                 baseUrl={baseUrl}
@@ -425,6 +426,7 @@ export default function SettingsReserveringenWidget() {
                 mode={embedMode}
                 slug={local.location_slug}
                 color={local.widget_primary_color}
+                accentColor={local.widget_accent_color}
                 buttonLabel={buttonLabel}
                 buttonPosition={buttonPosition}
                 baseUrl={baseUrl}
