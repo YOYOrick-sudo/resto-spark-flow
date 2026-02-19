@@ -88,7 +88,7 @@ function TimelineHeader({ config }: { config: GridTimeConfig }) {
   const totalWidth = hourLabels.length * hourWidth;
 
   return (
-    <div className="sticky top-0 z-20 flex border-b-2 border-border bg-card">
+    <div className="sticky top-0 z-40 flex border-b-2 border-border bg-card">
       <div className="sticky left-0 z-40 flex-shrink-0 bg-card border-r-2 border-border h-10" style={{ width: `${STICKY_COL_WIDTH}px` }} />
       <div className="relative h-10" style={{ width: `${totalWidth}px` }}>
         {hourLabels.map((_, hourIndex) => (
@@ -158,7 +158,7 @@ function SeatedCountRow({
   }, [reservations, quarterSlots]);
 
   return (
-    <div className="flex border-b-2 border-border bg-secondary sticky top-[40px] z-20">
+    <div className="flex border-b-2 border-border bg-secondary sticky top-[40px] z-40">
       <div className={cn("sticky left-0 z-40 flex-shrink-0 flex items-center justify-between px-3 bg-secondary border-r-2 border-border", isCompact ? "py-1" : "py-2")} style={{ width: `${STICKY_COL_WIDTH}px` }}>
         <span className="text-xs font-semibold text-muted-foreground">Pacing</span>
         <button onClick={onToggle} className="p-0.5 hover:bg-muted rounded transition-colors">
@@ -223,7 +223,7 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
   if (position === null) return null;
 
   return (
-    <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${STICKY_COL_WIDTH}px` }}>
+    <div className="absolute top-0 bottom-0 right-0 overflow-hidden pointer-events-none" style={{ left: `${STICKY_COL_WIDTH}px` }}>
       <div className="absolute top-0 bottom-0 bg-destructive/8 pointer-events-none z-10" style={{ left: `${position - 3}px`, width: '6px' }} />
       <div className="absolute top-0 bottom-0 w-[2px] bg-destructive z-30 pointer-events-none" style={{ left: `${position}px` }}>
         <div className="sticky top-1 -translate-x-1/2 w-fit">
