@@ -1,33 +1,34 @@
 
 
-# Outline Ring Inset Maken
+# Ring Verwijderen + Enterprise Hover Effect
 
 ## Wat verandert
 
-De huidige `border: 1.5px solid` wordt vervangen door een **inset box-shadow**. Hierdoor zit de ring net aan de binnenkant van de pill, wat er subtieler en premium uitziet. De button-afmetingen veranderen niet.
+1. **Inset ring verwijderen** -- De accentColor inset box-shadow ring wordt weggehaald. De button krijgt alleen nog de subtiele drop-shadow voor diepte.
 
-### Visueel verschil
+2. **Enterprise hover effect** -- Een verfijnd hover-effect dat professioneel aanvoelt:
+   - Zachte `translateY(-2px)` lift (blijft)
+   - De achtergrondkleur wordt subtiel lichter via de bestaande `darkenHex` helper (maar dan met negatieve waarde, oftewel lighten)
+   - De drop-shadow wordt iets groter en zachter
+   - Smooth `0.25s cubic-bezier` transition voor een vloeiend gevoel
 
-```text
-  Nu (border):       De ring zit BUITEN de pill, maakt hem groter
-  Straks (inset):    De ring zit BINNEN de pill, net zichtbaar langs de rand
-```
-
-## Technische wijziging
+## Technische wijzigingen
 
 ### `public/widget.js`
 
-1. **Verwijder** `'border:1.5px solid ' + accentColor` uit de `btnBase` array (regel 247)
-2. **Pas de glassInset variabelen aan** zodat ze de `accentColor` gebruiken in plaats van `rgba(255,255,255,0.15)`:
-   - `glassInset` wordt: `inset 0 0 0 1.5px {accentColor met 30% opacity}`
-   - `glassInsetHover` wordt: `inset 0 0 0 1.5px {accentColor met 45% opacity}`
-3. Dit integreert naadloos met de bestaande `shadowRest` en `shadowHover` box-shadows die al glassmorphism inset shadows bevatten
-4. De `hexToRgba` helper die al in het bestand staat wordt hergebruikt om de accentColor om te zetten naar rgba
+**Ring verwijderen (regels 211-216):**
+- `glassInset` en `glassInsetHover` worden teruggezet naar lege strings (geen inset shadow meer)
+- `shadowRest` wordt: `0 2px 8px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06)` (subtiele float-shadow)
+- `shadowHover` wordt: `0 6px 20px rgba(0,0,0,0.12), 0 12px 36px rgba(0,0,0,0.08)` (diepere shadow bij hover)
 
-Concreet:
-- `glassInset` = `inset 0 0 0 1.5px` + `hexToRgba(accentColor, 0.3)`
-- `glassInsetHover` = `inset 0 0 0 1.5px` + `hexToRgba(accentColor, 0.45)`
-- `border:none` blijft staan (geen echte border meer)
+**Enterprise hover toevoegen:**
+- Bereken een `hoverColor` met `darkenHex(color, -8)` (8% lichter) voor de hover-achtergrond
+- Bij `mouseenter`: stel `backgroundColor` in op `hoverColor` naast de bestaande lift + shadow
+- Bij `mouseleave`: reset `backgroundColor` naar `color`
+- Verander de transition naar `transition:transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s cubic-bezier(0.4,0,0.2,1), background-color 0.25s cubic-bezier(0.4,0,0.2,1)` voor een vloeiende ease
 
-Dit zorgt ervoor dat de ring subtiel zichtbaar is in rust, en iets sterker oplicht bij hover.
+**Active/press state (blijft):**
+- `scale(0.98)` bij pointerdown voor tactiele feedback
+
+Dit geeft een clean, enterprise-level hover: de button "licht op" en tilt subtiel omhoog met een diepere schaduw, zonder ring of gimmicks.
 
