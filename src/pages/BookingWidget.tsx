@@ -112,7 +112,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   const animClass = direction === 'forward' ? 'animate-step-forward' : 'animate-step-back';
 
   return (
-    <div ref={mainRef} className="h-full flex flex-col bg-white">
+    <div ref={mainRef} className="h-full flex flex-col bg-[#FAFAF8]">
       {/* Panel header */}
       {isEmbed && (
         <header className="shrink-0 relative flex flex-col items-center gap-2 px-5 pt-4 pb-1">
@@ -127,7 +127,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
             <img
               src={config.logo_url}
               alt={config.location_name ?? 'Restaurant'}
-              className="h-14 object-contain"
+              className="h-20 object-contain"
             />
           )}
         </header>
@@ -140,7 +140,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
             <img
               src={config.logo_url}
               alt={config.location_name ?? 'Restaurant'}
-              className="h-16 object-contain"
+              className="h-20 object-contain"
             />
           )}
         </header>
