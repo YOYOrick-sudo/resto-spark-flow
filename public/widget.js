@@ -102,8 +102,8 @@
       '@keyframes nestoFadeIn{from{opacity:0}to{opacity:1}}',
       '@keyframes nestoSlideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}',
       '@keyframes nestoSlideInUp{from{transform:translateY(100%)}to{transform:translateY(0)}}',
-      '@keyframes nestoButtonEntrance{0%{opacity:0;transform:translateY(20px) scale(0.92)}60%{opacity:1;transform:translateY(-3px) scale(1.01)}100%{opacity:1;transform:translateY(0) scale(1)}}',
-      '@keyframes nestoPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:0}}',
+      '@keyframes nestoButtonEntrance{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}',
+      '@keyframes nestoPulseRing{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.3)}50%{box-shadow:0 0 0 4px rgba(255,255,255,0)}}',
       '@keyframes nestoSkeletonPulse{0%,100%{opacity:.6}50%{opacity:.3}}',
     ].join('');
     document.head.appendChild(style);
@@ -115,11 +115,8 @@
 
   // ─── Shadow helpers ───
 
-  var colorDark = darkenHex(color, 8);
-
-  var shadowRest = '0 1px 2px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.08),0 8px 32px ' + hexToRgba(color, 0.19);
-  var shadowHover = '0 2px 4px rgba(0,0,0,0.08),0 8px 20px rgba(0,0,0,0.12),0 12px 48px ' + hexToRgba(color, 0.25);
-  var shadowInset = ',inset 0 0 0 1px rgba(255,255,255,0.15)';
+  var shadowRest = '0 1px 3px rgba(0,0,0,0.08),0 4px 14px rgba(0,0,0,0.10)';
+  var shadowHover = '0 2px 6px rgba(0,0,0,0.10),0 8px 24px rgba(0,0,0,0.14)';
 
   // ─── Close button factory ───
 
@@ -215,50 +212,40 @@
     var btn = document.createElement('button');
     btn.setAttribute('aria-label', label);
 
-    var iconSpan = document.createElement('span');
-    iconSpan.innerHTML = mobile ? CALENDAR_ICON_SM : CALENDAR_ICON;
-    iconSpan.style.cssText = 'display:flex;align-items:center;flex-shrink:0;opacity:0.85;transition:transform 0.2s ease,opacity 0.2s ease';
-    btn.appendChild(iconSpan);
-
-    var labelSpan = document.createElement('span');
-    labelSpan.textContent = label;
-    labelSpan.style.cssText = 'text-shadow:0 1px 1px rgba(0,0,0,0.08)';
-    btn.appendChild(labelSpan);
+    btn.textContent = label;
 
     var isRight = position !== 'bottom-left';
 
     var btnBase = [
       'position:fixed',
       'z-index:99998',
-      'background:linear-gradient(180deg,' + color + ' 0%,' + colorDark + ' 100%)',
+      'background:' + color,
       'color:#fff',
       'border:none',
-      'border-radius:14px',
+      'border-radius:10px',
       'font-family:' + FONT_FAMILY,
       'font-weight:600',
-      'letter-spacing:0.03em',
+      'letter-spacing:0.01em',
       'cursor:pointer',
       'display:inline-flex',
       'align-items:center',
-      'gap:8px',
-      'backdrop-filter:blur(8px)',
-      '-webkit-backdrop-filter:blur(8px)',
-      'transition:transform 0.2s ease,box-shadow 0.2s ease,filter 0.2s ease',
+      'justify-content:center',
+      'transition:transform 0.2s ease,box-shadow 0.2s ease',
       'opacity:0',
-      'animation:nestoButtonEntrance 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.4s forwards',
-      'box-shadow:' + shadowRest + shadowInset,
+      'animation:nestoButtonEntrance 0.35s ease 0.3s forwards',
+      'box-shadow:' + shadowRest,
     ];
 
     if (mobile) {
       btnBase.push(
-        'bottom:20px', 'left:50%', 'transform:translateX(-50%)',
-        'padding:14px 22px', 'font-size:13px'
+        'bottom:20px', 'right:20px',
+        'padding:12px 20px', 'font-size:13px'
       );
     } else {
       btnBase.push(
         'bottom:24px',
         isRight ? 'right:24px' : 'left:24px',
-        'padding:16px 28px', 'font-size:15px'
+        'padding:12px 24px', 'font-size:14px'
       );
     }
 
@@ -267,20 +254,14 @@
     // Hover effects
     btn.addEventListener('mouseenter', function () {
       if (!mobile) {
-        btn.style.transform = 'translateY(-3px)';
-        btn.style.boxShadow = shadowHover + shadowInset;
-        btn.style.filter = 'brightness(1.06)';
-        iconSpan.style.transform = 'translateX(1px)';
-        iconSpan.style.opacity = '1';
+        btn.style.transform = 'translateY(-1px)';
+        btn.style.boxShadow = shadowHover;
       }
     });
     btn.addEventListener('mouseleave', function () {
       if (!mobile) {
         btn.style.transform = 'translateY(0)';
-        btn.style.boxShadow = shadowRest + shadowInset;
-        btn.style.filter = 'brightness(1)';
-        iconSpan.style.transform = 'translateX(0)';
-        iconSpan.style.opacity = '0.85';
+        btn.style.boxShadow = shadowRest;
       }
     });
 
@@ -288,39 +269,28 @@
     var isPressed = false;
     btn.addEventListener('pointerdown', function () {
       isPressed = true;
-      btn.style.transform = mobile ? 'translateX(-50%) scale(0.98)' : 'translateY(0) scale(0.98)';
-      btn.style.filter = 'brightness(0.96)';
-      btn.style.boxShadow = shadowRest + shadowInset;
+      btn.style.transform = 'scale(0.98)';
+      btn.style.boxShadow = shadowRest;
       btn.style.transitionDuration = '0.1s';
     });
     btn.addEventListener('pointerup', function () {
       isPressed = false;
       btn.style.transitionDuration = '0.2s';
-      btn.style.transform = mobile ? 'translateX(-50%)' : 'translateY(0)';
-      btn.style.filter = 'brightness(1)';
-      btn.style.boxShadow = shadowRest + shadowInset;
+      btn.style.transform = 'translateY(0)';
+      btn.style.boxShadow = shadowRest;
     });
     btn.addEventListener('pointerleave', function () {
       if (isPressed) {
         isPressed = false;
         btn.style.transitionDuration = '0.2s';
-        btn.style.transform = mobile ? 'translateX(-50%)' : 'translateY(0)';
-        btn.style.filter = 'brightness(1)';
-        btn.style.boxShadow = shadowRest + shadowInset;
+        btn.style.transform = 'translateY(0)';
+        btn.style.boxShadow = shadowRest;
       }
     });
 
     // Pulse dot
     if (pulse) {
-      var dot = document.createElement('span');
-      dot.style.cssText = [
-        'position:absolute', 'top:-4px', 'right:-4px',
-        'width:10px', 'height:10px', 'border-radius:50%',
-        'background:#10b981',
-        'box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(16,185,129,0.2)',
-        'animation:nestoPulse 2s ease-in-out infinite',
-      ].join(';');
-      btn.appendChild(dot);
+      btn.style.animation = 'nestoButtonEntrance 0.35s ease 0.3s forwards,nestoPulseRing 2.5s ease-in-out 1s infinite';
     }
 
     document.body.appendChild(btn);
