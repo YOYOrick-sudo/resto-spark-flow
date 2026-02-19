@@ -200,9 +200,11 @@ function ZoneHeader({ name, isCompact = false }: { name: string; isCompact?: boo
   );
 }
 
-// Now indicator
-function NowIndicator({ config }: { config: GridTimeConfig }) {
+// Now indicator with scroll-based clipping to prevent showing in sticky left column
+function NowIndicator({ config, scrollContainerRef }: { config: GridTimeConfig; scrollContainerRef: React.RefObject<HTMLDivElement | null> }) {
   const [position, setPosition] = useState<number | null>(null);
+  const [clipLeft, setClipLeft] = useState(0);
+
   useEffect(() => {
     const updatePosition = () => {
       const now = new Date();
@@ -220,10 +222,28 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
     return () => clearInterval(interval);
   }, [config]);
 
+  // Listen to scroll events to clip the red line behind the sticky column
+  useEffect(() => {
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+    const handleScroll = () => {
+      setClipLeft(container.scrollLeft);
+    };
+    handleScroll(); // initial
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [scrollContainerRef]);
+
   if (position === null) return null;
 
   return (
-    <div className="absolute top-0 bottom-0 right-0 z-50 overflow-hidden pointer-events-none" style={{ left: `${STICKY_COL_WIDTH}px` }}>
+    <div
+      className="absolute top-0 bottom-0 right-0 z-50 overflow-hidden pointer-events-none"
+      style={{
+        left: `${STICKY_COL_WIDTH}px`,
+        clipPath: `inset(0 0 0 ${clipLeft}px)`,
+      }}
+    >
       <div className="absolute top-0 bottom-0 bg-destructive/8 pointer-events-none z-10" style={{ left: `${position - 3}px`, width: '6px' }} />
       <div className="absolute top-0 bottom-0 w-[2px] bg-destructive z-30 pointer-events-none" style={{ left: `${position}px` }}>
         <div className="sticky top-1 -translate-x-1/2 w-fit">
@@ -555,7 +575,7 @@ export function ReservationGridView({
         <div ref={containerRef} className="h-full overflow-auto">
           <div className="min-w-max relative" style={{ minWidth: `${totalWidth}px` }}>
             <GridLines config={config} />
-            <NowIndicator config={config} />
+            <NowIndicator config={config} scrollContainerRef={containerRef} />
             <TimelineHeader config={config} />
 
             <SeatedCountRow
