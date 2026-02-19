@@ -17,7 +17,7 @@ import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { usePermission } from '@/hooks/usePermission';
 import { buildBreadcrumbs } from '@/lib/settingsRouteConfig';
 import { nestoToast } from '@/lib/nestoToast';
-import { Check } from 'lucide-react';
+import { Check, ExternalLink } from 'lucide-react';
 
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 const isValidSlug = (slug: string) => /^[a-z0-9-]+$/.test(slug);
@@ -275,47 +275,84 @@ export default function SettingsReserveringenWidget() {
               Kies hoe je de widget op je website wilt tonen.
             </p>
 
-            <div className="space-y-5">
+            <div className="space-y-6">
+              {/* 1. Mode selector */}
               <EmbedModeSelector value={embedMode} onChange={setEmbedMode} />
 
-              {/* Live preview */}
-              <WidgetLivePreview
-                mode={embedMode}
-                slug={local.location_slug}
-                color={local.widget_primary_color}
-                buttonLabel={buttonLabel}
-                buttonPosition={buttonPosition}
-                baseUrl={baseUrl}
-              />
-
-              {/* Button mode config */}
+              {/* 2. Mode-specifieke configuratie */}
               {embedMode === 'button' && (
-                <div className="bg-secondary/50 rounded-card-sm p-4 space-y-3">
-                  <div>
-                    <Label className="text-sm mb-1.5">Knoptekst</Label>
-                    <Input
-                      value={buttonLabel}
-                      onChange={e => setButtonLabel(e.target.value)}
-                      placeholder="Reserveer"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm mb-1.5">Positie</Label>
-                    <NestoSelect
-                      value={buttonPosition}
-                      onValueChange={setButtonPosition}
-                      options={positionOptions}
-                    />
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Knopconfiguratie</h4>
+                  <div className="bg-secondary/50 rounded-card-sm p-4 space-y-3">
+                    <div>
+                      <Label className="text-sm mb-1.5">Knoptekst</Label>
+                      <Input
+                        value={buttonLabel}
+                        onChange={e => setButtonLabel(e.target.value)}
+                        placeholder="Reserveer"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm mb-1.5">Positie</Label>
+                      <NestoSelect
+                        value={buttonPosition}
+                        onValueChange={setButtonPosition}
+                        options={positionOptions}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Embed code preview */}
-              <div>
-                <Label className="text-sm mb-2 block">
-                  {embedMode === 'link' ? 'Widget URL' : 'Embed code'}
-                </Label>
+              {embedMode === 'inline' && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Container</h4>
+                  <div className="bg-secondary/50 rounded-card-sm p-4">
+                    <p className="text-xs text-muted-foreground">
+                      Plaats een <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono">&lt;div id="nesto-booking"&gt;&lt;/div&gt;</code> op je website waar de widget moet verschijnen. De widget vult automatisch deze container.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {embedMode === 'link' && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Widget URL</h4>
+                  <div className="bg-secondary/50 rounded-card-sm p-4 flex items-center justify-between gap-3">
+                    <p className="text-sm font-mono truncate min-w-0">{baseUrl}/book/{local.location_slug}</p>
+                    <a
+                      href={`${baseUrl}/book/${local.location_slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                      Open <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Visuele preview (button & inline only) */}
+              {embedMode !== 'link' && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preview</h4>
+                  <WidgetLivePreview
+                    mode={embedMode}
+                    slug={local.location_slug}
+                    color={local.widget_primary_color}
+                    buttonLabel={buttonLabel}
+                    buttonPosition={buttonPosition}
+                    baseUrl={baseUrl}
+                  />
+                </div>
+              )}
+
+              {/* 4. Installatiecode */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {embedMode === 'link' ? 'Widget URL' : 'Installatiecode'}
+                </h4>
                 <EmbedCodePreview
                   mode={embedMode}
                   slug={local.location_slug}

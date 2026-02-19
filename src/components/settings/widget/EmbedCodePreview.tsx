@@ -46,12 +46,14 @@ export function EmbedCodePreview({ mode, slug, color, buttonLabel, buttonPositio
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copied ? 'Gekopieerd' : 'Kopieer code'}
         </NestoButton>
-        <a href={widgetUrl} target="_blank" rel="noopener noreferrer">
-          <NestoButton size="sm" variant="secondary" className="gap-1.5">
-            <ExternalLink className="h-3.5 w-3.5" />
-            Open widget
-          </NestoButton>
-        </a>
+        {mode === 'link' && (
+          <a href={widgetUrl} target="_blank" rel="noopener noreferrer">
+            <NestoButton size="sm" variant="secondary" className="gap-1.5">
+              <ExternalLink className="h-3.5 w-3.5" />
+              Open in nieuw tabblad
+            </NestoButton>
+          </a>
+        )}
       </div>
     </div>
   );
