@@ -1,34 +1,31 @@
 
+# Fix: NU-lijn z-index + NestoPanel overlay dekking
 
-# Check-in knop altijd zichtbaar + naam langer
+Twee chirurgische fixes, elk 1 regel in 1 bestand.
 
-## Wat verandert
+## Wijziging 1: NU-lijn z-index verlagen
 
-### 1. Check-in knop — altijd zichtbaar, touch + muis
-De check-in knop wordt een permanent zichtbare knop (geen hover nodig) aan de rechterkant van het reserveringsblok. Alleen voor reserveringen met status `confirmed`. De knop:
-- Is altijd zichtbaar (geen `opacity-0 group-hover:opacity-100`)
-- Werkt met touch (iPad) en muis
-- Gebruikt het `LogIn` icoon in een emerald/groen stijl
-- Stopt event propagation zodat het blok niet opent bij klik op de knop
+**Bestand:** `src/components/reserveringen/ReservationGridView.tsx` (regel 233)
 
-### 2. Naam meer ruimte
-De gastnaam krijgt `flex-1` zodat deze alle beschikbare ruimte pakt voordat hij afkapt.
+| Was | Wordt |
+|-----|-------|
+| `z-50` | `z-20` |
 
-## Technisch
+De NU-lijn container gaat van z-50 naar z-20 zodat panels (z-40) er overheen komen. Reserveringsblokken zitten op z-10, dus z-20 blijft erboven. Na implementatie even visueel checken — mocht de lijn toch onder blokken verdwijnen, dan wordt het z-25.
 
-### `src/components/reserveringen/ReservationBlock.tsx`
+## Wijziging 2: NestoPanel overlay dekkender maken
 
-1. **Check-in knop toevoegen** — Nieuwe `button` element naast de unassigned-knop (rond regel 280):
-   - Conditie: `canCheckIn` (status === confirmed en onCheckIn prop aanwezig)
-   - Styling: `absolute right-1 top-1/2 -translate-y-1/2` met emerald achtergrond, altijd `opacity-100`
-   - `onClick`: stopt propagation, roept `onCheckIn(reservation)` aan
-   - `LogIn` icoon (al geimporteerd)
+**Bestand:** `src/components/polar/NestoPanel.tsx` (regel 111)
 
-2. **Naam meer ruimte** (regel 249-251):
-   - Voeg `flex-1` toe aan de naam-span
-   - Behoud `truncate` voor overflow maar geef de naam prioriteit over optionele elementen
+| Was | Wordt |
+|-----|-------|
+| `bg-black/20` | `bg-black/40 backdrop-blur-[2px]` |
 
-3. **Content padding aanpassen**: wanneer canCheckIn actief is, voeg `pr-7` toe aan de content-div zodat de naam niet onder de knop verdwijnt
+Verhoogt dekking van 20% naar 40% en voegt subtiele blur toe. Timeline schemert niet meer door.
 
-Totaal: 1 bestand, ~8 regels aangepast/toegevoegd.
+## Scope
 
+- 2 bestanden, elk exact 1 regel
+- Geen Grid View layout wijzigingen
+- Geen Sheet/SheetContent wijzigingen
+- Alle panels profiteren automatisch (CreateReservationSheet, WalkInSheet, ReservationDetailPanel)
