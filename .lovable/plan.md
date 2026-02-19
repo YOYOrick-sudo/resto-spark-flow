@@ -1,145 +1,153 @@
 
 
-# Ronde 3: Polish & Accessibility
+# Floating Button: Enterprise Upgrade + Preload Optimalisatie
 
 ## Overzicht
 
-De laatste ronde van de Widget V2 redesign. Drie pijlers: skeleton loading states, stap transities met animatie, en micro-interacties. Plus accessibility en `prefers-reduced-motion` support.
+De floating "Reserveer" knop op de website van de klant wordt volledig opgewaardeerd naar enterprise-niveau. Twee pijlers: (1) visueel redesign met Nesto-karakter, en (2) preload-strategie die de widget perceptief instant maakt.
 
 ---
 
-## 1. Skeleton Loading States
+## 1. Visueel Redesign (widget.js)
 
-Dedicated skeletons voor de twee "data fetch" momenten in de widget.
+### Vorm en afmetingen
+- Border-radius: `16px` (Nesto primary radius, weg van generieke pill/50px)
+- Padding: `14px 24px`
+- Hoogte: circa 48px
 
-### Kalender skeleton (DateGuestsStep.tsx)
+### Icoon
+- Inline SVG kalender-icoon links van de tekst, 18x18px, wit, `stroke-width: 2`
+- Geeft direct context: "dit is voor reserveren"
 
-Vervangt de huidige "Beschikbaarheid laden..." tekst (regel 116-117) door een visuele skeleton:
+### Typografie
+- Font: Plus Jakarta Sans via Google Fonts `<link>` inject (alleen weight 600)
+- Fallback: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
+- Font-size: `14px`, font-weight: `600`, letter-spacing: `0.02em`
+- Font wordt alleen geladen als het nog niet beschikbaar is (check via `document.fonts`)
 
-- 7 kolommen header (Ma-Zo): 7 kleine `Skeleton` bars
-- 5 rijen x 7 kolommen: 35 ronde blokjes (40x40px), `animate-pulse`, `bg-gray-100 rounded-lg`
-- Zelfde afmetingen als de echte kalender zodat er geen layout shift is
-- Toon skeleton wanneer `availableDatesLoading` true is, verberg echte kalender
+### Schaduw en diepte
+- Rust: `0 2px 8px rgba(0,0,0,0.08), 0 4px 20px {color}40`
+- Hover: `0 4px 12px rgba(0,0,0,0.10), 0 6px 28px {color}50`
+- Glassmorphism-touch: `backdrop-filter: blur(8px)`, achtergrond `{color}F0` (94% opaque)
 
-### Tijdslot skeleton (TimeTicketStep.tsx)
+### Hover en animatie
+- `translateY(-2px)` + schaduw verdieping (behouden)
+- `filter: brightness(1.08)` voor lichter hover-effect (geen hardcoded hex)
 
-Vervangt de huidige `Loader2` spinner (regel 64-68) door een grid skeleton:
+### Entrance animatie
+- Knop start met `opacity: 0; transform: translateY(12px)`
+- Na 400ms page-load delay: fade-in + slide-up, 300ms ease-out
+- Nieuwe keyframe: `nestoButtonEntrance`
 
-- 1 shift header skeleton: `Skeleton h-3 w-24`
-- 3 kolommen x 4 rijen: 12 pill-shaped blokjes (44px hoog), `animate-pulse`, `bg-gray-100 rounded-lg`
-- Toon wanneer `availabilityLoading` true is
+### Pulse dot (optioneel)
+- 8px groene dot rechtsboven op de knop
+- Subtiele pulse animatie (scale 1 -> 1.4, opacity 1 -> 0)
+- Aan/uit via `data-pulse="true"` attribuut (default: uit)
 
-### Implementatie
-
-Beide skeletons worden inline in hun component gebouwd (geen apart bestand nodig). Gebruiken de bestaande `Skeleton` component uit `@/components/ui/skeleton`.
-
----
-
-## 2. Stap Transities (Slide + Fade)
-
-Stappen schuiven in/uit bij navigatie, met richting-awareness.
-
-### Aanpak
-
-In `BookingWidget.tsx`, de `renderStep()` output wrappen in een transitie-container:
-
-- **State**: `prevStep` bijhouden naast `step`
-- **Richting**: `step > prevStep` = vooruit (slide left), `step < prevStep` = terug (slide right)
-- **CSS**: Combinatie van `translateX` + `opacity` transitie, 250ms ease-out
-- **Keyframes** in tailwind.config.ts:
-  - `slide-in-left`: `translateX(30px), opacity(0)` naar `translateX(0), opacity(1)`
-  - `slide-in-right`: `translateX(-30px), opacity(0)` naar `translateX(0), opacity(1)`
-- **Key prop**: `step` als key op de wrapper div, zodat React een nieuwe mount triggert bij elke stap wissel
-
-### Bestanden
-
-- `tailwind.config.ts`: 2 nieuwe keyframes + animation utilities
-- `BookingWidget.tsx`: Transitie wrapper met richting-logica
+### Mobiele aanpassingen
+- Compacter: padding `12px 20px`, font-size `13px`, icoon 16x16px
+- Positie: gecentreerd onderaan (`left: 50%; transform: translateX(-50%)`)
+- Bottom offset: `16px`
 
 ---
 
-## 3. Micro-interacties
+## 2. Preload Optimalisatie (widget.js)
 
-Subtiele feedback op user actions binnen de widget.
+Dit is de kern van de performance-upgrade. Het iframe wordt niet meer pas bij klik aangemaakt, maar progressief voorgeladen.
 
-### Button hover/press (alle CTA knoppen)
+### Stap 1: Preconnect bij page load
+Direct bij widget-initialisatie: injecteer een `<link rel="preconnect">` naar de widget host URL. Dit zorgt dat DNS lookup, TCP handshake en TLS negotiatie al klaar zijn voordat het iframe geladen wordt.
 
-Tailwind classes toevoegen aan de 4 primaire CTA knoppen (DateGuestsStep, TimeTicketStep, GuestDetailsStep submit, ConfirmationStep manage):
+### Stap 2: Hover-preload
+Bij `mouseenter` op de floating button:
+- Maak het iframe aan in een verborgen container: `position: fixed; opacity: 0; pointer-events: none; width: 420px; height: 100vh`
+- Het iframe begint te laden (React app + /config API call)
+- Boolean `preloaded` flag om dubbele creatie te voorkomen
+- Container wordt buiten viewport geplaatst maar niet `display: none` (anders laden browsers niet)
 
-- Hover: `hover:scale-[1.02] hover:shadow-md` (150ms via `transition-all duration-150`)
-- Press: `active:scale-[0.98]` (instant)
+### Stap 3: Klik = verplaats, niet herladen
+Bij klik op de knop:
+- Als hover-preload gelukt is (`preloaded === true`): verplaats het bestaande iframe uit de hidden container naar het panel. Geen tweede load.
+- `iframe.style.opacity = '1'` + `pointer-events: auto`
+- Het iframe is al interactief
 
-### Slot selectie pop (TimeTicketStep.tsx)
+### Stap 4: Fallback skeleton (mobiel / snel klikken)
+Als het iframe nog niet geladen is bij klik (geen hover, of mobiel):
+- Toon een skeleton loading state in het panel
+- Skeleton bevat:
+  - Restaurant logo bovenaan (uit nieuw `data-logo` attribuut) + naam (uit `data-name` attribuut)
+  - Daaronder: pulserende blokjes die het booking formulier simuleren (kalender-achtige grid, buttons)
+  - Pure CSS animatie, geen dependencies
+- Luister naar iframe `load` event: zodra geladen, fade skeleton uit en toon iframe
+- Fallback timeout: na 8 seconden, toon toch het iframe (zelfs als load event niet gevuurd)
 
-Bij het klikken op een tijdslot:
-
-- Geselecteerde slot krijgt: `transform: scale(1.05)` die na 200ms terugkeert naar `scale(1)`
-- Implementatie: korte CSS class toggle via een `selectedAnim` state die na 200ms reset
-
-### Calendar dag selectie (DateGuestsStep.tsx)
-
-- Geselecteerde dag: `scale(1.1)` -> `scale(1)` via `transition-transform duration-150`
-- Dit wordt via `modifiersStyles` op de Calendar toegepast
-
-### Ticket kaart hover (TicketSelectStep.tsx)
-
-Al geimplementeerd: `hover:-translate-y-0.5`. Toevoegen:
-
-- `hover:shadow-lg` (was `0 1px 3px`, wordt `0 4px 12px` bij hover)
-- `active:scale-[0.99]` voor press feedback
+### Nieuwe data-attributen
+- `data-logo`: URL naar restaurant logo (optioneel, voor skeleton)
+- `data-name`: Restaurant naam (optioneel, voor skeleton)
 
 ---
 
-## 4. prefers-reduced-motion Support
+## 3. Settings UI Uitbreiding
 
-### Aanpak
+In `SettingsReserveringenWidget.tsx`, de "Knopconfiguratie" sectie (regel 342-359) uitbreiden:
 
-- Alle nieuwe animaties in tailwind.config.ts wrappen met `@media (prefers-reduced-motion: reduce)` fallback
-- In de tailwind keyframes: geen wijziging nodig, we voegen een globale CSS rule toe in `index.css`:
+- **Pulse indicator**: Toggle aan/uit
+- De embed code preview (`EmbedCodePreview`) krijgt de nieuwe `data-logo` en `data-name` attributen mee in de gegenereerde code
 
-```css
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+---
+
+## Technische details
+
+### iframe lifecycle in widget.js
+
+```text
+Page Load
+  |
+  +--> Inject <link rel="preconnect">
+  +--> Inject Google Fonts <link>
+  +--> Inject keyframes CSS
+  +--> Render floating button (met entrance animatie)
+  |
+Button Hover (desktop)
+  |
+  +--> Maak hidden iframe container aan
+  +--> iframe.src = iframeSrc (begint laden)
+  +--> preloaded = true
+  |
+Button Click
+  |
+  +--> Is preloaded?
+  |     |
+  |     YES --> Verplaats iframe naar panel, toon direct
+  |     NO  --> Maak iframe + skeleton in panel
+  |             |
+  |             +--> iframe.onload --> fade skeleton uit
+  |
+Panel Close
+  |
+  +--> Verwijder overlay + panel
+  +--> iframe NIET verwijderen, terug naar hidden container
+  +--> Volgende klik = weer instant (iframe is nog geladen)
 ```
 
-- De checkmark animatie in ConfirmationStep: de `<style>` tag krijgt een `@media` wrapper zodat de SVG direct in eindstaat rendert
-- Stap transities: bij reduced motion verschijnt de nieuwe stap instant (geen slide)
+### Skeleton HTML structuur (pure DOM, geen React)
 
----
+```text
++-------------------------------+
+|  [logo]  Restaurant Naam      |  <- data-logo + data-name
++-------------------------------+
+|  ████████████████████████████  |  <- header bar
+|                                |
+|  ██  ██  ██  ██  ██  ██  ██   |  <- kalender grid
+|  ██  ██  ██  ██  ██  ██  ██   |
+|  ██  ██  ██  ██  ██  ██  ██   |
+|  ██  ██  ██  ██  ██  ██  ██   |
+|                                |
+|  ████████████████████████████  |  <- CTA knop
++-------------------------------+
+```
 
-## 5. Accessibility Audit
-
-Concrete fixes op bestaande componenten.
-
-### ARIA attributen
-
-| Component | Fix |
-|-----------|-----|
-| TimeTicketStep slot grid | `role="listbox"` op de grid container, `role="option"` + `aria-selected` op elk slot |
-| Party size stepper | `aria-label="Minder gasten"` / `"Meer gasten"` op de +/- knoppen |
-| TicketSelectStep kaarten | `role="listbox"` op container, `role="option"` + `aria-selected` op kaarten |
-| BookingProgress dots | `role="progressbar"` + `aria-valuenow` + `aria-valuemax` |
-| Calendar | `aria-live="polite"` op de beschikbaarheid loading/status tekst |
-
-### Keyboard navigatie
-
-- Tijdslots: `tabIndex={0}` op elk slot, `onKeyDown` handler voor Enter/Space
-- Ticket kaarten: al `<button>` elementen, keyboard werkt al
-- Party size: al `<button>` elementen
-
-### Focus indicators
-
-- Alle interactieve elementen: `focus-visible:ring-2 focus-visible:ring-offset-2` met primaryColor
-- Tijdslots: `focus-visible:outline-none focus-visible:ring-2` met inline style voor primaryColor
-
-### Touch targets
-
-- Alle knoppen zijn al minimaal 40x40px of 44px hoog -- voldoet aan WCAG 2.1 AA
+Alle blokjes: `background: #f3f4f6`, `border-radius: 8px`, CSS `@keyframes nesto-pulse` animatie.
 
 ---
 
@@ -147,15 +155,9 @@ Concrete fixes op bestaande componenten.
 
 | Bestand | Actie | Samenvatting |
 |---------|-------|--------------|
-| `src/components/booking/DateGuestsStep.tsx` | Wijzigen | Kalender skeleton, micro-interactie op dag selectie, ARIA op stepper |
-| `src/components/booking/TimeTicketStep.tsx` | Wijzigen | Slot grid skeleton, slot selectie pop, ARIA listbox, keyboard nav |
-| `src/components/booking/TicketSelectStep.tsx` | Wijzigen | Hover shadow upgrade, press feedback, ARIA listbox |
-| `src/components/booking/GuestDetailsStep.tsx` | Wijzigen | CTA hover/press micro-interactie |
-| `src/components/booking/ConfirmationStep.tsx` | Wijzigen | Reduced-motion checkmark, CTA micro-interactie |
-| `src/components/booking/BookingProgress.tsx` | Wijzigen | ARIA progressbar |
-| `src/pages/BookingWidget.tsx` | Wijzigen | Stap transitie wrapper met richting-logica |
-| `tailwind.config.ts` | Wijzigen | 2 nieuwe keyframes (slide-in-left/right) |
-| `src/index.css` | Wijzigen | prefers-reduced-motion globale regel |
+| `public/widget.js` | Herschrijven | Enterprise knop design, preconnect, hover-preload, skeleton fallback, iframe hergebruik |
+| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Wijzigen | Pulse toggle, data-logo/data-name in embed code |
+| `src/components/settings/widget/EmbedCodePreview.tsx` | Wijzigen | Nieuwe attributen in gegenereerde script tag |
 
 ### Geen database wijzigingen nodig
 
