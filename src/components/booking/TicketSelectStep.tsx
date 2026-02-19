@@ -45,7 +45,7 @@ export function TicketSelectStep() {
               onClick={() => handleSelect(ticket)}
               onMouseEnter={() => setHoveredId(ticket.id)}
               onMouseLeave={() => setHoveredId(null)}
-              className="w-full text-left rounded-3xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              className="w-full text-left rounded-[28px] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               style={{
                 backgroundColor: isSelected ? `${primaryColor}08` : '#fff',
                 boxShadow: getBoxShadow(ticket.id, isSelected),
@@ -54,7 +54,7 @@ export function TicketSelectStep() {
               }}
             >
               {/* Image or gradient fallback with initial letter */}
-              <div className="relative aspect-[2/1] w-full overflow-hidden">
+              <div className="relative aspect-[2.2/1] w-full overflow-hidden">
                 {ticket.image_url ? (
                   <img
                     src={ticket.image_url}
