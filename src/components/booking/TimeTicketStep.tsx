@@ -83,6 +83,11 @@ export function TimeTicketStep() {
         const available = shift.slots.filter(s => s.available);
         if (available.length === 0) return null;
 
+      const normalAvailableCount = shift.slots.filter(
+          s => s.available && s.slot_type !== 'squeeze'
+        ).length;
+        const showScarcity = normalAvailableCount <= 3;
+
         return (
           <div key={shift.shift_id} className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -108,6 +113,14 @@ export function TimeTicketStep() {
                       <Clock className="h-3 w-3" />
                       {slot.time}
                     </span>
+                    {showScarcity && slot.slot_type !== 'squeeze' && (
+                      <span
+                        className="text-[10px] font-medium"
+                        style={{ color: selected ? 'rgba(255,255,255,0.8)' : '#ea580c' }}
+                      >
+                        Nog {normalAvailableCount} {normalAvailableCount === 1 ? 'plek' : 'plekken'}
+                      </span>
+                    )}
                     {slot.slot_type === 'squeeze' && (
                       <span className="text-[10px] opacity-70">kortere zittijd</span>
                     )}
