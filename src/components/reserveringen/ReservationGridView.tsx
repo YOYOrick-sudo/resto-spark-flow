@@ -301,15 +301,17 @@ function UnassignedGridRow({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="sticky top-[72px] z-40 border-b-2 border-border bg-secondary">
+      <div className="sticky top-[72px] z-40 border-b-2 border-border bg-secondary relative">
+        <div className="absolute inset-0 bg-warning/5 pointer-events-none" />
         {/* Row: sticky label + timeline */}
-        <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
+        <div className={cn("flex relative", isCompact ? "h-9" : "h-12")}>
           {/* Sticky left column */}
           <div
-            className="sticky left-0 z-40 flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-secondary"
+            className="sticky left-0 z-40 flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-secondary relative"
             style={{ width: `${STICKY_COL_WIDTH}px` }}
           >
-            <CollapsibleTrigger className="flex items-center gap-1.5 flex-1 min-w-0">
+            <div className="absolute inset-0 bg-warning/5 pointer-events-none" />
+            <CollapsibleTrigger className="flex items-center gap-1.5 flex-1 min-w-0 relative">
               {open ? <ChevronUp className="h-3 w-3 text-warning flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-warning flex-shrink-0" />}
               <span className="text-xs font-semibold text-warning truncate">Niet toegew.</span>
               <span className="text-caption font-bold text-warning bg-warning/15 px-1.5 py-0.5 rounded-full flex-shrink-0">{unassigned.length}</span>
