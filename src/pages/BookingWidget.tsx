@@ -159,7 +159,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
       {/* Restaurant name footer */}
       {config.location_name && (
         <footer className="shrink-0 px-5 pb-3 pt-2 text-center">
-          <p className={`font-semibold text-gray-400 tracking-wide ${getNameSize(config.location_name)}`}>
+          <p className={`font-extrabold text-gray-400 tracking-normal ${getNameSize(config.location_name)}`} style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {config.location_name}
           </p>
           {config.show_nesto_branding && (
