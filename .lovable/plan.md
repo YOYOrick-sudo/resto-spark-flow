@@ -1,28 +1,33 @@
 
 
-# Fix: Rode "NU"-lijn loopt door "Niet toegewezen" sectie
+# Fix: Rode "NU"-lijn definitief achter alle sticky kolommen
 
-## Wat is het probleem?
-De rode tijdslijn loopt nog steeds zichtbaar door de linkerkolom van de "Niet toegewezen" sectie. De oorzaak is identiek aan het eerdere probleem bij de header en pacing-rij: de buitenste container mist een z-index, waardoor de browser de hele sectie als "lager" beschouwt dan de rode lijn.
+## Wat was het echte probleem?
 
-## Wat wordt gewijzigd?
-Eén regel in één bestand.
+De NowIndicator wrapper-div heeft **geen z-index**, waardoor de kinderen (de rode lijn met z-30) niet in een eigen stacking context zitten. Ze "lekken" naar de bovenliggende context en concurreren direct met de sticky secties. Ondanks dat die secties z-40 hebben, kan de browser de lijn er toch doorheen tonen afhankelijk van DOM-volgorde en rendering.
+
+## De definitieve fix
+
+Geef de NowIndicator wrapper een eigen `z-20`. Dit creëert een stacking context waarin alle kinderen (z-10 glow, z-30 lijn) worden ingekapseld. Vanuit het bovenliggende niveau is de hele indicator nu z-20 -- altijd lager dan de z-40 sticky secties.
+
+## Technische wijziging
 
 ### `src/components/reserveringen/ReservationGridView.tsx`
 
-**Regel 304** -- wrapper-div van de "Niet toegewezen" sectie:
+**Regel 226** -- NowIndicator wrapper:
 
-- **Was:** `className="border-b border-warning/30 bg-warning/5"`
-- **Wordt:** `className="relative z-40 border-b border-warning/30 bg-warning/5"`
+- **Was:** `className="absolute top-0 bottom-0 right-0 overflow-hidden pointer-events-none"`
+- **Wordt:** `className="absolute top-0 bottom-0 right-0 z-20 overflow-hidden pointer-events-none"`
 
 ## Waarom is dit definitief?
-Alle drie de horizontale secties die een sticky linkerkolom hebben, hebben nu dezelfde fix:
 
-| Sectie | Status |
-|---|---|
-| TimelineHeader (uurlabels) | Al gefixt (z-40) |
-| SeatedCountRow (pacing) | Al gefixt (z-40) |
-| UnassignedBadgeList (niet toegewezen) | **Deze fix** (z-40) |
+| Element | Z-index | Stacking context |
+|---|---|---|
+| NowIndicator wrapper | **z-20** (nieuw) | Eigen context, kapselt z-30 lijn in |
+| TimelineHeader | z-40 | Boven indicator |
+| SeatedCountRow | z-40 | Boven indicator |
+| UnassignedBadgeList | z-40 | Boven indicator |
+| TableRow sticky cellen | z-40 | Boven indicator |
 
-Er zijn geen andere secties met een sticky linkerkolom in de grid. Na deze wijziging loopt de rode lijn nergens meer door de sticky kolommen.
+De rode lijn kan nooit meer door sticky kolommen lopen omdat de hele indicator in een lagere stacking context zit.
 
