@@ -93,6 +93,20 @@ async function handleConfig(url: URL) {
     .eq('id', data.location_id)
     .single();
 
+  // Fetch min/max party size from active tickets
+  const { data: tickets } = await admin
+    .from('tickets')
+    .select('min_party_size, max_party_size')
+    .eq('location_id', data.location_id)
+    .eq('is_active', true);
+
+  let minParty = 1;
+  let maxParty = 20;
+  if (tickets && tickets.length > 0) {
+    minParty = Math.min(...tickets.map(t => t.min_party_size ?? 1));
+    maxParty = Math.max(...tickets.map(t => t.max_party_size ?? 20));
+  }
+
   return jsonResponse({
     location_id: data.location_id,
     location_name: loc?.name ?? null,
@@ -106,6 +120,8 @@ async function handleConfig(url: URL) {
     show_nesto_branding: data.show_nesto_branding,
     booking_questions: data.booking_questions,
     google_reserve_url: data.google_reserve_url,
+    min_party_size: minParty,
+    max_party_size: maxParty,
   });
 }
 
@@ -428,10 +444,24 @@ async function handleManageGet(url: URL) {
     cancelPolicy = ps;
   }
 
-  // Determine if cancellation is allowed
-  const canCancel = data.status === 'confirmed' && cancelPolicy?.cancel_policy_type !== 'no_cancel';
+  // Determine if cancellation/modification is allowed based on policy deadline
+  let canCancel = false;
+  let canModify = false;
+
+  if ((data.status === 'confirmed' || data.status === 'option') && cancelPolicy?.cancel_policy_type !== 'no_cancel') {
+    // Check deadline
+    let withinDeadline = true;
+    if (cancelPolicy?.cancel_window_hours != null) {
+      const resDateTime = new Date(`${data.reservation_date}T${data.start_time}`);
+      const deadline = new Date(resDateTime.getTime() - cancelPolicy.cancel_window_hours * 60 * 60 * 1000);
+      withinDeadline = new Date() < deadline;
+    }
+    canCancel = withinDeadline;
+    canModify = withinDeadline;
+  }
 
   return jsonResponse({
+    location_id: data.location_id,
     reservation: {
       id: data.id,
       date: data.reservation_date,
@@ -448,6 +478,7 @@ async function handleManageGet(url: URL) {
     },
     cancel_policy: cancelPolicy,
     can_cancel: canCancel,
+    can_modify: canModify,
   });
 }
 
@@ -455,28 +486,29 @@ async function handleManageGet(url: URL) {
 // Route: POST /manage (cancel/modify)
 // ============================================
 async function handleManagePost(body: Record<string, unknown>) {
-  const { token, action, cancellation_reason } = body as {
+  const { token, action, cancellation_reason, new_date, new_start_time, new_party_size } = body as {
     token?: string; action?: string; cancellation_reason?: string;
+    new_date?: string; new_start_time?: string; new_party_size?: number;
   };
 
   if (!token || !action) return errorResponse('Missing token or action', 400);
-  if (action !== 'cancel') return errorResponse('Only cancel action is supported', 400);
+  if (action !== 'cancel' && action !== 'modify') return errorResponse('Only cancel and modify actions are supported', 400);
 
   const admin = getAdminClient();
 
   // Find reservation by manage_token
   const { data: res, error: findErr } = await admin
     .from('reservations')
-    .select('id, status, location_id, ticket_id')
+    .select('id, status, location_id, ticket_id, shift_id, reservation_date, start_time, party_size, duration_minutes')
     .eq('manage_token', token)
     .single();
 
   if (findErr || !res) return errorResponse('Reservation not found', 404);
   if (res.status !== 'confirmed' && res.status !== 'option') {
-    return errorResponse(`Cannot cancel reservation with status: ${res.status}`, 422);
+    return errorResponse(`Cannot ${action} reservation with status: ${res.status}`, 422);
   }
 
-  // Check cancel policy
+  // Check cancel policy deadline
   const { data: ticket } = await admin
     .from('tickets')
     .select('policy_set_id')
@@ -486,38 +518,132 @@ async function handleManagePost(body: Record<string, unknown>) {
   if (ticket?.policy_set_id) {
     const { data: ps } = await admin
       .from('policy_sets')
-      .select('cancel_policy_type')
+      .select('cancel_policy_type, cancel_window_hours')
       .eq('id', ticket.policy_set_id)
       .single();
 
     if (ps?.cancel_policy_type === 'no_cancel') {
-      return errorResponse('Cancellation is not allowed for this reservation', 403);
+      return errorResponse('Cancellation/modification is not allowed for this reservation', 403);
+    }
+
+    if (ps?.cancel_window_hours != null) {
+      const resDateTime = new Date(`${res.reservation_date}T${res.start_time}`);
+      const deadline = new Date(resDateTime.getTime() - ps.cancel_window_hours * 60 * 60 * 1000);
+      if (new Date() >= deadline) {
+        return errorResponse('De wijzigingsdeadline is verstreken', 403);
+      }
     }
   }
 
-  // Perform cancellation
-  const { error: updateErr } = await admin
-    .from('reservations')
-    .update({
-      status: 'cancelled',
-      cancellation_reason: cancellation_reason || 'Cancelled by guest via booking link',
-    })
-    .eq('id', res.id);
+  // === CANCEL ===
+  if (action === 'cancel') {
+    const { error: updateErr } = await admin
+      .from('reservations')
+      .update({
+        status: 'cancelled',
+        cancellation_reason: cancellation_reason || 'Cancelled by guest via booking link',
+      })
+      .eq('id', res.id);
 
-  if (updateErr) return errorResponse(`Cancellation failed: ${updateErr.message}`, 500);
+    if (updateErr) return errorResponse(`Cancellation failed: ${updateErr.message}`, 500);
 
-  // Audit log
-  await admin.from('audit_log').insert({
-    location_id: res.location_id,
-    entity_type: 'reservation',
-    entity_id: res.id,
-    action: 'cancelled',
-    actor_type: 'guest',
-    actor_id: null,
-    changes: { reason: cancellation_reason || 'guest_self_cancel', channel: 'widget' },
-  });
+    await admin.from('audit_log').insert({
+      location_id: res.location_id,
+      entity_type: 'reservation',
+      entity_id: res.id,
+      action: 'cancelled',
+      actor_type: 'guest',
+      actor_id: null,
+      changes: { reason: cancellation_reason || 'guest_self_cancel', channel: 'widget' },
+    });
 
-  return jsonResponse({ success: true, status: 'cancelled' });
+    return jsonResponse({ success: true, status: 'cancelled' });
+  }
+
+  // === MODIFY ===
+  if (action === 'modify') {
+    if (!new_date || !new_start_time || !new_party_size) {
+      return errorResponse('Missing new_date, new_start_time, or new_party_size', 400);
+    }
+
+    // Verify availability
+    const req: AvailabilityRequest = {
+      location_id: res.location_id,
+      date: new_date,
+      party_size: new_party_size,
+      ticket_id: res.ticket_id,
+      channel: 'widget',
+    };
+    const engineData = await loadEngineData(admin, req);
+    const result = checkAvailabilityEngine(engineData, req);
+    const slotAvailable = result.shifts.some(s =>
+      s.slots.some(sl => sl.available && sl.time === new_start_time && sl.ticket_id === res.ticket_id)
+    );
+
+    if (!slotAvailable) {
+      return errorResponse('Het gekozen tijdslot is niet meer beschikbaar', 422);
+    }
+
+    // Find the matching slot for duration
+    let newDuration = res.duration_minutes;
+    for (const s of result.shifts) {
+      const slot = s.slots.find(sl => sl.available && sl.time === new_start_time && sl.ticket_id === res.ticket_id);
+      if (slot) { newDuration = slot.duration_minutes; break; }
+    }
+
+    // Compute new end time
+    const [h, m] = new_start_time.split(':').map(Number);
+    const endTotalMin = h * 60 + m + newDuration;
+    const endH = Math.floor(endTotalMin / 60) % 24;
+    const endM = endTotalMin % 60;
+    const newEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+    const changes: Record<string, unknown> = {};
+    if (new_date !== res.reservation_date) changes.date = { from: res.reservation_date, to: new_date };
+    if (new_start_time !== res.start_time) changes.start_time = { from: res.start_time, to: new_start_time };
+    if (new_party_size !== res.party_size) changes.party_size = { from: res.party_size, to: new_party_size };
+
+    // Update reservation
+    const { error: updateErr } = await admin
+      .from('reservations')
+      .update({
+        reservation_date: new_date,
+        start_time: new_start_time,
+        end_time: newEndTime,
+        party_size: new_party_size,
+        duration_minutes: newDuration,
+      })
+      .eq('id', res.id);
+
+    if (updateErr) return errorResponse(`Modification failed: ${updateErr.message}`, 500);
+
+    // Re-assign table
+    await admin.rpc('assign_best_table', {
+      _location_id: res.location_id,
+      _date: new_date,
+      _time: new_start_time,
+      _party_size: new_party_size,
+      _duration_minutes: newDuration,
+      _shift_id: res.shift_id,
+      _ticket_id: res.ticket_id,
+      _reservation_id: res.id,
+    });
+
+    // Audit log
+    await admin.from('audit_log').insert({
+      location_id: res.location_id,
+      entity_type: 'reservation',
+      entity_id: res.id,
+      action: 'modified',
+      actor_type: 'guest',
+      actor_id: null,
+      changes: { ...changes, channel: 'widget' },
+    });
+
+    return jsonResponse({ success: true, status: 'modified' });
+  }
+
+  return errorResponse('Unknown action', 400);
 }
 
 // ============================================

@@ -3,6 +3,8 @@ import { BookingProvider, useBooking } from '@/contexts/BookingContext';
 import { BookingProgress } from '@/components/booking/BookingProgress';
 import { DateGuestsStep } from '@/components/booking/DateGuestsStep';
 import { TimeTicketStep } from '@/components/booking/TimeTicketStep';
+import { GuestDetailsStep } from '@/components/booking/GuestDetailsStep';
+import { ConfirmationStep } from '@/components/booking/ConfirmationStep';
 import { Loader2 } from 'lucide-react';
 
 function BookingWidgetInner() {
@@ -47,21 +49,13 @@ function BookingWidgetInner() {
 
       {/* Card */}
       <main className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 mx-4 mb-8 overflow-hidden">
-        <BookingProgress />
+        {step < 4 && <BookingProgress />}
 
         <div className="pb-6">
           {step === 1 && <DateGuestsStep />}
           {step === 2 && <TimeTicketStep />}
-          {step === 3 && (
-            <div className="px-4 py-12 text-center text-gray-400 text-sm">
-              Stap 3: Gegevens — komt in volgende iteratie
-            </div>
-          )}
-          {step === 4 && (
-            <div className="px-4 py-12 text-center text-gray-400 text-sm">
-              Stap 4: Bevestiging — komt in volgende iteratie
-            </div>
-          )}
+          {step === 3 && <GuestDetailsStep />}
+          {step === 4 && <ConfirmationStep />}
         </div>
       </main>
 

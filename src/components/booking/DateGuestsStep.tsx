@@ -74,18 +74,18 @@ export function DateGuestsStep() {
         <div className="flex items-center justify-center gap-4">
           <button
             type="button"
-            onClick={() => setPartySize(Math.max(1, data.party_size - 1))}
+            onClick={() => setPartySize(Math.max(config?.min_party_size ?? 1, data.party_size - 1))}
             className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-30"
-            disabled={data.party_size <= 1}
+            disabled={data.party_size <= (config?.min_party_size ?? 1)}
           >
             <Minus className="h-4 w-4" />
           </button>
           <span className="text-2xl font-semibold w-12 text-center">{data.party_size}</span>
           <button
             type="button"
-            onClick={() => setPartySize(Math.min(20, data.party_size + 1))}
+            onClick={() => setPartySize(Math.min(config?.max_party_size ?? 20, data.party_size + 1))}
             className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-30"
-            disabled={data.party_size >= 20}
+            disabled={data.party_size >= (config?.max_party_size ?? 20)}
           >
             <Plus className="h-4 w-4" />
           </button>

@@ -18,6 +18,8 @@ export interface WidgetConfig {
   show_nesto_branding: boolean;
   booking_questions: BookingQuestion[];
   google_reserve_url: string | null;
+  min_party_size: number;
+  max_party_size: number;
 }
 
 export interface BookingQuestion {
@@ -47,11 +49,27 @@ export interface AvailableShift {
   slots: AvailableSlot[];
 }
 
+export interface GuestData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  guest_notes: string;
+  booking_answers: Array<{ question_id: string; values: string[] }>;
+  honeypot: string;
+}
+
 export interface BookingData {
   date: string | null;            // YYYY-MM-DD
   party_size: number;
   selectedSlot: AvailableSlot | null;
   selectedShift: AvailableShift | null;
+}
+
+export interface BookingResult {
+  success: boolean;
+  reservation_id: string;
+  manage_token: string | null;
 }
 
 export type BookingStep = 1 | 2 | 3 | 4;
@@ -72,6 +90,16 @@ interface BookingContextValue {
   setDate: (date: string | null) => void;
   setPartySize: (size: number) => void;
   setSelectedSlot: (slot: AvailableSlot | null, shift: AvailableShift | null) => void;
+
+  // Guest data
+  guestData: GuestData;
+  setGuestData: (data: Partial<GuestData>) => void;
+
+  // Booking submission
+  bookingResult: BookingResult | null;
+  bookingLoading: boolean;
+  bookingError: string | null;
+  submitBooking: () => Promise<void>;
 
   // Availability
   availableShifts: AvailableShift[];
@@ -115,6 +143,21 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
     selectedSlot: null,
     selectedShift: null,
   });
+
+  // Guest data
+  const [guestData, setGuestDataState] = useState<GuestData>({
+    first_name: '', last_name: '', email: '', phone: '', guest_notes: '',
+    booking_answers: [], honeypot: '',
+  });
+
+  const setGuestData = useCallback((partial: Partial<GuestData>) => {
+    setGuestDataState(prev => ({ ...prev, ...partial }));
+  }, []);
+
+  // Booking result
+  const [bookingResult, setBookingResult] = useState<BookingResult | null>(null);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   // Availability
   const [availableShifts, setAvailableShifts] = useState<AvailableShift[]>([]);
@@ -227,10 +270,54 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
     }
   }, [config]);
 
+  // Submit booking
+  const submitBooking = useCallback(async () => {
+    if (!config || !data.date || !data.selectedSlot || !data.selectedShift) return;
+    if (guestData.honeypot) return; // bot trap
+
+    setBookingLoading(true);
+    setBookingError(null);
+    try {
+      const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-booking-api/book`;
+      const res = await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          location_id: config.location_id,
+          date: data.date,
+          start_time: data.selectedSlot.time,
+          party_size: data.party_size,
+          shift_id: data.selectedShift.shift_id,
+          ticket_id: data.selectedSlot.ticket_id,
+          is_squeeze: data.selectedSlot.slot_type === 'squeeze',
+          first_name: guestData.first_name,
+          last_name: guestData.last_name,
+          email: guestData.email,
+          phone: guestData.phone || null,
+          guest_notes: guestData.guest_notes || null,
+          booking_answers: guestData.booking_answers,
+          honeypot: guestData.honeypot,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Booking failed');
+      setBookingResult(result);
+      setStep(4);
+    } catch (err: any) {
+      setBookingError(err.message || 'Er ging iets mis bij het boeken.');
+    } finally {
+      setBookingLoading(false);
+    }
+  }, [config, data, guestData, setStep]);
+
   // Determine if user can proceed
   const canGoNext = (() => {
     if (step === 1) return !!data.date && data.party_size > 0;
     if (step === 2) return !!data.selectedSlot;
+    if (step === 3) return !!(guestData.first_name && guestData.last_name && guestData.email);
     return false;
   })();
 
@@ -240,6 +327,8 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
         config, configLoading, configError,
         step, setStep, canGoNext,
         data, setDate, setPartySize, setSelectedSlot,
+        guestData, setGuestData,
+        bookingResult, bookingLoading, bookingError, submitBooking,
         availableShifts, availabilityLoading,
         availableDates, availableDatesLoading,
         loadAvailability, loadAvailableDates,
