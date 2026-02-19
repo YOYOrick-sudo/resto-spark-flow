@@ -29,6 +29,41 @@
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
   }
 
+  function darkenHex(hex, percent) {
+    var r = parseInt(hex.slice(1, 3), 16) / 255;
+    var g = parseInt(hex.slice(3, 5), 16) / 255;
+    var b = parseInt(hex.slice(5, 7), 16) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; } else {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    l = Math.max(0, l - percent / 100);
+    function hue2rgb(p, q, t) {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    }
+    var rr, gg, bb;
+    if (s === 0) { rr = gg = bb = l; } else {
+      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      var p = 2 * l - q;
+      rr = hue2rgb(p, q, h + 1/3);
+      gg = hue2rgb(p, q, h);
+      bb = hue2rgb(p, q, h - 1/3);
+    }
+    var toHex = function(v) { var x = Math.round(v * 255).toString(16); return x.length === 1 ? '0' + x : x; };
+    return '#' + toHex(rr) + toHex(gg) + toHex(bb);
+  }
+
   function isMobile() {
     return window.innerWidth < 768;
   }
@@ -67,7 +102,7 @@
       '@keyframes nestoFadeIn{from{opacity:0}to{opacity:1}}',
       '@keyframes nestoSlideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}',
       '@keyframes nestoSlideInUp{from{transform:translateY(100%)}to{transform:translateY(0)}}',
-      '@keyframes nestoButtonEntrance{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}',
+      '@keyframes nestoButtonEntrance{0%{opacity:0;transform:translateY(20px) scale(0.92)}60%{opacity:1;transform:translateY(-3px) scale(1.01)}100%{opacity:1;transform:translateY(0) scale(1)}}',
       '@keyframes nestoPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:0}}',
       '@keyframes nestoSkeletonPulse{0%,100%{opacity:.6}50%{opacity:.3}}',
     ].join('');
@@ -77,6 +112,14 @@
   var FONT_FAMILY = "'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
   var CALENDAR_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
   var CALENDAR_ICON_SM = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+
+  // ─── Shadow helpers ───
+
+  var colorDark = darkenHex(color, 8);
+
+  var shadowRest = '0 1px 2px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.08),0 8px 32px ' + hexToRgba(color, 0.19);
+  var shadowHover = '0 2px 4px rgba(0,0,0,0.08),0 8px 20px rgba(0,0,0,0.12),0 12px 48px ' + hexToRgba(color, 0.25);
+  var shadowInset = ',inset 0 0 0 1px rgba(255,255,255,0.15)';
 
   // ─── Close button factory ───
 
@@ -103,7 +146,6 @@
     var wrapper = document.createElement('div');
     wrapper.style.cssText = 'position:absolute;inset:0;z-index:3;background:#fff;display:flex;flex-direction:column;padding:32px 24px;transition:opacity 0.3s ease';
 
-    // Header with logo + name
     if (logoUrl || restaurantName) {
       var header = document.createElement('div');
       header.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:28px';
@@ -123,15 +165,12 @@
       wrapper.appendChild(header);
     }
 
-    // Skeleton blocks
     var skeletonCSS = 'background:#f3f4f6;border-radius:8px;animation:nestoSkeletonPulse 1.5s ease-in-out infinite';
 
-    // Title bar
     var bar = document.createElement('div');
     bar.style.cssText = skeletonCSS + ';height:14px;width:60%;margin-bottom:24px';
     wrapper.appendChild(bar);
 
-    // Calendar grid (4 rows x 7 cols)
     var grid = document.createElement('div');
     grid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:24px';
     for (var i = 0; i < 28; i++) {
@@ -141,12 +180,10 @@
     }
     wrapper.appendChild(grid);
 
-    // Spacer
     var spacer = document.createElement('div');
     spacer.style.cssText = 'flex:1';
     wrapper.appendChild(spacer);
 
-    // CTA button skeleton
     var cta = document.createElement('div');
     cta.style.cssText = skeletonCSS + ';height:48px;border-radius:16px;width:100%';
     wrapper.appendChild(cta);
@@ -178,14 +215,14 @@
     var btn = document.createElement('button');
     btn.setAttribute('aria-label', label);
 
-    // Icon + label content
     var iconSpan = document.createElement('span');
     iconSpan.innerHTML = mobile ? CALENDAR_ICON_SM : CALENDAR_ICON;
-    iconSpan.style.cssText = 'display:flex;align-items:center;flex-shrink:0';
+    iconSpan.style.cssText = 'display:flex;align-items:center;flex-shrink:0;opacity:0.85;transition:transform 0.2s ease,opacity 0.2s ease';
     btn.appendChild(iconSpan);
 
     var labelSpan = document.createElement('span');
     labelSpan.textContent = label;
+    labelSpan.style.cssText = 'text-shadow:0 1px 1px rgba(0,0,0,0.08)';
     btn.appendChild(labelSpan);
 
     var isRight = position !== 'bottom-left';
@@ -193,13 +230,13 @@
     var btnBase = [
       'position:fixed',
       'z-index:99998',
-      'background:' + color + 'F0',
+      'background:linear-gradient(180deg,' + color + ' 0%,' + colorDark + ' 100%)',
       'color:#fff',
       'border:none',
-      'border-radius:16px',
+      'border-radius:14px',
       'font-family:' + FONT_FAMILY,
       'font-weight:600',
-      'letter-spacing:0.02em',
+      'letter-spacing:0.03em',
       'cursor:pointer',
       'display:inline-flex',
       'align-items:center',
@@ -208,21 +245,20 @@
       '-webkit-backdrop-filter:blur(8px)',
       'transition:transform 0.2s ease,box-shadow 0.2s ease,filter 0.2s ease',
       'opacity:0',
-      'animation:nestoButtonEntrance 0.3s ease-out 0.4s forwards',
+      'animation:nestoButtonEntrance 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.4s forwards',
+      'box-shadow:' + shadowRest + shadowInset,
     ];
 
     if (mobile) {
       btnBase.push(
-        'bottom:16px', 'left:50%', 'transform:translateX(-50%)',
-        'padding:12px 20px', 'font-size:13px',
-        'box-shadow:0 2px 8px rgba(0,0,0,0.08),0 4px 20px ' + hexToRgba(color, 0.25)
+        'bottom:20px', 'left:50%', 'transform:translateX(-50%)',
+        'padding:14px 22px', 'font-size:13px'
       );
     } else {
       btnBase.push(
         'bottom:24px',
         isRight ? 'right:24px' : 'left:24px',
-        'padding:14px 24px', 'font-size:14px',
-        'box-shadow:0 2px 8px rgba(0,0,0,0.08),0 4px 20px ' + hexToRgba(color, 0.25)
+        'padding:16px 28px', 'font-size:15px'
       );
     }
 
@@ -231,16 +267,46 @@
     // Hover effects
     btn.addEventListener('mouseenter', function () {
       if (!mobile) {
-        btn.style.transform = 'translateY(-2px)';
-        btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.10),0 6px 28px ' + hexToRgba(color, 0.35);
-        btn.style.filter = 'brightness(1.08)';
+        btn.style.transform = 'translateY(-3px)';
+        btn.style.boxShadow = shadowHover + shadowInset;
+        btn.style.filter = 'brightness(1.06)';
+        iconSpan.style.transform = 'translateX(1px)';
+        iconSpan.style.opacity = '1';
       }
     });
     btn.addEventListener('mouseleave', function () {
       if (!mobile) {
         btn.style.transform = 'translateY(0)';
-        btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08),0 4px 20px ' + hexToRgba(color, 0.25);
+        btn.style.boxShadow = shadowRest + shadowInset;
         btn.style.filter = 'brightness(1)';
+        iconSpan.style.transform = 'translateX(0)';
+        iconSpan.style.opacity = '0.85';
+      }
+    });
+
+    // Active/press state
+    var isPressed = false;
+    btn.addEventListener('pointerdown', function () {
+      isPressed = true;
+      btn.style.transform = mobile ? 'translateX(-50%) scale(0.98)' : 'translateY(0) scale(0.98)';
+      btn.style.filter = 'brightness(0.96)';
+      btn.style.boxShadow = shadowRest + shadowInset;
+      btn.style.transitionDuration = '0.1s';
+    });
+    btn.addEventListener('pointerup', function () {
+      isPressed = false;
+      btn.style.transitionDuration = '0.2s';
+      btn.style.transform = mobile ? 'translateX(-50%)' : 'translateY(0)';
+      btn.style.filter = 'brightness(1)';
+      btn.style.boxShadow = shadowRest + shadowInset;
+    });
+    btn.addEventListener('pointerleave', function () {
+      if (isPressed) {
+        isPressed = false;
+        btn.style.transitionDuration = '0.2s';
+        btn.style.transform = mobile ? 'translateX(-50%)' : 'translateY(0)';
+        btn.style.filter = 'brightness(1)';
+        btn.style.boxShadow = shadowRest + shadowInset;
       }
     });
 
@@ -248,10 +314,10 @@
     if (pulse) {
       var dot = document.createElement('span');
       dot.style.cssText = [
-        'position:absolute', 'top:-3px', 'right:-3px',
-        'width:8px', 'height:8px', 'border-radius:50%',
+        'position:absolute', 'top:-4px', 'right:-4px',
+        'width:10px', 'height:10px', 'border-radius:50%',
         'background:#10b981',
-        'box-shadow:0 0 0 2px #fff',
+        'box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(16,185,129,0.2)',
         'animation:nestoPulse 2s ease-in-out infinite',
       ].join(';');
       btn.appendChild(dot);
@@ -274,7 +340,6 @@
       document.body.appendChild(hiddenContainer);
     }
 
-    // Desktop: preload on hover
     if (!mobile) {
       btn.addEventListener('mouseenter', preloadIframe);
     }
@@ -287,11 +352,9 @@
 
       var m = isMobile();
 
-      // Backdrop
       overlay = document.createElement('div');
       overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.4);animation:nestoFadeIn 0.2s ease';
 
-      // Panel
       var panel = document.createElement('div');
       if (m) {
         panel.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#fff;display:flex;flex-direction:column;animation:nestoSlideInUp 0.3s ease-out';
@@ -303,24 +366,20 @@
       panel.appendChild(closeBtn);
 
       if (preloadedIframe && iframeLoaded) {
-        // Iframe is ready — move it into the panel
         preloadedIframe.style.cssText = 'border:none;width:100%;flex:1;height:100%;opacity:1;pointer-events:auto';
         panel.appendChild(preloadedIframe);
       } else {
-        // Show skeleton + create/move iframe
         var skeleton = createSkeleton();
         panel.appendChild(skeleton);
 
         var iframe;
         if (preloadedIframe) {
-          // Hover-preload started but not finished yet
           iframe = preloadedIframe;
           iframe.style.cssText = 'border:none;width:100%;flex:1;height:100%;opacity:0;position:absolute;inset:0';
         } else {
           iframe = createIframe('flex:1;height:100%;opacity:0;position:absolute;inset:0');
           preloadedIframe = iframe;
         }
-        panel.style.position = panel.style.position; // force relative context
         panel.appendChild(iframe);
 
         var revealed = false;
@@ -339,7 +398,6 @@
           revealIframe();
         });
 
-        // Fallback timeout
         setTimeout(revealIframe, 8000);
       }
 
@@ -355,7 +413,6 @@
     function closePanel() {
       if (!overlay) return;
 
-      // Move iframe back to hidden container for reuse
       if (preloadedIframe && iframeLoaded) {
         if (!hiddenContainer) {
           hiddenContainer = document.createElement('div');
