@@ -1,149 +1,190 @@
 
-# Fase 4.10 — Stap 4: Widget Stap 3+4 + ManageReservation + Fixes
+
+# Embeddable Widget Script + Drie Integratiemodes
 
 ## Overzicht
 
-Zes onderdelen in deze stap:
+Een extern JavaScript bestand (`widget.js`) dat restaurants op hun eigen website kunnen plaatsen, met drie configureerbare integratiemodes:
 
-1. **Fix: "kort verblijf" naar "kortere zittijd"** in TimeTicketStep
-2. **Fix: Dynamische party size** uit ticket config (niet hardcoded 1-20)
-3. **Stap 3: GuestDetailsStep** -- gastgegevens formulier + guest lookup + booking questions
-4. **Stap 4: ConfirmationStep** -- bevestigingspagina met agenda-link en beheerlink
-5. **ManageReservation pagina** -- route `/manage/:token` (path param, geen query string)
-6. **Edge Function uitbreiden** -- min/max party in /config + modify-actie in /manage
+1. **Floating button** (default) -- "Reserveer" knop rechtsonder, opent overlay
+2. **Inline embed** -- Widget direct zichtbaar in een container op de pagina
+3. **Alleen link** -- Geen script, restaurant linkt naar de hosted URL
 
----
-
-## 1. Fix: Squeeze label
-
-**Bestand:** `src/components/booking/TimeTicketStep.tsx` regel 112
-
-Wijzig `kort verblijf` naar `kortere zittijd`.
+De Widget Settings UI wordt uitgebreid met een mode-keuze en dynamische embed code preview.
 
 ---
 
-## 2. Fix: Dynamische party size
+## 1. Embed mode op de BookingWidget pagina
 
-### Edge Function (`public-booking-api/index.ts`)
-In `handleConfig`: na widget_settings ophalen, ook actieve tickets voor de locatie ophalen en `min_party_size` (laagste) en `max_party_size` (hoogste) berekenen. Toevoegen aan config response.
+### `?embed=true` query parameter
 
-### BookingContext (`src/contexts/BookingContext.tsx`)
-- `WidgetConfig` type uitbreiden met `min_party_size` en `max_party_size`
-- Default `party_size` aanpassen na config load
+De bestaande `BookingWidget.tsx` pagina krijgt embed-awareness:
+- Als `?embed=true` aanwezig is: verberg header (logo + naam) en "Powered by" footer
+- Alleen de stappen-flow card blijft over, met transparante achtergrond (`bg-transparent` i.p.v. `bg-gray-50`)
+- Dit maakt de widget geschikt voor zowel iframe als overlay gebruik
 
-### DateGuestsStep (`src/components/booking/DateGuestsStep.tsx`)
-- Hardcoded `1` en `20` vervangen door `config.min_party_size` en `config.max_party_size`
-
----
-
-## 3. Stap 3: GuestDetailsStep (nieuw bestand)
-
-**Bestand:** `src/components/booking/GuestDetailsStep.tsx`
-
-### Velden
-- Voornaam (verplicht), achternaam (verplicht), email (verplicht), telefoon (optioneel), opmerkingen (optioneel)
-- Honeypot: verborgen input `name="website"`, `tabindex="-1"`
-
-### Guest lookup
-- Bij email blur: POST naar `/guest-lookup`
-- Als `found: true`: vul naam + telefoon in, toon "Welkom terug, {voornaam}!"
-
-### Booking questions
-- Dynamisch renderen vanuit `config.booking_questions`
-- `text` -> text input
-- `single_select` -> radio group
-- `multi_select` -> checkboxes
-- Antwoorden opslaan als `{ question_id, values }[]`
-
-### BookingContext uitbreidingen
-- Nieuw state: `guestData` (naam, email, telefoon, notes, answers, honeypot)
-- `canGoNext` voor stap 3: voornaam + achternaam + email ingevuld
-- `submitBooking()` functie: POST naar `/book`, retourneert `{ success, reservation_id, manage_token }`
-- State: `bookingResult`, `bookingLoading`, `bookingError`
+**Bestand:** `src/pages/BookingWidget.tsx`
 
 ---
 
-## 4. Stap 4: ConfirmationStep (nieuw bestand)
+## 2. Widget Script (`public/widget.js`)
 
-**Bestand:** `src/components/booking/ConfirmationStep.tsx`
+Een standalone vanilla JS bestand (geen React, geen bundler nodig) dat restaurants op hun site plaatsen. Volledig zelfstandig, geen dependencies.
 
-- Groene checkmark
-- Overzicht: datum, tijd, gasten, ticket naam
-- "Voeg toe aan agenda" link (Google Calendar URL)
-- Beheerlink: `/manage/{manage_token}`
-- "Powered by Nesto" (als `show_nesto_branding` true)
-- Optioneel: "Terug naar website" knop als `success_redirect_url` is ingesteld
-- Geen terug-knop
+### Script interface
 
----
+```html
+<!-- Mode 1: Floating button -->
+<script
+  src="https://resto-spark-flow.lovable.app/widget.js"
+  data-slug="restaurant-de-kok"
+  data-mode="button"
+  data-label="Reserveer"
+  data-position="bottom-right"
+  data-color="#1d979e"
+></script>
 
-## 5. ManageReservation pagina (nieuw bestand)
-
-**Bestand:** `src/pages/ManageReservation.tsx`
-
-### Route
-`/manage/:token` -- publieke route, token als path parameter (geen query string)
-
-### Gedrag
-- Haal reserveringsdetails op via `GET /manage?token=xxx` (bestaand endpoint)
-- Toont: datum, tijd, gasten, ticket naam, status, gast opmerkingen
-
-### Annuleren
-- Als `can_cancel === true`: "Annuleer reservering" knop
-- ConfirmDialog met optioneel reden-veld
-- POST naar `/manage` met `{ token, action: 'cancel', cancellation_reason }`
-
-### Wijzigen (tijd + party size)
-- Als deadline niet verstreken: toon "Wijzig reservering" knop
-- Opent inline wijzig-modus:
-  - Party size aanpassen (stepper)
-  - Nieuwe tijdslot kiezen (hergebruik van availability endpoint)
-- POST naar `/manage` met `{ token, action: 'modify', new_date, new_start_time, new_party_size }`
-- Backend herberekent beschikbaarheid, maakt nieuwe reservering aan en annuleert oude (of update in-place)
-
-### Edge Function uitbreiding voor modify
-In `handleManagePost`: naast `cancel` ook `modify` actie ondersteunen:
-- Valideer dat status `confirmed` of `option` is
-- Check cancel policy deadline (modify valt onder zelfde deadline)
-- Verifieer beschikbaarheid van nieuwe slot via availability engine
-- Update reservering: `reservation_date`, `start_time`, `end_time`, `party_size`, `duration_minutes`
-- Herbereken tafel via `assign_best_table` RPC
-- Audit log met action `modified` en changes object
-
----
-
-## 6. Route in App.tsx
-
-Nieuwe publieke route toevoegen:
-
-```text
-<Route path="/manage/:token" element={<ManageReservation />} />
+<!-- Mode 2: Inline -->
+<script
+  src="https://resto-spark-flow.lovable.app/widget.js"
+  data-slug="restaurant-de-kok"
+  data-mode="inline"
+  data-container="nesto-booking"
+></script>
 ```
 
-Buiten de ProtectedRoute wrapper, naast `/book/:slug`.
+### Data-attributen
+
+| Attribuut | Default | Beschrijving |
+|-----------|---------|--------------|
+| `data-slug` | (verplicht) | Locatie slug |
+| `data-mode` | `button` | `button` of `inline` |
+| `data-label` | `Reserveer` | Knoptekst (alleen button mode) |
+| `data-position` | `bottom-right` | `bottom-right` of `bottom-left` |
+| `data-color` | uit widget_settings | Achtergrondkleur van knop en overlay header |
+
+### Mode 1: Floating Button
+
+- Injecteert een `<button>` met fixed positioning (rechtsonder of linksonder)
+- Styling: pill-shape, primary color achtergrond, witte tekst, subtle shadow, hover lift
+- Bij klik: opent een fullscreen overlay (`position: fixed; inset: 0; z-index: 99999`)
+- Overlay: donkere backdrop (`rgba(0,0,0,0.4)`) + centered iframe
+- Iframe laadt `/book/{slug}?embed=true`
+- Sluitknop (X) rechtsboven in de overlay
+- ESC toets sluit ook
+- `postMessage` listener voor `nesto:close` event (zodat de widget zichzelf kan sluiten na boeking)
+- Body scroll lock tijdens overlay open
+
+### Mode 2: Inline Embed
+
+- Zoekt het DOM element met het opgegeven `data-container` id
+- Injecteert een iframe met `width: 100%; border: none;`
+- Iframe laadt `/book/{slug}?embed=true`
+- Automatische hoogte-aanpassing via `postMessage` (`nesto:resize` event)
+- Fallback: vaste hoogte van 700px als resize niet werkt
+
+### postMessage API (widget naar parent)
+
+| Event | Payload | Doel |
+|-------|---------|------|
+| `nesto:resize` | `{ height: number }` | Inline iframe hoogte aanpassen |
+| `nesto:close` | `{}` | Overlay sluiten na boeking |
+| `nesto:booked` | `{ reservation_id }` | Analytics event voor restaurant |
+
+De BookingWidget pagina stuurt deze events via `window.parent.postMessage()` wanneer `?embed=true` actief is.
+
+---
+
+## 3. Widget Settings UI uitbreiding
+
+### Wijzigingen aan `SettingsReserveringenWidget.tsx`
+
+De bestaande "Widget link" sectie (sectie 4) wordt vervangen door een volledige **Integratie** sectie:
+
+#### Embed Mode Selector
+
+Drie visuele kaartjes (radio-style) naast elkaar:
+
+```text
++------------------+  +------------------+  +------------------+
+|  [icon]          |  |  [icon]          |  |  [icon]          |
+|  Floating knop   |  |  Inline embed    |  |  Alleen link     |
+|  Overlay popup   |  |  Direct op pagina|  |  Zelf linken     |
+|  o (selected)    |  |  o               |  |  o               |
++------------------+  +------------------+  +------------------+
+```
+
+Styling conform enterprise design: `NestoCard`-achtige borders, selected state met `border-primary bg-primary/5`.
+
+#### Dynamische Embed Code Preview
+
+Onder de mode selector: een read-only code block dat zich aanpast aan de gekozen mode.
+
+**Button mode:**
+```html
+<script src="https://.../widget.js" data-slug="restaurant-de-kok" data-mode="button" data-label="Reserveer" data-position="bottom-right" data-color="#1d979e"></script>
+```
+
+**Inline mode:**
+```html
+<div id="nesto-booking"></div>
+<script src="https://.../widget.js" data-slug="restaurant-de-kok" data-mode="inline" data-container="nesto-booking" data-color="#1d979e"></script>
+```
+
+**Link mode:**
+```text
+https://resto-spark-flow.lovable.app/book/restaurant-de-kok
+```
+
+- Monospace font in een `bg-secondary/50 rounded-card` container
+- Kopieerknop met "Gekopieerd" feedback
+- Open in nieuw tabblad knop
+
+#### Button Mode configuratie (alleen zichtbaar als mode = button)
+
+- **Knoptekst** (Input) -- default "Reserveer"
+- **Positie** (NestoSelect) -- bottom-right / bottom-left
+
+#### Nieuw veld in widget_settings
+
+`embed_mode` kolom is niet nodig in de database -- de embed mode is een UI-only keuze die de gegenereerde snippet bepaalt. Het wordt lokaal opgeslagen in de component state. De snippet bevat alle configuratie als data-attributen.
+
+---
+
+## 4. postMessage in BookingWidget
+
+**Bestand:** `src/pages/BookingWidget.tsx`
+
+Wanneer `?embed=true`:
+- Bij mount: stuur `nesto:resize` met de container hoogte
+- Bij stap-wisseling: stuur `nesto:resize` opnieuw
+- Bij succesvolle boeking (stap 4): stuur `nesto:booked`
+- Bij "Terug naar website" klik of redirect: stuur `nesto:close`
+- Gebruik `ResizeObserver` op de main container voor continue hoogte-tracking
 
 ---
 
 ## Technische samenvatting
 
-### Bestanden die wijzigen
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/booking/TimeTicketStep.tsx` | "kort verblijf" -> "kortere zittijd" |
-| `src/contexts/BookingContext.tsx` | guestData, submitBooking, min/max party, canGoNext stap 3 |
-| `src/components/booking/DateGuestsStep.tsx` | Dynamische min/max uit config |
-| `supabase/functions/public-booking-api/index.ts` | min/max in /config + modify actie in /manage |
-| `src/pages/BookingWidget.tsx` | Import + render GuestDetailsStep en ConfirmationStep |
-| `src/App.tsx` | Route /manage/:token |
-
 ### Nieuwe bestanden
 
 | Bestand | Doel |
 |---------|------|
-| `src/components/booking/GuestDetailsStep.tsx` | Stap 3: gastgegevens + booking questions |
-| `src/components/booking/ConfirmationStep.tsx` | Stap 4: bevestiging + agenda link |
-| `src/pages/ManageReservation.tsx` | Beheerlink: bekijken + annuleren + wijzigen |
+| `public/widget.js` | Standalone embed script (vanilla JS, geen dependencies) |
+
+### Bestanden die wijzigen
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/pages/BookingWidget.tsx` | `?embed=true` support: verberg header/footer, transparante achtergrond, postMessage events |
+| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Embed mode selector, dynamische code preview, button configuratie |
 
 ### Geen database wijzigingen nodig
-Alles is al voorbereid in stap 1 (widget_settings, reservations.tags).
+
+Embed mode en button configuratie worden niet opgeslagen -- ze worden direct vertaald naar het script snippet dat de operator kopieert. Dit houdt het simpel en flexibel (meerdere snippets met verschillende configuraties op verschillende pagina's).
+
+### Volgorde van implementatie
+
+1. BookingWidget: embed=true awareness + postMessage
+2. public/widget.js: floating button + inline + overlay
+3. Widget Settings UI: mode selector + dynamische embed code
