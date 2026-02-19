@@ -108,7 +108,7 @@ export function NestoPanel({ open, onClose, title, footer, children, width = 'w-
     return (
       <>
         <div
-          className="fixed inset-0 z-40 bg-black/20 animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200"
           onClick={onClose}
         />
         <div
