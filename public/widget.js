@@ -208,8 +208,8 @@
     injectFont();
     injectKeyframes();
 
-    shadowRest = '0 2px 8px rgba(0,0,0,0.10),0 4px 16px rgba(0,0,0,0.06)';
-    shadowHover = '0 6px 20px rgba(0,0,0,0.12),0 12px 36px rgba(0,0,0,0.08)';
+    shadowRest = '0 2px 8px ' + hexToRgba(color, 0.15) + ',0 8px 24px ' + hexToRgba(color, 0.12);
+    shadowHover = '0 4px 12px ' + hexToRgba(color, 0.20) + ',0 12px 36px ' + hexToRgba(color, 0.15);
     var hoverColor = darkenHex(color, -8);
 
     var mobile = isMobile();
