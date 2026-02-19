@@ -6,7 +6,7 @@ import { DateGuestsStep } from '@/components/booking/DateGuestsStep';
 import { TimeTicketStep } from '@/components/booking/TimeTicketStep';
 import { GuestDetailsStep } from '@/components/booking/GuestDetailsStep';
 import { ConfirmationStep } from '@/components/booking/ConfirmationStep';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 
 function useEmbedMessaging(isEmbed: boolean) {
   const mainRef = useRef<HTMLDivElement>(null);
@@ -31,19 +31,25 @@ function useEmbedMessaging(isEmbed: boolean) {
 }
 
 function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
-  const { config, configLoading, configError, step, bookingResult } = useBooking();
+  const { config, configLoading, configError, step, totalSteps, effectiveStyle, bookingResult } = useBooking();
   const { mainRef, postMsg } = useEmbedMessaging(isEmbed);
+
+  const confirmationStep = totalSteps;
 
   // Send nesto:booked when reaching confirmation step
   useEffect(() => {
-    if (isEmbed && step === 4 && bookingResult?.reservation_id) {
+    if (isEmbed && step === confirmationStep && bookingResult?.reservation_id) {
       postMsg('nesto:booked', { reservation_id: bookingResult.reservation_id });
     }
-  }, [isEmbed, step, bookingResult, postMsg]);
+  }, [isEmbed, step, confirmationStep, bookingResult, postMsg]);
+
+  const handleClose = useCallback(() => {
+    window.parent.postMessage({ type: 'nesto:close' }, '*');
+  }, []);
 
   if (configLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isEmbed ? 'bg-transparent' : 'bg-gray-50'}`}>
+      <div className="h-full flex items-center justify-center bg-white">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
@@ -51,7 +57,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
 
   if (configError || !config) {
     return (
-      <div className={`min-h-screen flex items-center justify-center px-6 ${isEmbed ? 'bg-transparent' : 'bg-gray-50'}`}>
+      <div className="h-full flex items-center justify-center px-6 bg-white">
         <div className="text-center">
           <h1 className="text-lg font-semibold text-gray-800">Niet beschikbaar</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -62,11 +68,59 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
     );
   }
 
+  // Determine which step components to render based on effective style
+  const renderStep = () => {
+    if (effectiveStyle === 'showcase') {
+      // Showcase: 1=Ticket, 2=Date+Guests, 3=Time, 4=Details, 5=Confirmation
+      switch (step) {
+        case 1: return <div className="px-5 py-4 text-sm text-gray-500 text-center">Ticket selectie (Ronde 2)</div>;
+        case 2: return <DateGuestsStep />;
+        case 3: return <TimeTicketStep />;
+        case 4: return <GuestDetailsStep />;
+        case 5: return <ConfirmationStep />;
+        default: return null;
+      }
+    }
+    // Quick: 1=Date+Guests, 2=Time, 3=Details, 4=Confirmation
+    switch (step) {
+      case 1: return <DateGuestsStep />;
+      case 2: return <TimeTicketStep />;
+      case 3: return <GuestDetailsStep />;
+      case 4: return <ConfirmationStep />;
+      default: return null;
+    }
+  };
+
+  const isConfirmation = step === confirmationStep;
+
   return (
-    <div ref={mainRef} className={`min-h-screen flex flex-col items-center ${isEmbed ? 'bg-transparent' : 'bg-gray-50'}`}>
-      {/* Header - hidden in embed mode */}
+    <div ref={mainRef} className="h-full flex flex-col bg-white">
+      {/* Panel header */}
+      {isEmbed && (
+        <header className="shrink-0 flex items-center gap-3 px-5 pt-4 pb-1">
+          {config.logo_url && (
+            <img
+              src={config.logo_url}
+              alt={config.location_name ?? 'Restaurant'}
+              className="h-8 w-8 object-contain rounded-lg"
+            />
+          )}
+          {config.location_name && (
+            <span className="text-sm font-semibold text-gray-900 truncate flex-1">{config.location_name}</span>
+          )}
+          <button
+            onClick={handleClose}
+            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            aria-label="Sluiten"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+      )}
+
+      {/* Standalone header (not embed) */}
       {!isEmbed && (
-        <header className="w-full max-w-md px-4 pt-6 pb-2 flex flex-col items-center gap-3">
+        <header className="shrink-0 px-5 pt-6 pb-2 flex flex-col items-center gap-3">
           {config.logo_url && (
             <img
               src={config.logo_url}
@@ -80,22 +134,20 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
         </header>
       )}
 
-      {/* Card */}
-      <main className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 mx-4 mb-8 overflow-hidden">
-        {step < 4 && <BookingProgress />}
+      {/* Progress dots */}
+      {!isConfirmation && <BookingProgress />}
 
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
         <div className="pb-6">
-          {step === 1 && <DateGuestsStep />}
-          {step === 2 && <TimeTicketStep />}
-          {step === 3 && <GuestDetailsStep />}
-          {step === 4 && <ConfirmationStep />}
+          {renderStep()}
         </div>
-      </main>
+      </div>
 
-      {/* Powered by - hidden in embed mode */}
-      {!isEmbed && config.show_nesto_branding && (
-        <footer className="pb-6 text-center">
-          <span className="text-xs text-gray-400">Powered by Nesto</span>
+      {/* Powered by - standalone mode only, on confirmation */}
+      {!isEmbed && isConfirmation && config.show_nesto_branding && (
+        <footer className="shrink-0 pb-4 text-center">
+          <span className="text-[10px] text-gray-300">Powered by Nesto</span>
         </footer>
       )}
     </div>
@@ -117,7 +169,11 @@ export default function BookingWidget() {
 
   return (
     <BookingProvider slug={slug}>
-      <BookingWidgetInner isEmbed={isEmbed} />
+      <div className={isEmbed ? 'h-screen' : 'min-h-screen bg-gray-50 flex justify-center'}>
+        <div className={isEmbed ? 'h-full' : 'w-full max-w-md'}>
+          <BookingWidgetInner isEmbed={isEmbed} />
+        </div>
+      </div>
     </BookingProvider>
   );
 }

@@ -37,7 +37,55 @@
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
   }
 
-  // ─── Mode 1: Floating Button ───
+  function isMobile() {
+    return window.innerWidth < 768;
+  }
+
+  // ─── Keyframes injection ───
+
+  function injectKeyframes() {
+    if (document.getElementById('nesto-keyframes')) return;
+    var style = document.createElement('style');
+    style.id = 'nesto-keyframes';
+    style.textContent = [
+      '@keyframes nestoFadeIn{from{opacity:0}to{opacity:1}}',
+      '@keyframes nestoSlideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}',
+      '@keyframes nestoSlideInUp{from{transform:translateY(100%)}to{transform:translateY(0)}}',
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  // ─── Close button factory ───
+
+  function createCloseButton(onClick) {
+    var btn = document.createElement('button');
+    btn.innerHTML = '&#10005;';
+    btn.setAttribute('aria-label', 'Sluiten');
+    btn.style.cssText = [
+      'position:absolute',
+      'top:12px',
+      'right:12px',
+      'z-index:2',
+      'background:rgba(0,0,0,0.06)',
+      'border:none',
+      'width:40px',
+      'height:40px',
+      'border-radius:50%',
+      'font-size:14px',
+      'cursor:pointer',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'color:#666',
+      'transition:background 0.15s',
+    ].join(';');
+    btn.addEventListener('mouseenter', function () { btn.style.background = 'rgba(0,0,0,0.1)'; });
+    btn.addEventListener('mouseleave', function () { btn.style.background = 'rgba(0,0,0,0.06)'; });
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  // ─── Mode 1: Floating Button → Slide-in Panel ───
 
   if (mode === 'button') {
     // Create floating button
@@ -75,108 +123,87 @@
 
     document.body.appendChild(btn);
 
-    // Overlay
+    // Panel overlay
     var overlay = null;
 
-    function openOverlay() {
+    function openPanel() {
       if (overlay) return;
+      injectKeyframes();
+
+      var mobile = isMobile();
+
+      // Backdrop
       overlay = document.createElement('div');
       overlay.style.cssText = [
         'position:fixed',
         'inset:0',
         'z-index:99999',
-        'display:flex',
-        'align-items:center',
-        'justify-content:center',
-        'background:rgba(0,0,0,0.45)',
-        'backdrop-filter:blur(2px)',
+        'background:rgba(0,0,0,0.4)',
         'animation:nestoFadeIn 0.2s ease',
       ].join(';');
 
-      // Inject animation keyframes
-      if (!document.getElementById('nesto-keyframes')) {
-        var style = document.createElement('style');
-        style.id = 'nesto-keyframes';
-        style.textContent =
-          '@keyframes nestoFadeIn{from{opacity:0}to{opacity:1}}' +
-          '@keyframes nestoSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}';
-        document.head.appendChild(style);
+      // Panel container
+      var panel = document.createElement('div');
+      if (mobile) {
+        panel.style.cssText = [
+          'position:fixed',
+          'inset:0',
+          'z-index:100000',
+          'background:#fff',
+          'display:flex',
+          'flex-direction:column',
+          'animation:nestoSlideInUp 0.3s ease-out',
+        ].join(';');
+      } else {
+        panel.style.cssText = [
+          'position:fixed',
+          'top:0',
+          'right:0',
+          'bottom:0',
+          'width:420px',
+          'z-index:100000',
+          'background:#fff',
+          'box-shadow:-8px 0 24px rgba(0,0,0,0.12)',
+          'display:flex',
+          'flex-direction:column',
+          'animation:nestoSlideInRight 0.3s ease-out',
+        ].join(';');
       }
 
-      // Container card
-      var card = document.createElement('div');
-      card.style.cssText = [
-        'position:relative',
-        'width:100%',
-        'max-width:440px',
-        'max-height:90vh',
-        'margin:16px',
-        'border-radius:20px',
-        'overflow:hidden',
-        'background:#fff',
-        'box-shadow:0 25px 60px rgba(0,0,0,0.3)',
-        'animation:nestoSlideUp 0.25s ease',
-      ].join(';');
+      var iframe = createIframe('flex:1;height:100%;');
+      var closeBtn = createCloseButton(closePanel);
 
-      // Close button
-      var closeBtn = document.createElement('button');
-      closeBtn.innerHTML = '&#10005;';
-      closeBtn.setAttribute('aria-label', 'Sluiten');
-      closeBtn.style.cssText = [
-        'position:absolute',
-        'top:12px',
-        'right:12px',
-        'z-index:2',
-        'background:rgba(0,0,0,0.06)',
-        'border:none',
-        'width:32px',
-        'height:32px',
-        'border-radius:50%',
-        'font-size:14px',
-        'cursor:pointer',
-        'display:flex',
-        'align-items:center',
-        'justify-content:center',
-        'color:#666',
-        'transition:background 0.15s',
-      ].join(';');
-      closeBtn.addEventListener('mouseenter', function () { closeBtn.style.background = 'rgba(0,0,0,0.1)'; });
-      closeBtn.addEventListener('mouseleave', function () { closeBtn.style.background = 'rgba(0,0,0,0.06)'; });
-      closeBtn.addEventListener('click', closeOverlay);
-
-      var iframe = createIframe('height:600px;max-height:80vh;border-radius:20px;');
-
-      card.appendChild(closeBtn);
-      card.appendChild(iframe);
-      overlay.appendChild(card);
+      panel.appendChild(closeBtn);
+      panel.appendChild(iframe);
+      overlay.appendChild(panel);
       document.body.appendChild(overlay);
 
       // Lock body scroll
       document.body.style.overflow = 'hidden';
 
-      // Close on backdrop click
+      // Close on backdrop click (not on panel)
       overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) closeOverlay();
+        if (e.target === overlay) closePanel();
       });
     }
 
-    function closeOverlay() {
+    function closePanel() {
       if (!overlay) return;
       overlay.remove();
       overlay = null;
       document.body.style.overflow = '';
     }
 
-    btn.addEventListener('click', openOverlay);
+    btn.addEventListener('click', openPanel);
 
     // ESC key
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeOverlay();
+      if (e.key === 'Escape') closePanel();
     });
 
     // postMessage listener
     window.addEventListener('message', function (e) {
-      if (e.data && e.data.type === 'nesto:close') closeOverlay();
+      if (e.data && e.data.type === 'nesto:close') closePanel();
     });
   }
 

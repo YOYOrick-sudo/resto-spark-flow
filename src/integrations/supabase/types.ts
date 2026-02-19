@@ -2070,6 +2070,7 @@ export type Database = {
           widget_enabled: boolean
           widget_logo_url: string | null
           widget_primary_color: string
+          widget_style: string
           widget_success_redirect_url: string | null
           widget_welcome_text: string | null
         }
@@ -2089,6 +2090,7 @@ export type Database = {
           widget_enabled?: boolean
           widget_logo_url?: string | null
           widget_primary_color?: string
+          widget_style?: string
           widget_success_redirect_url?: string | null
           widget_welcome_text?: string | null
         }
@@ -2108,6 +2110,7 @@ export type Database = {
           widget_enabled?: boolean
           widget_logo_url?: string | null
           widget_primary_color?: string
+          widget_style?: string
           widget_success_redirect_url?: string | null
           widget_welcome_text?: string | null
         }

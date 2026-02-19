@@ -9,6 +9,7 @@ export interface WidgetSettings {
   location_slug: string | null;
   widget_primary_color: string;
   widget_accent_color: string;
+  widget_style: 'auto' | 'showcase' | 'quick';
   widget_logo_url: string | null;
   widget_welcome_text: string | null;
   widget_success_redirect_url: string | null;
