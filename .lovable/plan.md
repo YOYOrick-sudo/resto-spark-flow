@@ -1,105 +1,65 @@
 
 
-# Fase 4.10 — Stap 1: Database Migratie
+# Fase 4.10 — Publieke Booking Widget
 
-## Wat er gebeurt
+## Status Overzicht
 
-Een enkele database migratie die twee dingen doet:
-
-1. **`widget_settings` tabel aanmaken** -- configuratie voor de publieke bookingwidget per locatie
-2. **`reservations.tags` kolom toevoegen** -- opslag voor booking questions met `target: "reservation_tags"`
-
-Geen UI, geen Edge Functions, geen frontend wijzigingen in deze stap.
-
----
-
-## 1. Nieuwe tabel: widget_settings
-
-| Kolom | Type | Default | Nullable |
-|-------|------|---------|----------|
-| id | UUID PK | gen_random_uuid() | Nee |
-| location_id | UUID UNIQUE FK | -- | Nee |
-| widget_enabled | boolean | false | Nee |
-| location_slug | text UNIQUE | -- | Ja |
-| widget_primary_color | text | '#10B981' | Nee |
-| widget_logo_url | text | -- | Ja |
-| widget_welcome_text | text | -- | Ja |
-| widget_success_redirect_url | text | -- | Ja |
-| unavailable_text | text | 'vol' | Nee |
-| show_end_time | boolean | true | Nee |
-| show_nesto_branding | boolean | true | Nee |
-| booking_questions | jsonb | '[]' | Nee |
-| google_reserve_url | text | -- | Ja |
-| created_at | timestamptz | now() | Nee |
-| updated_at | timestamptz | now() | Nee |
-
-### Validation triggers (geen CHECK constraints)
-
-- **Slug format**: `^[a-z0-9][a-z0-9-]*[a-z0-9]$` (of NULL)
-- **unavailable_text**: moet in ('vol', 'walk_in_only', 'bel_ons')
-
-### RLS policies
-
-- SELECT: `user_has_location_access(auth.uid(), location_id)` -- operators kunnen lezen
-- INSERT: `user_has_role_in_location(auth.uid(), location_id, '{owner, manager}')` -- alleen owner/manager
-- UPDATE: zelfde als INSERT
-- DELETE: zelfde als INSERT
-
-Geen publieke SELECT policy nodig -- de Edge Function (stap 2, later) gebruikt `service_role`.
-
-### updated_at trigger
-
-Conform bestaand patroon (`update_*_updated_at`).
+| Stap | Beschrijving | Status |
+|------|-------------|--------|
+| 1 | Database Migratie (widget_settings + reservations.tags) | ✅ AFGEROND |
+| 2 | Public Booking API Edge Function (7 endpoints) | ✅ AFGEROND |
+| 3 | Widget Frontend (4-staps booking flow) | ⬜ TODO |
+| 4 | Widget Settings UI (beheer pagina) | ⬜ TODO |
+| 5 | Embed & Hosting (routes, iframe code) | ⬜ TODO |
 
 ---
 
-## 2. Reservations tags kolom
+## Stap 1: Database Migratie ✅
 
-```text
-ALTER TABLE reservations ADD COLUMN tags JSONB DEFAULT '[]'::jsonb;
-```
+- `widget_settings` tabel met RLS, validation triggers, updated_at trigger
+- `reservations.tags` kolom (JSONB, default `[]`)
+- Booking questions target-mapping: `customer_tags` → `customers.tags`, `reservation_tags` → `reservations.tags`
 
-Dit maakt het mogelijk om booking questions met `target: "reservation_tags"` op te slaan op de reservering zelf, terwijl `target: "customer_tags"` naar de bestaande `customers.tags` kolom gaat.
+## Stap 2: Public Booking API ✅
+
+Edge Function: `public-booking-api` met 7 endpoints:
+
+| Endpoint | Methode | Doel |
+|----------|---------|------|
+| `/config` | GET | Widget config via slug |
+| `/availability` | POST | Slots voor datum + party_size |
+| `/availability/month` | POST | Beschikbare dagen in maand |
+| `/guest-lookup` | POST | Returning guest op email (5 req/min) |
+| `/book` | POST | Reservering aanmaken (honeypot + 10 req/min) |
+| `/manage` | GET | Reservering ophalen via manage_token |
+| `/manage` | POST | Annuleren via manage_token + policy check |
+
+Hergebruikt: `loadEngineData()` uit `_shared/availabilityEngine.ts`
+
+## Stap 3: Widget Frontend (TODO)
+
+- 4-staps flow: Datum → Tijd → Gegevens → Bevestiging
+- System font stack, responsive
+- White-label: kleuren uit widget_settings
+- "Powered by Nesto" alleen op bevestigingspagina
+- Booking questions in stap 3
+
+## Stap 4: Widget Settings UI (TODO)
+
+- Settings pagina onder Reserveringen → Instellingen → Widget
+- Slug, branding, booking questions configuratie
+- Embed code preview (hosted URL + iframe)
+
+## Stap 5: Embed & Hosting (TODO)
+
+- Route: `/book/{slug}`
+- iframe embed code generator
+- Direct link
 
 ---
 
-## Booking questions target-mapping (voor referentie)
+## Doorlopende Targets
 
-```text
-booking_questions: [
-  {
-    "id": "allergies",
-    "type": "multi_select",
-    "label": "Allergieen of dieetwensen",
-    "target": "customer_tags",      --> opslaan in customers.tags
-    "options": [...]
-  },
-  {
-    "id": "occasion",
-    "type": "single_select",
-    "label": "Gelegenheid",
-    "target": "reservation_tags",   --> opslaan in reservations.tags
-    "options": [...]
-  }
-]
-```
-
----
-
-## Verificatie na migratie
-
-- `widget_settings` tabel bestaat met alle kolommen
-- `reservations.tags` kolom bestaat met default `'[]'::jsonb`
-- Validation triggers werken (ongeldige slug of unavailable_text wordt geweigerd)
-- RLS policies correct: operator kan lezen, owner/manager kan schrijven
-- Bestaande reserveringen krijgen automatisch `tags = '[]'`
-
----
-
-## Wat NIET in deze stap zit
-
-- Edge Functions (stap 2 + 3)
-- Frontend componenten (stap 4-7)
-- Routes in App.tsx (stap 8)
-- Performance targets en SEO (genoteerd, komt later)
-
+- Performance: < 2 sec TTI, Lighthouse > 90, < 100KB widget bundle, < 45 sec booking flow
+- SEO: Open Graph + JSON-LD per restaurant slug (later)
+- Acceptance criteria: 10 testvragen na implementatie
