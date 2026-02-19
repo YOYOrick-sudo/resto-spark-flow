@@ -1,33 +1,55 @@
 
 
-# Color-Tinted Shadow op Floating Button
+# Widget Header + Ticket Cards Redesign
 
 ## Wat verandert
 
-De zwarte drop-shadow wordt vervangen door een **kleur-getinte shadow** die de button-kleur overneemt. Dit is het effect dat Intercom, Stripe en Linear gebruiken: de button lijkt te "gloeien" op de pagina.
+### 1. Logo gecentreerd en groter (beide modes: embed + standalone)
 
-## Visueel resultaat
+**Embed header**: Logo gaat van `h-8 w-8` (32px) links-uitgelijnd naar `h-14` (56px) gecentreerd bovenin. De close-button blijft rechtsboven als absolute positie.
+
+**Standalone header**: Logo gaat van `h-12` naar `h-16` (64px), blijft gecentreerd.
+
+### 2. Restaurantnaam eronder
+
+In beide modes wordt de naam onder het logo geplaatst als gecentreerde tekst. In embed-mode verandert de header van een horizontale rij (logo + naam + close) naar een verticale stack (logo + naam) met de close-button absoluut gepositioneerd.
 
 ```text
-  Nu:     Zwarte schaduw → button "zweeft" maar voelt generiek
-  Straks: Teal-getinte schaduw → button heeft een subtiele glow, voelt premium
+  Nu (embed):                    Straks (embed):
+  [logo] Restaurant naam  [X]        [X]
+                                   [  logo  ]
+                                 Restaurant naam
 ```
 
-## Technische wijziging
+### 3. Ticket cards kleiner en enterprise
 
-### `public/widget.js`
+De ticket-kaarten in `TicketSelectStep.tsx` worden verfijnd:
+- **Afbeelding kleiner**: aspect ratio van `3/2` naar `2/1` (breder, minder hoog)
+- **Subtiele shadow**: zachte multi-layer box-shadow in ruststand (`0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)`)
+- **Hover shadow**: diepere shadow bij hover (`0 4px 16px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.05)`)
+- **Border subtieler**: van `#e5e7eb` naar `rgba(0,0,0,0.06)` voor een zachtere rand
+- **Padding iets compacter**: van `px-4 py-3` naar `px-4 py-2.5`
 
-De twee shadow-variabelen worden aangepast om de `hexToRgba(color, ...)` helper te gebruiken in plaats van `rgba(0,0,0,...)`:
+## Technische wijzigingen
 
-**`shadowRest`** (ruststand):
-- Laag 1: `0 2px 8px {color @ 15% opacity}` -- subtiele kleur-tint dichtbij
-- Laag 2: `0 8px 24px {color @ 12% opacity}` -- zachte glow verder weg
+### `src/pages/BookingWidget.tsx`
 
-**`shadowHover`** (hover):
-- Laag 1: `0 4px 12px {color @ 20% opacity}` -- sterkere kleur-tint
-- Laag 2: `0 12px 36px {color @ 15% opacity}` -- grotere glow
+**Embed header (regels 110-130):**
+- Verander van `flex items-center gap-3` naar `flex flex-col items-center gap-2 relative`
+- Logo: `h-14 object-contain` (was `h-8 w-8`)
+- Naam: `text-sm font-semibold text-gray-900 text-center`
+- Close button: `absolute top-0 right-0` positie
 
-De `hexToRgba` helper die al in het bestand staat wordt hergebruikt. Geen nieuwe code nodig, alleen de shadow-waarden veranderen.
+**Standalone header (regels 133-146):**
+- Logo: `h-16 object-contain` (was `h-12`)
+- Naam blijft eronder, geen wijziging nodig (al gecentreerd)
 
-De hover lift (`translateY(-2px)`) en achtergrond-lighten (`hoverColor`) blijven intact -- de color-tinted shadow versterkt dat effect.
+### `src/components/booking/TicketSelectStep.tsx`
+
+**Ticket cards (regels 27-79):**
+- Aspect ratio div: van `aspect-[3/2]` naar `aspect-[2/1]`
+- Default boxShadow: `0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)`
+- Default borderColor: `rgba(0,0,0,0.06)` (was `#e5e7eb`)
+- Content padding: `px-4 py-2.5` (was `px-4 py-3`)
+- Hover classes aanpassen: `hover:shadow-lg` vervangen door inline hover styling via de bestaande style-prop
 
