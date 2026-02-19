@@ -1,67 +1,64 @@
 
+# Widget Duo-Kleuren + AI Suggesties
 
-# Widget Settings: Sectietitels en kaartstructuur standaardiseren
+## Overzicht
 
-## Probleem
+De branding-sectie van de widget settings wordt uitgebreid met een tweede kleur (accent) en een AI-knop die harmonieuze kleurcombinaties voorstelt. Daarnaast komen er 5 voorgedefinieerde paletten voor snelle selectie.
 
-De widget settings page wijkt op twee punten af van de standaard (vergelijk Shifts page):
+## Wat verandert voor de gebruiker
 
-1. **Een grote kaart** met alles erin, terwijl Configuratie, Weergave en Branding logisch aparte groepen zijn
-2. **Tiny uppercase labels** (`text-[11px] uppercase`) in plaats van de standaard kaarttitels (`text-base font-semibold` + beschrijving)
-3. **Boekingsvragen en Integratie** kaarten gebruiken `text-sm font-semibold` -- ook niet conform
+### Kleurenpalet chips
+Een rij van 5 curated duo-combinaties + "Custom" optie:
+- Emerald & Teal (#10B981 + #14B8A6)
+- Ocean Blue (#0EA5E9 + #6366F1)
+- Purple Night (#8B5CF6 + #1F2937)
+- Warm Sunset (#F97316 + #F59E0B)
+- Rose & Berry (#EC4899 + #F43F5E)
 
-## Oplossing
+Klik op een palet en beide kleuren worden direct ingesteld.
 
-### Kaart 1 opsplitsen in 3 kaarten
+### Twee kleur-swatches naast elkaar
+- **Hoofdkleur** (links): voor knoppen en CTA's -- 16 swatch opties + hex input
+- **Accentkleur** (rechts): voor badges en highlights -- 16 swatch opties + hex input
 
-```text
-Card 1: Configuratie
-  titel: "Configuratie" (text-base font-semibold)
-  beschrijving: "Widget status en basisinstellingen."
-  - Widget aan/uit toggle
-  - Locatie slug, welkomsttekst, niet-beschikbaar, redirect URL
-
-Card 2: Weergave
-  titel: "Weergave"
-  beschrijving: "Bepaal wat gasten zien in de widget."
-  - Eindtijd tonen
-  - Nesto branding tonen
-
-Card 3: Branding
-  titel: "Branding"
-  beschrijving: "Kleuren, logo en knoopstijl van de widget."
-  - Kleur swatches + hex input
-  - Logo upload
-  - Knoopstijl selector
-
-Card 4: Boekingsvragen (bestaand, titel upgraden)
-Card 5: Integratie (bestaand, titel upgraden)
-```
-
-### Kaarttitel patroon (conform Shifts)
-
-Elke kaart krijgt:
-```tsx
-<NestoCard className="p-6">
-  <div className="mb-5">
-    <h3 className="text-base font-semibold">Titel</h3>
-    <p className="text-sm text-muted-foreground mt-0.5">Beschrijving.</p>
-  </div>
-  {/* content */}
-</NestoCard>
-```
+### AI suggestie-knop
+Een "Stel betere kleuren voor" knop die:
+- De huidige kleuren meestuurt naar een backend functie
+- AI (gemini-3-flash-preview) vraagt om 3 harmonieuze alternatieven
+- Resultaten toont in een inline kaart met naam, uitleg en "Toepassen" knop per suggestie
 
 ## Technische details
 
-### Bestand
+### 1. Database migratie
+Nieuw veld op `widget_settings`:
+```sql
+ALTER TABLE public.widget_settings
+  ADD COLUMN widget_accent_color text NOT NULL DEFAULT '#14B8A6';
+```
 
-`src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`
+### 2. Backend functie: `suggest-widget-colors`
+- Ontvangt `{ primary, accent }` van de frontend
+- Roept Lovable AI Gateway aan met tool calling (`suggest_color_palettes`)
+- Retourneert 3 suggesties met: primary, accent, name (NL), reasoning (NL)
+- Handelt 429/402 errors netjes af
+- `verify_jwt = false` in config.toml
 
-### Wijzigingen
+### 3. Nieuw component: `ColorPaletteSelector`
+Pad: `src/components/settings/widget/ColorPaletteSelector.tsx`
 
-1. Verwijder de `sectionHeader` en `sectionDivider` constantes (niet meer nodig voor de eerste kaart)
-2. Splits de huidige grote `NestoCard` (regels 151-302) op in 3 aparte `NestoCard`s
-3. Elke kaart krijgt een header-blok met `text-base font-semibold` titel + `text-sm text-muted-foreground` beschrijving
-4. Boekingsvragen kaart: `text-sm font-semibold` wordt `text-base font-semibold`
-5. Integratie kaart: idem + interne subsecties behouden `sectionDivider`/`sectionHeader` want die zitten binnen een enkele logische kaart met meerdere gerelateerde secties
-6. Geen functionele wijzigingen -- alleen visuele herstructurering
+Bevat:
+- Curated palette chips (horizontale rij)
+- Twee swatch grids naast elkaar (grid-cols-2)
+- AI suggestie knop + loading state + inline resultaatkaart
+
+### 4. Gewijzigde bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/hooks/useWidgetSettings.ts` | `widget_accent_color` toevoegen aan `WidgetSettings` interface |
+| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Huidige color swatches vervangen door `ColorPaletteSelector`, `widget_accent_color` in LocalSettings |
+| `supabase/config.toml` | Entry voor `suggest-widget-colors` met `verify_jwt = false` |
+
+### 5. Wat blijft hetzelfde
+- Logo upload, knoopstijl selector, en alle andere branding opties
+- De widget zelf hoeft nog niet aangepast -- kleuren worden alvast opgeslagen
