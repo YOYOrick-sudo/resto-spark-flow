@@ -1,21 +1,22 @@
 
 
-# Restaurantnaam in Plus Jakarta Sans
+# Widget: Logo groter + Warmere achtergrond
 
 ## Wat verandert
 
-Alleen de restaurantnaam onderin de widget krijgt het lettertype **Plus Jakarta Sans** (extrabold, 800). Dit font is al geladen via Google Fonts in `index.html`. De rest van de widget blijft Inter.
+1. **Logo groter**: Van `h-14` (56px) naar `h-20` (80px) in embed, en van `h-16` (64px) naar `h-20` in standalone.
+2. **Achtergrondkleur**: Van puur wit (`bg-white`) naar een warm gebroken wit (`bg-[#FAFAF8]`) -- een heel subtiele cremetint die zachter en premium aanvoelt.
 
-Plus Jakarta Sans heeft rondere, warmere vormen dan Inter en is ideaal voor display-tekst zoals een restaurantnaam.
+## Technische wijzigingen in `src/pages/BookingWidget.tsx`
 
-## Technische wijziging
+### Achtergrond (regel 115)
+- `bg-white` wordt `bg-[#FAFAF8]`
 
-### `src/pages/BookingWidget.tsx`
+### Embed logo (regel 131)
+- `h-14` wordt `h-20`
 
-De `<p>` tag van de restaurantnaam in de footer (rond regel 162) krijgt een inline `style` met `fontFamily`:
+### Standalone logo (regel 143)
+- `h-16` wordt `h-20`
 
-- Huidige styling: `font-semibold text-gray-400 tracking-wide`
-- Toevoegen: `style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}` en `font-extrabold` (weight 800) in plaats van `font-semibold`
-- `tracking-wide` eventueel aanpassen naar `tracking-normal` omdat Plus Jakarta Sans van zichzelf al ruimer oogt
+Dat is alles -- drie kleine class-wijzigingen.
 
-Geen andere bestanden worden gewijzigd. Inter blijft het standaard font voor alle andere widget-elementen.
