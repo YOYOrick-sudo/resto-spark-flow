@@ -1,51 +1,50 @@
 
+# Fix AI Kleursuggesties + Clean Color Picker
 
-# Widget Floating Button: 4 Visuele Verbeteringen
+## Probleem
 
-## Overzicht
+1. **"Nieuwe suggesties" werkt niet** -- de edge function krijgt een 500 error terug van de AI gateway. Het model `google/gemini-3-flash-preview` geeft een interne fout.
+2. **De kleurenkiezer is te druk** -- 32 swatch-bolletjes zonder native color picker (kleurenwiel).
 
-Vier aanpassingen aan de floating reserveringsknop om deze professioneler en meer on-brand te maken.
+## Oplossing: twee wijzigingen
 
-## Wijzigingen
+### 1. Edge function: model wisselen
 
-### 1. Accentkleur als tekstkleur, hoofdkleur als achtergrond
+**Bestand:** `supabase/functions/suggest-widget-colors/index.ts`
 
-De knoptekst is nu altijd wit. Logischer: de **hoofdkleur** (primary) als achtergrond en de **accentkleur** als tekst- en icoonkleur. Dit maakt het duo-color systeem zichtbaar in de knop.
+- Model wijzigen van `google/gemini-3-flash-preview` naar `google/gemini-2.5-flash` (stabiel, snel, en bewezen werkend)
+- Geen andere wijzigingen nodig -- de rest van de functie is correct
 
-**Bestanden:**
-- `public/widget.js` -- nieuw `data-accent` attribuut uitlezen, `color` instellen op accentkleur i.p.v. `#fff`, accent dot kleur aanpassen
-- `src/components/settings/widget/EmbedCodePreview.tsx` -- `accentColor` prop toevoegen, `data-accent` in de gegenereerde code
-- `src/components/settings/widget/WidgetLivePreview.tsx` -- `accentColor` prop doorvoeren naar preview URL
-- `src/pages/WidgetPreviewDemo.tsx` -- `accent` param uitlezen en als `data-accent` op het script zetten
-- `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` -- `accentColor` meegeven aan `EmbedCodePreview` en `WidgetLivePreview`
+### 2. ColorPaletteSelector: swatch-grid vervangen door native picker
 
-### 2. Button logo groter
+**Bestand:** `src/components/settings/widget/ColorPaletteSelector.tsx`
 
-Het logo is 20x20px -- te klein voor herkenning. Wordt **24x24px** met `border-radius: 5px`.
+Wat verdwijnt:
+- De `SWATCH_COLORS` array (16 kleuren)
+- De volledige swatch-grid met 16 bolletjes per kleur (32 totaal)
 
-**Bestand:** `public/widget.js` -- afmetingen aanpassen
+Wat komt ervoor in de plaats per kleur:
+- Een **native `<input type="color">`** gestyled als rond bolletje (h-9 w-9, rounded-full) dat het OS kleurenwiel opent
+- Het **hex invoerveld** direct ernaast
+- Beide zijn bidirectioneel gesynchroniseerd
 
-### 3. Knoptekst in hoofdletters
+Nieuwe layout per kleur:
 
-De tekst ("Reserveer") in uppercase met lichte letter-spacing voor premium uitstraling.
+```text
+Hoofdkleur
+Knoppen & CTA's
 
-**Bestand:** `public/widget.js` -- `text-transform:uppercase` en `letter-spacing:0.05em` toevoegen
+[O kleurenwiel]  [#1d979e____]
+```
 
-### 4. Pill knop iets smaller
+Wat blijft ongewijzigd:
+- Palette chips bovenaan (AI-suggesties of curated fallback)
+- "Nieuwe suggesties" knop
+- Custom chip als geen palette actief is
 
-Padding wordt iets verkleind zodat de knop slanker oogt:
-- Desktop: `14px 28px` wordt `12px 24px`
-- Mobile: `12px 22px` wordt `10px 20px`
+## Bestanden die wijzigen
 
-**Bestand:** `public/widget.js` -- padding waarden aanpassen
-
-## Samenvatting bestanden
-
-| Bestand | Wat wijzigt |
+| Bestand | Wijziging |
 |---|---|
-| `public/widget.js` | Accent als tekstkleur, logo 24px, uppercase, kleinere padding |
-| `src/components/settings/widget/EmbedCodePreview.tsx` | Nieuwe `accentColor` prop, `data-accent` attribuut in code output |
-| `src/components/settings/widget/WidgetLivePreview.tsx` | Nieuwe `accentColor` prop, doorvoeren naar preview URL |
-| `src/pages/WidgetPreviewDemo.tsx` | `accent` param uitlezen en als attribuut zetten |
-| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | `accentColor` prop meegeven aan preview en embed componenten |
-
+| `supabase/functions/suggest-widget-colors/index.ts` | Model naar `google/gemini-2.5-flash` |
+| `src/components/settings/widget/ColorPaletteSelector.tsx` | Swatch-grid weg, native color picker + hex input |
