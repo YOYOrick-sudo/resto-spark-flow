@@ -26,6 +26,7 @@ import { useShifts } from "@/hooks/useShifts";
 import { EmptyState } from "@/components/polar";
 import { Calendar } from "lucide-react";
 import { TableRow, STICKY_COL_WIDTH } from "./TableRow";
+import { ReservationBlock } from "./ReservationBlock";
 import { nestoToast } from "@/lib/nestoToast";
 import { QuickReservationPanel } from "./QuickReservationPanel";
 import {
@@ -260,16 +261,20 @@ function GhostPreview({ position, hasConflict, guestCount, isDropAnimating = fal
 }
 
 // Unassigned badge-list (collapsible, above areas)
-function UnassignedBadgeList({
+function UnassignedGridRow({
   reservations,
+  config,
   onReservationClick,
   isCompact,
   locationId,
+  density,
 }: {
   reservations: Reservation[];
+  config: GridTimeConfig;
   onReservationClick?: (r: Reservation) => void;
   isCompact: boolean;
   locationId?: string;
+  density: DensityType;
 }) {
   const [open, setOpen] = useState(true);
   const assignTable = useAssignTable();
@@ -281,58 +286,83 @@ function UnassignedBadgeList({
 
   if (unassigned.length === 0) return null;
 
-  const handleAssign = async (r: Reservation) => {
-    if (!locationId) return;
-    assignTable.mutate({
-      location_id: r.location_id,
-      date: r.reservation_date,
-      time: r.start_time,
-      party_size: r.party_size,
-      duration_minutes: r.duration_minutes,
-      shift_id: r.shift_id,
-      ticket_id: r.ticket_id,
-      reservation_id: r.id,
-    });
-  };
+
+
+  const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
+  const quarterWidth = 15 * config.pixelsPerMinute;
+
+  const quarterSlots: string[] = [];
+  for (let hour = config.startHour; hour < config.endHour; hour++) {
+    for (let quarter = 0; quarter < 4; quarter++) {
+      const minutes = quarter * 15;
+      const displayHour = hour >= 24 ? hour - 24 : hour;
+      quarterSlots.push(`${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+    }
+  }
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="border-b border-border bg-warning/5">
-        <CollapsibleTrigger className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-warning/10 transition-colors">
-          {open ? <ChevronUp className="h-3.5 w-3.5 text-warning" /> : <ChevronDown className="h-3.5 w-3.5 text-warning" />}
-          <span className="text-xs font-semibold text-warning">Niet toegewezen ({unassigned.length})</span>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="flex gap-2 px-3 pb-2 overflow-x-auto">
-            {unassigned.map((r) => (
-              <div
-                key={r.id}
-                className={cn(
-                  "flex-shrink-0 border border-warning/40 rounded-lg bg-card px-3 cursor-pointer hover:border-warning transition-colors",
-                  isCompact ? "py-1.5" : "py-2"
-                )}
-                onClick={() => onReservationClick?.(r)}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-foreground">{r.start_time.slice(0, 5)}</span>
-                  <span className="text-xs text-muted-foreground">{r.party_size}p</span>
-                  <span className="text-xs text-foreground truncate max-w-[100px]">
-                    {r.customer ? `${r.customer.first_name} ${r.customer.last_name}` : 'Gast'}
-                  </span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleAssign(r); }}
-                    disabled={assignTable.isPending}
-                    className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors ml-1"
-                    title="Automatisch tafel toewijzen"
-                  >
-                    <Wand2 className="h-3 w-3" />
-                    <span>Wijs toe</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+      <div className="border-b border-warning/30 bg-warning/5">
+        {/* Row: sticky label + timeline */}
+        <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
+          {/* Sticky left column */}
+          <div
+            className="sticky left-0 z-30 flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-warning/5"
+            style={{ width: `${STICKY_COL_WIDTH}px` }}
+          >
+            <CollapsibleTrigger className="flex items-center gap-1.5 flex-1 min-w-0">
+              {open ? <ChevronUp className="h-3 w-3 text-warning flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-warning flex-shrink-0" />}
+              <span className="text-xs font-semibold text-warning truncate">Niet toegew.</span>
+              <span className="text-caption font-bold text-warning bg-warning/15 px-1.5 py-0.5 rounded-full flex-shrink-0">{unassigned.length}</span>
+            </CollapsibleTrigger>
           </div>
-        </CollapsibleContent>
+
+          {/* Timeline area with blocks */}
+          <CollapsibleContent asChild forceMount className="data-[state=closed]:hidden">
+            <div className="relative flex-shrink-0" style={{ width: `${gridWidth}px` }}>
+              {/* Quarter-slot grid lines */}
+              <div className="absolute inset-0 flex">
+                {quarterSlots.map((time, index) => (
+                  <div
+                    key={time}
+                    className={cn(
+                      "h-full",
+                      index % 4 === 0 ? "border-l border-border/50" : "border-l border-border/20"
+                    )}
+                    style={{ width: `${quarterWidth}px` }}
+                  />
+                ))}
+              </div>
+
+              {/* Reservation blocks */}
+              <div className="absolute inset-0 z-10">
+                {unassigned.map((r) => (
+                  <ReservationBlock
+                    key={r.id}
+                    reservation={r}
+                    config={config}
+                    onClick={onReservationClick}
+                    onAssign={(res) => {
+                      if (!locationId) return;
+                      assignTable.mutate({
+                        location_id: res.location_id,
+                        date: res.reservation_date,
+                        time: res.start_time,
+                        party_size: res.party_size,
+                        duration_minutes: res.duration_minutes,
+                        shift_id: res.shift_id,
+                        ticket_id: res.ticket_id,
+                        reservation_id: res.id,
+                      });
+                    }}
+                    density={density}
+                    variant="unassigned"
+                  />
+                ))}
+              </div>
+            </div>
+          </CollapsibleContent>
+        </div>
       </div>
     </Collapsible>
   );
@@ -551,11 +581,13 @@ export function ReservationGridView({
               isCompact={isCompact}
             />
 
-            <UnassignedBadgeList
+            <UnassignedGridRow
               reservations={reservations}
+              config={config}
               onReservationClick={onReservationClick}
               isCompact={isCompact}
               locationId={locationId}
+              density={density}
             />
 
             {areas.map((area) => {
