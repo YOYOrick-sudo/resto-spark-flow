@@ -1,22 +1,16 @@
 
 
-# Widget: Logo groter + Warmere achtergrond
+# Ticket cards meer afronden
 
 ## Wat verandert
 
-1. **Logo groter**: Van `h-14` (56px) naar `h-20` (80px) in embed, en van `h-16` (64px) naar `h-20` in standalone.
-2. **Achtergrondkleur**: Van puur wit (`bg-white`) naar een warm gebroken wit (`bg-[#FAFAF8]`) -- een heel subtiele cremetint die zachter en premium aanvoelt.
+De ticket-kaarten in de booking widget (TicketSelectStep) krijgen een grotere border-radius: van `rounded-2xl` (16px) naar `rounded-3xl` (24px). Dit geeft een zachtere, modernere uitstraling die beter past bij het premium widgetontwerp.
 
-## Technische wijzigingen in `src/pages/BookingWidget.tsx`
+## Technische wijziging
 
-### Achtergrond (regel 115)
-- `bg-white` wordt `bg-[#FAFAF8]`
+### `src/components/booking/TicketSelectStep.tsx` (regel 33)
 
-### Embed logo (regel 131)
-- `h-14` wordt `h-20`
+- `rounded-2xl` wordt `rounded-3xl`
 
-### Standalone logo (regel 143)
-- `h-16` wordt `h-20`
-
-Dat is alles -- drie kleine class-wijzigingen.
+Dat is de enige wijziging — één class aanpassing.
 
