@@ -11,6 +11,7 @@ import { NestoSelect } from '@/components/polar/NestoSelect';
 import { BookingQuestionsEditor } from '@/components/settings/widget/BookingQuestionsEditor';
 import { EmbedModeSelector, type EmbedMode } from '@/components/settings/widget/EmbedModeSelector';
 import { EmbedCodePreview } from '@/components/settings/widget/EmbedCodePreview';
+import { WidgetLivePreview } from '@/components/settings/widget/WidgetLivePreview';
 import { useWidgetSettings, useUpdateWidgetSettings, type BookingQuestion } from '@/hooks/useWidgetSettings';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { usePermission } from '@/hooks/usePermission';
@@ -276,6 +277,16 @@ export default function SettingsReserveringenWidget() {
 
             <div className="space-y-5">
               <EmbedModeSelector value={embedMode} onChange={setEmbedMode} />
+
+              {/* Live preview */}
+              <WidgetLivePreview
+                mode={embedMode}
+                slug={local.location_slug}
+                color={local.widget_primary_color}
+                buttonLabel={buttonLabel}
+                buttonPosition={buttonPosition}
+                baseUrl={baseUrl}
+              />
 
               {/* Button mode config */}
               {embedMode === 'button' && (
