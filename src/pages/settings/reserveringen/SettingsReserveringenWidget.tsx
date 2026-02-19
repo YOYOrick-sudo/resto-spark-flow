@@ -90,11 +90,11 @@ export default function SettingsReserveringenWidget() {
         show_end_time: settings.show_end_time,
         show_nesto_branding: settings.show_nesto_branding,
         widget_primary_color: settings.widget_primary_color || '#10B981',
-        widget_accent_color: (settings as any).widget_accent_color || '#14B8A6',
+        widget_accent_color: settings.widget_accent_color || '#14B8A6',
         widget_logo_url: settings.widget_logo_url || '',
         widget_success_redirect_url: settings.widget_success_redirect_url || '',
         booking_questions: (settings.booking_questions as BookingQuestion[]) || [],
-        widget_button_style: (settings as any).widget_button_style || 'rounded',
+        widget_button_style: settings.widget_button_style || 'rounded',
       });
     }
   }, [settings]);
@@ -112,6 +112,11 @@ export default function SettingsReserveringenWidget() {
   const updateField = <K extends keyof LocalSettings>(field: K, value: LocalSettings[K]) => {
     setLocal(prev => ({ ...prev, [field]: value }));
     debouncedSave({ [field]: value });
+  };
+
+  const updateFields = (updates: Partial<LocalSettings>) => {
+    setLocal(prev => ({ ...prev, ...updates }));
+    debouncedSave(updates);
   };
 
   const breadcrumbs = buildBreadcrumbs('reserveringen', 'widget');
@@ -243,6 +248,9 @@ export default function SettingsReserveringenWidget() {
               accentColor={local.widget_accent_color}
               onPrimaryChange={color => updateField('widget_primary_color', color)}
               onAccentChange={color => updateField('widget_accent_color', color)}
+              onPaletteChange={(primary, accent) =>
+                updateFields({ widget_primary_color: primary, widget_accent_color: accent })
+              }
             />
 
             {/* Logo upload */}

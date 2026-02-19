@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, Sparkles, Loader2 } from 'lucide-react';
 import { NestoInput } from '@/components/polar/NestoInput';
 import { NestoButton } from '@/components/polar/NestoButton';
@@ -20,6 +20,7 @@ interface ColorPaletteSelectorProps {
   accentColor: string;
   onPrimaryChange: (color: string) => void;
   onAccentChange: (color: string) => void;
+  onPaletteChange?: (primary: string, accent: string) => void;
 }
 
 const CURATED_PALETTES = [
@@ -48,6 +49,13 @@ function SwatchGrid({
   value: string;
   onChange: (color: string) => void;
 }) {
+  const [localHex, setLocalHex] = useState(value);
+
+  // Sync local hex when value changes externally (e.g. palette click)
+  useEffect(() => {
+    setLocalHex(value);
+  }, [value]);
+
   return (
     <div className="flex-1 min-w-0">
       <label className="mb-1.5 block text-sm font-medium">{label}</label>
@@ -74,12 +82,16 @@ function SwatchGrid({
         })}
       </div>
       <NestoInput
-        value={value}
-        onChange={e => onChange(e.target.value)}
+        value={localHex}
+        onChange={e => {
+          const v = e.target.value;
+          setLocalHex(v);
+          if (isValidHex(v)) onChange(v);
+        }}
         className="w-[120px]"
         placeholder="#10B981"
         maxLength={7}
-        error={value && !isValidHex(value) ? 'Ongeldige hex kleur' : undefined}
+        error={localHex && !isValidHex(localHex) ? 'Ongeldige hex kleur' : undefined}
       />
     </div>
   );
@@ -90,6 +102,7 @@ export function ColorPaletteSelector({
   accentColor,
   onPrimaryChange,
   onAccentChange,
+  onPaletteChange,
 }: ColorPaletteSelectorProps) {
   const [suggestions, setSuggestions] = useState<ColorSuggestion[] | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -101,8 +114,12 @@ export function ColorPaletteSelector({
   );
 
   const applyPalette = (primary: string, accent: string) => {
-    onPrimaryChange(primary);
-    onAccentChange(accent);
+    if (onPaletteChange) {
+      onPaletteChange(primary, accent);
+    } else {
+      onPrimaryChange(primary);
+      onAccentChange(accent);
+    }
   };
 
   const fetchSuggestions = async () => {
