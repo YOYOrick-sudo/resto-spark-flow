@@ -1,5 +1,5 @@
 import { useParams, useSearchParams } from 'react-router-dom';
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { BookingProvider, useBooking } from '@/contexts/BookingContext';
 import { BookingProgress } from '@/components/booking/BookingProgress';
 import { TicketSelectStep } from '@/components/booking/TicketSelectStep';
@@ -34,6 +34,16 @@ function useEmbedMessaging(isEmbed: boolean) {
 function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   const { config, configLoading, configError, step, totalSteps, effectiveStyle, bookingResult } = useBooking();
   const { mainRef, postMsg } = useEmbedMessaging(isEmbed);
+  const [prevStep, setPrevStep] = useState(step);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+
+  // Track step direction
+  useEffect(() => {
+    if (step !== prevStep) {
+      setDirection(step > prevStep ? 'forward' : 'back');
+      setPrevStep(step);
+    }
+  }, [step, prevStep]);
 
   const confirmationStep = totalSteps;
 
@@ -92,6 +102,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   };
 
   const isConfirmation = step === confirmationStep;
+  const animClass = direction === 'forward' ? 'animate-step-forward' : 'animate-step-back';
 
   return (
     <div ref={mainRef} className="h-full flex flex-col bg-white">
@@ -137,9 +148,9 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
       {/* Progress dots */}
       {!isConfirmation && <BookingProgress />}
 
-      {/* Content */}
+      {/* Content with step transition */}
       <div className="flex-1 overflow-y-auto">
-        <div className="pb-6">
+        <div key={step} className={`pb-6 ${animClass}`}>
           {renderStep()}
         </div>
       </div>

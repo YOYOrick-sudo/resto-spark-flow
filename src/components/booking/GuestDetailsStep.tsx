@@ -61,11 +61,6 @@ export function GuestDetailsStep() {
 
   const canSubmit = !!(guestData.first_name && guestData.last_name && guestData.email);
 
-  const focusStyle = {
-    '--focus-ring': `0 0 0 2px ${primaryColor}30`,
-    '--focus-border': primaryColor,
-  } as React.CSSProperties;
-
   const inputClass = "mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none transition-shadow";
 
   return (
@@ -114,7 +109,6 @@ export function GuestDetailsStep() {
             onBlur={handleEmailBlur}
             placeholder="je@email.nl"
             className={inputClass}
-            style={focusStyle}
             onFocus={e => {
               e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
               e.target.style.borderColor = primaryColor;
@@ -308,7 +302,7 @@ export function GuestDetailsStep() {
         type="button"
         disabled={!canSubmit || bookingLoading}
         onClick={submitBooking}
-        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
+        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-all duration-150 disabled:opacity-40 flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
         style={{ backgroundColor: primaryColor }}
       >
         {bookingLoading ? (

@@ -1,6 +1,20 @@
 import { useEffect } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function SlotGridSkeleton() {
+  return (
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-3 w-24 rounded" />
+      <div className="grid grid-cols-3 gap-2">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Skeleton key={i} className="h-11 rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function TimeTicketStep() {
   const {
@@ -29,6 +43,13 @@ export function TimeTicketStep() {
       .filter(s => s.available)
       .map(s => ({ ...s, shift }))
   );
+
+  const handleSlotKeyDown = (e: React.KeyboardEvent, slot: any, shift: any) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setSelectedSlot(slot, shift);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 px-5">
@@ -60,12 +81,8 @@ export function TimeTicketStep() {
         </div>
       )}
 
-      {/* Loading */}
-      {availabilityLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin" style={{ color: primaryColor }} />
-        </div>
-      )}
+      {/* Loading skeleton */}
+      {availabilityLoading && <SlotGridSkeleton />}
 
       {/* No slots available */}
       {!availabilityLoading && allSlots.length === 0 && (
@@ -103,7 +120,7 @@ export function TimeTicketStep() {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               {shift.shift_name}
             </h3>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2" role="listbox" aria-label={`Tijdslots ${shift.shift_name}`}>
               {available.map(slot => {
                 const selected = data.selectedSlot?.time === slot.time && data.selectedSlot?.ticket_id === slot.ticket_id;
                 const isSqueeze = slot.slot_type === 'squeeze';
@@ -111,13 +128,20 @@ export function TimeTicketStep() {
                   <button
                     key={`${slot.time}-${slot.ticket_id}`}
                     type="button"
+                    role="option"
+                    aria-selected={selected}
+                    tabIndex={0}
                     onClick={() => setSelectedSlot(slot, shift)}
-                    className="flex flex-col items-center gap-0.5 h-11 justify-center rounded-lg text-sm font-medium transition-all"
+                    onKeyDown={(e) => handleSlotKeyDown(e, slot, shift)}
+                    className="flex flex-col items-center gap-0.5 h-11 justify-center rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                     style={{
                       border: `1px solid ${selected ? primaryColor : isSqueeze ? accentColor : '#e5e7eb'}`,
                       backgroundColor: selected ? primaryColor : '#fff',
                       color: selected ? '#fff' : '#374151',
                       boxShadow: selected ? `0 4px 12px -2px rgba(0,0,0,0.08)` : 'none',
+                      transform: selected ? 'scale(1.05)' : 'scale(1)',
+                      // @ts-ignore
+                      '--tw-ring-color': primaryColor,
                     }}
                   >
                     <span>{slot.time}</span>
@@ -160,7 +184,7 @@ export function TimeTicketStep() {
         type="button"
         disabled={!data.selectedSlot}
         onClick={() => goToStep('details')}
-        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-opacity disabled:opacity-40"
+        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-all duration-150 disabled:opacity-40 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
         style={{ backgroundColor: primaryColor }}
       >
         Vul je gegevens in

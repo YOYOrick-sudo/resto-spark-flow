@@ -35,7 +35,6 @@ export function ConfirmationStep() {
             fill="none"
             stroke={primaryColor}
             strokeWidth="3"
-            className="animate-check-circle"
             style={{
               strokeDasharray: 176,
               strokeDashoffset: 176,
@@ -73,6 +72,17 @@ export function ConfirmationStep() {
           }
           @keyframes check-mark {
             to { stroke-dashoffset: 0; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            @keyframes check-circle {
+              from, to { stroke-dashoffset: 0; }
+            }
+            @keyframes check-fill {
+              from, to { opacity: 1; }
+            }
+            @keyframes check-mark {
+              from, to { stroke-dashoffset: 0; }
+            }
           }
         `}</style>
       </div>
@@ -115,7 +125,7 @@ export function ConfirmationStep() {
             href={calendarUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors text-gray-700"
+            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all duration-150 text-gray-700 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Calendar className="h-4 w-4" />
             Voeg toe aan agenda
@@ -125,7 +135,7 @@ export function ConfirmationStep() {
         {manageUrl && (
           <a
             href={manageUrl}
-            className="w-full h-11 rounded-[10px] text-sm font-medium border flex items-center justify-center gap-2 hover:opacity-90 transition-opacity text-white"
+            className="w-full h-11 rounded-[10px] text-sm font-medium border flex items-center justify-center gap-2 transition-all duration-150 text-white hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
             style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
           >
             <ExternalLink className="h-4 w-4" />
