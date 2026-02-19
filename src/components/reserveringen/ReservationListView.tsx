@@ -161,7 +161,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         isCompact ? "py-2" : "py-3",
         reservation.status === "cancelled" && "opacity-50",
         reservation.status === "no_show" && "opacity-60",
-        !reservation.table_id && "bg-warning/8"
+        !reservation.table_id && "bg-warning/12"
       )}
       onClick={onClick}
     >
