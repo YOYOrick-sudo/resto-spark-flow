@@ -221,17 +221,16 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
   }, [config]);
 
   if (position === null) return null;
-  const leftPos = STICKY_COL_WIDTH + position;
 
   return (
-    <>
-      <div className="absolute top-0 bottom-0 bg-destructive/8 pointer-events-none z-10" style={{ left: `${leftPos - 3}px`, width: '6px' }} />
-      <div className="absolute top-0 bottom-0 w-[2px] bg-destructive z-30 pointer-events-none" style={{ left: `${leftPos}px` }}>
+    <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${STICKY_COL_WIDTH}px` }}>
+      <div className="absolute top-0 bottom-0 bg-destructive/8 pointer-events-none z-10" style={{ left: `${position - 3}px`, width: '6px' }} />
+      <div className="absolute top-0 bottom-0 w-[2px] bg-destructive z-30 pointer-events-none" style={{ left: `${position}px` }}>
         <div className="sticky top-1 -translate-x-1/2 w-fit">
           <div className="bg-destructive text-destructive-foreground text-caption font-bold px-1.5 py-0.5 rounded shadow-md whitespace-nowrap">NU</div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
