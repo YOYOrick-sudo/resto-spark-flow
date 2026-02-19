@@ -1,60 +1,54 @@
 
 
-# Redesign: Widget Reserveerknop in Nesto Polar stijl
+# Premium Pill Button — Brand-driven met glassmorphism
 
-## Probleem
+## Wat verandert
 
-De huidige floating button heeft een generieke SaaS-look: zware gradient, dikke schaduw, overdreven border-radius en een bouncy animatie. Dit past niet bij de Nesto Polar design language die gebaseerd is op Linear/Stripe: strak, minimaal, typografie-gedreven.
+De huidige vlakke knop (solid teal, 10px radius) wordt een **premium pill** die de brand kleuren van elk restaurant overneemt, met een glaseffect dat het onderscheidt van de concurrent.
 
-## Nieuw ontwerp
-
-Een knop die past bij het Nesto-merk: clean, confident, geen visuele ruis.
+## Visuele vergelijking
 
 ```text
-Huidig                          Nieuw (Nesto Polar)
-┌──────────────────────┐        ┌──────────────────────┐
-│ ██████████████████   │        │                      │
-│ █ 📅  Reserveer  █   │        │    Reserveer  →      │
-│ ██████████████████   │        │                      │
-│ gradient + heavy     │        │ solid teal, 10px     │
-│ shadow + 14px radius │        │ radius, subtle       │
-│ + bounce animation   │        │ shadow, smooth fade  │
-└──────────────────────┘        └──────────────────────┘
+Huidig (Nesto Polar)              Nieuw (Premium Pill)
+┌──────────────────────┐           ┌───────────────────────────┐
+│                      │           │                           │
+│    Reserveer         │           │   ●  Reserveer            │
+│                      │           │                           │
+│  solid, 10px radius  │           │  pill (50px), glass inset │
+│  minimal shadow      │           │  brand color, accent dot  │
+└──────────────────────┘           └───────────────────────────┘
 ```
 
-### Visuele wijzigingen
+## Wijzigingen overzicht
 
-| Eigenschap | Oud | Nieuw |
+| Eigenschap | Huidig | Nieuw |
 |---|---|---|
-| **Achtergrond** | `linear-gradient(180deg, color, darken)` | Solid `color` (flat, geen gradient) |
-| **Border radius** | `14px` | `10px` (past bij Nesto card radius) |
-| **Schaduw (rust)** | 3-layer heavy shadow met gekleurde glow | `0 1px 3px rgba(0,0,0,0.08), 0 4px 14px rgba(0,0,0,0.10)` |
-| **Schaduw (hover)** | Nog zwaardere gekleurde glow | `0 2px 6px rgba(0,0,0,0.10), 0 8px 24px rgba(0,0,0,0.14)` |
-| **Inset border** | `inset 0 0 0 1px rgba(255,255,255,0.15)` | Verwijderd |
-| **Icoon** | Kalender SVG (links) | Verwijderd - alleen tekst |
-| **Padding** | `16px 28px` (desktop) / `14px 22px` (mobile) | `12px 24px` (desktop) / `12px 20px` (mobile) |
-| **Font size** | `15px` (desktop) / `13px` (mobile) | `14px` (desktop) / `13px` (mobile) |
-| **Letter spacing** | `0.03em` | `0.01em` (subtieler) |
-| **Entrance animatie** | Bounce met overshoot (`scale(1.01)`) | Smooth fade-up zonder bounce |
-| **Hover** | `brightness(1.06)` + `translateY(-3px)` | `translateY(-1px)` + lichtere schaduw |
-| **Press** | `scale(0.98)` + `brightness(0.96)` | `translateY(0)` + `scale(0.98)` |
-| **Pulse dot** | Groen pulserende dot | Verwijderd (te schreeuwerig) - vervangen door subtiele ring-pulse als `data-pulse="true"` |
+| Border radius | `10px` | `50px` (pill) |
+| Achtergrond | Solid `color` | Solid `color` (brand kleur restaurant) |
+| Glaseffect | Geen | `inset 0 0 0 1px rgba(255,255,255,0.15)` |
+| Schaduw (rust) | `0 1px 3px ..., 0 4px 14px ...` | `0 2px 8px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08)` + inset glass |
+| Schaduw (hover) | `0 2px 6px ..., 0 8px 24px ...` | `0 4px 12px rgba(0,0,0,0.15), 0 12px 32px rgba(0,0,0,0.12)` + inset glass |
+| Accent dot | Geen | `8px` gevulde cirkel links (`rgba(255,255,255,0.7)`) |
+| Padding | `12px 24px` (desktop) | `14px 28px` (desktop), `12px 22px` (mobiel) |
+| Letter spacing | `0.01em` | `0.02em` |
+| Hover lift | `translateY(-1px)` | `translateY(-2px)` |
+| Icoon/SVG variabelen | Kalender SVG constanten (ongebruikt) | Verwijderd |
 
-### Mobiel
+## Onderscheidend van concurrent (gouden knop)
+1. Gebruikt de **eigen brand kleur** van het restaurant, niet een vaste kleur
+2. **Glasrand** (inset white border) geeft diepte die de concurrent niet heeft
+3. **Accent dot** in plaats van een icoon - cleaner en unieker
+4. **Sentence case** ("Reserveer") past bij Nesto's typografie
+5. **Hover animatie** met lift en schaduwverandering (concurrent is statisch)
 
-| Eigenschap | Oud | Nieuw |
-|---|---|---|
-| **Positie** | `left:50%` gecentreerd | Rechtsonder (`right:20px, bottom:20px`) - consistent met desktop |
-| **Breedte** | Automatisch, gecentreerd | Automatisch, rechts uitgelijnd |
+## Technisch
 
-## Technische wijzigingen
+Enige bestand: `public/widget.js`
 
-### Bestand: `public/widget.js`
+1. Verwijder ongebruikte `CALENDAR_ICON` en `CALENDAR_ICON_SM` constanten
+2. Update shadow variabelen met glassmorphism inset border
+3. Button styling: `border-radius: 50px`, genereuzer padding, `letter-spacing: 0.02em`
+4. Voeg accent dot toe als `<span>` element (8px cirkel, `rgba(255,255,255,0.7)`) voor de tekst
+5. Hover: `translateY(-2px)` met zwaardere schaduw
+6. Behoud alle bestaande functionaliteit (panel, preload, pulse, etc.)
 
-1. **Button styling** (regels ~195-230): Gradient vervangen door solid achtergrond, radius naar 10px, schaduwen vereenvoudigen, icoon verwijderen, padding/font verkleinen
-2. **Hover/press handlers** (regels ~232-265): Subtielere hover (translateY -1px), press behouden maar zonder brightness filter
-3. **Entrance animatie** (keyframes, regels ~101-108): `nestoButtonEntrance` aanpassen: geen bounce, alleen smooth opacity + translateY
-4. **Pulse** (regels ~270-280): Groene dot vervangen door subtiele box-shadow pulse op de knop zelf
-5. **Mobiel** (regels ~210-215): Positie van centered naar rechtsonder
-
-Geen andere bestanden worden aangepast.
