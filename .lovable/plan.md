@@ -1,64 +1,64 @@
 
-# Widget Duo-Kleuren + AI Suggesties
+# Fix: Widget Kleurenpalet Bugs
 
-## Overzicht
+## Gevonden problemen
 
-De branding-sectie van de widget settings wordt uitgebreid met een tweede kleur (accent) en een AI-knop die harmonieuze kleurcombinaties voorstelt. Daarnaast komen er 5 voorgedefinieerde paletten voor snelle selectie.
+### Bug 1: Race condition bij palette selectie (HOOFDPROBLEEM)
+Wanneer je een curated palette (bijv. "Ocean Blue") selecteert, worden `onPrimaryChange` en `onAccentChange` na elkaar aangeroepen. Beide roepen `updateField` aan, die `debouncedSave` triggert. De debounce annuleert de eerste call (primary), waardoor alleen de accent kleur wordt opgeslagen. Na een refetch springt de primary terug naar de oude waarde.
 
-## Wat verandert voor de gebruiker
+**Bewijs**: Na klik op "Ocean Blue" werd alleen `{"widget_accent_color":"#6366F1"}` naar de server gestuurd. De primary `#0EA5E9` ging verloren.
 
-### Kleurenpalet chips
-Een rij van 5 curated duo-combinaties + "Custom" optie:
-- Emerald & Teal (#10B981 + #14B8A6)
-- Ocean Blue (#0EA5E9 + #6366F1)
-- Purple Night (#8B5CF6 + #1F2937)
-- Warm Sunset (#F97316 + #F59E0B)
-- Rose & Berry (#EC4899 + #F43F5E)
+### Bug 2: Hex input vuurt bij elke toetsaanslag
+Elke letter in het hex-invoerveld triggert direct een `updateField` + `debouncedSave`. Dit kan ongeldige waarden opslaan (bijv. `#1`, `#10B`).
 
-Klik op een palet en beide kleuren worden direct ingesteld.
+### Bug 3: TypeScript `as any` casts
+`widget_accent_color` en `widget_button_style` worden met `(settings as any)` benaderd in plaats van via de correcte types.
 
-### Twee kleur-swatches naast elkaar
-- **Hoofdkleur** (links): voor knoppen en CTA's -- 16 swatch opties + hex input
-- **Accentkleur** (rechts): voor badges en highlights -- 16 swatch opties + hex input
+## Oplossing
 
-### AI suggestie-knop
-Een "Stel betere kleuren voor" knop die:
-- De huidige kleuren meestuurt naar een backend functie
-- AI (gemini-3-flash-preview) vraagt om 3 harmonieuze alternatieven
-- Resultaten toont in een inline kaart met naam, uitleg en "Toepassen" knop per suggestie
+### Fix 1: Gecombineerde save voor palette selectie
+
+In `SettingsReserveringenWidget.tsx` een nieuwe `updateFields` functie toevoegen die meerdere velden tegelijk opslaart:
+
+```typescript
+const updateFields = (updates: Partial<LocalSettings>) => {
+  setLocal(prev => ({ ...prev, ...updates }));
+  debouncedSave(updates);
+};
+```
+
+En de `ColorPaletteSelector` een `onPaletteChange` callback geven die beide kleuren tegelijk doorstuurt:
+
+```typescript
+<ColorPaletteSelector
+  primaryColor={local.widget_primary_color}
+  accentColor={local.widget_accent_color}
+  onPrimaryChange={color => updateField('widget_primary_color', color)}
+  onAccentChange={color => updateField('widget_accent_color', color)}
+  onPaletteChange={(primary, accent) => 
+    updateFields({ widget_primary_color: primary, widget_accent_color: accent })
+  }
+/>
+```
+
+In `ColorPaletteSelector.tsx` de `applyPalette` functie aanpassen om `onPaletteChange` te gebruiken (als beschikbaar) in plaats van twee losse calls.
+
+### Fix 2: Hex input alleen opslaan bij geldige waarde
+
+In de `SwatchGrid` component de `onChange` van het hex-invoerveld aanpassen: lokaal de waarde bijwerken maar alleen `onChange` (de ouder) aanroepen wanneer het een geldig hex-formaat is.
+
+### Fix 3: Type casts verwijderen
+
+De `as any` casts op regels 93 en 97 vervangen door directe property access nu `widget_accent_color` en `widget_button_style` in het database schema zitten.
 
 ## Technische details
 
-### 1. Database migratie
-Nieuw veld op `widget_settings`:
-```sql
-ALTER TABLE public.widget_settings
-  ADD COLUMN widget_accent_color text NOT NULL DEFAULT '#14B8A6';
-```
-
-### 2. Backend functie: `suggest-widget-colors`
-- Ontvangt `{ primary, accent }` van de frontend
-- Roept Lovable AI Gateway aan met tool calling (`suggest_color_palettes`)
-- Retourneert 3 suggesties met: primary, accent, name (NL), reasoning (NL)
-- Handelt 429/402 errors netjes af
-- `verify_jwt = false` in config.toml
-
-### 3. Nieuw component: `ColorPaletteSelector`
-Pad: `src/components/settings/widget/ColorPaletteSelector.tsx`
-
-Bevat:
-- Curated palette chips (horizontale rij)
-- Twee swatch grids naast elkaar (grid-cols-2)
-- AI suggestie knop + loading state + inline resultaatkaart
-
-### 4. Gewijzigde bestanden
+### Bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/hooks/useWidgetSettings.ts` | `widget_accent_color` toevoegen aan `WidgetSettings` interface |
-| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Huidige color swatches vervangen door `ColorPaletteSelector`, `widget_accent_color` in LocalSettings |
-| `supabase/config.toml` | Entry voor `suggest-widget-colors` met `verify_jwt = false` |
+| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | `updateFields` functie + `onPaletteChange` prop + `as any` casts verwijderen |
+| `src/components/settings/widget/ColorPaletteSelector.tsx` | `onPaletteChange` prop toevoegen, hex input validatie, `applyPalette` aanpassen |
 
-### 5. Wat blijft hetzelfde
-- Logo upload, knoopstijl selector, en alle andere branding opties
-- De widget zelf hoeft nog niet aangepast -- kleuren worden alvast opgeslagen
+### Geen database wijzigingen nodig
+De kolommen bestaan al correct in de database.
