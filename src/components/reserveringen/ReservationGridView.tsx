@@ -158,7 +158,7 @@ function SeatedCountRow({
   }, [reservations, quarterSlots]);
 
   return (
-    <div className="flex border-b-2 border-border bg-secondary sticky top-[40px] z-40">
+    <div className="flex h-8 border-b-2 border-border bg-secondary sticky top-[40px] z-40">
       <div className={cn("sticky left-0 z-40 flex-shrink-0 flex items-center justify-between px-3 bg-secondary border-r-2 border-border", isCompact ? "py-1" : "py-2")} style={{ width: `${STICKY_COL_WIDTH}px` }}>
         <span className="text-xs font-semibold text-muted-foreground">Pacing</span>
         <button onClick={onToggle} className="p-0.5 hover:bg-muted rounded transition-colors">
@@ -301,7 +301,7 @@ function UnassignedGridRow({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="relative z-40 border-b border-warning/30 bg-warning/5">
+      <div className="sticky top-[72px] z-40 border-b border-warning/30 bg-warning/5">
         {/* Row: sticky label + timeline */}
         <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
           {/* Sticky left column */}
