@@ -37,7 +37,7 @@ export function EmbedCodePreview({ mode, slug, color, buttonLabel, buttonPositio
   return (
     <div className="space-y-3">
       <div className="bg-secondary/50 rounded-card-sm p-4 overflow-x-auto">
-        <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all leading-relaxed">
+        <pre className="text-[12px] font-mono text-foreground whitespace-pre-wrap break-all leading-relaxed">
           {code}
         </pre>
       </div>
