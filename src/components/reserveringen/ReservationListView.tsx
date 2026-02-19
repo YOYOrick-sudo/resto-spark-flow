@@ -160,8 +160,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         "px-4 hover:bg-accent/40 cursor-pointer transition-colors duration-150",
         isCompact ? "py-2" : "py-3",
         reservation.status === "cancelled" && "opacity-50",
-        reservation.status === "no_show" && "opacity-60",
-        !reservation.table_id && "bg-warning/12"
+        reservation.status === "no_show" && "opacity-60"
       )}
       onClick={onClick}
     >

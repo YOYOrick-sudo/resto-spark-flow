@@ -1,18 +1,23 @@
 
 
-# Oranje achtergrond iets sterker voor niet-toegewezen rijen
+# Oranje achtergrond voor niet-toegewezen rijen in lijstweergave
 
 ## Wat verandert
-De oranje tint voor rijen zonder tafel gaat van `bg-warning/8` naar `bg-warning/12` in beide views. Zelfde transparante oranje, maar net een tikje meer zichtbaar.
+Reserveringen zonder tafel krijgen dezelfde subtiele oranje achtergrondkleur (`bg-warning/5`) als in de timeline view. Zo is het visueel consistent tussen beide views.
 
-## Bestanden
+## Visueel resultaat
+- Rijen met tafel: normale achtergrond
+- Rijen zonder tafel: licht oranje tint (`bg-warning/5`), zelfde als in timeline
+- Hover: `hover:bg-accent/40` overschrijft de oranje tint (normaal gedrag)
 
-### 1. `src/components/reserveringen/ReservationListView.tsx`
-- Regel 164: `bg-warning/8` wordt `bg-warning/12`
+## Technische wijziging
 
-### 2. `src/components/reserveringen/ReservationGridView.tsx`
-- Regel 305: `bg-warning/8` wordt `bg-warning/12` (rij-achtergrond)
-- Regel 310: `bg-warning/8` wordt `bg-warning/12` (sticky linkerkolom)
+### `src/components/reserveringen/ReservationListView.tsx`
+In de `ReservationRow` component (regel 158-164), een extra conditie toevoegen aan de `cn()` className:
 
-Drie regels, twee bestanden. Zelfde stijl, iets meer kleur.
+```
+!reservation.table_id && "bg-warning/5"
+```
+
+Dit wordt toegevoegd na de bestaande condities voor `cancelled` en `no_show`. Eén regel, geen andere bestanden nodig.
 
