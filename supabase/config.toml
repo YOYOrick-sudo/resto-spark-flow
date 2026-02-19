@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.diagnose-slot]
 verify_jwt = false
+
+[functions.public-booking-api]
+verify_jwt = false
