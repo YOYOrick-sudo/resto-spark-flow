@@ -1,54 +1,32 @@
 
 
-# Premium Pill Button — Brand-driven met glassmorphism
+# Fix: Widget Logo niet zichtbaar
 
-## Wat verandert
+## Probleem
 
-De huidige vlakke knop (solid teal, 10px radius) wordt een **premium pill** die de brand kleuren van elk restaurant overneemt, met een glaseffect dat het onderscheidt van de concurrent.
+Het widget logo laadt niet — niet in de boekingswidget en niet in de settings pagina. De browser blokkeert het verzoek met `net::ERR_BLOCKED_BY_ORB`.
 
-## Visuele vergelijking
+**Oorzaak**: De storage bucket `communication-assets` is **privé** (`public: false`). De code gebruikt `getPublicUrl()` om een URL te genereren, maar omdat de bucket niet publiek is, weigert de browser de afbeelding te laden.
 
-```text
-Huidig (Nesto Polar)              Nieuw (Premium Pill)
-┌──────────────────────┐           ┌───────────────────────────┐
-│                      │           │                           │
-│    Reserveer         │           │   ●  Reserveer            │
-│                      │           │                           │
-│  solid, 10px radius  │           │  pill (50px), glass inset │
-│  minimal shadow      │           │  brand color, accent dot  │
-└──────────────────────┘           └───────────────────────────┘
-```
+Het widget logo moet publiek toegankelijk zijn omdat het getoond wordt op de publieke boekingswidget van gasten — zonder authenticatie.
 
-## Wijzigingen overzicht
+## Oplossing
 
-| Eigenschap | Huidig | Nieuw |
-|---|---|---|
-| Border radius | `10px` | `50px` (pill) |
-| Achtergrond | Solid `color` | Solid `color` (brand kleur restaurant) |
-| Glaseffect | Geen | `inset 0 0 0 1px rgba(255,255,255,0.15)` |
-| Schaduw (rust) | `0 1px 3px ..., 0 4px 14px ...` | `0 2px 8px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08)` + inset glass |
-| Schaduw (hover) | `0 2px 6px ..., 0 8px 24px ...` | `0 4px 12px rgba(0,0,0,0.15), 0 12px 32px rgba(0,0,0,0.12)` + inset glass |
-| Accent dot | Geen | `8px` gevulde cirkel links (`rgba(255,255,255,0.7)`) |
-| Padding | `12px 24px` (desktop) | `14px 28px` (desktop), `12px 22px` (mobiel) |
-| Letter spacing | `0.01em` | `0.02em` |
-| Hover lift | `translateY(-1px)` | `translateY(-2px)` |
-| Icoon/SVG variabelen | Kalender SVG constanten (ongebruikt) | Verwijderd |
+1. **Bucket publiek maken** via een SQL migratie:
+   ```sql
+   UPDATE storage.buckets 
+   SET public = true 
+   WHERE id = 'communication-assets';
+   ```
 
-## Onderscheidend van concurrent (gouden knop)
-1. Gebruikt de **eigen brand kleur** van het restaurant, niet een vaste kleur
-2. **Glasrand** (inset white border) geeft diepte die de concurrent niet heeft
-3. **Accent dot** in plaats van een icoon - cleaner en unieker
-4. **Sentence case** ("Reserveer") past bij Nesto's typografie
-5. **Hover animatie** met lift en schaduwverandering (concurrent is statisch)
+2. **RLS policies controleren**: Zorgen dat er een policy is die publieke leestoegang geeft op objecten in deze bucket, zodat iedereen de logo's kan bekijken maar alleen geautoriseerde gebruikers kunnen uploaden/verwijderen.
 
-## Technisch
+## Wat verandert er voor de gebruiker
 
-Enige bestand: `public/widget.js`
+- Het widget logo wordt direct zichtbaar in de settings pagina (branding sectie)
+- Het logo verschijnt bovenaan de publieke boekingswidget
+- Het logo wordt getoond in de splash screen van het widget panel (floating button modus)
 
-1. Verwijder ongebruikte `CALENDAR_ICON` en `CALENDAR_ICON_SM` constanten
-2. Update shadow variabelen met glassmorphism inset border
-3. Button styling: `border-radius: 50px`, genereuzer padding, `letter-spacing: 0.02em`
-4. Voeg accent dot toe als `<span>` element (8px cirkel, `rgba(255,255,255,0.7)`) voor de tekst
-5. Hover: `translateY(-2px)` met zwaardere schaduw
-6. Behoud alle bestaande functionaliteit (panel, preload, pulse, etc.)
+## Bestanden
 
+Geen codewijzigingen nodig — alleen een database migratie om de bucket publiek te maken en eventueel ontbrekende RLS policies toe te voegen.
