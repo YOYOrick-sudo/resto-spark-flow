@@ -1,37 +1,40 @@
 
 
-# Fix: Rode NU-lijn moet doorlopen tot bovenaan (door de tijdlijn-header)
+# Fix: Rode NU-lijn doorlopend door ALLES (pacing + niet-toegewezen)
 
 ## Probleem
 
-De TimelineHeader (met de uur-labels 16:00, 17:00, etc.) blokkeert de rode lijn bovenaan. De hele header-rij staat op `z-[60]` met een opaque `bg-card` achtergrond. Omdat de NowIndicator op `z-50` staat, wordt de lijn afgedekt door de header -- ook in het tijdlijn-gedeelte rechts.
+Twee outer wrappers blokkeren de rode lijn nog steeds:
+1. **SeatedCountRow** (Pacing, regel 161): outer wrapper staat op `z-[60]` met opaque `bg-secondary` -- blokkeert de NowIndicator (`z-50`)
+2. **UnassignedGridRow** (Niet toegew., regel 304): outer wrapper ook `z-[60]` -- zelfde probleem
 
-## Oorzaak
-
-Op regel 91 staat:
-```
-<div className="sticky top-0 z-[60] flex border-b-2 border-border bg-card">
-```
-
-De hele rij (links EN rechts) is `z-[60]` met `bg-card`. Dit blokkeert de rode lijn (`z-50`) overal in de header, inclusief het rechter tijdlijn-gedeelte waar de lijn WEL zichtbaar moet zijn.
+De inner sticky left-kolommen staan al correct op `z-[60]` en blokkeren de lijn in de linkerkolom. Maar de outer wrappers dekken de lijn af in het HELE tijdlijn-gedeelte.
 
 ## Oplossing
 
-Splits de z-index van de TimelineHeader:
+Zelfde patroon als de TimelineHeader-fix: verlaag de outer wrapper z-index van `z-[60]` naar `z-[45]`. De inner sticky left-children blijven op `z-[60]`.
 
-1. **Buitenste wrapper (regel 91):** Verlaag van `z-[60]` naar `z-[45]`. Dit zorgt dat de NowIndicator (`z-50`) BOVEN de header-achtergrond wordt getekend in het tijdlijn-gedeelte.
-2. **Linkerkolom (regel 92):** Behoud `z-[60]`. Dit blokkeert de rode lijn in de labelkolom.
+## Overzicht z-index lagen (na fix)
 
-De header blijft sticky en zichtbaar, maar de rode lijn schijnt er in het rechtergedeelte doorheen. De linkerkolom (140px) blokkeert de lijn nog steeds.
+| Element | z-index | Effect |
+|---------|---------|--------|
+| Alle sticky linkerkolommen | z-[60] | Blokkeert rode lijn links |
+| NowIndicator | z-50 | Rode lijn zichtbaar in tijdlijn |
+| TimelineHeader wrapper | z-[45] | Lijn loopt erdoorheen |
+| SeatedCountRow wrapper | z-[45] | Lijn loopt erdoorheen |
+| UnassignedGridRow wrapper | z-[45] | Lijn loopt erdoorheen |
 
-## Technische wijziging
+## Technische wijzigingen
 
 ### `src/components/reserveringen/ReservationGridView.tsx`
 
-**Regel 91:**
+**Regel 161 -- SeatedCountRow outer div:**
 - Was: `z-[60]`
 - Wordt: `z-[45]`
 
-(Regel 92 blijft `z-[60]` -- alleen de linkerkolom behoudt de hoge z-index.)
+**Regel 304 -- UnassignedGridRow outer div:**
+- Was: `z-[60]`
+- Wordt: `z-[45]`
 
-Resultaat: 1 regel aanpassen.
+Totaal: 2 regels aanpassen in 1 bestand.
+
