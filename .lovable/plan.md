@@ -1,52 +1,26 @@
 
 
-# "Niet toegewezen" als echte grid-rij
+# Fix: Rode "NU"-lijn loopt door de sticky kolom
 
-## Probleem
-De huidige "Niet toegewezen" sectie is een horizontale kaartjeslijst die los boven de grid staat. Dit breekt de visuele consistentie: het lijnt niet uit met de timeline en voelt als een ander component.
+## Oorzaak
+De `NowIndicator` is een absoluut gepositioneerd element op het bovenste niveau van de grid-container. De `left`-positie wordt berekend als `STICKY_COL_WIDTH + position`, waardoor de lijn fysiek begint in het bereik van de sticky kolom. De sticky cellen zitten genest in rij-divs, waardoor hun `z-40` alleen werkt binnen hun eigen stacking context en niet boven de `z-30` van de NowIndicator op het hogere DOM-niveau.
 
 ## Oplossing
-Vervang de kaartjeslijst door een rij die exact dezelfde structuur heeft als een gewone tafelrij:
-- 140px sticky linkerkolom met label "Niet toegew." en count
-- ReservationBlock componenten gepositioneerd op de juiste tijdstippen in de timeline
-- Subtiele warning-achtergrond zodat het opvalt als "actie nodig"
+Verplaats de `NowIndicator` naar binnen de timeline-area (na de sticky kolom) in plaats van hem over de hele breedte te positioneren. Dit is hetzelfde patroon als `GridLines` (regel 70) die al `left: STICKY_COL_WIDTH` op de container zet.
 
-```text
-Huidige situatie:
-+-----------------------------------------------+
-| v Niet toegewezen (1)                         |
-| [19:00 | 2p | Hansje Peter | Wijs toe]        |
-+-----------------------------------------------+
-| RESTAURANT                                    |
-| Tafel 1  2-4  *  |----[blok]------|           |
+## Technische wijziging
 
-Nieuwe situatie:
-+------------------+----[19:00 Hansje 2p]-------+
-| Niet toegew. (1) |                            |
-+------------------+----------------------------+
-| RESTAURANT       |                            |
-| Tafel 1  2-4  *  |----[blok]------|           |
-```
+### `src/components/reserveringen/ReservationGridView.tsx`
 
-De blokken krijgen een oranje border-accent (`border-warning/60`) zodat ze visueel opvallen. "Wijs toe" knop verschijnt bij hover op het blok. Collapsible blijft behouden.
+**NowIndicator component aanpassen** (regels 224-234):
 
-## Technische wijzigingen
+1. Wrap de twee absolute divs in een container-div met `left: STICKY_COL_WIDTH` (net als GridLines)
+2. Gebruik `position` als left-waarde in plaats van `STICKY_COL_WIDTH + position`
+3. Dit zorgt ervoor dat de rode lijn nooit in het sticky-kolom-gebied wordt gerenderd
 
-### 1. `src/components/reserveringen/ReservationGridView.tsx`
+Concreet:
+- Verander `leftPos` van `STICKY_COL_WIDTH + position` naar gewoon `position`
+- Wrap de return in een container-div: `<div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: STICKY_COL_WIDTH + 'px' }}>`
+- De lijn en de glow gebruiken dan `leftPos` (= `position`) als hun `left`-waarde
 
-**UnassignedBadgeList herschrijven** (regels 263-338):
-- Sticky linkerkolom (140px) met "Niet toegew." label, count badge, en collapse toggle
-- Timeline-area met dezelfde breedte als de grid (`gridWidth`)
-- Per reservering een `ReservationBlock` renderen met dezelfde positioneringslogica (via `calculateBlockPosition`)
-- "Wijs toe" knop als overlay bij hover op een blok (kleine Wand2 icon)
-- Achtergrond: `bg-warning/5` voor de hele rij
-- Quarter-slot gridlijnen toevoegen (zelfde als in `TableRow`) voor visuele uitlijning
-
-### 2. `src/components/reserveringen/ReservationBlock.tsx`
-
-**Optionele `variant` prop toevoegen**:
-- Nieuwe prop: `variant?: 'default' | 'unassigned'`
-- Bij `variant="unassigned"`: override de statuskleur met `border-warning/60 bg-warning/5`
-- Dit zorgt ervoor dat ongeacht de status, niet-toegewezen blokken altijd de oranje warning-stijl krijgen
-
-### Geen database- of backend-wijzigingen nodig.
+Geen andere bestanden worden aangepast.
