@@ -223,7 +223,7 @@ function NowIndicator({ config }: { config: GridTimeConfig }) {
   if (position === null) return null;
 
   return (
-    <div className="absolute top-0 bottom-0 right-0 overflow-hidden pointer-events-none" style={{ left: `${STICKY_COL_WIDTH}px` }}>
+    <div className="absolute top-0 bottom-0 right-0 z-20 overflow-hidden pointer-events-none" style={{ left: `${STICKY_COL_WIDTH}px` }}>
       <div className="absolute top-0 bottom-0 bg-destructive/8 pointer-events-none z-10" style={{ left: `${position - 3}px`, width: '6px' }} />
       <div className="absolute top-0 bottom-0 w-[2px] bg-destructive z-30 pointer-events-none" style={{ left: `${position}px` }}>
         <div className="sticky top-1 -translate-x-1/2 w-fit">
