@@ -1,32 +1,51 @@
 
 
-# Fix: Button logo verschijnt niet in de widget preview
+# Widget Floating Button: 4 Visuele Verbeteringen
 
-## Probleem
+## Overzicht
 
-De `WidgetPreviewDemo.tsx` pagina leest de `buttonLogo` URL-parameter niet uit en zet deze niet als `data-button-logo` attribuut op het dynamisch geïnjecteerde widget.js script. Daardoor toont de floating knop altijd de accent dot in plaats van het geüploade logo.
+Vier aanpassingen aan de floating reserveringsknop om deze professioneler en meer on-brand te maken.
 
-## Oplossing
+## Wijzigingen
 
-In `src/pages/WidgetPreviewDemo.tsx`:
+### 1. Accentkleur als tekstkleur, hoofdkleur als achtergrond
 
-1. **Lees de `buttonLogo` parameter** uit de URL search params (regel 12)
-2. **Zet `data-button-logo` attribuut** op het script element als de parameter aanwezig is (na regel 25)
-3. **Voeg `buttonLogo` toe aan de dependency array** van het useEffect (regel 38)
+De knoptekst is nu altijd wit. Logischer: de **hoofdkleur** (primary) als achtergrond en de **accentkleur** als tekst- en icoonkleur. Dit maakt het duo-color systeem zichtbaar in de knop.
 
-## Wat verandert
+**Bestanden:**
+- `public/widget.js` -- nieuw `data-accent` attribuut uitlezen, `color` instellen op accentkleur i.p.v. `#fff`, accent dot kleur aanpassen
+- `src/components/settings/widget/EmbedCodePreview.tsx` -- `accentColor` prop toevoegen, `data-accent` in de gegenereerde code
+- `src/components/settings/widget/WidgetLivePreview.tsx` -- `accentColor` prop doorvoeren naar preview URL
+- `src/pages/WidgetPreviewDemo.tsx` -- `accent` param uitlezen en als `data-accent` op het script zetten
+- `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` -- `accentColor` meegeven aan `EmbedCodePreview` en `WidgetLivePreview`
 
-| Onderdeel | Huidig | Nieuw |
-|---|---|---|
-| `buttonLogo` param | Genegeerd | Uitgelezen en doorgezet |
-| Floating knop in preview | Accent dot (altijd) | Logo silhouet als geüpload |
+### 2. Button logo groter
 
-## Technisch
+Het logo is 20x20px -- te klein voor herkenning. Wordt **24x24px** met `border-radius: 5px`.
 
-Enige bestand: `src/pages/WidgetPreviewDemo.tsx`
+**Bestand:** `public/widget.js` -- afmetingen aanpassen
 
-Drie kleine wijzigingen:
-- Variabele toevoegen: `const buttonLogo = params.get('buttonLogo') || '';`
-- Attribuut zetten: `if (buttonLogo) script.setAttribute('data-button-logo', buttonLogo);`
-- Dependency array uitbreiden met `buttonLogo`
+### 3. Knoptekst in hoofdletters
+
+De tekst ("Reserveer") in uppercase met lichte letter-spacing voor premium uitstraling.
+
+**Bestand:** `public/widget.js` -- `text-transform:uppercase` en `letter-spacing:0.05em` toevoegen
+
+### 4. Pill knop iets smaller
+
+Padding wordt iets verkleind zodat de knop slanker oogt:
+- Desktop: `14px 28px` wordt `12px 24px`
+- Mobile: `12px 22px` wordt `10px 20px`
+
+**Bestand:** `public/widget.js` -- padding waarden aanpassen
+
+## Samenvatting bestanden
+
+| Bestand | Wat wijzigt |
+|---|---|
+| `public/widget.js` | Accent als tekstkleur, logo 24px, uppercase, kleinere padding |
+| `src/components/settings/widget/EmbedCodePreview.tsx` | Nieuwe `accentColor` prop, `data-accent` attribuut in code output |
+| `src/components/settings/widget/WidgetLivePreview.tsx` | Nieuwe `accentColor` prop, doorvoeren naar preview URL |
+| `src/pages/WidgetPreviewDemo.tsx` | `accent` param uitlezen en als attribuut zetten |
+| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | `accentColor` prop meegeven aan preview en embed componenten |
 
