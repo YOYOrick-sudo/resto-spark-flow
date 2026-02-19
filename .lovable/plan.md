@@ -1,34 +1,25 @@
 
+# Fix: Panel overlay wordt bedekt door grid elementen
 
-# Check-in knop altijd zichtbaar + naam langer
+## Probleem
 
-## Wat verandert
+Wanneer je in de **grid view** op "Reservering" of "Walk-in" klikt, opent het NestoPanel met een donkere achtergrond-overlay op `z-40`. Maar de grid view heeft elementen op `z-50` (de "NU" tijdslijn) die **boven** de overlay uitsteken. Hierdoor zijn reserveringsblokken en de tijdlijn zichtbaar door/over het panel heen — een rommelig visueel resultaat.
 
-### 1. Check-in knop — altijd zichtbaar, touch + muis
-De check-in knop wordt een permanent zichtbare knop (geen hover nodig) aan de rechterkant van het reserveringsblok. Alleen voor reserveringen met status `confirmed`. De knop:
-- Is altijd zichtbaar (geen `opacity-0 group-hover:opacity-100`)
-- Werkt met touch (iPad) en muis
-- Gebruikt het `LogIn` icoon in een emerald/groen stijl
-- Stopt event propagation zodat het blok niet opent bij klik op de knop
+## Oorzaak
 
-### 2. Naam meer ruimte
-De gastnaam krijgt `flex-1` zodat deze alle beschikbare ruimte pakt voordat hij afkapt.
+- NestoPanel backdrop overlay: `z-40`
+- NestoPanel zelf: `z-40`
+- Grid NowLine container: `z-50` (hoger, dus bovenop de overlay)
+
+## Oplossing
+
+Verhoog de z-index van het NestoPanel (zowel backdrop als panel) van `z-40` naar `z-50`. Dit zorgt ervoor dat het panel altijd boven alle grid-elementen verschijnt.
 
 ## Technisch
 
-### `src/components/reserveringen/ReservationBlock.tsx`
+### `src/components/polar/NestoPanel.tsx`
 
-1. **Check-in knop toevoegen** — Nieuwe `button` element naast de unassigned-knop (rond regel 280):
-   - Conditie: `canCheckIn` (status === confirmed en onCheckIn prop aanwezig)
-   - Styling: `absolute right-1 top-1/2 -translate-y-1/2` met emerald achtergrond, altijd `opacity-100`
-   - `onClick`: stopt propagation, roept `onCheckIn(reservation)` aan
-   - `LogIn` icoon (al geimporteerd)
+1. **Backdrop overlay** (regel 111): Verander `z-40` naar `z-50`
+2. **Panel container** (regel 115): Verander `z-40` naar `z-50`
 
-2. **Naam meer ruimte** (regel 249-251):
-   - Voeg `flex-1` toe aan de naam-span
-   - Behoud `truncate` voor overflow maar geef de naam prioriteit over optionele elementen
-
-3. **Content padding aanpassen**: wanneer canCheckIn actief is, voeg `pr-7` toe aan de content-div zodat de naam niet onder de knop verdwijnt
-
-Totaal: 1 bestand, ~8 regels aangepast/toegevoegd.
-
+Totaal: 1 bestand, 2 regels aangepast.
