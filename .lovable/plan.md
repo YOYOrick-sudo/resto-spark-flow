@@ -1,64 +1,66 @@
 
-# Fix: Widget Kleurenpalet Bugs
 
-## Gevonden problemen
+# AI Suggesties integreren in Kleurenpalet
 
-### Bug 1: Race condition bij palette selectie (HOOFDPROBLEEM)
-Wanneer je een curated palette (bijv. "Ocean Blue") selecteert, worden `onPrimaryChange` en `onAccentChange` na elkaar aangeroepen. Beide roepen `updateField` aan, die `debouncedSave` triggert. De debounce annuleert de eerste call (primary), waardoor alleen de accent kleur wordt opgeslagen. Na een refetch springt de primary terug naar de oude waarde.
+## Probleem
 
-**Bewijs**: Na klik op "Ocean Blue" werd alleen `{"widget_accent_color":"#6366F1"}` naar de server gestuurd. De primary `#0EA5E9` ging verloren.
+Nu zijn er twee aparte secties die hetzelfde doen:
+1. Curated palette chips (statisch, altijd zichtbaar)
+2. AI suggesties (apart kaartje, na klik op knop)
 
-### Bug 2: Hex input vuurt bij elke toetsaanslag
-Elke letter in het hex-invoerveld triggert direct een `updateField` + `debouncedSave`. Dit kan ongeldige waarden opslaan (bijv. `#1`, `#10B`).
+Dit voelt dubbel -- twee rijen met kleurencombinaties.
 
-### Bug 3: TypeScript `as any` casts
-`widget_accent_color` en `widget_button_style` worden met `(settings as any)` benaderd in plaats van via de correcte types.
+## Nieuwe aanpak
 
-## Oplossing
+De **curated palettes worden vervangen door AI-gegenereerde paletten** die automatisch laden wanneer het component mount. Geen aparte knop meer, geen apart kaartje -- de palette chips zelf zijn de AI suggesties.
 
-### Fix 1: Gecombineerde save voor palette selectie
+```text
+Kleurenpalet
+  [Warme Herfst ●●] [Oceaan Bries ●●] [Nacht & Goud ●●] [Custom ●●]
+  [sparkle] Nieuwe suggesties          <-- refresh knop (inline, subtiel)
 
-In `SettingsReserveringenWidget.tsx` een nieuwe `updateFields` functie toevoegen die meerdere velden tegelijk opslaart:
-
-```typescript
-const updateFields = (updates: Partial<LocalSettings>) => {
-  setLocal(prev => ({ ...prev, ...updates }));
-  debouncedSave(updates);
-};
+  Hoofdkleur          Accentkleur
+  [swatch grid]       [swatch grid]
+  [#10B981___]        [#14B8A6___]
 ```
 
-En de `ColorPaletteSelector` een `onPaletteChange` callback geven die beide kleuren tegelijk doorstuurt:
+## Hoe het werkt
 
-```typescript
-<ColorPaletteSelector
-  primaryColor={local.widget_primary_color}
-  accentColor={local.widget_accent_color}
-  onPrimaryChange={color => updateField('widget_primary_color', color)}
-  onAccentChange={color => updateField('widget_accent_color', color)}
-  onPaletteChange={(primary, accent) => 
-    updateFields({ widget_primary_color: primary, widget_accent_color: accent })
-  }
-/>
-```
+1. **Bij mount**: Component laadt 3 AI suggesties automatisch (edge function call)
+2. **Palette chips**: De 3 AI suggesties verschijnen als klikbare chips met naam + twee kleurcirkels
+3. **Custom chip**: Als de huidige kleuren niet matchen met een suggestie, verschijnt een "Custom" chip (actief)
+4. **Refresh knop**: Een klein "Nieuwe suggesties" knopje (met sparkle icon) haalt 3 nieuwe paletten op
+5. **Fallback**: Tijdens laden of bij een fout worden de 5 statische curated palettes getoond (zodat de UI nooit leeg is)
+6. **Tooltip**: Elke AI chip toont de reasoning als tooltip bij hover
 
-In `ColorPaletteSelector.tsx` de `applyPalette` functie aanpassen om `onPaletteChange` te gebruiken (als beschikbaar) in plaats van twee losse calls.
+## Wat verdwijnt
 
-### Fix 2: Hex input alleen opslaan bij geldige waarde
+- De "Stel betere kleuren voor" knop
+- Het aparte AI suggesties kaartje met "Toepassen" knoppen
+- De NestoCard wrapper voor AI resultaten
 
-In de `SwatchGrid` component de `onChange` van het hex-invoerveld aanpassen: lokaal de waarde bijwerken maar alleen `onChange` (de ouder) aanroepen wanneer het een geldig hex-formaat is.
+## Wat blijft
 
-### Fix 3: Type casts verwijderen
-
-De `as any` casts op regels 93 en 97 vervangen door directe property access nu `widget_accent_color` en `widget_button_style` in het database schema zitten.
+- Swatch grids (hoofdkleur + accentkleur) -- ongewijzigd
+- Hex inputs -- ongewijzigd
+- Custom chip indicator -- ongewijzigd
 
 ## Technische details
 
-### Bestanden
+### Bestand: `ColorPaletteSelector.tsx`
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | `updateFields` functie + `onPaletteChange` prop + `as any` casts verwijderen |
-| `src/components/settings/widget/ColorPaletteSelector.tsx` | `onPaletteChange` prop toevoegen, hex input validatie, `applyPalette` aanpassen |
+Wijzigingen:
+- `useEffect` bij mount: roept `fetchSuggestions()` aan
+- `CURATED_PALETTES` wordt de fallback (getoond tijdens laden / bij error)
+- State `suggestions` wordt de primaire bron voor palette chips
+- De palette chips rendering gebruikt `suggestions ?? CURATED_PALETTES` (met mapping)
+- AI suggesties kaart (regels 230-271) wordt verwijderd
+- AI knop (regels 212-228) wordt vervangen door een compacte "Nieuwe suggesties" refresh link
+- Tooltip met `title` attribuut op elke AI chip voor de reasoning
+
+### Edge function: geen wijzigingen nodig
+
+De `suggest-widget-colors` functie werkt al correct en retourneert 3 suggesties.
 
 ### Geen database wijzigingen nodig
-De kolommen bestaan al correct in de database.
+
