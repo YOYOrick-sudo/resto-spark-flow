@@ -230,7 +230,7 @@ function NowIndicator({ config, scrollContainerRef }: { config: GridTimeConfig; 
 
   return (
     <div
-      className="absolute top-0 bottom-0 right-0 z-50 overflow-hidden pointer-events-none"
+      className="absolute top-0 bottom-0 right-0 z-30 overflow-hidden pointer-events-none"
       style={{
         left: `${STICKY_COL_WIDTH}px`,
         clipPath: `inset(0 0 0 ${clipLeft}px)`,
