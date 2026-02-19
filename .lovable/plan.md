@@ -1,61 +1,87 @@
 
 
-# Live Preview vereenvoudigen: visuele mockup + externe preview link
+# Widget Settings pagina solider maken
 
-## Probleem
+## Huidige problemen
 
-De huidige live preview gebruikt geschaalde iframes binnen de settings pagina, wat niet smooth werkt en een slechte ervaring geeft. De iframe-in-iframe aanpak is traag en visueel niet betrouwbaar.
+1. De "Open live preview" knop staat los van de embed mode -- het is onduidelijk dat die knop de gekozen mode simuleert
+2. De Integratie-sectie is een enkel groot blok waarin alles op een hoop staat (mode selector, preview, config, code)
+3. Button-specifieke configuratie (knoptekst, positie) zit in een los `bg-secondary` blokje zonder duidelijke koppeling aan de mode
+4. De embed code en de preview knop staan gescheiden -- de operator moet scrollen om beide te vinden
 
 ## Oplossing
 
-De `WidgetLivePreview` wordt omgebouwd naar twee onderdelen:
+De Integratie-sectie herstructureren naar een helder, stapsgewijs layout per gekozen mode:
 
-1. **Statische visuele mockup** -- een lichtgewicht simulatie zonder iframes die laat zien waar de knop/widget komt
-2. **"Open preview" knop** -- opent een volledige demo-pagina in een nieuw tabblad waar de widget echt werkt
+### Nieuwe structuur van sectie 4 (Integratie)
 
-### Wat verandert
+```text
++--------------------------------------------------+
+|  Integratie                                       |
+|  Kies hoe je de widget op je website wilt tonen.  |
+|                                                   |
+|  [Floating knop] [Inline embed] [Alleen link]     |  <- EmbedModeSelector (blijft)
+|                                                   |
+|  +----------------------------------------------+ |
+|  | Configuratie                         [Preview]| |  <- Per-mode config + preview link
+|  |                                               | |
+|  | (button: knoptekst + positie)                 | |
+|  | (inline: container ID info)                   | |
+|  | (link: directe URL met open knop)             | |
+|  +----------------------------------------------+ |
+|                                                   |
+|  +----------------------------------------------+ |
+|  | Visuele preview (mock browser)                | |  <- Lichtgewicht mockup
+|  |  [mock content + knop/widget placeholder]     | |
+|  +----------------------------------------------+ |
+|                                                   |
+|  +----------------------------------------------+ |
+|  | Embed code                          [Kopieer] | |  <- Code block
+|  +----------------------------------------------+ |
++--------------------------------------------------+
+```
 
-**`WidgetLivePreview.tsx`** -- Herschrijven:
-- Verwijder alle iframes uit de preview
-- **Button mode**: Toon het mock-browservenster (dots + URL-balk) met placeholder content en de floating knop in de juiste positie/kleur/tekst. Geen overlay meer bij klik -- in plaats daarvan een "Open preview" knop onder de mockup
-- **Inline mode**: Toon het mock-browservenster met een placeholder card waar de widget zou staan (gestileerde outline met "Nesto Widget" label), plus een "Open preview" knop
-- **Link mode**: Blijft zoals het is (URL + Open link)
+### Concrete wijzigingen
 
-**Nieuwe pagina: `/widget-preview`** -- Een standalone demo-pagina die:
-- Een nep-restaurantwebsite simuleert (hero, tekst, navigatie)
-- Het `widget.js` script dynamisch laadt met de geconfigureerde parameters (slug, mode, label, position, color)
-- Zo toont de operator exact wat hun gasten zullen zien op een echte website
-- Query params: `?slug=xxx&mode=button&label=Reserveer&position=bottom-right&color=%231d979e`
+**`WidgetLivePreview.tsx`** -- Aanpassen:
+- De "Open live preview" knop verplaatsen naar een meer prominente positie: rechtsboven in de mock browser chrome als een icoontje (ExternalLink), zodat het duidelijk gekoppeld is aan de visuele preview
+- Bij link mode: de preview link tonen als primaire actie naast de URL (huidige opzet is al goed, kleine polish)
 
-### Flow voor de operator
+**`SettingsReserveringenWidget.tsx`** -- Herstructureren:
+- De Integratie-sectie opdelen in duidelijke subsecties met labels
+- Button mode config (knoptekst + positie) krijgt een subsectie-header "Knopconfiguratie"
+- Inline mode krijgt een informatief blokje over het container-element (`<div id="nesto-booking">`)
+- De embed code subsectie krijgt een duidelijke header "Installatiecode" (of "Widget URL" bij link mode)
+- Elke subsectie binnen de kaart gescheiden door subtiele dividers
 
-1. Kies embed mode in de settings
-2. Zie een lichtgewicht mockup van de positionering
-3. Klik "Open preview" -- nieuw tabblad opent met een volledige simulatie
-4. De floating knop of inline widget werkt daar echt, met overlay en alles
+**`EmbedCodePreview.tsx`** -- Kleine verbetering:
+- De "Open widget" knop hernoemen naar "Open in nieuw tabblad"
+- Bij link mode: de URL prominenter tonen met een kopieer-icoontje inline
+
+### Geen nieuwe bestanden nodig
+
+Alle wijzigingen zijn refactoring van bestaande componenten.
 
 ## Technische details
 
-### Bestanden
+### `SettingsReserveringenWidget.tsx`
 
-| Bestand | Actie |
-|---------|-------|
-| `src/components/settings/widget/WidgetLivePreview.tsx` | Herschrijven -- iframes verwijderen, statische mockup + "Open preview" knop |
-| `src/pages/WidgetPreviewDemo.tsx` | Nieuw -- standalone demo-pagina met nep-restaurant + widget.js |
-| `src/App.tsx` | Route toevoegen: `/widget-preview` |
+De Integratie NestoCard wordt intern opgedeeld met `divide-y divide-border/40` of aparte `bg-secondary/50` blokken per subsectie:
 
-### WidgetLivePreview (nieuw)
+1. **Mode selector** (bovenaan, altijd zichtbaar)
+2. **Mode-specifieke configuratie** (alleen bij button mode: knoptekst + positie; bij inline: container-id uitleg; bij link: URL)
+3. **Visuele preview** (mockup met "Open preview" link in de browser chrome)
+4. **Installatiecode** (code block met kopieerknop)
 
-- Mock browser chrome (dots + URL balk) blijft behouden
-- Button mode: placeholder content + absolute-positioned knop (puur CSS, geen iframe)
-- Inline mode: placeholder content + gestileerde container met label
-- Onder elke mockup: een "Open preview" knop die `/widget-preview?slug=...&mode=...&label=...&position=...&color=...` opent in een nieuw tabblad
+### `WidgetLivePreview.tsx`
 
-### WidgetPreviewDemo pagina
+De "Open live preview" knop verhuist van een losse full-width knop onder de mockup naar een compact linkje in de browser chrome balk (naast de URL). Dit maakt het visueel duidelijker dat je "deze website" opent in een echt tabblad.
 
-- Geen sidebar, geen Nesto chrome -- ziet eruit als een externe restaurantwebsite
-- Simpele hero sectie, wat tekst, een menu-sectie
-- Laadt `widget.js` dynamisch via een `<script>` element met de juiste data-attributen uit de URL query params
-- De floating knop verschijnt echt rechtsonder, de overlay werkt echt
-- Of bij inline mode: een `<div id="nesto-booking">` container waar de widget in rendert
+### Bestanden die wijzigen
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` | Integratie-sectie herstructureren met subsecties, inline mode info blok, dividers |
+| `src/components/settings/widget/WidgetLivePreview.tsx` | Preview-knop naar browser chrome verplaatsen, compacter |
+| `src/components/settings/widget/EmbedCodePreview.tsx` | Kleine label-aanpassingen |
 
