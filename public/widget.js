@@ -208,12 +208,9 @@
     injectFont();
     injectKeyframes();
 
-    // Initialize inset ring with accentColor
-    // Override shadows with accentColor inset ring
-    glassInset = 'inset 0 0 0 1.5px ' + hexToRgba(accentColor, 0.3);
-    glassInsetHover = 'inset 0 0 0 1.5px ' + hexToRgba(accentColor, 0.45);
-    shadowRest = '0 2px 8px rgba(0,0,0,0.12),0 8px 24px rgba(0,0,0,0.08),' + glassInset;
-    shadowHover = '0 4px 12px rgba(0,0,0,0.15),0 12px 32px rgba(0,0,0,0.12),' + glassInsetHover;
+    shadowRest = '0 2px 8px rgba(0,0,0,0.10),0 4px 16px rgba(0,0,0,0.06)';
+    shadowHover = '0 6px 20px rgba(0,0,0,0.12),0 12px 36px rgba(0,0,0,0.08)';
+    var hoverColor = darkenHex(color, -8);
 
     var mobile = isMobile();
 
@@ -247,7 +244,7 @@
       'display:inline-flex',
       'align-items:center',
       'justify-content:center',
-      'transition:transform 0.2s ease,box-shadow 0.2s ease',
+      'transition:transform 0.25s cubic-bezier(0.4,0,0.2,1),box-shadow 0.25s cubic-bezier(0.4,0,0.2,1),background-color 0.25s cubic-bezier(0.4,0,0.2,1)',
       'opacity:0',
       'animation:nestoButtonEntrance 0.35s ease 0.3s forwards',
       'box-shadow:' + shadowRest,
@@ -274,12 +271,14 @@
       if (!mobile) {
         btn.style.transform = 'translateY(-2px)';
         btn.style.boxShadow = shadowHover;
+        btn.style.backgroundColor = hoverColor;
       }
     });
     btn.addEventListener('mouseleave', function () {
       if (!mobile) {
         btn.style.transform = 'translateY(0)';
         btn.style.boxShadow = shadowRest;
+        btn.style.backgroundColor = color;
       }
     });
 
