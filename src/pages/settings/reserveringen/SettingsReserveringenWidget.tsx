@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { SettingsDetailLayout } from '@/components/settings/layouts/SettingsDetailLayout';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoInput } from '@/components/polar/NestoInput';
@@ -11,6 +11,7 @@ import { BookingQuestionsEditor } from '@/components/settings/widget/BookingQues
 import { EmbedModeSelector, type EmbedMode } from '@/components/settings/widget/EmbedModeSelector';
 import { EmbedCodePreview } from '@/components/settings/widget/EmbedCodePreview';
 import { WidgetLivePreview } from '@/components/settings/widget/WidgetLivePreview';
+import { WidgetLogoUpload } from '@/components/settings/widget/WidgetLogoUpload';
 import { useWidgetSettings, useUpdateWidgetSettings, type BookingQuestion } from '@/hooks/useWidgetSettings';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { usePermission } from '@/hooks/usePermission';
@@ -32,7 +33,15 @@ interface LocalSettings {
   widget_logo_url: string;
   widget_success_redirect_url: string;
   booking_questions: BookingQuestion[];
+  widget_button_style: string;
 }
+
+const PRESET_COLORS = [
+  '#10B981', '#059669', '#0EA5E9', '#6366F1',
+  '#8B5CF6', '#EC4899', '#F43F5E', '#EF4444',
+  '#F97316', '#F59E0B', '#84CC16', '#14B8A6',
+  '#06B6D4', '#3B82F6', '#A855F7', '#1F2937',
+];
 
 const sectionHeader = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4";
 const sectionDivider = "border-t border-border/50 pt-5 mt-5";
@@ -42,7 +51,6 @@ export default function SettingsReserveringenWidget() {
   const updateSettings = useUpdateWidgetSettings();
   const hasPermission = usePermission('reservations.settings');
   const [saved, setSaved] = useState(false);
-  const colorInputRef = useRef<HTMLInputElement>(null);
   const [embedMode, setEmbedMode] = useState<EmbedMode>('button');
   const [buttonLabel, setButtonLabel] = useState('Reserveer');
   const [buttonPosition, setButtonPosition] = useState('bottom-right');
@@ -58,6 +66,7 @@ export default function SettingsReserveringenWidget() {
     widget_logo_url: '',
     widget_success_redirect_url: '',
     booking_questions: [],
+    widget_button_style: 'rounded',
   });
 
   useEffect(() => {
@@ -73,6 +82,7 @@ export default function SettingsReserveringenWidget() {
         widget_logo_url: settings.widget_logo_url || '',
         widget_success_redirect_url: settings.widget_success_redirect_url || '',
         booking_questions: (settings.booking_questions as BookingQuestion[]) || [],
+        widget_button_style: (settings as any).widget_button_style || 'rounded',
       });
     }
   }, [settings]);
@@ -217,43 +227,75 @@ export default function SettingsReserveringenWidget() {
           {/* Branding */}
           <div className={sectionDivider}>
             <h4 className={sectionHeader}>Branding</h4>
-            <div className="space-y-4">
+            <div className="space-y-5">
+              {/* Color swatches */}
               <div>
                 <label className="mb-2 block text-label text-muted-foreground">Widget kleur</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => colorInputRef.current?.click()}
-                    className="h-8 w-8 rounded-control border border-border cursor-pointer hover:ring-2 hover:ring-primary/30 transition-shadow"
-                    style={{ backgroundColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }}
-                  />
-                  <NestoInput
-                    value={local.widget_primary_color}
-                    onChange={e => updateField('widget_primary_color', e.target.value)}
-                    className="w-[120px]"
-                    placeholder="#10B981"
-                    maxLength={7}
-                  />
-                  <input
-                    ref={colorInputRef}
-                    type="color"
-                    value={isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981'}
-                    onChange={e => updateField('widget_primary_color', e.target.value)}
-                    className="sr-only"
-                    tabIndex={-1}
-                  />
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {PRESET_COLORS.map(color => {
+                    const isActive = local.widget_primary_color.toUpperCase() === color.toUpperCase();
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => updateField('widget_primary_color', color)}
+                        className={`h-6 w-6 rounded-full border transition-shadow flex items-center justify-center ${
+                          isActive
+                            ? 'ring-2 ring-primary ring-offset-2 border-transparent'
+                            : 'border-border hover:ring-2 hover:ring-primary/30 hover:ring-offset-1'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      >
+                        {isActive && <Check className="h-3 w-3 text-white drop-shadow-sm" />}
+                      </button>
+                    );
+                  })}
                 </div>
+                <NestoInput
+                  value={local.widget_primary_color}
+                  onChange={e => updateField('widget_primary_color', e.target.value)}
+                  className="w-[120px]"
+                  placeholder="#10B981"
+                  maxLength={7}
+                  error={local.widget_primary_color && !isValidHex(local.widget_primary_color) ? 'Ongeldige hex kleur' : undefined}
+                />
                 <p className="text-xs text-muted-foreground mt-1">Kleur van knoppen en accenten in de widget.</p>
               </div>
 
+              {/* Logo upload */}
+              <WidgetLogoUpload logoUrl={local.widget_logo_url || null} />
+
+              {/* Button style selector */}
               <div>
-                <NestoInput
-                  label="Widget logo URL"
-                  value={local.widget_logo_url}
-                  onChange={e => updateField('widget_logo_url', e.target.value)}
-                  placeholder="https://..."
-                />
-                <p className="text-xs text-muted-foreground mt-1">Logo dat bovenaan de widget wordt getoond.</p>
+                <label className="mb-2 block text-label text-muted-foreground">Knoopstijl</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateField('widget_button_style', 'rounded')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-card text-sm font-medium transition-colors ${
+                      local.widget_button_style === 'rounded'
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    <span className="inline-block h-5 w-14 rounded-full border-2" style={{ borderColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }} />
+                    Afgerond
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateField('widget_button_style', 'square')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-card text-sm font-medium transition-colors ${
+                      local.widget_button_style === 'square'
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    <span className="inline-block h-5 w-14 rounded-button border-2" style={{ borderColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }} />
+                    Rechthoekig
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Stijl van knoppen in de boekingswidget.</p>
               </div>
             </div>
           </div>

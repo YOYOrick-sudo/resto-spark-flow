@@ -2065,6 +2065,7 @@ export type Database = {
           show_nesto_branding: boolean
           unavailable_text: string
           updated_at: string
+          widget_button_style: string
           widget_enabled: boolean
           widget_logo_url: string | null
           widget_primary_color: string
@@ -2082,6 +2083,7 @@ export type Database = {
           show_nesto_branding?: boolean
           unavailable_text?: string
           updated_at?: string
+          widget_button_style?: string
           widget_enabled?: boolean
           widget_logo_url?: string | null
           widget_primary_color?: string
@@ -2099,6 +2101,7 @@ export type Database = {
           show_nesto_branding?: boolean
           unavailable_text?: string
           updated_at?: string
+          widget_button_style?: string
           widget_enabled?: boolean
           widget_logo_url?: string | null
           widget_primary_color?: string
