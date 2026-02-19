@@ -10,9 +10,12 @@ interface Props {
   buttonLabel: string;
   buttonPosition: string;
   baseUrl: string;
+  pulse?: boolean;
+  logoUrl?: string;
+  restaurantName?: string;
 }
 
-export function EmbedCodePreview({ mode, slug, color, buttonLabel, buttonPosition, baseUrl }: Props) {
+export function EmbedCodePreview({ mode, slug, color, buttonLabel, buttonPosition, baseUrl, pulse, logoUrl, restaurantName }: Props) {
   const [copied, setCopied] = useState(false);
 
   const widgetUrl = `${baseUrl}/book/${slug}`;
@@ -20,7 +23,20 @@ export function EmbedCodePreview({ mode, slug, color, buttonLabel, buttonPositio
 
   const code = (() => {
     if (mode === 'button') {
-      return `<script\n  src="${scriptUrl}"\n  data-slug="${slug}"\n  data-mode="button"\n  data-label="${buttonLabel}"\n  data-position="${buttonPosition}"\n  data-color="${color}"\n></script>`;
+      const lines = [
+        `<script`,
+        `  src="${scriptUrl}"`,
+        `  data-slug="${slug}"`,
+        `  data-mode="button"`,
+        `  data-label="${buttonLabel}"`,
+        `  data-position="${buttonPosition}"`,
+        `  data-color="${color}"`,
+      ];
+      if (pulse) lines.push(`  data-pulse="true"`);
+      if (logoUrl) lines.push(`  data-logo="${logoUrl}"`);
+      if (restaurantName) lines.push(`  data-name="${restaurantName}"`);
+      lines.push(`></script>`);
+      return lines.join('\n');
     }
     if (mode === 'inline') {
       return `<div id="nesto-booking"></div>\n<script\n  src="${scriptUrl}"\n  data-slug="${slug}"\n  data-mode="inline"\n  data-container="nesto-booking"\n  data-color="${color}"\n></script>`;

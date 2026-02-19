@@ -65,6 +65,7 @@ export default function SettingsReserveringenWidget() {
   const [embedMode, setEmbedMode] = useState<EmbedMode>('button');
   const [buttonLabel, setButtonLabel] = useState('Reserveer');
   const [buttonPosition, setButtonPosition] = useState('bottom-right');
+  const [buttonPulse, setButtonPulse] = useState(false);
 
   const [local, setLocal] = useState<LocalSettings>({
     widget_enabled: false,
@@ -355,6 +356,13 @@ export default function SettingsReserveringenWidget() {
                     onValueChange={setButtonPosition}
                     options={positionOptions}
                   />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Pulse indicator</p>
+                      <p className="text-xs text-muted-foreground">Groene dot die beschikbaarheid aangeeft</p>
+                    </div>
+                    <Switch checked={buttonPulse} onCheckedChange={setButtonPulse} />
+                  </div>
                 </div>
               </div>
             )}
@@ -412,6 +420,9 @@ export default function SettingsReserveringenWidget() {
                 buttonLabel={buttonLabel}
                 buttonPosition={buttonPosition}
                 baseUrl={baseUrl}
+                pulse={buttonPulse}
+                logoUrl={local.widget_logo_url}
+                restaurantName=""
               />
             </div>
           </NestoCard>
