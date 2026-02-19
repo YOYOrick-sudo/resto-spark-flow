@@ -1,21 +1,32 @@
 
-
-# Ticket Cards: Ronder + Border verwijderen
+# Restaurantnaam naar footer met dynamische tekstgrootte
 
 ## Wat verandert
 
-De ticket cards worden ronder (van `rounded-xl` / 12px naar `rounded-2xl` / 16px) en de border wordt volledig verwijderd. De shadow doet al het werk als visuele afbakening -- precies het enterprise-principe uit het design system ("shadow vervangt border").
+De restaurantnaam wordt verwijderd uit beide headers (embed + standalone) en verplaatst naar een vaste footer onderin de widget. De tekstgrootte past zich automatisch aan op basis van de naamlengte.
 
-Bij selectie wordt in plaats van een border een subtiele `inset 0 0 0 2px` shadow gebruikt zodat de geselecteerde state zichtbaar blijft zonder een harde border-lijn.
+## Dynamische grootte-logica
 
-## Technische wijziging
+```text
+< 15 tekens   -->  text-xl    bijv. "Nesto"
+15-24 tekens   -->  text-lg    bijv. "De Proeverij"
+25-34 tekens   -->  text-base  bijv. "Restaurant de Proeverij"
+35+ tekens     -->  text-sm    bijv. "Restaurant de Proeverij Amsterdam"
+```
 
-### `src/components/booking/TicketSelectStep.tsx`
+## Technische wijzigingen in `src/pages/BookingWidget.tsx`
 
-**Button element (regel 33-42):**
-- `rounded-xl` wordt `rounded-2xl` (16px)
-- `border` class wordt verwijderd
-- `borderColor` style wordt verwijderd
-- Selected state shadow: `inset 0 0 0 2px ${primaryColor}` gecombineerd met de bestaande elevation shadow
-- Default state: alleen de bestaande multi-layer shadow (geen border)
+1. **Helper-functie toevoegen** bovenaan `BookingWidgetInner`:
+   - `getNameSize(name: string)` retourneert de juiste Tailwind text-class op basis van `name.length`
 
+2. **Naam verwijderen uit embed header** (regels 126-128):
+   - De `config.location_name` span wordt verwijderd, alleen logo blijft
+
+3. **Naam verwijderen uit standalone header** (regels 142-144):
+   - De `config.location_name` h1 wordt verwijderd, alleen logo blijft
+
+4. **Nieuwe footer toevoegen** na de content div (regel 156), voor de bestaande "Powered by" footer:
+   - Altijd zichtbaar (alle stappen, embed + standalone)
+   - `shrink-0 px-5 pb-3 pt-2 text-center`
+   - Tekst: `font-semibold text-gray-400 tracking-wide` met dynamische grootte
+   - "Powered by Nesto" branding verplaatst direct eronder (als actief)
