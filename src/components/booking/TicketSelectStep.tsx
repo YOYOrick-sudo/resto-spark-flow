@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useBooking, type TicketInfo } from '@/contexts/BookingContext';
 
 export function TicketSelectStep() {
@@ -5,10 +6,22 @@ export function TicketSelectStep() {
   const primaryColor = config?.primary_color ?? '#10B981';
   const accentColor = config?.accent_color ?? '#14B8A6';
   const tickets = config?.tickets ?? [];
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const handleSelect = (ticket: TicketInfo) => {
     setSelectedTicket(ticket);
     goToStep('date');
+  };
+
+  const getBoxShadow = (ticketId: string, isSelected: boolean) => {
+    const isHovered = hoveredId === ticketId;
+    if (isSelected) {
+      return `inset 0 0 0 2px ${primaryColor}, 0 8px 24px -4px rgba(0,0,0,0.12)`;
+    }
+    if (isHovered) {
+      return '0 4px 16px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.04)';
+    }
+    return '0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06), inset 0 0 0 1px rgba(0,0,0,0.04)';
   };
 
   return (
@@ -18,7 +31,7 @@ export function TicketSelectStep() {
         <p className="text-sm text-gray-500 mt-1">Selecteer het type reservering</p>
       </div>
 
-      <div className="flex flex-col gap-3" role="listbox" aria-label="Ticket types">
+      <div className="flex flex-col gap-4" role="listbox" aria-label="Ticket types">
         {tickets.map(ticket => {
           const isSelected = data.selectedTicket?.id === ticket.id;
           const initial = ticket.name.charAt(0).toUpperCase();
@@ -30,12 +43,12 @@ export function TicketSelectStep() {
               role="option"
               aria-selected={isSelected}
               onClick={() => handleSelect(ticket)}
-              className="w-full text-left rounded-3xl overflow-hidden transition-all duration-150 hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              onMouseEnter={() => setHoveredId(ticket.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              className="w-full text-left rounded-3xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               style={{
                 backgroundColor: isSelected ? `${primaryColor}08` : '#fff',
-                boxShadow: isSelected
-                  ? `inset 0 0 0 2px ${primaryColor}, 0 4px 12px -2px rgba(0,0,0,0.08)`
-                  : '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)',
+                boxShadow: getBoxShadow(ticket.id, isSelected),
                 // @ts-ignore
                 '--tw-ring-color': primaryColor,
               }}
@@ -66,7 +79,7 @@ export function TicketSelectStep() {
               </div>
 
               {/* Card content */}
-              <div className="px-4 py-2.5">
+              <div className="px-5 py-3.5">
                 <h3 className="text-base font-semibold text-gray-900">{ticket.display_title}</h3>
                 {ticket.short_description && (
                   <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{ticket.short_description}</p>
