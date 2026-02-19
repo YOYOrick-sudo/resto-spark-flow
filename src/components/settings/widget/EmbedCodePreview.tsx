@@ -7,6 +7,7 @@ interface Props {
   mode: EmbedMode;
   slug: string;
   color: string;
+  accentColor?: string;
   buttonLabel: string;
   buttonPosition: string;
   baseUrl: string;
@@ -16,7 +17,7 @@ interface Props {
   buttonLogoUrl?: string;
 }
 
-export function EmbedCodePreview({ mode, slug, color, buttonLabel, buttonPosition, baseUrl, pulse, logoUrl, restaurantName, buttonLogoUrl }: Props) {
+export function EmbedCodePreview({ mode, slug, color, accentColor, buttonLabel, buttonPosition, baseUrl, pulse, logoUrl, restaurantName, buttonLogoUrl }: Props) {
   const [copied, setCopied] = useState(false);
 
   const widgetUrl = `${baseUrl}/book/${slug}`;
@@ -34,6 +35,7 @@ export function EmbedCodePreview({ mode, slug, color, buttonLabel, buttonPositio
         `  data-color="${color}"`,
       ];
       if (pulse) lines.push(`  data-pulse="true"`);
+      if (accentColor) lines.push(`  data-accent="${accentColor}"`);
       if (logoUrl) lines.push(`  data-logo="${logoUrl}"`);
       if (restaurantName) lines.push(`  data-name="${restaurantName}"`);
       if (buttonLogoUrl) lines.push(`  data-button-logo="${buttonLogoUrl}"`);

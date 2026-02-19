@@ -16,6 +16,7 @@
   var logoUrl = script.getAttribute('data-logo') || '';
   var restaurantName = script.getAttribute('data-name') || '';
   var buttonLogoUrl = script.getAttribute('data-button-logo') || '';
+  var accentColor = script.getAttribute('data-accent') || '#ffffff';
 
   var src = script.src;
   var baseUrl = src.substring(0, src.lastIndexOf('/'));
@@ -218,11 +219,11 @@
       var logoImg = document.createElement('img');
       logoImg.src = buttonLogoUrl;
       logoImg.alt = '';
-      logoImg.style.cssText = 'width:20px;height:20px;border-radius:4px;object-fit:contain;margin-right:10px;flex-shrink:0;filter:brightness(0) saturate(100%);opacity:0.85';
+      logoImg.style.cssText = 'width:24px;height:24px;border-radius:5px;object-fit:contain;margin-right:10px;flex-shrink:0;filter:brightness(0) saturate(100%);opacity:0.85';
       btn.appendChild(logoImg);
     } else {
       var dot = document.createElement('span');
-      dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.7);margin-right:10px;flex-shrink:0';
+      dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:' + accentColor + ';opacity:0.7;margin-right:10px;flex-shrink:0';
       btn.appendChild(dot);
     }
 
@@ -236,12 +237,13 @@
       'position:fixed',
       'z-index:99998',
       'background:' + color,
-      'color:#fff',
+      'color:' + accentColor,
       'border:none',
       'border-radius:50px',
       'font-family:' + FONT_FAMILY,
       'font-weight:600',
-      'letter-spacing:0.02em',
+      'letter-spacing:0.05em',
+      'text-transform:uppercase',
       'cursor:pointer',
       'display:inline-flex',
       'align-items:center',
@@ -255,13 +257,13 @@
     if (mobile) {
       btnBase.push(
         'bottom:20px', 'right:20px',
-        'padding:12px 22px', 'font-size:13px'
+        'padding:10px 20px', 'font-size:13px'
       );
     } else {
       btnBase.push(
         'bottom:24px',
         isRight ? 'right:24px' : 'left:24px',
-        'padding:14px 28px', 'font-size:14px'
+        'padding:12px 24px', 'font-size:14px'
       );
     }
 
