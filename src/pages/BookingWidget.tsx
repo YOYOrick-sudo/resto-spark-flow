@@ -2,6 +2,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { useEffect, useRef, useCallback } from 'react';
 import { BookingProvider, useBooking } from '@/contexts/BookingContext';
 import { BookingProgress } from '@/components/booking/BookingProgress';
+import { TicketSelectStep } from '@/components/booking/TicketSelectStep';
 import { DateGuestsStep } from '@/components/booking/DateGuestsStep';
 import { TimeTicketStep } from '@/components/booking/TimeTicketStep';
 import { GuestDetailsStep } from '@/components/booking/GuestDetailsStep';
@@ -71,9 +72,8 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   // Determine which step components to render based on effective style
   const renderStep = () => {
     if (effectiveStyle === 'showcase') {
-      // Showcase: 1=Ticket, 2=Date+Guests, 3=Time, 4=Details, 5=Confirmation
       switch (step) {
-        case 1: return <div className="px-5 py-4 text-sm text-gray-500 text-center">Ticket selectie (Ronde 2)</div>;
+        case 1: return <TicketSelectStep />;
         case 2: return <DateGuestsStep />;
         case 3: return <TimeTicketStep />;
         case 4: return <GuestDetailsStep />;

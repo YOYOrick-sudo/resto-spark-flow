@@ -1,14 +1,16 @@
 import { useEffect } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { ArrowLeft, Clock, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 export function TimeTicketStep() {
   const {
-    config, data, setStep, setSelectedSlot,
+    config, data, goToStep, goBack, setSelectedSlot,
     availableShifts, availabilityLoading, loadAvailability,
+    effectiveStyle,
   } = useBooking();
 
   const primaryColor = config?.primary_color ?? '#10B981';
+  const accentColor = config?.accent_color ?? '#14B8A6';
 
   // Load slots when entering this step
   useEffect(() => {
@@ -28,16 +30,12 @@ export function TimeTicketStep() {
       .map(s => ({ ...s, shift }))
   );
 
-  const isSelected = (slot: typeof allSlots[0]) =>
-    data.selectedSlot?.time === slot.time &&
-    data.selectedSlot?.ticket_id === slot.ticket_id;
-
   return (
-    <div className="flex flex-col gap-4 px-4">
+    <div className="flex flex-col gap-4 px-5">
       {/* Back + summary */}
       <button
         type="button"
-        onClick={() => setStep(1)}
+        onClick={goBack}
         className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 self-start"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -49,6 +47,18 @@ export function TimeTicketStep() {
           {data.date && formatDate(data.date)} · {data.party_size} {data.party_size === 1 ? 'gast' : 'gasten'}
         </p>
       </div>
+
+      {/* Ticket info banner in showcase mode */}
+      {effectiveStyle === 'showcase' && data.selectedTicket && (
+        <div className="text-center">
+          <span
+            className="inline-block px-3 py-1 rounded-full text-xs font-medium"
+            style={{ backgroundColor: `${primaryColor}10`, color: primaryColor }}
+          >
+            {data.selectedTicket.display_title}
+          </span>
+        </div>
+      )}
 
       {/* Loading */}
       {availabilityLoading && (
@@ -69,7 +79,7 @@ export function TimeTicketStep() {
           </p>
           <button
             type="button"
-            onClick={() => setStep(1)}
+            onClick={goBack}
             className="mt-3 text-sm font-medium hover:underline"
             style={{ color: primaryColor }}
           >
@@ -83,7 +93,7 @@ export function TimeTicketStep() {
         const available = shift.slots.filter(s => s.available);
         if (available.length === 0) return null;
 
-      const normalAvailableCount = shift.slots.filter(
+        const normalAvailableCount = shift.slots.filter(
           s => s.available && s.slot_type !== 'squeeze'
         ).length;
         const showScarcity = normalAvailableCount <= 3;
@@ -96,37 +106,35 @@ export function TimeTicketStep() {
             <div className="grid grid-cols-3 gap-2">
               {available.map(slot => {
                 const selected = data.selectedSlot?.time === slot.time && data.selectedSlot?.ticket_id === slot.ticket_id;
+                const isSqueeze = slot.slot_type === 'squeeze';
                 return (
                   <button
                     key={`${slot.time}-${slot.ticket_id}`}
                     type="button"
                     onClick={() => setSelectedSlot(slot, shift)}
-                    className="flex flex-col items-center gap-0.5 py-3 px-2 rounded-xl border text-sm font-medium transition-all"
+                    className="flex flex-col items-center gap-0.5 h-11 justify-center rounded-lg text-sm font-medium transition-all"
                     style={{
-                      borderColor: selected ? primaryColor : '#e5e7eb',
+                      border: `1px solid ${selected ? primaryColor : isSqueeze ? accentColor : '#e5e7eb'}`,
                       backgroundColor: selected ? primaryColor : '#fff',
                       color: selected ? '#fff' : '#374151',
-                      boxShadow: selected ? `0 0 0 1px ${primaryColor}` : 'none',
+                      boxShadow: selected ? `0 4px 12px -2px rgba(0,0,0,0.08)` : 'none',
                     }}
                   >
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {slot.time}
-                    </span>
-                    {showScarcity && slot.slot_type !== 'squeeze' && (
+                    <span>{slot.time}</span>
+                    {showScarcity && !isSqueeze && (
                       <span
-                        className="text-[10px] font-medium"
+                        className="text-[10px] font-medium leading-none"
                         style={{ color: selected ? 'rgba(255,255,255,0.8)' : '#ea580c' }}
                       >
                         Nog {normalAvailableCount} {normalAvailableCount === 1 ? 'plek' : 'plekken'}
                       </span>
                     )}
-                    {slot.slot_type === 'squeeze' && (
-                      <span className="text-[10px] opacity-70">kortere zittijd</span>
-                    )}
-                    {config?.show_end_time && (
-                      <span className="text-[10px] opacity-60">
-                        {computeEndTime(slot.time, slot.duration_minutes)}
+                    {isSqueeze && (
+                      <span
+                        className="text-[10px] leading-none"
+                        style={{ color: selected ? 'rgba(255,255,255,0.7)' : accentColor }}
+                      >
+                        kortere zittijd
                       </span>
                     )}
                   </button>
@@ -137,13 +145,12 @@ export function TimeTicketStep() {
         );
       })}
 
-      {/* Multiple ticket types */}
-      {!availabilityLoading && allSlots.length > 0 && (
+      {/* End time + selected info */}
+      {!availabilityLoading && allSlots.length > 0 && data.selectedSlot && (
         <div className="text-xs text-gray-400 text-center">
-          {data.selectedSlot && (
-            <span>
-              {data.selectedSlot.ticket_name} · {data.selectedSlot.duration_minutes} min
-            </span>
+          {data.selectedSlot.ticket_name} · {data.selectedSlot.duration_minutes} min
+          {config?.show_end_time && (
+            <span> → {computeEndTime(data.selectedSlot.time, data.selectedSlot.duration_minutes)}</span>
           )}
         </div>
       )}
@@ -152,8 +159,8 @@ export function TimeTicketStep() {
       <button
         type="button"
         disabled={!data.selectedSlot}
-        onClick={() => setStep(3)}
-        className="w-full py-3 rounded-xl text-white font-medium text-sm transition-opacity disabled:opacity-40"
+        onClick={() => goToStep('details')}
+        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-opacity disabled:opacity-40"
         style={{ backgroundColor: primaryColor }}
       >
         Vul je gegevens in

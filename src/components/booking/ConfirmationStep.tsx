@@ -1,5 +1,5 @@
 import { useBooking } from '@/contexts/BookingContext';
-import { Check, Calendar, ExternalLink } from 'lucide-react';
+import { Calendar, ExternalLink } from 'lucide-react';
 
 export function ConfirmationStep() {
   const { config, data, bookingResult } = useBooking();
@@ -13,7 +13,6 @@ export function ConfirmationStep() {
   // Google Calendar link
   const calendarUrl = (() => {
     if (!data.date || !data.selectedSlot) return null;
-    const [h, m] = data.selectedSlot.time.split(':').map(Number);
     const start = new Date(`${data.date}T${data.selectedSlot.time}:00`);
     const end = new Date(start.getTime() + data.selectedSlot.duration_minutes * 60_000);
     const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -27,24 +26,66 @@ export function ConfirmationStep() {
     : null;
 
   return (
-    <div className="flex flex-col items-center gap-6 px-4 py-4">
-      {/* Checkmark */}
-      <div
-        className="w-16 h-16 rounded-full flex items-center justify-center"
-        style={{ backgroundColor: primaryColor }}
-      >
-        <Check className="h-8 w-8 text-white" strokeWidth={3} />
+    <div className="flex flex-col items-center gap-6 px-5 py-4">
+      {/* Animated checkmark */}
+      <div className="w-16 h-16">
+        <svg viewBox="0 0 64 64" className="w-full h-full">
+          <circle
+            cx="32" cy="32" r="28"
+            fill="none"
+            stroke={primaryColor}
+            strokeWidth="3"
+            className="animate-check-circle"
+            style={{
+              strokeDasharray: 176,
+              strokeDashoffset: 176,
+              animation: 'check-circle 500ms ease-out forwards',
+            }}
+          />
+          <circle
+            cx="32" cy="32" r="28"
+            fill={primaryColor}
+            className="opacity-0"
+            style={{
+              animation: 'check-fill 300ms ease-out 400ms forwards',
+            }}
+          />
+          <path
+            d="M20 33 L28 41 L44 25"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              strokeDasharray: 40,
+              strokeDashoffset: 40,
+              animation: 'check-mark 300ms ease-out 600ms forwards',
+            }}
+          />
+        </svg>
+        <style>{`
+          @keyframes check-circle {
+            to { stroke-dashoffset: 0; }
+          }
+          @keyframes check-fill {
+            to { opacity: 1; }
+          }
+          @keyframes check-mark {
+            to { stroke-dashoffset: 0; }
+          }
+        `}</style>
       </div>
 
       <div className="text-center">
-        <h2 className="text-lg font-semibold text-gray-900">Reservering bevestigd!</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Reservering bevestigd!</h2>
         <p className="text-sm text-gray-500 mt-1">
           Je ontvangt een bevestiging per e-mail.
         </p>
       </div>
 
       {/* Summary */}
-      <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">
+      <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
         {data.date && (
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Datum</span>
@@ -74,7 +115,7 @@ export function ConfirmationStep() {
             href={calendarUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors text-gray-700"
+            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors text-gray-700"
           >
             <Calendar className="h-4 w-4" />
             Voeg toe aan agenda
@@ -84,7 +125,7 @@ export function ConfirmationStep() {
         {manageUrl && (
           <a
             href={manageUrl}
-            className="w-full py-2.5 rounded-xl text-sm font-medium border flex items-center justify-center gap-2 hover:opacity-90 transition-opacity text-white"
+            className="w-full h-11 rounded-[10px] text-sm font-medium border flex items-center justify-center gap-2 hover:opacity-90 transition-opacity text-white"
             style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
           >
             <ExternalLink className="h-4 w-4" />

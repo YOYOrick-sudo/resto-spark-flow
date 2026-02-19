@@ -90,6 +90,12 @@ export interface BookingResult {
 
 export type WidgetStyle = 'showcase' | 'quick';
 export type BookingStep = 1 | 2 | 3 | 4 | 5;
+export type StepName = 'ticket' | 'date' | 'time' | 'details' | 'confirmation';
+
+const STEP_MAP: Record<WidgetStyle, Partial<Record<StepName, BookingStep>>> = {
+  showcase: { ticket: 1, date: 2, time: 3, details: 4, confirmation: 5 },
+  quick:    { date: 1, time: 2, details: 3, confirmation: 4 },
+};
 
 interface BookingContextValue {
   // Config
@@ -104,6 +110,8 @@ interface BookingContextValue {
   // Step navigation
   step: BookingStep;
   setStep: (step: BookingStep) => void;
+  goToStep: (name: StepName) => void;
+  goBack: () => void;
   canGoNext: boolean;
 
   // Booking data
@@ -345,6 +353,16 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
     }
   }, [config, data, guestData, totalSteps]);
 
+  // Step navigation helpers
+  const goToStep = useCallback((name: StepName) => {
+    const target = STEP_MAP[effectiveStyle][name];
+    if (target) setStep(target);
+  }, [effectiveStyle]);
+
+  const goBack = useCallback(() => {
+    if (step > 1) setStep((step - 1) as BookingStep);
+  }, [step]);
+
   // Determine if user can proceed
   const canGoNext = (() => {
     if (effectiveStyle === 'showcase') {
@@ -366,7 +384,7 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
       value={{
         config, configLoading, configError,
         effectiveStyle, totalSteps,
-        step, setStep, canGoNext,
+        step, setStep, goToStep, goBack, canGoNext,
         data, setDate, setPartySize, setSelectedSlot, setSelectedTicket,
         guestData, setGuestData,
         bookingResult, bookingLoading, bookingError, submitBooking,
