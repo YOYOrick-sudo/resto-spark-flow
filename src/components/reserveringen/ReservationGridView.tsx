@@ -14,21 +14,11 @@ import {
   getHourLabels,
   timeToMinutes,
   minutesToTime,
-  formatTime,
   getSeatedCountAtTime,
   checkTimeConflict,
   type GridTimeConfig,
   defaultGridConfig,
 } from "@/lib/reservationUtils";
-
-/** Build a compact time summary for unassigned reservations: "18:00, 19:30, 20:00 +2" */
-function formatUnassignedTimes(reservations: Reservation[], maxShow = 3): string {
-  if (reservations.length === 0) return '';
-  const sorted = [...reservations].sort((a, b) => a.start_time.localeCompare(b.start_time));
-  const times = sorted.slice(0, maxShow).map(r => formatTime(r.start_time));
-  const overflow = reservations.length - maxShow;
-  return times.join(', ') + (overflow > 0 ? ` +${overflow}` : '');
-}
 import { getPacingLimitForTime } from "@/data/pacingMockData";
 import { useAreasForGrid } from "@/hooks/useAreasWithTables";
 import { useUserContext } from "@/contexts/UserContext";
@@ -324,9 +314,6 @@ function UnassignedGridRow({
               {open ? <ChevronUp className="h-3 w-3 text-warning flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-warning flex-shrink-0" />}
               <span className="text-xs font-semibold text-warning truncate">Niet toegew.</span>
               <span className="text-caption font-bold text-warning bg-warning/15 px-1.5 py-0.5 rounded-full flex-shrink-0">{unassigned.length}</span>
-              {!open && unassigned.length > 0 && (
-                <span className="text-xs text-muted-foreground truncate">· {formatUnassignedTimes(unassigned)}</span>
-              )}
             </CollapsibleTrigger>
           </div>
 
