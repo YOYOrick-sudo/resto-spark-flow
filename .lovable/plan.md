@@ -1,24 +1,34 @@
 
-# Fix: Wit blokje — NowLine doet mee met panel z-index
 
-## Probleem
+# Check-in knop altijd zichtbaar + naam langer
 
-De "NU" tijdslijn in de grid view heeft `z-50`, dezelfde z-index als het NestoPanel. Hierdoor kan de rode "NU"-lijn (en het bijbehorende rood/transparante achtergrondvlak) door de overlay van het panel heen zichtbaar zijn als een klein blokje.
+## Wat verandert
 
-## Oorzaak
+### 1. Check-in knop — altijd zichtbaar, touch + muis
+De check-in knop wordt een permanent zichtbare knop (geen hover nodig) aan de rechterkant van het reserveringsblok. Alleen voor reserveringen met status `confirmed`. De knop:
+- Is altijd zichtbaar (geen `opacity-0 group-hover:opacity-100`)
+- Werkt met touch (iPad) en muis
+- Gebruikt het `LogIn` icoon in een emerald/groen stijl
+- Stopt event propagation zodat het blok niet opent bij klik op de knop
 
-- NowLine container: `z-50` (in `ReservationGridView.tsx` regel 233)
-- NestoPanel overlay + panel: `z-50` (in `NestoPanel.tsx`)
-- Omdat de NowLine een `absolute` element is binnen een parent die een stacking context creëert (via `overflow-hidden`), en het NestoPanel `fixed` is, kan het gedrag per browser/viewport verschillen.
-
-## Oplossing
-
-Verlaag de z-index van de NowLine van `z-50` naar `z-30`. De NowLine hoeft alleen boven reserveringsblokken (die geen specifieke z-index hebben) en gridlijnen te staan, niet boven modals/panels. `z-30` is voldoende.
+### 2. Naam meer ruimte
+De gastnaam krijgt `flex-1` zodat deze alle beschikbare ruimte pakt voordat hij afkapt.
 
 ## Technisch
 
-### `src/components/reserveringen/ReservationGridView.tsx`
+### `src/components/reserveringen/ReservationBlock.tsx`
 
-1. **NowLine container** (regel 233): Verander `z-50` naar `z-30`
+1. **Check-in knop toevoegen** — Nieuwe `button` element naast de unassigned-knop (rond regel 280):
+   - Conditie: `canCheckIn` (status === confirmed en onCheckIn prop aanwezig)
+   - Styling: `absolute right-1 top-1/2 -translate-y-1/2` met emerald achtergrond, altijd `opacity-100`
+   - `onClick`: stopt propagation, roept `onCheckIn(reservation)` aan
+   - `LogIn` icoon (al geimporteerd)
 
-Totaal: 1 bestand, 1 regel aangepast.
+2. **Naam meer ruimte** (regel 249-251):
+   - Voeg `flex-1` toe aan de naam-span
+   - Behoud `truncate` voor overflow maar geef de naam prioriteit over optionele elementen
+
+3. **Content padding aanpassen**: wanneer canCheckIn actief is, voeg `pr-7` toe aan de content-div zodat de naam niet onder de knop verdwijnt
+
+Totaal: 1 bestand, ~8 regels aangepast/toegevoegd.
+

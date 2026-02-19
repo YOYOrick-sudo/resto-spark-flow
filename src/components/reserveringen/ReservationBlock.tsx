@@ -235,7 +235,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         />
       )}
 
-      <div className={cn("flex items-center min-w-0 flex-1", isCompact ? "gap-1 px-1.5" : "gap-1.5 px-2.5", canCheckIn && "pr-7")}>
+      <div className={cn("flex items-center min-w-0 flex-1", isCompact ? "gap-1 px-1.5" : "gap-1.5 px-2.5")}>
         {walkIn ? (
           <Footprints className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
         ) : reservation.status === "seated" ? (
@@ -246,7 +246,7 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
           {reservation.party_size}
         </span>
 
-        <span className={cn("truncate text-foreground/80 font-medium min-w-0 flex-1", isCompact ? "text-caption" : "text-xs")}>
+        <span className={cn("truncate text-foreground/80 font-medium min-w-0", isCompact ? "text-caption" : "text-xs")}>
           {guestName}
         </span>
 
@@ -286,16 +286,6 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
           title="Automatisch tafel toewijzen"
         >
           <Wand2 className="h-3 w-3" />
-        </button>
-      )}
-
-      {canCheckIn && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onCheckIn?.(reservation); }}
-          className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded p-0.5 z-20"
-          title="Inchecken"
-        >
-          <LogIn className="h-[18px] w-[18px]" />
         </button>
       )}
 

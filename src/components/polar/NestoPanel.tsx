@@ -108,12 +108,12 @@ export function NestoPanel({ open, onClose, title, footer, children, width = 'w-
     return (
       <>
         <div
-          className="fixed inset-0 z-50 bg-black/20 animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-black/20 animate-in fade-in duration-200"
           onClick={onClose}
         />
         <div
           className={cn(
-            'fixed top-0 right-0 bottom-0 z-50 flex flex-col bg-card overflow-hidden',
+            'fixed top-0 right-0 bottom-0 z-40 flex flex-col bg-card overflow-hidden',
             'border-l border-border/50 shadow-xl rounded-l-2xl',
             'animate-in slide-in-from-right-4 duration-200',
             width
