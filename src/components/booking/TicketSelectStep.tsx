@@ -30,7 +30,7 @@ export function TicketSelectStep() {
               role="option"
               aria-selected={isSelected}
               onClick={() => handleSelect(ticket)}
-              className="w-full text-left rounded-2xl overflow-hidden transition-all duration-150 hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              className="w-full text-left rounded-3xl overflow-hidden transition-all duration-150 hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               style={{
                 backgroundColor: isSelected ? `${primaryColor}08` : '#fff',
                 boxShadow: isSelected
