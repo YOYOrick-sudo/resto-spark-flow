@@ -122,15 +122,11 @@ function getOccupancyColor(count: number, limit: number): string {
 function SeatedCountRow({
   reservations,
   config,
-  isExpanded,
-  onToggle,
   onSlotClick,
   isCompact = false,
 }: {
   reservations: Reservation[];
   config: GridTimeConfig;
-  isExpanded: boolean;
-  onToggle: () => void;
   onSlotClick?: (time: string) => void;
   isCompact?: boolean;
 }) {
@@ -159,11 +155,8 @@ function SeatedCountRow({
 
   return (
     <div className="flex h-8 border-b-2 border-border bg-secondary sticky top-[40px] z-[45]">
-      <div className={cn("sticky left-0 z-[60] flex-shrink-0 flex items-center justify-between px-3 bg-secondary border-r-2 border-border", isCompact ? "py-1" : "py-2")} style={{ width: `${STICKY_COL_WIDTH}px` }}>
+      <div className={cn("sticky left-0 z-[60] flex-shrink-0 flex items-center px-3 bg-secondary border-r-2 border-border", isCompact ? "py-1" : "py-2")} style={{ width: `${STICKY_COL_WIDTH}px` }}>
         <span className="text-xs font-semibold text-muted-foreground">Pacing</span>
-        <button onClick={onToggle} className="p-0.5 hover:bg-muted rounded transition-colors">
-          {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-        </button>
       </div>
       <div className="flex">
         {seatedData.map(({ time, count, limit }, index) => {
@@ -421,7 +414,7 @@ export function ReservationGridView({
   }, [configProp, shifts]);
 
   const config = dynamicConfig;
-  const [seatedExpanded, setSeatedExpanded] = useState(true);
+  
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
   const [ghostPosition, setGhostPosition] = useState<GhostPosition | null>(null);
   const [isDropAnimating, setIsDropAnimating] = useState(false);
@@ -581,8 +574,6 @@ export function ReservationGridView({
             <SeatedCountRow
               reservations={reservations}
               config={config}
-              isExpanded={seatedExpanded}
-              onToggle={() => setSeatedExpanded(!seatedExpanded)}
               onSlotClick={handleSlotClick}
               isCompact={isCompact}
             />
