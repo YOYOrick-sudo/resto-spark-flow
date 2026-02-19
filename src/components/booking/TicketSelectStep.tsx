@@ -18,7 +18,7 @@ export function TicketSelectStep() {
         <p className="text-sm text-gray-500 mt-1">Selecteer het type reservering</p>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3" role="listbox" aria-label="Ticket types">
         {tickets.map(ticket => {
           const isSelected = data.selectedTicket?.id === ticket.id;
           const initial = ticket.name.charAt(0).toUpperCase();
@@ -27,14 +27,18 @@ export function TicketSelectStep() {
             <button
               key={ticket.id}
               type="button"
+              role="option"
+              aria-selected={isSelected}
               onClick={() => handleSelect(ticket)}
-              className="w-full text-left rounded-xl border overflow-hidden transition-all duration-150 hover:-translate-y-0.5"
+              className="w-full text-left rounded-xl border overflow-hidden transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               style={{
                 borderColor: isSelected ? primaryColor : '#e5e7eb',
                 backgroundColor: isSelected ? `${primaryColor}08` : '#fff',
                 boxShadow: isSelected
                   ? `0 0 0 1px ${primaryColor}, 0 4px 12px -2px rgba(0,0,0,0.08)`
                   : '0 1px 3px rgba(0,0,0,0.06)',
+                // @ts-ignore
+                '--tw-ring-color': primaryColor,
               }}
             >
               {/* Image or gradient fallback with initial letter */}

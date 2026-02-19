@@ -2,7 +2,29 @@ import { useEffect, useMemo, useState } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
 import { Calendar } from '@/components/ui/calendar';
 import { Minus, Plus, Users, ArrowLeft } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { nl } from 'date-fns/locale';
+
+function CalendarSkeleton() {
+  return (
+    <div className="rounded-lg border border-gray-200 p-3 w-full max-w-[280px]">
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <Skeleton key={i} className="h-4 w-full rounded" />
+        ))}
+      </div>
+      {/* 5 weeks x 7 days */}
+      {Array.from({ length: 5 }).map((_, row) => (
+        <div key={row} className="grid grid-cols-7 gap-1 mb-1">
+          {Array.from({ length: 7 }).map((_, col) => (
+            <Skeleton key={col} className="h-9 w-9 rounded-lg mx-auto" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function DateGuestsStep() {
   const {
@@ -91,6 +113,7 @@ export function DateGuestsStep() {
             onClick={() => setPartySize(Math.max(config?.min_party_size ?? 1, data.party_size - 1))}
             className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-30"
             disabled={data.party_size <= (config?.min_party_size ?? 1)}
+            aria-label="Minder gasten"
           >
             <Minus className="h-4 w-4" />
           </button>
@@ -103,6 +126,7 @@ export function DateGuestsStep() {
             onClick={() => setPartySize(Math.min(config?.max_party_size ?? 20, data.party_size + 1))}
             className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-30"
             disabled={data.party_size >= (config?.max_party_size ?? 20)}
+            aria-label="Meer gasten"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -112,23 +136,27 @@ export function DateGuestsStep() {
       {/* Calendar */}
       <div className="flex flex-col items-center gap-2">
         <label className="text-sm font-medium text-gray-700">Kies een datum</label>
-        {availableDatesLoading && (
-          <div className="text-xs text-gray-400">Beschikbaarheid laden...</div>
+        <div aria-live="polite" className="text-xs text-gray-400">
+          {availableDatesLoading && 'Beschikbaarheid laden...'}
+        </div>
+        {availableDatesLoading ? (
+          <CalendarSkeleton />
+        ) : (
+          <Calendar
+            mode="single"
+            selected={selectedDay}
+            onSelect={handleDaySelect}
+            onMonthChange={setCalendarMonth}
+            disabled={disabledMatcher}
+            locale={nl}
+            weekStartsOn={1}
+            className="rounded-lg border border-gray-200"
+            modifiersStyles={{
+              selected: { backgroundColor: primaryColor, color: '#fff', borderRadius: '8px', transition: 'transform 150ms ease', transform: 'scale(1)' },
+              today: { outline: `2px solid ${primaryColor}`, outlineOffset: '-2px', borderRadius: '8px' },
+            }}
+          />
         )}
-        <Calendar
-          mode="single"
-          selected={selectedDay}
-          onSelect={handleDaySelect}
-          onMonthChange={setCalendarMonth}
-          disabled={disabledMatcher}
-          locale={nl}
-          weekStartsOn={1}
-          className="rounded-lg border border-gray-200"
-          modifiersStyles={{
-            selected: { backgroundColor: primaryColor, color: '#fff', borderRadius: '8px' },
-            today: { outline: `2px solid ${primaryColor}`, outlineOffset: '-2px', borderRadius: '8px' },
-          }}
-        />
       </div>
 
       {/* Continue button */}
@@ -136,7 +164,7 @@ export function DateGuestsStep() {
         type="button"
         disabled={!canContinue}
         onClick={() => goToStep('time')}
-        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-opacity disabled:opacity-40"
+        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-all duration-150 disabled:opacity-40 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
         style={{ backgroundColor: primaryColor }}
       >
         Kies een tijd

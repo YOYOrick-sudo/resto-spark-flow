@@ -7,7 +7,14 @@ export function BookingProgress() {
   const dots = Array.from({ length: totalSteps }, (_, i) => i + 1);
 
   return (
-    <div className="flex items-center justify-center gap-1.5 py-3">
+    <div
+      className="flex items-center justify-center gap-1.5 py-3"
+      role="progressbar"
+      aria-valuenow={step}
+      aria-valuemin={1}
+      aria-valuemax={totalSteps}
+      aria-label={`Stap ${step} van ${totalSteps}`}
+    >
       {dots.map(s => {
         const isActive = s === step;
         const isCompleted = s < step;
