@@ -19,6 +19,7 @@ import { buildBreadcrumbs } from '@/lib/settingsRouteConfig';
 import { nestoToast } from '@/lib/nestoToast';
 import { ColorPaletteSelector } from '@/components/settings/widget/ColorPaletteSelector';
 import { Check, ExternalLink } from 'lucide-react';
+import { useUserContext } from '@/contexts/UserContext';
 
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 const isValidSlug = (slug: string) => /^[a-z0-9-]+$/.test(slug);
@@ -61,6 +62,8 @@ export default function SettingsReserveringenWidget() {
   const { data: settings, isLoading } = useWidgetSettings();
   const updateSettings = useUpdateWidgetSettings();
   const hasPermission = usePermission('reservations.settings');
+  const { currentLocation } = useUserContext();
+  const restaurantName = currentLocation?.name || '';
   const [saved, setSaved] = useState(false);
   const [embedMode, setEmbedMode] = useState<EmbedMode>('button');
   const [buttonLabel, setButtonLabel] = useState('Reserveer');
@@ -405,6 +408,8 @@ export default function SettingsReserveringenWidget() {
                 buttonLabel={buttonLabel}
                 buttonPosition={buttonPosition}
                 baseUrl={baseUrl}
+                logoUrl={local.widget_logo_url}
+                restaurantName={restaurantName}
               />
             </div>
 
@@ -422,7 +427,7 @@ export default function SettingsReserveringenWidget() {
                 baseUrl={baseUrl}
                 pulse={buttonPulse}
                 logoUrl={local.widget_logo_url}
-                restaurantName=""
+                restaurantName={restaurantName}
               />
             </div>
           </NestoCard>
