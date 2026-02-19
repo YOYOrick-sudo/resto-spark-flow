@@ -15,7 +15,6 @@
   var pulse = script.getAttribute('data-pulse') === 'true';
   var logoUrl = script.getAttribute('data-logo') || '';
   var restaurantName = script.getAttribute('data-name') || '';
-  var buttonLogoUrl = script.getAttribute('data-button-logo') || '';
   var accentColor = script.getAttribute('data-accent') || '#ffffff';
 
   var src = script.src;
@@ -106,6 +105,7 @@
       '@keyframes nestoSlideInUp{from{transform:translateY(100%)}to{transform:translateY(0)}}',
       '@keyframes nestoButtonEntrance{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}',
       '@keyframes nestoPulseRing{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.3)}50%{box-shadow:0 0 0 4px rgba(255,255,255,0)}}',
+      '@keyframes nestoDotPulse{0%,100%{opacity:1}50%{opacity:0.5}}',
       '@keyframes nestoSkeletonPulse{0%,100%{opacity:.6}50%{opacity:.3}}',
     ].join('');
     document.head.appendChild(style);
@@ -214,18 +214,10 @@
     var btn = document.createElement('button');
     btn.setAttribute('aria-label', label);
 
-    // Button logo or accent dot
-    if (buttonLogoUrl) {
-      var logoImg = document.createElement('img');
-      logoImg.src = buttonLogoUrl;
-      logoImg.alt = '';
-      logoImg.style.cssText = 'width:24px;height:24px;border-radius:5px;object-fit:contain;margin-right:10px;flex-shrink:0;filter:brightness(0) saturate(100%);opacity:0.85';
-      btn.appendChild(logoImg);
-    } else {
-      var dot = document.createElement('span');
-      dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:' + accentColor + ';opacity:0.7;margin-right:10px;flex-shrink:0';
-      btn.appendChild(dot);
-    }
+    // Accent dot (always visible, with pulse animation)
+    var dot = document.createElement('span');
+    dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:' + accentColor + ';margin-right:10px;flex-shrink:0;animation:nestoDotPulse 2s ease-in-out infinite';
+    btn.appendChild(dot);
 
     var textSpan = document.createElement('span');
     textSpan.textContent = label;
@@ -252,6 +244,7 @@
       'opacity:0',
       'animation:nestoButtonEntrance 0.35s ease 0.3s forwards',
       'box-shadow:' + shadowRest,
+      'border:1.5px solid ' + accentColor,
     ];
 
     if (mobile) {

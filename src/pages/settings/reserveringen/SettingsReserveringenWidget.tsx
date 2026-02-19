@@ -12,7 +12,7 @@ import { EmbedModeSelector, type EmbedMode } from '@/components/settings/widget/
 import { EmbedCodePreview } from '@/components/settings/widget/EmbedCodePreview';
 import { WidgetLivePreview } from '@/components/settings/widget/WidgetLivePreview';
 import { WidgetLogoUpload } from '@/components/settings/widget/WidgetLogoUpload';
-import { WidgetButtonLogoUpload } from '@/components/settings/widget/WidgetButtonLogoUpload';
+
 import { useWidgetSettings, useUpdateWidgetSettings, type BookingQuestion } from '@/hooks/useWidgetSettings';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { usePermission } from '@/hooks/usePermission';
@@ -367,7 +367,7 @@ export default function SettingsReserveringenWidget() {
                     </div>
                     <Switch checked={buttonPulse} onCheckedChange={setButtonPulse} />
                   </div>
-                  <WidgetButtonLogoUpload logoUrl={settings?.widget_button_logo_url ?? null} />
+                  
                 </div>
               </div>
             )}
@@ -413,7 +413,6 @@ export default function SettingsReserveringenWidget() {
                 baseUrl={baseUrl}
                 logoUrl={local.widget_logo_url}
                 restaurantName={restaurantName}
-                buttonLogoUrl={settings?.widget_button_logo_url ?? undefined}
               />
             </div>
 
@@ -433,7 +432,6 @@ export default function SettingsReserveringenWidget() {
                 pulse={buttonPulse}
                 logoUrl={local.widget_logo_url}
                 restaurantName={restaurantName}
-                buttonLogoUrl={settings?.widget_button_logo_url ?? undefined}
               />
             </div>
           </NestoCard>

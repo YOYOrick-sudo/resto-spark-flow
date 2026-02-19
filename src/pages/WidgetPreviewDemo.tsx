@@ -11,7 +11,6 @@ export default function WidgetPreviewDemo() {
   const accent = params.get('accent') || '';
   const logo = params.get('logo') || '';
   const name = params.get('name') || '';
-  const buttonLogo = params.get('buttonLogo') || '';
 
   useEffect(() => {
     // Dynamically inject widget.js with config
@@ -25,7 +24,6 @@ export default function WidgetPreviewDemo() {
     script.setAttribute('data-container', 'nesto-booking');
     if (logo) script.setAttribute('data-logo', logo);
     if (name) script.setAttribute('data-name', name);
-    if (buttonLogo) script.setAttribute('data-button-logo', buttonLogo);
     if (accent) script.setAttribute('data-accent', accent);
     document.body.appendChild(script);
 
@@ -39,7 +37,7 @@ export default function WidgetPreviewDemo() {
         if (btn.getAttribute('aria-label') === label) btn.remove();
       });
     };
-  }, [slug, mode, label, position, color, accent, logo, name, buttonLogo]);
+  }, [slug, mode, label, position, color, accent, logo, name]);
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#2d2d2d] font-sans">

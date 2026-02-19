@@ -11,7 +11,6 @@ interface WidgetLivePreviewProps {
   baseUrl: string;
   logoUrl?: string;
   restaurantName?: string;
-  buttonLogoUrl?: string;
 }
 
 const modeDescriptions: Record<EmbedMode, string> = {
@@ -20,17 +19,16 @@ const modeDescriptions: Record<EmbedMode, string> = {
   link: 'Open de hosted boekingspagina om te testen.',
 };
 
-function buildPreviewUrl(baseUrl: string, slug: string, mode: EmbedMode, label: string, position: string, color: string, accentColor?: string, logoUrl?: string, restaurantName?: string, buttonLogoUrl?: string) {
+function buildPreviewUrl(baseUrl: string, slug: string, mode: EmbedMode, label: string, position: string, color: string, accentColor?: string, logoUrl?: string, restaurantName?: string) {
   const params = new URLSearchParams({ slug, mode, label, position, color });
   if (accentColor) params.set('accent', accentColor);
   if (logoUrl) params.set('logo', logoUrl);
   if (restaurantName) params.set('name', restaurantName);
-  if (buttonLogoUrl) params.set('buttonLogo', buttonLogoUrl);
   return `${baseUrl}/widget-preview?${params.toString()}`;
 }
 
-export function WidgetLivePreview({ mode, slug, color, accentColor, buttonLabel, buttonPosition, baseUrl, logoUrl, restaurantName, buttonLogoUrl }: WidgetLivePreviewProps) {
-  const previewUrl = buildPreviewUrl(baseUrl, slug, mode, buttonLabel, buttonPosition, color, accentColor, logoUrl, restaurantName, buttonLogoUrl);
+export function WidgetLivePreview({ mode, slug, color, accentColor, buttonLabel, buttonPosition, baseUrl, logoUrl, restaurantName }: WidgetLivePreviewProps) {
+  const previewUrl = buildPreviewUrl(baseUrl, slug, mode, buttonLabel, buttonPosition, color, accentColor, logoUrl, restaurantName);
 
   return (
     <div className="bg-secondary/50 rounded-card-sm p-4 flex items-center justify-between gap-4">
