@@ -1,34 +1,33 @@
 
 
-# Ring Verwijderen + Enterprise Hover Effect
+# Color-Tinted Shadow op Floating Button
 
 ## Wat verandert
 
-1. **Inset ring verwijderen** -- De accentColor inset box-shadow ring wordt weggehaald. De button krijgt alleen nog de subtiele drop-shadow voor diepte.
+De zwarte drop-shadow wordt vervangen door een **kleur-getinte shadow** die de button-kleur overneemt. Dit is het effect dat Intercom, Stripe en Linear gebruiken: de button lijkt te "gloeien" op de pagina.
 
-2. **Enterprise hover effect** -- Een verfijnd hover-effect dat professioneel aanvoelt:
-   - Zachte `translateY(-2px)` lift (blijft)
-   - De achtergrondkleur wordt subtiel lichter via de bestaande `darkenHex` helper (maar dan met negatieve waarde, oftewel lighten)
-   - De drop-shadow wordt iets groter en zachter
-   - Smooth `0.25s cubic-bezier` transition voor een vloeiend gevoel
+## Visueel resultaat
 
-## Technische wijzigingen
+```text
+  Nu:     Zwarte schaduw → button "zweeft" maar voelt generiek
+  Straks: Teal-getinte schaduw → button heeft een subtiele glow, voelt premium
+```
+
+## Technische wijziging
 
 ### `public/widget.js`
 
-**Ring verwijderen (regels 211-216):**
-- `glassInset` en `glassInsetHover` worden teruggezet naar lege strings (geen inset shadow meer)
-- `shadowRest` wordt: `0 2px 8px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06)` (subtiele float-shadow)
-- `shadowHover` wordt: `0 6px 20px rgba(0,0,0,0.12), 0 12px 36px rgba(0,0,0,0.08)` (diepere shadow bij hover)
+De twee shadow-variabelen worden aangepast om de `hexToRgba(color, ...)` helper te gebruiken in plaats van `rgba(0,0,0,...)`:
 
-**Enterprise hover toevoegen:**
-- Bereken een `hoverColor` met `darkenHex(color, -8)` (8% lichter) voor de hover-achtergrond
-- Bij `mouseenter`: stel `backgroundColor` in op `hoverColor` naast de bestaande lift + shadow
-- Bij `mouseleave`: reset `backgroundColor` naar `color`
-- Verander de transition naar `transition:transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s cubic-bezier(0.4,0,0.2,1), background-color 0.25s cubic-bezier(0.4,0,0.2,1)` voor een vloeiende ease
+**`shadowRest`** (ruststand):
+- Laag 1: `0 2px 8px {color @ 15% opacity}` -- subtiele kleur-tint dichtbij
+- Laag 2: `0 8px 24px {color @ 12% opacity}` -- zachte glow verder weg
 
-**Active/press state (blijft):**
-- `scale(0.98)` bij pointerdown voor tactiele feedback
+**`shadowHover`** (hover):
+- Laag 1: `0 4px 12px {color @ 20% opacity}` -- sterkere kleur-tint
+- Laag 2: `0 12px 36px {color @ 15% opacity}` -- grotere glow
 
-Dit geeft een clean, enterprise-level hover: de button "licht op" en tilt subtiel omhoog met een diepere schaduw, zonder ring of gimmicks.
+De `hexToRgba` helper die al in het bestand staat wordt hergebruikt. Geen nieuwe code nodig, alleen de shadow-waarden veranderen.
+
+De hover lift (`translateY(-2px)`) en achtergrond-lighten (`hoverColor`) blijven intact -- de color-tinted shadow versterkt dat effect.
 
