@@ -1,32 +1,21 @@
 
-# Restaurantnaam naar footer met dynamische tekstgrootte
+
+# Restaurantnaam in Plus Jakarta Sans
 
 ## Wat verandert
 
-De restaurantnaam wordt verwijderd uit beide headers (embed + standalone) en verplaatst naar een vaste footer onderin de widget. De tekstgrootte past zich automatisch aan op basis van de naamlengte.
+Alleen de restaurantnaam onderin de widget krijgt het lettertype **Plus Jakarta Sans** (extrabold, 800). Dit font is al geladen via Google Fonts in `index.html`. De rest van de widget blijft Inter.
 
-## Dynamische grootte-logica
+Plus Jakarta Sans heeft rondere, warmere vormen dan Inter en is ideaal voor display-tekst zoals een restaurantnaam.
 
-```text
-< 15 tekens   -->  text-xl    bijv. "Nesto"
-15-24 tekens   -->  text-lg    bijv. "De Proeverij"
-25-34 tekens   -->  text-base  bijv. "Restaurant de Proeverij"
-35+ tekens     -->  text-sm    bijv. "Restaurant de Proeverij Amsterdam"
-```
+## Technische wijziging
 
-## Technische wijzigingen in `src/pages/BookingWidget.tsx`
+### `src/pages/BookingWidget.tsx`
 
-1. **Helper-functie toevoegen** bovenaan `BookingWidgetInner`:
-   - `getNameSize(name: string)` retourneert de juiste Tailwind text-class op basis van `name.length`
+De `<p>` tag van de restaurantnaam in de footer (rond regel 162) krijgt een inline `style` met `fontFamily`:
 
-2. **Naam verwijderen uit embed header** (regels 126-128):
-   - De `config.location_name` span wordt verwijderd, alleen logo blijft
+- Huidige styling: `font-semibold text-gray-400 tracking-wide`
+- Toevoegen: `style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}` en `font-extrabold` (weight 800) in plaats van `font-semibold`
+- `tracking-wide` eventueel aanpassen naar `tracking-normal` omdat Plus Jakarta Sans van zichzelf al ruimer oogt
 
-3. **Naam verwijderen uit standalone header** (regels 142-144):
-   - De `config.location_name` h1 wordt verwijderd, alleen logo blijft
-
-4. **Nieuwe footer toevoegen** na de content div (regel 156), voor de bestaande "Powered by" footer:
-   - Altijd zichtbaar (alle stappen, embed + standalone)
-   - `shrink-0 px-5 pb-3 pt-2 text-center`
-   - Tekst: `font-semibold text-gray-400 tracking-wide` met dynamische grootte
-   - "Powered by Nesto" branding verplaatst direct eronder (als actief)
+Geen andere bestanden worden gewijzigd. Inter blijft het standaard font voor alle andere widget-elementen.
