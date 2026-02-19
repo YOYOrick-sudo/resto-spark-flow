@@ -108,24 +108,24 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
     <div ref={mainRef} className="h-full flex flex-col bg-white">
       {/* Panel header */}
       {isEmbed && (
-        <header className="shrink-0 flex items-center gap-3 px-5 pt-4 pb-1">
-          {config.logo_url && (
-            <img
-              src={config.logo_url}
-              alt={config.location_name ?? 'Restaurant'}
-              className="h-8 w-8 object-contain rounded-lg"
-            />
-          )}
-          {config.location_name && (
-            <span className="text-sm font-semibold text-gray-900 truncate flex-1">{config.location_name}</span>
-          )}
+        <header className="shrink-0 relative flex flex-col items-center gap-2 px-5 pt-4 pb-1">
           <button
             onClick={handleClose}
-            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="absolute top-4 right-5 w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
             aria-label="Sluiten"
           >
             <X className="h-4 w-4" />
           </button>
+          {config.logo_url && (
+            <img
+              src={config.logo_url}
+              alt={config.location_name ?? 'Restaurant'}
+              className="h-14 object-contain"
+            />
+          )}
+          {config.location_name && (
+            <span className="text-sm font-semibold text-gray-900 text-center">{config.location_name}</span>
+          )}
         </header>
       )}
 
@@ -136,7 +136,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
             <img
               src={config.logo_url}
               alt={config.location_name ?? 'Restaurant'}
-              className="h-12 object-contain"
+              className="h-16 object-contain"
             />
           )}
           {config.location_name && (
