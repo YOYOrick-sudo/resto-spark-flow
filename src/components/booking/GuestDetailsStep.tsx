@@ -1,14 +1,15 @@
 import { useState, useCallback } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { ArrowLeft, Loader2, User } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 export function GuestDetailsStep() {
   const {
-    config, data, guestData, setGuestData, setStep,
+    config, data, guestData, setGuestData, goBack,
     submitBooking, bookingLoading, bookingError,
   } = useBooking();
 
   const primaryColor = config?.primary_color ?? '#10B981';
+  const accentColor = config?.accent_color ?? '#14B8A6';
   const [lookupDone, setLookupDone] = useState(false);
   const [welcomeBack, setWelcomeBack] = useState<string | null>(null);
 
@@ -60,12 +61,19 @@ export function GuestDetailsStep() {
 
   const canSubmit = !!(guestData.first_name && guestData.last_name && guestData.email);
 
+  const focusStyle = {
+    '--focus-ring': `0 0 0 2px ${primaryColor}30`,
+    '--focus-border': primaryColor,
+  } as React.CSSProperties;
+
+  const inputClass = "mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none transition-shadow";
+
   return (
-    <div className="flex flex-col gap-4 px-4">
+    <div className="flex flex-col gap-4 px-5">
       {/* Back + summary */}
       <button
         type="button"
-        onClick={() => setStep(2)}
+        onClick={goBack}
         className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 self-start"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -78,9 +86,17 @@ export function GuestDetailsStep() {
         </p>
       </div>
 
-      {/* Welcome back */}
+      {/* Welcome back - accent color */}
       {welcomeBack && (
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700 text-center">
+        <div
+          className="rounded-lg px-4 py-2 text-sm text-center"
+          style={{
+            backgroundColor: `${accentColor}10`,
+            borderColor: `${accentColor}30`,
+            color: accentColor,
+            border: `1px solid ${accentColor}30`,
+          }}
+        >
           Welkom terug, {welcomeBack}! 🎉
         </div>
       )}
@@ -89,7 +105,7 @@ export function GuestDetailsStep() {
       <div className="flex flex-col gap-3">
         {/* Email first for lookup */}
         <div>
-          <label className="text-sm font-medium text-gray-700">E-mailadres *</label>
+          <label className="text-xs font-medium text-gray-700">E-mailadres *</label>
           <input
             type="email"
             required
@@ -97,59 +113,95 @@ export function GuestDetailsStep() {
             onChange={e => setGuestData({ email: e.target.value })}
             onBlur={handleEmailBlur}
             placeholder="je@email.nl"
-            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-            style={{ '--tw-ring-color': primaryColor } as any}
+            className={inputClass}
+            style={focusStyle}
+            onFocus={e => {
+              e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
+              e.target.style.borderColor = primaryColor;
+            }}
+            onBlurCapture={e => {
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = '#d1d5db';
+            }}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-medium text-gray-700">Voornaam *</label>
+            <label className="text-xs font-medium text-gray-700">Voornaam *</label>
             <input
               type="text"
               required
               value={guestData.first_name}
               onChange={e => setGuestData({ first_name: e.target.value })}
               placeholder="Voornaam"
-              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-              style={{ '--tw-ring-color': primaryColor } as any}
+              className={inputClass}
+              onFocus={e => {
+                e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
+                e.target.style.borderColor = primaryColor;
+              }}
+              onBlur={e => {
+                e.target.style.boxShadow = 'none';
+                e.target.style.borderColor = '#d1d5db';
+              }}
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Achternaam *</label>
+            <label className="text-xs font-medium text-gray-700">Achternaam *</label>
             <input
               type="text"
               required
               value={guestData.last_name}
               onChange={e => setGuestData({ last_name: e.target.value })}
               placeholder="Achternaam"
-              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-              style={{ '--tw-ring-color': primaryColor } as any}
+              className={inputClass}
+              onFocus={e => {
+                e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
+                e.target.style.borderColor = primaryColor;
+              }}
+              onBlur={e => {
+                e.target.style.boxShadow = 'none';
+                e.target.style.borderColor = '#d1d5db';
+              }}
             />
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700">Telefoon</label>
+          <label className="text-xs font-medium text-gray-700">Telefoon</label>
           <input
             type="tel"
             value={guestData.phone}
             onChange={e => setGuestData({ phone: e.target.value })}
             placeholder="+31 6 12345678"
-            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-            style={{ '--tw-ring-color': primaryColor } as any}
+            className={inputClass}
+            onFocus={e => {
+              e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
+              e.target.style.borderColor = primaryColor;
+            }}
+            onBlur={e => {
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = '#d1d5db';
+            }}
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700">Opmerkingen</label>
+          <label className="text-xs font-medium text-gray-700">Opmerkingen</label>
           <textarea
             value={guestData.guest_notes}
             onChange={e => setGuestData({ guest_notes: e.target.value })}
             placeholder="Allergieën, speciale wensen..."
             rows={2}
-            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
-            style={{ '--tw-ring-color': primaryColor } as any}
+            className={`${inputClass} resize-none`}
+            onFocus={e => {
+              e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
+              e.target.style.borderColor = primaryColor;
+            }}
+            onBlur={e => {
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = '#d1d5db';
+            }}
           />
         </div>
 
@@ -168,7 +220,7 @@ export function GuestDetailsStep() {
         {/* Booking questions */}
         {config?.booking_questions?.map(q => (
           <div key={q.id}>
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-xs font-medium text-gray-700">
               {q.label} {q.required && '*'}
             </label>
 
@@ -177,8 +229,15 @@ export function GuestDetailsStep() {
                 type="text"
                 value={getAnswer(q.id)[0] ?? ''}
                 onChange={e => updateAnswer(q.id, [e.target.value])}
-                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-                style={{ '--tw-ring-color': primaryColor } as any}
+                className={inputClass}
+                onFocus={e => {
+                  e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
+                  e.target.style.borderColor = primaryColor;
+                }}
+                onBlur={e => {
+                  e.target.style.boxShadow = 'none';
+                  e.target.style.borderColor = '#d1d5db';
+                }}
               />
             )}
 
@@ -239,7 +298,7 @@ export function GuestDetailsStep() {
 
       {/* Error */}
       {bookingError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 text-center">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 text-center">
           {bookingError}
         </div>
       )}
@@ -249,7 +308,7 @@ export function GuestDetailsStep() {
         type="button"
         disabled={!canSubmit || bookingLoading}
         onClick={submitBooking}
-        className="w-full py-3 rounded-xl text-white font-medium text-sm transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
+        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
         style={{ backgroundColor: primaryColor }}
       >
         {bookingLoading ? (

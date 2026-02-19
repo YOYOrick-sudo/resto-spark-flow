@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
 import { Calendar } from '@/components/ui/calendar';
-import { Minus, Plus, Users } from 'lucide-react';
+import { Minus, Plus, Users, ArrowLeft } from 'lucide-react';
+import { nl } from 'date-fns/locale';
 
 export function DateGuestsStep() {
   const {
     config, data, setDate, setPartySize,
     availableDates, availableDatesLoading,
-    loadAvailableDates, setStep,
+    loadAvailableDates, goToStep, goBack,
+    effectiveStyle,
   } = useBooking();
 
   const primaryColor = config?.primary_color ?? '#10B981';
@@ -49,7 +51,6 @@ export function DateGuestsStep() {
     const mm = String(day.getMonth() + 1).padStart(2, '0');
     const dd = String(day.getDate()).padStart(2, '0');
     const dateStr = `${yyyy}-${mm}-${dd}`;
-    // If dates are loaded and this date is NOT in the list, disable it
     if (!availableDatesLoading && availableDates.length > 0 && !availableDateSet.has(dateStr)) {
       return true;
     }
@@ -57,12 +58,25 @@ export function DateGuestsStep() {
   };
 
   const canContinue = !!data.date && data.party_size > 0;
+  const showBack = effectiveStyle === 'showcase';
 
   return (
-    <div className="flex flex-col gap-6 px-4">
+    <div className="flex flex-col gap-6 px-5">
+      {/* Back button (showcase mode only) */}
+      {showBack && (
+        <button
+          type="button"
+          onClick={goBack}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 self-start"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Terug
+        </button>
+      )}
+
       {/* Welcome text */}
       {config?.welcome_text && (
-        <p className="text-sm text-gray-600 text-center">{config.welcome_text}</p>
+        <p className="text-sm text-gray-500 text-center line-clamp-2">{config.welcome_text}</p>
       )}
 
       {/* Party size selector */}
@@ -80,7 +94,10 @@ export function DateGuestsStep() {
           >
             <Minus className="h-4 w-4" />
           </button>
-          <span className="text-2xl font-semibold w-12 text-center">{data.party_size}</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-semibold w-8 text-center">{data.party_size}</span>
+            <span className="text-sm text-gray-400">gasten</span>
+          </div>
           <button
             type="button"
             onClick={() => setPartySize(Math.min(config?.max_party_size ?? 20, data.party_size + 1))}
@@ -104,9 +121,12 @@ export function DateGuestsStep() {
           onSelect={handleDaySelect}
           onMonthChange={setCalendarMonth}
           disabled={disabledMatcher}
-          className="rounded-xl border border-gray-200"
+          locale={nl}
+          weekStartsOn={1}
+          className="rounded-lg border border-gray-200"
           modifiersStyles={{
-            selected: { backgroundColor: primaryColor, color: '#fff' },
+            selected: { backgroundColor: primaryColor, color: '#fff', borderRadius: '8px' },
+            today: { outline: `2px solid ${primaryColor}`, outlineOffset: '-2px', borderRadius: '8px' },
           }}
         />
       </div>
@@ -115,8 +135,8 @@ export function DateGuestsStep() {
       <button
         type="button"
         disabled={!canContinue}
-        onClick={() => setStep(2)}
-        className="w-full py-3 rounded-xl text-white font-medium text-sm transition-opacity disabled:opacity-40"
+        onClick={() => goToStep('time')}
+        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-opacity disabled:opacity-40"
         style={{ backgroundColor: primaryColor }}
       >
         Kies een tijd

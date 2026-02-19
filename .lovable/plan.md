@@ -15,16 +15,18 @@
 
 ---
 
-# Ronde 2: Visuele Redesign
+# Ronde 2: Visuele Redesign ✅ AFGEROND
 
-## Status: Nog te starten
+## Status: Compleet
 
-### Taken:
-- [ ] TicketSelectStep.tsx: Showcase ticket kaarten (3:2 foto, naam, beschrijving)
-- [ ] DateGuestsStep.tsx: Kalender NL locale, visueel redesign
-- [ ] TimeTicketStep.tsx: Grid layout, "Nog X plekken", eindtijd
-- [ ] GuestDetailsStep.tsx: Form redesign, returning guest highlight
-- [ ] ConfirmationStep.tsx: Success animatie (stroke-dasharray checkmark)
+### Wat is gedaan:
+- [x] `BookingContext.tsx`: STEP_MAP object + `goToStep(name)` / `goBack()` navigatie helpers (geen hardcoded nummers meer)
+- [x] `TicketSelectStep.tsx`: Showcase ticket kaarten met 3:2 foto of gradient+letter fallback, party size range, hover animatie
+- [x] `DateGuestsStep.tsx`: NL locale (maandag start), today ring indicator, pill-button "gasten" label, dynamische terug-knop in showcase
+- [x] `TimeTicketStep.tsx`: Grid layout zonder clock icons, squeeze slots met accent-kleur border+tekst, ticket info banner in showcase mode
+- [x] `GuestDetailsStep.tsx`: Accent-kleur welkom-terug banner, focus ring met primaryColor, text-xs labels
+- [x] `ConfirmationStep.tsx`: Geanimeerd SVG checkmark (stroke-dasharray cirkel → fill → vinkje), 20px titel
+- [x] `BookingWidget.tsx`: TicketSelectStep import + showcase routing
 
 ---
 
