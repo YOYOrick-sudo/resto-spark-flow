@@ -1,40 +1,35 @@
 
 
-# Fix: Rode NU-lijn doorlopend door ALLES (pacing + niet-toegewezen)
+# Fix: Rode NU-lijn mag niet door de linkerkolom lopen
 
 ## Probleem
 
-Twee outer wrappers blokkeren de rode lijn nog steeds:
-1. **SeatedCountRow** (Pacing, regel 161): outer wrapper staat op `z-[60]` met opaque `bg-secondary` -- blokkeert de NowIndicator (`z-50`)
-2. **UnassignedGridRow** (Niet toegew., regel 304): outer wrapper ook `z-[60]` -- zelfde probleem
-
-De inner sticky left-kolommen staan al correct op `z-[60]` en blokkeren de lijn in de linkerkolom. Maar de outer wrappers dekken de lijn af in het HELE tijdlijn-gedeelte.
+De rode NU-lijn is een enkel element (`z-50`) dat over de volledige hoogte van de grid loopt. Bij horizontaal scrollen schuift de lijn mee met de content, waardoor deze visueel in het gebied van de sticky linkerkolom terecht kan komen. De z-index hiërarchie werkt niet betrouwbaar vanwege "stacking context" conflicten: sommige rij-wrappers creëren hun eigen laag, waardoor de z-index van hun kinderen (de sticky kolommen) niet meer vergelijkbaar is met die van de NowIndicator.
 
 ## Oplossing
 
-Zelfde patroon als de TimelineHeader-fix: verlaag de outer wrapper z-index van `z-[60]` naar `z-[45]`. De inner sticky left-children blijven op `z-[60]`.
+In plaats van te vertrouwen op z-index (wat al meerdere keren niet betrouwbaar bleek), passen we een **scroll-gebaseerde clip** toe. De NowIndicator krijgt toegang tot de scroll-container en past dynamisch `clipPath` toe zodat de lijn fysiek NOOIT kan verschijnen in de eerste 140px van het zichtbare scherm.
 
-## Overzicht z-index lagen (na fix)
+Daarnaast zetten we alle rij-wrappers terug naar een consistente z-index structuur.
 
-| Element | z-index | Effect |
-|---------|---------|--------|
-| Alle sticky linkerkolommen | z-[60] | Blokkeert rode lijn links |
-| NowIndicator | z-50 | Rode lijn zichtbaar in tijdlijn |
-| TimelineHeader wrapper | z-[45] | Lijn loopt erdoorheen |
-| SeatedCountRow wrapper | z-[45] | Lijn loopt erdoorheen |
-| UnassignedGridRow wrapper | z-[45] | Lijn loopt erdoorheen |
+## Hoe het werkt
+
+1. De scroll-container ref wordt als prop doorgegeven aan de NowIndicator
+2. De NowIndicator luistert naar horizontale scroll-events
+3. Bij elke scroll wordt `clipPath: inset(0 0 0 Xpx)` berekend, zodat het gedeelte dat achter de sticky kolom zit wordt weggeknipt
+4. De rode lijn kan nu fysiek onmogelijk in de linkerkolom verschijnen, ongeacht z-index of stacking contexts
 
 ## Technische wijzigingen
 
 ### `src/components/reserveringen/ReservationGridView.tsx`
 
-**Regel 161 -- SeatedCountRow outer div:**
-- Was: `z-[60]`
-- Wordt: `z-[45]`
+1. **NowIndicator component**: Voeg `scrollContainerRef` prop toe. Voeg een scroll-event-listener toe die `clipPath: inset(0 0 0 ${scrollLeft}px)` dynamisch toepast op de buitenste container. Dit knipt de linker-rand weg precies tot waar de sticky kolom eindigt.
 
-**Regel 304 -- UnassignedGridRow outer div:**
-- Was: `z-[60]`
-- Wordt: `z-[45]`
+2. **NowIndicator aanroep** (regel 558): Geef `scrollContainerRef={containerRef}` mee als prop.
 
-Totaal: 2 regels aanpassen in 1 bestand.
+3. **Rij-wrapper z-index opruimen**: Zet alle sticky rij-wrappers (TimelineHeader, SeatedCountRow, UnassignedGridRow) terug naar een consistente opzet:
+   - Outer wrappers: geen z-index of een lage waarde voor sticky scroll-gedrag
+   - Sticky left-kolommen: `z-[60]` behouden (werkt correct binnen eigen rij voor andere overlaps)
+
+Dit lost het probleem definitief op zonder afhankelijk te zijn van z-index lagen tussen parent en child componenten.
 
