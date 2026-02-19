@@ -10,3 +10,4 @@ export { default as SettingsReserveringenShifts } from "./SettingsReserveringenS
 export { default as SettingsReserveringenTickets } from "./SettingsReserveringenTickets";
 export { default as SettingsReserveringenTicketDetail } from "./SettingsReserveringenTicketDetail";
 export { default as SettingsReserveringenBeleid } from "./SettingsReserveringenBeleid";
+export { default as SettingsReserveringenWidget } from "./SettingsReserveringenWidget";
