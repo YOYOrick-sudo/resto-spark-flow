@@ -110,13 +110,13 @@
   }
 
   var FONT_FAMILY = "'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
-  var CALENDAR_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
-  var CALENDAR_ICON_SM = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
 
-  // ─── Shadow helpers ───
+  // ─── Shadow helpers (premium pill with glassmorphism) ───
 
-  var shadowRest = '0 1px 3px rgba(0,0,0,0.08),0 4px 14px rgba(0,0,0,0.10)';
-  var shadowHover = '0 2px 6px rgba(0,0,0,0.10),0 8px 24px rgba(0,0,0,0.14)';
+  var glassInset = 'inset 0 0 0 1px rgba(255,255,255,0.15)';
+  var glassInsetHover = 'inset 0 0 0 1px rgba(255,255,255,0.2)';
+  var shadowRest = '0 2px 8px rgba(0,0,0,0.12),0 8px 24px rgba(0,0,0,0.08),' + glassInset;
+  var shadowHover = '0 4px 12px rgba(0,0,0,0.15),0 12px 32px rgba(0,0,0,0.12),' + glassInsetHover;
 
   // ─── Close button factory ───
 
@@ -212,7 +212,14 @@
     var btn = document.createElement('button');
     btn.setAttribute('aria-label', label);
 
-    btn.textContent = label;
+    // Accent dot
+    var dot = document.createElement('span');
+    dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.7);margin-right:10px;flex-shrink:0';
+    btn.appendChild(dot);
+
+    var textSpan = document.createElement('span');
+    textSpan.textContent = label;
+    btn.appendChild(textSpan);
 
     var isRight = position !== 'bottom-left';
 
@@ -222,10 +229,10 @@
       'background:' + color,
       'color:#fff',
       'border:none',
-      'border-radius:10px',
+      'border-radius:50px',
       'font-family:' + FONT_FAMILY,
       'font-weight:600',
-      'letter-spacing:0.01em',
+      'letter-spacing:0.02em',
       'cursor:pointer',
       'display:inline-flex',
       'align-items:center',
@@ -239,13 +246,13 @@
     if (mobile) {
       btnBase.push(
         'bottom:20px', 'right:20px',
-        'padding:12px 20px', 'font-size:13px'
+        'padding:12px 22px', 'font-size:13px'
       );
     } else {
       btnBase.push(
         'bottom:24px',
         isRight ? 'right:24px' : 'left:24px',
-        'padding:12px 24px', 'font-size:14px'
+        'padding:14px 28px', 'font-size:14px'
       );
     }
 
@@ -254,7 +261,7 @@
     // Hover effects
     btn.addEventListener('mouseenter', function () {
       if (!mobile) {
-        btn.style.transform = 'translateY(-1px)';
+        btn.style.transform = 'translateY(-2px)';
         btn.style.boxShadow = shadowHover;
       }
     });
