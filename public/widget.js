@@ -15,6 +15,7 @@
   var pulse = script.getAttribute('data-pulse') === 'true';
   var logoUrl = script.getAttribute('data-logo') || '';
   var restaurantName = script.getAttribute('data-name') || '';
+  var buttonLogoUrl = script.getAttribute('data-button-logo') || '';
 
   var src = script.src;
   var baseUrl = src.substring(0, src.lastIndexOf('/'));
@@ -212,10 +213,18 @@
     var btn = document.createElement('button');
     btn.setAttribute('aria-label', label);
 
-    // Accent dot
-    var dot = document.createElement('span');
-    dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.7);margin-right:10px;flex-shrink:0';
-    btn.appendChild(dot);
+    // Button logo or accent dot
+    if (buttonLogoUrl) {
+      var logoImg = document.createElement('img');
+      logoImg.src = buttonLogoUrl;
+      logoImg.alt = '';
+      logoImg.style.cssText = 'width:20px;height:20px;border-radius:4px;object-fit:contain;margin-right:10px;flex-shrink:0;filter:brightness(0) saturate(100%);opacity:0.85';
+      btn.appendChild(logoImg);
+    } else {
+      var dot = document.createElement('span');
+      dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.7);margin-right:10px;flex-shrink:0';
+      btn.appendChild(dot);
+    }
 
     var textSpan = document.createElement('span');
     textSpan.textContent = label;
