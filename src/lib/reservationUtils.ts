@@ -118,6 +118,15 @@ export function getSeatedCountAtTime(
     .reduce((sum, r) => sum + r.party_size, 0);
 }
 
+// --- Ticket abbreviation ---
+
+export function getTicketAbbreviation(ticketName: string | undefined | null): string {
+  if (!ticketName) return '';
+  const words = ticketName.trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return words.map(w => w[0]).join('').slice(0, 3).toUpperCase();
+}
+
 // --- Conflict check (pure) ---
 
 export function checkTimeConflict(

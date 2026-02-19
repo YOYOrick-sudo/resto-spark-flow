@@ -11,11 +11,11 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Reservation, ReservationChannel } from "@/types/reservation";
 import { STATUS_CONFIG, ALLOWED_TRANSITIONS } from "@/types/reservation";
-import { getDisplayName, isWalkIn, formatTime } from "@/lib/reservationUtils";
+import { getDisplayName, isWalkIn, formatTime, getTicketAbbreviation } from "@/lib/reservationUtils";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
 import type { DensityType } from "./DensityToggle";
 
-const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_128px_120px_80px_32px] gap-x-3 items-center";
+const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_160px_120px_80px_32px] gap-x-3 items-center";
 
 const CHANNEL_ICON_MAP: Record<ReservationChannel, React.FC<{ className?: string }>> = {
   widget: Globe,
@@ -72,7 +72,7 @@ function ColumnHeader() {
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Naam</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Pers</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tafel</span>
-      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shift</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shift / Ticket</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Acties</span>
       <span />
@@ -204,12 +204,26 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         </TooltipProvider>
       )}
 
-      {/* Shift */}
-      {reservation.shift_name ? (
-        <NestoBadge variant="outline" size="sm" className="truncate justify-center text-muted-foreground max-w-[116px]">
-          {reservation.shift_name}
-        </NestoBadge>
-      ) : <span />}
+      {/* Shift / Ticket */}
+      <div className="flex items-center gap-1.5 min-w-0">
+        {reservation.shift_name ? (
+          <NestoBadge variant="outline" size="sm" className="truncate justify-center text-muted-foreground max-w-[100px]">
+            {reservation.shift_name}
+          </NestoBadge>
+        ) : <span />}
+        {reservation.ticket_name && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center justify-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground tracking-wide flex-shrink-0">
+                  {getTicketAbbreviation(reservation.ticket_name)}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{reservation.ticket_name}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
 
       {/* Status badge */}
       <div className="flex items-center gap-1.5">
