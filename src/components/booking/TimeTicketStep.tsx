@@ -109,7 +109,7 @@ export function TimeTicketStep() {
                       {slot.time}
                     </span>
                     {slot.slot_type === 'squeeze' && (
-                      <span className="text-[10px] opacity-70">kort verblijf</span>
+                      <span className="text-[10px] opacity-70">kortere zittijd</span>
                     )}
                     {config?.show_end_time && (
                       <span className="text-[10px] opacity-60">

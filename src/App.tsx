@@ -32,6 +32,7 @@ import SettingsLeveranciers from "./pages/SettingsLeveranciers";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
 import BookingWidget from "./pages/BookingWidget";
+import ManageReservation from "./pages/ManageReservation";
 import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
@@ -69,6 +70,8 @@ const App = () => (
                 {/* Public routes */}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/book/:slug" element={<BookingWidget />} />
+                <Route path="/manage/:token" element={<ManageReservation />} />
+                <Route path="/panel-demo" element={<PanelDemo />} />
                 <Route path="/panel-demo" element={<PanelDemo />} />
                 
                 {/* Protected routes - Layout wrapper with persistent sidebar */}
