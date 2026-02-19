@@ -1,8 +1,7 @@
 import { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { useTransitionStatus } from "@/hooks/useTransitionStatus";
 import { useAssignTable } from "@/hooks/useAssignTable";
-import { ChevronDown, ChevronUp, Wand2 } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Wand2 } from "lucide-react";
 import { format } from "date-fns";
 import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, pointerWithin, useSensor, useSensors, PointerSensor, TouchSensor } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
@@ -288,7 +287,6 @@ function UnassignedGridRow({
   locationId?: string;
   density: DensityType;
 }) {
-  const [open, setOpen] = useState(true);
   const assignTable = useAssignTable();
 
   const unassigned = useMemo(
@@ -313,57 +311,48 @@ function UnassignedGridRow({
   }
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="sticky top-[72px] z-[45] border-b-2 border-border">
-        {/* Row: sticky label + timeline */}
-        <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
-          {/* Sticky left column - opaque to block red line */}
-          <div
-            className="sticky left-0 z-[60] flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-secondary relative"
-            style={{ width: `${STICKY_COL_WIDTH}px` }}
-          >
-            <div className="absolute inset-0 bg-warning/5 pointer-events-none" />
-            <CollapsibleTrigger className="flex items-center gap-1.5 flex-1 min-w-0 relative">
-              {open ? <ChevronUp className="h-3 w-3 text-warning flex-shrink-0" /> : <ChevronDown className="h-3 w-3 text-warning flex-shrink-0" />}
-              <span className="text-xs font-semibold text-warning truncate">Niet toegew.</span>
-              <span className="text-caption font-bold text-warning bg-warning/15 px-1.5 py-0.5 rounded-full flex-shrink-0">{unassigned.length}</span>
-            </CollapsibleTrigger>
+    <div className="sticky top-[72px] z-[45] border-b-2 border-border">
+      <div className={cn("flex", isCompact ? "h-9" : "h-12")}>
+        <div
+          className="sticky left-0 z-[60] flex-shrink-0 flex items-center gap-1.5 px-3 border-r-2 border-border bg-secondary relative"
+          style={{ width: `${STICKY_COL_WIDTH}px` }}
+        >
+          <div className="absolute inset-0 bg-warning/5 pointer-events-none" />
+          <div className="flex items-center gap-1.5 flex-1 min-w-0 relative">
+            <span className="text-xs font-semibold text-warning truncate">Niet toegew.</span>
+            <span className="text-caption font-bold text-warning bg-warning/15 px-1.5 py-0.5 rounded-full flex-shrink-0">{unassigned.length}</span>
           </div>
+        </div>
 
-          {/* Timeline area - transparent bg so red line shows through */}
-          <div className="relative flex-shrink-0 bg-warning/5" style={{ width: `${gridWidth}px` }}>
-            <CollapsibleContent forceMount className="data-[state=closed]:hidden">
-              {/* Reservation blocks */}
-              <div className="absolute inset-0 z-10">
-                {unassigned.map((r) => (
-                  <ReservationBlock
-                    key={r.id}
-                    reservation={r}
-                    config={config}
-                    onClick={onReservationClick}
-                    onAssign={(res) => {
-                      if (!locationId) return;
-                      assignTable.mutate({
-                        location_id: res.location_id,
-                        date: res.reservation_date,
-                        time: res.start_time,
-                        party_size: res.party_size,
-                        duration_minutes: res.duration_minutes,
-                        shift_id: res.shift_id,
-                        ticket_id: res.ticket_id,
-                        reservation_id: res.id,
-                      });
-                    }}
-                    density={density}
-                    variant="unassigned"
-                  />
-                ))}
-              </div>
-            </CollapsibleContent>
+        <div className="relative flex-shrink-0 bg-warning/5" style={{ width: `${gridWidth}px` }}>
+          <div className="absolute inset-0 z-10">
+            {unassigned.map((r) => (
+              <ReservationBlock
+                key={r.id}
+                reservation={r}
+                config={config}
+                onClick={onReservationClick}
+                onAssign={(res) => {
+                  if (!locationId) return;
+                  assignTable.mutate({
+                    location_id: res.location_id,
+                    date: res.reservation_date,
+                    time: res.start_time,
+                    party_size: res.party_size,
+                    duration_minutes: res.duration_minutes,
+                    shift_id: res.shift_id,
+                    ticket_id: res.ticket_id,
+                    reservation_id: res.id,
+                  });
+                }}
+                density={density}
+                variant="unassigned"
+              />
+            ))}
           </div>
         </div>
       </div>
-    </Collapsible>
+    </div>
   );
 }
 
