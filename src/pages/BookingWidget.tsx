@@ -31,6 +31,13 @@ function useEmbedMessaging(isEmbed: boolean) {
   return { mainRef, postMsg };
 }
 
+const getNameSize = (name: string) => {
+  if (name.length < 15) return 'text-xl';
+  if (name.length < 25) return 'text-lg';
+  if (name.length < 35) return 'text-base';
+  return 'text-sm';
+};
+
 function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   const { config, configLoading, configError, step, totalSteps, effectiveStyle, bookingResult } = useBooking();
   const { mainRef, postMsg } = useEmbedMessaging(isEmbed);
@@ -123,9 +130,6 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
               className="h-14 object-contain"
             />
           )}
-          {config.location_name && (
-            <span className="text-sm font-semibold text-gray-900 text-center">{config.location_name}</span>
-          )}
         </header>
       )}
 
@@ -138,9 +142,6 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
               alt={config.location_name ?? 'Restaurant'}
               className="h-16 object-contain"
             />
-          )}
-          {config.location_name && (
-            <h1 className="text-lg font-semibold text-gray-900">{config.location_name}</h1>
           )}
         </header>
       )}
@@ -155,10 +156,15 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
         </div>
       </div>
 
-      {/* Powered by - standalone mode only, on confirmation */}
-      {!isEmbed && isConfirmation && config.show_nesto_branding && (
-        <footer className="shrink-0 pb-4 text-center">
-          <span className="text-[10px] text-gray-300">Powered by Nesto</span>
+      {/* Restaurant name footer */}
+      {config.location_name && (
+        <footer className="shrink-0 px-5 pb-3 pt-2 text-center">
+          <p className={`font-semibold text-gray-400 tracking-wide ${getNameSize(config.location_name)}`}>
+            {config.location_name}
+          </p>
+          {config.show_nesto_branding && (
+            <span className="text-[10px] text-gray-300">Powered by Nesto</span>
+          )}
         </footer>
       )}
     </div>
