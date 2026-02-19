@@ -1,30 +1,43 @@
 
+# Fix: "Niet toegewezen" moet eruitzien en werken als Pacing-blok
 
-# Fix: "Niet toegewezen" sectie sticky maken (zoals Pacing)
+## Twee problemen gevonden
 
-## Het echte probleem
-De "Niet toegewezen" sectie is NIET sticky, terwijl TimelineHeader en SeatedCountRow dat wel zijn. Sticky positionering creëert automatisch een correcte stacking context. Zonder sticky werkt de z-index niet betrouwbaar tegen de NowIndicator.
+### 1. Achtergrond is transparant
+De "Niet toegewezen" sectie gebruikt `bg-warning/5` (5% opacity). De rode "NU"-lijn schijnt er gewoon doorheen omdat de achtergrond bijna doorzichtig is. De pacing-rij gebruikt `bg-secondary` -- volledig opaque -- daarom werkt het daar wel.
+
+### 2. Grid-lijnen zichtbaar
+De "Niet toegewezen" sectie rendert dezelfde 15-minuten grid-streepjes als de tabelrijen (regels 323-334 in `UnassignedGridRow`). De pacing-rij heeft dit niet -- die heeft solide cellen met data. Hierdoor lijkt "Niet toegewezen" op een gewone tabelrij in plaats van op een header-achtig blok.
 
 ## Wat wordt gewijzigd
 
-### 1. SeatedCountRow: vaste hoogte toevoegen
-De pacing-rij heeft nu geen expliciete hoogte. We voegen `h-8` (32px) toe zodat we een betrouwbare top-offset kunnen berekenen voor de "Niet toegewezen" rij.
+### `src/components/reserveringen/ReservationGridView.tsx` -- UnassignedGridRow
 
-### 2. UnassignedGridRow: sticky maken
-De buitenste wrapper-div (regel 304) krijgt sticky positionering:
+**Buitenste wrapper (regel 304):**
+- Was: `bg-warning/5`
+- Wordt: `bg-secondary` (opaque, zelfde als pacing)
 
-- **Was:** `className="relative z-40 border-b border-warning/30 bg-warning/5"`
-- **Wordt:** `className="sticky top-[72px] z-40 border-b border-warning/30 bg-warning/5"`
+**Sticky linkerkolom (regel 309):**
+- Was: `bg-warning/5`
+- Wordt: `bg-secondary` (opaque, consistent)
 
-De offset `72px` = TimelineHeader (40px) + SeatedCountRow (32px).
+**De warning-kleur behouden we via de tekst en badge** (die zijn al oranje/warning gestyled), niet via de achtergrond.
 
-## Stacking overzicht na fix
+**Quarter-slot grid lines verwijderen (regels 323-334):**
+De `<div className="absolute inset-0 flex">` met alle quarter-slot divs wordt verwijderd. De reservatieblokken worden direct op een schone achtergrond getoond, net zoals de pacing-rij schone cellen heeft.
+
+**Border-styling aanpassen:**
+- Was: `border-b border-warning/30`
+- Wordt: `border-b-2 border-border` (zelfde als pacing)
+
+## Visueel resultaat
 
 ```text
-top-0      : TimelineHeader    (sticky, z-40)
-top-[40px] : SeatedCountRow    (sticky, z-40, h-8 = 32px)
-top-[72px] : UnassignedGridRow (sticky, z-40) ← NIEUW
-             ZoneHeaders + TableRows (scrollbaar)
+TimelineHeader  : bg-card      | opaque | geen grid-lijnen | border-b-2
+SeatedCountRow  : bg-secondary | opaque | eigen cellen     | border-b-2
+Niet toegewezen : bg-secondary | opaque | geen grid-lijnen | border-b-2  <-- NA FIX
+ZoneHeaders     : bg-secondary | ...
+TableRows       : bg-card      | grid-lijnen zichtbaar
 ```
 
-Alle drie de sticky secties hebben z-40 en hun eigen stacking context, waardoor de NowIndicator (z-20) er nooit meer doorheen kan.
+De rode lijn kan niet meer door een opaque achtergrond schijnen, en de sectie ziet er visueel uit als een zusterelement van de pacing-rij.
