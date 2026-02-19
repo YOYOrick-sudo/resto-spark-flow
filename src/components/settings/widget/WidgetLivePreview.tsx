@@ -8,6 +8,8 @@ interface WidgetLivePreviewProps {
   buttonLabel: string;
   buttonPosition: string;
   baseUrl: string;
+  logoUrl?: string;
+  restaurantName?: string;
 }
 
 const modeDescriptions: Record<EmbedMode, string> = {
@@ -16,13 +18,15 @@ const modeDescriptions: Record<EmbedMode, string> = {
   link: 'Open de hosted boekingspagina om te testen.',
 };
 
-function buildPreviewUrl(baseUrl: string, slug: string, mode: EmbedMode, label: string, position: string, color: string) {
+function buildPreviewUrl(baseUrl: string, slug: string, mode: EmbedMode, label: string, position: string, color: string, logoUrl?: string, restaurantName?: string) {
   const params = new URLSearchParams({ slug, mode, label, position, color });
+  if (logoUrl) params.set('logo', logoUrl);
+  if (restaurantName) params.set('name', restaurantName);
   return `${baseUrl}/widget-preview?${params.toString()}`;
 }
 
-export function WidgetLivePreview({ mode, slug, color, buttonLabel, buttonPosition, baseUrl }: WidgetLivePreviewProps) {
-  const previewUrl = buildPreviewUrl(baseUrl, slug, mode, buttonLabel, buttonPosition, color);
+export function WidgetLivePreview({ mode, slug, color, buttonLabel, buttonPosition, baseUrl, logoUrl, restaurantName }: WidgetLivePreviewProps) {
+  const previewUrl = buildPreviewUrl(baseUrl, slug, mode, buttonLabel, buttonPosition, color, logoUrl, restaurantName);
 
   return (
     <div className="bg-secondary/50 rounded-card-sm p-4 flex items-center justify-between gap-4">

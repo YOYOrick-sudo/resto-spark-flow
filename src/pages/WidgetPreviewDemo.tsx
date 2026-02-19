@@ -8,6 +8,8 @@ export default function WidgetPreviewDemo() {
   const label = params.get('label') || 'Reserveer';
   const position = params.get('position') || 'bottom-right';
   const color = params.get('color') || '#1d979e';
+  const logo = params.get('logo') || '';
+  const name = params.get('name') || '';
 
   useEffect(() => {
     // Dynamically inject widget.js with config
@@ -19,6 +21,8 @@ export default function WidgetPreviewDemo() {
     script.setAttribute('data-position', position);
     script.setAttribute('data-color', color);
     script.setAttribute('data-container', 'nesto-booking');
+    if (logo) script.setAttribute('data-logo', logo);
+    if (name) script.setAttribute('data-name', name);
     document.body.appendChild(script);
 
     return () => {
@@ -31,7 +35,7 @@ export default function WidgetPreviewDemo() {
         if (btn.getAttribute('aria-label') === label) btn.remove();
       });
     };
-  }, [slug, mode, label, position, color]);
+  }, [slug, mode, label, position, color, logo, name]);
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#2d2d2d] font-sans">
