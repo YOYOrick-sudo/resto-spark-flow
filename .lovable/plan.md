@@ -1,26 +1,24 @@
 
 
-# Verwijder expand/collapse knop uit Pacing-rij
+# Verwijder expand/collapse uit "Niet toegewezen" rij
 
 ## Wat verandert
 
-De chevron-knop (expand/collapse) in de Pacing-rij heeft momenteel geen functie -- de rij toont altijd dezelfde inhoud ongeacht de `isExpanded` state. We verwijderen de knop en bijbehorende state.
+De chevron-knop en het inklapbare gedrag van de "Niet toegewezen" rij worden verwijderd. De rij blijft altijd zichtbaar staan (zoals de gebruiker wil).
 
 ## Technische wijzigingen
 
 ### `src/components/reserveringen/ReservationGridView.tsx`
 
-1. **SeatedCountRow component (regels 122-189)**:
-   - Verwijder `isExpanded` en `onToggle` uit de props
-   - Verwijder de `<button>` met het chevron-icoon (regels 164-166)
-   - Verander de sticky label-div van `justify-between` naar gewoon `items-center` (de tekst "Pacing" hoeft niet meer naar links geduwd te worden)
+1. **Verwijder Collapsible wrapper** (regels 316, 366): De `<Collapsible>` en `</Collapsible>` tags worden verwijderd. De content wordt altijd getoond.
 
-2. **SeatedCountRow aanroep (regels 581-588)**:
-   - Verwijder `isExpanded={seatedExpanded}` en `onToggle={() => setSeatedExpanded(!seatedExpanded)}` props
+2. **Verwijder CollapsibleTrigger** (regel 326-330): Vervang door een gewone `div` met dezelfde styling, maar zonder de chevron-iconen. Tekst "Niet toegew." en de count-badge blijven.
 
-3. **State opruimen (regel 424)**:
-   - Verwijder `const [seatedExpanded, setSeatedExpanded] = useState(true);`
+3. **Verwijder CollapsibleContent** (regel 335, 362): De wrapper `<CollapsibleContent forceMount>` wordt verwijderd, de inhoud (reservation blocks) blijft direct staan.
 
-4. **Imports opruimen**:
-   - Verwijder `ChevronUp` en `ChevronDown` als ze nergens anders worden gebruikt
+4. **State opruimen** (regel 291): Verwijder `const [open, setOpen] = useState(true);`
+
+5. **Imports opruimen**: Verwijder `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` als ze nergens anders in het bestand worden gebruikt. `ChevronUp` en `ChevronDown` ook verwijderen als ze nu nergens meer nodig zijn.
+
+Totaal: 1 bestand, ~15 regels aangepast/verwijderd.
 
