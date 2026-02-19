@@ -46,6 +46,13 @@ const PRESET_COLORS = [
 const sectionHeader = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4";
 const sectionDivider = "border-t border-border/50 pt-5 mt-5";
 
+const CardHeader = ({ title, description }: { title: string; description: string }) => (
+  <div className="mb-5">
+    <h3 className="text-base font-semibold">{title}</h3>
+    <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+  </div>
+);
+
 export default function SettingsReserveringenWidget() {
   const { data: settings, isLoading } = useWidgetSettings();
   const updateSettings = useUpdateWidgetSettings();
@@ -149,177 +156,167 @@ export default function SettingsReserveringenWidget() {
       <div className="space-y-6">
         {/* Card 1: Configuratie */}
         <NestoCard className="p-6">
-          {/* Widget aan/uit */}
-          <div className="flex items-center justify-between">
+          <CardHeader title="Configuratie" description="Widget status en basisinstellingen." />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Widget inschakelen</p>
+                <p className="text-xs text-muted-foreground">Maak de boekingswidget zichtbaar voor gasten</p>
+              </div>
+              <Switch checked={local.widget_enabled} onCheckedChange={v => updateField('widget_enabled', v)} />
+            </div>
+
             <div>
-              <p className="text-sm font-medium">Widget inschakelen</p>
-              <p className="text-xs text-muted-foreground">Maak de boekingswidget zichtbaar voor gasten</p>
-            </div>
-            <Switch checked={local.widget_enabled} onCheckedChange={v => updateField('widget_enabled', v)} />
-          </div>
-
-          {/* Basis */}
-          <div className={sectionDivider}>
-            <h4 className={sectionHeader}>Basis</h4>
-            <div className="space-y-4">
-              <div>
-                <NestoInput
-                  label="Locatie slug"
-                  value={local.location_slug}
-                  onChange={e => updateField('location_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                  placeholder="bijv. restaurant-de-kok"
-                  error={local.location_slug && !isValidSlug(local.location_slug) ? 'Alleen kleine letters, cijfers en streepjes.' : undefined}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Unieke identifier in de widget URL.</p>
-              </div>
-
-              <div className="w-full">
-                <label className="mb-2 block text-label text-muted-foreground">Welkomsttekst</label>
-                <Textarea
-                  value={local.widget_welcome_text}
-                  onChange={e => updateField('widget_welcome_text', e.target.value)}
-                  placeholder="Welkom! Reserveer een tafel bij ons."
-                  className="text-body min-h-[60px] border-[1.5px] border-border bg-card rounded-button focus:!border-primary focus:outline-none focus:ring-0"
-                  rows={2}
-                />
-              </div>
-
-              <NestoSelect
-                label="Niet-beschikbaar tekst"
-                value={local.unavailable_text}
-                onValueChange={v => updateField('unavailable_text', v)}
-                options={unavailableOptions}
+              <NestoInput
+                label="Locatie slug"
+                value={local.location_slug}
+                onChange={e => updateField('location_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="bijv. restaurant-de-kok"
+                error={local.location_slug && !isValidSlug(local.location_slug) ? 'Alleen kleine letters, cijfers en streepjes.' : undefined}
               />
-
-              <div>
-                <NestoInput
-                  label="Redirect URL na boeking"
-                  value={local.widget_success_redirect_url}
-                  onChange={e => updateField('widget_success_redirect_url', e.target.value)}
-                  placeholder="https://mijnrestaurant.nl/bedankt"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Optioneel: stuur gasten naar deze URL na een succesvolle boeking.</p>
-              </div>
+              <p className="text-xs text-muted-foreground mt-1">Unieke identifier in de widget URL.</p>
             </div>
-          </div>
 
-          {/* Weergave */}
-          <div className={sectionDivider}>
-            <h4 className={sectionHeader}>Weergave</h4>
-            <div className="divide-y divide-border/50">
-              <div className="flex items-center justify-between py-4 first:pt-0">
-                <div>
-                  <p className="text-sm font-medium">Eindtijd tonen</p>
-                  <p className="text-xs text-muted-foreground">Toon de verwachte eindtijd bij elk tijdslot</p>
-                </div>
-                <Switch checked={local.show_end_time} onCheckedChange={v => updateField('show_end_time', v)} />
-              </div>
-              <div className="flex items-center justify-between py-4">
-                <div>
-                  <p className="text-sm font-medium">Nesto branding tonen</p>
-                  <p className="text-xs text-muted-foreground">"Powered by Nesto" onderaan de widget</p>
-                </div>
-                <Switch checked={local.show_nesto_branding} onCheckedChange={v => updateField('show_nesto_branding', v)} />
-              </div>
+            <div className="w-full">
+              <label className="mb-2 block text-label text-muted-foreground">Welkomsttekst</label>
+              <Textarea
+                value={local.widget_welcome_text}
+                onChange={e => updateField('widget_welcome_text', e.target.value)}
+                placeholder="Welkom! Reserveer een tafel bij ons."
+                className="text-body min-h-[60px] border-[1.5px] border-border bg-card rounded-button focus:!border-primary focus:outline-none focus:ring-0"
+                rows={2}
+              />
             </div>
-          </div>
 
-          {/* Branding */}
-          <div className={sectionDivider}>
-            <h4 className={sectionHeader}>Branding</h4>
-            <div className="space-y-5">
-              {/* Color swatches */}
-              <div>
-                <label className="mb-2 block text-label text-muted-foreground">Widget kleur</label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {PRESET_COLORS.map(color => {
-                    const isActive = local.widget_primary_color.toUpperCase() === color.toUpperCase();
-                    return (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => updateField('widget_primary_color', color)}
-                        className={`h-6 w-6 rounded-full border transition-shadow flex items-center justify-center ${
-                          isActive
-                            ? 'ring-2 ring-primary ring-offset-2 border-transparent'
-                            : 'border-border hover:ring-2 hover:ring-primary/30 hover:ring-offset-1'
-                        }`}
-                        style={{ backgroundColor: color }}
-                        title={color}
-                      >
-                        {isActive && <Check className="h-3 w-3 text-white drop-shadow-sm" />}
-                      </button>
-                    );
-                  })}
-                </div>
-                <NestoInput
-                  value={local.widget_primary_color}
-                  onChange={e => updateField('widget_primary_color', e.target.value)}
-                  className="w-[120px]"
-                  placeholder="#10B981"
-                  maxLength={7}
-                  error={local.widget_primary_color && !isValidHex(local.widget_primary_color) ? 'Ongeldige hex kleur' : undefined}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Kleur van knoppen en accenten in de widget.</p>
-              </div>
+            <NestoSelect
+              label="Niet-beschikbaar tekst"
+              value={local.unavailable_text}
+              onValueChange={v => updateField('unavailable_text', v)}
+              options={unavailableOptions}
+            />
 
-              {/* Logo upload */}
-              <WidgetLogoUpload logoUrl={local.widget_logo_url || null} />
-
-              {/* Button style selector */}
-              <div>
-                <label className="mb-2 block text-label text-muted-foreground">Knoopstijl</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updateField('widget_button_style', 'rounded')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-card text-sm font-medium transition-colors ${
-                      local.widget_button_style === 'rounded'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border text-muted-foreground hover:border-primary/50'
-                    }`}
-                  >
-                    <span className="inline-block h-5 w-14 rounded-full border-2" style={{ borderColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }} />
-                    Afgerond
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateField('widget_button_style', 'square')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-card text-sm font-medium transition-colors ${
-                      local.widget_button_style === 'square'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border text-muted-foreground hover:border-primary/50'
-                    }`}
-                  >
-                    <span className="inline-block h-5 w-14 rounded-button border-2" style={{ borderColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }} />
-                    Rechthoekig
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Stijl van knoppen in de boekingswidget.</p>
-              </div>
+            <div>
+              <NestoInput
+                label="Redirect URL na boeking"
+                value={local.widget_success_redirect_url}
+                onChange={e => updateField('widget_success_redirect_url', e.target.value)}
+                placeholder="https://mijnrestaurant.nl/bedankt"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Optioneel: stuur gasten naar deze URL na een succesvolle boeking.</p>
             </div>
           </div>
         </NestoCard>
 
-        {/* Card 2: Boekingsvragen */}
+        {/* Card 2: Weergave */}
         <NestoCard className="p-6">
-          <h3 className="text-sm font-semibold mb-1">Boekingsvragen</h3>
-          <p className="text-xs text-muted-foreground mb-4">
-            Extra vragen die gasten zien bij het boeken. Antwoorden worden opgeslagen als tags.
-          </p>
+          <CardHeader title="Weergave" description="Bepaal wat gasten zien in de widget." />
+          <div className="divide-y divide-border/50">
+            <div className="flex items-center justify-between py-4 first:pt-0">
+              <div>
+                <p className="text-sm font-medium">Eindtijd tonen</p>
+                <p className="text-xs text-muted-foreground">Toon de verwachte eindtijd bij elk tijdslot</p>
+              </div>
+              <Switch checked={local.show_end_time} onCheckedChange={v => updateField('show_end_time', v)} />
+            </div>
+            <div className="flex items-center justify-between py-4">
+              <div>
+                <p className="text-sm font-medium">Nesto branding tonen</p>
+                <p className="text-xs text-muted-foreground">"Powered by Nesto" onderaan de widget</p>
+              </div>
+              <Switch checked={local.show_nesto_branding} onCheckedChange={v => updateField('show_nesto_branding', v)} />
+            </div>
+          </div>
+        </NestoCard>
+
+        {/* Card 3: Branding */}
+        <NestoCard className="p-6">
+          <CardHeader title="Branding" description="Kleuren, logo en knoopstijl van de widget." />
+          <div className="space-y-5">
+            {/* Color swatches */}
+            <div>
+              <label className="mb-2 block text-label text-muted-foreground">Widget kleur</label>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {PRESET_COLORS.map(color => {
+                  const isActive = local.widget_primary_color.toUpperCase() === color.toUpperCase();
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => updateField('widget_primary_color', color)}
+                      className={`h-6 w-6 rounded-full border transition-shadow flex items-center justify-center ${
+                        isActive
+                          ? 'ring-2 ring-primary ring-offset-2 border-transparent'
+                          : 'border-border hover:ring-2 hover:ring-primary/30 hover:ring-offset-1'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    >
+                      {isActive && <Check className="h-3 w-3 text-white drop-shadow-sm" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <NestoInput
+                value={local.widget_primary_color}
+                onChange={e => updateField('widget_primary_color', e.target.value)}
+                className="w-[120px]"
+                placeholder="#10B981"
+                maxLength={7}
+                error={local.widget_primary_color && !isValidHex(local.widget_primary_color) ? 'Ongeldige hex kleur' : undefined}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Kleur van knoppen en accenten in de widget.</p>
+            </div>
+
+            {/* Logo upload */}
+            <WidgetLogoUpload logoUrl={local.widget_logo_url || null} />
+
+            {/* Button style selector */}
+            <div>
+              <label className="mb-2 block text-label text-muted-foreground">Knoopstijl</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateField('widget_button_style', 'rounded')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-card text-sm font-medium transition-colors ${
+                    local.widget_button_style === 'rounded'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/50'
+                  }`}
+                >
+                  <span className="inline-block h-5 w-14 rounded-full border-2" style={{ borderColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }} />
+                  Afgerond
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('widget_button_style', 'square')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-card text-sm font-medium transition-colors ${
+                    local.widget_button_style === 'square'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/50'
+                  }`}
+                >
+                  <span className="inline-block h-5 w-14 rounded-button border-2" style={{ borderColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }} />
+                  Rechthoekig
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Stijl van knoppen in de boekingswidget.</p>
+            </div>
+          </div>
+        </NestoCard>
+
+        {/* Card 4: Boekingsvragen */}
+        <NestoCard className="p-6">
+          <CardHeader title="Boekingsvragen" description="Extra vragen die gasten zien bij het boeken. Antwoorden worden opgeslagen als tags." />
           <BookingQuestionsEditor
             questions={local.booking_questions}
             onChange={questions => updateField('booking_questions', questions)}
           />
         </NestoCard>
 
-        {/* Card 3: Integratie */}
+        {/* Card 5: Integratie */}
         {local.widget_enabled && local.location_slug && (
           <NestoCard className="p-6">
-            <h3 className="text-sm font-semibold mb-1">Integratie</h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              Kies hoe je de widget op je website wilt tonen.
-            </p>
+            <CardHeader title="Integratie" description="Kies hoe je de widget op je website wilt tonen." />
 
             <EmbedModeSelector value={embedMode} onChange={setEmbedMode} />
 
