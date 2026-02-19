@@ -8,7 +8,7 @@
 |------|-------------|--------|
 | 1 | Database Migratie (widget_settings + reservations.tags) | ✅ AFGEROND |
 | 2 | Public Booking API Edge Function (7 endpoints) | ✅ AFGEROND |
-| 3 | Widget Frontend (4-staps booking flow) | ⬜ TODO |
+| 3 | Widget Frontend (4-staps booking flow) | 🔄 STAP 1+2 KLAAR |
 | 4 | Widget Settings UI (beheer pagina) | ⬜ TODO |
 | 5 | Embed & Hosting (routes, iframe code) | ⬜ TODO |
 

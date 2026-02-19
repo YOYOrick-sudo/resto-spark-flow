@@ -31,6 +31,7 @@ import SettingsInkoop from "./pages/SettingsInkoop";
 import SettingsLeveranciers from "./pages/SettingsLeveranciers";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
+import BookingWidget from "./pages/BookingWidget";
 import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
@@ -67,6 +68,7 @@ const App = () => (
               <Routes>
                 {/* Public routes */}
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/book/:slug" element={<BookingWidget />} />
                 <Route path="/panel-demo" element={<PanelDemo />} />
                 
                 {/* Protected routes - Layout wrapper with persistent sidebar */}
