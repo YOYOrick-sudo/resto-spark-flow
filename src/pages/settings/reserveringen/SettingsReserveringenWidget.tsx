@@ -7,15 +7,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
-import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoSelect } from '@/components/polar/NestoSelect';
 import { BookingQuestionsEditor } from '@/components/settings/widget/BookingQuestionsEditor';
+import { EmbedModeSelector, type EmbedMode } from '@/components/settings/widget/EmbedModeSelector';
+import { EmbedCodePreview } from '@/components/settings/widget/EmbedCodePreview';
 import { useWidgetSettings, useUpdateWidgetSettings, type BookingQuestion } from '@/hooks/useWidgetSettings';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { usePermission } from '@/hooks/usePermission';
 import { buildBreadcrumbs } from '@/lib/settingsRouteConfig';
 import { nestoToast } from '@/lib/nestoToast';
-import { Check, Copy, ExternalLink } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 const isValidSlug = (slug: string) => /^[a-z0-9-]+$/.test(slug);
@@ -38,8 +39,10 @@ export default function SettingsReserveringenWidget() {
   const updateSettings = useUpdateWidgetSettings();
   const hasPermission = usePermission('reservations.settings');
   const [saved, setSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
+  const [embedMode, setEmbedMode] = useState<EmbedMode>('button');
+  const [buttonLabel, setButtonLabel] = useState('Reserveer');
+  const [buttonPosition, setButtonPosition] = useState('bottom-right');
 
   const [local, setLocal] = useState<LocalSettings>({
     widget_enabled: false,
@@ -104,21 +107,17 @@ export default function SettingsReserveringenWidget() {
     );
   }
 
-  const widgetUrl = local.location_slug
-    ? `${window.location.origin}/book/${local.location_slug}`
-    : '';
-
-  const copyEmbed = () => {
-    if (!widgetUrl) return;
-    navigator.clipboard.writeText(widgetUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const baseUrl = window.location.origin;
 
   const unavailableOptions = [
     { value: 'vol', label: 'Volgeboekt' },
     { value: 'walk_in_only', label: 'Alleen walk-in' },
     { value: 'bel_ons', label: 'Bel ons' },
+  ];
+
+  const positionOptions = [
+    { value: 'bottom-right', label: 'Rechtsonder' },
+    { value: 'bottom-left', label: 'Linksonder' },
   ];
 
   return (
@@ -267,23 +266,54 @@ export default function SettingsReserveringenWidget() {
           />
         </NestoCard>
 
-        {/* Section 4: Embed Code */}
+        {/* Section 4: Integratie */}
         {local.widget_enabled && local.location_slug && (
           <NestoCard className="p-6">
-            <h3 className="text-sm font-semibold mb-4">Widget link</h3>
-            <div className="bg-secondary/50 rounded-card p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Input value={widgetUrl} readOnly className="text-sm font-mono bg-background" />
-                <NestoButton size="sm" variant="secondary" onClick={copyEmbed}>
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </NestoButton>
-                <a href={widgetUrl} target="_blank" rel="noopener noreferrer">
-                  <NestoButton size="sm" variant="secondary">
-                    <ExternalLink className="h-4 w-4" />
-                  </NestoButton>
-                </a>
+            <h3 className="text-sm font-semibold mb-1">Integratie</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Kies hoe je de widget op je website wilt tonen.
+            </p>
+
+            <div className="space-y-5">
+              <EmbedModeSelector value={embedMode} onChange={setEmbedMode} />
+
+              {/* Button mode config */}
+              {embedMode === 'button' && (
+                <div className="bg-secondary/50 rounded-card-sm p-4 space-y-3">
+                  <div>
+                    <Label className="text-sm mb-1.5">Knoptekst</Label>
+                    <Input
+                      value={buttonLabel}
+                      onChange={e => setButtonLabel(e.target.value)}
+                      placeholder="Reserveer"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm mb-1.5">Positie</Label>
+                    <NestoSelect
+                      value={buttonPosition}
+                      onValueChange={setButtonPosition}
+                      options={positionOptions}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Embed code preview */}
+              <div>
+                <Label className="text-sm mb-2 block">
+                  {embedMode === 'link' ? 'Widget URL' : 'Embed code'}
+                </Label>
+                <EmbedCodePreview
+                  mode={embedMode}
+                  slug={local.location_slug}
+                  color={local.widget_primary_color}
+                  buttonLabel={buttonLabel}
+                  buttonPosition={buttonPosition}
+                  baseUrl={baseUrl}
+                />
               </div>
-              <p className="text-xs text-muted-foreground">Deel deze link met gasten of embed als iframe op je website.</p>
             </div>
           </NestoCard>
         )}
