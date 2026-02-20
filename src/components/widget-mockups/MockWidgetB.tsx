@@ -242,6 +242,9 @@ export function MockWidgetB() {
                       <span className="w-1.5 h-1.5 rounded-full bg-red-400" style={{ boxShadow: '0 0 4px rgba(239,68,68,0.3)' }} />
                     )}
                     {t}
+                    {!isSelected && !isUnavailable && availability === 'low' && (
+                      <span className="text-[10px] text-red-500 font-medium">Laatste plekken</span>
+                    )}
                   </button>
                 );
               })}

@@ -204,12 +204,15 @@ export function MockWidgetA() {
                 const isUnavailable = UNAVAILABLE_SLOTS.includes(t);
                 const isSelected = selectedTime === t;
                 const availability = SLOT_AVAILABILITY[t] ?? 'high';
+                const hasLabel = !isUnavailable && availability !== 'high';
                 return (
                   <button
                     key={t}
                     onClick={() => !isUnavailable && setSelectedTime(t)}
                     disabled={isUnavailable}
-                    className={`flex flex-col items-center py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    className={`flex flex-col items-center rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      hasLabel ? 'py-2.5 pb-4' : 'py-3'
+                    } ${
                       isUnavailable
                         ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
                         : isSelected
@@ -222,10 +225,10 @@ export function MockWidgetA() {
                   >
                     <span>{t}</span>
                     {!isUnavailable && availability === 'medium' && (
-                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${isSelected ? 'bg-white/50' : 'bg-amber-400'}`} />
+                      <span className={`text-[10px] font-medium mt-1 ${isSelected ? 'text-white/70' : 'text-amber-600'}`}>Bijna vol</span>
                     )}
                     {!isUnavailable && availability === 'low' && (
-                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${isSelected ? 'bg-white/50' : 'bg-red-400'}`} />
+                      <span className={`text-[10px] font-medium mt-1 ${isSelected ? 'text-white/70' : 'text-red-500'}`}>Laatste plekken</span>
                     )}
                   </button>
                 );
