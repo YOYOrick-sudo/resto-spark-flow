@@ -38,7 +38,7 @@ interface LocalSettings {
   widget_logo_url: string;
   widget_success_redirect_url: string;
   booking_questions: BookingQuestion[];
-  widget_button_style: string;
+  
 }
 
 const PRESET_COLORS = [
@@ -84,7 +84,7 @@ export default function SettingsReserveringenWidget() {
     widget_logo_url: '',
     widget_success_redirect_url: '',
     booking_questions: [],
-    widget_button_style: 'rounded',
+    
   });
 
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function SettingsReserveringenWidget() {
         widget_logo_url: settings.widget_logo_url || '',
         widget_success_redirect_url: settings.widget_success_redirect_url || '',
         booking_questions: (settings.booking_questions as BookingQuestion[]) || [],
-        widget_button_style: settings.widget_button_style || 'rounded',
+        
       });
     }
   }, [settings]);
@@ -277,7 +277,7 @@ export default function SettingsReserveringenWidget() {
 
         {/* Card 3: Branding */}
         <NestoCard className="p-6">
-          <CardHeader title="Branding" description="Kleuren, logo en knoopstijl van de widget." />
+          <CardHeader title="Branding" description="Kleuren en logo van de widget." />
           <div className="space-y-5">
             {/* Color palette selector */}
             <ColorPaletteSelector
@@ -293,37 +293,6 @@ export default function SettingsReserveringenWidget() {
             {/* Logo upload */}
             <WidgetLogoUpload logoUrl={local.widget_logo_url || null} />
 
-            {/* Button style selector */}
-            <div>
-              <label className="mb-2 block text-label text-muted-foreground">Knoopstijl</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => updateField('widget_button_style', 'rounded')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-card text-sm font-medium transition-colors ${
-                    local.widget_button_style === 'rounded'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border text-muted-foreground hover:border-primary/50'
-                  }`}
-                >
-                  <span className="inline-block h-5 w-14 rounded-full border-2" style={{ borderColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }} />
-                  Afgerond
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateField('widget_button_style', 'square')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-card text-sm font-medium transition-colors ${
-                    local.widget_button_style === 'square'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border text-muted-foreground hover:border-primary/50'
-                  }`}
-                >
-                  <span className="inline-block h-5 w-14 rounded-button border-2" style={{ borderColor: isValidHex(local.widget_primary_color) ? local.widget_primary_color : '#10B981' }} />
-                  Rechthoekig
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Stijl van knoppen in de boekingswidget.</p>
-            </div>
           </div>
         </NestoCard>
 
