@@ -88,7 +88,7 @@ export function MockWidgetA() {
               <button
                 key={t.id}
                 onClick={() => setSelectedTicket(t.id)}
-                className="w-full text-left rounded-2xl overflow-hidden transition-all duration-200"
+                className="w-full text-left rounded-3xl overflow-hidden transition-all duration-200"
                 style={{
                   boxShadow: selectedTicket === t.id
                     ? `0 0 0 2px ${PRIMARY}, 0 8px 20px rgba(0,0,0,0.1)`

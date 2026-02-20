@@ -113,7 +113,7 @@ export function MockWidgetB() {
                 <button
                   key={t.id}
                   onClick={() => setSelectedTicket(t.id)}
-                  className={`w-full text-left flex rounded-2xl overflow-hidden transition-all duration-200 border ${
+                  className={`w-full text-left flex rounded-3xl overflow-hidden transition-all duration-200 border ${
                     isSelected
                       ? 'border-zinc-900 shadow-md bg-zinc-50'
                       : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/50 bg-white'
