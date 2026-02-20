@@ -1,20 +1,27 @@
 
-# Ticket Cards meer diepte geven in Mockup A
 
-## Inspiratie van Guestplan
+# Fade Gradient Verplaatsen in Mockup A
 
-Guestplan gebruikt een subtiele maar effectieve techniek: een lichte schaduw rondom de kaart gecombineerd met een warme, dunne border die de kaart visueel "optilt" van de achtergrond. Geen zware drop-shadows, maar een zachte, gelaagde lift.
+## Probleem
 
-## Aanpak
+De witte fade-gradient zit nu als `sticky bottom-0` element BINNEN de step 1 content div (regel 106). Hierdoor zweeft hij mee tijdens het scrollen en verschijnt op een onnatuurlijke positie -- halverwege de content in plaats van netjes tegen de onderkant van het scroll-gebied.
 
-De huidige default shadow (`0 1px 4px rgba(0,0,0,0.06)`) is te vlak. De kaarten krijgen een gelaagde shadow die meer diepte geeft zonder zwaar te worden:
+## Oplossing
 
-- **Default staat**: `0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)` -- een subtiele ring (1px) als "border" plus een zachtere schaduw voor lift
-- **Hover staat**: toevoegen via CSS class `hover:shadow-lg` effect, of inline een iets sterkere shadow
-- **Geselecteerde staat**: de bestaande `0 0 0 2px` ring + een sterkere shadow `0 8px 20px rgba(0,0,0,0.1)`
-
-De 1px ring-shadow (in plaats van een echte border) geeft net dat beetje definitie dat Guestplan ook gebruikt, zonder de afgeronde hoeken te verpesten.
+De fade-gradient verplaatsen van binnen de scroll-container naar BUITEN de scroll-container, als een absoluut gepositioneerd element dat altijd net boven de CTA-knop zweeft. Dit zorgt ervoor dat de gradient altijd op dezelfde plek zit, ongeacht scrollpositie.
 
 ## Technisch
 
-Alleen `src/components/widget-mockups/MockWidgetA.tsx` regel 77-81: de `boxShadow` waarden aanpassen voor zowel default als selected state.
+### Bestand: `src/components/widget-mockups/MockWidgetA.tsx`
+
+1. **Verwijder** de sticky gradient div uit de step 1 content (regel 106)
+2. **Voeg toe** een absoluut gepositioneerde gradient div direct na het sluiten van de scroll-container (`</div>` op regel 276), maar voor de CTA-sectie (regel 278). Deze wordt gepositioneerd met `pointer-events-none absolute bottom-0 left-0 right-0 h-12` zodat hij altijd aan de onderkant van de scrollbare content area zit
+3. De outer container (regel 43) moet `relative` krijgen zodat de gradient correct gepositioneerd wordt -- maar aangezien de layout flex-col is, is het beter om de scroll-container zelf `relative` te maken en de gradient daar absoluut in te plaatsen
+4. Toon de gradient alleen wanneer `step < 5` (niet op de bevestigingspagina)
+
+### Concrete aanpak
+
+- Wrap de scroll-container in een `relative` div
+- Plaats de gradient als `absolute bottom-0` binnen die wrapper, buiten de overflow-y-auto div
+- Hierdoor blijft de gradient altijd gefixeerd aan de onderkant van het scrollgebied, net boven de CTA
+
