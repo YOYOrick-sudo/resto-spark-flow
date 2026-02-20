@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { useWidgetTheme } from '@/hooks/useWidgetTheme';
 import { ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -10,7 +9,7 @@ function SlotGridSkeleton() {
       <Skeleton className="h-3 w-24 rounded" />
       <div className="grid grid-cols-3 gap-2">
         {Array.from({ length: 12 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 rounded-xl" />
+          <Skeleton key={i} className="h-11 rounded-lg" />
         ))}
       </div>
     </div>
@@ -24,10 +23,10 @@ export function TimeTicketStep() {
     effectiveStyle,
   } = useBooking();
 
-  const t = useWidgetTheme();
   const primaryColor = config?.primary_color ?? '#10B981';
   const accentColor = config?.accent_color ?? '#14B8A6';
 
+  // Load slots when entering this step
   useEffect(() => {
     if (data.date && data.party_size > 0) {
       loadAvailability(data.date, data.party_size);
@@ -40,7 +39,9 @@ export function TimeTicketStep() {
   };
 
   const allSlots = availableShifts.flatMap(shift =>
-    shift.slots.filter(s => s.available).map(s => ({ ...s, shift }))
+    shift.slots
+      .filter(s => s.available)
+      .map(s => ({ ...s, shift }))
   );
 
   const handleSlotKeyDown = (e: React.KeyboardEvent, slot: any, shift: any) => {
@@ -52,7 +53,12 @@ export function TimeTicketStep() {
 
   return (
     <div className="flex flex-col gap-4 px-5">
-      <button type="button" onClick={goBack} className={t.backButtonClass}>
+      {/* Back + summary */}
+      <button
+        type="button"
+        onClick={goBack}
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 self-start"
+      >
         <ArrowLeft className="h-4 w-4" />
         Terug
       </button>
@@ -63,6 +69,7 @@ export function TimeTicketStep() {
         </p>
       </div>
 
+      {/* Ticket info banner in showcase mode */}
       {effectiveStyle === 'showcase' && data.selectedTicket && (
         <div className="text-center">
           <span
@@ -74,8 +81,10 @@ export function TimeTicketStep() {
         </div>
       )}
 
+      {/* Loading skeleton */}
       {availabilityLoading && <SlotGridSkeleton />}
 
+      {/* No slots available */}
       {!availabilityLoading && allSlots.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500 text-sm">
@@ -85,18 +94,25 @@ export function TimeTicketStep() {
               ? 'Bel ons om te reserveren.'
               : 'Geen beschikbare tijden voor deze datum.'}
           </p>
-          <button type="button" onClick={goBack} className="mt-3 text-sm font-medium hover:underline" style={{ color: primaryColor }}>
+          <button
+            type="button"
+            onClick={goBack}
+            className="mt-3 text-sm font-medium hover:underline"
+            style={{ color: primaryColor }}
+          >
             Kies een andere datum
           </button>
         </div>
       )}
 
-      {/* Slots */}
+      {/* Slots grouped by shift */}
       {!availabilityLoading && availableShifts.map(shift => {
         const available = shift.slots.filter(s => s.available);
         if (available.length === 0) return null;
 
-        const normalAvailableCount = shift.slots.filter(s => s.available && s.slot_type !== 'squeeze').length;
+        const normalAvailableCount = shift.slots.filter(
+          s => s.available && s.slot_type !== 'squeeze'
+        ).length;
         const showScarcity = normalAvailableCount <= 3;
 
         return (
@@ -104,20 +120,10 @@ export function TimeTicketStep() {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               {shift.shift_name}
             </h3>
-            <div
-              className={t.slotLayout === 'scroll'
-                ? 'flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide'
-                : 'grid grid-cols-3 gap-2'}
-              role="listbox"
-              aria-label={`Tijdslots ${shift.shift_name}`}
-            >
+            <div className="grid grid-cols-3 gap-2" role="listbox" aria-label={`Tijdslots ${shift.shift_name}`}>
               {available.map(slot => {
                 const selected = data.selectedSlot?.time === slot.time && data.selectedSlot?.ticket_id === slot.ticket_id;
                 const isSqueeze = slot.slot_type === 'squeeze';
-                const style = selected
-                  ? t.slotSelectedStyle(primaryColor)
-                  : t.slotDefaultStyle(isSqueeze, accentColor);
-
                 return (
                   <button
                     key={`${slot.time}-${slot.ticket_id}`}
@@ -127,9 +133,13 @@ export function TimeTicketStep() {
                     tabIndex={0}
                     onClick={() => setSelectedSlot(slot, shift)}
                     onKeyDown={(e) => handleSlotKeyDown(e, slot, shift)}
-                    className={`flex flex-col items-center gap-0.5 h-12 justify-center ${t.slotRadius} text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${t.slotLayout === 'scroll' ? 'shrink-0 px-5' : ''}`}
+                    className="flex flex-col items-center gap-0.5 h-11 justify-center rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                     style={{
-                      ...style,
+                      border: `1px solid ${selected ? primaryColor : isSqueeze ? accentColor : '#e5e7eb'}`,
+                      backgroundColor: selected ? primaryColor : '#fff',
+                      color: selected ? '#fff' : '#374151',
+                      boxShadow: selected ? `0 4px 12px -2px rgba(0,0,0,0.08)` : 'none',
+                      transform: selected ? 'scale(1.05)' : 'scale(1)',
                       // @ts-ignore
                       '--tw-ring-color': primaryColor,
                     }}
@@ -138,7 +148,7 @@ export function TimeTicketStep() {
                     {showScarcity && !isSqueeze && (
                       <span
                         className="text-[10px] font-medium leading-none"
-                        style={{ color: selected ? (t.theme === 'glass' ? primaryColor : 'rgba(255,255,255,0.8)') : '#ea580c' }}
+                        style={{ color: selected ? 'rgba(255,255,255,0.8)' : '#ea580c' }}
                       >
                         Nog {normalAvailableCount} {normalAvailableCount === 1 ? 'plek' : 'plekken'}
                       </span>
@@ -146,7 +156,7 @@ export function TimeTicketStep() {
                     {isSqueeze && (
                       <span
                         className="text-[10px] leading-none"
-                        style={{ color: selected ? (t.theme === 'glass' ? primaryColor : 'rgba(255,255,255,0.7)') : accentColor }}
+                        style={{ color: selected ? 'rgba(255,255,255,0.7)' : accentColor }}
                       >
                         kortere zittijd
                       </span>
@@ -159,7 +169,7 @@ export function TimeTicketStep() {
         );
       })}
 
-      {/* End time info */}
+      {/* End time + selected info */}
       {!availabilityLoading && allSlots.length > 0 && data.selectedSlot && (
         <div className="text-xs text-gray-400 text-center">
           {data.selectedSlot.ticket_name} · {data.selectedSlot.duration_minutes} min
@@ -174,8 +184,8 @@ export function TimeTicketStep() {
         type="button"
         disabled={!data.selectedSlot}
         onClick={() => goToStep('details')}
-        className={`w-full h-12 ${t.ctaRadius} text-white font-semibold text-sm transition-all duration-200 disabled:opacity-40 ${t.ctaHoverClass}`}
-        style={{ backgroundColor: primaryColor, boxShadow: data.selectedSlot ? t.ctaShadow(primaryColor) : 'none' }}
+        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-all duration-150 disabled:opacity-40 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
+        style={{ backgroundColor: primaryColor }}
       >
         Vul je gegevens in
       </button>

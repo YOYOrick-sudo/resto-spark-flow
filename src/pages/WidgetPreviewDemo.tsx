@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { WidgetTheme } from '@/hooks/useWidgetTheme';
 
 export default function WidgetPreviewDemo() {
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const slug = params.get('slug') || 'demo';
   const mode = params.get('mode') || 'button';
   const label = params.get('label') || 'Reserveer';
@@ -12,7 +11,6 @@ export default function WidgetPreviewDemo() {
   const accent = params.get('accent') || '';
   const logo = params.get('logo') || '';
   const name = params.get('name') || '';
-  const [theme, setTheme] = useState<WidgetTheme>((params.get('theme') as WidgetTheme) || 'soft');
 
   useEffect(() => {
     // Dynamically inject widget.js with config
@@ -27,7 +25,6 @@ export default function WidgetPreviewDemo() {
     if (logo) script.setAttribute('data-logo', logo);
     if (name) script.setAttribute('data-name', name);
     if (accent) script.setAttribute('data-accent', accent);
-    script.setAttribute('data-theme', theme);
     document.body.appendChild(script);
 
     return () => {
@@ -40,14 +37,7 @@ export default function WidgetPreviewDemo() {
         if (btn.getAttribute('aria-label') === label) btn.remove();
       });
     };
-  }, [slug, mode, label, position, color, accent, logo, name, theme]);
-
-  const switchTheme = (t: WidgetTheme) => {
-    setTheme(t);
-    const next = new URLSearchParams(params);
-    next.set('theme', t);
-    setParams(next, { replace: true });
-  };
+  }, [slug, mode, label, position, color, accent, logo, name]);
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#2d2d2d] font-sans">
@@ -55,28 +45,11 @@ export default function WidgetPreviewDemo() {
       <header className="border-b border-[#e5e2dc] bg-white/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <span className="text-lg font-semibold tracking-tight">Ristorante Bella Vista</span>
-          <div className="flex items-center gap-4">
-            {/* Theme toggle */}
-            <div className="flex items-center bg-gray-100 rounded-full p-0.5 gap-0.5">
-              <button
-                onClick={() => switchTheme('soft')}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${theme === 'soft' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                Soft
-              </button>
-              <button
-                onClick={() => switchTheme('glass')}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${theme === 'glass' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                Glass
-              </button>
-            </div>
-            <nav className="hidden sm:flex gap-6 text-sm text-[#666]">
-              <span className="cursor-default">Menu</span>
-              <span className="cursor-default">Over ons</span>
-              <span className="cursor-default">Contact</span>
-            </nav>
-          </div>
+          <nav className="hidden sm:flex gap-6 text-sm text-[#666]">
+            <span className="cursor-default">Menu</span>
+            <span className="cursor-default">Over ons</span>
+            <span className="cursor-default">Contact</span>
+          </nav>
         </div>
       </header>
 

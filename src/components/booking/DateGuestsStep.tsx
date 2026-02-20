@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { useWidgetTheme } from '@/hooks/useWidgetTheme';
 import { Calendar } from '@/components/ui/calendar';
 import { Minus, Plus, Users, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,11 +8,13 @@ import { nl } from 'date-fns/locale';
 function CalendarSkeleton() {
   return (
     <div className="rounded-lg border border-gray-200 p-3 w-full max-w-[280px]">
+      {/* Day headers */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {Array.from({ length: 7 }).map((_, i) => (
           <Skeleton key={i} className="h-4 w-full rounded" />
         ))}
       </div>
+      {/* 5 weeks x 7 days */}
       {Array.from({ length: 5 }).map((_, row) => (
         <div key={row} className="grid grid-cols-7 gap-1 mb-1">
           {Array.from({ length: 7 }).map((_, col) => (
@@ -33,10 +34,10 @@ export function DateGuestsStep() {
     effectiveStyle,
   } = useBooking();
 
-  const t = useWidgetTheme();
   const primaryColor = config?.primary_color ?? '#10B981';
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
+  // Load available dates when month changes
   useEffect(() => {
     if (!config) return;
     const year = calendarMonth.getFullYear();
@@ -44,6 +45,7 @@ export function DateGuestsStep() {
     loadAvailableDates(year, month, data.party_size);
   }, [calendarMonth, data.party_size, config, loadAvailableDates]);
 
+  // Convert available dates to Date objects for the calendar
   const availableDateSet = useMemo(
     () => new Set(availableDates),
     [availableDates]
@@ -62,6 +64,7 @@ export function DateGuestsStep() {
     }
   };
 
+  // Disable dates that are not available or in the past
   const disabledMatcher = (day: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -81,20 +84,25 @@ export function DateGuestsStep() {
 
   return (
     <div className="flex flex-col gap-6 px-5">
-      {/* Back button */}
+      {/* Back button (showcase mode only) */}
       {showBack && (
-        <button type="button" onClick={goBack} className={t.backButtonClass}>
+        <button
+          type="button"
+          onClick={goBack}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 self-start"
+        >
           <ArrowLeft className="h-4 w-4" />
           Terug
         </button>
       )}
 
+      {/* Welcome text */}
       {config?.welcome_text && (
         <p className="text-sm text-gray-500 text-center line-clamp-2">{config.welcome_text}</p>
       )}
 
       {/* Party size selector */}
-      <div className={`flex flex-col gap-2 ${t.partySizeContainerClass}`}>
+      <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
           <Users className="h-4 w-4" />
           Aantal gasten
@@ -103,20 +111,20 @@ export function DateGuestsStep() {
           <button
             type="button"
             onClick={() => setPartySize(Math.max(config?.min_party_size ?? 1, data.party_size - 1))}
-            className={t.partySizeButtonClass}
+            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-30"
             disabled={data.party_size <= (config?.min_party_size ?? 1)}
             aria-label="Minder gasten"
           >
             <Minus className="h-4 w-4" />
           </button>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-bold w-10 text-center">{data.party_size}</span>
+            <span className="text-2xl font-semibold w-8 text-center">{data.party_size}</span>
             <span className="text-sm text-gray-400">gasten</span>
           </div>
           <button
             type="button"
             onClick={() => setPartySize(Math.min(config?.max_party_size ?? 20, data.party_size + 1))}
-            className={t.partySizeButtonClass}
+            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-30"
             disabled={data.party_size >= (config?.max_party_size ?? 20)}
             aria-label="Meer gasten"
           >
@@ -142,10 +150,10 @@ export function DateGuestsStep() {
             disabled={disabledMatcher}
             locale={nl}
             weekStartsOn={1}
-            className={t.theme === 'glass' ? 'rounded-xl border border-white/40 bg-white/50 backdrop-blur-sm' : 'rounded-xl border border-gray-100 shadow-sm'}
+            className="rounded-lg border border-gray-200"
             modifiersStyles={{
-              selected: { backgroundColor: primaryColor, color: '#fff', borderRadius: t.calendarDayRadius, transition: 'transform 150ms ease', transform: 'scale(1)' },
-              today: { outline: `2px solid ${primaryColor}`, outlineOffset: '-2px', borderRadius: t.calendarDayRadius },
+              selected: { backgroundColor: primaryColor, color: '#fff', borderRadius: '8px', transition: 'transform 150ms ease', transform: 'scale(1)' },
+              today: { outline: `2px solid ${primaryColor}`, outlineOffset: '-2px', borderRadius: '8px' },
             }}
           />
         )}
@@ -156,8 +164,8 @@ export function DateGuestsStep() {
         type="button"
         disabled={!canContinue}
         onClick={() => goToStep('time')}
-        className={`w-full h-12 ${t.ctaRadius} text-white font-semibold text-sm transition-all duration-200 disabled:opacity-40 ${t.ctaHoverClass}`}
-        style={{ backgroundColor: primaryColor, boxShadow: canContinue ? t.ctaShadow(primaryColor) : 'none' }}
+        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-all duration-150 disabled:opacity-40 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
+        style={{ backgroundColor: primaryColor }}
       >
         Kies een tijd
       </button>
