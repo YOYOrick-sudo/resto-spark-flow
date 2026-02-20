@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { NestoButton } from '@/components/polar/NestoButton';
+import { NestoInput } from '@/components/polar/NestoInput';
 import { NestoSelect } from '@/components/polar/NestoSelect';
 import type { BookingQuestion } from '@/hooks/useWidgetSettings';
 
@@ -90,17 +89,16 @@ export function BookingQuestionsEditor({ questions, onChange }: BookingQuestions
       {adding ? (
         <div className="bg-background rounded-card border border-border p-4 space-y-3">
           <div>
-            <Label className="text-sm mb-1.5">Vraag label</Label>
-            <Input
+            <NestoInput
+              label="Vraag label"
               value={draft.label || ''}
               onChange={e => setDraft(prev => ({ ...prev, label: e.target.value }))}
               placeholder="Bijv. Heeft u dieetwensen?"
-              className="text-sm"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-sm mb-1.5">Type</Label>
+              <label className="mb-1.5 block text-label text-muted-foreground">Type</label>
               <NestoSelect
                 value={draft.type || 'text'}
                 onValueChange={v => setDraft(prev => ({ ...prev, type: v as BookingQuestion['type'], options: v === 'text' ? [] : prev.options }))}
@@ -108,7 +106,7 @@ export function BookingQuestionsEditor({ questions, onChange }: BookingQuestions
               />
             </div>
             <div>
-              <Label className="text-sm mb-1.5">Opslaan als</Label>
+              <label className="mb-1.5 block text-label text-muted-foreground">Opslaan als</label>
               <NestoSelect
                 value={draft.target || 'reservation_tags'}
                 onValueChange={v => setDraft(prev => ({ ...prev, target: v as BookingQuestion['target'] }))}
@@ -119,14 +117,13 @@ export function BookingQuestionsEditor({ questions, onChange }: BookingQuestions
 
           {draft.type !== 'text' && (
             <div>
-              <Label className="text-sm mb-1.5">Opties</Label>
+              <label className="mb-1.5 block text-label text-muted-foreground">Opties</label>
               <div className="flex gap-2 mb-2">
-                <Input
+                <NestoInput
                   value={optionInput}
                   onChange={e => setOptionInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addOption())}
                   placeholder="Nieuwe optie"
-                  className="text-sm"
                 />
                 <NestoButton size="sm" variant="secondary" onClick={addOption}>Toevoegen</NestoButton>
               </div>
