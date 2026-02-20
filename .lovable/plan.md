@@ -1,34 +1,20 @@
 
 
-# Buttons afronden en consistenter maken
+# "Knoopstijl" optie verwijderen uit Widget Settings
 
 ## Wat verandert
 
-Beide CTA-knoppen ("Volgende 1/2" en "Bevestigen") krijgen dezelfde styling:
-- Border-radius van `rounded-[10px]` (10px) naar `rounded-2xl` (16px) -- past bij de ticket-cards en input fields
-- Beide knoppen krijgen dezelfde hover/active effecten: `hover:scale-[1.02] hover:shadow-md active:scale-[0.98]`
-- Hoogte en kleur blijven identiek (#1a1a1a, h-12)
+Het hele "Knoopstijl" blok (Afgerond / Rechthoekig selector) wordt verwijderd uit de Branding card op de Widget Settings pagina. De widget gebruikt voortaan altijd de afgeronde stijl (rounded-2xl, zoals we net hebben ingesteld).
 
 ## Technisch
 
-### Bestand 1: `src/pages/BookingWidget.tsx` (regel 195)
-De "Volgende" knop:
-```
-// Was:
-className="w-full h-12 rounded-[10px] text-sm font-semibold ..."
+**Bestand:** `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`
 
-// Wordt:
-className="w-full h-12 rounded-2xl text-sm font-semibold ... hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-```
+1. Verwijder regels 296-326 (het volledige "Button style selector" blok inclusief label, knoppen en beschrijving)
+2. Verwijder `widget_button_style` uit de `LocalState` interface (regel 41)
+3. Verwijder `widget_button_style: 'rounded'` uit de initial state (regel 87)
+4. Verwijder de toewijzing in het `useEffect` blok (regel 105)
+5. Update de card description van "Kleuren, logo en knoopstijl van de widget." naar "Kleuren en logo van de widget." (regel 280)
 
-### Bestand 2: `src/components/booking/GuestDetailsStep.tsx` (regel 200)
-De "Bevestigen" knop:
-```
-// Was:
-className="w-full h-12 rounded-[10px] text-white font-semibold ..."
+De database-kolom `widget_button_style` blijft bestaan maar wordt simpelweg niet meer aangeboden in de UI. Dit is veilig -- de kolom heeft een default waarde.
 
-// Wordt:
-className="w-full h-12 rounded-2xl text-white font-semibold ..."
-```
-
-Twee kleine wijzigingen, visueel veel rustiger en consistenter.
