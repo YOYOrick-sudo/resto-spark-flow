@@ -18,7 +18,7 @@ export function SelectionStep() {
     loadAvailability, loadAvailableDates,
   } = useBooking();
 
-  const [selectorOpen, setSelectorOpen] = useState(true);
+  const [selectorOpen, setSelectorOpen] = useState(false);
   const [calendarMode, setCalendarMode] = useState(false);
   const [viewMonth, setViewMonth] = useState(new Date());
   const scrollRef = useRef<HTMLDivElement>(null);
