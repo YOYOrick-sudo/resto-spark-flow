@@ -1,22 +1,33 @@
 import { useState, useCallback } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Loader2 } from 'lucide-react';
+
+function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
+  icon: React.ReactNode; label: string; value: string; onChange: (v: string) => void; type?: string; onBlur?: () => void;
+}) {
+  return (
+    <div className="relative">
+      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
+        placeholder={label}
+        className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-white text-sm transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+      />
+    </div>
+  );
+}
 
 export function GuestDetailsStep() {
   const {
-    config, data, guestData, setGuestData, goBack,
+    config, guestData, setGuestData,
     submitBooking, bookingLoading, bookingError,
   } = useBooking();
 
-  const primaryColor = config?.primary_color ?? '#10B981';
-  const accentColor = config?.accent_color ?? '#14B8A6';
   const [lookupDone, setLookupDone] = useState(false);
   const [welcomeBack, setWelcomeBack] = useState<string | null>(null);
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
-  };
 
   // Guest lookup on email blur
   const handleEmailBlur = useCallback(async () => {
@@ -61,143 +72,55 @@ export function GuestDetailsStep() {
 
   const canSubmit = !!(guestData.first_name && guestData.last_name && guestData.email);
 
-  const inputClass = "mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none transition-shadow";
-
   return (
     <div className="flex flex-col gap-4 px-5">
-      {/* Back + summary */}
-      <button
-        type="button"
-        onClick={goBack}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 self-start"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Terug
-      </button>
+      <h3 className="text-lg font-bold text-gray-800 text-center">Je gegevens</h3>
 
-      <div className="text-center">
-        <p className="text-sm text-gray-500">
-          {data.date && formatDate(data.date)} · {data.selectedSlot?.time} · {data.party_size} {data.party_size === 1 ? 'gast' : 'gasten'}
-        </p>
-      </div>
-
-      {/* Welcome back - accent color */}
+      {/* Welcome back */}
       {welcomeBack && (
-        <div
-          className="rounded-lg px-4 py-2 text-sm text-center"
-          style={{
-            backgroundColor: `${accentColor}10`,
-            borderColor: `${accentColor}30`,
-            color: accentColor,
-            border: `1px solid ${accentColor}30`,
-          }}
-        >
+        <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-2 text-sm text-center text-green-700">
           Welkom terug, {welcomeBack}! 🎉
         </div>
       )}
 
       {/* Form */}
-      <div className="flex flex-col gap-3">
-        {/* Email first for lookup */}
-        <div>
-          <label className="text-xs font-medium text-gray-700">E-mailadres *</label>
-          <input
-            type="email"
-            required
-            value={guestData.email}
-            onChange={e => setGuestData({ email: e.target.value })}
-            onBlur={handleEmailBlur}
-            placeholder="je@email.nl"
-            className={inputClass}
-            onFocus={e => {
-              e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
-              e.target.style.borderColor = primaryColor;
-            }}
-            onBlurCapture={e => {
-              e.target.style.boxShadow = 'none';
-              e.target.style.borderColor = '#d1d5db';
-            }}
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2.5">
+          <IconInput
+            icon={<User className="w-4 h-4" />}
+            label="Voornaam"
+            value={guestData.first_name}
+            onChange={v => setGuestData({ first_name: v })}
+          />
+          <IconInput
+            icon={<User className="w-4 h-4" />}
+            label="Achternaam"
+            value={guestData.last_name}
+            onChange={v => setGuestData({ last_name: v })}
           />
         </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-medium text-gray-700">Voornaam *</label>
-            <input
-              type="text"
-              required
-              value={guestData.first_name}
-              onChange={e => setGuestData({ first_name: e.target.value })}
-              placeholder="Voornaam"
-              className={inputClass}
-              onFocus={e => {
-                e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
-                e.target.style.borderColor = primaryColor;
-              }}
-              onBlur={e => {
-                e.target.style.boxShadow = 'none';
-                e.target.style.borderColor = '#d1d5db';
-              }}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-700">Achternaam *</label>
-            <input
-              type="text"
-              required
-              value={guestData.last_name}
-              onChange={e => setGuestData({ last_name: e.target.value })}
-              placeholder="Achternaam"
-              className={inputClass}
-              onFocus={e => {
-                e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
-                e.target.style.borderColor = primaryColor;
-              }}
-              onBlur={e => {
-                e.target.style.boxShadow = 'none';
-                e.target.style.borderColor = '#d1d5db';
-              }}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-gray-700">Telefoon</label>
-          <input
-            type="tel"
-            value={guestData.phone}
-            onChange={e => setGuestData({ phone: e.target.value })}
-            placeholder="+31 6 12345678"
-            className={inputClass}
-            onFocus={e => {
-              e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
-              e.target.style.borderColor = primaryColor;
-            }}
-            onBlur={e => {
-              e.target.style.boxShadow = 'none';
-              e.target.style.borderColor = '#d1d5db';
-            }}
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-gray-700">Opmerkingen</label>
-          <textarea
-            value={guestData.guest_notes}
-            onChange={e => setGuestData({ guest_notes: e.target.value })}
-            placeholder="Allergieën, speciale wensen..."
-            rows={2}
-            className={`${inputClass} resize-none`}
-            onFocus={e => {
-              e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
-              e.target.style.borderColor = primaryColor;
-            }}
-            onBlur={e => {
-              e.target.style.boxShadow = 'none';
-              e.target.style.borderColor = '#d1d5db';
-            }}
-          />
-        </div>
+        <IconInput
+          icon={<Mail className="w-4 h-4" />}
+          label="E-mailadres"
+          type="email"
+          value={guestData.email}
+          onChange={v => setGuestData({ email: v })}
+          onBlur={handleEmailBlur}
+        />
+        <IconInput
+          icon={<Phone className="w-4 h-4" />}
+          label="Telefoonnummer"
+          type="tel"
+          value={guestData.phone}
+          onChange={v => setGuestData({ phone: v })}
+        />
+        <textarea
+          value={guestData.guest_notes}
+          onChange={e => setGuestData({ guest_notes: e.target.value })}
+          placeholder="Opmerkingen"
+          rows={3}
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm resize-none transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+        />
 
         {/* Honeypot */}
         <input
@@ -214,7 +137,7 @@ export function GuestDetailsStep() {
         {/* Booking questions */}
         {config?.booking_questions?.map(q => (
           <div key={q.id}>
-            <label className="text-xs font-medium text-gray-700">
+            <label className="text-xs font-medium text-gray-700 mb-1 block">
               {q.label} {q.required && '*'}
             </label>
 
@@ -223,43 +146,12 @@ export function GuestDetailsStep() {
                 type="text"
                 value={getAnswer(q.id)[0] ?? ''}
                 onChange={e => updateAnswer(q.id, [e.target.value])}
-                className={inputClass}
-                onFocus={e => {
-                  e.target.style.boxShadow = `0 0 0 2px ${primaryColor}30`;
-                  e.target.style.borderColor = primaryColor;
-                }}
-                onBlur={e => {
-                  e.target.style.boxShadow = 'none';
-                  e.target.style.borderColor = '#d1d5db';
-                }}
+                className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
               />
             )}
 
-            {q.type === 'single_select' && q.options && (
-              <div className="mt-1.5 flex flex-wrap gap-2">
-                {q.options.map(opt => {
-                  const selected = getAnswer(q.id).includes(opt);
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => updateAnswer(q.id, [opt])}
-                      className="px-3 py-1.5 rounded-lg text-sm border transition-colors"
-                      style={{
-                        borderColor: selected ? primaryColor : '#d1d5db',
-                        backgroundColor: selected ? primaryColor : '#fff',
-                        color: selected ? '#fff' : '#374151',
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {q.type === 'multi_select' && q.options && (
-              <div className="mt-1.5 flex flex-wrap gap-2">
+            {(q.type === 'single_select' || q.type === 'multi_select') && q.options && (
+              <div className="flex flex-wrap gap-2">
                 {q.options.map(opt => {
                   const currentValues = getAnswer(q.id);
                   const selected = currentValues.includes(opt);
@@ -268,17 +160,20 @@ export function GuestDetailsStep() {
                       key={opt}
                       type="button"
                       onClick={() => {
-                        const next = selected
-                          ? currentValues.filter(v => v !== opt)
-                          : [...currentValues, opt];
-                        updateAnswer(q.id, next);
+                        if (q.type === 'single_select') {
+                          updateAnswer(q.id, [opt]);
+                        } else {
+                          const next = selected
+                            ? currentValues.filter(v => v !== opt)
+                            : [...currentValues, opt];
+                          updateAnswer(q.id, next);
+                        }
                       }}
-                      className="px-3 py-1.5 rounded-lg text-sm border transition-colors"
-                      style={{
-                        borderColor: selected ? primaryColor : '#d1d5db',
-                        backgroundColor: selected ? primaryColor : '#fff',
-                        color: selected ? '#fff' : '#374151',
-                      }}
+                      className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                        selected
+                          ? 'border-gray-800 bg-gray-800 text-white'
+                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
                     >
                       {opt}
                     </button>
@@ -302,8 +197,8 @@ export function GuestDetailsStep() {
         type="button"
         disabled={!canSubmit || bookingLoading}
         onClick={submitBooking}
-        className="w-full h-12 rounded-[10px] text-white font-medium text-sm transition-all duration-150 disabled:opacity-40 flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-        style={{ backgroundColor: primaryColor }}
+        className="w-full h-12 rounded-[10px] text-white font-semibold text-sm transition-all duration-200 disabled:opacity-40 flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
+        style={{ backgroundColor: '#1a1a1a' }}
       >
         {bookingLoading ? (
           <>
@@ -311,7 +206,7 @@ export function GuestDetailsStep() {
             Bezig met boeken...
           </>
         ) : (
-          'Reservering bevestigen'
+          'Bevestigen'
         )}
       </button>
     </div>

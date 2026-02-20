@@ -1,10 +1,10 @@
 import { useBooking } from '@/contexts/BookingContext';
 
 export function BookingProgress() {
-  const { step, totalSteps, config } = useBooking();
-  const primaryColor = config?.primary_color ?? '#10B981';
+  const { step } = useBooking();
 
-  const dots = Array.from({ length: totalSteps }, (_, i) => i + 1);
+  // Only show on steps 1 and 2 (2 progress bars for 2 actionable steps)
+  const progressSteps = 2;
 
   return (
     <div
@@ -12,26 +12,20 @@ export function BookingProgress() {
       role="progressbar"
       aria-valuenow={step}
       aria-valuemin={1}
-      aria-valuemax={totalSteps}
-      aria-label={`Stap ${step} van ${totalSteps}`}
+      aria-valuemax={3}
+      aria-label={`Stap ${step} van 3`}
     >
-      {dots.map(s => {
-        const isActive = s === step;
-        const isCompleted = s < step;
+      {Array.from({ length: progressSteps }, (_, i) => {
+        const stepNum = i + 1;
+        const isActive = stepNum === step;
+        const isCompleted = stepNum < step;
 
         return (
           <div
-            key={s}
-            className="h-2 rounded-full transition-all duration-200"
-            style={{
-              width: isActive ? 24 : 8,
-              backgroundColor: isActive
-                ? primaryColor
-                : isCompleted
-                  ? primaryColor
-                  : '#E5E7EB',
-              opacity: isCompleted ? 0.6 : 1,
-            }}
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              isActive ? 'w-6 bg-gray-800' : isCompleted ? 'w-1.5 bg-gray-800' : 'w-1.5 bg-gray-300'
+            }`}
           />
         );
       })}

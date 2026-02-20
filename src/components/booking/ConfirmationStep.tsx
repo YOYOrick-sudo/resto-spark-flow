@@ -1,13 +1,21 @@
 import { useBooking } from '@/contexts/BookingContext';
-import { Calendar, ExternalLink } from 'lucide-react';
+import { Calendar, ExternalLink, Check } from 'lucide-react';
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-sm">
+      <span className="text-gray-500">{label}</span>
+      <span className="font-medium text-gray-800">{value}</span>
+    </div>
+  );
+}
 
 export function ConfirmationStep() {
-  const { config, data, bookingResult } = useBooking();
-  const primaryColor = config?.primary_color ?? '#10B981';
+  const { config, data, guestData, bookingResult, setStep, setDate, setPartySize, setSelectedSlot, setSelectedTicket, setGuestData } = useBooking();
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
   // Google Calendar link
@@ -25,97 +33,53 @@ export function ConfirmationStep() {
     ? `${window.location.origin}/manage/${bookingResult.manage_token}`
     : null;
 
+  const handleRebook = () => {
+    setDate(null);
+    setPartySize(2);
+    setSelectedSlot(null, null);
+    setSelectedTicket(null);
+    setGuestData({ first_name: '', last_name: '', email: '', phone: '', guest_notes: '', booking_answers: [], honeypot: '' });
+    setStep(1);
+  };
+
   return (
-    <div className="flex flex-col items-center gap-6 px-5 py-4">
+    <div className="flex flex-col items-center justify-center py-8 space-y-6 px-5">
       {/* Animated checkmark */}
-      <div className="w-16 h-16">
-        <svg viewBox="0 0 64 64" className="w-full h-full">
-          <circle
-            cx="32" cy="32" r="28"
-            fill="none"
-            stroke={primaryColor}
-            strokeWidth="3"
-            style={{
-              strokeDasharray: 176,
-              strokeDashoffset: 176,
-              animation: 'check-circle 500ms ease-out forwards',
-            }}
-          />
-          <circle
-            cx="32" cy="32" r="28"
-            fill={primaryColor}
-            className="opacity-0"
-            style={{
-              animation: 'check-fill 300ms ease-out 400ms forwards',
-            }}
-          />
-          <path
-            d="M20 33 L28 41 L44 25"
-            fill="none"
-            stroke="#fff"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{
-              strokeDasharray: 40,
-              strokeDashoffset: 40,
-              animation: 'check-mark 300ms ease-out 600ms forwards',
-            }}
-          />
-        </svg>
-        <style>{`
-          @keyframes check-circle {
-            to { stroke-dashoffset: 0; }
-          }
-          @keyframes check-fill {
-            to { opacity: 1; }
-          }
-          @keyframes check-mark {
-            to { stroke-dashoffset: 0; }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            @keyframes check-circle {
-              from, to { stroke-dashoffset: 0; }
-            }
-            @keyframes check-fill {
-              from, to { opacity: 1; }
-            }
-            @keyframes check-mark {
-              from, to { stroke-dashoffset: 0; }
-            }
-          }
-        `}</style>
+      <div
+        className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center"
+        style={{ animation: 'checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
+      >
+        <Check className="w-10 h-10 text-green-600" />
       </div>
 
-      <div className="text-center">
-        <h2 className="text-xl font-semibold text-gray-900">Reservering bevestigd!</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Je ontvangt een bevestiging per e-mail.
-        </p>
+      <div className="text-center space-y-2">
+        <h3 className="text-xl font-bold text-gray-800">Bevestigd!</h3>
+        <p className="text-sm text-gray-500">Je reservering is geplaatst. Je ontvangt een bevestiging per e-mail.</p>
       </div>
 
-      {/* Summary */}
-      <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
-        {data.date && (
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Datum</span>
-            <span className="font-medium text-gray-900">{formatDate(data.date)}</span>
-          </div>
-        )}
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Tijd</span>
-          <span className="font-medium text-gray-900">{data.selectedSlot?.time}</span>
+      {/* Ticket-style summary card */}
+      <div className="w-full bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div className="border-b-2 border-dashed border-gray-200 px-5 py-3">
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold text-center">Reservering</p>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Gasten</span>
-          <span className="font-medium text-gray-900">{data.party_size}</span>
+        <div className="p-5 space-y-3">
+          {data.selectedTicket && (
+            <Row label="Ervaring" value={data.selectedTicket.display_title || data.selectedTicket.name} />
+          )}
+          {data.date && <Row label="Datum" value={formatDate(data.date)} />}
+          {data.selectedSlot && <Row label="Tijd" value={data.selectedSlot.time} />}
+          <Row label="Gasten" value={String(data.party_size)} />
+          <Row label="Naam" value={`${guestData.first_name} ${guestData.last_name}`} />
         </div>
-        {data.selectedSlot && (
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Type</span>
-            <span className="font-medium text-gray-900">{data.selectedSlot.ticket_name}</span>
+        <div className="border-t-2 border-dashed border-gray-200 px-5 py-4 flex justify-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="grid grid-cols-4 gap-0.5">
+              {Array.from({ length: 16 }).map((_, i) => (
+                <div key={i} className={`w-2.5 h-2.5 rounded-[1px] ${[0,1,3,4,5,7,8,10,12,13,15].includes(i) ? 'bg-gray-800' : 'bg-gray-200'}`} />
+              ))}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Actions */}
@@ -125,7 +89,7 @@ export function ConfirmationStep() {
             href={calendarUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all duration-150 text-gray-700 hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-200 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all duration-150 text-gray-700 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Calendar className="h-4 w-4" />
             Voeg toe aan agenda
@@ -135,8 +99,7 @@ export function ConfirmationStep() {
         {manageUrl && (
           <a
             href={manageUrl}
-            className="w-full h-11 rounded-[10px] text-sm font-medium border flex items-center justify-center gap-2 transition-all duration-150 text-white hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-200 flex items-center justify-center gap-2 transition-all duration-150 text-gray-700 hover:bg-gray-50 hover:scale-[1.02] active:scale-[0.98]"
           >
             <ExternalLink className="h-4 w-4" />
             Reservering beheren
@@ -152,6 +115,23 @@ export function ConfirmationStep() {
           </a>
         )}
       </div>
+
+      <button onClick={handleRebook} className="text-sm text-gray-500 underline">
+        Opnieuw boeken
+      </button>
+
+      <style>{`
+        @keyframes checkPop {
+          0% { transform: scale(0); opacity: 0; }
+          60% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          @keyframes checkPop {
+            from, to { transform: scale(1); opacity: 1; }
+          }
+        }
+      `}</style>
     </div>
   );
 }

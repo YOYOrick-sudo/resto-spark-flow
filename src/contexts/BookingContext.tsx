@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 // ============================================
 // Types
@@ -88,13 +87,13 @@ export interface BookingResult {
   manage_token: string | null;
 }
 
-export type WidgetStyle = 'showcase' | 'quick';
-export type BookingStep = 1 | 2 | 3 | 4 | 5;
-export type StepName = 'ticket' | 'date' | 'time' | 'details' | 'confirmation';
+export type BookingStep = 1 | 2 | 3;
+export type StepName = 'selection' | 'details' | 'confirmation';
 
-const STEP_MAP: Record<WidgetStyle, Partial<Record<StepName, BookingStep>>> = {
-  showcase: { ticket: 1, date: 2, time: 3, details: 4, confirmation: 5 },
-  quick:    { date: 1, time: 2, details: 3, confirmation: 4 },
+const STEP_MAP: Record<StepName, BookingStep> = {
+  selection: 1,
+  details: 2,
+  confirmation: 3,
 };
 
 interface BookingContextValue {
@@ -103,11 +102,8 @@ interface BookingContextValue {
   configLoading: boolean;
   configError: string | null;
 
-  // Effective style
-  effectiveStyle: WidgetStyle;
-  totalSteps: number;
-
   // Step navigation
+  totalSteps: number;
   step: BookingStep;
   setStep: (step: BookingStep) => void;
   goToStep: (name: StepName) => void;
@@ -163,8 +159,9 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
 
-  // Step state
+  // Step state — always 3 steps
   const [step, setStep] = useState<BookingStep>(1);
+  const totalSteps = 3;
 
   // Booking data
   const [data, setData] = useState<BookingData>({
@@ -195,17 +192,6 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableDatesLoading, setAvailableDatesLoading] = useState(false);
-
-  // Computed: effective style & total steps
-  const effectiveStyle = useMemo<WidgetStyle>(() => {
-    if (!config) return 'quick';
-    if (config.widget_style === 'showcase') return 'showcase';
-    if (config.widget_style === 'quick') return 'quick';
-    // auto: showcase when 2+ tickets
-    return config.active_ticket_count >= 2 ? 'showcase' : 'quick';
-  }, [config]);
-
-  const totalSteps = effectiveStyle === 'showcase' ? 5 : 4;
 
   // Load config on mount
   useEffect(() => {
@@ -345,19 +331,19 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Booking failed');
       setBookingResult(result);
-      setStep(totalSteps as BookingStep); // Go to confirmation (4 or 5)
+      setStep(3); // Go to confirmation
     } catch (err: any) {
       setBookingError(err.message || 'Er ging iets mis bij het boeken.');
     } finally {
       setBookingLoading(false);
     }
-  }, [config, data, guestData, totalSteps]);
+  }, [config, data, guestData]);
 
   // Step navigation helpers
   const goToStep = useCallback((name: StepName) => {
-    const target = STEP_MAP[effectiveStyle][name];
+    const target = STEP_MAP[name];
     if (target) setStep(target);
-  }, [effectiveStyle]);
+  }, []);
 
   const goBack = useCallback(() => {
     if (step > 1) setStep((step - 1) as BookingStep);
@@ -365,17 +351,8 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
 
   // Determine if user can proceed
   const canGoNext = (() => {
-    if (effectiveStyle === 'showcase') {
-      if (step === 1) return !!data.selectedTicket;
-      if (step === 2) return !!data.date && data.party_size > 0;
-      if (step === 3) return !!data.selectedSlot;
-      if (step === 4) return !!(guestData.first_name && guestData.last_name && guestData.email);
-      return false;
-    }
-    // quick mode
-    if (step === 1) return !!data.date && data.party_size > 0;
-    if (step === 2) return !!data.selectedSlot;
-    if (step === 3) return !!(guestData.first_name && guestData.last_name && guestData.email);
+    if (step === 1) return !!data.selectedTicket && !!data.date && !!data.selectedSlot;
+    if (step === 2) return !!(guestData.first_name && guestData.last_name && guestData.email);
     return false;
   })();
 
@@ -383,7 +360,7 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
     <BookingContext.Provider
       value={{
         config, configLoading, configError,
-        effectiveStyle, totalSteps,
+        totalSteps,
         step, setStep, goToStep, goBack, canGoNext,
         data, setDate, setPartySize, setSelectedSlot, setSelectedTicket,
         guestData, setGuestData,
