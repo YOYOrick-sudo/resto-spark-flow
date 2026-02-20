@@ -27,7 +27,7 @@ const NestoCard = React.forwardRef<HTMLDivElement, NestoCardProps>(
           },
           nested
             ? "border border-border/40 shadow-none"
-            : "border border-border/70 shadow-card",
+            : "border border-border shadow-card",
           hoverable && !nested && "cursor-pointer hover:shadow-hover hover:-translate-y-px",
           className
         )}
