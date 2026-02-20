@@ -1,52 +1,75 @@
 
 
-# Widget Flow Omdraaien: Datum-first in plaats van Ticket-first
+# Widget Sfeer-upgrade: Van Formulier naar Uitnodiging
 
-## Waarom
+Sterke visie. Hier is het plan om de drie concrete ideeeen door te voeren in beide mockups.
 
-De huidige volgorde (Ticket > Datum > Tijd > Gegevens) creëert teleurstelling: een gast kiest "Chef's Table", ontdekt dat het vol is, en moet terug. De Guestplan-aanpak is psychologisch beter: eerst wanneer en hoeveel gasten, dan wat er beschikbaar is.
+---
 
-## Nieuwe volgorde
+## 1. Ambient achtergrond uit ticket foto
+
+Wanneer een gast een ticket selecteert, verschijnt de ticket-foto als subtiele blurred achtergrond achter de hele widget. De sfeer verandert per keuze.
+
+**Hoe het werkt:**
+- Een absoluut gepositioneerde `<img>` achter alle content, met `blur(40px)`, `opacity: 0.08`, `scale(1.2)` (om blur-randen te verbergen)
+- Smooth CSS transition (600ms) bij wisselen van ticket
+- Alleen zichtbaar na ticket-selectie (step >= 1 met selectedTicket)
+- Blijft zichtbaar in stap 2, 3, 4 -- de sfeer draagt door de hele flow
+- Op de bevestigingspagina (step 5) fade naar 0 zodat de kaart schoon leesbaar is
+
+## 2. Dag-level drukte-indicator in de kalenderstap
+
+Elke dag in de datumkiezer krijgt een subtiele kleur-dot die aangeeft hoe druk die dag wordt verwacht.
+
+**Mock data toevoegen:**
+- `DAY_AVAILABILITY` map in mockData.ts: index 0-13 met waarden `'quiet'`, `'normal'`, `'busy'`, `'almost_full'`
+- Weekenddagen (vr/za) standaard `'busy'` of `'almost_full'`, doordeweeks meer `'quiet'`/`'normal'`
+
+**Visueel (beide mockups):**
+- Onder het datum-getal verschijnt een kleine dot (w-1.5 h-1.5)
+- Groen = rustig, geen dot = normaal, oranje = populair, rood = bijna vol
+- Bij geselecteerde staat: dot wordt wit/semi-transparant
+- Geen tekst in de buttons, legenda onderaan: "Rustig / Populair / Bijna vol"
+
+## 3. Prominentere prijsindicatie
+
+Tickets met een prijs tonen deze prominenter:
+- "vanaf" prefix voor prix-fixe tickets (Mockup A: in de foto-overlay als groter, duidelijker badge)
+- Mockup B: prijs rechts in de kaart, iets groter en bold
+- Diner-ticket zonder prijs: geen wijziging
+
+---
+
+## Technisch overzicht
+
+### Bestanden die wijzigen:
+
+1. **`src/components/widget-mockups/mockData.ts`**
+   - Toevoegen: `DAY_AVAILABILITY` array met 14 entries voor drukte per dag
+
+2. **`src/components/widget-mockups/MockWidgetA.tsx`**
+   - Ambient background layer toevoegen (absoluut gepositioneerd, blurred ticket-image)
+   - Step 2: dag-dots toevoegen in de datum-buttons
+   - Step 2: legenda onder de kalenderstap
+   - Step 1: prijs-badge aanpassen met "vanaf" prefix
+
+3. **`src/components/widget-mockups/MockWidgetB.tsx`**
+   - Ambient background layer toevoegen (zelfde techniek)
+   - Step 2: dag-dots toevoegen in de grid-cellen
+   - Step 2: legenda onder de kalender
+   - Step 1: prijs prominenter stylen
+
+### Ambient background implementatie (pseudo-code):
 
 ```text
-Oud:   Ticket (1) → Datum+Gasten (2) → Tijd (3) → Gegevens (4) → Bevestiging (5)
-Nieuw: Datum+Gasten (1) → Tijd (2) → Ticket (3) → Gegevens (4) → Bevestiging (5)
+<div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+  <img
+    src={selectedTicketImageUrl}
+    class="w-full h-full object-cover scale-120 blur-[40px]
+           opacity-8 transition-all duration-600"
+  />
+</div>
 ```
 
-## Wijzigingen per bestand
-
-### 1. `src/components/widget-mockups/mockData.ts`
-- Toevoegen: `TICKET_AVAILABILITY` map die per tijdslot aangeeft welke tickets beschikbaar zijn
-- Bijv. om 19:30 is alleen "diner" beschikbaar, om 17:00 zijn alle drie beschikbaar
-- Dit simuleert de filtering die in productie door de availability engine gebeurt
-
-### 2. `src/components/widget-mockups/MockWidgetA.tsx`
-- **Step 1** wordt Datum+Gasten (was step 2)
-- **Step 2** wordt Tijd (was step 3)
-- **Step 3** wordt Ticket kiezen -- met filtering op basis van `selectedTime`
-  - Tickets die niet beschikbaar zijn voor het gekozen tijdslot worden grijs/disabled getoond met "Niet beschikbaar" label
-  - Als maar 1 ticket beschikbaar is: auto-select en skip naar step 4
-- **Step 4** blijft Gegevens
-- **Step 5** blijft Bevestiging
-- `canNext()` logica updaten: step 1 checkt datum, step 2 checkt tijd, step 3 checkt ticket
-- Ambient background verschijnt nu pas vanaf step 3 (wanneer ticket gekozen wordt)
-- Progress dots blijven 4 stappen
-
-### 3. `src/components/widget-mockups/MockWidgetB.tsx`
-- Zelfde flow-wijziging als Mockup A
-- **stepLabels** array updaten van `['Ervaring', 'Datum', 'Tijd', 'Gegevens']` naar `['Datum', 'Tijd', 'Ervaring', 'Gegevens']`
-- Step nummering en content herschikken
-- Dezelfde ticket-filtering en auto-skip logica
-- Stepper visueel toont de nieuwe volgorde
-
-### Auto-skip logica (beide mockups)
-Wanneer de gast een tijd kiest en er is maar 1 ticket beschikbaar voor dat tijdslot:
-- Ticket wordt automatisch geselecteerd
-- Flow springt direct van step 2 naar step 4 (gegevens)
-- Stap 3 wordt overgeslagen -- de gast hoeft geen keuze te maken die er niet is
-
-### Ticket-filtering visueel (step 3)
-- Beschikbare tickets: normaal klikbaar, zoals nu
-- Niet-beschikbare tickets: `opacity-50`, niet klikbaar, met een klein "Niet beschikbaar om [tijd]" label
-- Header wijzigt naar "Beschikbaar voor jouw selectie" (Guestplan-stijl)
+De rest van de content krijgt `relative z-10` zodat alles erboven blijft.
 
