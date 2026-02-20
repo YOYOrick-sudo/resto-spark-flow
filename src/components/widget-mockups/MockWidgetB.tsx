@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, type MockFormData } from './mockData';
+import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, DAY_AVAILABILITY, type MockFormData } from './mockData';
 import { ChevronLeft, Minus, Plus, Check, CalendarPlus, Copy } from 'lucide-react';
 
 const PRIMARY = '#18181b';
@@ -43,18 +43,31 @@ export function MockWidgetB() {
 
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+  const selectedTicketData = MOCK_TICKETS.find(t => t.id === selectedTicket);
+
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="h-full flex flex-col relative" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      {/* Ambient background from selected ticket */}
+      {selectedTicketData && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <img
+            src={selectedTicketData.imageUrl}
+            alt=""
+            className="w-full h-full object-cover transition-all duration-700 ease-out"
+            style={{ filter: 'blur(40px)', opacity: step < 5 ? 0.08 : 0, transform: 'scale(1.2)' }}
+          />
+        </div>
+      )}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {/* Header */}
-      <header className="shrink-0 pt-10 pb-2 px-5 text-center">
+      <header className="shrink-0 pt-10 pb-2 px-5 text-center relative z-10">
         <div className="w-12 h-12 mx-auto bg-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 text-[10px] font-semibold border border-zinc-200">LOGO</div>
       </header>
 
       {/* Enhanced Stepper with gradient lines */}
       {step < 5 && (
-        <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center justify-between px-6 py-3 relative z-10">
           {stepLabels.map((label, i) => (
             <div key={i} className="flex items-center">
               <div className="flex flex-col items-center">
@@ -87,7 +100,7 @@ export function MockWidgetB() {
 
       {/* Content with fade */}
       <div
-        className="flex-1 overflow-y-auto px-5 pb-4 transition-opacity duration-120"
+        className="flex-1 overflow-y-auto px-5 pb-4 transition-opacity duration-120 relative z-10"
         style={{ opacity: fadeIn ? 1 : 0 }}
       >
         {/* Step 1: Tickets with radio + glassmorphism */}
@@ -123,7 +136,7 @@ export function MockWidgetB() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-zinc-800">{t.name}</span>
-                        {t.price && <span className="text-xs text-zinc-500 font-medium">{t.price}</span>}
+                        {t.price && <span className="text-sm font-bold text-zinc-800">vanaf {t.price}</span>}
                       </div>
                       <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed line-clamp-2">{t.description}</p>
                       <span className="text-[10px] text-zinc-400 mt-1 inline-block">{t.minGuests}–{t.maxGuests} gasten</span>
@@ -145,6 +158,7 @@ export function MockWidgetB() {
                 const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                 const isToday = i === 0;
                 const isSelected = selectedDate === i;
+                const busyness = DAY_AVAILABILITY[i] ?? 'normal';
                 return (
                   <button
                     key={i}
@@ -160,14 +174,27 @@ export function MockWidgetB() {
                     <span className="text-[9px] uppercase font-medium opacity-60">{dayNames[d.getDay()]}</span>
                     <span className="text-sm font-semibold">{d.getDate()}</span>
                     <span className="text-[9px] opacity-60">{monthNames[d.getMonth()]}</span>
-                    {/* Today indicator dot */}
-                    {isToday && !isSelected && (
+                    {isToday && !isSelected && busyness === 'normal' && (
                       <div className="w-1 h-1 rounded-full bg-zinc-900 mt-0.5" />
+                    )}
+                    {busyness !== 'normal' && (
+                      <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                        isSelected
+                          ? 'bg-white/50'
+                          : busyness === 'quiet' ? 'bg-emerald-400'
+                          : busyness === 'busy' ? 'bg-amber-400'
+                          : 'bg-red-400'
+                      }`} />
                     )}
                   </button>
                 );
               })}
             </div>
+            <p className="text-[10px] text-zinc-400 flex items-center justify-center gap-4 pt-1">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Rustig</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Populair</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" /> Bijna vol</span>
+            </p>
             {/* Pill-shaped guest stepper */}
             <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-zinc-200">
               <span className="text-sm font-medium text-zinc-700">Gasten</span>
@@ -306,7 +333,7 @@ export function MockWidgetB() {
 
       {/* CTA with progress + keyboard hint */}
       {step < 5 && (
-        <div className="shrink-0 px-5 pb-4 pt-2 space-y-1.5">
+        <div className="shrink-0 px-5 pb-4 pt-2 space-y-1.5 relative z-10">
           <div className="flex gap-2.5">
             {step > 1 && (
               <button onClick={back} className="h-11 w-11 rounded-xl bg-white border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 transition-colors">
