@@ -5,9 +5,7 @@ import {
   isTicketAvailable, getTimeSlotsForDay, firstAvailableDay, firstAvailableTime,
   type MockFormData,
 } from './mockData';
-import { ChevronLeft, ChevronDown, ChevronUp, Minus, Plus, Check, Calendar as CalendarIcon, Users, User, Mail, Phone, Clock, Pencil } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Minus, Plus, Check, Calendar as CalendarIcon, List, Users, User, Mail, Phone, Clock, Pencil } from 'lucide-react';
 
 const PRIMARY = '#1a1a1a';
 
@@ -21,7 +19,8 @@ export function MockWidgetA() {
   const [fadeIn, setFadeIn] = useState(true);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMode, setCalendarMode] = useState(false);
+  const [viewMonth, setViewMonth] = useState(new Date());
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const totalSteps = 3;
@@ -46,7 +45,9 @@ export function MockWidgetA() {
   });
 
   const dayNames = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
+  const dayNamesShort = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
   const monthNames = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  const monthNamesFull = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
 
   const selectedTicketData = MOCK_TICKETS.find(t => t.id === selectedTicket);
 
@@ -98,14 +99,37 @@ export function MockWidgetA() {
   };
 
   // Handle calendar date pick → compute day index from today
-  const handleCalendarDateSelect = (date: Date | undefined) => {
-    if (!date) return;
-    const diffMs = date.getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const handleCalendarDayClick = (date: Date) => {
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffMs = date.getTime() - todayStart.getTime();
     const dayIndex = Math.round(diffMs / (1000 * 60 * 60 * 24));
     if (dayIndex >= 0 && dayIndex < 90) {
       handleDateSelect(dayIndex);
     }
-    setCalendarOpen(false);
+    setCalendarMode(false);
+  };
+
+  // Build month grid for inline calendar
+  const buildMonthGrid = (month: Date) => {
+    const year = month.getFullYear();
+    const m = month.getMonth();
+    const firstDay = new Date(year, m, 1);
+    const lastDay = new Date(year, m + 1, 0);
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const maxDate = dates[dates.length - 1];
+    // Monday=0 offset
+    const startOffset = (firstDay.getDay() + 6) % 7;
+    const cells: Array<{ date: Date; dayIndex: number; inMonth: boolean; disabled: boolean }> = [];
+    // Empty cells
+    for (let i = 0; i < startOffset; i++) cells.push({ date: new Date(0), dayIndex: -1, inMonth: false, disabled: true });
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(year, m, d);
+      const diffMs = date.getTime() - todayStart.getTime();
+      const dayIndex = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      const disabled = dayIndex < 0 || dayIndex >= 90;
+      cells.push({ date, dayIndex, inMonth: true, disabled });
+    }
+    return cells;
   };
 
   return (
@@ -183,56 +207,128 @@ export function MockWidgetA() {
                           <CalendarIcon className="w-4 h-4 text-gray-400" />
                           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datum</span>
                         </div>
-                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                          <PopoverTrigger asChild>
-                            <button className="text-xs text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100">
-                              <CalendarIcon className="w-3.5 h-3.5" />
-                              <span>Kalender</span>
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 z-50" align="end">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDate !== null ? dates[selectedDate] : undefined}
-                              onSelect={handleCalendarDateSelect}
-                              disabled={(date) => date < today || date > dates[dates.length - 1]}
-                              initialFocus
-                              className="p-3 pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <button
+                          onClick={() => {
+                            setCalendarMode(m => !m);
+                            if (!calendarMode && selectedDate !== null) {
+                              setViewMonth(dates[selectedDate]);
+                            }
+                          }}
+                          className="text-xs text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100"
+                        >
+                          {calendarMode ? <List className="w-3.5 h-3.5" /> : <CalendarIcon className="w-3.5 h-3.5" />}
+                          <span>{calendarMode ? 'Strip' : 'Kalender'}</span>
+                        </button>
                       </div>
-                      <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-                        {dates.map((d, i) => {
-                          const busyness = DAY_AVAILABILITY[i] ?? 'normal';
-                          const isSelected = selectedDate === i;
-                          return (
-                            <button
-                              key={i}
-                              data-day={i}
-                              onClick={() => handleDateSelect(i)}
-                              className={`flex flex-col items-center min-w-[48px] py-2 px-1.5 rounded-2xl transition-all duration-200 text-center ${
-                                isSelected
-                                  ? 'bg-gray-800 text-white shadow-md'
-                                  : 'bg-white text-gray-600 hover:bg-gray-100'
-                              }`}
-                              style={!isSelected ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
-                            >
-                              <span className="text-[10px] uppercase font-medium opacity-70">{dayNames[d.getDay()]}</span>
-                              <span className="text-base font-bold">{d.getDate()}</span>
-                              <span className="text-[10px] opacity-70">{monthNames[d.getMonth()]}</span>
-                              {busyness !== 'normal' && (
-                                <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                                  isSelected
-                                    ? 'bg-white/50'
-                                    : busyness === 'quiet' ? 'bg-emerald-400'
-                                    : busyness === 'busy' ? 'bg-amber-400'
-                                    : 'bg-red-400'
-                                }`} />
-                              )}
-                            </button>
-                          );
-                        })}
+
+                      <div className="relative">
+                        {/* Week strip */}
+                        <div
+                          className={`transition-all duration-300 ${calendarMode ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}
+                        >
+                          <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                            {dates.map((d, i) => {
+                              const busyness = DAY_AVAILABILITY[i] ?? 'normal';
+                              const isSelected = selectedDate === i;
+                              return (
+                                <button
+                                  key={i}
+                                  data-day={i}
+                                  onClick={() => handleDateSelect(i)}
+                                  className={`flex flex-col items-center min-w-[48px] py-2 px-1.5 rounded-2xl transition-all duration-200 text-center ${
+                                    isSelected
+                                      ? 'bg-gray-800 text-white shadow-md'
+                                      : 'bg-white text-gray-600 hover:bg-gray-100'
+                                  }`}
+                                  style={!isSelected ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
+                                >
+                                  <span className="text-[10px] uppercase font-medium opacity-70">{dayNames[d.getDay()]}</span>
+                                  <span className="text-base font-bold">{d.getDate()}</span>
+                                  <span className="text-[10px] opacity-70">{monthNames[d.getMonth()]}</span>
+                                  {busyness !== 'normal' && (
+                                    <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                                      isSelected
+                                        ? 'bg-white/50'
+                                        : busyness === 'quiet' ? 'bg-emerald-400'
+                                        : busyness === 'busy' ? 'bg-amber-400'
+                                        : 'bg-red-400'
+                                    }`} />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Inline month calendar */}
+                        <div
+                          className={`transition-all duration-300 ${calendarMode ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}
+                        >
+                          {(() => {
+                            const cells = buildMonthGrid(viewMonth);
+                            return (
+                              <div>
+                                {/* Month navigation */}
+                                <div className="flex items-center justify-between mb-3">
+                                  <button
+                                    onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+                                  >
+                                    <ChevronLeft className="w-4 h-4 text-gray-500" />
+                                  </button>
+                                  <span className="text-sm font-semibold text-gray-700 capitalize">
+                                    {monthNamesFull[viewMonth.getMonth()]} {viewMonth.getFullYear()}
+                                  </span>
+                                  <button
+                                    onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+                                  >
+                                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                                  </button>
+                                </div>
+                                {/* Day headers */}
+                                <div className="grid grid-cols-7 gap-1 mb-1">
+                                  {dayNamesShort.map(dn => (
+                                    <div key={dn} className="text-center text-[10px] font-semibold text-gray-400 uppercase py-1">{dn}</div>
+                                  ))}
+                                </div>
+                                {/* Day cells */}
+                                <div className="grid grid-cols-7 gap-1">
+                                  {cells.map((cell, idx) => {
+                                    if (!cell.inMonth) return <div key={`e-${idx}`} className="h-10" />;
+                                    const isSelected = selectedDate === cell.dayIndex;
+                                    const busyness = DAY_AVAILABILITY[cell.dayIndex] ?? 'normal';
+                                    return (
+                                      <button
+                                        key={idx}
+                                        disabled={cell.disabled}
+                                        onClick={() => !cell.disabled && handleCalendarDayClick(cell.date)}
+                                        className={`h-10 w-full rounded-2xl text-sm font-semibold flex flex-col items-center justify-center transition-all duration-200 ${
+                                          cell.disabled
+                                            ? 'text-gray-300 cursor-not-allowed'
+                                            : isSelected
+                                            ? 'bg-gray-800 text-white shadow-md'
+                                            : 'text-gray-700 hover:bg-gray-100'
+                                        }`}
+                                      >
+                                        <span>{cell.date.getDate()}</span>
+                                        {!cell.disabled && busyness !== 'normal' && (
+                                          <span className={`w-1.5 h-1.5 rounded-full -mt-0.5 ${
+                                            isSelected
+                                              ? 'bg-white/50'
+                                              : busyness === 'quiet' ? 'bg-emerald-400'
+                                              : busyness === 'busy' ? 'bg-amber-400'
+                                              : 'bg-red-400'
+                                          }`} />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
 
