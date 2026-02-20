@@ -8,6 +8,7 @@ import { TimeTicketStep } from '@/components/booking/TimeTicketStep';
 import { GuestDetailsStep } from '@/components/booking/GuestDetailsStep';
 import { ConfirmationStep } from '@/components/booking/ConfirmationStep';
 import { Loader2, X } from 'lucide-react';
+import { getWidgetThemeTokens, WidgetThemeContext, type WidgetTheme } from '@/hooks/useWidgetTheme';
 
 function useEmbedMessaging(isEmbed: boolean) {
   const mainRef = useRef<HTMLDivElement>(null);
@@ -111,8 +112,14 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   const isConfirmation = step === confirmationStep;
   const animClass = direction === 'forward' ? 'animate-step-forward' : 'animate-step-back';
 
+  // Get theme from URL
+  const [params] = useSearchParams();
+  const themeName = (params.get('theme') as WidgetTheme) || 'soft';
+  const themeTokens = getWidgetThemeTokens(themeName);
+
   return (
-    <div ref={mainRef} className="h-full flex flex-col bg-[#FAFAF8]">
+    <WidgetThemeContext.Provider value={themeTokens}>
+    <div ref={mainRef} className={`h-full flex flex-col ${themeTokens.bgClass}`} style={themeTokens.bgStyle}>
       {/* Panel header */}
       {isEmbed && (
         <header className="shrink-0 relative flex flex-col items-center gap-2 px-5 pt-4 pb-1">
@@ -168,6 +175,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
         </footer>
       )}
     </div>
+    </WidgetThemeContext.Provider>
   );
 }
 

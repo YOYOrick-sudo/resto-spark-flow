@@ -16,10 +16,11 @@
   var logoUrl = script.getAttribute('data-logo') || '';
   var restaurantName = script.getAttribute('data-name') || '';
   var accentColor = script.getAttribute('data-accent') || '#ffffff';
+  var theme = script.getAttribute('data-theme') || 'soft';
 
   var src = script.src;
   var baseUrl = src.substring(0, src.lastIndexOf('/'));
-  var iframeSrc = baseUrl + '/book/' + encodeURIComponent(slug) + '?embed=true';
+  var iframeSrc = baseUrl + '/book/' + encodeURIComponent(slug) + '?embed=true&theme=' + encodeURIComponent(theme);
 
   // ─── Helpers ───
 
