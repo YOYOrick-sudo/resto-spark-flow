@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MOCK_TICKETS, MOCK_TIME_SLOTS, UNAVAILABLE_SLOTS, INITIAL_FORM, type MockFormData } from './mockData';
+import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, type MockFormData } from './mockData';
 import { ChevronLeft, Minus, Plus, Check, Calendar, Users, User, Mail, Phone } from 'lucide-react';
 
 const PRIMARY = '#1a1a1a';
@@ -170,25 +170,40 @@ export function MockWidgetA() {
               {MOCK_TIME_SLOTS.map(t => {
                 const isUnavailable = UNAVAILABLE_SLOTS.includes(t);
                 const isSelected = selectedTime === t;
+                const availability = SLOT_AVAILABILITY[t] ?? 'high';
                 return (
                   <button
                     key={t}
                     onClick={() => !isUnavailable && setSelectedTime(t)}
                     disabled={isUnavailable}
-                    className={`py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    className={`flex flex-col items-center rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      availability === 'low' && !isSelected && !isUnavailable ? 'py-2.5 pb-3.5' : availability === 'medium' && !isSelected && !isUnavailable ? 'py-2.5 pb-3.5' : 'py-3'
+                    } ${
                       isUnavailable
                         ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
                         : isSelected
                         ? 'bg-gray-800 text-white shadow-md'
+                        : availability === 'low'
+                        ? 'bg-red-50 text-gray-700 hover:bg-red-100'
                         : 'bg-white text-gray-700 hover:bg-gray-100'
                     }`}
                     style={!isSelected && !isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
                   >
-                    {t}
+                    <span>{t}</span>
+                    {!isUnavailable && availability === 'medium' && (
+                      <span className={`text-[10px] font-medium leading-none mt-1 ${isSelected ? 'text-white/60' : 'text-amber-600'}`}>Bijna vol</span>
+                    )}
+                    {!isUnavailable && availability === 'low' && (
+                      <span className={`text-[10px] font-medium leading-none mt-1 ${isSelected ? 'text-white/60' : 'text-red-500'}`}>Laatste plekken</span>
+                    )}
                   </button>
                 );
               })}
             </div>
+            <p className="text-[10px] text-gray-400 flex items-center justify-center gap-4 pt-1">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Bijna vol</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" /> Laatste plekken</span>
+            </p>
           </div>
         )}
 
