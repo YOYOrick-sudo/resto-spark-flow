@@ -17,11 +17,35 @@ export const MOCK_TICKETS = [
     maxGuests: 6,
     price: '€ 95 p.p.',
   },
+  {
+    id: 'sunday-brunch',
+    name: 'Sunday Brunch',
+    description: 'Ontspan met een uitgebreid brunchbuffet op zondagochtend.',
+    imageUrl: 'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=600&q=80',
+    minGuests: 2,
+    maxGuests: 8,
+    price: '€ 45 p.p.',
+  },
 ];
 
 export const MOCK_TIME_SLOTS = [
   '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00',
 ];
+
+export const POPULAR_SLOTS = ['19:00', '19:30'];
+export const UNAVAILABLE_SLOTS = ['21:00'];
+
+export const SLOT_AVAILABILITY: Record<string, 'high' | 'medium' | 'low'> = {
+  '17:00': 'high',
+  '17:30': 'high',
+  '18:00': 'high',
+  '18:30': 'medium',
+  '19:00': 'medium',
+  '19:30': 'low',
+  '20:00': 'medium',
+  '20:30': 'high',
+  '21:00': 'high',
+};
 
 export type MockFormData = {
   firstName: string;
