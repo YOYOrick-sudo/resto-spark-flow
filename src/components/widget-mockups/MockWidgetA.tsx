@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   MOCK_TICKETS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS,
   INITIAL_FORM, DAY_AVAILABILITY,
@@ -18,6 +18,7 @@ export function MockWidgetA() {
   const [form, setForm] = useState<MockFormData>(INITIAL_FORM);
   const [fadeIn, setFadeIn] = useState(true);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [selectorOpen, setSelectorOpen] = useState(false);
 
   const totalSteps = 3;
   const canNext = () => {
@@ -48,14 +49,26 @@ export function MockWidgetA() {
   // Dynamic time slots based on selected day
   const timeSlots = selectedDate !== null ? getTimeSlotsForDay(selectedDate) : getTimeSlotsForDay(0);
 
+  // Auto-select first available date and time on mount
+  useEffect(() => {
+    if (selectedDate === null) {
+      const day = firstAvailableDay(null);
+      const initDate = day >= 0 ? day : 0;
+      setSelectedDate(initDate);
+      const time = firstAvailableTime(null, initDate);
+      if (time) setSelectedTime(time);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Handle ticket selection with auto-date/time
   const handleTicketSelect = (ticketId: string) => {
     setSelectedTicket(ticketId);
+    setSelectorOpen(false); // collapse selector on ticket pick
     // Auto-select first available day if none chosen or current day doesn't work
     if (selectedDate === null || !isTicketAvailable(ticketId, selectedDate, null, partySize)) {
       const day = firstAvailableDay(ticketId);
       setSelectedDate(day);
-      // Auto-select first available time on that day
       const time = firstAvailableTime(ticketId, day);
       if (time) setSelectedTime(time);
     } else if (selectedTime && !isTicketAvailable(ticketId, selectedDate, selectedTime, partySize)) {
@@ -119,106 +132,135 @@ export function MockWidgetA() {
           {/* Step 1: Combined — Date, Guests, Time, Tickets */}
           {step === 1 && (
             <div className="space-y-5">
-              {/* Date */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datum</span>
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-                  {dates.map((d, i) => {
-                    const busyness = DAY_AVAILABILITY[i] ?? 'normal';
-                    const isSelected = selectedDate === i;
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => handleDateSelect(i)}
-                        className={`flex flex-col items-center min-w-[48px] py-2 px-1.5 rounded-2xl transition-all duration-200 text-center ${
-                          isSelected
-                            ? 'bg-gray-800 text-white shadow-md'
-                            : 'bg-white text-gray-600 hover:bg-gray-100'
-                        }`}
-                        style={!isSelected ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
-                      >
-                        <span className="text-[10px] uppercase font-medium opacity-70">{dayNames[d.getDay()]}</span>
-                        <span className="text-base font-bold">{d.getDate()}</span>
-                        <span className="text-[10px] opacity-70">{monthNames[d.getMonth()]}</span>
-                        {busyness !== 'normal' && (
-                          <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                            isSelected
-                              ? 'bg-white/50'
-                              : busyness === 'quiet' ? 'bg-emerald-400'
-                              : busyness === 'busy' ? 'bg-amber-400'
-                              : 'bg-red-400'
-                          }`} />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Compact selector dropdown */}
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                <button
+                  onClick={() => setSelectorOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  {selectorOpen ? (
+                    <>
+                      <span className="font-semibold text-gray-800 text-xs uppercase tracking-wide">Je selectie</span>
+                      <ChevronUp className="w-4 h-4 text-gray-400" />
+                    </>
+                  ) : (
+                    <>
+                      <span className="truncate font-medium text-gray-700">
+                        {selectedDate !== null
+                          ? `${dayNames[dates[selectedDate].getDay()]} ${dates[selectedDate].getDate()} ${monthNames[dates[selectedDate].getMonth()]}`
+                          : '—'}
+                        {' · '}{partySize} gasten{' · '}{selectedTime ?? '—'}
+                      </span>
+                      <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
+                    </>
+                  )}
+                </button>
 
-              {/* Guests */}
-              <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-3" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Gasten</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setPartySize(s => Math.max(1, s - 1))}
-                    className="w-8 h-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                  >
-                    <Minus className="w-3.5 h-3.5 text-gray-600" />
-                  </button>
-                  <span className="text-lg font-bold w-5 text-center tabular-nums">{partySize}</span>
-                  <button
-                    onClick={() => setPartySize(s => Math.min(10, s + 1))}
-                    className="w-8 h-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-gray-600" />
-                  </button>
-                </div>
-              </div>
+                {selectorOpen && (
+                  <div className="border-t border-gray-100 px-4 py-4 space-y-5">
+                    {/* Date */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datum</span>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                        {dates.map((d, i) => {
+                          const busyness = DAY_AVAILABILITY[i] ?? 'normal';
+                          const isSelected = selectedDate === i;
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => handleDateSelect(i)}
+                              className={`flex flex-col items-center min-w-[48px] py-2 px-1.5 rounded-2xl transition-all duration-200 text-center ${
+                                isSelected
+                                  ? 'bg-gray-800 text-white shadow-md'
+                                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                              }`}
+                              style={!isSelected ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
+                            >
+                              <span className="text-[10px] uppercase font-medium opacity-70">{dayNames[d.getDay()]}</span>
+                              <span className="text-base font-bold">{d.getDate()}</span>
+                              <span className="text-[10px] opacity-70">{monthNames[d.getMonth()]}</span>
+                              {busyness !== 'normal' && (
+                                <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                                  isSelected
+                                    ? 'bg-white/50'
+                                    : busyness === 'quiet' ? 'bg-emerald-400'
+                                    : busyness === 'busy' ? 'bg-amber-400'
+                                    : 'bg-red-400'
+                                }`} />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-              {/* Time */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tijd</span>
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {timeSlots.map(t => {
-                    const isUnavailable = UNAVAILABLE_SLOTS.includes(t);
-                    const isSelected = selectedTime === t;
-                    const availability = SLOT_AVAILABILITY[t] ?? 'high';
-                    return (
-                      <button
-                        key={t}
-                        onClick={() => !isUnavailable && setSelectedTime(t)}
-                        disabled={isUnavailable}
-                        className={`flex flex-col items-center rounded-xl text-sm font-semibold py-2.5 transition-all duration-200 ${
-                          isUnavailable
-                            ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
-                            : isSelected
-                            ? 'bg-gray-800 text-white shadow-md'
-                            : availability === 'low'
-                            ? 'bg-red-50 text-gray-700 hover:bg-red-100'
-                            : 'bg-white text-gray-700 hover:bg-gray-100'
-                        }`}
-                        style={!isSelected && !isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
-                      >
-                        <span>{t}</span>
-                        {!isUnavailable && availability === 'medium' && (
-                          <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white/50' : 'bg-amber-400'}`} />
-                        )}
-                        {!isUnavailable && availability === 'low' && (
-                          <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white/50' : 'bg-red-400'}`} />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                    {/* Guests */}
+                    <div className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-700">Gasten</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setPartySize(s => Math.max(1, s - 1))}
+                          className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                        >
+                          <Minus className="w-3.5 h-3.5 text-gray-600" />
+                        </button>
+                        <span className="text-lg font-bold w-5 text-center tabular-nums">{partySize}</span>
+                        <button
+                          onClick={() => setPartySize(s => Math.min(10, s + 1))}
+                          className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-gray-600" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Time */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tijd</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {timeSlots.map(t => {
+                          const isUnavailable = UNAVAILABLE_SLOTS.includes(t);
+                          const isSelected = selectedTime === t;
+                          const availability = SLOT_AVAILABILITY[t] ?? 'high';
+                          return (
+                            <button
+                              key={t}
+                              onClick={() => !isUnavailable && setSelectedTime(t)}
+                              disabled={isUnavailable}
+                              className={`flex flex-col items-center rounded-xl text-sm font-semibold py-2.5 transition-all duration-200 ${
+                                isUnavailable
+                                  ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
+                                  : isSelected
+                                  ? 'bg-gray-800 text-white shadow-md'
+                                  : availability === 'low'
+                                  ? 'bg-red-50 text-gray-700 hover:bg-red-100'
+                                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                              }`}
+                              style={!isSelected && !isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
+                            >
+                              <span>{t}</span>
+                              {!isUnavailable && availability === 'medium' && (
+                                <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white/50' : 'bg-amber-400'}`} />
+                              )}
+                              {!isUnavailable && availability === 'low' && (
+                                <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white/50' : 'bg-red-400'}`} />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Divider */}
