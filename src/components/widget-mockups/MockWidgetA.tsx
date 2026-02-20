@@ -76,8 +76,8 @@ export function MockWidgetA() {
                 className="w-full text-left rounded-2xl overflow-hidden transition-all duration-200"
                 style={{
                   boxShadow: selectedTicket === t.id
-                    ? `0 0 0 2px ${PRIMARY}, 0 4px 12px rgba(0,0,0,0.1)`
-                    : '0 1px 4px rgba(0,0,0,0.06)'
+                    ? `0 0 0 2px ${PRIMARY}, 0 8px 20px rgba(0,0,0,0.1)`
+                    : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)'
                 }}
               >
                 <div className="relative w-full overflow-hidden" style={{ aspectRatio: '2.4/1' }}>
