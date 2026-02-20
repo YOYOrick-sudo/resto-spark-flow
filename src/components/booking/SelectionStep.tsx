@@ -18,7 +18,7 @@ export function SelectionStep() {
     loadAvailability, loadAvailableDates,
   } = useBooking();
 
-  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [selectorOpen, setSelectorOpen] = useState(true);
   const [calendarMode, setCalendarMode] = useState(false);
   const [viewMonth, setViewMonth] = useState(new Date());
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -71,6 +71,14 @@ export function SelectionStep() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config]);
+
+  // Auto-select ticket when only one is available
+  useEffect(() => {
+    if (tickets.length === 1 && !data.selectedTicket) {
+      setSelectedTicket(tickets[0]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tickets.length]);
 
   // Load availability when date or party size changes
   useEffect(() => {
