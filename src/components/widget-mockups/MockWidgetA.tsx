@@ -5,7 +5,7 @@ import {
   isTicketAvailable, getTimeSlotsForDay, firstAvailableDay, firstAvailableTime,
   type MockFormData,
 } from './mockData';
-import { ChevronLeft, Minus, Plus, Check, Calendar, Users, User, Mail, Phone, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp, Minus, Plus, Check, Calendar, Users, User, Mail, Phone, Clock, Pencil } from 'lucide-react';
 
 const PRIMARY = '#1a1a1a';
 
@@ -17,6 +17,7 @@ export function MockWidgetA() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [form, setForm] = useState<MockFormData>(INITIAL_FORM);
   const [fadeIn, setFadeIn] = useState(true);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   const totalSteps = 3;
   const canNext = () => {
@@ -352,20 +353,70 @@ export function MockWidgetA() {
 
       {/* CTA */}
       {step < 3 && (
-        <div className="shrink-0 px-5 pb-4 pt-2 flex gap-3">
-          {step > 1 && (
-            <button onClick={back} className="h-12 w-12 rounded-[10px] bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
-            </button>
+        <div className="shrink-0 px-5 pb-4 pt-2 space-y-2">
+          {/* Summary dropdown — only on step 2 */}
+          {step === 2 && (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+              <button
+                onClick={() => setSummaryOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                {summaryOpen ? (
+                  <>
+                    <span className="font-semibold text-gray-800 text-xs uppercase tracking-wide">Je selectie</span>
+                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                  </>
+                ) : (
+                  <>
+                    <span className="truncate">
+                      {selectedDate !== null
+                        ? `${dayNames[dates[selectedDate].getDay()]} ${dates[selectedDate].getDate()} ${monthNames[dates[selectedDate].getMonth()]}`
+                        : '—'}
+                      {' · '}{partySize} gasten · {selectedTime ?? '—'}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
+                  </>
+                )}
+              </button>
+              {summaryOpen && (
+                <div className="border-t border-gray-100">
+                  {[
+                    { icon: <Calendar className="w-4 h-4" />, label: 'Datum', value: selectedDate !== null ? `${dayNames[dates[selectedDate].getDay()]} ${dates[selectedDate].getDate()} ${monthNames[dates[selectedDate].getMonth()]}` : '—' },
+                    { icon: <Users className="w-4 h-4" />, label: 'Gasten', value: `${partySize} gasten` },
+                    { icon: <Clock className="w-4 h-4" />, label: 'Tijd', value: selectedTime ?? '—' },
+                    { icon: <Check className="w-4 h-4" />, label: 'Ervaring', value: selectedTicketData?.name ?? '—' },
+                  ].map(row => (
+                    <button
+                      key={row.label}
+                      onClick={() => goTo(1)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group"
+                    >
+                      <span className="text-gray-400">{row.icon}</span>
+                      <span className="text-xs text-gray-400 w-16 text-left">{row.label}</span>
+                      <span className="flex-1 text-sm font-medium text-gray-800 text-left">{row.value}</span>
+                      <Pencil className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-500 transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
-          <button
-            onClick={next}
-            disabled={!canNext()}
-            className="flex-1 h-12 rounded-[10px] text-sm font-semibold transition-all duration-200 disabled:opacity-40"
-            style={{ backgroundColor: PRIMARY, color: '#fff' }}
-          >
-            {step === 2 ? 'Bevestigen' : `Volgende (${step}/2)`}
-          </button>
+
+          <div className="flex gap-3">
+            {step > 1 && (
+              <button onClick={back} className="h-12 w-12 rounded-[10px] bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              </button>
+            )}
+            <button
+              onClick={next}
+              disabled={!canNext()}
+              className="flex-1 h-12 rounded-[10px] text-sm font-semibold transition-all duration-200 disabled:opacity-40"
+              style={{ backgroundColor: PRIMARY, color: '#fff' }}
+            >
+              {step === 2 ? 'Bevestigen' : `Volgende (${step}/2)`}
+            </button>
+          </div>
         </div>
       )}
 
