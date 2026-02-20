@@ -1,51 +1,57 @@
 
-# Fix: datum en tijd niet selecteerbaar in CreateReservationSheet
+# Fix: Widget "Volgende" knop niet klikbaar
 
 ## Oorzaak
 
-De `NestoPanel` op desktop rendert als een custom `div` met `z-[70]` en een backdrop overlay ook op `z-[70]`. De datumpicker (Calendar in een Popover) en het tijdslot (Select) gebruiken Radix UI Portal-componenten die **buiten de panel DOM** renderen — standaard op `z-50`. Ze verschijnen daarmee:
+De booking widget gebruikt een "Smart Landing Page" waarbij de selector-dropdown (datum, gasten, tijd) **standaard gesloten** is (`selectorOpen = false`). Dit zorgt voor twee problemen:
 
-- **achter de backdrop overlay** (`z-[70]`)
-- of worden geblokkeerd door de panel's eigen stacking context
+1. De gasten +/- knoppen zitten verstopt in de gesloten selector — de gebruiker kan ze niet bedienen
+2. De tijdsloten zijn ook onzichtbaar totdat de selector open is
+3. `canGoNext` op stap 1 vereist alle drie: `selectedTicket + date + selectedSlot` — maar de gebruiker kan nooit bij datum/tijd komen zonder de selector te openen
 
-Gevolg: de dropdowns openen wel (of lijken te openen), maar klikken erop werkt niet of ze zijn onzichtbaar.
+De "Volgende" knop blijft daardoor altijd disabled.
 
 ## Oplossing
 
-Twee kleine maar gerichte fixes:
+Twee kleine fixes:
 
-### 1. PopoverContent z-index verhogen (datum)
+### 1. Selector standaard open zetten bij eerste bezoek
 
-In `src/components/reservations/CreateReservationSheet.tsx`, de `PopoverContent` voor de kalender krijgt een expliciete hogere z-index mee:
-
-```tsx
-<PopoverContent className="w-auto p-0 z-[80]" align="start">
-```
-
-### 2. SelectContent z-index verhogen (tijdslot)
-
-De `SelectContent` voor het tijdslot (en alle andere Selects in de sheet) krijgt ook `z-[80]`:
+In `SelectionStep.tsx`, de `useState` aanpassen:
 
 ```tsx
-<SelectContent className="z-[80]">
+// Huidig
+const [selectorOpen, setSelectorOpen] = useState(false);
+
+// Nieuw
+const [selectorOpen, setSelectorOpen] = useState(true);
 ```
 
-Dit geldt voor alle Select-dropdowns in de details-stap: Tijdslot, Ticket, Kanaal, Status, Tafelmodus.
+De selector start nu open zodat de gebruiker meteen datum, gasten en tijd kan zien en selecteren. De bestaande logica sluit hem automatisch zodra een volledige selectie gemaakt is (`hasFullSelection` effect).
 
-### 3. pointer-events-auto bevestigen op Calendar
+### 2. "Volgende" knop tonen als ticket-loos scenario ook werkt
 
-De Calendar heeft al `className="p-3 pointer-events-auto"` — dat is correct. Geen wijziging nodig.
+De widget-config heeft één ticket ("Reservering"). Als er maar één ticket is, kan dit automatisch geselecteerd worden zodat de gebruiker niet expliciet een ticket hoeft te kiezen. Dit is een UX-verbetering: één ticket = auto-select.
+
+In `SelectionStep.tsx`, een useEffect toevoegen die het enige ticket automatisch selecteert als er maar één is:
+
+```tsx
+// Auto-selecteer ticket als er maar één beschikbaar is
+useEffect(() => {
+  if (tickets.length === 1 && !data.selectedTicket) {
+    setSelectedTicket(tickets[0]);
+  }
+}, [tickets, data.selectedTicket, setSelectedTicket]);
+```
+
+Dit lost het "Volgende" knop probleem op: zodra de gebruiker een datum en tijdslot selecteert, en er is maar één ticket, is `canGoNext` automatisch `true`.
 
 ---
 
-## Technisch overzicht
+## Bestanden
 
-Alleen z-index aanpassingen op de portals in `CreateReservationSheet.tsx`. Geen logica, geen nieuwe componenten, geen database.
+- **`src/components/booking/SelectionStep.tsx`**:
+  - `useState(false)` → `useState(true)` voor `selectorOpen`
+  - Auto-select useEffect voor het enige ticket
 
-```text
-src/components/reservations/CreateReservationSheet.tsx
-  - PopoverContent (datum kalender): + className="w-auto p-0 z-[80]"
-  - SelectContent (tijdslot, ticket, kanaal, status, tafelmodus): + className="z-[80]"
-```
-
-Alle portals (Popover en Select) krijgen `z-[80]` — één stap boven de panel/backdrop `z-[70]`, zodat ze altijd bovenaan renderen en klikbaar zijn.
+Geen database, geen edge functions, alleen twee kleine UI-fixes.
