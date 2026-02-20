@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { MOCK_TICKETS, MOCK_TIME_SLOTS, POPULAR_SLOTS, UNAVAILABLE_SLOTS, INITIAL_FORM, type MockFormData } from './mockData';
-import { ChevronLeft, Minus, Plus, Check, Calendar, Users, User, Mail, Phone, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { MOCK_TICKETS, MOCK_TIME_SLOTS, UNAVAILABLE_SLOTS, INITIAL_FORM, type MockFormData } from './mockData';
+import { ChevronLeft, Minus, Plus, Check, Calendar, Users, User, Mail, Phone } from 'lucide-react';
 
 const PRIMARY = '#1a1a1a';
 
@@ -11,7 +11,6 @@ export function MockWidgetA() {
   const [partySize, setPartySize] = useState(2);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [form, setForm] = useState<MockFormData>(INITIAL_FORM);
-  const [hoveredTicket, setHoveredTicket] = useState<string | null>(null);
   const [fadeIn, setFadeIn] = useState(true);
 
   const totalSteps = 5;
@@ -40,38 +39,32 @@ export function MockWidgetA() {
   const dayNames = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
   const monthNames = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
-  const getTicketShadow = (id: string, isSelected: boolean) => {
-    if (isSelected) return `0 0 0 2px ${PRIMARY}, 0 0 20px -4px rgba(26,26,26,0.15), 0 8px 24px -4px rgba(0,0,0,0.12)`;
-    if (hoveredTicket === id) return '0 4px 16px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.04)';
-    return '0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06), inset 0 0 0 1px rgba(0,0,0,0.04)';
-  };
-
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: '#FAFAF8', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      {/* Header */}
-      <header className="shrink-0 pt-10 pb-2 px-5 text-center">
-        <div className="w-14 h-14 mx-auto bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold">LOGO</div>
-      </header>
-
-      {/* Progress dots */}
-      {step < 5 && (
-        <div className="flex justify-center gap-1.5 py-3">
-          {Array.from({ length: totalSteps - 1 }, (_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i + 1 === step ? 'w-6 bg-gray-800' : i + 1 < step ? 'w-1.5 bg-gray-800' : 'w-1.5 bg-gray-300'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Content with fade transition */}
+    <div className="h-full flex flex-col" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      {/* Content with fade transition — header + dots scroll along */}
       <div
         className="flex-1 overflow-y-auto px-5 pb-4 transition-opacity duration-150"
         style={{ opacity: fadeIn ? 1 : 0 }}
       >
+        {/* Scrollable header */}
+        <header className="pt-10 pb-2 text-center">
+          <div className="w-14 h-14 mx-auto bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold">LOGO</div>
+        </header>
+
+        {/* Progress dots (inside scroll) */}
+        {step < 5 && (
+          <div className="flex justify-center gap-1.5 py-3">
+            {Array.from({ length: totalSteps - 1 }, (_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i + 1 === step ? 'w-6 bg-gray-800' : i + 1 < step ? 'w-1.5 bg-gray-800' : 'w-1.5 bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Step 1: Tickets */}
         {step === 1 && (
           <div className="space-y-4 relative">
@@ -80,42 +73,37 @@ export function MockWidgetA() {
               <button
                 key={t.id}
                 onClick={() => setSelectedTicket(t.id)}
-                onMouseEnter={() => setHoveredTicket(t.id)}
-                onMouseLeave={() => setHoveredTicket(null)}
-                className="w-full text-left rounded-[28px] overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
-                style={{ boxShadow: getTicketShadow(t.id, selectedTicket === t.id) }}
+                className="w-full text-left rounded-2xl overflow-hidden transition-all duration-200"
+                style={{
+                  boxShadow: selectedTicket === t.id
+                    ? `0 0 0 2px ${PRIMARY}, 0 4px 12px rgba(0,0,0,0.1)`
+                    : '0 1px 4px rgba(0,0,0,0.06)'
+                }}
               >
-                {/* Cinematic hero image */}
-                <div className="relative w-full overflow-hidden" style={{ aspectRatio: '1.8/1' }}>
+                <div className="relative w-full overflow-hidden" style={{ aspectRatio: '2.4/1' }}>
                   <img src={t.imageUrl} alt={t.name} className="absolute inset-0 w-full h-full object-cover" />
-                  {/* Dual gradient: top vignette + bottom cinematic */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                  {/* Blur accent at bottom */}
-                  <div className="absolute bottom-0 left-0 right-0 h-12" style={{ backdropFilter: 'blur(2px)' }} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
-                    <span className="text-white font-bold text-sm uppercase tracking-wider">{t.name}</span>
+                    <span className="text-white font-semibold text-sm">{t.name}</span>
                     {t.price && (
-                      <span className="text-white/80 text-xs font-medium bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                      <span className="text-white/80 text-xs font-medium bg-white/15 px-2 py-0.5 rounded-full">
                         {t.price}
                       </span>
                     )}
                   </div>
-                  {/* Selected indicator */}
                   {selectedTicket === t.id && (
-                    <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-lg">
-                      <Check className="w-4 h-4 text-gray-800" />
+                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow">
+                      <Check className="w-3.5 h-3.5 text-gray-800" />
                     </div>
                   )}
                 </div>
-                <div className="px-5 py-3.5 bg-white">
+                <div className="px-4 py-3 bg-white">
                   <p className="text-sm text-gray-500 leading-relaxed">{t.description}</p>
                   <p className="text-[11px] text-gray-400 mt-1">{t.minGuests}–{t.maxGuests} gasten</p>
                 </div>
               </button>
             ))}
-            {/* Scroll fade indicator */}
-            <div className="pointer-events-none sticky bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#FAFAF8] to-transparent" />
+            <div className="pointer-events-none sticky bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#FAFAFA] to-transparent" />
           </div>
         )}
 
@@ -123,7 +111,6 @@ export function MockWidgetA() {
         {step === 2 && (
           <div className="space-y-6">
             <h3 className="text-lg font-bold text-gray-800 text-center">Datum & gasten</h3>
-            {/* Section with icon */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Calendar className="w-4 h-4 text-gray-400" />
@@ -136,7 +123,7 @@ export function MockWidgetA() {
                     onClick={() => setSelectedDate(i)}
                     className={`flex flex-col items-center min-w-[52px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center ${
                       selectedDate === i
-                        ? 'bg-gray-800 text-white scale-105 shadow-lg'
+                        ? 'bg-gray-800 text-white shadow-md'
                         : 'bg-white text-gray-600 hover:bg-gray-100'
                     }`}
                     style={selectedDate !== i ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
@@ -148,7 +135,6 @@ export function MockWidgetA() {
                 ))}
               </div>
             </div>
-            {/* Guest counter with icon */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4 text-gray-400" />
@@ -160,7 +146,6 @@ export function MockWidgetA() {
                   <button
                     onClick={() => setPartySize(s => Math.max(1, s - 1))}
                     className="w-10 h-10 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                    style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}
                   >
                     <Minus className="w-4 h-4 text-gray-600" />
                   </button>
@@ -168,7 +153,6 @@ export function MockWidgetA() {
                   <button
                     onClick={() => setPartySize(s => Math.min(10, s + 1))}
                     className="w-10 h-10 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                    style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)' }}
                   >
                     <Plus className="w-4 h-4 text-gray-600" />
                   </button>
@@ -185,28 +169,22 @@ export function MockWidgetA() {
             <div className="grid grid-cols-3 gap-2">
               {MOCK_TIME_SLOTS.map(t => {
                 const isUnavailable = UNAVAILABLE_SLOTS.includes(t);
-                const isPopular = POPULAR_SLOTS.includes(t);
                 const isSelected = selectedTime === t;
                 return (
                   <button
                     key={t}
                     onClick={() => !isUnavailable && setSelectedTime(t)}
                     disabled={isUnavailable}
-                    className={`relative py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    className={`py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                       isUnavailable
                         ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
                         : isSelected
-                        ? 'bg-gray-800 text-white scale-105 shadow-lg'
+                        ? 'bg-gray-800 text-white shadow-md'
                         : 'bg-white text-gray-700 hover:bg-gray-100'
                     }`}
                     style={!isSelected && !isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
                   >
                     {t}
-                    {isPopular && !isSelected && !isUnavailable && (
-                      <span className="absolute -top-1.5 right-2 text-[8px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
-                        Populair
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -219,7 +197,6 @@ export function MockWidgetA() {
           <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 text-center">Je gegevens</h3>
             <div className="space-y-3">
-              {/* Name row - 2 columns */}
               <div className="grid grid-cols-2 gap-2.5">
                 <IconInput icon={<User className="w-4 h-4" />} label="Voornaam" value={form.firstName} onChange={v => setForm(p => ({ ...p, firstName: v }))} />
                 <IconInput icon={<User className="w-4 h-4" />} label="Achternaam" value={form.lastName} onChange={v => setForm(p => ({ ...p, lastName: v }))} />
@@ -232,10 +209,7 @@ export function MockWidgetA() {
                   onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Opmerkingen"
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm resize-none transition-all placeholder:text-gray-400"
-                  style={{ outline: 'none' }}
-                  onFocus={e => { e.target.style.boxShadow = '0 0 0 3px rgba(217,168,83,0.2)'; e.target.style.borderColor = '#d9a853'; }}
-                  onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = '#e5e7eb'; }}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm resize-none transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
                 />
               </div>
             </div>
@@ -245,18 +219,11 @@ export function MockWidgetA() {
         {/* Step 5: Confirmation */}
         {step === 5 && (
           <div className="flex flex-col items-center justify-center py-8 space-y-6">
-            {/* Animated checkmark with sparkles */}
-            <div className="relative">
-              <div
-                className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center"
-                style={{ animation: 'checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
-              >
-                <Check className="w-10 h-10 text-green-600" />
-              </div>
-              {/* CSS sparkles */}
-              <Sparkles className="absolute -top-1 -right-1 w-5 h-5 text-amber-400" style={{ animation: 'sparkle 1.5s ease-in-out infinite' }} />
-              <Sparkles className="absolute -bottom-1 -left-2 w-4 h-4 text-amber-300" style={{ animation: 'sparkle 1.5s ease-in-out 0.3s infinite' }} />
-              <Sparkles className="absolute top-0 -left-3 w-3 h-3 text-amber-200" style={{ animation: 'sparkle 1.5s ease-in-out 0.6s infinite' }} />
+            <div
+              className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center"
+              style={{ animation: 'checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
+            >
+              <Check className="w-10 h-10 text-green-600" />
             </div>
 
             <div className="text-center space-y-2">
@@ -264,7 +231,6 @@ export function MockWidgetA() {
               <p className="text-sm text-gray-500">Je reservering is geplaatst.</p>
             </div>
 
-            {/* Receipt-style summary */}
             <div className="w-full bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               <div className="border-b-2 border-dashed border-gray-200 px-5 py-3">
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold text-center">Reservering</p>
@@ -277,7 +243,6 @@ export function MockWidgetA() {
                 <Row label="Naam" value={`${form.firstName} ${form.lastName}`} />
               </div>
               <div className="border-t-2 border-dashed border-gray-200 px-5 py-4 flex justify-center">
-                {/* Fake QR code */}
                 <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
                   <div className="grid grid-cols-4 gap-0.5">
                     {Array.from({ length: 16 }).map((_, i) => (
@@ -311,29 +276,24 @@ export function MockWidgetA() {
             className="flex-1 h-12 rounded-[10px] text-sm font-semibold transition-all duration-200 disabled:opacity-40"
             style={{ backgroundColor: PRIMARY, color: '#fff' }}
           >
-            {step === 4 ? 'Bevestigen' : 'Volgende'}
+            {step === 4 ? 'Bevestigen' : `Volgende (${step}/4)`}
           </button>
         </div>
       )}
 
       {/* Footer */}
       <footer className="shrink-0 pb-8 pt-1 text-center">
-        <p className="text-lg font-extrabold text-gray-400 tracking-normal" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <p className="text-lg font-extrabold text-gray-400 tracking-normal" style={{ fontFamily: "'Inter', sans-serif" }}>
           Restaurant Demo
         </p>
         <span className="text-[10px] text-gray-300">Powered by Nesto</span>
       </footer>
 
-      {/* Keyframe animations */}
       <style>{`
         @keyframes checkPop {
           0% { transform: scale(0); opacity: 0; }
           60% { transform: scale(1.1); opacity: 1; }
           100% { transform: scale(1); }
-        }
-        @keyframes sparkle {
-          0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
-          50% { opacity: 1; transform: scale(1.2) rotate(15deg); }
         }
       `}</style>
     </div>
@@ -351,10 +311,7 @@ function IconInput({ icon, label, value, onChange, type = 'text' }: {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={label}
-        className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-white text-sm transition-all placeholder:text-gray-400"
-        style={{ outline: 'none' }}
-        onFocus={e => { e.target.style.boxShadow = '0 0 0 3px rgba(217,168,83,0.2)'; e.target.style.borderColor = '#d9a853'; }}
-        onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = '#e5e7eb'; }}
+        className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-white text-sm transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
       />
     </div>
   );
