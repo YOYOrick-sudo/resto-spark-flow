@@ -1,124 +1,60 @@
 
-# Beide Widget Mockups: Echt Bijzonder Maken
+# Mockup A: Opschonen & Meer Nesto
 
-## Visie
+## Samenvatting
 
-Beide mockups worden opgetild van "functioneel prototype" naar "dit wil ik als restaurateur op mijn site". Het verschil zit in micro-details, animatie-gevoel, visuele laagjes en een premium afwerking die je bij Resy, Tock of OpenTable niet ziet.
-
----
-
-## Mockup A: "Boutique Luxe"
-
-De warme variant wordt een echte boutique-ervaring met filmische sfeer.
-
-### Ticket Cards (Step 1)
-- **Grotere hero images**: aspect ratio naar `aspect-[1.8/1]` zodat de foto's meer domineren
-- **Gradient overlay verrijkt**: van simpel `from-black/50` naar een dubbele gradient met een subtiele blur-laag onderaan voor een filmisch, cinematic gevoel
-- **Ticket naam in uppercase tracking-wide**: meer luxe typografie op de afbeelding
-- **Geselecteerde staat**: zachte pulserende glow-ring rond de kaart (CSS `animate-pulse`-achtig maar subtieler, via box-shadow transition)
-- **Derde ticket toevoegen**: "Sunday Brunch" met een derde Unsplash foto, maakt het visueel rijker
-
-### Datum & Gasten (Step 2)
-- **Datum scroller**: geselecteerde datum krijgt een subtiele scale-up (`scale-105`) en een shadow
-- **Gastenteller**: grotere, elegantere ronde knoppen met een fijne border en zachte inset shadow
-- **Sectie-iconen**: klein kalender-icon naast "Datum", klein users-icon naast "Gasten" voor visuele ankers
-
-### Tijdslots (Step 3)
-- **Populaire tijden markering**: `19:00` en `19:30` krijgen een klein "Populair" badge/dot
-- **Geselecteerde tijd**: niet alleen donkere achtergrond maar ook een subtiele scale-up en shadow
-- **Unavailable slots**: `21:00` als disabled/doorgestreept om realisme toe te voegen
-
-### Formulier (Step 4)
-- **Gegroepeerde velden**: voornaam/achternaam naast elkaar in een 2-kolom grid
-- **Focus states**: warme gouden/amber glow bij focus in plaats van grijze ring
-- **Veld iconen**: subtiele icons (User, Mail, Phone) in de input velden
-
-### Bevestiging (Step 5)
-- **Animated checkmark**: CSS-animatie die inschaalt bij verschijnen
-- **Confetti-achtige decoratie**: een paar kleine sterretjes/sparkles rond de checkmark (pure CSS)
-- **Samenvatting als "ticket"**: de bevestigingskaart met een dashed border-top om het als een "bonnetje" te laten voelen
-- **QR-code placeholder**: een nep QR-blokje onderaan voor realisme
-
-### Algemeen
-- **Soepelere transities**: step-wisseling met een fade-effect (opacity transition)
-- **Scroll indicator**: bij ticket stap een subtiel gradient-fade aan de onderkant als er meer content is
+Mockup A wordt rustiger, compacter en meer Nesto-achtig. De tickets worden kleiner en minder "druk", het logo scrollt mee (niet sticky), en de CTA-knop toont stap-voortgang ("Volgende 1/4").
 
 ---
 
-## Mockup B: "Nesto Enterprise"
+## Wijzigingen
 
-De strakke variant wordt een echt SaaS-grade enterprise widget -- denk aan Stripe Checkout of Linear.
+### 1. Ticket cards: kleiner en rustiger
 
-### Ticket Cards (Step 1)
-- **Glassmorphism accent**: geselecteerde kaart krijgt een subtiele `backdrop-blur` achtergrond-highlight
-- **Radio-indicator**: een custom radio-cirkel links die invult bij selectie (leeg = ring, geselecteerd = filled dot)
-- **Derde ticket**: "Sunday Brunch" ook hier, maar in horizontaal compact formaat
-- **Hover state**: lichte achtergrondkleur-shift + border-kleur transitie
+- Aspect ratio van `1.8/1` naar `2.4/1` -- veel lager, compacter
+- Verwijder de dubbele gradient-overlays, backdrop-blur en de sparkle-glow effecten
+- Eenvoudiger: een enkele subtiele gradient onderaan (`from-black/50 to-transparent`)
+- Ticket naam niet meer uppercase/tracking-wide, gewoon `font-semibold text-sm`
+- Content padding iets compacter: `px-4 py-3` in plaats van `px-5 py-3.5`
+- Gap tussen cards blijft `gap-4` maar cards zijn visueel kleiner
 
-### Datum & Gasten (Step 2)
-- **Mini-kalender grid**: compacter met een "vandaag" indicator (kleine dot onder het getal)
-- **Weekend kleuring**: zaterdag/zondag licht andere tint dan doordeweeks
-- **Gast stepper**: strakke pill-vorm met monospacefont voor het getal
+### 2. Logo header: scrollbaar (niet sticky)
 
-### Tijdslots (Step 3)
-- **Chip-stijl**: slots als horizontale pills in een flex-wrap layout in plaats van grid
-- **Beschikbaarheid indicator**: groene dot voor "veel beschikbaar", oranje voor "bijna vol"
-- **Geselecteerde chip**: gevuld met een checkmark icon erin
+- Header verplaatsen van buiten de scroll-container naar erin
+- Logo + progress dots worden onderdeel van de scrollbare content, niet `shrink-0`
 
-### Formulier (Step 4)
-- **Stacked card-layout**: het hele formulier in een enkele card met interne dividers
-- **Inline validatie**: als email-veld ingevuld is, een klein groen vinkje rechts
-- **Compactere spacing**: alles dichter op elkaar, meer informatiedichtheid
+### 3. CTA-knop: stap-indicator
 
-### Bevestiging (Step 5)
-- **Success banner**: in plaats van grote cirkel, een smalle banner bovenaan met checkmark + tekst
-- **Timeline-achtig**: de samenvatting als een verticale timeline met dots en lijnen
-- **"Add to calendar" knop**: een nep-knop die het professioneler maakt
-- **Referentienummer**: een fake `#NES-2847` reserveringsnummer voor realisme
+- Button tekst wordt `Volgende (1/4)` in plaats van alleen `Volgende`
+- Bij stap 4: blijft `Bevestigen`
 
-### Stepper (bovenaan)
-- **Verfijnd**: verbindingslijnen worden een gradient die invult naarmate je vordert
-- **Micro-animatie**: de actieve stap-cirkel pulseert subtiel
+### 4. Visueel rustiger
 
-### Algemeen
-- **Keyboard hints**: subtiele "Press Enter" tekst naast de CTA-knop
-- **Progress in CTA**: "Volgende (2/4)" in de button tekst
+- Verwijder de animated sparkles bij de bevestigingsstap
+- Verwijder de hover `translateY` lift-effect op ticket cards
+- Verwijder de `scale-105` op geselecteerde datum en tijdslots
+- Shadows iets subtieler: minder lagen
+- Populair-badge op tijdslots verwijderen (te druk)
+
+### 5. Meer Nesto-feel
+
+- Font wijzigen naar Inter (zelfde als Mockup B) zodat het meer bij Nesto aansluit
+- Achtergrondkleur naar `#FAFAFA` (iets koeler, meer Nesto)
+- Scroll-fade indicator onderaan tickets behouden (dat is subtiel genoeg)
 
 ---
 
-## Mock Data uitbreiden
+## Technische details
 
-Een derde ticket toevoegen aan `mockData.ts`:
+Alleen `src/components/widget-mockups/MockWidgetA.tsx` wordt aangepast:
 
-```text
-Sunday Brunch
-"Ontspan met een uitgebreid brunchbuffet op zondagochtend."
-Unsplash brunch-foto
-2-8 gasten
-€ 45 p.p.
-```
-
-En een extra timeslot `21:30` markeren als unavailable.
-
----
-
-## Technische aanpak
-
-### Bestanden die worden aangepast
-
-1. **`src/components/widget-mockups/mockData.ts`** -- derde ticket + availability data
-2. **`src/components/widget-mockups/MockWidgetA.tsx`** -- volledige redesign met alle Boutique Luxe upgrades
-3. **`src/components/widget-mockups/MockWidgetB.tsx`** -- volledige redesign met alle Enterprise upgrades
-
-### Geen nieuwe dependencies
-
-Alles wordt gebouwd met:
-- Tailwind CSS classes (inclusief `animate-`, `backdrop-blur`, `scale-`)
-- Inline styles voor complexe shadows en gradients
-- Lucide icons (al geinstalleerd)
-- CSS keyframe animaties via Tailwind's `animate-` utilities
-
-### Wat NIET verandert
-- `PhoneFrame.tsx` -- blijft hetzelfde
-- `WidgetMockups.tsx` -- pagina-layout blijft hetzelfde
-- Route configuratie -- ongewijzigd
+- Font import toevoegen: Inter via Google Fonts link tag
+- `fontFamily` naar `"'Inter', system-ui, sans-serif"`
+- Header + progress dots verplaatsen naar binnen de `overflow-y-auto` container
+- Ticket image aspect ratio: `style={{ aspectRatio: '2.4/1' }}`
+- Gradient vereenvoudigen: enkele `bg-gradient-to-t from-black/50 to-transparent`
+- Verwijder `hover:-translate-y-0.5` class
+- Verwijder `scale-105` op datum/tijd selecties
+- CTA tekst: `{step === 4 ? 'Bevestigen' : \`Volgende (${step}/4)\`}`
+- Verwijder Sparkles import en alle sparkle-elementen uit stap 5
+- Verwijder de `sparkle` keyframe animatie
