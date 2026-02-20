@@ -1,75 +1,80 @@
 
-# Widget settings: enterprise redesign
+# Betere card-scheiding: gap en schaduw verhogen
 
-## Wat is er nu mis
+## Wat is het probleem
 
-De pagina volgt het enterprise design system op hoofdlijnen (NestoCards, SettingsDetailLayout), maar heeft op 5 punten concrete afwijkingen die zorgen voor de drukte en onoverzichtelijkheid:
+Alle NestoCards op de Widget settings pagina (en andere settings pagina's) vloeien visueel in elkaar over. Dit heeft twee oorzaken:
 
-### 1. Configuratie card: geen visuele sub-groepering
-5 losstaande velden (switch, slug input, textarea, select, redirect URL) staan direct onder elkaar in `space-y-4`. Er is geen onderscheid tussen:
-- **Status & identiteit** (widget aan/uit + slug)
-- **Gastervaring** (welkomsttekst + niet-beschikbaar tekst)
-- **Gedrag na boeking** (redirect URL)
+**Oorzaak 1: Te weinig ruimte tussen cards**
+De `space-y-6` wrapper geeft slechts 24px tussen elke card. Dat is te weinig om de cards als aparte "objecten" te zien.
 
-Fix: Enterprise Form Grouping — `bg-secondary/50 rounded-card p-4 space-y-4` per logische groep (Sectie 4 van het design guide).
-
-### 2. sectionDivider te zwak
-Huidige waarde: `border-t border-border/50 pt-5 mt-5`
-- `border-border/50` is te licht — scheidt secties nauwelijks
-- `pt-5 mt-5` = 20px top én bottom — te krap
-
-Fix: `border-t border-border pt-6 mt-6` (conform Sectie 5: "Sectie divider: `border-t my-6`")
-
-### 3. Weergave card: Widget stijl selector staat los
-De 3-knops widget stijl selector heeft geen sectielabel (`text-[11px] font-semibold uppercase tracking-wider`). De dividers tussen de switches zijn `divide-border/50` wat te subtiel is.
-
-Fix: Voeg sectielabel toe boven de stijl selector. Vergroot switch-rij padding van `py-4` naar `py-5`.
-
-### 4. BookingQuestionsEditor: raw `<Input>` en `<Label>`
-In het formulier voor nieuwe vragen worden raw ShadCN `<Input>` en `<Label>` gebruikt — dat is **expliciet verboden** in het design system. Dit zorgt voor een visueel andere stijl dan de rest van de pagina.
-
-Fix: Vervang `<Input>` door `<NestoInput>` en `<Label>` door inline `<label className="text-label text-muted-foreground">`.
-
-### 5. Integratie card: knopconfiguratie zonder groepering
-De button mode-config (knoptekst, positie, pulse-switch) staat in `space-y-4` zonder `bg-secondary/50` wrapping — de instellingen zweven los in de sectie.
-
-Fix: Wrap in `bg-secondary/50 rounded-card p-4 space-y-4`.
+**Oorzaak 2: Te zwakke schaduw**
+De huidige `shadow-card` token (`0 1px 3px rgba(0,0,0,0.08)`) is bijna onzichtbaar op de lichtgrijze pagina-achtergrond (`#F3F4F6`). Daardoor ogen de cards als één aaneengesloten vlak.
 
 ---
 
-## Wijzigingen per bestand
+## Oplossing
 
-### `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`
+### 1. Shadow-card token versterken (globaal)
 
-1. **sectionDivider** → `"border-t border-border pt-6 mt-6"`
-2. **Configuratie card** → 2 groeperings-blokken met `bg-secondary/50 rounded-card p-4 space-y-4`:
-   - Blok A: widget_enabled switch + locatie slug
-   - Blok B: welkomsttekst + unavailable_text select
-   - Redirect URL staat los eronder (niet ingegroepeerd, want het is optioneel/advanced)
-3. **Weergave card** → voeg `<h4 className={sectionHeader}>` toe boven widget stijl selector. Switch rijen: `py-5` ipv `py-4`.
-4. **Integratie card, button mode** → wrap de 3 velden in `bg-secondary/50 rounded-card p-4 space-y-4`
+In `src/index.css` de `--shadow-card` token aanpassen naar een iets zwaardere schaduw die op een lichtgrijze achtergrond goed zichtbaar is:
 
-### `src/components/settings/widget/BookingQuestionsEditor.tsx`
+```
+Huidig: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)
+Nieuw:  0 1px 4px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06)
+```
 
-5. **raw `<Input>`** → `<NestoInput>` (2x: vraag label + optie input)
-6. **raw `<Label>`** → `<label className="mb-1.5 block text-label text-muted-foreground">`
-7. Import `Input` en `Label` van ShadCN verwijderen, `NestoInput` importeren
+Dit is een kleine maar merkbare verbetering — cards "zweven" nu zichtbaar boven de achtergrond. Heeft effect op alle NestoCards in het hele project.
+
+### 2. Gap tussen cards verhogen (widget pagina)
+
+In `SettingsReserveringenWidget.tsx` de wrapper van `space-y-6` naar `space-y-5` verhogen — dat samen met de betere schaduw geeft voldoende visuele scheiding.
+
+Wait — de pagina heeft al `space-y-6`. Het probleem zit in de cards zelf die te dicht op de pagina-achtergrond liggen. De juiste fix is dus:
+
+- De gap van `space-y-6` → `space-y-8` (32px ipv 24px) op de widget pagina wrapper
+- En de shadow versterken zoals beschreven
+
+### 3. Card border zichtbaarder maken
+
+Naast de schaduw heeft de NestoCard nu `border-border/50` (halve opacity van de border kleur). Die is te subtiel. Aanpassen naar `border-border/70` geeft een zichtbaardere rand zonder het clean design te verstoren.
 
 ---
 
 ## Technisch overzicht
 
-Alleen CSS-klasse en component-import wijzigingen. Geen logica, geen database, geen nieuwe componenten.
+### `src/index.css`
+```css
+/* Huidig */
+--shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
 
-```text
-src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx
-  - sectionDivider versterkt
-  - Configuratie: 2 groeperings-blokken toegevoegd
-  - Weergave: sectionHeader boven stijl selector
-  - Integratie: button-config gewrapped
-
-src/components/settings/widget/BookingQuestionsEditor.tsx
-  - <Input> → <NestoInput>
-  - <Label> → <label> met enterprise styling
-  - Imports bijgewerkt
+/* Nieuw */
+--shadow-card: 0 1px 4px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
 ```
+
+### `src/components/polar/NestoCard.tsx`
+```tsx
+/* Huidig */
+"border border-border/50 shadow-card"
+
+/* Nieuw */
+"border border-border/70 shadow-card"
+```
+
+### `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`
+```tsx
+/* Wrapper van alle cards */
+<div className="space-y-6">  →  <div className="space-y-8">
+```
+
+---
+
+## Effect
+
+- Cards zijn nu duidelijk van elkaar te onderscheiden als aparte "secties"
+- De shadow geeft een subtiel maar merkbaar "zwevend" effect boven de grijze pagina-achtergrond
+- De iets sterkere border benadrukt de kaartgrenzen
+- Dit is een globale fix — alle settings pagina's profiteren hiervan automatisch
+- Geen logica-wijzigingen, geen database
+
+**Bestanden:** `src/index.css`, `src/components/polar/NestoCard.tsx`, `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`
