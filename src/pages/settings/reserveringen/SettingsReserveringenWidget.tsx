@@ -171,7 +171,7 @@ export default function SettingsReserveringenWidget() {
       description="Configureer de publieke boekingswidget voor gasten."
       breadcrumbs={breadcrumbs}
     >
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Card 1: Configuratie */}
         <NestoCard className="p-6">
           <CardHeader title="Configuratie" description="Widget status en basisinstellingen." />
