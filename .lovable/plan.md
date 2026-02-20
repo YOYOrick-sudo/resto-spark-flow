@@ -1,23 +1,34 @@
 
-# Selector standaard gesloten bij openen widget
+
+# Buttons afronden en consistenter maken
 
 ## Wat verandert
 
-In `src/components/booking/SelectionStep.tsx` wordt de initial state van `selectorOpen` veranderd van `true` naar `false`.
-
-De selector toont dan bij het openen de compacte samenvatting ("Vr 20 feb - 2 gasten - --:--") met een chevron om open te klappen. De gast klikt erop om datum, gasten en tijd te kiezen.
+Beide CTA-knoppen ("Volgende 1/2" en "Bevestigen") krijgen dezelfde styling:
+- Border-radius van `rounded-[10px]` (10px) naar `rounded-2xl` (16px) -- past bij de ticket-cards en input fields
+- Beide knoppen krijgen dezelfde hover/active effecten: `hover:scale-[1.02] hover:shadow-md active:scale-[0.98]`
+- Hoogte en kleur blijven identiek (#1a1a1a, h-12)
 
 ## Technisch
 
-**Bestand:** `src/components/booking/SelectionStep.tsx`
-
-**Regel 21:**
-```typescript
+### Bestand 1: `src/pages/BookingWidget.tsx` (regel 195)
+De "Volgende" knop:
+```
 // Was:
-const [selectorOpen, setSelectorOpen] = useState(true);
+className="w-full h-12 rounded-[10px] text-sm font-semibold ..."
 
 // Wordt:
-const [selectorOpen, setSelectorOpen] = useState(false);
+className="w-full h-12 rounded-2xl text-sm font-semibold ... hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
 ```
 
-Dat is alles -- 1 karakter wijziging.
+### Bestand 2: `src/components/booking/GuestDetailsStep.tsx` (regel 200)
+De "Bevestigen" knop:
+```
+// Was:
+className="w-full h-12 rounded-[10px] text-white font-semibold ..."
+
+// Wordt:
+className="w-full h-12 rounded-2xl text-white font-semibold ..."
+```
+
+Twee kleine wijzigingen, visueel veel rustiger en consistenter.
