@@ -217,7 +217,7 @@ export function MockWidgetA() {
                           className="text-xs text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100"
                         >
                           {calendarMode ? <List className="w-3.5 h-3.5" /> : <CalendarIcon className="w-3.5 h-3.5" />}
-                          <span>{calendarMode ? 'Strip' : 'Kalender'}</span>
+                          <span>{calendarMode ? 'Week' : 'Maand'}</span>
                         </button>
                       </div>
 
@@ -245,15 +245,6 @@ export function MockWidgetA() {
                                   <span className="text-[10px] uppercase font-medium opacity-70">{dayNames[d.getDay()]}</span>
                                   <span className="text-base font-bold">{d.getDate()}</span>
                                   <span className="text-[10px] opacity-70">{monthNames[d.getMonth()]}</span>
-                                  {busyness !== 'normal' && (
-                                    <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                                      isSelected
-                                        ? 'bg-white/50'
-                                        : busyness === 'quiet' ? 'bg-emerald-400'
-                                        : busyness === 'busy' ? 'bg-amber-400'
-                                        : 'bg-red-400'
-                                    }`} />
-                                  )}
                                 </button>
                               );
                             })}
@@ -312,15 +303,6 @@ export function MockWidgetA() {
                                         }`}
                                       >
                                         <span>{cell.date.getDate()}</span>
-                                        {!cell.disabled && busyness !== 'normal' && (
-                                          <span className={`w-1.5 h-1.5 rounded-full -mt-0.5 ${
-                                            isSelected
-                                              ? 'bg-white/50'
-                                              : busyness === 'quiet' ? 'bg-emerald-400'
-                                              : busyness === 'busy' ? 'bg-amber-400'
-                                              : 'bg-red-400'
-                                          }`} />
-                                        )}
                                       </button>
                                     );
                                   })}
