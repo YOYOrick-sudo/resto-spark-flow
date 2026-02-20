@@ -34,6 +34,7 @@ import AuthPage from "./pages/Auth";
 import BookingWidget from "./pages/BookingWidget";
 import ManageReservation from "./pages/ManageReservation";
 import WidgetPreviewDemo from "./pages/WidgetPreviewDemo";
+import WidgetMockups from "./pages/WidgetMockups";
 import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
@@ -75,6 +76,7 @@ const App = () => (
                 <Route path="/manage/:token" element={<ManageReservation />} />
                 <Route path="/panel-demo" element={<PanelDemo />} />
                 <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
+                <Route path="/widget-mockups" element={<WidgetMockups />} />
                 
                 {/* Protected routes - Layout wrapper with persistent sidebar */}
                 <Route element={
