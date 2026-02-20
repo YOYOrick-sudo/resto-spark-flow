@@ -192,7 +192,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
           <button
             onClick={next}
             disabled={!canGoNext}
-            className="w-full h-12 rounded-[10px] text-sm font-semibold transition-all duration-200 disabled:opacity-40 text-white"
+            className="w-full h-12 rounded-2xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 text-white hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
             style={{ backgroundColor: '#1a1a1a' }}
           >
             Volgende (1/2)

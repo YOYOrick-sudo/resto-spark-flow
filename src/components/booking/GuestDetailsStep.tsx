@@ -197,7 +197,7 @@ export function GuestDetailsStep() {
         type="button"
         disabled={!canSubmit || bookingLoading}
         onClick={submitBooking}
-        className="w-full h-12 rounded-[10px] text-white font-semibold text-sm transition-all duration-200 disabled:opacity-40 flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
+        className="w-full h-12 rounded-2xl text-white font-semibold text-sm transition-all duration-200 disabled:opacity-40 flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
         style={{ backgroundColor: '#1a1a1a' }}
       >
         {bookingLoading ? (
