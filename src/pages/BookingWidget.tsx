@@ -5,7 +5,7 @@ import { BookingProgress } from '@/components/booking/BookingProgress';
 import { SelectionStep } from '@/components/booking/SelectionStep';
 import { GuestDetailsStep } from '@/components/booking/GuestDetailsStep';
 import { ConfirmationStep } from '@/components/booking/ConfirmationStep';
-import { Loader2, X, ChevronLeft, ChevronDown, ChevronUp, Calendar as CalendarIcon, Users, Clock, Check, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp, Calendar as CalendarIcon, Users, Clock, Check, Pencil } from 'lucide-react';
 
 function useEmbedMessaging(isEmbed: boolean) {
   const mainRef = useRef<HTMLDivElement>(null);
@@ -63,9 +63,6 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
     }
   }, [isEmbed, isConfirmation, bookingResult, postMsg]);
 
-  const handleClose = useCallback(() => {
-    window.parent.postMessage({ type: 'nesto:close' }, '*');
-  }, []);
 
   // Navigate with fade
   const goTo = useCallback((s: 1 | 2 | 3) => {
@@ -91,10 +88,35 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   // Ambient background image
   const ambientImage = data.selectedTicket?.image_url;
 
+  // Send nesto:ready when config is loaded (for embed mode)
+  useEffect(() => {
+    if (isEmbed && !configLoading && config) {
+      window.parent.postMessage({ type: 'nesto:ready' }, '*');
+    }
+  }, [isEmbed, configLoading, config]);
+
   if (configLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-white">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      <div className="h-full flex flex-col" style={{ backgroundColor: '#FAFAFA' }}>
+        <div className="flex-1 px-5 pt-10 space-y-6 animate-pulse">
+          <div className="h-20 w-20 mx-auto rounded-xl bg-gray-200/60" />
+          <div className="flex gap-2 justify-center">
+            <div className="h-1.5 w-16 rounded-full bg-gray-200" />
+            <div className="h-1.5 w-16 rounded-full bg-gray-100" />
+          </div>
+          <div className="space-y-3 pt-2">
+            <div className="h-10 rounded-2xl bg-gray-200/50" />
+            <div className="h-10 rounded-2xl bg-gray-200/40" />
+          </div>
+          <div className="grid grid-cols-7 gap-1.5 pt-2">
+            {Array.from({ length: 21 }).map((_, i) => (
+              <div key={i} className="h-9 rounded-xl bg-gray-200/40" />
+            ))}
+          </div>
+        </div>
+        <div className="px-5 pb-4 pt-2">
+          <div className="h-12 rounded-2xl bg-gray-200/50" />
+        </div>
       </div>
     );
   }
@@ -142,22 +164,13 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
           style={{ opacity: fadeIn ? 1 : 0 }}
         >
           {/* Header */}
-          {isEmbed && (
-            <header className="shrink-0 relative flex flex-col items-center gap-2 px-5 pt-4 pb-1">
-              <button
-                onClick={handleClose}
-                className="absolute top-4 right-5 w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                aria-label="Sluiten"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              {config.logo_url && (
-                <img
-                  src={config.logo_url}
-                  alt={config.location_name ?? 'Restaurant'}
-                  className="h-20 object-contain"
-                />
-              )}
+          {isEmbed && config.logo_url && (
+            <header className="shrink-0 flex flex-col items-center gap-2 px-5 pt-4 pb-1">
+              <img
+                src={config.logo_url}
+                alt={config.location_name ?? 'Restaurant'}
+                className="h-20 object-contain"
+              />
             </header>
           )}
 
