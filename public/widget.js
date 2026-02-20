@@ -385,6 +385,14 @@
           revealIframe();
         });
 
+        // Listen for nesto:ready to reveal faster
+        window.addEventListener('message', function readyHandler(ev) {
+          if (ev.data && ev.data.type === 'nesto:ready') {
+            window.removeEventListener('message', readyHandler);
+            revealIframe();
+          }
+        });
+
         setTimeout(revealIframe, 8000);
       }
 
