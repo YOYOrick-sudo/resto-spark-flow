@@ -1,65 +1,42 @@
 
 
-# Inline Maandkalender — Naadloze Toggle
+# Cleanup: Naamgeving + Dots verwijderen
 
-## Het probleem
+## Twee wijzigingen
 
-De kalender opent nu als een losse popover die visueel niet past bij de widget. De gebruiker wil dat de maandkalender **inline** verschijnt, in dezelfde container en stijl als de horizontale datumstrip, zodat het een naadloze overgang is.
+### 1. Toggle-labels hernoemen
+De knop die wisselt tussen de horizontale datumlijst en de maandkalender toont nu "Strip" / "Kalender". Dit wordt:
+- **Week-modus actief**: toggle-knop toont "Maand"
+- **Maand-modus actief**: toggle-knop toont "Week"
 
-## De oplossing
+Logischer: je ziet wat je KRIJGT als je klikt, niet wat je NU ziet.
 
-Een toggle-knop (kalender-icoon) naast de "Datum" label. Bij klik:
-- De horizontale datumstrip verdwijnt (smooth)
-- Een custom inline maandkalender verschijnt op dezelfde plek, in exact dezelfde visuele stijl (rounded pills, zelfde kleuren, zelfde busyness-dots)
-- Bij klik op een dag of op het terug-icoon: maandkalender verdwijnt, datumstrip komt terug
+### 2. Busyness-dots verwijderen van datum (week + maand)
+De gekleurde bolletjes (groen/oranje/rood) onder de datums voegen weinig toe voor een gast -- ze weten niet wat "rustig" of "druk" betekent en het maakt de keuze onnodig complex. 
 
-Geen popover, geen externe Calendar component -- een volledig custom inline maandkalender die visueel identiek is aan de week-strip.
+**Verwijderen uit:**
+- De week-weergave (horizontale scroll): de `busyness` dot-span onder elke dag
+- De maand-weergave (inline kalender): de `busyness` dot-span onder elke cel
+- Eventueel ook de `bg-red-50` achtergrond bij "low" availability time slots (de rode achtergrond is een impliciet signaal)
 
-## Visueel
-
-### Week-modus (standaard)
-
-```text
-  Datum                    [kalender-icoon]
-  [Do 20] [Vr 21] [Za 22] [Zo 23] ...  -->
-```
-
-### Maand-modus (na klik op kalender-icoon)
-
-```text
-  < februari 2026 >        [lijst-icoon]
-  Ma  Di  Wo  Do  Vr  Za  Zo
-                          1
-  2   3   4   5   6   7   8
-  9  10  11  12  13  14  15
-  ...
-```
-
-- Geselecteerde dag: donkere pill (bg-gray-800 text-white), zelfde als in de strip
-- Busyness-dots: zelfde kleuren (groen/oranje/rood) onder de dagnummers
-- Maand-navigatie: chevron links/rechts, zelfde stijl als de widget
-- Achtergrond: geen extra border of shadow, gewoon in de bestaande container
-
-## Gedrag
-
-- Klik op kalender-icoon: week-strip fades out, maandkalender fades in
-- Klik op lijst-icoon (in maand-modus): maandkalender fades out, week-strip fades in (scrolled naar geselecteerde dag)
-- Klik op een dag in de maandkalender: selecteert de dag, schakelt terug naar week-modus, scrollt strip naar geselecteerde dag
-- Dagen buiten het bereik (voor vandaag, na 90 dagen) zijn disabled/grayed out
-- Maand-navigatie: pijltjes om door maanden te bladeren
+**Behouden bij:**
+- Tijdslots: de amber en rode dots bij "medium" en "low" beschikbaarheid blijven staan -- daar is het wél relevant (bijna vol = urgentie)
 
 ## Technisch
 
 ### Bestand: `src/components/widget-mockups/MockWidgetA.tsx`
 
-1. Vervang `calendarOpen` state door `calendarMode` boolean (false = strip, true = maandkalender)
-2. Verwijder de Popover/Calendar imports (niet meer nodig)
-3. Bouw een inline `MonthCalendar` sectie die:
-   - Een 7-kolom grid rendert met Ma-Zo headers
-   - Maandnavigatie heeft (chevron left/right + maandnaam)
-   - Dezelfde pill-styling gebruikt als de datumstrip (rounded-2xl, bg-gray-800 voor selected)
-   - Busyness-dots toont via `DAY_AVAILABILITY` (zelfde mapping als de strip)
-   - Bij dagklik: `handleDateSelect(dayIndex)` aanroept + `setCalendarMode(false)`
-4. Toggle-knop wisselt tussen `CalendarIcon` (toon maand) en een lijst-icoon (toon strip)
-5. Wrap beide views in een container met `transition-opacity` voor een soepele fade
-6. Geen nieuwe bestanden of dependencies nodig
+**Toggle-label (regel ~220):**
+```
+// Was: {calendarMode ? 'Strip' : 'Kalender'}
+// Wordt: {calendarMode ? 'Week' : 'Maand'}
+```
+
+**Week-view dots verwijderen (regels ~248-256):**
+Verwijder het `busyness`-blok met de gekleurde dots onder elke dag-knop.
+
+**Maand-view dots verwijderen (regels ~315-323):**
+Verwijder het `busyness`-blok met de gekleurde dots onder elke maandcel.
+
+Geen nieuwe bestanden, geen dependencies.
+
