@@ -193,7 +193,6 @@ export function MockWidgetB() {
                 const isUnavailable = UNAVAILABLE_SLOTS.includes(t);
                 const isSelected = selectedTime === t;
                 const availability = SLOT_AVAILABILITY[t] ?? 'high';
-                const dotColor = availability === 'high' ? 'bg-emerald-400' : availability === 'medium' ? 'bg-amber-400' : 'bg-red-400';
 
                 return (
                   <button
@@ -209,16 +208,23 @@ export function MockWidgetB() {
                     }`}
                   >
                     {isSelected && <Check className="w-3.5 h-3.5" />}
-                    {!isSelected && !isUnavailable && <span className={`w-2 h-2 rounded-full ${dotColor}`} />}
+                    {!isSelected && !isUnavailable && availability === 'medium' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    )}
+                    {!isSelected && !isUnavailable && availability === 'low' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400" style={{ boxShadow: '0 0 4px rgba(239,68,68,0.3)' }} />
+                    )}
                     {t}
+                    {!isSelected && !isUnavailable && availability === 'low' && (
+                      <span className="text-[10px] text-red-500 font-normal">Laatste plekken</span>
+                    )}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[10px] text-zinc-400 flex items-center gap-3 pt-1">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Beschikbaar</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" /> Bijna vol</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Laatste plekken</span>
+            <p className="text-[10px] text-zinc-400 flex items-center gap-4 pt-1">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Bijna vol</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" /> Laatste plekken</span>
             </p>
           </div>
         )}
