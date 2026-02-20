@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   MOCK_TICKETS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS,
   INITIAL_FORM, DAY_AVAILABILITY,
   isTicketAvailable, getTimeSlotsForDay, firstAvailableDay, firstAvailableTime,
   type MockFormData,
 } from './mockData';
-import { ChevronLeft, ChevronDown, ChevronUp, Minus, Plus, Check, Calendar, Users, User, Mail, Phone, Clock, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp, Minus, Plus, Check, Calendar as CalendarIcon, Users, User, Mail, Phone, Clock, Pencil } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const PRIMARY = '#1a1a1a';
 
@@ -19,6 +21,8 @@ export function MockWidgetA() {
   const [fadeIn, setFadeIn] = useState(true);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const totalSteps = 3;
   const canNext = () => {
@@ -35,7 +39,7 @@ export function MockWidgetA() {
   const back = () => goTo(Math.max(step - 1, 1));
 
   const today = new Date();
-  const dates = Array.from({ length: 14 }, (_, i) => {
+  const dates = Array.from({ length: 90 }, (_, i) => {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
     return d;
@@ -84,10 +88,24 @@ export function MockWidgetA() {
     if (selectedTime && !newSlots.includes(selectedTime)) {
       setSelectedTime(null);
     }
-    // If selected ticket is no longer available on this day, deselect it
     if (selectedTicket && !isTicketAvailable(selectedTicket, dayIndex, null, partySize)) {
       // Don't deselect — just let it show as unavailable
     }
+    // Scroll to selected date pill
+    setTimeout(() => {
+      scrollRef.current?.querySelector(`[data-day="${dayIndex}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }, 50);
+  };
+
+  // Handle calendar date pick → compute day index from today
+  const handleCalendarDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    const diffMs = date.getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const dayIndex = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    if (dayIndex >= 0 && dayIndex < 90) {
+      handleDateSelect(dayIndex);
+    }
+    setCalendarOpen(false);
   };
 
   return (
@@ -160,17 +178,38 @@ export function MockWidgetA() {
                   <div className="border-t border-gray-100 px-4 py-4 space-y-5">
                     {/* Date */}
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datum</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datum</span>
+                        </div>
+                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                          <PopoverTrigger asChild>
+                            <button className="text-xs text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100">
+                              <CalendarIcon className="w-3.5 h-3.5" />
+                              <span>Kalender</span>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 z-50" align="end">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate !== null ? dates[selectedDate] : undefined}
+                              onSelect={handleCalendarDateSelect}
+                              disabled={(date) => date < today || date > dates[dates.length - 1]}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
-                      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                      <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                         {dates.map((d, i) => {
                           const busyness = DAY_AVAILABILITY[i] ?? 'normal';
                           const isSelected = selectedDate === i;
                           return (
                             <button
                               key={i}
+                              data-day={i}
                               onClick={() => handleDateSelect(i)}
                               className={`flex flex-col items-center min-w-[48px] py-2 px-1.5 rounded-2xl transition-all duration-200 text-center ${
                                 isSelected
@@ -423,7 +462,7 @@ export function MockWidgetA() {
               {summaryOpen && (
                 <div className="border-t border-gray-100">
                   {[
-                    { icon: <Calendar className="w-4 h-4" />, label: 'Datum', value: selectedDate !== null ? `${dayNames[dates[selectedDate].getDay()]} ${dates[selectedDate].getDate()} ${monthNames[dates[selectedDate].getMonth()]}` : '—' },
+                    { icon: <CalendarIcon className="w-4 h-4" />, label: 'Datum', value: selectedDate !== null ? `${dayNames[dates[selectedDate].getDay()]} ${dates[selectedDate].getDate()} ${monthNames[dates[selectedDate].getMonth()]}` : '—' },
                     { icon: <Users className="w-4 h-4" />, label: 'Gasten', value: `${partySize} gasten` },
                     { icon: <Clock className="w-4 h-4" />, label: 'Tijd', value: selectedTime ?? '—' },
                     { icon: <Check className="w-4 h-4" />, label: 'Ervaring', value: selectedTicketData?.name ?? '—' },
