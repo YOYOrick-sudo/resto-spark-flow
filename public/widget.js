@@ -143,24 +143,16 @@
 
   function createSkeleton() {
     var wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:absolute;inset:0;z-index:3;background:#fff;display:flex;flex-direction:column;padding:32px 24px;transition:opacity 0.3s ease';
+    wrapper.style.cssText = 'position:absolute;inset:0;z-index:3;background:#FAFAFA;display:flex;flex-direction:column;padding:32px 24px;transition:opacity 0.3s ease';
 
-    if (logoUrl || restaurantName) {
+    if (logoUrl) {
       var header = document.createElement('div');
-      header.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:28px';
-      if (logoUrl) {
-        var img = document.createElement('img');
-        img.src = logoUrl;
-        img.alt = '';
-        img.style.cssText = 'width:40px;height:40px;border-radius:10px;object-fit:cover';
-        header.appendChild(img);
-      }
-      if (restaurantName) {
-        var nameEl = document.createElement('span');
-        nameEl.textContent = restaurantName;
-        nameEl.style.cssText = 'font-family:' + FONT_FAMILY + ';font-size:16px;font-weight:600;color:#111';
-        header.appendChild(nameEl);
-      }
+      header.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding-top:8px;margin-bottom:28px';
+      var img = document.createElement('img');
+      img.src = logoUrl;
+      img.alt = '';
+      img.style.cssText = 'height:80px;object-fit:contain';
+      header.appendChild(img);
       wrapper.appendChild(header);
     }
 
