@@ -1,75 +1,55 @@
 
 
-# Widget Sfeer-upgrade: Van Formulier naar Uitnodiging
+# Availability Indicators: Enterprise-waardig in Beide Mockups
 
-Sterke visie. Hier is het plan om de drie concrete ideeeen door te voeren in beide mockups.
+## Samenvatting
 
----
-
-## 1. Ambient achtergrond uit ticket foto
-
-Wanneer een gast een ticket selecteert, verschijnt de ticket-foto als subtiele blurred achtergrond achter de hele widget. De sfeer verandert per keuze.
-
-**Hoe het werkt:**
-- Een absoluut gepositioneerde `<img>` achter alle content, met `blur(40px)`, `opacity: 0.08`, `scale(1.2)` (om blur-randen te verbergen)
-- Smooth CSS transition (600ms) bij wisselen van ticket
-- Alleen zichtbaar na ticket-selectie (step >= 1 met selectedTicket)
-- Blijft zichtbaar in stap 2, 3, 4 -- de sfeer draagt door de hele flow
-- Op de bevestigingspagina (step 5) fade naar 0 zodat de kaart schoon leesbaar is
-
-## 2. Dag-level drukte-indicator in de kalenderstap
-
-Elke dag in de datumkiezer krijgt een subtiele kleur-dot die aangeeft hoe druk die dag wordt verwacht.
-
-**Mock data toevoegen:**
-- `DAY_AVAILABILITY` map in mockData.ts: index 0-13 met waarden `'quiet'`, `'normal'`, `'busy'`, `'almost_full'`
-- Weekenddagen (vr/za) standaard `'busy'` of `'almost_full'`, doordeweeks meer `'quiet'`/`'normal'`
-
-**Visueel (beide mockups):**
-- Onder het datum-getal verschijnt een kleine dot (w-1.5 h-1.5)
-- Groen = rustig, geen dot = normaal, oranje = populair, rood = bijna vol
-- Bij geselecteerde staat: dot wordt wit/semi-transparant
-- Geen tekst in de buttons, legenda onderaan: "Rustig / Populair / Bijna vol"
-
-## 3. Prominentere prijsindicatie
-
-Tickets met een prijs tonen deze prominenter:
-- "vanaf" prefix voor prix-fixe tickets (Mockup A: in de foto-overlay als groter, duidelijker badge)
-- Mockup B: prijs rechts in de kaart, iets groter en bold
-- Diner-ticket zonder prijs: geen wijziging
+Beide mockups krijgen subtiele, enterprise-waardige availability indicators op de tijdslots. Het principe: "high" = geen indicator (beschikbaar is de default), alleen "medium" en "low" worden visueel gemarkeerd -- consistent met het Nesto Polar design principe "data IS het design".
 
 ---
 
-## Technisch overzicht
+## Mockup A: Subtiele tekst-labels onder tijdslots
 
-### Bestanden die wijzigen:
-
-1. **`src/components/widget-mockups/mockData.ts`**
-   - Toevoegen: `DAY_AVAILABILITY` array met 14 entries voor drukte per dag
-
-2. **`src/components/widget-mockups/MockWidgetA.tsx`**
-   - Ambient background layer toevoegen (absoluut gepositioneerd, blurred ticket-image)
-   - Step 2: dag-dots toevoegen in de datum-buttons
-   - Step 2: legenda onder de kalenderstap
-   - Step 1: prijs-badge aanpassen met "vanaf" prefix
-
-3. **`src/components/widget-mockups/MockWidgetB.tsx`**
-   - Ambient background layer toevoegen (zelfde techniek)
-   - Step 2: dag-dots toevoegen in de grid-cellen
-   - Step 2: legenda onder de kalender
-   - Step 1: prijs prominenter stylen
-
-### Ambient background implementatie (pseudo-code):
+De 3-kolom grid blijft, maar slots met beperkte beschikbaarheid krijgen een klein label eronder:
 
 ```text
-<div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
-  <img
-    src={selectedTicketImageUrl}
-    class="w-full h-full object-cover scale-120 blur-[40px]
-           opacity-8 transition-all duration-600"
-  />
-</div>
++-----------+  +-----------+  +-----------+
+|   17:00   |  |   17:30   |  |   18:00   |
++-----------+  +-----------+  +-----------+
+
++-----------+  +-----------+  +-----------+
+|   18:30   |  |   19:00   |  |   19:30   |
+| Bijna vol |  | Bijna vol |  |Laatste pl.|
++-----------+  +-----------+  +-----------+
 ```
 
-De rest van de content krijgt `relative z-10` zodat alles erboven blijft.
+- Import `SLOT_AVAILABILITY` uit mockData
+- `high`: geen extra element (schoon, default)
+- `medium`: klein `text-[10px] text-amber-600` label "Bijna vol" onder de tijd
+- `low`: klein `text-[10px] text-red-500` label "Laatste plekken" onder de tijd, plus een subtiele `bg-red-50` achtergrond op de button zelf
+- Unavailable: blijft doorgestreept zoals nu
+- Geselecteerde staat: label wordt wit (`text-white/70`) zodat het leesbaar blijft op donkere achtergrond
+- Buttons worden iets hoger (`py-3` -> `py-2.5 pb-4`) om ruimte te maken voor het label
+- Onder de grid een compacte legenda met twee items: amber dot + "Bijna vol", rode dot + "Laatste plekken"
+
+## Mockup B: Verfijning van bestaande dots
+
+De chip-stijl met dots werkt al, maar wordt opgepoetst:
+
+- `high` availability: dot volledig weglaten (geen visuele ruis voor de default)
+- `medium`: dot blijft (amber), geen extra tekst
+- `low`: dot wordt rood met een subtiele glow (`shadow-[0_0_4px_rgba(239,68,68,0.3)]`), plus tekst "Laatste plekken" als klein label rechts van de tijd binnen de chip
+- Legenda onderaan: alleen "Bijna vol" en "Laatste plekken" tonen (verwijder "Beschikbaar" -- dat is de default)
+- Geselecteerde chip: checkmark blijft, dot/label verdwijnt (wit op donker)
+
+---
+
+## Technische details
+
+### Bestanden
+
+1. **`src/components/widget-mockups/MockWidgetA.tsx`** -- Step 3 aanpassen: import `SLOT_AVAILABILITY`, availability labels toevoegen, legenda onderaan
+2. **`src/components/widget-mockups/MockWidgetB.tsx`** -- Step 3 aanpassen: dots voor "high" weglaten, glow op "low" dots, tekst bij "low" chips, legenda inkorten
+
+### Geen nieuwe dependencies of bestanden nodig
 
