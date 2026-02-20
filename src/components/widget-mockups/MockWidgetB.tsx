@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, DAY_AVAILABILITY, type MockFormData } from './mockData';
+import { useState, useEffect } from 'react';
+import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, DAY_AVAILABILITY, TICKET_AVAILABILITY, type MockFormData } from './mockData';
 import { ChevronLeft, Minus, Plus, Check, CalendarPlus, Copy } from 'lucide-react';
 
 const PRIMARY = '#18181b';
@@ -15,9 +15,9 @@ export function MockWidgetB() {
 
   const totalSteps = 5;
   const canNext = () => {
-    if (step === 1) return !!selectedTicket;
-    if (step === 2) return !!selectedDate;
-    if (step === 3) return !!selectedTime;
+    if (step === 1) return !!selectedDate;
+    if (step === 2) return !!selectedTime;
+    if (step === 3) return !!selectedTicket;
     if (step === 4) return form.firstName && form.lastName && form.email;
     return false;
   };
@@ -39,11 +39,31 @@ export function MockWidgetB() {
   const dayNames = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
   const monthNames = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
-  const stepLabels = ['Ervaring', 'Datum', 'Tijd', 'Gegevens'];
+  const stepLabels = ['Datum', 'Tijd', 'Ervaring', 'Gegevens'];
 
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   const selectedTicketData = MOCK_TICKETS.find(t => t.id === selectedTicket);
+
+  // Filtered tickets based on selected time
+  const availableTicketIds = selectedTime ? (TICKET_AVAILABILITY[selectedTime] ?? []) : [];
+  const availableTickets = MOCK_TICKETS.filter(t => availableTicketIds.includes(t.id));
+  const unavailableTickets = MOCK_TICKETS.filter(t => !availableTicketIds.includes(t.id));
+
+  // Auto-skip: if only 1 ticket available, auto-select and skip to step 4
+  useEffect(() => {
+    if (step === 3 && availableTickets.length === 1) {
+      setSelectedTicket(availableTickets[0].id);
+      setTimeout(() => goTo(4), 300);
+    }
+  }, [step]);
+
+  // Reset ticket when time changes
+  useEffect(() => {
+    if (selectedTicket && selectedTime && !availableTicketIds.includes(selectedTicket)) {
+      setSelectedTicket(null);
+    }
+  }, [selectedTime]);
 
   return (
     <div className="h-full flex flex-col relative" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -65,7 +85,7 @@ export function MockWidgetB() {
         <div className="w-12 h-12 mx-auto bg-zinc-100 rounded-xl flex items-center justify-center text-zinc-400 text-[10px] font-semibold border border-zinc-200">LOGO</div>
       </header>
 
-      {/* Enhanced Stepper with gradient lines */}
+      {/* Enhanced Stepper */}
       {step < 5 && (
         <div className="flex items-center justify-between px-6 py-3 relative z-10">
           {stepLabels.map((label, i) => (
@@ -103,56 +123,10 @@ export function MockWidgetB() {
         className="flex-1 overflow-y-auto px-5 pb-4 transition-opacity duration-120 relative z-10"
         style={{ opacity: fadeIn ? 1 : 0 }}
       >
-        {/* Step 1: Tickets with radio + glassmorphism */}
+        {/* Step 1: Date & Guests */}
         {step === 1 && (
-          <div className="space-y-2.5 pt-2">
-            <h3 className="text-base font-semibold text-zinc-800">Kies je ervaring</h3>
-            {MOCK_TICKETS.map(t => {
-              const isSelected = selectedTicket === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setSelectedTicket(t.id)}
-                  className={`w-full text-left flex rounded-3xl overflow-hidden transition-all duration-200 border ${
-                    isSelected
-                      ? 'border-zinc-900 shadow-md bg-zinc-50'
-                      : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/50 bg-white'
-                  }`}
-                  style={isSelected ? { boxShadow: '0 0 0 1px #18181b, 0 4px 12px rgba(0,0,0,0.08)' } : {}}
-                >
-                  <div className="w-24 min-h-[88px] overflow-hidden shrink-0 relative">
-                    <img src={t.imageUrl} alt={t.name} className="w-full h-full object-cover" />
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-zinc-900/20 backdrop-blur-[1px]" />
-                    )}
-                  </div>
-                  <div className="flex-1 px-3.5 py-3 flex items-center gap-3">
-                    {/* Radio indicator */}
-                    <div className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isSelected ? 'border-zinc-900' : 'border-zinc-300'
-                    }`}>
-                      {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-zinc-900" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-zinc-800">{t.name}</span>
-                        {t.price && <span className="text-sm font-bold text-zinc-800">vanaf {t.price}</span>}
-                      </div>
-                      <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed line-clamp-2">{t.description}</p>
-                      <span className="text-[10px] text-zinc-400 mt-1 inline-block">{t.minGuests}–{t.maxGuests} gasten</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Step 2: Date & Guests */}
-        {step === 2 && (
           <div className="space-y-5 pt-2">
             <h3 className="text-base font-semibold text-zinc-800">Datum & gasten</h3>
-            {/* Compact calendar with today dot + weekend tinting */}
             <div className="grid grid-cols-7 gap-1.5">
               {dates.map((d, i) => {
                 const isWeekend = d.getDay() === 0 || d.getDay() === 6;
@@ -195,7 +169,6 @@ export function MockWidgetB() {
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Populair</span>
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" /> Bijna vol</span>
             </p>
-            {/* Pill-shaped guest stepper */}
             <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-zinc-200">
               <span className="text-sm font-medium text-zinc-700">Gasten</span>
               <div className="flex items-center gap-0 border border-zinc-200 rounded-full overflow-hidden">
@@ -211,8 +184,8 @@ export function MockWidgetB() {
           </div>
         )}
 
-        {/* Step 3: Time - chip pills with availability dots */}
-        {step === 3 && (
+        {/* Step 2: Time */}
+        {step === 2 && (
           <div className="space-y-3 pt-2">
             <h3 className="text-base font-semibold text-zinc-800">Beschikbare tijden</h3>
             <div className="flex flex-wrap gap-2">
@@ -253,7 +226,68 @@ export function MockWidgetB() {
           </div>
         )}
 
-        {/* Step 4: Stacked card form with inline validation */}
+        {/* Step 3: Tickets (filtered by availability) */}
+        {step === 3 && (
+          <div className="space-y-2.5 pt-2">
+            <h3 className="text-base font-semibold text-zinc-800">Beschikbaar voor jouw selectie</h3>
+            <p className="text-xs text-zinc-500 -mt-1">
+              {selectedDate !== null && dates[selectedDate].toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })} om {selectedTime} · {partySize} {partySize === 1 ? 'gast' : 'gasten'}
+            </p>
+            {availableTickets.map(t => {
+              const isSelected = selectedTicket === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTicket(t.id)}
+                  className={`w-full text-left flex rounded-3xl overflow-hidden transition-all duration-200 border ${
+                    isSelected
+                      ? 'border-zinc-900 shadow-md bg-zinc-50'
+                      : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/50 bg-white'
+                  }`}
+                  style={isSelected ? { boxShadow: '0 0 0 1px #18181b, 0 4px 12px rgba(0,0,0,0.08)' } : {}}
+                >
+                  <div className="w-24 min-h-[88px] overflow-hidden shrink-0 relative">
+                    <img src={t.imageUrl} alt={t.name} className="w-full h-full object-cover" />
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-zinc-900/20 backdrop-blur-[1px]" />
+                    )}
+                  </div>
+                  <div className="flex-1 px-3.5 py-3 flex items-center gap-3">
+                    <div className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      isSelected ? 'border-zinc-900' : 'border-zinc-300'
+                    }`}>
+                      {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-zinc-900" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-zinc-800">{t.name}</span>
+                        {t.price && <span className="text-sm font-bold text-zinc-800">vanaf {t.price}</span>}
+                      </div>
+                      <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed line-clamp-2">{t.description}</p>
+                      <span className="text-[10px] text-zinc-400 mt-1 inline-block">{t.minGuests}–{t.maxGuests} gasten</span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+            {unavailableTickets.length > 0 && (
+              <div className="space-y-1.5 pt-2">
+                <p className="text-xs text-zinc-400 font-medium">Niet beschikbaar om {selectedTime}</p>
+                {unavailableTickets.map(t => (
+                  <div key={t.id} className="flex items-center gap-3 rounded-2xl bg-zinc-100/60 px-4 py-3 opacity-50">
+                    <img src={t.imageUrl} alt={t.name} className="w-10 h-10 rounded-lg object-cover" />
+                    <div>
+                      <span className="text-sm font-medium text-zinc-500">{t.name}</span>
+                      <p className="text-[10px] text-zinc-400">Niet beschikbaar</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 4: Form */}
         {step === 4 && (
           <div className="space-y-3 pt-2">
             <h3 className="text-base font-semibold text-zinc-800">Contactgegevens</h3>
@@ -282,10 +316,9 @@ export function MockWidgetB() {
           </div>
         )}
 
-        {/* Step 5: Enterprise confirmation */}
+        {/* Step 5: Confirmation */}
         {step === 5 && (
           <div className="flex flex-col py-6 space-y-5">
-            {/* Success banner */}
             <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
                 <Check className="w-5 h-5 text-emerald-600" />
@@ -296,7 +329,6 @@ export function MockWidgetB() {
               </div>
             </div>
 
-            {/* Reference number */}
             <div className="flex items-center justify-between bg-zinc-100 rounded-lg px-4 py-2.5">
               <span className="text-xs text-zinc-500">Referentie</span>
               <div className="flex items-center gap-2">
@@ -305,7 +337,6 @@ export function MockWidgetB() {
               </div>
             </div>
 
-            {/* Timeline summary */}
             <div className="space-y-0">
               <TimelineItem label="Ervaring" value={MOCK_TICKETS.find(t => t.id === selectedTicket)?.name ?? '-'} isFirst />
               <TimelineItem label="Datum" value={selectedDate !== null ? dates[selectedDate].toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' }) : '-'} />
@@ -315,7 +346,6 @@ export function MockWidgetB() {
               <TimelineItem label="E-mail" value={form.email} isLast />
             </div>
 
-            {/* Add to calendar */}
             <button className="flex items-center justify-center gap-2 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors">
               <CalendarPlus className="w-4 h-4" />
               Toevoegen aan agenda
@@ -331,7 +361,7 @@ export function MockWidgetB() {
         )}
       </div>
 
-      {/* CTA with progress + keyboard hint */}
+      {/* CTA */}
       {step < 5 && (
         <div className="shrink-0 px-5 pb-4 pt-2 space-y-1.5 relative z-10">
           <div className="flex gap-2.5">
@@ -390,13 +420,11 @@ function TimelineItem({ label, value, isFirst, isLast }: {
 }) {
   return (
     <div className="flex gap-3">
-      {/* Timeline track */}
       <div className="flex flex-col items-center w-4">
         {!isFirst && <div className="w-px h-2 bg-zinc-200" />}
         <div className="w-2.5 h-2.5 rounded-full border-2 border-zinc-300 bg-white shrink-0" />
         {!isLast && <div className="w-px flex-1 bg-zinc-200" />}
       </div>
-      {/* Content */}
       <div className="flex justify-between flex-1 pb-3 min-w-0">
         <span className="text-xs text-zinc-500">{label}</span>
         <span className="text-sm font-medium text-zinc-800 text-right truncate ml-2">{value}</span>
