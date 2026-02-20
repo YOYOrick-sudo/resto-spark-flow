@@ -1,34 +1,20 @@
 
+# Ticket Cards meer diepte geven in Mockup A
 
-# Availability Indicators: Tekst uit de tijdslots, labels eronder
+## Inspiratie van Guestplan
 
-## Probleem
-
-Nu staat "Bijna vol" en "Laatste plekken" IN de tijdslot-knoppen zelf. Dat is rommelig en niet enterprise-waardig. De tekst hoort er niet in maar eronder, als een gecentreerde legenda die refereert aan de dots.
+Guestplan gebruikt een subtiele maar effectieve techniek: een lichte schaduw rondom de kaart gecombineerd met een warme, dunne border die de kaart visueel "optilt" van de achtergrond. Geen zware drop-shadows, maar een zachte, gelaagde lift.
 
 ## Aanpak
 
-### Mockup A
+De huidige default shadow (`0 1px 4px rgba(0,0,0,0.06)`) is te vlak. De kaarten krijgen een gelaagde shadow die meer diepte geeft zonder zwaar te worden:
 
-De tijdslot-buttons tonen alleen de tijd. Geen tekst-labels meer binnenin de buttons. In plaats daarvan:
+- **Default staat**: `0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)` -- een subtiele ring (1px) als "border" plus een zachtere schaduw voor lift
+- **Hover staat**: toevoegen via CSS class `hover:shadow-lg` effect, of inline een iets sterkere shadow
+- **Geselecteerde staat**: de bestaande `0 0 0 2px` ring + een sterkere shadow `0 8px 20px rgba(0,0,0,0.1)`
 
-- Slots met `medium` availability krijgen een kleine amber dot onder de tijd (gecentreerd)
-- Slots met `low` availability krijgen een kleine rode dot onder de tijd (gecentreerd)
-- `high` slots: geen dot, schoon
-- De legenda onderaan blijft: amber dot = "Bijna vol", rode dot = "Laatste plekken"
-- Buttons worden weer uniform `py-3` (geen wisselende padding meer)
-- `bg-red-50` achtergrond bij low-slots blijft als subtiel signaal
+De 1px ring-shadow (in plaats van een echte border) geeft net dat beetje definitie dat Guestplan ook gebruikt, zonder de afgeronde hoeken te verpesten.
 
-### Mockup B
+## Technisch
 
-De chip-buttons tonen alleen de tijd (en checkmark bij selectie). Geen "Laatste plekken" tekst meer inline in de chip:
-
-- `medium`: amber dot links van de tijd (blijft zoals nu)
-- `low`: rode dot links van de tijd met glow (blijft), maar de tekst "Laatste plekken" wordt verwijderd uit de chip
-- De legenda onderaan verklaart de dots: amber = "Bijna vol", rood = "Laatste plekken"
-
-## Bestanden
-
-1. `src/components/widget-mockups/MockWidgetA.tsx` -- Step 3: tekst-labels uit buttons verwijderen, dots toevoegen, padding uniformiseren
-2. `src/components/widget-mockups/MockWidgetB.tsx` -- Step 3: "Laatste plekken" tekst uit chips verwijderen
-
+Alleen `src/components/widget-mockups/MockWidgetA.tsx` regel 77-81: de `boxShadow` waarden aanpassen voor zowel default als selected state.
