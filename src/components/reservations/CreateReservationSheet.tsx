@@ -462,7 +462,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                         <span>{format(date, 'EEE d MMM', { locale: nl })}</span>
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 z-[80]" align="start">
                       <Calendar
                         mode="single"
                         selected={date}
@@ -481,7 +481,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                       <SelectTrigger className="pl-9">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[80]">
                         {TIME_OPTIONS.map((t) => (
                           <SelectItem key={t} value={t}>{t}</SelectItem>
                         ))}
@@ -513,7 +513,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                   <Label className="text-label text-muted-foreground mb-1.5 block">Ticket</Label>
                   <Select value={ticketId} onValueChange={setTicketId}>
                     <SelectTrigger><SelectValue placeholder="Kies ticket" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[80]">
                       {activeTickets.map((st) => (
                         <SelectItem key={st.ticket_id} value={st.ticket_id}>
                           {st.tickets?.name || st.ticket_id}
@@ -533,7 +533,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                   <Label className="text-label text-muted-foreground mb-1.5 block">Kanaal</Label>
                   <Select value={channel} onValueChange={(v) => setChannel(v as ReservationChannel)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[80]">
                       <SelectItem value="operator">Operator</SelectItem>
                       <SelectItem value="phone">Telefoon</SelectItem>
                       <SelectItem value="widget">Widget</SelectItem>
