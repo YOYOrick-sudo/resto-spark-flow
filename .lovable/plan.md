@@ -1,61 +1,27 @@
 
 
-# 3 widget-fixes: dubbele X, logo-flash, snelheid
+# Fix: logo-flash in widget skeleton
 
-## 1. Dubbele sluitknop verwijderen
+## Probleem
 
-De close button op regels 147-153 in `BookingWidget.tsx` wordt verwijderd. De `widget.js` heeft al een eigen sluitknop bovenaan het panel. De embed header toont alleen nog het logo (als dat is ingesteld).
+Het skeleton in `widget.js` toont het logo linksboven (40x40, horizontaal naast restaurantnaam). De echte widget toont het logo gecentreerd bovenaan (80px hoog). Bij de overgang van skeleton naar content springt het logo van links naar midden -- dat is de flash.
 
-**Bestand:** `src/pages/BookingWidget.tsx`
-- Verwijder de `<button onClick={handleClose}>` uit de embed header (regels 147-153)
-- De header wordt vereenvoudigd tot alleen het logo
+## Oplossing
 
-## 2. Logo-flash oplossen
+De skeleton-header in `widget.js` aanpassen zodat de layout 1:1 matcht met de echte widget:
+- Logo gecentreerd, 80px hoog (ipv 40x40 linksboven)
+- Restaurantnaam niet tonen in het skeleton (de echte widget toont die niet in de header)
+- Achtergrondkleur van skeleton aanpassen naar #FAFAFA (matcht de echte widget)
 
-Het skeleton in `widget.js` toont het restaurantlogo en -naam (als data-logo en data-name attributen meegegeven zijn). Wanneer de iframe vervolgens laadt, toont die hetzelfde logo opnieuw. Tijdens de overgang is er kort een dubbel logo zichtbaar.
+## Technisch
 
-**Bestand:** `src/pages/BookingWidget.tsx`
-- In embed-modus wordt het logo in de header verborgen zolang de config nog aan het laden is (de skeleton van widget.js toont het al)
-- Dit voorkomt de "flash" van een tweede logo
+**Bestand:** `public/widget.js` (regels 144-165, skeleton builder)
 
-## 3. Sneller openen
+Wijzigingen in de `createSkeleton()` functie:
 
-De huidige loading state toont een kale spinner. Dit voelt traag. Twee verbeteringen:
+1. **Wrapper achtergrond**: van `#fff` naar `#FAFAFA`
+2. **Header layout**: van horizontaal (`align-items:center;gap:12px`) naar gecentreerd verticaal (`flex-direction:column;align-items:center;padding-top:8px`)
+3. **Logo stijl**: van `width:40px;height:40px;border-radius:10px;object-fit:cover` naar `height:80px;object-fit:contain` (matcht `h-20 object-contain` in de echte widget)
+4. **Restaurantnaam**: verbergen (niet tonen in skeleton, want de echte widget toont dit niet in de header)
 
-**Bestand:** `src/pages/BookingWidget.tsx`
-- Vervang de spinner-loading door een lichte skeleton die past bij de widget-layout (vergelijkbaar met wat widget.js al doet)
-- Stuur een `nesto:ready` postMessage zodra de config geladen is, zodat widget.js het skeleton sneller kan verwijderen
-
-**Bestand:** `public/widget.js`
-- Luister op het `nesto:ready` bericht om het skeleton direct te verwijderen (in plaats van te wachten op het standaard iframe load-event)
-- Dit maakt de overgang van skeleton naar content veel vloeiender
-
-## Technische details
-
-### BookingWidget.tsx - embed header (was)
-```tsx
-{isEmbed && (
-  <header className="shrink-0 relative flex flex-col items-center gap-2 px-5 pt-4 pb-1">
-    <button onClick={handleClose} className="absolute top-4 right-5 ...">
-      <X className="h-4 w-4" />
-    </button>
-    {config.logo_url && <img ... />}
-  </header>
-)}
-```
-
-### BookingWidget.tsx - embed header (wordt)
-```tsx
-{isEmbed && config.logo_url && (
-  <header className="shrink-0 flex flex-col items-center gap-2 px-5 pt-4 pb-1">
-    <img src={config.logo_url} alt={config.location_name ?? 'Restaurant'} className="h-20 object-contain" />
-  </header>
-)}
-```
-
-### BookingWidget.tsx - loading state (wordt)
-In plaats van een spinner, een subtiel skeleton met dezelfde achtergrondkleur (#FAFAFA) en een postMessage `nesto:ready` zodra de config geladen is.
-
-### widget.js - nesto:ready listener
-Voegt een event listener toe die op `nesto:ready` het skeleton direct verwijdert, zodat de content sneller zichtbaar wordt zonder te wachten op het volledige iframe load event.
-
+Dit zorgt ervoor dat het skeleton visueel identiek is aan de geladen widget, waardoor de overgang onzichtbaar wordt.
