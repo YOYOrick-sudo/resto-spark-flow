@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, DAY_AVAILABILITY, type MockFormData } from './mockData';
+import { useState, useEffect } from 'react';
+import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, DAY_AVAILABILITY, TICKET_AVAILABILITY, type MockFormData } from './mockData';
 import { ChevronLeft, Minus, Plus, Check, Calendar, Users, User, Mail, Phone } from 'lucide-react';
 
 const PRIMARY = '#1a1a1a';
@@ -15,9 +15,9 @@ export function MockWidgetA() {
 
   const totalSteps = 5;
   const canNext = () => {
-    if (step === 1) return !!selectedTicket;
-    if (step === 2) return !!selectedDate;
-    if (step === 3) return !!selectedTime;
+    if (step === 1) return !!selectedDate;
+    if (step === 2) return !!selectedTime;
+    if (step === 3) return !!selectedTicket;
     if (step === 4) return form.firstName && form.lastName && form.email;
     return false;
   };
@@ -41,6 +41,26 @@ export function MockWidgetA() {
 
   const selectedTicketData = MOCK_TICKETS.find(t => t.id === selectedTicket);
 
+  // Filtered tickets based on selected time
+  const availableTicketIds = selectedTime ? (TICKET_AVAILABILITY[selectedTime] ?? []) : [];
+  const availableTickets = MOCK_TICKETS.filter(t => availableTicketIds.includes(t.id));
+  const unavailableTickets = MOCK_TICKETS.filter(t => !availableTicketIds.includes(t.id));
+
+  // Auto-skip: if only 1 ticket available, auto-select and skip to step 4
+  useEffect(() => {
+    if (step === 3 && availableTickets.length === 1) {
+      setSelectedTicket(availableTickets[0].id);
+      setTimeout(() => goTo(4), 300);
+    }
+  }, [step]);
+
+  // Reset ticket when time changes (ticket might no longer be available)
+  useEffect(() => {
+    if (selectedTicket && selectedTime && !availableTicketIds.includes(selectedTicket)) {
+      setSelectedTicket(null);
+    }
+  }, [selectedTime]);
+
   return (
     <div className="h-full flex flex-col relative" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Ambient background from selected ticket */}
@@ -55,7 +75,7 @@ export function MockWidgetA() {
         </div>
       )}
 
-      {/* Content with fade transition — header + dots scroll along */}
+      {/* Content with fade transition */}
       <div className="relative flex-1 min-h-0 z-10">
         <div
           className="h-full overflow-y-auto px-5 pb-4 transition-opacity duration-150"
@@ -66,7 +86,7 @@ export function MockWidgetA() {
           <div className="w-14 h-14 mx-auto bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold">LOGO</div>
         </header>
 
-        {/* Progress dots (inside scroll) */}
+        {/* Progress dots */}
         {step < 5 && (
           <div className="flex justify-center gap-1.5 py-3">
             {Array.from({ length: totalSteps - 1 }, (_, i) => (
@@ -80,50 +100,8 @@ export function MockWidgetA() {
           </div>
         )}
 
-        {/* Step 1: Tickets */}
+        {/* Step 1: Date & Guests */}
         {step === 1 && (
-          <div className="space-y-4 relative">
-            <h3 className="text-lg font-bold text-gray-800 text-center">Kies je ervaring</h3>
-            {MOCK_TICKETS.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setSelectedTicket(t.id)}
-                className="w-full text-left rounded-3xl overflow-hidden transition-all duration-200"
-                style={{
-                  boxShadow: selectedTicket === t.id
-                    ? `0 0 0 2px ${PRIMARY}, 0 8px 20px rgba(0,0,0,0.1)`
-                    : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)'
-                }}
-              >
-                <div className="relative w-full overflow-hidden" style={{ aspectRatio: '2.4/1' }}>
-                  <img src={t.imageUrl} alt={t.name} className="absolute inset-0 w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
-                    <span className="text-white font-semibold text-sm">{t.name}</span>
-                    {t.price && (
-                      <span className="text-white font-semibold text-xs bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full">
-                        vanaf {t.price}
-                      </span>
-                    )}
-                  </div>
-                  {selectedTicket === t.id && (
-                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow">
-                      <Check className="w-3.5 h-3.5 text-gray-800" />
-                    </div>
-                  )}
-                </div>
-                <div className="px-4 py-3 bg-white">
-                  <p className="text-sm text-gray-500 leading-relaxed">{t.description}</p>
-                  <p className="text-[11px] text-gray-400 mt-1">{t.minGuests}–{t.maxGuests} gasten</p>
-                </div>
-              </button>
-            ))}
-            
-          </div>
-        )}
-
-        {/* Step 2: Date & Guests */}
-        {step === 2 && (
           <div className="space-y-6">
             <h3 className="text-lg font-bold text-gray-800 text-center">Datum & gasten</h3>
             <div>
@@ -195,8 +173,8 @@ export function MockWidgetA() {
           </div>
         )}
 
-        {/* Step 3: Time */}
-        {step === 3 && (
+        {/* Step 2: Time */}
+        {step === 2 && (
           <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 text-center">Kies een tijd</h3>
             <div className="grid grid-cols-3 gap-2">
@@ -235,6 +213,64 @@ export function MockWidgetA() {
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Bijna vol</span>
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" /> Laatste plekken</span>
             </p>
+          </div>
+        )}
+
+        {/* Step 3: Tickets (filtered by availability) */}
+        {step === 3 && (
+          <div className="space-y-4 relative">
+            <h3 className="text-lg font-bold text-gray-800 text-center">Beschikbaar voor jouw selectie</h3>
+            <p className="text-xs text-gray-500 text-center -mt-2">
+              {selectedDate !== null && dates[selectedDate].toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })} om {selectedTime} · {partySize} {partySize === 1 ? 'gast' : 'gasten'}
+            </p>
+            {availableTickets.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setSelectedTicket(t.id)}
+                className="w-full text-left rounded-3xl overflow-hidden transition-all duration-200"
+                style={{
+                  boxShadow: selectedTicket === t.id
+                    ? `0 0 0 2px ${PRIMARY}, 0 8px 20px rgba(0,0,0,0.1)`
+                    : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)'
+                }}
+              >
+                <div className="relative w-full overflow-hidden" style={{ aspectRatio: '2.4/1' }}>
+                  <img src={t.imageUrl} alt={t.name} className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
+                    <span className="text-white font-semibold text-sm">{t.name}</span>
+                    {t.price && (
+                      <span className="text-white font-semibold text-xs bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                        vanaf {t.price}
+                      </span>
+                    )}
+                  </div>
+                  {selectedTicket === t.id && (
+                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow">
+                      <Check className="w-3.5 h-3.5 text-gray-800" />
+                    </div>
+                  )}
+                </div>
+                <div className="px-4 py-3 bg-white">
+                  <p className="text-sm text-gray-500 leading-relaxed">{t.description}</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{t.minGuests}–{t.maxGuests} gasten</p>
+                </div>
+              </button>
+            ))}
+            {unavailableTickets.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <p className="text-xs text-gray-400 font-medium">Niet beschikbaar om {selectedTime}</p>
+                {unavailableTickets.map(t => (
+                  <div key={t.id} className="flex items-center gap-3 rounded-2xl bg-gray-100/60 px-4 py-3 opacity-50">
+                    <img src={t.imageUrl} alt={t.name} className="w-12 h-12 rounded-xl object-cover" />
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">{t.name}</span>
+                      <p className="text-[11px] text-gray-400">Niet beschikbaar</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

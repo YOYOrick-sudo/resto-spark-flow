@@ -63,6 +63,19 @@ export const INITIAL_FORM: MockFormData = {
   notes: '',
 };
 
+// Per-timeslot ticket availability (simulates availability engine filtering)
+export const TICKET_AVAILABILITY: Record<string, string[]> = {
+  '17:00': ['diner', 'chefs-table', 'sunday-brunch'],
+  '17:30': ['diner', 'chefs-table', 'sunday-brunch'],
+  '18:00': ['diner', 'chefs-table'],
+  '18:30': ['diner', 'chefs-table'],
+  '19:00': ['diner', 'chefs-table'],
+  '19:30': ['diner'],
+  '20:00': ['diner', 'chefs-table'],
+  '20:30': ['diner'],
+  '21:00': ['diner'],
+};
+
 // Day-level crowdedness for 14-day lookahead
 // quiet = green dot, normal = no dot, busy = orange, almost_full = red
 export type DayBusyness = 'quiet' | 'normal' | 'busy' | 'almost_full';
