@@ -1,55 +1,106 @@
 
 
-# Availability Indicators: Enterprise-waardig in Beide Mockups
+# Smart Landing Page: Alles-in-een Eerste Stap
 
-## Samenvatting
+## Het Idee
 
-Beide mockups krijgen subtiele, enterprise-waardige availability indicators op de tijdslots. Het principe: "high" = geen indicator (beschikbaar is de default), alleen "medium" en "low" worden visueel gemarkeerd -- consistent met het Nesto Polar design principe "data IS het design".
+De huidige lineaire flow (ticket -> datum -> tijd -> gegevens -> bevestiging) wordt omgebouwd naar een slimmere flow:
+
+**Stap 1 (nieuw): Datum, Gasten, Tijd + Tickets op een pagina**
+De gast landt op een pagina waar datum, aantal gasten en tijdslot bovenaan staan als compacte selectors. Daaronder verschijnen de beschikbare tickets. Alles werkt in twee richtingen:
+
+- Gast kiest eerst datum + tijd + gasten --> tickets worden gefilterd (niet-beschikbare tickets worden vervaagd maar blijven zichtbaar)
+- Gast kiest eerst een ticket --> datum springt naar eerstvolgende beschikbare dag, tijd naar eerstvolgende slot
+
+**Stap 2: Gegevens invullen** (was stap 4)
+**Stap 3: Bevestiging** (was stap 5)
+
+Van 5 stappen naar 3 stappen. Sneller, slimmer.
 
 ---
 
-## Mockup A: Subtiele tekst-labels onder tijdslots
-
-De 3-kolom grid blijft, maar slots met beperkte beschikbaarheid krijgen een klein label eronder:
+## Visueel Ontwerp Stap 1
 
 ```text
-+-----------+  +-----------+  +-----------+
-|   17:00   |  |   17:30   |  |   18:00   |
-+-----------+  +-----------+  +-----------+
-
-+-----------+  +-----------+  +-----------+
-|   18:30   |  |   19:00   |  |   19:30   |
-| Bijna vol |  | Bijna vol |  |Laatste pl.|
-+-----------+  +-----------+  +-----------+
++----------------------------------+
+|            [LOGO]                |
+|          * ** * (dots)           |
+|                                  |
+|  [DATUM]  horizontale scroll     |
+|  Do 20 | Vr 21 | Za 22 | ...    |
+|                                  |
+|  [GASTEN]  -  2  +               |
+|                                  |
+|  [TIJD]  grid 3-kolom            |
+|  17:00 | 17:30 | 18:00          |
+|  18:30 | 19:00 | 19:30          |
+|                                  |
+|  --- Beschikbare ervaringen ---  |
+|                                  |
+|  [Diner kaart]          actief   |
+|  [Chef's Table kaart]   actief   |
+|  [Sunday Brunch]        vervaagd |
+|                                  |
++----------------------------------+
+|  [<]  [ Volgende (1/2) ]         |
++----------------------------------+
 ```
-
-- Import `SLOT_AVAILABILITY` uit mockData
-- `high`: geen extra element (schoon, default)
-- `medium`: klein `text-[10px] text-amber-600` label "Bijna vol" onder de tijd
-- `low`: klein `text-[10px] text-red-500` label "Laatste plekken" onder de tijd, plus een subtiele `bg-red-50` achtergrond op de button zelf
-- Unavailable: blijft doorgestreept zoals nu
-- Geselecteerde staat: label wordt wit (`text-white/70`) zodat het leesbaar blijft op donkere achtergrond
-- Buttons worden iets hoger (`py-3` -> `py-2.5 pb-4`) om ruimte te maken voor het label
-- Onder de grid een compacte legenda met twee items: amber dot + "Bijna vol", rode dot + "Laatste plekken"
-
-## Mockup B: Verfijning van bestaande dots
-
-De chip-stijl met dots werkt al, maar wordt opgepoetst:
-
-- `high` availability: dot volledig weglaten (geen visuele ruis voor de default)
-- `medium`: dot blijft (amber), geen extra tekst
-- `low`: dot wordt rood met een subtiele glow (`shadow-[0_0_4px_rgba(239,68,68,0.3)]`), plus tekst "Laatste plekken" als klein label rechts van de tijd binnen de chip
-- Legenda onderaan: alleen "Bijna vol" en "Laatste plekken" tonen (verwijder "Beschikbaar" -- dat is de default)
-- Geselecteerde chip: checkmark blijft, dot/label verdwijnt (wit op donker)
 
 ---
 
-## Technische details
+## Mock Data: Ticket Beschikbaarheid
 
-### Bestanden
+Nieuwe data structuur in `mockData.ts` die bepaalt welke tickets beschikbaar zijn per tijdslot:
 
-1. **`src/components/widget-mockups/MockWidgetA.tsx`** -- Step 3 aanpassen: import `SLOT_AVAILABILITY`, availability labels toevoegen, legenda onderaan
-2. **`src/components/widget-mockups/MockWidgetB.tsx`** -- Step 3 aanpassen: dots voor "high" weglaten, glow op "low" dots, tekst bij "low" chips, legenda inkorten
+- **Diner**: beschikbaar 17:00-21:00 (alle avondslots)
+- **Chef's Table**: beschikbaar 18:30-20:30 (beperkte avondslots)
+- **Sunday Brunch**: alleen beschikbaar op zondag (dag-index 3 en 10 in de 14-daagse reeks), tijden 10:00-14:00 (niet in de huidige avondslots, dus altijd vervaagd tenzij we brunch-slots toevoegen)
 
-### Geen nieuwe dependencies of bestanden nodig
+Voor de mockup houden we het simpel: een map van `ticketId` naar een object met `availableDays` (dag-indices) en `availableTimeSlots` (tijden). Brunch krijgt eigen tijdslots die alleen verschijnen als het zondag is.
+
+---
+
+## Interactie-logica
+
+### Bij selectie van datum/tijd/gasten:
+1. Check per ticket of het beschikbaar is voor de gekozen combinatie
+2. Niet-beschikbare tickets krijgen `opacity-40` en een "Niet beschikbaar" label
+3. Ze blijven klikbaar -- bij klik verschijnt een subtiel bericht ("Niet beschikbaar op deze datum")
+4. Party size wordt gecheckt tegen ticket min/max
+
+### Bij selectie van een ticket:
+1. Als er nog geen datum is gekozen: selecteer automatisch de eerstvolgende dag waarop dit ticket beschikbaar is
+2. Als er nog geen tijd is gekozen: selecteer automatisch het eerste beschikbare tijdslot voor dit ticket
+3. Tijdslots in de grid worden dynamisch: slots waar dit ticket niet beschikbaar is worden vervaagd
+
+### Ambient background:
+- Blijft werken zoals nu: bij ticket-selectie verandert de sfeer
+- Nu direct zichtbaar op de eerste pagina (geen wachten tot stap 2)
+
+---
+
+## Technische Wijzigingen
+
+### `mockData.ts`
+- Nieuw: `TICKET_AVAILABILITY` map met per ticket de beschikbare dagen en tijdslots
+- Nieuw: `BRUNCH_TIME_SLOTS` array met ochtend/middag tijden (10:00-14:00)
+- Helper functie `getAvailableTimeSlotsForDate()` die de juiste tijdslots retourneert op basis van welke tickets op die dag actief zijn
+
+### `MockWidgetA.tsx`
+- Stap 1 wordt de gecombineerde pagina: datum-scroll + gasten-teller + tijd-grid + tickets
+- Stap 2 wordt gegevens (was stap 4)
+- Stap 3 wordt bevestiging (was stap 5)
+- `totalSteps` van 5 naar 3
+- `canNext()` stap 1: vereist selectedTicket EN selectedDate EN selectedTime
+- Nieuwe state: geen extra state nodig, alles bestaat al
+- Tickets rendering: conditioneel `opacity-40` class + "Niet beschikbaar" overlay tekst
+- Bij ticket-klik: auto-set datum en tijd als die nog niet gekozen zijn
+- Progress dots: van 4 naar 2 dots
+
+### Secties volgorde in stap 1:
+1. Datum (horizontale scroll, compact)
+2. Gasten (stepper, compact)  
+3. Tijd (grid, compact)
+4. Divider: "Kies je ervaring"
+5. Ticket kaarten (met beschikbaarheids-status)
 
