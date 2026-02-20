@@ -83,3 +83,79 @@ export const DAY_AVAILABILITY: DayBusyness[] = [
   'quiet',       // tue
   'normal',      // wed
 ];
+
+// --- Ticket availability per day/time ---
+
+export type TicketAvailabilityRule = {
+  availableDayIndices: number[]; // indices into the 14-day lookahead (null = all days)
+  availableTimeSlots: string[];
+  minGuests: number;
+  maxGuests: number;
+};
+
+// Sunday indices in 14-day lookahead (0-indexed, starting Thursday)
+// Thu(0) Fri(1) Sat(2) Sun(3) Mon(4) Tue(5) Wed(6) Thu(7) Fri(8) Sat(9) Sun(10) Mon(11) Tue(12) Wed(13)
+const ALL_DAYS = Array.from({ length: 14 }, (_, i) => i);
+const SUNDAY_INDICES = [3, 10];
+
+export const BRUNCH_TIME_SLOTS = ['10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30'];
+
+export const TICKET_AVAILABILITY: Record<string, TicketAvailabilityRule> = {
+  'diner': {
+    availableDayIndices: ALL_DAYS,
+    availableTimeSlots: ['17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'],
+    minGuests: 1,
+    maxGuests: 10,
+  },
+  'chefs-table': {
+    availableDayIndices: ALL_DAYS.filter(i => !SUNDAY_INDICES.includes(i)), // not on sundays
+    availableTimeSlots: ['18:30', '19:00', '19:30', '20:00', '20:30'],
+    minGuests: 2,
+    maxGuests: 6,
+  },
+  'sunday-brunch': {
+    availableDayIndices: SUNDAY_INDICES,
+    availableTimeSlots: BRUNCH_TIME_SLOTS,
+    minGuests: 2,
+    maxGuests: 8,
+  },
+};
+
+/** Get the union of all time slots available for a given day index */
+export function getTimeSlotsForDay(dayIndex: number): string[] {
+  const slots = new Set<string>();
+  for (const rule of Object.values(TICKET_AVAILABILITY)) {
+    if (rule.availableDayIndices.includes(dayIndex)) {
+      rule.availableTimeSlots.forEach(s => slots.add(s));
+    }
+  }
+  return Array.from(slots).sort();
+}
+
+/** Check if a ticket is available for a given day/time/party combination */
+export function isTicketAvailable(
+  ticketId: string,
+  dayIndex: number | null,
+  timeSlot: string | null,
+  partySize: number,
+): boolean {
+  const rule = TICKET_AVAILABILITY[ticketId];
+  if (!rule) return false;
+  if (partySize < rule.minGuests || partySize > rule.maxGuests) return false;
+  if (dayIndex !== null && !rule.availableDayIndices.includes(dayIndex)) return false;
+  if (timeSlot !== null && !rule.availableTimeSlots.includes(timeSlot)) return false;
+  return true;
+}
+
+/** Find first available day index for a ticket */
+export function firstAvailableDay(ticketId: string): number {
+  const rule = TICKET_AVAILABILITY[ticketId];
+  return rule?.availableDayIndices[0] ?? 0;
+}
+
+/** Find first available time slot for a ticket on a given day */
+export function firstAvailableTime(ticketId: string, dayIndex: number): string | null {
+  const rule = TICKET_AVAILABILITY[ticketId];
+  if (!rule || !rule.availableDayIndices.includes(dayIndex)) return null;
+  return rule.availableTimeSlots[0] ?? null;
+}
