@@ -50,7 +50,7 @@ const PRESET_COLORS = [
 
 
 const sectionHeader = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4";
-const sectionDivider = "border-t border-border/50 pt-5 mt-5";
+const sectionDivider = "border-t border-border pt-6 mt-6";
 
 const CardHeader = ({ title, description }: { title: string; description: string }) => (
   <div className="mb-5">
@@ -176,43 +176,50 @@ export default function SettingsReserveringenWidget() {
         <NestoCard className="p-6">
           <CardHeader title="Configuratie" description="Widget status en basisinstellingen." />
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Widget inschakelen</p>
-                <p className="text-xs text-muted-foreground">Maak de boekingswidget zichtbaar voor gasten</p>
+            {/* Groep A: Status & identiteit */}
+            <div className="bg-secondary/50 rounded-card p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Widget inschakelen</p>
+                  <p className="text-xs text-muted-foreground">Maak de boekingswidget zichtbaar voor gasten</p>
+                </div>
+                <Switch checked={local.widget_enabled} onCheckedChange={v => updateField('widget_enabled', v)} />
               </div>
-              <Switch checked={local.widget_enabled} onCheckedChange={v => updateField('widget_enabled', v)} />
+
+              <div>
+                <NestoInput
+                  label="Locatie slug"
+                  value={local.location_slug}
+                  onChange={e => updateField('location_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  placeholder="bijv. restaurant-de-kok"
+                  error={local.location_slug && !isValidSlug(local.location_slug) ? 'Alleen kleine letters, cijfers en streepjes.' : undefined}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Unieke identifier in de widget URL.</p>
+              </div>
             </div>
 
-            <div>
-              <NestoInput
-                label="Locatie slug"
-                value={local.location_slug}
-                onChange={e => updateField('location_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="bijv. restaurant-de-kok"
-                error={local.location_slug && !isValidSlug(local.location_slug) ? 'Alleen kleine letters, cijfers en streepjes.' : undefined}
+            {/* Groep B: Gastervaring */}
+            <div className="bg-secondary/50 rounded-card p-4 space-y-4">
+              <div className="w-full">
+                <label className="mb-2 block text-label text-muted-foreground">Welkomsttekst</label>
+                <Textarea
+                  value={local.widget_welcome_text}
+                  onChange={e => updateField('widget_welcome_text', e.target.value)}
+                  placeholder="Welkom! Reserveer een tafel bij ons."
+                  className="text-body min-h-[60px] border-[1.5px] border-border bg-card rounded-button focus:!border-primary focus:outline-none focus:ring-0"
+                  rows={2}
+                />
+              </div>
+
+              <NestoSelect
+                label="Niet-beschikbaar tekst"
+                value={local.unavailable_text}
+                onValueChange={v => updateField('unavailable_text', v)}
+                options={unavailableOptions}
               />
-              <p className="text-xs text-muted-foreground mt-1">Unieke identifier in de widget URL.</p>
             </div>
 
-            <div className="w-full">
-              <label className="mb-2 block text-label text-muted-foreground">Welkomsttekst</label>
-              <Textarea
-                value={local.widget_welcome_text}
-                onChange={e => updateField('widget_welcome_text', e.target.value)}
-                placeholder="Welkom! Reserveer een tafel bij ons."
-                className="text-body min-h-[60px] border-[1.5px] border-border bg-card rounded-button focus:!border-primary focus:outline-none focus:ring-0"
-                rows={2}
-              />
-            </div>
-
-            <NestoSelect
-              label="Niet-beschikbaar tekst"
-              value={local.unavailable_text}
-              onValueChange={v => updateField('unavailable_text', v)}
-              options={unavailableOptions}
-            />
-
+            {/* Redirect URL — standalone (optioneel/advanced) */}
             <div>
               <NestoInput
                 label="Redirect URL na boeking"
@@ -230,8 +237,8 @@ export default function SettingsReserveringenWidget() {
           <CardHeader title="Weergave" description="Bepaal wat gasten zien in de widget." />
           <div className="divide-y divide-border/50">
             {/* Widget stijl selector */}
-            <div className="pb-4">
-              <label className="mb-2 block text-label text-muted-foreground">Widget stijl</label>
+            <div className="pb-5">
+              <h4 className={sectionHeader}>Stijl</h4>
               <div className="grid grid-cols-3 gap-2">
                 {([
                   { value: 'auto' as const, label: 'Auto', desc: 'Op basis van aantal tickets' },
@@ -258,14 +265,14 @@ export default function SettingsReserveringenWidget() {
               </p>
             </div>
 
-            <div className="flex items-center justify-between py-4">
+            <div className="flex items-center justify-between py-5">
               <div>
                 <p className="text-sm font-medium">Eindtijd tonen</p>
                 <p className="text-xs text-muted-foreground">Toon de verwachte eindtijd bij elk tijdslot</p>
               </div>
               <Switch checked={local.show_end_time} onCheckedChange={v => updateField('show_end_time', v)} />
             </div>
-            <div className="flex items-center justify-between py-4">
+            <div className="flex items-center justify-between py-5">
               <div>
                 <p className="text-sm font-medium">Nesto branding tonen</p>
                 <p className="text-xs text-muted-foreground">"Powered by Nesto" onderaan de widget</p>
@@ -316,7 +323,7 @@ export default function SettingsReserveringenWidget() {
             {embedMode === 'button' && (
               <div className={sectionDivider}>
                 <h4 className={sectionHeader}>Knopconfiguratie</h4>
-                <div className="space-y-4">
+                <div className="bg-secondary/50 rounded-card p-4 space-y-4">
                   <NestoInput
                     label="Knoptekst"
                     value={buttonLabel}
@@ -336,7 +343,6 @@ export default function SettingsReserveringenWidget() {
                     </div>
                     <Switch checked={buttonPulse} onCheckedChange={setButtonPulse} />
                   </div>
-                  
                 </div>
               </div>
             )}
