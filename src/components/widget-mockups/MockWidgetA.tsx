@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, type MockFormData } from './mockData';
+import { MOCK_TICKETS, MOCK_TIME_SLOTS, SLOT_AVAILABILITY, UNAVAILABLE_SLOTS, INITIAL_FORM, DAY_AVAILABILITY, type MockFormData } from './mockData';
 import { ChevronLeft, Minus, Plus, Check, Calendar, Users, User, Mail, Phone } from 'lucide-react';
 
 const PRIMARY = '#1a1a1a';
@@ -39,10 +39,24 @@ export function MockWidgetA() {
   const dayNames = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
   const monthNames = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
+  const selectedTicketData = MOCK_TICKETS.find(t => t.id === selectedTicket);
+
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="h-full flex flex-col relative" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      {/* Ambient background from selected ticket */}
+      {selectedTicketData && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <img
+            src={selectedTicketData.imageUrl}
+            alt=""
+            className="w-full h-full object-cover transition-all duration-700 ease-out"
+            style={{ filter: 'blur(40px)', opacity: step < 5 ? 0.08 : 0, transform: 'scale(1.2)' }}
+          />
+        </div>
+      )}
+
       {/* Content with fade transition — header + dots scroll along */}
-      <div className="relative flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0 z-10">
         <div
           className="h-full overflow-y-auto px-5 pb-4 transition-opacity duration-150"
           style={{ opacity: fadeIn ? 1 : 0 }}
@@ -87,8 +101,8 @@ export function MockWidgetA() {
                   <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
                     <span className="text-white font-semibold text-sm">{t.name}</span>
                     {t.price && (
-                      <span className="text-white/80 text-xs font-medium bg-white/15 px-2 py-0.5 rounded-full">
-                        {t.price}
+                      <span className="text-white font-semibold text-xs bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                        vanaf {t.price}
                       </span>
                     )}
                   </div>
@@ -118,23 +132,41 @@ export function MockWidgetA() {
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Datum</span>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-                {dates.map((d, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedDate(i)}
-                    className={`flex flex-col items-center min-w-[52px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center ${
-                      selectedDate === i
-                        ? 'bg-gray-800 text-white shadow-md'
-                        : 'bg-white text-gray-600 hover:bg-gray-100'
-                    }`}
-                    style={selectedDate !== i ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
-                  >
-                    <span className="text-[10px] uppercase font-medium opacity-70">{dayNames[d.getDay()]}</span>
-                    <span className="text-lg font-bold">{d.getDate()}</span>
-                    <span className="text-[10px] opacity-70">{monthNames[d.getMonth()]}</span>
-                  </button>
-                ))}
+                {dates.map((d, i) => {
+                  const busyness = DAY_AVAILABILITY[i] ?? 'normal';
+                  const isSelected = selectedDate === i;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedDate(i)}
+                      className={`flex flex-col items-center min-w-[52px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center ${
+                        isSelected
+                          ? 'bg-gray-800 text-white shadow-md'
+                          : 'bg-white text-gray-600 hover:bg-gray-100'
+                      }`}
+                      style={!isSelected ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
+                    >
+                      <span className="text-[10px] uppercase font-medium opacity-70">{dayNames[d.getDay()]}</span>
+                      <span className="text-lg font-bold">{d.getDate()}</span>
+                      <span className="text-[10px] opacity-70">{monthNames[d.getMonth()]}</span>
+                      {busyness !== 'normal' && (
+                        <span className={`w-1.5 h-1.5 rounded-full mt-1 ${
+                          isSelected
+                            ? 'bg-white/50'
+                            : busyness === 'quiet' ? 'bg-emerald-400'
+                            : busyness === 'busy' ? 'bg-amber-400'
+                            : 'bg-red-400'
+                        }`} />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+              <p className="text-[10px] text-gray-400 flex items-center justify-center gap-4 pt-1">
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Rustig</span>
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Populair</span>
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" /> Bijna vol</span>
+              </p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-3">

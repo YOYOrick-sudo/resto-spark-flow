@@ -62,3 +62,24 @@ export const INITIAL_FORM: MockFormData = {
   phone: '',
   notes: '',
 };
+
+// Day-level crowdedness for 14-day lookahead
+// quiet = green dot, normal = no dot, busy = orange, almost_full = red
+export type DayBusyness = 'quiet' | 'normal' | 'busy' | 'almost_full';
+
+export const DAY_AVAILABILITY: DayBusyness[] = [
+  'busy',        // today (thu)
+  'almost_full', // fri
+  'almost_full', // sat
+  'quiet',       // sun
+  'quiet',       // mon
+  'normal',      // tue
+  'normal',      // wed
+  'busy',        // thu
+  'almost_full', // fri
+  'almost_full', // sat
+  'quiet',       // sun
+  'normal',      // mon
+  'quiet',       // tue
+  'normal',      // wed
+];
