@@ -167,7 +167,7 @@ export function MockWidgetA() {
           <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 text-center">Kies een tijd</h3>
             <div className="grid grid-cols-3 gap-2">
-              {MOCK_TIME_SLOTS.map(t => {
+            {MOCK_TIME_SLOTS.map(t => {
                 const isUnavailable = UNAVAILABLE_SLOTS.includes(t);
                 const isSelected = selectedTime === t;
                 const availability = SLOT_AVAILABILITY[t] ?? 'high';
@@ -176,9 +176,7 @@ export function MockWidgetA() {
                     key={t}
                     onClick={() => !isUnavailable && setSelectedTime(t)}
                     disabled={isUnavailable}
-                    className={`flex flex-col items-center rounded-xl text-sm font-semibold transition-all duration-200 ${
-                      availability === 'low' && !isSelected && !isUnavailable ? 'py-2.5 pb-3.5' : availability === 'medium' && !isSelected && !isUnavailable ? 'py-2.5 pb-3.5' : 'py-3'
-                    } ${
+                    className={`flex flex-col items-center py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                       isUnavailable
                         ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
                         : isSelected
@@ -191,10 +189,10 @@ export function MockWidgetA() {
                   >
                     <span>{t}</span>
                     {!isUnavailable && availability === 'medium' && (
-                      <span className={`text-[10px] font-medium leading-none mt-1 ${isSelected ? 'text-white/60' : 'text-amber-600'}`}>Bijna vol</span>
+                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${isSelected ? 'bg-white/50' : 'bg-amber-400'}`} />
                     )}
                     {!isUnavailable && availability === 'low' && (
-                      <span className={`text-[10px] font-medium leading-none mt-1 ${isSelected ? 'text-white/60' : 'text-red-500'}`}>Laatste plekken</span>
+                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${isSelected ? 'bg-white/50' : 'bg-red-400'}`} />
                     )}
                   </button>
                 );
