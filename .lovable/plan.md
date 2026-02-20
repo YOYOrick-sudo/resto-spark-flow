@@ -1,27 +1,75 @@
 
 
-# Fade Gradient Verplaatsen in Mockup A
+# Widget Sfeer-upgrade: Van Formulier naar Uitnodiging
 
-## Probleem
+Sterke visie. Hier is het plan om de drie concrete ideeeen door te voeren in beide mockups.
 
-De witte fade-gradient zit nu als `sticky bottom-0` element BINNEN de step 1 content div (regel 106). Hierdoor zweeft hij mee tijdens het scrollen en verschijnt op een onnatuurlijke positie -- halverwege de content in plaats van netjes tegen de onderkant van het scroll-gebied.
+---
 
-## Oplossing
+## 1. Ambient achtergrond uit ticket foto
 
-De fade-gradient verplaatsen van binnen de scroll-container naar BUITEN de scroll-container, als een absoluut gepositioneerd element dat altijd net boven de CTA-knop zweeft. Dit zorgt ervoor dat de gradient altijd op dezelfde plek zit, ongeacht scrollpositie.
+Wanneer een gast een ticket selecteert, verschijnt de ticket-foto als subtiele blurred achtergrond achter de hele widget. De sfeer verandert per keuze.
 
-## Technisch
+**Hoe het werkt:**
+- Een absoluut gepositioneerde `<img>` achter alle content, met `blur(40px)`, `opacity: 0.08`, `scale(1.2)` (om blur-randen te verbergen)
+- Smooth CSS transition (600ms) bij wisselen van ticket
+- Alleen zichtbaar na ticket-selectie (step >= 1 met selectedTicket)
+- Blijft zichtbaar in stap 2, 3, 4 -- de sfeer draagt door de hele flow
+- Op de bevestigingspagina (step 5) fade naar 0 zodat de kaart schoon leesbaar is
 
-### Bestand: `src/components/widget-mockups/MockWidgetA.tsx`
+## 2. Dag-level drukte-indicator in de kalenderstap
 
-1. **Verwijder** de sticky gradient div uit de step 1 content (regel 106)
-2. **Voeg toe** een absoluut gepositioneerde gradient div direct na het sluiten van de scroll-container (`</div>` op regel 276), maar voor de CTA-sectie (regel 278). Deze wordt gepositioneerd met `pointer-events-none absolute bottom-0 left-0 right-0 h-12` zodat hij altijd aan de onderkant van de scrollbare content area zit
-3. De outer container (regel 43) moet `relative` krijgen zodat de gradient correct gepositioneerd wordt -- maar aangezien de layout flex-col is, is het beter om de scroll-container zelf `relative` te maken en de gradient daar absoluut in te plaatsen
-4. Toon de gradient alleen wanneer `step < 5` (niet op de bevestigingspagina)
+Elke dag in de datumkiezer krijgt een subtiele kleur-dot die aangeeft hoe druk die dag wordt verwacht.
 
-### Concrete aanpak
+**Mock data toevoegen:**
+- `DAY_AVAILABILITY` map in mockData.ts: index 0-13 met waarden `'quiet'`, `'normal'`, `'busy'`, `'almost_full'`
+- Weekenddagen (vr/za) standaard `'busy'` of `'almost_full'`, doordeweeks meer `'quiet'`/`'normal'`
 
-- Wrap de scroll-container in een `relative` div
-- Plaats de gradient als `absolute bottom-0` binnen die wrapper, buiten de overflow-y-auto div
-- Hierdoor blijft de gradient altijd gefixeerd aan de onderkant van het scrollgebied, net boven de CTA
+**Visueel (beide mockups):**
+- Onder het datum-getal verschijnt een kleine dot (w-1.5 h-1.5)
+- Groen = rustig, geen dot = normaal, oranje = populair, rood = bijna vol
+- Bij geselecteerde staat: dot wordt wit/semi-transparant
+- Geen tekst in de buttons, legenda onderaan: "Rustig / Populair / Bijna vol"
+
+## 3. Prominentere prijsindicatie
+
+Tickets met een prijs tonen deze prominenter:
+- "vanaf" prefix voor prix-fixe tickets (Mockup A: in de foto-overlay als groter, duidelijker badge)
+- Mockup B: prijs rechts in de kaart, iets groter en bold
+- Diner-ticket zonder prijs: geen wijziging
+
+---
+
+## Technisch overzicht
+
+### Bestanden die wijzigen:
+
+1. **`src/components/widget-mockups/mockData.ts`**
+   - Toevoegen: `DAY_AVAILABILITY` array met 14 entries voor drukte per dag
+
+2. **`src/components/widget-mockups/MockWidgetA.tsx`**
+   - Ambient background layer toevoegen (absoluut gepositioneerd, blurred ticket-image)
+   - Step 2: dag-dots toevoegen in de datum-buttons
+   - Step 2: legenda onder de kalenderstap
+   - Step 1: prijs-badge aanpassen met "vanaf" prefix
+
+3. **`src/components/widget-mockups/MockWidgetB.tsx`**
+   - Ambient background layer toevoegen (zelfde techniek)
+   - Step 2: dag-dots toevoegen in de grid-cellen
+   - Step 2: legenda onder de kalender
+   - Step 1: prijs prominenter stylen
+
+### Ambient background implementatie (pseudo-code):
+
+```text
+<div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+  <img
+    src={selectedTicketImageUrl}
+    class="w-full h-full object-cover scale-120 blur-[40px]
+           opacity-8 transition-all duration-600"
+  />
+</div>
+```
+
+De rest van de content krijgt `relative z-10` zodat alles erboven blijft.
 
