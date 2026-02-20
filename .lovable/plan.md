@@ -1,31 +1,51 @@
 
-# Cards net iets scherper onderscheiden
+# Fix: datum en tijd niet selecteerbaar in CreateReservationSheet
 
-## Twee micro-aanpassingen
+## Oorzaak
 
-### 1. Border: /70 → volledig opaque
+De `NestoPanel` op desktop rendert als een custom `div` met `z-[70]` en een backdrop overlay ook op `z-[70]`. De datumpicker (Calendar in een Popover) en het tijdslot (Select) gebruiken Radix UI Portal-componenten die **buiten de panel DOM** renderen — standaard op `z-50`. Ze verschijnen daarmee:
 
-De NestoCard heeft nu `border-border/70` — 70% opacity van de border kleur. Die border is nog steeds iets "weggedrukt". Volledig opaque (`border-border`, geen opacity) geeft een net iets scherpere rand zonder het design agressief te maken.
+- **achter de backdrop overlay** (`z-[70]`)
+- of worden geblokkeerd door de panel's eigen stacking context
 
-### 2. Shadow: iets meer diepte
+Gevolg: de dropdowns openen wel (of lijken te openen), maar klikken erop werkt niet of ze zijn onzichtbaar.
 
-De huidige `shadow-card` token:
+## Oplossing
+
+Twee kleine maar gerichte fixes:
+
+### 1. PopoverContent z-index verhogen (datum)
+
+In `src/components/reservations/CreateReservationSheet.tsx`, de `PopoverContent` voor de kalender krijgt een expliciete hogere z-index mee:
+
+```tsx
+<PopoverContent className="w-auto p-0 z-[80]" align="start">
 ```
-0 1px 4px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)
+
+### 2. SelectContent z-index verhogen (tijdslot)
+
+De `SelectContent` voor het tijdslot (en alle andere Selects in de sheet) krijgt ook `z-[80]`:
+
+```tsx
+<SelectContent className="z-[80]">
 ```
 
-Eén stap zwaarder:
-```
-0 1px 4px rgba(0,0,0,0.12), 0 2px 10px rgba(0,0,0,0.08)
-```
+Dit geldt voor alle Select-dropdowns in de details-stap: Tijdslot, Ticket, Kanaal, Status, Tafelmodus.
 
-De Y-offset van de tweede laag gaat van `8px` naar `10px` en de opacity van `0.06` naar `0.08`. Dit is een subtiele maar merkbare verbetering — cards lijken iets meer te "zweven" boven de grijze achtergrond.
+### 3. pointer-events-auto bevestigen op Calendar
+
+De Calendar heeft al `className="p-3 pointer-events-auto"` — dat is correct. Geen wijziging nodig.
 
 ---
 
-## Bestanden
+## Technisch overzicht
 
-- **`src/index.css`** — `--shadow-card` token iets zwaarder
-- **`src/components/polar/NestoCard.tsx`** — `border-border/70` → `border-border`
+Alleen z-index aanpassingen op de portals in `CreateReservationSheet.tsx`. Geen logica, geen nieuwe componenten, geen database.
 
-Geen logica, geen database, alleen twee waarden.
+```text
+src/components/reservations/CreateReservationSheet.tsx
+  - PopoverContent (datum kalender): + className="w-auto p-0 z-[80]"
+  - SelectContent (tijdslot, ticket, kanaal, status, tafelmodus): + className="z-[80]"
+```
+
+Alle portals (Popover en Select) krijgen `z-[80]` — één stap boven de panel/backdrop `z-[70]`, zodat ze altijd bovenaan renderen en klikbaar zijn.
