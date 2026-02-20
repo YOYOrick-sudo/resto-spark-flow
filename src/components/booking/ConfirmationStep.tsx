@@ -1,8 +1,10 @@
 import { useBooking } from '@/contexts/BookingContext';
+import { useWidgetTheme } from '@/hooks/useWidgetTheme';
 import { Calendar, ExternalLink } from 'lucide-react';
 
 export function ConfirmationStep() {
   const { config, data, bookingResult } = useBooking();
+  const t = useWidgetTheme();
   const primaryColor = config?.primary_color ?? '#10B981';
 
   const formatDate = (dateStr: string) => {
@@ -10,7 +12,6 @@ export function ConfirmationStep() {
     return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  // Google Calendar link
   const calendarUrl = (() => {
     if (!data.date || !data.selectedSlot) return null;
     const start = new Date(`${data.date}T${data.selectedSlot.time}:00`);
@@ -30,72 +31,29 @@ export function ConfirmationStep() {
       {/* Animated checkmark */}
       <div className="w-16 h-16">
         <svg viewBox="0 0 64 64" className="w-full h-full">
-          <circle
-            cx="32" cy="32" r="28"
-            fill="none"
-            stroke={primaryColor}
-            strokeWidth="3"
-            style={{
-              strokeDasharray: 176,
-              strokeDashoffset: 176,
-              animation: 'check-circle 500ms ease-out forwards',
-            }}
-          />
-          <circle
-            cx="32" cy="32" r="28"
-            fill={primaryColor}
-            className="opacity-0"
-            style={{
-              animation: 'check-fill 300ms ease-out 400ms forwards',
-            }}
-          />
-          <path
-            d="M20 33 L28 41 L44 25"
-            fill="none"
-            stroke="#fff"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{
-              strokeDasharray: 40,
-              strokeDashoffset: 40,
-              animation: 'check-mark 300ms ease-out 600ms forwards',
-            }}
-          />
+          <circle cx="32" cy="32" r="28" fill="none" stroke={primaryColor} strokeWidth="3" style={{ strokeDasharray: 176, strokeDashoffset: 176, animation: 'check-circle 500ms ease-out forwards' }} />
+          <circle cx="32" cy="32" r="28" fill={primaryColor} className="opacity-0" style={{ animation: 'check-fill 300ms ease-out 400ms forwards' }} />
+          <path d="M20 33 L28 41 L44 25" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 40, strokeDashoffset: 40, animation: 'check-mark 300ms ease-out 600ms forwards' }} />
         </svg>
         <style>{`
-          @keyframes check-circle {
-            to { stroke-dashoffset: 0; }
-          }
-          @keyframes check-fill {
-            to { opacity: 1; }
-          }
-          @keyframes check-mark {
-            to { stroke-dashoffset: 0; }
-          }
+          @keyframes check-circle { to { stroke-dashoffset: 0; } }
+          @keyframes check-fill { to { opacity: 1; } }
+          @keyframes check-mark { to { stroke-dashoffset: 0; } }
           @media (prefers-reduced-motion: reduce) {
-            @keyframes check-circle {
-              from, to { stroke-dashoffset: 0; }
-            }
-            @keyframes check-fill {
-              from, to { opacity: 1; }
-            }
-            @keyframes check-mark {
-              from, to { stroke-dashoffset: 0; }
-            }
+            @keyframes check-circle { from, to { stroke-dashoffset: 0; } }
+            @keyframes check-fill { from, to { opacity: 1; } }
+            @keyframes check-mark { from, to { stroke-dashoffset: 0; } }
           }
         `}</style>
       </div>
 
       <div className="text-center">
         <h2 className="text-xl font-semibold text-gray-900">Reservering bevestigd!</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Je ontvangt een bevestiging per e-mail.
-        </p>
+        <p className="text-sm text-gray-500 mt-1">Je ontvangt een bevestiging per e-mail.</p>
       </div>
 
-      {/* Summary */}
-      <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
+      {/* Summary card */}
+      <div className={`w-full ${t.cardClass} space-y-2`}>
         {data.date && (
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Datum</span>
@@ -125,7 +83,7 @@ export function ConfirmationStep() {
             href={calendarUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all duration-150 text-gray-700 hover:scale-[1.02] active:scale-[0.98]"
+            className={`w-full h-11 ${t.ctaRadius} text-sm font-medium border border-gray-200 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all duration-150 text-gray-700 ${t.ctaHoverClass}`}
           >
             <Calendar className="h-4 w-4" />
             Voeg toe aan agenda
@@ -135,8 +93,8 @@ export function ConfirmationStep() {
         {manageUrl && (
           <a
             href={manageUrl}
-            className="w-full h-11 rounded-[10px] text-sm font-medium border flex items-center justify-center gap-2 transition-all duration-150 text-white hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+            className={`w-full h-11 ${t.ctaRadius} text-sm font-semibold border flex items-center justify-center gap-2 transition-all duration-200 text-white ${t.ctaHoverClass}`}
+            style={{ backgroundColor: primaryColor, borderColor: primaryColor, boxShadow: t.ctaShadow(primaryColor) }}
           >
             <ExternalLink className="h-4 w-4" />
             Reservering beheren
@@ -144,10 +102,7 @@ export function ConfirmationStep() {
         )}
 
         {config?.success_redirect_url && (
-          <a
-            href={config.success_redirect_url}
-            className="text-sm text-gray-500 hover:text-gray-700 text-center mt-1"
-          >
+          <a href={config.success_redirect_url} className="text-sm text-gray-500 hover:text-gray-700 text-center mt-1">
             Terug naar website →
           </a>
         )}
