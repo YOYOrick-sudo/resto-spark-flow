@@ -1,60 +1,55 @@
 
-# Mockup A: Opschonen & Meer Nesto
+
+# Availability Indicators: Enterprise-waardig in Beide Mockups
 
 ## Samenvatting
 
-Mockup A wordt rustiger, compacter en meer Nesto-achtig. De tickets worden kleiner en minder "druk", het logo scrollt mee (niet sticky), en de CTA-knop toont stap-voortgang ("Volgende 1/4").
+Beide mockups krijgen subtiele, enterprise-waardige availability indicators op de tijdslots. Het principe: "high" = geen indicator (beschikbaar is de default), alleen "medium" en "low" worden visueel gemarkeerd -- consistent met het Nesto Polar design principe "data IS het design".
 
 ---
 
-## Wijzigingen
+## Mockup A: Subtiele tekst-labels onder tijdslots
 
-### 1. Ticket cards: kleiner en rustiger
+De 3-kolom grid blijft, maar slots met beperkte beschikbaarheid krijgen een klein label eronder:
 
-- Aspect ratio van `1.8/1` naar `2.4/1` -- veel lager, compacter
-- Verwijder de dubbele gradient-overlays, backdrop-blur en de sparkle-glow effecten
-- Eenvoudiger: een enkele subtiele gradient onderaan (`from-black/50 to-transparent`)
-- Ticket naam niet meer uppercase/tracking-wide, gewoon `font-semibold text-sm`
-- Content padding iets compacter: `px-4 py-3` in plaats van `px-5 py-3.5`
-- Gap tussen cards blijft `gap-4` maar cards zijn visueel kleiner
+```text
++-----------+  +-----------+  +-----------+
+|   17:00   |  |   17:30   |  |   18:00   |
++-----------+  +-----------+  +-----------+
 
-### 2. Logo header: scrollbaar (niet sticky)
++-----------+  +-----------+  +-----------+
+|   18:30   |  |   19:00   |  |   19:30   |
+| Bijna vol |  | Bijna vol |  |Laatste pl.|
++-----------+  +-----------+  +-----------+
+```
 
-- Header verplaatsen van buiten de scroll-container naar erin
-- Logo + progress dots worden onderdeel van de scrollbare content, niet `shrink-0`
+- Import `SLOT_AVAILABILITY` uit mockData
+- `high`: geen extra element (schoon, default)
+- `medium`: klein `text-[10px] text-amber-600` label "Bijna vol" onder de tijd
+- `low`: klein `text-[10px] text-red-500` label "Laatste plekken" onder de tijd, plus een subtiele `bg-red-50` achtergrond op de button zelf
+- Unavailable: blijft doorgestreept zoals nu
+- Geselecteerde staat: label wordt wit (`text-white/70`) zodat het leesbaar blijft op donkere achtergrond
+- Buttons worden iets hoger (`py-3` -> `py-2.5 pb-4`) om ruimte te maken voor het label
+- Onder de grid een compacte legenda met twee items: amber dot + "Bijna vol", rode dot + "Laatste plekken"
 
-### 3. CTA-knop: stap-indicator
+## Mockup B: Verfijning van bestaande dots
 
-- Button tekst wordt `Volgende (1/4)` in plaats van alleen `Volgende`
-- Bij stap 4: blijft `Bevestigen`
+De chip-stijl met dots werkt al, maar wordt opgepoetst:
 
-### 4. Visueel rustiger
-
-- Verwijder de animated sparkles bij de bevestigingsstap
-- Verwijder de hover `translateY` lift-effect op ticket cards
-- Verwijder de `scale-105` op geselecteerde datum en tijdslots
-- Shadows iets subtieler: minder lagen
-- Populair-badge op tijdslots verwijderen (te druk)
-
-### 5. Meer Nesto-feel
-
-- Font wijzigen naar Inter (zelfde als Mockup B) zodat het meer bij Nesto aansluit
-- Achtergrondkleur naar `#FAFAFA` (iets koeler, meer Nesto)
-- Scroll-fade indicator onderaan tickets behouden (dat is subtiel genoeg)
+- `high` availability: dot volledig weglaten (geen visuele ruis voor de default)
+- `medium`: dot blijft (amber), geen extra tekst
+- `low`: dot wordt rood met een subtiele glow (`shadow-[0_0_4px_rgba(239,68,68,0.3)]`), plus tekst "Laatste plekken" als klein label rechts van de tijd binnen de chip
+- Legenda onderaan: alleen "Bijna vol" en "Laatste plekken" tonen (verwijder "Beschikbaar" -- dat is de default)
+- Geselecteerde chip: checkmark blijft, dot/label verdwijnt (wit op donker)
 
 ---
 
 ## Technische details
 
-Alleen `src/components/widget-mockups/MockWidgetA.tsx` wordt aangepast:
+### Bestanden
 
-- Font import toevoegen: Inter via Google Fonts link tag
-- `fontFamily` naar `"'Inter', system-ui, sans-serif"`
-- Header + progress dots verplaatsen naar binnen de `overflow-y-auto` container
-- Ticket image aspect ratio: `style={{ aspectRatio: '2.4/1' }}`
-- Gradient vereenvoudigen: enkele `bg-gradient-to-t from-black/50 to-transparent`
-- Verwijder `hover:-translate-y-0.5` class
-- Verwijder `scale-105` op datum/tijd selecties
-- CTA tekst: `{step === 4 ? 'Bevestigen' : \`Volgende (${step}/4)\`}`
-- Verwijder Sparkles import en alle sparkle-elementen uit stap 5
-- Verwijder de `sparkle` keyframe animatie
+1. **`src/components/widget-mockups/MockWidgetA.tsx`** -- Step 3 aanpassen: import `SLOT_AVAILABILITY`, availability labels toevoegen, legenda onderaan
+2. **`src/components/widget-mockups/MockWidgetB.tsx`** -- Step 3 aanpassen: dots voor "high" weglaten, glow op "low" dots, tekst bij "low" chips, legenda inkorten
+
+### Geen nieuwe dependencies of bestanden nodig
+
