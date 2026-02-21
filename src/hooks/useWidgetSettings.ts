@@ -19,6 +19,7 @@ export interface WidgetSettings {
   booking_questions: BookingQuestion[];
   widget_button_style: string;
   widget_button_logo_url: string | null;
+  widget_button_pulse: boolean;
   google_reserve_url: string | null;
   created_at: string;
   updated_at: string;
