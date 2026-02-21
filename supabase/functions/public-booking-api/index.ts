@@ -595,17 +595,18 @@ async function handleManageGet(url: URL) {
 
   if (error || !data) return errorResponse('Reservation not found', 404);
 
-  // Load policy set for cancel rules
+  // Load policy set + restaurant branding in parallel
   let cancelPolicy = null;
   const policySetId = (data.tickets as any)?.policy_set_id;
-  if (policySetId) {
-    const { data: ps } = await admin
-      .from('policy_sets')
-      .select('cancel_policy_type, cancel_window_hours, cancel_cutoff_time, refund_type, refund_percentage')
-      .eq('id', policySetId)
-      .single();
-    cancelPolicy = ps;
-  }
+
+  const [policyResult, { data: loc }, { data: commSettings }] = await Promise.all([
+    policySetId
+      ? admin.from('policy_sets').select('cancel_policy_type, cancel_window_hours, cancel_cutoff_time, refund_type, refund_percentage').eq('id', policySetId).single()
+      : Promise.resolve({ data: null }),
+    admin.from('locations').select('name').eq('id', data.location_id).single(),
+    admin.from('communication_settings').select('logo_url').eq('location_id', data.location_id).maybeSingle(),
+  ]);
+  cancelPolicy = policyResult?.data ?? null;
 
   // Determine if cancellation/modification is allowed based on policy deadline
   let canCancel = false;
@@ -625,6 +626,8 @@ async function handleManageGet(url: URL) {
 
   return jsonResponse({
     location_id: data.location_id,
+    restaurant_name: loc?.name ?? null,
+    logo_url: commSettings?.logo_url ?? null,
     reservation: {
       id: data.id,
       date: data.reservation_date,
