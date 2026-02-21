@@ -126,7 +126,7 @@ const App = () => (
                   <Route path="/instellingen/communicatie" element={<SettingsCommunicatie />} />
                   
                   {/* Marketing */}
-                  <Route path="/marketing/instellingen" element={<MarketingSettings />} />
+                  <Route path="/instellingen/marketing" element={<MarketingSettings />} />
                   
                   {/* Settings - Reserveringen (Multi-level) */}
                   <Route path="/instellingen/reserveringen" element={<SettingsReserveringenIndex />} />
