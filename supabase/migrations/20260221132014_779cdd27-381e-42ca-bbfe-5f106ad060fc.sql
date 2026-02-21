@@ -1,0 +1,1 @@
+ALTER TABLE public.widget_settings ADD COLUMN widget_button_pulse boolean NOT NULL DEFAULT false;

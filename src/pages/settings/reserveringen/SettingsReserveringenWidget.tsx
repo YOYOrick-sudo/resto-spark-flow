@@ -30,7 +30,7 @@ interface LocalSettings {
   location_slug: string;
   widget_welcome_text: string;
   unavailable_text: string;
-  show_end_time: boolean;
+  
   show_nesto_branding: boolean;
   widget_primary_color: string;
   widget_accent_color: string;
@@ -38,7 +38,7 @@ interface LocalSettings {
   widget_logo_url: string;
   widget_success_redirect_url: string;
   booking_questions: BookingQuestion[];
-  
+  widget_button_pulse: boolean;
 }
 
 const PRESET_COLORS = [
@@ -69,14 +69,14 @@ export default function SettingsReserveringenWidget() {
   const [embedMode, setEmbedMode] = useState<EmbedMode>('button');
   const [buttonLabel, setButtonLabel] = useState('Reserveer');
   const [buttonPosition, setButtonPosition] = useState('bottom-right');
-  const [buttonPulse, setButtonPulse] = useState(false);
+  
 
   const [local, setLocal] = useState<LocalSettings>({
     widget_enabled: false,
     location_slug: '',
     widget_welcome_text: '',
     unavailable_text: 'vol',
-    show_end_time: true,
+    
     show_nesto_branding: true,
     widget_primary_color: '#10B981',
     widget_accent_color: '#14B8A6',
@@ -84,7 +84,7 @@ export default function SettingsReserveringenWidget() {
     widget_logo_url: '',
     widget_success_redirect_url: '',
     booking_questions: [],
-    
+    widget_button_pulse: false,
   });
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function SettingsReserveringenWidget() {
         location_slug: settings.location_slug || '',
         widget_welcome_text: settings.widget_welcome_text || '',
         unavailable_text: settings.unavailable_text || 'vol',
-        show_end_time: settings.show_end_time,
+        
         show_nesto_branding: settings.show_nesto_branding,
         widget_primary_color: settings.widget_primary_color || '#10B981',
         widget_accent_color: settings.widget_accent_color || '#14B8A6',
@@ -102,7 +102,7 @@ export default function SettingsReserveringenWidget() {
         widget_logo_url: settings.widget_logo_url || '',
         widget_success_redirect_url: settings.widget_success_redirect_url || '',
         booking_questions: (settings.booking_questions as BookingQuestion[]) || [],
-        
+        widget_button_pulse: settings.widget_button_pulse ?? false,
       });
     }
   }, [settings]);
@@ -267,13 +267,6 @@ export default function SettingsReserveringenWidget() {
 
             <div className="flex items-center justify-between py-5">
               <div>
-                <p className="text-sm font-medium">Eindtijd tonen</p>
-                <p className="text-xs text-muted-foreground">Toon de verwachte eindtijd bij elk tijdslot</p>
-              </div>
-              <Switch checked={local.show_end_time} onCheckedChange={v => updateField('show_end_time', v)} />
-            </div>
-            <div className="flex items-center justify-between py-5">
-              <div>
                 <p className="text-sm font-medium">Nesto branding tonen</p>
                 <p className="text-xs text-muted-foreground">"Powered by Nesto" onderaan de widget</p>
               </div>
@@ -341,7 +334,7 @@ export default function SettingsReserveringenWidget() {
                       <p className="text-sm font-medium">Pulse indicator</p>
                       <p className="text-xs text-muted-foreground">Groene dot die beschikbaarheid aangeeft</p>
                     </div>
-                    <Switch checked={buttonPulse} onCheckedChange={setButtonPulse} />
+                    <Switch checked={local.widget_button_pulse} onCheckedChange={v => updateField('widget_button_pulse', v)} />
                   </div>
                 </div>
               </div>
@@ -404,7 +397,7 @@ export default function SettingsReserveringenWidget() {
                 buttonLabel={buttonLabel}
                 buttonPosition={buttonPosition}
                 baseUrl={baseUrl}
-                pulse={buttonPulse}
+                pulse={local.widget_button_pulse}
                 logoUrl={local.widget_logo_url}
                 restaurantName={restaurantName}
               />

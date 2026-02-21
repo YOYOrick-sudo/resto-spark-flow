@@ -2067,6 +2067,7 @@ export type Database = {
           updated_at: string
           widget_accent_color: string
           widget_button_logo_url: string | null
+          widget_button_pulse: boolean
           widget_button_style: string
           widget_enabled: boolean
           widget_logo_url: string | null
@@ -2088,6 +2089,7 @@ export type Database = {
           updated_at?: string
           widget_accent_color?: string
           widget_button_logo_url?: string | null
+          widget_button_pulse?: boolean
           widget_button_style?: string
           widget_enabled?: boolean
           widget_logo_url?: string | null
@@ -2109,6 +2111,7 @@ export type Database = {
           updated_at?: string
           widget_accent_color?: string
           widget_button_logo_url?: string | null
+          widget_button_pulse?: boolean
           widget_button_style?: string
           widget_enabled?: boolean
           widget_logo_url?: string | null
