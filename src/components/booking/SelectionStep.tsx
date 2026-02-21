@@ -198,8 +198,31 @@ export function SelectionStep() {
   }, [hasFullSelection]);
 
   return (
-    <div className="space-y-5 px-5">
-      {/* Compact selector dropdown */}
+    <div className="space-y-3 px-5">
+      {/* Guests - always visible */}
+      <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-gray-100" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-medium text-gray-700">Gasten</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setPartySize(Math.max(minParty, data.party_size - 1))}
+            className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+          >
+            <Minus className="w-3.5 h-3.5 text-gray-600" />
+          </button>
+          <span className="text-lg font-bold w-5 text-center tabular-nums">{data.party_size}</span>
+          <button
+            onClick={() => setPartySize(Math.min(maxParty, data.party_size + 1))}
+            className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5 text-gray-600" />
+          </button>
+        </div>
+      </div>
+
+      {/* Date & Time selector */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <button
           onClick={() => setSelectorOpen(o => !o)}
@@ -207,7 +230,7 @@ export function SelectionStep() {
         >
           {selectorOpen ? (
             <>
-              <span className="font-semibold text-gray-800 text-xs uppercase tracking-wide">Je selectie</span>
+              <span className="font-semibold text-gray-800 text-xs uppercase tracking-wide">Datum & tijd</span>
               <ChevronUp className="w-4 h-4 text-gray-400" />
             </>
           ) : (
@@ -216,7 +239,7 @@ export function SelectionStep() {
                 {data.date && selectedDayIndex !== null
                   ? `${DAY_NAMES[dates[selectedDayIndex].getDay()]} ${dates[selectedDayIndex].getDate()} ${MONTH_NAMES[dates[selectedDayIndex].getMonth()]}`
                   : '—'}
-                {' · '}{data.party_size} gasten{' · '}{data.selectedSlot?.time ?? '—'}
+                {' · '}{data.selectedSlot?.time ?? '—'}
               </span>
               <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
             </>
@@ -330,29 +353,6 @@ export function SelectionStep() {
               </div>
             </div>
 
-            {/* Guests */}
-            <div className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">Gasten</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setPartySize(Math.max(minParty, data.party_size - 1))}
-                  className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                >
-                  <Minus className="w-3.5 h-3.5 text-gray-600" />
-                </button>
-                <span className="text-lg font-bold w-5 text-center tabular-nums">{data.party_size}</span>
-                <button
-                  onClick={() => setPartySize(Math.min(maxParty, data.party_size + 1))}
-                  className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5 text-gray-600" />
-                </button>
-              </div>
-            </div>
-
             {/* Time */}
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -364,7 +364,7 @@ export function SelectionStep() {
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                 </div>
               ) : flatSlots.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">Geen tijden beschikbaar</p>
+                <p className="text-sm text-gray-400 text-center py-4">Geen tijden beschikbaar op deze dag. Kies een andere datum.</p>
               ) : (
                 <div className="grid grid-cols-4 gap-1.5">
                   {flatSlots.map(({ slot, shift }) => {
