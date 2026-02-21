@@ -1,35 +1,46 @@
 
-# Fix Onboarding Badges: Zichtbaarheid in Light en Dark Mode
+# "Welkom terug" Banner — Enterprise Upgrade
 
-## Probleem
+## Wat verandert
 
-De NestoBadge varianten `success`, `warning` en `error` (gebruikt in o.a. `PhaseDurationBadge`) zijn slecht zichtbaar omdat:
+De huidige banner is een generieke groene balk met een standaard emoji (🎉). We maken hem eigener en meer in lijn met de widget-esthetiek.
 
-1. **Dark mode**: De achtergrondkleuren (`--success-light`, `--warning-light`, `--error-light`) zijn ~97% lightness (bijna wit). Op een donkere card achtergrond ontstaat een hard, uitgewassen blok met nauwelijks zichtbare tekst.
-2. **Light mode**: De combinatie van 97% lightness achtergrond met lichte statuskleuren als tekst biedt onvoldoende contrast.
+### 1. Eigen icoon in plaats van emoji
+Vervang de `🎉` emoji door een Lucide `Heart` icoon (of `Sparkles`) — klein, inline, past bij de enterprise widget-stijl. Geen emoji's in een professionele booking flow.
 
-Er zijn **geen dark mode overrides** voor deze `-light` tokens in `src/index.css`.
+### 2. Subtielere, warmere styling
+De huidige `bg-green-50 border-green-200 text-green-700` is te "alert-achtig". Nieuw ontwerp:
 
-## Oplossing
+- Achtergrond: lichte primary tint via de widget's eigen primary color (inline style met opacity), zodat het aansluit bij de branding van het restaurant
+- Geen harde border — alleen een subtiele achtergrondkleur
+- Tekst in twee regels: naam prominent (font-semibold), subtekst eronder ("Fijn je weer te zien")
+- Klein icoon links of boven de tekst
 
-### Bestand: `src/index.css` — Dark mode tokens toevoegen
+### 3. Concrete wijziging
 
-Binnen het `.dark` blok (na regel ~184) worden de status-light tokens overschreven naar subtiele, transparante tints die passen bij het enterprise dark theme:
+**Bestand:** `src/components/booking/GuestDetailsStep.tsx` (regels 79-84)
 
-| Token | Light mode (huidig) | Dark mode (nieuw) |
-|-------|--------------------|--------------------|
-| `--success-light` | `141 76% 97%` (bijna wit) | `160 84% 20%` (donker groen) |
-| `--pending-light` | `36 100% 97%` (bijna wit) | `36 80% 20%` (donker amber) |
-| `--warning-light` | `30 100% 95%` (bijna wit) | `30 80% 20%` (donker oranje) |
-| `--error-light` | `0 86% 97%` (bijna wit) | `0 70% 22%` (donker rood) |
+**Van:**
+```tsx
+<div className="rounded-xl bg-green-50 border border-green-200 px-4 py-2 text-sm text-center text-green-700">
+  Welkom terug, {welcomeBack}! 🎉
+</div>
+```
 
-Dit zorgt ervoor dat de badge-achtergrond in dark mode een subtiele, donkere tint krijgt (vergelijkbaar met hoe Linear/Stripe status-badges doen), terwijl de tekstkleur (`--success`, `--pending`, etc.) goed contrasteert.
+**Naar:**
+```tsx
+<div className="rounded-2xl bg-gray-50 px-4 py-3 flex items-center gap-3">
+  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+    <Heart className="w-4 h-4 text-gray-500" />
+  </div>
+  <div className="text-left">
+    <p className="text-sm font-semibold text-gray-800">Welkom terug, {welcomeBack}</p>
+    <p className="text-xs text-gray-500">Fijn je weer te zien</p>
+  </div>
+</div>
+```
 
-### Bestand: `src/components/polar/NestoBadge.tsx` — Geen wijzigingen nodig
+Neutrale kleuren (gray-50/100) zodat het werkt met elke restaurant-branding. Geen border, geen emoji, geen alert-kleuren. Een warm maar professioneel welkomstbericht met een eigen Lucide icoon.
 
-De huidige variant-definities (`bg-success-light text-success`, etc.) werken automatisch correct zodra de CSS tokens dark mode waarden hebben.
-
-## Resultaat
-
-- **Light mode**: Ongewijzigd (zachte pastel achtergronden)
-- **Dark mode**: Donkere, getinte achtergronden met heldere statuskleuren als tekst — hoog contrast, enterprise-consistent
+### Import toevoegen
+`Heart` uit `lucide-react` toevoegen aan de bestaande import (waar al `User`, `Mail`, `Phone`, `Loader2` staan).
