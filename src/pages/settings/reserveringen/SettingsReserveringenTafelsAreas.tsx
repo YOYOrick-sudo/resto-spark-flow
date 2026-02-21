@@ -7,6 +7,7 @@ import { useUserContext } from "@/contexts/UserContext";
 import { useAreasForSettings } from "@/hooks/useAreasWithTables";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { Plus } from "lucide-react";
+import { TitleHelp } from "@/components/polar/TitleHelp";
 
 /**
  * Niveau 4: Areas list page
@@ -102,7 +103,14 @@ export default function SettingsReserveringenTafelsAreas() {
 
   return (
     <SettingsDetailLayout
-      title="Areas"
+      title={
+        <span className="flex items-center gap-2">
+          Areas
+          <TitleHelp title="Wat zijn areas?">
+            <p className="text-muted-foreground">Ruimtes in je restaurant (bijv. terras, zaal). Elke area bevat tafels met eigen capaciteit.</p>
+          </TitleHelp>
+        </span>
+      }
       description="Beheer ruimtes en de tafels daarin."
       breadcrumbs={breadcrumbs}
       actions={

@@ -6,6 +6,7 @@ import { PolicySetsSection } from "@/components/settings/tickets/PolicySetsSecti
 import { PolicySetDetailSheet } from "@/components/settings/tickets/PolicySetDetailSheet";
 import { useUserContext } from "@/contexts/UserContext";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
+import { TitleHelp } from "@/components/polar/TitleHelp";
 
 export default function SettingsReserveringenBeleid() {
   const { currentLocation } = useUserContext();
@@ -17,7 +18,14 @@ export default function SettingsReserveringenBeleid() {
   return (
     <>
       <SettingsDetailLayout
-        title="Beleid"
+        title={
+          <span className="flex items-center gap-2">
+            Beleid
+            <TitleHelp title="Wat is beleid?">
+              <p className="text-muted-foreground">Annulerings- en betalingsbeleid dat je aan tickets koppelt. Bepaal of gasten een aanbetaling doen.</p>
+            </TitleHelp>
+          </span>
+        }
         description="Beheer betalings- en annuleringsbeleid. Beleid kan aan meerdere tickets worden gekoppeld."
         breadcrumbs={breadcrumbs}
         actions={
