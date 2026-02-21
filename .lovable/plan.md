@@ -1,69 +1,37 @@
 
 
-# Fix: Pulse indicator en Eindtijd-toggle in Widget Settings
+# TitleHelp info-iconen toevoegen aan settings secties
 
-## Probleem 1: Pulse indicator werkt niet
+## Wat verandert
 
-De "Pulse indicator" switch in de knopconfiguratie gebruikt een lokale `useState(false)` die:
-- **Niet wordt opgeslagen** in de database (er is geen kolom voor in `widget_settings`)
-- **Reset bij elke pageload** naar `false`
-- **Niet wordt doorgegeven** aan de live preview (alleen aan de embed code snippet)
+Zeven settings-pagina's krijgen een info-icoon (i) achter de paginatitel. Dit is hetzelfde patroon dat al gebruikt wordt bij Shifts, Pacing, Locatie, Shift Tijden en Communicatie. Geen nieuwe componenten, geen database, geen dependencies.
 
-### Oplossing
+## Pagina's en help-teksten
 
-1. Kolom `widget_button_pulse` toevoegen aan de `widget_settings` tabel (boolean, default false)
-2. De lokale state `buttonPulse` koppelen aan de database via `updateField`, net als alle andere settings
-3. De pulse-waarde doorgeven aan `WidgetLivePreview` zodat de testpagina het effect ook toont
+| Pagina | Help-titel | Uitleg |
+|--------|-----------|--------|
+| **Areas** | Wat zijn areas? | Ruimtes in je restaurant (bijv. terras, zaal). Elke area bevat tafels met eigen capaciteit. |
+| **Tafelcombinaties** | Wat zijn tafelcombinaties? | Groepeer tafels die samen geboekt kunnen worden voor grotere gezelschappen. |
+| **Tickets** | Wat zijn tickets? | Reserveringsproducten die gasten zien en boeken. Elk ticket heeft eigen regels, capaciteit en prijs. |
+| **Beleid** | Wat is beleid? | Annulerings- en betalingsbeleid dat je aan tickets koppelt. Bepaal of gasten een aanbetaling doen. |
+| **Notificaties** | Hoe werken notificaties? | Automatische berichten naar gasten bij bevestiging, herinnering en annulering. |
+| **Widget** | Wat is de widget? | De publieke boekingswidget die gasten gebruiken om online te reserveren. |
+| **Onboarding** | Wat is onboarding? | Het inwerkproces voor nieuwe medewerkers. Configureer fases, taken en communicatie. |
 
-### Wijzigingen
+## Technisch
 
-**Database migratie:**
-```sql
-ALTER TABLE widget_settings ADD COLUMN widget_button_pulse boolean NOT NULL DEFAULT false;
-```
+Elke pagina krijgt dezelfde wijziging:
 
-**`src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`:**
-- `buttonPulse` state verwijderen (regel 72)
-- `widget_button_pulse` toevoegen aan `LocalSettings` interface
-- Switch koppelen aan `updateField('widget_button_pulse', v)`
-- Doorgeven aan `WidgetLivePreview` als prop
+1. Import `TitleHelp` (en optioneel `TitleHelpTip`)
+2. Wrap de `title` prop in `<span className="flex items-center gap-2">` met een `<TitleHelp>` component
 
-**`src/components/settings/widget/WidgetLivePreview.tsx`:**
-- `pulse` prop toevoegen
-- Doorgeven als query parameter in de preview URL
+**Bestanden:**
+- `src/pages/settings/reserveringen/SettingsReserveringenTafelsAreas.tsx`
+- `src/pages/settings/reserveringen/SettingsReserveringenTafelsGroepen.tsx`
+- `src/pages/settings/reserveringen/SettingsReserveringenTickets.tsx`
+- `src/pages/settings/reserveringen/SettingsReserveringenBeleid.tsx`
+- `src/pages/settings/reserveringen/SettingsReserveringenNotificaties.tsx`
+- `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`
+- `src/pages/settings/SettingsOnboarding.tsx`
 
-**`src/hooks/useWidgetSettings.ts`:**
-- `widget_button_pulse` toevoegen aan het `WidgetSettings` interface
-
----
-
-## Probleem 2: Eindtijd hoort bij de shift, niet bij de widget
-
-De `show_end_time` toggle staat nu in Widget Settings (Card "Weergave"), maar:
-- `show_end_time` bestaat al als kolom in de `shift_tickets` tabel
-- Het is logischer om dit per shift-ticket te configureren (sommige tickets tonen eindtijd, andere niet)
-- De widget-level setting is redundant
-
-### Oplossing
-
-De "Eindtijd tonen" toggle verwijderen uit de Widget Settings pagina. De instelling zit al op het juiste niveau: per shift-ticket in de Shift Wizard.
-
-### Wijzigingen
-
-**`src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`:**
-- De "Eindtijd tonen" switch-blok verwijderen (regels 268-274)
-- `show_end_time` verwijderen uit `LocalSettings` interface en `useEffect` sync
-
-Geen database wijziging nodig — de kolom in `widget_settings` kan blijven bestaan voor backwards compatibility, maar de UI stuurt er niet meer op.
-
----
-
-## Samenvatting bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| Database migratie | `widget_button_pulse` kolom toevoegen |
-| `SettingsReserveringenWidget.tsx` | Pulse koppelen aan DB; Eindtijd toggle verwijderen |
-| `WidgetLivePreview.tsx` | `pulse` prop + query param toevoegen |
-| `useWidgetSettings.ts` | `widget_button_pulse` aan interface toevoegen |
-
+Geen database wijzigingen. Geen nieuwe componenten.
