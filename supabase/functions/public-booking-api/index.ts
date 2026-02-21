@@ -427,6 +427,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string) {
       email: email!,
       ticket_id: ticket_id!,
       guest_notes: guest_notes || null,
+      is_returning_guest: !!existingCustomer,
     });
   } catch (emailErr) {
     console.error('[BOOKING EMAIL] Failed to send confirmation:', emailErr);
@@ -457,6 +458,7 @@ interface BookingEmailParams {
   email: string;
   ticket_id: string;
   guest_notes: string | null;
+  is_returning_guest: boolean;
 }
 
 async function sendBookingConfirmationEmail(admin: ReturnType<typeof getAdminClient>, params: BookingEmailParams) {
@@ -521,7 +523,7 @@ async function sendBookingConfirmationEmail(admin: ReturnType<typeof getAdminCli
   ${logoUrl ? `<tr><td style="padding:24px 24px 0;text-align:center"><img src="${logoUrl}" alt="${restaurantName}" style="max-height:48px;max-width:200px"></td></tr>` : ''}
   <tr><td style="padding:24px">
     <h1 style="margin:0 0 4px;font-size:20px;color:#111">Je reservering is bevestigd!</h1>
-    <p style="margin:0 0 20px;font-size:14px;color:#666">Hallo ${params.first_name}, we kijken ernaar uit je te verwelkomen.</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#666">${params.is_returning_guest ? `Leuk dat je weer bij ons reserveert, ${params.first_name}!` : `Hallo ${params.first_name}, we kijken ernaar uit je te verwelkomen.`}</p>
     <table width="100%" style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:16px" cellpadding="0" cellspacing="0">
       <tr><td style="padding:4px 0;font-size:14px;color:#555">📅 <strong>${formattedDate}</strong></td></tr>
       <tr><td style="padding:4px 0;font-size:14px;color:#555">🕐 <strong>${formattedTime} uur</strong></td></tr>
