@@ -1,57 +1,69 @@
 
-# Fix: Widget "Volgende" knop niet klikbaar
 
-## Oorzaak
+# Fix: Pulse indicator en Eindtijd-toggle in Widget Settings
 
-De booking widget gebruikt een "Smart Landing Page" waarbij de selector-dropdown (datum, gasten, tijd) **standaard gesloten** is (`selectorOpen = false`). Dit zorgt voor twee problemen:
+## Probleem 1: Pulse indicator werkt niet
 
-1. De gasten +/- knoppen zitten verstopt in de gesloten selector — de gebruiker kan ze niet bedienen
-2. De tijdsloten zijn ook onzichtbaar totdat de selector open is
-3. `canGoNext` op stap 1 vereist alle drie: `selectedTicket + date + selectedSlot` — maar de gebruiker kan nooit bij datum/tijd komen zonder de selector te openen
+De "Pulse indicator" switch in de knopconfiguratie gebruikt een lokale `useState(false)` die:
+- **Niet wordt opgeslagen** in de database (er is geen kolom voor in `widget_settings`)
+- **Reset bij elke pageload** naar `false`
+- **Niet wordt doorgegeven** aan de live preview (alleen aan de embed code snippet)
 
-De "Volgende" knop blijft daardoor altijd disabled.
+### Oplossing
 
-## Oplossing
+1. Kolom `widget_button_pulse` toevoegen aan de `widget_settings` tabel (boolean, default false)
+2. De lokale state `buttonPulse` koppelen aan de database via `updateField`, net als alle andere settings
+3. De pulse-waarde doorgeven aan `WidgetLivePreview` zodat de testpagina het effect ook toont
 
-Twee kleine fixes:
+### Wijzigingen
 
-### 1. Selector standaard open zetten bij eerste bezoek
-
-In `SelectionStep.tsx`, de `useState` aanpassen:
-
-```tsx
-// Huidig
-const [selectorOpen, setSelectorOpen] = useState(false);
-
-// Nieuw
-const [selectorOpen, setSelectorOpen] = useState(true);
+**Database migratie:**
+```sql
+ALTER TABLE widget_settings ADD COLUMN widget_button_pulse boolean NOT NULL DEFAULT false;
 ```
 
-De selector start nu open zodat de gebruiker meteen datum, gasten en tijd kan zien en selecteren. De bestaande logica sluit hem automatisch zodra een volledige selectie gemaakt is (`hasFullSelection` effect).
+**`src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`:**
+- `buttonPulse` state verwijderen (regel 72)
+- `widget_button_pulse` toevoegen aan `LocalSettings` interface
+- Switch koppelen aan `updateField('widget_button_pulse', v)`
+- Doorgeven aan `WidgetLivePreview` als prop
 
-### 2. "Volgende" knop tonen als ticket-loos scenario ook werkt
+**`src/components/settings/widget/WidgetLivePreview.tsx`:**
+- `pulse` prop toevoegen
+- Doorgeven als query parameter in de preview URL
 
-De widget-config heeft één ticket ("Reservering"). Als er maar één ticket is, kan dit automatisch geselecteerd worden zodat de gebruiker niet expliciet een ticket hoeft te kiezen. Dit is een UX-verbetering: één ticket = auto-select.
-
-In `SelectionStep.tsx`, een useEffect toevoegen die het enige ticket automatisch selecteert als er maar één is:
-
-```tsx
-// Auto-selecteer ticket als er maar één beschikbaar is
-useEffect(() => {
-  if (tickets.length === 1 && !data.selectedTicket) {
-    setSelectedTicket(tickets[0]);
-  }
-}, [tickets, data.selectedTicket, setSelectedTicket]);
-```
-
-Dit lost het "Volgende" knop probleem op: zodra de gebruiker een datum en tijdslot selecteert, en er is maar één ticket, is `canGoNext` automatisch `true`.
+**`src/hooks/useWidgetSettings.ts`:**
+- `widget_button_pulse` toevoegen aan het `WidgetSettings` interface
 
 ---
 
-## Bestanden
+## Probleem 2: Eindtijd hoort bij de shift, niet bij de widget
 
-- **`src/components/booking/SelectionStep.tsx`**:
-  - `useState(false)` → `useState(true)` voor `selectorOpen`
-  - Auto-select useEffect voor het enige ticket
+De `show_end_time` toggle staat nu in Widget Settings (Card "Weergave"), maar:
+- `show_end_time` bestaat al als kolom in de `shift_tickets` tabel
+- Het is logischer om dit per shift-ticket te configureren (sommige tickets tonen eindtijd, andere niet)
+- De widget-level setting is redundant
 
-Geen database, geen edge functions, alleen twee kleine UI-fixes.
+### Oplossing
+
+De "Eindtijd tonen" toggle verwijderen uit de Widget Settings pagina. De instelling zit al op het juiste niveau: per shift-ticket in de Shift Wizard.
+
+### Wijzigingen
+
+**`src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx`:**
+- De "Eindtijd tonen" switch-blok verwijderen (regels 268-274)
+- `show_end_time` verwijderen uit `LocalSettings` interface en `useEffect` sync
+
+Geen database wijziging nodig — de kolom in `widget_settings` kan blijven bestaan voor backwards compatibility, maar de UI stuurt er niet meer op.
+
+---
+
+## Samenvatting bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| Database migratie | `widget_button_pulse` kolom toevoegen |
+| `SettingsReserveringenWidget.tsx` | Pulse koppelen aan DB; Eindtijd toggle verwijderen |
+| `WidgetLivePreview.tsx` | `pulse` prop + query param toevoegen |
+| `useWidgetSettings.ts` | `widget_button_pulse` aan interface toevoegen |
+
