@@ -1,35 +1,35 @@
 
+# Fix Onboarding Badges: Zichtbaarheid in Light en Dark Mode
 
-# QR-code: Client-side met qrcode.react
+## Probleem
 
-## Waarom
-De manage-URL bevat een geheim token waarmee reserveringen gewijzigd/geannuleerd kunnen worden. Een externe API zoals `api.qrserver.com` ontvangt die URL als parameter — dat is een privacy-risico. Client-side rendering voorkomt dit volledig.
+De NestoBadge varianten `success`, `warning` en `error` (gebruikt in o.a. `PhaseDurationBadge`) zijn slecht zichtbaar omdat:
 
-## Aanpak
+1. **Dark mode**: De achtergrondkleuren (`--success-light`, `--warning-light`, `--error-light`) zijn ~97% lightness (bijna wit). Op een donkere card achtergrond ontstaat een hard, uitgewassen blok met nauwelijks zichtbare tekst.
+2. **Light mode**: De combinatie van 97% lightness achtergrond met lichte statuskleuren als tekst biedt onvoldoende contrast.
 
-### 1. Dependency toevoegen
-Installeer `qrcode.react` — een lichtgewicht React component (~15KB gzipped) die QR-codes volledig in de browser rendert via Canvas of SVG. Geen externe calls.
+Er zijn **geen dark mode overrides** voor deze `-light` tokens in `src/index.css`.
 
-### 2. Wijziging: `src/components/booking/ConfirmationStep.tsx`
+## Oplossing
 
-**Verwijderen (regels 74-82):** Het nep QR-grid met de hardcoded 4x4 squares:
-```
-<div className="w-16 h-16 bg-gray-100 rounded-lg ...">
-  <div className="grid grid-cols-4 gap-0.5">
-    {Array.from({ length: 16 }).map(...)}
-  </div>
-</div>
-```
+### Bestand: `src/index.css` — Dark mode tokens toevoegen
 
-**Vervangen door:** Een `QRCodeSVG` component uit `qrcode.react` die de manage-URL rendert.
+Binnen het `.dark` blok (na regel ~184) worden de status-light tokens overschreven naar subtiele, transparante tints die passen bij het enterprise dark theme:
 
-- SVG-variant (scherp op elk schermformaat, retina-proof)
-- Formaat: 80x80px (past in de huidige container)
-- Alleen getoond als `bookingResult?.manage_token` bestaat
-- Label eronder: "Scan om te beheren" in klein grijs tekst
-- Wanneer er geen token is, wordt het hele dashed-border blok verborgen
+| Token | Light mode (huidig) | Dark mode (nieuw) |
+|-------|--------------------|--------------------|
+| `--success-light` | `141 76% 97%` (bijna wit) | `160 84% 20%` (donker groen) |
+| `--pending-light` | `36 100% 97%` (bijna wit) | `36 80% 20%` (donker amber) |
+| `--warning-light` | `30 100% 95%` (bijna wit) | `30 80% 20%` (donker oranje) |
+| `--error-light` | `0 86% 97%` (bijna wit) | `0 70% 22%` (donker rood) |
 
-### Geen verdere wijzigingen
+Dit zorgt ervoor dat de badge-achtergrond in dark mode een subtiele, donkere tint krijgt (vergelijkbaar met hoe Linear/Stripe status-badges doen), terwijl de tekstkleur (`--success`, `--pending`, etc.) goed contrasteert.
 
-De "Reservering beheren" tekstlink blijft ook bestaan als fallback voor gebruikers die niet kunnen scannen.
+### Bestand: `src/components/polar/NestoBadge.tsx` — Geen wijzigingen nodig
 
+De huidige variant-definities (`bg-success-light text-success`, etc.) werken automatisch correct zodra de CSS tokens dark mode waarden hebben.
+
+## Resultaat
+
+- **Light mode**: Ongewijzigd (zachte pastel achtergronden)
+- **Dark mode**: Donkere, getinte achtergronden met heldere statuskleuren als tekst — hoog contrast, enterprise-consistent
