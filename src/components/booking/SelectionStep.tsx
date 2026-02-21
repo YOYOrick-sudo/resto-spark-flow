@@ -199,30 +199,7 @@ export function SelectionStep() {
 
   return (
     <div className="space-y-3 px-5">
-      {/* Guests - always visible */}
-      <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-gray-100" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-gray-700">Gasten</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setPartySize(Math.max(minParty, data.party_size - 1))}
-            className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
-          >
-            <Minus className="w-3.5 h-3.5 text-gray-600" />
-          </button>
-          <span className="text-lg font-bold w-5 text-center tabular-nums">{data.party_size}</span>
-          <button
-            onClick={() => setPartySize(Math.min(maxParty, data.party_size + 1))}
-            className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5 text-gray-600" />
-          </button>
-        </div>
-      </div>
-
-      {/* Date & Time selector */}
+      {/* Date, Guests & Time selector */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <button
           onClick={() => setSelectorOpen(o => !o)}
@@ -230,7 +207,7 @@ export function SelectionStep() {
         >
           {selectorOpen ? (
             <>
-              <span className="font-semibold text-gray-800 text-xs uppercase tracking-wide">Datum & tijd</span>
+              <span className="font-semibold text-gray-800 text-xs uppercase tracking-wide">Je selectie</span>
               <ChevronUp className="w-4 h-4 text-gray-400" />
             </>
           ) : (
@@ -239,7 +216,7 @@ export function SelectionStep() {
                 {data.date && selectedDayIndex !== null
                   ? `${DAY_NAMES[dates[selectedDayIndex].getDay()]} ${dates[selectedDayIndex].getDate()} ${MONTH_NAMES[dates[selectedDayIndex].getMonth()]}`
                   : '—'}
-                {' · '}{data.selectedSlot?.time ?? '—'}
+                {' · '}{data.party_size} gasten{' · '}{data.selectedSlot?.time ?? '—'}
               </span>
               <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
             </>
@@ -349,6 +326,31 @@ export function SelectionStep() {
                       </div>
                     );
                   })()}
+                </div>
+              </div>
+            </div>
+
+            {/* Guests */}
+            <div>
+              <div className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-gray-400" />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Gasten</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setPartySize(Math.max(minParty, data.party_size - 1))}
+                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                  >
+                    <Minus className="w-3.5 h-3.5 text-gray-600" />
+                  </button>
+                  <span className="text-lg font-bold w-8 text-center text-gray-900 tabular-nums">{data.party_size}</span>
+                  <button
+                    onClick={() => setPartySize(Math.min(maxParty, data.party_size + 1))}
+                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-gray-600" />
+                  </button>
                 </div>
               </div>
             </div>
