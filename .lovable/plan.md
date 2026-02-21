@@ -1,94 +1,65 @@
 
+# QR Code & Manage Link — Correcte URL generatie
 
-# Manage Pagina — Enterprise Upgrade + Restaurant Branding
+## Probleem
 
-## Wat verandert
+De QR-code en "Reservering beheren" link gebruiken `window.location.origin` om de manage URL te bouwen. In de editor-preview is dat `https://xxx.lovableproject.com`, wat Lovable platform-authenticatie vereist. Daardoor ziet een gast die de QR scant een inlogpagina.
 
-De huidige beheer pagina is functioneel maar visueel basic. We upgraden naar de Nesto enterprise-stijl (matching de booking widget esthetiek) en voegen restaurant branding toe.
+Op de gepubliceerde site (`resto-spark-flow.lovable.app`) werkt het correct.
 
-## 1. Backend: Restaurant naam + logo meegeven
+## Oplossing
 
-**Bestand:** `supabase/functions/public-booking-api/index.ts` (handleManageGet)
+De manage URL server-side genereren in de `handleBook` response van de `public-booking-api`, gebaseerd op de `Origin` of `Referer` header van het request. Als fallback gebruiken we het `id-preview` domein (dat is publiek toegankelijk) in plaats van het `lovableproject.com` domein.
 
-Na het ophalen van de reservering, ook de locatie-naam en het logo ophalen uit `locations` en `communication_settings`:
+### Aanpak
 
+**1. Backend: `public-booking-api/index.ts` — manage_url meegeven in booking response**
+
+In `handleBook`, na het aanmaken van de reservering, de `manage_url` samenstellen:
+- Gebruik de `Origin` header uit het request
+- Als die `lovableproject.com` bevat, vervang door het publieke `id-preview--{id}.lovable.app` equivalent
+- Geef `manage_url` terug in de response (naast `manage_token`)
+
+**2. Frontend: `ConfirmationStep.tsx` — manage_url uit response gebruiken**
+
+In plaats van:
 ```typescript
-const [{ data: loc }, { data: commSettings }] = await Promise.all([
-  admin.from('locations').select('name').eq('id', data.location_id).single(),
-  admin.from('communication_settings').select('logo_url').eq('location_id', data.location_id).maybeSingle(),
-]);
+const manageUrl = bookingResult?.manage_token
+  ? `${window.location.origin}/manage/${bookingResult.manage_token}`
+  : null;
 ```
 
-Toevoegen aan de response:
+Gebruik:
 ```typescript
-return jsonResponse({
-  location_id: data.location_id,
-  restaurant_name: loc?.name ?? null,
-  logo_url: commSettings?.logo_url ?? null,
-  reservation: { ... },
-  ...
-});
+const manageUrl = bookingResult?.manage_url || (
+  bookingResult?.manage_token
+    ? `${window.location.origin}/manage/${bookingResult.manage_token}`
+    : null
+);
 ```
 
-## 2. Frontend: Volledige redesign
+**3. Frontend: `ManageReservation.tsx` — zelfde fix voor de email link**
 
-**Bestand:** `src/pages/ManageReservation.tsx`
+De bevestigingsmail gebruikt al de backend; daar is geen wijziging nodig.
 
-### Structuur (top-to-bottom):
+### Technisch detail: Origin herschrijven
 
-1. **Restaurant logo** — gecentreerd bovenaan de kaart, `max-h-12` met fallback (restaurantnaam als tekst als er geen logo is)
-2. **Gastnaam + status badge** — naam prominent, badge ernaast
-3. **Reserveringsdetails** — datum, tijd (zonder seconden), gasten, ticket — met Lucide iconen in de widget-stijl
-4. **Acties** — rounded-2xl knoppen matching de widget CTA-stijl
-5. **"Powered by Nesto"** footer — al aanwezig, maar met het NestoLogo component (icoon-only, klein) voor professionelere uitstraling
-
-### Visuele stijl:
-- Achtergrond: `#FAFAFA` (matching widget)
-- Font: Inter via Tailwind defaults
-- Kaart: `bg-white rounded-2xl shadow-sm` (geen border, schaduw als afbakening)
-- Knoppen: `rounded-2xl` met hover/active states (matching widget CTA's)
-- Tijdformat: `HH:mm` (seconden strippen)
-- Status badges: `rounded-full` met subtielere kleuren (niet pure wit op felgroen, maar lichtere tints)
-
-### Interface update:
 ```typescript
-interface ManageData {
-  location_id: string;
-  restaurant_name: string | null;  // nieuw
-  logo_url: string | null;         // nieuw
-  reservation: ReservationData;
-  cancel_policy: any;
-  can_cancel: boolean;
-  can_modify: boolean;
+function getPublicBaseUrl(req: Request): string {
+  const origin = req.headers.get('origin') || req.headers.get('referer') || '';
+  // lovableproject.com requires platform auth — rewrite to public id-preview domain
+  const match = origin.match(/https:\/\/([a-f0-9-]+)\.lovableproject\.com/);
+  if (match) {
+    return `https://id-preview--${match[1]}.lovable.app`;
+  }
+  return origin.replace(/\/$/, '');
 }
 ```
-
-### Header sectie (nieuw):
-```tsx
-{/* Restaurant branding */}
-<div className="pt-6 pb-4 flex flex-col items-center gap-3 border-b border-gray-100">
-  {data.logo_url ? (
-    <img src={data.logo_url} alt={data.restaurant_name ?? ''} className="max-h-12 max-w-[200px] object-contain" />
-  ) : data.restaurant_name ? (
-    <span className="text-base font-semibold text-gray-800">{data.restaurant_name}</span>
-  ) : null}
-</div>
-```
-
-### Footer (upgrade):
-```tsx
-<footer className="mt-6 text-center flex items-center justify-center gap-1.5">
-  <span className="text-xs text-gray-300">Powered by</span>
-  <NestoLogo size="sm" showWordmark showIcon={false} />
-</footer>
-```
-
-Hiervoor wordt `NestoLogo` geimporteerd uit `@/components/polar/NestoLogo`. De primary kleur van NestoLogo wordt via een inline style override naar `text-gray-400` gezet zodat het subtiel blijft.
 
 ## Samenvatting wijzigingen
 
 | Bestand | Wat |
 |---------|-----|
-| `supabase/functions/public-booking-api/index.ts` | Restaurant naam + logo toevoegen aan manage GET response |
-| `src/pages/ManageReservation.tsx` | Volledige visuele upgrade: branding, enterprise styling, tijdformat fix, Powered by Nesto |
-
+| `supabase/functions/public-booking-api/index.ts` | `manage_url` toevoegen aan handleBook response met origin-herschrijving |
+| `src/components/booking/ConfirmationStep.tsx` | `manage_url` uit response prefereren boven client-side constructie |
+| `src/contexts/BookingContext.tsx` | `manage_url` toevoegen aan BookingResult type (indien nodig) |
