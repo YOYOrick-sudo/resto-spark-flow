@@ -1,33 +1,18 @@
 
-# "Welkom terug" Banner — Enterprise Upgrade
 
-## Wat verandert
+# "Welkom terug" Banner — Zichtbaarheid Fix
 
-De huidige banner is een generieke groene balk met een standaard emoji (🎉). We maken hem eigener en meer in lijn met de widget-esthetiek.
+## Probleem
 
-### 1. Eigen icoon in plaats van emoji
-Vervang de `🎉` emoji door een Lucide `Heart` icoon (of `Sparkles`) — klein, inline, past bij de enterprise widget-stijl. Geen emoji's in een professionele booking flow.
+De widget-achtergrond is `#FAFAFA` en de banner gebruikt `bg-gray-50` (`#F9FAFB`) — slechts 1 shade verschil. Daardoor lijkt het alsof er een vage, onzichtbare card staat. Het icoon-cirkeltje (`bg-gray-100`) is ook nauwelijks zichtbaar.
 
-### 2. Subtielere, warmere styling
-De huidige `bg-green-50 border-green-200 text-green-700` is te "alert-achtig". Nieuw ontwerp:
+## Oplossing
 
-- Achtergrond: lichte primary tint via de widget's eigen primary color (inline style met opacity), zodat het aansluit bij de branding van het restaurant
-- Geen harde border — alleen een subtiele achtergrondkleur
-- Tekst in twee regels: naam prominent (font-semibold), subtekst eronder ("Fijn je weer te zien")
-- Klein icoon links of boven de tekst
+Verwijder de achtergrondkleur van de banner volledig. Geen card, geen cirkel-achtergrond. In plaats daarvan een **borderless inline element** — puur tekst + icoon, zonder container-styling. Dit past beter bij de widget-esthetiek waar het formulier zelf al het visuele anker is.
 
-### 3. Concrete wijziging
+### Bestand: `src/components/booking/GuestDetailsStep.tsx`
 
-**Bestand:** `src/components/booking/GuestDetailsStep.tsx` (regels 79-84)
-
-**Van:**
-```tsx
-<div className="rounded-xl bg-green-50 border border-green-200 px-4 py-2 text-sm text-center text-green-700">
-  Welkom terug, {welcomeBack}! 🎉
-</div>
-```
-
-**Naar:**
+**Van (regels 81-89):**
 ```tsx
 <div className="rounded-2xl bg-gray-50 px-4 py-3 flex items-center gap-3">
   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -40,7 +25,21 @@ De huidige `bg-green-50 border-green-200 text-green-700` is te "alert-achtig". N
 </div>
 ```
 
-Neutrale kleuren (gray-50/100) zodat het werkt met elke restaurant-branding. Geen border, geen emoji, geen alert-kleuren. Een warm maar professioneel welkomstbericht met een eigen Lucide icoon.
+**Naar:**
+```tsx
+<div className="flex items-center gap-2.5 px-1">
+  <Heart className="w-4 h-4 text-gray-400 flex-shrink-0" />
+  <div className="text-left">
+    <p className="text-sm font-semibold text-gray-700">Welkom terug, {welcomeBack}</p>
+    <p className="text-xs text-gray-400">Fijn je weer te zien</p>
+  </div>
+</div>
+```
 
-### Import toevoegen
-`Heart` uit `lucide-react` toevoegen aan de bestaande import (waar al `User`, `Mail`, `Phone`, `Loader2` staan).
+### Wat verandert
+
+- Achtergrondkleur verwijderd (geen ghost-card meer)
+- Icoon-cirkel verwijderd — Heart icoon staat nu direct inline
+- Iets warmere tekstkleuren (gray-700 i.p.v. gray-800) voor subtielere uitstraling
+- Compact, borderless — past bij de "data is het design" filosofie
+
