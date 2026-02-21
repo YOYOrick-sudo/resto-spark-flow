@@ -30,9 +30,11 @@ export function ConfirmationStep() {
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}`;
   })();
 
-  const manageUrl = bookingResult?.manage_token
-    ? `${window.location.origin}/manage/${bookingResult.manage_token}`
-    : null;
+  const manageUrl = bookingResult?.manage_url || (
+    bookingResult?.manage_token
+      ? `${window.location.origin}/manage/${bookingResult.manage_token}`
+      : null
+  );
 
   const handleRebook = () => {
     setDate(null);

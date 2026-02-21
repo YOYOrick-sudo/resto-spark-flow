@@ -36,6 +36,15 @@ function errorResponse(message: string, status: number) {
   return jsonResponse({ error: message }, status);
 }
 
+function getPublicBaseUrl(req: Request): string {
+  const origin = req.headers.get('origin') || req.headers.get('referer') || '';
+  const match = origin.match(/https:\/\/([a-f0-9-]+)\.lovableproject\.com/);
+  if (match) {
+    return `https://id-preview--${match[1]}.lovable.app`;
+  }
+  return origin.replace(/\/$/, '');
+}
+
 // ============================================
 // Rate Limiting (in-memory, per-instance)
 // ============================================
@@ -261,7 +270,7 @@ async function handleGuestLookup(body: Record<string, unknown>, clientIp: string
 // ============================================
 // Route: POST /book
 // ============================================
-async function handleBook(body: Record<string, unknown>, clientIp: string) {
+async function handleBook(body: Record<string, unknown>, clientIp: string, req: Request) {
   // Rate limit: 10 bookings/min per IP
   const rlKey = `book:${clientIp}`;
   if (!checkRateLimit(rlKey, 10, 60_000)) {
@@ -434,10 +443,16 @@ async function handleBook(body: Record<string, unknown>, clientIp: string) {
     // Non-blocking: booking is still confirmed
   }
 
+  const baseUrl = getPublicBaseUrl(req);
+  const manageUrl = resData?.manage_token && baseUrl
+    ? `${baseUrl}/manage/${resData.manage_token}`
+    : null;
+
   return jsonResponse({
     success: true,
     reservation_id: reservationId,
     manage_token: resData?.manage_token ?? null,
+    manage_url: manageUrl,
     table_assigned: tableResult ?? null,
   }, 201);
 }
@@ -1022,7 +1037,7 @@ Deno.serve(async (req) => {
       if (route === 'availability') return await handleAvailability(body);
       if (route === 'availability/month') return await handleAvailabilityMonth(body);
       if (route === 'guest-lookup') return await handleGuestLookup(body, clientIp);
-      if (route === 'book') return await handleBook(body, clientIp);
+      if (route === 'book') return await handleBook(body, clientIp, req);
       if (route === 'manage') return await handleManagePost(body);
       return errorResponse('Not found', 404);
     }
