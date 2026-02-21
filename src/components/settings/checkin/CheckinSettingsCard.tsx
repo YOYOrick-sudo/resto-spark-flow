@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { FieldHelp } from "@/components/polar/FieldHelp";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Check, Loader2 } from "lucide-react";
@@ -87,7 +88,12 @@ export function CheckinSettingsCard({ locationId }: CheckinSettingsCardProps) {
     <NestoCard className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-medium">Check-in & No-show</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-lg font-medium">Check-in & No-show</h3>
+            <FieldHelp>
+              <p className="text-muted-foreground">Regels voor wanneer gasten mogen inchecken en wanneer een no-show automatisch wordt gemarkeerd.</p>
+            </FieldHelp>
+          </div>
           <p className="text-sm text-muted-foreground">
             Regels voor inchecken en automatische no-show markering.
           </p>

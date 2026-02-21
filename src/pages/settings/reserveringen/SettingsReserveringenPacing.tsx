@@ -9,6 +9,7 @@ import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { TitleHelp, TitleHelpTip } from "@/components/polar/TitleHelp";
+import { FieldHelp } from "@/components/polar/FieldHelp";
 import { nestoToast } from "@/lib/nestoToast";
 import {
   mockPacingSettings,
@@ -137,7 +138,12 @@ export default function SettingsReserveringenPacing() {
         <NestoCard className="p-6">
           <div className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-base font-semibold">Standaard Pacing</h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-base font-semibold">Standaard Pacing</h3>
+                <FieldHelp>
+                  <p className="text-muted-foreground">Maximaal aantal gasten per kwartier. Bepaalt de kleurindicatie in het grid.</p>
+                </FieldHelp>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Deze limits bepalen de kleurindicatie in de Grid View.
               </p>
@@ -161,7 +167,12 @@ export default function SettingsReserveringenPacing() {
 
           <div className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-base font-semibold">Shift Overrides</h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-base font-semibold">Shift Overrides</h3>
+                <FieldHelp>
+                  <p className="text-muted-foreground">Stel afwijkende pacing in voor specifieke shifts als lunch en diner een ander tempo vereisen.</p>
+                </FieldHelp>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Stel afwijkende limits in voor lunch en diner shifts.
               </p>

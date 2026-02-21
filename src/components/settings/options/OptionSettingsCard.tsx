@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { FieldHelp } from "@/components/polar/FieldHelp";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Check, Loader2 } from "lucide-react";
@@ -82,7 +83,12 @@ export function OptionSettingsCard({ locationId }: OptionSettingsCardProps) {
     <NestoCard className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-medium">Optie-reserveringen</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-lg font-medium">Optie-reserveringen</h3>
+            <FieldHelp>
+              <p className="text-muted-foreground">Sta toe dat reserveringen als optie (voorlopig) worden aangemaakt met een automatische vervaldatum.</p>
+            </FieldHelp>
+          </div>
           <p className="text-sm text-muted-foreground">
             Maak het mogelijk om reserveringen als optie aan te maken met een vervaldatum.
           </p>

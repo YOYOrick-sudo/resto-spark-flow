@@ -4,6 +4,7 @@ import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDeta
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { TitleHelp, TitleHelpTip } from "@/components/polar/TitleHelp";
+import { FieldHelp } from "@/components/polar/FieldHelp";
 import { ShiftsTable, ShiftWizard, ShiftsLivePreviewPanel, ShiftExceptionsSection } from "@/components/settings/shifts";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useAllShifts } from "@/hooks/useShifts";
@@ -61,7 +62,12 @@ export default function SettingsReserveringenShifts() {
     >
       <NestoCard className="p-6 border border-border">
         <div className="mb-5">
-          <h3 className="text-base font-semibold">Shift overzicht</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-base font-semibold">Shift overzicht</h3>
+            <FieldHelp>
+              <p className="text-muted-foreground">Alle actieve en inactieve shifts. Versleep om prioriteit bij overlapping te bepalen.</p>
+            </FieldHelp>
+          </div>
           <p className="text-sm text-muted-foreground mt-0.5">
             Versleep shifts om de prioriteit te wijzigen.
           </p>
