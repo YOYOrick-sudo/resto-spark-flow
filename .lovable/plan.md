@@ -1,76 +1,94 @@
 
+# Section-Level FieldHelp Iconen in Alle Settings Pages
 
-# Widget Smart Ticket Selection
+## Wat verandert
 
-## Drie wijzigingen
+Elke kaart/sectie binnen settings pages krijgt een info-icoon (i) naast de sectie-titel. Dit maakt elke individuele sectie zelf-documenterend, niet alleen de pagina als geheel. Dit wordt het standaard patroon voor alle toekomstige settings secties.
 
-### 1. Tijdslots tonen zonder ticket-filter
+## Aanpak
 
-**Probleem**: `flatSlots` filtert op `data.selectedTicket`, waardoor als er geen ticket is geselecteerd, er mogelijk geen slots getoond worden (of juist alle slots -- afhankelijk van de logica). De edge function stuurt slots per ticket terug. Als geen ticket geselecteerd is, moeten alle slots zichtbaar zijn (gededupliceerd op tijd).
+We gebruiken het bestaande `FieldHelp` component (kleiner, inline) voor sectie-headers binnen kaarten, en `TitleHelp` blijft voor paginatitels. Dit is consistent met het bestaande contextual help systeem.
 
-**Oplossing**: De huidige filter logica in `flatSlots` werkt al correct -- als geen ticket is geselecteerd worden alle slots getoond. Het probleem zit waarschijnlijker in dat de availability API geen slots teruggeeft. We moeten:
-- Console-loggen of de API daadwerkelijk slots teruggeeft
-- Controleren dat `loadAvailability` correct wordt aangeroepen bij mount
+## Overzicht per pagina
 
-**Bestand**: `src/components/booking/SelectionStep.tsx`
+### 1. Widget (`SettingsReserveringenWidget.tsx`)
+De `CardHeader` helper-component aanpassen zodat deze een optionele `help` prop accepteert met een FieldHelp-icoon.
 
-### 2. Tickets sorteren op beschikbaarheid
+| Sectie | Help-tekst |
+|--------|-----------|
+| Configuratie | Schakel de widget in en stel de basis-URL en gastervaring in. |
+| Weergave | Bepaal de visuele stijl en branding-opties die gasten zien. |
+| Branding | Pas kleuren en logo aan om de widget bij je huisstijl te laten passen. |
+| Boekingsvragen | Stel extra vragen in die gasten beantwoorden bij het boeken. Antwoorden worden als tags opgeslagen. |
+| Integratie | Embed de widget op je website via een knop, inline container of directe link. |
 
-**Probleem**: Tickets worden in vaste volgorde getoond, ongeacht beschikbaarheid.
+### 2. Pacing (`SettingsReserveringenPacing.tsx`)
 
-**Oplossing**: Sorteer de tickets-array zodat beschikbare tickets eerst komen, onbeschikbare onderaan. Gebruik de bestaande `isTicketAvailable()` functie.
+| Sectie | Help-tekst |
+|--------|-----------|
+| Standaard Pacing | Maximaal aantal gasten per kwartier. Bepaalt de kleurindicatie in het grid. |
+| Shift Overrides | Stel afwijkende pacing in voor specifieke shifts als lunch en diner een ander tempo vereisen. |
+
+### 3. Communicatie (`SettingsCommunicatie.tsx`)
+
+| Sectie | Help-tekst |
+|--------|-----------|
+| Branding | Logo, kleur en footer die in alle uitgaande emails verschijnen. |
+| Afzender | Naam en reply-to adres die ontvangers zien. Het verzenddomein wordt centraal beheerd. |
+| Kanalen | Welke communicatiekanalen actief zijn voor berichten naar gasten en kandidaten. |
+
+### 4. Shifts (`SettingsReserveringenShifts.tsx`)
+
+| Sectie | Help-tekst |
+|--------|-----------|
+| Shift overzicht | Alle actieve en inactieve shifts. Versleep om prioriteit bij overlapping te bepalen. |
+
+### 5. Shift Exceptions (`ShiftExceptionsSection.tsx`)
+
+| Sectie | Help-tekst |
+|--------|-----------|
+| Uitzonderingen | Eenmalige afwijkingen van het standaard shift-schema, zoals gesloten dagen of aangepaste tijden. |
+
+### 6. Locatie-instellingen sub-kaarten
+
+| Component | Sectie | Help-tekst |
+|-----------|--------|-----------|
+| `LocationSettingsCard` | Locatie Instellingen | Standaard tafeltijd, buffer en cutoff die gelden als een ticket geen eigen waarde heeft. |
+| `CheckinSettingsCard` | Check-in & No-show | Regels voor wanneer gasten mogen inchecken en wanneer een no-show automatisch wordt gemarkeerd. |
+| `OptionSettingsCard` | Optie-reserveringen | Sta toe dat reserveringen als optie (voorlopig) worden aangemaakt met een automatische vervaldatum. |
+
+### 7. Tafelcombinaties (`TableGroupsSection.tsx`)
+
+| Sectie | Help-tekst |
+|--------|-----------|
+| Tafelcombinaties | Combineer tafels zodat het systeem ze automatisch kan samenvoegen voor grotere gezelschappen. |
+
+## Technisch
+
+**Pattern**: Naast elke `<h3>` sectie-header wordt een `<FieldHelp>` component geplaatst:
 
 ```tsx
-// Sorteer tickets: beschikbaar eerst, onbeschikbaar onderaan
-const sortedTickets = useMemo(() => {
-  return [...tickets].sort((a, b) => {
-    const aAvail = isTicketAvailable(a) ? 0 : 1;
-    const bAvail = isTicketAvailable(b) ? 0 : 1;
-    return aAvail - bAvail;
-  });
-}, [tickets, isTicketAvailable]);
+<div className="flex items-center gap-1.5">
+  <h3 className="text-base font-semibold">Sectie Titel</h3>
+  <FieldHelp>
+    <p className="text-muted-foreground">Uitleg over deze sectie...</p>
+  </FieldHelp>
+</div>
 ```
 
-**Bestand**: `src/components/booking/SelectionStep.tsx`
+**Widget CardHeader**: De lokale `CardHeader` helper krijgt een optionele `helpText` prop zodat alle 5 kaarten consistent FieldHelp krijgen.
 
-### 3. Auto-selectie bij ticket klik
+**Bestanden die worden aangepast:**
+- `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` (5 secties)
+- `src/pages/settings/reserveringen/SettingsReserveringenPacing.tsx` (2 secties)
+- `src/pages/settings/reserveringen/SettingsReserveringenShifts.tsx` (1 sectie)
+- `src/pages/settings/SettingsCommunicatie.tsx` (3 secties)
+- `src/components/settings/shifts/exceptions/ShiftExceptionsSection.tsx` (1 sectie)
+- `src/components/settings/tables/LocationSettingsCard.tsx` (1 sectie)
+- `src/components/settings/checkin/CheckinSettingsCard.tsx` (1 sectie)
+- `src/components/settings/options/OptionSettingsCard.tsx` (1 sectie)
+- `src/components/settings/tables/TableGroupsSection.tsx` (1 sectie)
 
-**Probleem**: Als je op een ticket klikt zonder datum/tijd, gebeurt er niks behalve dat het ticket wordt geselecteerd.
+**Totaal: 15 info-iconen verdeeld over 9 bestanden.**
 
-**Oplossing**: Wijzig `handleTicketSelect` zodat:
-1. Het ticket wordt geselecteerd
-2. Als er al availability geladen is, automatisch de eerste beschikbare slot voor dat ticket wordt geselecteerd
-3. Als er nog geen availability is, wacht op de availability response en selecteer dan de eerste slot
-4. De selector opent kort om de selectie te tonen
-
-```tsx
-const handleTicketSelect = (ticket: TicketInfo) => {
-  setSelectedTicket(ticket);
-  
-  // Auto-select eerste beschikbare slot voor dit ticket
-  for (const shift of availableShifts) {
-    for (const slot of shift.slots) {
-      if (slot.ticket_id === ticket.id && slot.available) {
-        setSelectedSlot(slot, shift);
-        return; // Eerste match gevonden, klaar
-      }
-    }
-  }
-  
-  // Geen slot gevonden: open selector zodat gast datum/gasten kan aanpassen
-  setSelectorOpen(true);
-};
-```
-
-**Bestand**: `src/components/booking/SelectionStep.tsx`
-
-## Samenvatting wijzigingen
-
-| # | Wat | Bestand |
-|---|-----|---------|
-| 1 | Debug: log availability response, fix filter als nodig | `SelectionStep.tsx` |
-| 2 | Sorteer tickets: beschikbaar eerst | `SelectionStep.tsx` |
-| 3 | Auto-selecteer eerste slot bij ticket klik | `SelectionStep.tsx` |
-
-Alle wijzigingen zitten in een enkel bestand. Geen database of edge function wijzigingen nodig.
-
+Geen database wijzigingen. Geen nieuwe dependencies.
