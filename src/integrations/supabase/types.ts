@@ -181,10 +181,55 @@ export type Database = {
           },
         ]
       }
+      cross_module_events: {
+        Row: {
+          consumed_by: Json
+          created_at: string
+          event_type: string
+          expires_at: string
+          id: string
+          location_id: string
+          payload: Json
+          source_module: string
+        }
+        Insert: {
+          consumed_by?: Json
+          created_at?: string
+          event_type: string
+          expires_at: string
+          id?: string
+          location_id: string
+          payload?: Json
+          source_module: string
+        }
+        Update: {
+          consumed_by?: Json
+          created_at?: string
+          event_type?: string
+          expires_at?: string
+          id?: string
+          location_id?: string
+          payload?: Json
+          source_module?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_module_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
+          average_spend: number | null
+          birthday: string | null
           created_at: string
+          dietary_preferences: string[] | null
           email: string | null
+          favorite_items: Json | null
           first_name: string
           first_visit_at: string | null
           id: string
@@ -201,8 +246,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          average_spend?: number | null
+          birthday?: string | null
           created_at?: string
+          dietary_preferences?: string[] | null
           email?: string | null
+          favorite_items?: Json | null
           first_name: string
           first_visit_at?: string | null
           id?: string
@@ -219,8 +268,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          average_spend?: number | null
+          birthday?: string | null
           created_at?: string
+          dietary_preferences?: string[] | null
           email?: string | null
+          favorite_items?: Json | null
           first_name?: string
           first_visit_at?: string | null
           id?: string
@@ -404,32 +457,38 @@ export type Database = {
       locations: {
         Row: {
           created_at: string
+          google_place_id: string | null
           id: string
           is_active: boolean
           name: string
           organization_id: string
           slug: string
           timezone: string
+          tripadvisor_url: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          google_place_id?: string | null
           id?: string
           is_active?: boolean
           name: string
           organization_id: string
           slug: string
           timezone?: string
+          tripadvisor_url?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          google_place_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
           organization_id?: string
           slug?: string
           timezone?: string
+          tripadvisor_url?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -438,6 +497,530 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_automation_flows: {
+        Row: {
+          created_at: string
+          flow_type: string
+          id: string
+          is_active: boolean
+          location_id: string
+          name: string
+          stats: Json
+          steps: Json
+          template_id: string | null
+          trigger_config: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          flow_type?: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          name: string
+          stats?: Json
+          steps?: Json
+          template_id?: string | null
+          trigger_config?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          flow_type?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          name?: string
+          stats?: Json
+          steps?: Json
+          template_id?: string | null
+          trigger_config?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_automation_flows_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_automation_flows_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_brand_kit: {
+        Row: {
+          accent_color: string | null
+          created_at: string
+          default_greeting: string | null
+          default_signature: string | null
+          font_body: string | null
+          font_heading: string | null
+          id: string
+          location_id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          social_handles: Json | null
+          tone_description: string | null
+          tone_of_voice: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          created_at?: string
+          default_greeting?: string | null
+          default_signature?: string | null
+          font_body?: string | null
+          font_heading?: string | null
+          id?: string
+          location_id: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          social_handles?: Json | null
+          tone_description?: string | null
+          tone_of_voice?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          created_at?: string
+          default_greeting?: string | null
+          default_signature?: string | null
+          font_body?: string | null
+          font_heading?: string | null
+          id?: string
+          location_id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          social_handles?: Json | null
+          tone_description?: string | null
+          tone_of_voice?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_brand_kit_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaign_analytics: {
+        Row: {
+          bounced_count: number
+          campaign_id: string
+          channel: string
+          clicked_count: number
+          delivered_count: number
+          id: string
+          location_id: string
+          opened_count: number
+          reservations_attributed: number
+          revenue_attributed: number
+          sent_count: number
+          social_engagement: number
+          social_impressions: number
+          social_reach: number
+          social_saves: number
+          unsubscribed_count: number
+          updated_at: string
+        }
+        Insert: {
+          bounced_count?: number
+          campaign_id: string
+          channel?: string
+          clicked_count?: number
+          delivered_count?: number
+          id?: string
+          location_id: string
+          opened_count?: number
+          reservations_attributed?: number
+          revenue_attributed?: number
+          sent_count?: number
+          social_engagement?: number
+          social_impressions?: number
+          social_reach?: number
+          social_saves?: number
+          unsubscribed_count?: number
+          updated_at?: string
+        }
+        Update: {
+          bounced_count?: number
+          campaign_id?: string
+          channel?: string
+          clicked_count?: number
+          delivered_count?: number
+          id?: string
+          location_id?: string
+          opened_count?: number
+          reservations_attributed?: number
+          revenue_attributed?: number
+          sent_count?: number
+          social_engagement?: number
+          social_impressions?: number
+          social_reach?: number
+          social_saves?: number
+          unsubscribed_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaign_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaign_analytics_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaigns: {
+        Row: {
+          ai_generated: boolean
+          campaign_type: string
+          content_html: string | null
+          content_social: Json | null
+          content_text: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          location_id: string
+          name: string
+          scheduled_at: string | null
+          segment_filter: Json | null
+          segment_id: string | null
+          sent_at: string | null
+          sent_count: number
+          status: string
+          subject: string | null
+          trigger_event: string | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          ai_generated?: boolean
+          campaign_type?: string
+          content_html?: string | null
+          content_social?: Json | null
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id: string
+          name: string
+          scheduled_at?: string | null
+          segment_filter?: Json | null
+          segment_id?: string | null
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          subject?: string | null
+          trigger_event?: string | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_generated?: boolean
+          campaign_type?: string
+          content_html?: string | null
+          content_social?: Json | null
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id?: string
+          name?: string
+          scheduled_at?: string | null
+          segment_filter?: Json | null
+          segment_id?: string | null
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          subject?: string | null
+          trigger_event?: string | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaigns_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_contact_preferences: {
+        Row: {
+          channel: string
+          consent_source: string | null
+          created_at: string
+          customer_id: string
+          double_opt_in_confirmed: boolean
+          double_opt_in_sent_at: string | null
+          double_opt_in_token: string | null
+          id: string
+          location_id: string
+          opted_in: boolean
+          opted_in_at: string | null
+          opted_out_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          consent_source?: string | null
+          created_at?: string
+          customer_id: string
+          double_opt_in_confirmed?: boolean
+          double_opt_in_sent_at?: string | null
+          double_opt_in_token?: string | null
+          id?: string
+          location_id: string
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          consent_source?: string | null
+          created_at?: string
+          customer_id?: string
+          double_opt_in_confirmed?: boolean
+          double_opt_in_sent_at?: string | null
+          double_opt_in_token?: string | null
+          id?: string
+          location_id?: string
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_contact_preferences_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_contact_preferences_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_content_ideas: {
+        Row: {
+          converted_to_campaign_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          idea_type: string
+          location_id: string
+          priority: number
+          source: string
+          source_event_id: string | null
+          status: string
+          suggested_content: Json | null
+          suggested_date: string | null
+          suggested_segment_id: string | null
+          title: string
+        }
+        Insert: {
+          converted_to_campaign_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          idea_type?: string
+          location_id: string
+          priority?: number
+          source?: string
+          source_event_id?: string | null
+          status?: string
+          suggested_content?: Json | null
+          suggested_date?: string | null
+          suggested_segment_id?: string | null
+          title: string
+        }
+        Update: {
+          converted_to_campaign_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          idea_type?: string
+          location_id?: string
+          priority?: number
+          source?: string
+          source_event_id?: string | null
+          status?: string
+          suggested_content?: Json | null
+          suggested_date?: string | null
+          suggested_segment_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_content_ideas_converted_to_campaign_id_fkey"
+            columns: ["converted_to_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_content_ideas_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_content_ideas_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "cross_module_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_content_ideas_suggested_segment_id_fkey"
+            columns: ["suggested_segment_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_segments: {
+        Row: {
+          created_at: string
+          description: string | null
+          filter_rules: Json
+          guest_count: number | null
+          guest_count_updated_at: string | null
+          id: string
+          is_dynamic: boolean
+          is_system: boolean
+          location_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          filter_rules?: Json
+          guest_count?: number | null
+          guest_count_updated_at?: string | null
+          id?: string
+          is_dynamic?: boolean
+          is_system?: boolean
+          location_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          filter_rules?: Json
+          guest_count?: number | null
+          guest_count_updated_at?: string | null
+          id?: string
+          is_dynamic?: boolean
+          is_system?: boolean
+          location_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_segments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_templates: {
+        Row: {
+          category: string
+          content_html: string | null
+          content_text: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_system: boolean
+          location_id: string | null
+          name: string
+          template_type: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content_html?: string | null
+          content_text?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          location_id?: string | null
+          name: string
+          template_type?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content_html?: string | null
+          content_text?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          location_id?: string | null
+          name?: string
+          template_type?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_templates_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
