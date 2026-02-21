@@ -36,13 +36,8 @@ function errorResponse(message: string, status: number) {
   return jsonResponse({ error: message }, status);
 }
 
-function getPublicBaseUrl(req: Request): string {
-  const origin = req.headers.get('origin') || req.headers.get('referer') || '';
-  const match = origin.match(/https:\/\/([a-f0-9-]+)\.lovableproject\.com/);
-  if (match) {
-    return `https://id-preview--${match[1]}.lovable.app`;
-  }
-  return origin.replace(/\/$/, '');
+function getPublicSiteUrl(): string {
+  return (Deno.env.get('PUBLIC_SITE_URL') || 'https://resto-spark-flow.lovable.app').replace(/\/$/, '');
 }
 
 // ============================================
@@ -443,9 +438,8 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     // Non-blocking: booking is still confirmed
   }
 
-  const baseUrl = getPublicBaseUrl(req);
-  const manageUrl = resData?.manage_token && baseUrl
-    ? `${baseUrl}/manage/${resData.manage_token}`
+  const manageUrl = resData?.manage_token
+    ? `${getPublicSiteUrl()}/manage/${resData.manage_token}`
     : null;
 
   return jsonResponse({
