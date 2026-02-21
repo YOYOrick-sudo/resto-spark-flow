@@ -1,6 +1,5 @@
 import { useBooking } from '@/contexts/BookingContext';
 import { Calendar, ExternalLink, Check } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -74,12 +73,6 @@ export function ConfirmationStep() {
           <Row label="Gasten" value={String(data.party_size)} />
           <Row label="Naam" value={`${guestData.first_name} ${guestData.last_name}`} />
         </div>
-        {manageUrl && (
-          <div className="border-t-2 border-dashed border-gray-200 px-5 py-4 flex flex-col items-center gap-2">
-            <QRCodeSVG value={manageUrl} size={80} />
-            <span className="text-[11px] text-gray-400">Scan om te beheren</span>
-          </div>
-        )}
       </div>
 
       {/* Actions */}
