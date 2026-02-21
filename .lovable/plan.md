@@ -1,67 +1,59 @@
 
+# Booking Widget - Diagnose en Fix Plan
 
-# Booking & Message Emails Laten Werken via Resend Sandbox
+## Gevonden Problemen
 
-## Probleem
+### Probleem 1: Aantal personen niet zichtbaar
+De party size selector (gasten +/- knoppen) zit verstopt in een inklapbaar dropdown-paneel ("Je selectie"). Dit paneel start dicht en klapt automatisch dicht zodra er een volledige selectie is gemaakt. Omdat er maar 1 actief ticket is ("Reservering"), wordt dat ticket automatisch geselecteerd, waardoor de gebruiker het paneel nooit open ziet.
 
-Onboarding emails kwamen wel aan omdat `_shared/email.ts` terugvalt op `onboarding@resend.dev` (Resend sandbox domein). Maar twee andere functies gebruiken altijd `noreply@nesto.app` — een domein dat niet geverifieerd is in Resend — waardoor emails stilletjes falen.
+**Oorzaak**: De gasten-selector is alleen zichtbaar als de gebruiker actief op het dropdown-paneel klikt. Er is geen altijd-zichtbare party size picker.
 
-| Functie | Huidige from | Werkt? |
-|---------|-------------|--------|
-| `_shared/email.ts` (onboarding-agent) | `onboarding@resend.dev` (fallback) | Ja |
-| `public-booking-api` (booking confirmations) | `noreply@nesto.app` (hardcoded) | Nee |
-| `send-onboarding-message` (handmatige berichten) | `noreply@nesto.app` (hardcoded) | Nee |
+### Probleem 2: Geen tijden beschikbaar
+De enige actieve shift ("Ealy dinenr") draait op **dagen 1-5 (ma-vr)**. Vandaag is **zaterdag** (dag 6). Daarom retourneert de availability engine 0 slots.
+
+**Oorzaak**: Geen configuratiefout - de shift is gewoon niet actief op zaterdag/zondag. De widget toont dan "Geen tijden beschikbaar" zonder uit te leggen waarom, en biedt geen suggestie om een andere dag te kiezen.
+
+---
 
 ## Oplossing
 
-Dezelfde fallback-logica toepassen in de twee kapotte functies: gebruik `RESEND_FROM_EMAIL` env var als die gezet is, anders `onboarding@resend.dev`.
+### Fix 1: Party size altijd zichtbaar maken
+De gasten-selector uit het inklapbare paneel halen en altijd tonen bovenaan de SelectionStep, naast de datum-selector. Dit maakt de flow intuiever:
 
-**Beperking**: Sandbox-domein stuurt alleen naar het emailadres waarmee het Resend account is aangemaakt. Later kun je `nesto.app` verifiëren in Resend en de `RESEND_FROM_EMAIL` secret instellen op `noreply@nesto.app`.
+**Nieuwe layout SelectionStep:**
+1. Datum strip (altijd zichtbaar, zoals nu)
+2. Gasten selector (altijd zichtbaar, nieuw!)
+3. Inklapbaar paneel met alleen Tijd-selector
+4. Ticket keuze (zoals nu)
 
-## Wijzigingen
+### Fix 2: Betere feedback bij geen beschikbaarheid
+In plaats van alleen "Geen tijden beschikbaar" tonen, een hint geven dat de gebruiker een andere datum kan proberen. Optioneel: de eerste beschikbare datum highlighten in de date strip.
 
-### 1. `supabase/functions/public-booking-api/index.ts`
+---
 
-Lijn 550 verandert van:
-```
-from: `${senderName} <noreply@nesto.app>`
-```
-naar:
-```
-const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
-// ...
-from: `${senderName} <${verifiedFrom}>`
-```
+## Technische Details
 
-### 2. `supabase/functions/send-onboarding-message/index.ts`
+### Bestand: `src/components/booking/SelectionStep.tsx`
 
-Lijn 86-88 verandert van:
-```
-const fromEmail = commSettings?.sender_name
-  ? `${commSettings.sender_name} <noreply@nesto.app>`
-  : `${senderName} <noreply@nesto.app>`;
-```
-naar:
-```
-const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
-const fromEmail = `${senderName} <${verifiedFrom}>`;
-```
+**Party size naar buiten verplaatsen:**
+- De gasten-selector (regels 333-354) verplaatsen van binnen `{selectorOpen && ...}` naar buiten, direct na de datum-strip
+- Compact horizontaal formaat behouden (bg-gray-50 rounded-2xl)
+- Datum en gasten worden altijd zichtbare top-controls
 
-### 3. `supabase/functions/_shared/email.ts`
+**Lege slots feedback verbeteren:**
+- De tekst "Geen tijden beschikbaar" (regel 367) vervangen door een informatievere melding
+- Tekst wordt: "Geen tijden beschikbaar op deze dag. Kies een andere datum."
 
-Lijn 64-65: dezelfde fix voor het geval er wel een `sender_name` in de communicatie-instellingen staat (nu valt die tak ook terug op `noreply@nesto.app`).
+### Geen database wijzigingen nodig
+De shift-configuratie is correct. De shift draait bewust alleen op werkdagen. Het probleem is puur UX: de widget geeft onvoldoende feedback en verbergt essentiële controls.
 
-```
-const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
-const fromEmail = `${emailConfig.sender_name || 'Nesto'} <${verifiedFrom}>`;
-```
+---
 
 ## Samenvatting
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/functions/public-booking-api/index.ts` | Sandbox fallback voor from-adres |
-| `supabase/functions/send-onboarding-message/index.ts` | Sandbox fallback voor from-adres |
-| `supabase/functions/_shared/email.ts` | Consistente fallback als sender_name wel gezet is |
-
-Geen nieuwe secrets nodig. Geen database wijzigingen. Na deployment kun je testen door een boeking te maken — de bevestigingsmail komt dan aan op het emailadres van je Resend account.
+| Wat | Wijziging |
+|-----|-----------|
+| `SelectionStep.tsx` | Party size selector altijd zichtbaar buiten dropdown |
+| `SelectionStep.tsx` | Betere "geen beschikbaarheid" melding met hint |
+| Database | Geen wijzigingen |
+| Edge Functions | Geen wijzigingen |
