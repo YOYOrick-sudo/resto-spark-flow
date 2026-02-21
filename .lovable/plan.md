@@ -1,94 +1,67 @@
 
-# Section-Level FieldHelp Iconen in Alle Settings Pages
 
-## Wat verandert
+# Booking & Message Emails Laten Werken via Resend Sandbox
 
-Elke kaart/sectie binnen settings pages krijgt een info-icoon (i) naast de sectie-titel. Dit maakt elke individuele sectie zelf-documenterend, niet alleen de pagina als geheel. Dit wordt het standaard patroon voor alle toekomstige settings secties.
+## Probleem
 
-## Aanpak
+Onboarding emails kwamen wel aan omdat `_shared/email.ts` terugvalt op `onboarding@resend.dev` (Resend sandbox domein). Maar twee andere functies gebruiken altijd `noreply@nesto.app` — een domein dat niet geverifieerd is in Resend — waardoor emails stilletjes falen.
 
-We gebruiken het bestaande `FieldHelp` component (kleiner, inline) voor sectie-headers binnen kaarten, en `TitleHelp` blijft voor paginatitels. Dit is consistent met het bestaande contextual help systeem.
+| Functie | Huidige from | Werkt? |
+|---------|-------------|--------|
+| `_shared/email.ts` (onboarding-agent) | `onboarding@resend.dev` (fallback) | Ja |
+| `public-booking-api` (booking confirmations) | `noreply@nesto.app` (hardcoded) | Nee |
+| `send-onboarding-message` (handmatige berichten) | `noreply@nesto.app` (hardcoded) | Nee |
 
-## Overzicht per pagina
+## Oplossing
 
-### 1. Widget (`SettingsReserveringenWidget.tsx`)
-De `CardHeader` helper-component aanpassen zodat deze een optionele `help` prop accepteert met een FieldHelp-icoon.
+Dezelfde fallback-logica toepassen in de twee kapotte functies: gebruik `RESEND_FROM_EMAIL` env var als die gezet is, anders `onboarding@resend.dev`.
 
-| Sectie | Help-tekst |
-|--------|-----------|
-| Configuratie | Schakel de widget in en stel de basis-URL en gastervaring in. |
-| Weergave | Bepaal de visuele stijl en branding-opties die gasten zien. |
-| Branding | Pas kleuren en logo aan om de widget bij je huisstijl te laten passen. |
-| Boekingsvragen | Stel extra vragen in die gasten beantwoorden bij het boeken. Antwoorden worden als tags opgeslagen. |
-| Integratie | Embed de widget op je website via een knop, inline container of directe link. |
+**Beperking**: Sandbox-domein stuurt alleen naar het emailadres waarmee het Resend account is aangemaakt. Later kun je `nesto.app` verifiëren in Resend en de `RESEND_FROM_EMAIL` secret instellen op `noreply@nesto.app`.
 
-### 2. Pacing (`SettingsReserveringenPacing.tsx`)
+## Wijzigingen
 
-| Sectie | Help-tekst |
-|--------|-----------|
-| Standaard Pacing | Maximaal aantal gasten per kwartier. Bepaalt de kleurindicatie in het grid. |
-| Shift Overrides | Stel afwijkende pacing in voor specifieke shifts als lunch en diner een ander tempo vereisen. |
+### 1. `supabase/functions/public-booking-api/index.ts`
 
-### 3. Communicatie (`SettingsCommunicatie.tsx`)
-
-| Sectie | Help-tekst |
-|--------|-----------|
-| Branding | Logo, kleur en footer die in alle uitgaande emails verschijnen. |
-| Afzender | Naam en reply-to adres die ontvangers zien. Het verzenddomein wordt centraal beheerd. |
-| Kanalen | Welke communicatiekanalen actief zijn voor berichten naar gasten en kandidaten. |
-
-### 4. Shifts (`SettingsReserveringenShifts.tsx`)
-
-| Sectie | Help-tekst |
-|--------|-----------|
-| Shift overzicht | Alle actieve en inactieve shifts. Versleep om prioriteit bij overlapping te bepalen. |
-
-### 5. Shift Exceptions (`ShiftExceptionsSection.tsx`)
-
-| Sectie | Help-tekst |
-|--------|-----------|
-| Uitzonderingen | Eenmalige afwijkingen van het standaard shift-schema, zoals gesloten dagen of aangepaste tijden. |
-
-### 6. Locatie-instellingen sub-kaarten
-
-| Component | Sectie | Help-tekst |
-|-----------|--------|-----------|
-| `LocationSettingsCard` | Locatie Instellingen | Standaard tafeltijd, buffer en cutoff die gelden als een ticket geen eigen waarde heeft. |
-| `CheckinSettingsCard` | Check-in & No-show | Regels voor wanneer gasten mogen inchecken en wanneer een no-show automatisch wordt gemarkeerd. |
-| `OptionSettingsCard` | Optie-reserveringen | Sta toe dat reserveringen als optie (voorlopig) worden aangemaakt met een automatische vervaldatum. |
-
-### 7. Tafelcombinaties (`TableGroupsSection.tsx`)
-
-| Sectie | Help-tekst |
-|--------|-----------|
-| Tafelcombinaties | Combineer tafels zodat het systeem ze automatisch kan samenvoegen voor grotere gezelschappen. |
-
-## Technisch
-
-**Pattern**: Naast elke `<h3>` sectie-header wordt een `<FieldHelp>` component geplaatst:
-
-```tsx
-<div className="flex items-center gap-1.5">
-  <h3 className="text-base font-semibold">Sectie Titel</h3>
-  <FieldHelp>
-    <p className="text-muted-foreground">Uitleg over deze sectie...</p>
-  </FieldHelp>
-</div>
+Lijn 550 verandert van:
+```
+from: `${senderName} <noreply@nesto.app>`
+```
+naar:
+```
+const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+// ...
+from: `${senderName} <${verifiedFrom}>`
 ```
 
-**Widget CardHeader**: De lokale `CardHeader` helper krijgt een optionele `helpText` prop zodat alle 5 kaarten consistent FieldHelp krijgen.
+### 2. `supabase/functions/send-onboarding-message/index.ts`
 
-**Bestanden die worden aangepast:**
-- `src/pages/settings/reserveringen/SettingsReserveringenWidget.tsx` (5 secties)
-- `src/pages/settings/reserveringen/SettingsReserveringenPacing.tsx` (2 secties)
-- `src/pages/settings/reserveringen/SettingsReserveringenShifts.tsx` (1 sectie)
-- `src/pages/settings/SettingsCommunicatie.tsx` (3 secties)
-- `src/components/settings/shifts/exceptions/ShiftExceptionsSection.tsx` (1 sectie)
-- `src/components/settings/tables/LocationSettingsCard.tsx` (1 sectie)
-- `src/components/settings/checkin/CheckinSettingsCard.tsx` (1 sectie)
-- `src/components/settings/options/OptionSettingsCard.tsx` (1 sectie)
-- `src/components/settings/tables/TableGroupsSection.tsx` (1 sectie)
+Lijn 86-88 verandert van:
+```
+const fromEmail = commSettings?.sender_name
+  ? `${commSettings.sender_name} <noreply@nesto.app>`
+  : `${senderName} <noreply@nesto.app>`;
+```
+naar:
+```
+const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+const fromEmail = `${senderName} <${verifiedFrom}>`;
+```
 
-**Totaal: 15 info-iconen verdeeld over 9 bestanden.**
+### 3. `supabase/functions/_shared/email.ts`
 
-Geen database wijzigingen. Geen nieuwe dependencies.
+Lijn 64-65: dezelfde fix voor het geval er wel een `sender_name` in de communicatie-instellingen staat (nu valt die tak ook terug op `noreply@nesto.app`).
+
+```
+const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+const fromEmail = `${emailConfig.sender_name || 'Nesto'} <${verifiedFrom}>`;
+```
+
+## Samenvatting
+
+| Bestand | Wijziging |
+|---------|-----------|
+| `supabase/functions/public-booking-api/index.ts` | Sandbox fallback voor from-adres |
+| `supabase/functions/send-onboarding-message/index.ts` | Sandbox fallback voor from-adres |
+| `supabase/functions/_shared/email.ts` | Consistente fallback als sender_name wel gezet is |
+
+Geen nieuwe secrets nodig. Geen database wijzigingen. Na deployment kun je testen door een boeking te maken — de bevestigingsmail komt dan aan op het emailadres van je Resend account.
