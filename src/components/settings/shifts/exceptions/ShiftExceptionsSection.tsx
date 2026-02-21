@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { startOfMonth, endOfMonth, addMonths, format } from "date-fns";
 import { Ban, Clock, Star, Repeat } from "lucide-react";
 import { NestoCard } from "@/components/polar/NestoCard";
+import { FieldHelp } from "@/components/polar/FieldHelp";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { EmptyState } from "@/components/polar/EmptyState";
 import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
@@ -102,7 +103,12 @@ export function ShiftExceptionsSection({ locationId }: ShiftExceptionsSectionPro
       {/* Header with quick actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-5 border-b border-border">
         <div>
-          <h3 className="text-base font-semibold">Uitzonderingen</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-base font-semibold">Uitzonderingen</h3>
+            <FieldHelp>
+              <p className="text-muted-foreground">Eenmalige afwijkingen van het standaard shift-schema, zoals gesloten dagen of aangepaste tijden.</p>
+            </FieldHelp>
+          </div>
           <p className="text-sm text-muted-foreground mt-0.5">
             Gesloten dagen, aangepaste tijden en speciale markeringen.
           </p>

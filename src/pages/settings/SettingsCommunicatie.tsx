@@ -138,7 +138,12 @@ export default function SettingsCommunicatie() {
     >
       <NestoCard className="p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-sm font-semibold">Branding</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold">Branding</h3>
+            <FieldHelp>
+              <p className="text-muted-foreground">Logo, kleur en footer die in alle uitgaande emails verschijnen.</p>
+            </FieldHelp>
+          </div>
           <span className={`flex items-center gap-1 text-xs text-primary transition-opacity duration-200 ${saved ? 'opacity-100' : 'opacity-0'}`}>
             <Check className="h-3 w-3" />
             Opgeslagen
@@ -205,7 +210,12 @@ export default function SettingsCommunicatie() {
         <div className="border-t border-border/40 my-5" />
 
         {/* Section 2: Afzender */}
-        <h3 className="text-sm font-semibold mb-4">Afzender</h3>
+        <div className="flex items-center gap-1.5 mb-4">
+          <h3 className="text-sm font-semibold">Afzender</h3>
+          <FieldHelp>
+            <p className="text-muted-foreground">Naam en reply-to adres die ontvangers zien. Het verzenddomein wordt centraal beheerd.</p>
+          </FieldHelp>
+        </div>
 
         <div className="bg-secondary/50 rounded-card p-4 space-y-4">
           <div>
@@ -249,7 +259,12 @@ export default function SettingsCommunicatie() {
         <div className="border-t border-border/40 my-5" />
 
         {/* Section 3: Kanalen */}
-        <h3 className="text-sm font-semibold mb-4">Kanalen</h3>
+        <div className="flex items-center gap-1.5 mb-4">
+          <h3 className="text-sm font-semibold">Kanalen</h3>
+          <FieldHelp>
+            <p className="text-muted-foreground">Welke communicatiekanalen actief zijn voor berichten naar gasten en kandidaten.</p>
+          </FieldHelp>
+        </div>
 
         <div className="bg-secondary/50 rounded-card p-4 space-y-3">
           <div className="flex items-center justify-between py-1">

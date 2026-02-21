@@ -21,6 +21,7 @@ import { nestoToast } from '@/lib/nestoToast';
 import { ColorPaletteSelector } from '@/components/settings/widget/ColorPaletteSelector';
 import { Check, ExternalLink } from 'lucide-react';
 import { TitleHelp } from '@/components/polar/TitleHelp';
+import { FieldHelp } from '@/components/polar/FieldHelp';
 import { useUserContext } from '@/contexts/UserContext';
 
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
@@ -53,9 +54,16 @@ const PRESET_COLORS = [
 const sectionHeader = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4";
 const sectionDivider = "border-t border-border pt-6 mt-6";
 
-const CardHeader = ({ title, description }: { title: string; description: string }) => (
+const CardHeader = ({ title, description, helpText }: { title: string; description: string; helpText?: string }) => (
   <div className="mb-5">
-    <h3 className="text-base font-semibold">{title}</h3>
+    <div className="flex items-center gap-1.5">
+      <h3 className="text-base font-semibold">{title}</h3>
+      {helpText && (
+        <FieldHelp>
+          <p className="text-muted-foreground">{helpText}</p>
+        </FieldHelp>
+      )}
+    </div>
     <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
   </div>
 );
@@ -178,7 +186,7 @@ export default function SettingsReserveringenWidget() {
       <div className="space-y-8">
         {/* Card 1: Configuratie */}
         <NestoCard className="p-6">
-          <CardHeader title="Configuratie" description="Widget status en basisinstellingen." />
+          <CardHeader title="Configuratie" description="Widget status en basisinstellingen." helpText="Schakel de widget in en stel de basis-URL en gastervaring in." />
           <div className="space-y-4">
             {/* Groep A: Status & identiteit */}
             <div className="bg-secondary/50 rounded-card p-4 space-y-4">
@@ -238,7 +246,7 @@ export default function SettingsReserveringenWidget() {
 
         {/* Card 2: Weergave */}
         <NestoCard className="p-6">
-          <CardHeader title="Weergave" description="Bepaal wat gasten zien in de widget." />
+          <CardHeader title="Weergave" description="Bepaal wat gasten zien in de widget." helpText="Bepaal de visuele stijl en branding-opties die gasten zien." />
           <div className="divide-y divide-border/50">
             {/* Widget stijl selector */}
             <div className="pb-5">
@@ -281,7 +289,7 @@ export default function SettingsReserveringenWidget() {
 
         {/* Card 3: Branding */}
         <NestoCard className="p-6">
-          <CardHeader title="Branding" description="Kleuren en logo van de widget." />
+          <CardHeader title="Branding" description="Kleuren en logo van de widget." helpText="Pas kleuren en logo aan om de widget bij je huisstijl te laten passen." />
           <div className="space-y-5">
             {/* Color palette selector */}
             <ColorPaletteSelector
@@ -302,7 +310,7 @@ export default function SettingsReserveringenWidget() {
 
         {/* Card 4: Boekingsvragen */}
         <NestoCard className="p-6">
-          <CardHeader title="Boekingsvragen" description="Extra vragen die gasten zien bij het boeken. Antwoorden worden opgeslagen als tags." />
+          <CardHeader title="Boekingsvragen" description="Extra vragen die gasten zien bij het boeken. Antwoorden worden opgeslagen als tags." helpText="Stel extra vragen in die gasten beantwoorden bij het boeken. Antwoorden worden als tags opgeslagen." />
           <BookingQuestionsEditor
             questions={local.booking_questions}
             onChange={questions => updateField('booking_questions', questions)}
@@ -312,7 +320,7 @@ export default function SettingsReserveringenWidget() {
         {/* Card 5: Integratie */}
         {local.widget_enabled && local.location_slug && (
           <NestoCard className="p-6">
-            <CardHeader title="Integratie" description="Kies hoe je de widget op je website wilt tonen." />
+            <CardHeader title="Integratie" description="Kies hoe je de widget op je website wilt tonen." helpText="Embed de widget op je website via een knop, inline container of directe link." />
 
             <EmbedModeSelector value={embedMode} onChange={setEmbedMode} />
 

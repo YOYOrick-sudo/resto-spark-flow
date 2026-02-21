@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoCard } from "@/components/polar/NestoCard";
+import { FieldHelp } from "@/components/polar/FieldHelp";
 import { TableGroupCard } from "./TableGroupCard";
 import { TableGroupModal } from "./TableGroupModal";
 import { useTableGroups, useRestoreTableGroup } from "@/hooks/useTableGroups";
@@ -59,7 +60,12 @@ export function TableGroupsSection({ locationId }: TableGroupsSectionProps) {
     <NestoCard className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-medium">Tafelcombinaties</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-lg font-medium">Tafelcombinaties</h3>
+            <FieldHelp>
+              <p className="text-muted-foreground">Combineer tafels zodat het systeem ze automatisch kan samenvoegen voor grotere gezelschappen.</p>
+            </FieldHelp>
+          </div>
           <p className="text-sm text-muted-foreground">
             Groepeer tafels die samen geboekt kunnen worden.
           </p>
