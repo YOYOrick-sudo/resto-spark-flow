@@ -3,6 +3,7 @@ import { SettingsDetailLayout } from '@/components/settings/layouts/SettingsDeta
 import { NestoTabs, NestoTabContent } from '@/components/polar/NestoTabs';
 import { usePermission } from '@/hooks/usePermission';
 import { EmptyState } from '@/components/polar/EmptyState';
+import { TitleHelp } from '@/components/polar/TitleHelp';
 import {
   PhaseConfigSection,
   TeamOwnersSection,
@@ -34,7 +35,14 @@ export default function SettingsOnboarding() {
 
   return (
     <SettingsDetailLayout
-      title="Onboarding"
+      title={
+        <span className="flex items-center gap-2">
+          Onboarding
+          <TitleHelp title="Wat is onboarding?">
+            <p className="text-muted-foreground">Het inwerkproces voor nieuwe medewerkers. Configureer fases, taken en communicatie.</p>
+          </TitleHelp>
+        </span>
+      }
       description="Beheer de onboarding pipeline, email templates en herinneringen."
       breadcrumbs={[
         { label: 'Instellingen', path: '/instellingen/voorkeuren' },

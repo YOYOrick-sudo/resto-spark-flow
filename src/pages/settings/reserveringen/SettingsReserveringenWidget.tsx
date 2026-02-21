@@ -20,6 +20,7 @@ import { buildBreadcrumbs } from '@/lib/settingsRouteConfig';
 import { nestoToast } from '@/lib/nestoToast';
 import { ColorPaletteSelector } from '@/components/settings/widget/ColorPaletteSelector';
 import { Check, ExternalLink } from 'lucide-react';
+import { TitleHelp } from '@/components/polar/TitleHelp';
 import { useUserContext } from '@/contexts/UserContext';
 
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
@@ -163,6 +164,9 @@ export default function SettingsReserveringenWidget() {
       title={
         <span className="flex items-center gap-2">
           Widget
+          <TitleHelp title="Wat is de widget?">
+            <p className="text-muted-foreground">De publieke boekingswidget die gasten gebruiken om online te reserveren.</p>
+          </TitleHelp>
           <span className={`flex items-center gap-1 text-xs text-primary transition-opacity duration-200 ${saved ? 'opacity-100' : 'opacity-0'}`}>
             <Check className="h-3 w-3" /> Opgeslagen
           </span>

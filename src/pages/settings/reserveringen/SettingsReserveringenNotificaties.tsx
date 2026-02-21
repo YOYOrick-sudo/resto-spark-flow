@@ -1,5 +1,6 @@
 import { SettingsDetailLayout } from "@/components/settings/layouts";
 import { NestoCard } from "@/components/polar/NestoCard";
+import { TitleHelp } from "@/components/polar/TitleHelp";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 
 /**
@@ -10,7 +11,14 @@ export default function SettingsReserveringenNotificaties() {
 
   return (
     <SettingsDetailLayout
-      title="Notificaties"
+      title={
+        <span className="flex items-center gap-2">
+          Notificaties
+          <TitleHelp title="Hoe werken notificaties?">
+            <p className="text-muted-foreground">Automatische berichten naar gasten bij bevestiging, herinnering en annulering.</p>
+          </TitleHelp>
+        </span>
+      }
       description="Configureer e-mail en push notificaties voor reserveringen."
       breadcrumbs={breadcrumbs}
     >

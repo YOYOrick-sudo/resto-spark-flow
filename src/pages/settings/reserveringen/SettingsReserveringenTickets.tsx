@@ -4,6 +4,7 @@ import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDeta
 import { NestoButton } from "@/components/polar/NestoButton";
 import { TicketsSection } from "@/components/settings/tickets";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
+import { TitleHelp } from "@/components/polar/TitleHelp";
 import { useUserContext } from "@/contexts/UserContext";
 
 export default function SettingsReserveringenTickets() {
@@ -15,7 +16,14 @@ export default function SettingsReserveringenTickets() {
 
   return (
     <SettingsDetailLayout
-      title="Tickets"
+      title={
+        <span className="flex items-center gap-2">
+          Tickets
+          <TitleHelp title="Wat zijn tickets?">
+            <p className="text-muted-foreground">Reserveringsproducten die gasten zien en boeken. Elk ticket heeft eigen regels, capaciteit en prijs.</p>
+          </TitleHelp>
+        </span>
+      }
       description="Beheer je reserveringsproducten. Elk ticket definieert wat gasten boeken."
       breadcrumbs={breadcrumbs}
       actions={
