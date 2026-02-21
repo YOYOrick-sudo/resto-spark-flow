@@ -83,9 +83,8 @@ Deno.serve(async (req) => {
 
     const senderName = commSettings?.sender_name || profile?.name || 'Nesto';
     const senderEmail = profile?.email || user.email || 'noreply@nesto.app';
-    const fromEmail = commSettings?.sender_name
-      ? `${commSettings.sender_name} <noreply@nesto.app>`
-      : `${senderName} <noreply@nesto.app>`;
+    const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+    const fromEmail = `${senderName} <${verifiedFrom}>`;
 
     // Send via Resend
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
