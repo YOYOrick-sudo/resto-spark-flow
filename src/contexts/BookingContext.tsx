@@ -85,6 +85,7 @@ export interface BookingResult {
   success: boolean;
   reservation_id: string;
   manage_token: string | null;
+  manage_url: string | null;
 }
 
 export type BookingStep = 1 | 2 | 3;
