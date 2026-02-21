@@ -1,0 +1,8 @@
+
+ALTER TABLE public.marketing_brand_kit
+ADD COLUMN IF NOT EXISTS gdpr_consent_text TEXT NULL,
+ADD COLUMN IF NOT EXISTS double_opt_in_enabled BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN IF NOT EXISTS marketing_sender_name TEXT NULL,
+ADD COLUMN IF NOT EXISTS marketing_reply_to TEXT NULL,
+ADD COLUMN IF NOT EXISTS max_email_frequency_days INTEGER NOT NULL DEFAULT 7,
+ADD COLUMN IF NOT EXISTS default_send_time TIME NOT NULL DEFAULT '10:00';

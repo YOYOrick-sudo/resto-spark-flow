@@ -9,6 +9,7 @@ import {
   Banknote,
   Settings,
   UserPlus,
+  Megaphone,
 } from 'lucide-react';
 import { AssistentIcon } from '@/components/icons/AssistentIcon';
 
@@ -33,6 +34,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'settings-onboarding': '/instellingen/onboarding',
   'settings-communicatie': '/instellingen/communicatie',
   'onboarding': '/onboarding',
+  'marketing-instellingen': '/marketing/instellingen',
 };
 
 export interface SubMenuItem {
@@ -117,6 +119,16 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
+    id: 'marketing',
+    label: 'Marketing',
+    icon: Megaphone,
+    expandable: true,
+    section: 'OPERATIE',
+    subItems: [
+      { id: 'marketing-instellingen', label: 'Instellingen', path: '/marketing/instellingen' },
+    ],
+  },
+  {
     id: 'onboarding',
     label: 'Onboarding',
     icon: UserPlus,
@@ -183,6 +195,7 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
   }
   if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
   if (path.startsWith('/taken')) return 'service';
+  if (path.startsWith('/marketing')) return 'marketing';
   if (path.startsWith('/instellingen')) return 'settings';
   if (path.startsWith('/onboarding')) return null;
   return null;

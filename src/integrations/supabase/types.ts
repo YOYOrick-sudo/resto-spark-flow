@@ -563,12 +563,18 @@ export type Database = {
           accent_color: string | null
           created_at: string
           default_greeting: string | null
+          default_send_time: string
           default_signature: string | null
+          double_opt_in_enabled: boolean
           font_body: string | null
           font_heading: string | null
+          gdpr_consent_text: string | null
           id: string
           location_id: string
           logo_url: string | null
+          marketing_reply_to: string | null
+          marketing_sender_name: string | null
+          max_email_frequency_days: number
           primary_color: string | null
           secondary_color: string | null
           social_handles: Json | null
@@ -580,12 +586,18 @@ export type Database = {
           accent_color?: string | null
           created_at?: string
           default_greeting?: string | null
+          default_send_time?: string
           default_signature?: string | null
+          double_opt_in_enabled?: boolean
           font_body?: string | null
           font_heading?: string | null
+          gdpr_consent_text?: string | null
           id?: string
           location_id: string
           logo_url?: string | null
+          marketing_reply_to?: string | null
+          marketing_sender_name?: string | null
+          max_email_frequency_days?: number
           primary_color?: string | null
           secondary_color?: string | null
           social_handles?: Json | null
@@ -597,12 +609,18 @@ export type Database = {
           accent_color?: string | null
           created_at?: string
           default_greeting?: string | null
+          default_send_time?: string
           default_signature?: string | null
+          double_opt_in_enabled?: boolean
           font_body?: string | null
           font_heading?: string | null
+          gdpr_consent_text?: string | null
           id?: string
           location_id?: string
           logo_url?: string | null
+          marketing_reply_to?: string | null
+          marketing_sender_name?: string | null
+          max_email_frequency_days?: number
           primary_color?: string | null
           secondary_color?: string | null
           social_handles?: Json | null
