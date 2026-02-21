@@ -546,8 +546,9 @@ async function sendBookingConfirmationEmail(admin: ReturnType<typeof getAdminCli
 </td></tr></table>
 </body></html>`;
 
+  const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
   const payload: Record<string, unknown> = {
-    from: `${senderName} <noreply@nesto.app>`,
+    from: `${senderName} <${verifiedFrom}>`,
     to: [params.email],
     subject,
     html,

@@ -60,10 +60,8 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
   // Fetch location-specific email config
   const emailConfig = await getEmailConfig(params.locationId);
 
-  const defaultFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'Nesto <onboarding@resend.dev>';
-  const fromEmail = emailConfig.sender_name
-    ? `${emailConfig.sender_name} <noreply@nesto.app>`
-    : defaultFrom;
+  const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+  const fromEmail = `${emailConfig.sender_name || 'Nesto'} <${verifiedFrom}>`;
 
   try {
     const payload: Record<string, unknown> = {
