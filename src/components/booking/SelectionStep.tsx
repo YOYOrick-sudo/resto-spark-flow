@@ -106,6 +106,15 @@ export function SelectionStep() {
     return false;
   }, [availableShifts, data.party_size]);
 
+  // Sort tickets: available first, unavailable at bottom
+  const sortedTickets = useMemo(() => {
+    return [...tickets].sort((a, b) => {
+      const aAvail = isTicketAvailable(a) ? 0 : 1;
+      const bAvail = isTicketAvailable(b) ? 0 : 1;
+      return aAvail - bAvail;
+    });
+  }, [tickets, isTicketAvailable]);
+
   const formatDateStr = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -134,7 +143,19 @@ export function SelectionStep() {
 
   const handleTicketSelect = (ticket: TicketInfo) => {
     setSelectedTicket(ticket);
-    setSelectorOpen(false);
+    
+    // Auto-select first available slot for this ticket
+    for (const shift of availableShifts) {
+      for (const slot of shift.slots) {
+        if (slot.ticket_id === ticket.id && slot.available) {
+          setSelectedSlot(slot, shift);
+          return;
+        }
+      }
+    }
+    
+    // No slot found: open selector so guest can adjust date/guests
+    setSelectorOpen(true);
   };
 
   const handleTimeSelect = (item: { slot: AvailableSlot; shift: AvailableShift }) => {
@@ -394,7 +415,7 @@ export function SelectionStep() {
 
           {/* Tickets */}
           <div className="space-y-3">
-            {tickets.map(ticket => {
+            {sortedTickets.map(ticket => {
               const available = isTicketAvailable(ticket);
               const isSelected = data.selectedTicket?.id === ticket.id;
               const hasImage = !!ticket.image_url;
