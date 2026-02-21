@@ -78,13 +78,11 @@ export function GuestDetailsStep() {
 
       {/* Welcome back */}
       {welcomeBack && (
-        <div className="rounded-2xl bg-gray-50 px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-            <Heart className="w-4 h-4 text-gray-500" />
-          </div>
+        <div className="flex items-center gap-2.5 px-1">
+          <Heart className="w-4 h-4 text-gray-400 flex-shrink-0" />
           <div className="text-left">
-            <p className="text-sm font-semibold text-gray-800">Welkom terug, {welcomeBack}</p>
-            <p className="text-xs text-gray-500">Fijn je weer te zien</p>
+            <p className="text-sm font-semibold text-gray-700">Welkom terug, {welcomeBack}</p>
+            <p className="text-xs text-gray-400">Fijn je weer te zien</p>
           </div>
         </div>
       )}
