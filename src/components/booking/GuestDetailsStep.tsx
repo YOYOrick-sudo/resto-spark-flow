@@ -14,7 +14,7 @@ function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
         onChange={e => onChange(e.target.value)}
         onBlur={onBlur}
         placeholder={label}
-        className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-white text-sm transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+        className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
       />
     </div>
   );
@@ -119,7 +119,7 @@ export function GuestDetailsStep() {
           onChange={e => setGuestData({ guest_notes: e.target.value })}
           placeholder="Opmerkingen"
           rows={3}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm resize-none transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 resize-none transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
         />
 
         {/* Honeypot */}
@@ -146,7 +146,7 @@ export function GuestDetailsStep() {
                 type="text"
                 value={getAnswer(q.id)[0] ?? ''}
                 onChange={e => updateAnswer(q.id, [e.target.value])}
-                className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+                className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
               />
             )}
 
