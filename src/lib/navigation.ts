@@ -34,7 +34,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'settings-onboarding': '/instellingen/onboarding',
   'settings-communicatie': '/instellingen/communicatie',
   'onboarding': '/onboarding',
-  'marketing-instellingen': '/marketing/instellingen',
+  'settings-marketing': '/instellingen/marketing',
 };
 
 export interface SubMenuItem {
@@ -119,16 +119,6 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
-    id: 'marketing',
-    label: 'Marketing',
-    icon: Megaphone,
-    expandable: true,
-    section: 'OPERATIE',
-    subItems: [
-      { id: 'marketing-instellingen', label: 'Instellingen', path: '/marketing/instellingen' },
-    ],
-  },
-  {
     id: 'onboarding',
     label: 'Onboarding',
     icon: UserPlus,
@@ -157,6 +147,7 @@ export const menuItems: MenuItem[] = [
       { id: 'settings-finance', label: 'Financien', disabled: true },
       { id: 'settings-onboarding', label: 'Onboarding', path: '/instellingen/onboarding' },
       { id: 'settings-communicatie', label: 'Communicatie', path: '/instellingen/communicatie' },
+      { id: 'settings-marketing', label: 'Marketing', path: '/instellingen/marketing' },
       { id: 'settings-hrm', label: 'HRM', disabled: true },
       { id: 'settings-support', label: 'Support', disabled: true },
       { id: 'settings-documentatie', label: 'Documentatie', disabled: true },
@@ -195,7 +186,6 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
   }
   if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
   if (path.startsWith('/taken')) return 'service';
-  if (path.startsWith('/marketing')) return 'marketing';
   if (path.startsWith('/instellingen')) return 'settings';
   if (path.startsWith('/onboarding')) return null;
   return null;
