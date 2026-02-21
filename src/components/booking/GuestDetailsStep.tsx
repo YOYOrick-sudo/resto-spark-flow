@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { User, Mail, Phone, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Loader2, Heart } from 'lucide-react';
 
 function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
   icon: React.ReactNode; label: string; value: string; onChange: (v: string) => void; type?: string; onBlur?: () => void;
@@ -78,8 +78,14 @@ export function GuestDetailsStep() {
 
       {/* Welcome back */}
       {welcomeBack && (
-        <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-2 text-sm text-center text-green-700">
-          Welkom terug, {welcomeBack}! 🎉
+        <div className="rounded-2xl bg-gray-50 px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <Heart className="w-4 h-4 text-gray-500" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-gray-800">Welkom terug, {welcomeBack}</p>
+            <p className="text-xs text-gray-500">Fijn je weer te zien</p>
+          </div>
         </div>
       )}
 
