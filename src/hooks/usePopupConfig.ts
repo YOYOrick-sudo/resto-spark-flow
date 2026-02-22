@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
 
+export type PopupType = 'reservation' | 'newsletter' | 'custom';
+
 export interface PopupConfig {
   id: string;
   location_id: string;
@@ -17,6 +19,8 @@ export interface PopupConfig {
   success_message: string;
   gdpr_text: string;
   featured_ticket_id: string | null;
+  popup_type: PopupType;
+  custom_button_url: string | null;
   created_at: string;
   updated_at: string;
 }

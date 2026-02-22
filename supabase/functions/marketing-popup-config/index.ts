@@ -34,7 +34,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Lookup location by slug
     const { data: location, error: locErr } = await supabaseAdmin
       .from('locations')
       .select('id, name')
@@ -49,7 +48,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch popup config
     const { data: config } = await supabaseAdmin
       .from('marketing_popup_config')
       .select('*')
@@ -62,14 +60,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch brand kit
     const { data: brandKit } = await supabaseAdmin
       .from('marketing_brand_kit')
       .select('logo_url, primary_color, secondary_color')
       .eq('location_id', location.id)
       .maybeSingle();
 
-    // Fetch featured ticket if set
+    // Fetch featured ticket if set (for reservation type)
     let featuredTicket = null;
     if (config.featured_ticket_id) {
       const { data: ticket } = await supabaseAdmin
@@ -78,13 +75,12 @@ Deno.serve(async (req) => {
         .eq('id', config.featured_ticket_id)
         .eq('status', 'active')
         .maybeSingle();
-      if (ticket) {
-        featuredTicket = ticket;
-      }
+      if (ticket) featuredTicket = ticket;
     }
 
     return new Response(JSON.stringify({
       is_active: config.is_active,
+      popup_type: config.popup_type || 'newsletter',
       exit_intent_enabled: config.exit_intent_enabled,
       timed_popup_enabled: config.timed_popup_enabled,
       timed_popup_delay_seconds: config.timed_popup_delay_seconds,
@@ -95,6 +91,7 @@ Deno.serve(async (req) => {
       button_text: config.button_text,
       success_message: config.success_message,
       gdpr_text: config.gdpr_text,
+      custom_button_url: config.custom_button_url || null,
       logo_url: brandKit?.logo_url || null,
       primary_color: brandKit?.primary_color || '#1d979e',
       restaurant_name: location.name,
