@@ -71,7 +71,7 @@ function buildStyles(primaryColor: string): string {
   `;
 }
 
-function renderPopupInShadow(shadow: ShadowRoot, cfg: PopupConfig) {
+function renderPopupInShadow(shadow: ShadowRoot, cfg: PopupConfig, skipAnimation = false) {
   // Clear shadow DOM
   shadow.innerHTML = '';
 
@@ -118,14 +118,14 @@ function renderPopupInShadow(shadow: ShadowRoot, cfg: PopupConfig) {
 
   // Always show the popup immediately in preview mode
   const overlay = document.createElement('div');
-  overlay.className = 'nesto-overlay';
+  overlay.className = 'nesto-overlay' + (skipAnimation ? ' visible' : '');
   overlay.setAttribute('data-nesto-popup', 'true');
   overlay.innerHTML = `<div class="nesto-popup">
     <button class="nesto-close" aria-label="Sluiten">&times;</button>
     ${buildPopupContent()}
   </div>`;
   shadow.appendChild(overlay);
-  requestAnimationFrame(() => overlay.classList.add('visible'));
+  if (!skipAnimation) { requestAnimationFrame(() => overlay.classList.add('visible')); }
 
   overlay.querySelector('.nesto-close')?.addEventListener('click', () => {
     overlay.classList.remove('visible');
@@ -141,7 +141,7 @@ function renderPopupInShadow(shadow: ShadowRoot, cfg: PopupConfig) {
   // Sticky bar
   if (cfg.sticky_bar_enabled) {
     const bar = document.createElement('div');
-    bar.className = `nesto-bar ${cfg.sticky_bar_position === 'top' ? 'top' : 'bottom'}`;
+    bar.className = `nesto-bar ${cfg.sticky_bar_position === 'top' ? 'top' : 'bottom'}${skipAnimation ? ' visible' : ''}`;
     bar.style.background = primaryColor;
 
     let barHtml = `<span class="nesto-bar-text">${esc(cfg.headline)}</span>`;
@@ -154,7 +154,7 @@ function renderPopupInShadow(shadow: ShadowRoot, cfg: PopupConfig) {
     barHtml += `<button class="nesto-bar-close" aria-label="Sluiten">&times;</button>`;
     bar.innerHTML = barHtml;
     shadow.appendChild(bar);
-    requestAnimationFrame(() => bar.classList.add('visible'));
+    if (!skipAnimation) { requestAnimationFrame(() => bar.classList.add('visible')); }
 
     bar.querySelector('.nesto-bar-close')?.addEventListener('click', () => {
       bar.classList.remove('visible');
@@ -216,7 +216,7 @@ export default function PopupPreviewDemo() {
     document.getElementById('nesto-popup-host')?.remove();
 
     if (shadowRootRef.current) {
-      renderPopupInShadow(shadowRootRef.current, cfg);
+      renderPopupInShadow(shadowRootRef.current, cfg, true);
     }
   }, []);
 
