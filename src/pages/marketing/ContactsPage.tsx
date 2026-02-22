@@ -116,12 +116,14 @@ export default function ContactsPage() {
           description={search || selectedSegmentId ? 'Pas je filters aan.' : 'Er zijn nog geen gasten in je bestand.'}
         />
       ) : (
-        <NestoTable
-          columns={columns}
-          data={contacts as (MarketingContact & Record<string, unknown>)[]}
-          keyExtractor={(item) => item.id}
-          onRowClick={(item) => setSelectedContact(item)}
-        />
+        <div className="overflow-x-auto -mx-6 px-6">
+          <NestoTable
+            columns={columns}
+            data={contacts as (MarketingContact & Record<string, unknown>)[]}
+            keyExtractor={(item) => item.id}
+            onRowClick={(item) => setSelectedContact(item)}
+          />
+        </div>
       )}
 
       <ContactOptInSheet

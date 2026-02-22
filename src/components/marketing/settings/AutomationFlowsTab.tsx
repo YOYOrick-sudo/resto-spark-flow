@@ -75,7 +75,10 @@ export default function AutomationFlowsTab({ readOnly }: AutomationFlowsTabProps
                     if (readOnly) return;
                     updateFlow.mutate(
                       { flowId: flow.id, updates: { is_active: checked } },
-                      { onError: () => nestoToast.error('Wijziging mislukt') }
+                      {
+                        onSuccess: () => nestoToast.success(checked ? 'Flow geactiveerd' : 'Flow gepauzeerd'),
+                        onError: () => nestoToast.error('Wijziging mislukt'),
+                      }
                     );
                   }}
                   disabled={readOnly}

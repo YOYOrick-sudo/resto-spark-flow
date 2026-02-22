@@ -14,7 +14,9 @@ import { useMarketingBrandKit } from '@/hooks/useMarketingBrandKit';
 import { useSegmentPreview } from '@/hooks/useSegmentPreview';
 import { usePermission } from '@/hooks/usePermission';
 import { EmptyState } from '@/components/polar/EmptyState';
+import { InfoAlert } from '@/components/polar/InfoAlert';
 import { nestoToast } from '@/lib/nestoToast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { EmailBlockData } from '@/components/marketing/campaigns/EmailBlock';
 
 function defaultBlocks(): EmailBlockData[] {
@@ -45,8 +47,9 @@ export default function CampaignBuilderPage() {
   const [previewText, setPreviewText] = useState('');
   const [campaignName, setCampaignName] = useState('');
 
-  const { data: brandKit } = useMarketingBrandKit();
+  const { data: brandKit, isLoading: brandKitLoading } = useMarketingBrandKit();
   const { data: segments = [] } = useMarketingSegments();
+  const isMobile = useIsMobile();
   const createCampaign = useCreateCampaign();
 
   // Default send time from brand kit
@@ -131,8 +134,40 @@ export default function CampaignBuilderPage() {
     );
   }
 
+  if (isMobile) {
+    return (
+      <div className="p-6 space-y-6">
+        <NestoButton
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/marketing/campagnes')}
+          leftIcon={<ArrowLeft className="h-4 w-4" />}
+        >
+          Terug
+        </NestoButton>
+        <InfoAlert
+          title="Desktop vereist"
+          variant="warning"
+        >
+          Gebruik een desktop voor de email builder. Op mobiel kun je campagnes bekijken via het overzicht.
+        </InfoAlert>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
+      {/* Brand kit warning */}
+      {!brandKitLoading && !brandKit && (
+        <InfoAlert title="Brand Kit niet ingesteld" variant="warning">
+          Stel eerst je Brand Kit in via{' '}
+          <button onClick={() => navigate('/instellingen/marketing')} className="underline font-medium">
+            Instellingen &gt; Marketing
+          </button>{' '}
+          voor een consistente uitstraling.
+        </InfoAlert>
+      )}
+
       {/* Top bar */}
       <div className="flex items-center gap-4">
         <NestoButton
