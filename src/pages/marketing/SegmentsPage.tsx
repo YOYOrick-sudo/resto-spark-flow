@@ -91,7 +91,7 @@ export default function SegmentsPage() {
               <div className="p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-body font-medium">{seg.name}</h3>
+                    <h3 className="text-body font-semibold">{seg.name}</h3>
                     {seg.is_system && <NestoBadge variant="default">Systeem</NestoBadge>}
                   </div>
                   {!seg.is_system && (

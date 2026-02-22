@@ -49,7 +49,9 @@ function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: Re
 }
 
 import { useSignals } from '@/hooks/useSignals';
+import { useMarketingBadge } from '@/hooks/useMarketingBadge';
 import { NestoLogo } from '@/components/polar/NestoLogo';
+import { NestoBadge } from '@/components/polar/NestoBadge';
 
 
 interface NestoSidebarProps {
@@ -76,6 +78,8 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
     signals.some(item => item.actionable && (item.severity === 'error' || item.severity === 'warning')),
     [signals]
   );
+
+  const { data: atRiskCount = 0 } = useMarketingBadge();
 
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
@@ -263,6 +267,9 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     >
                       <Icon size={16} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
                       <span className="flex-1 text-left">{item.label}</span>
+                      {item.id === 'marketing' && atRiskCount > 10 && (
+                        <NestoBadge variant="error" size="sm" className="ml-auto mr-1">{atRiskCount}</NestoBadge>
+                      )}
                       <ChevronDown 
                         size={16} 
                         className={cn(

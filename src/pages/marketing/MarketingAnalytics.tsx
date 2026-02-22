@@ -126,15 +126,15 @@ export default function MarketingAnalytics() {
             <div className="p-6 pb-0">
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }} />
+                  <span className="h-2 w-2 rounded-full bg-primary" />
                   Verzonden
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'hsl(183, 70%, 47%)' }} />
+                  <span className="h-2 w-2 rounded-full bg-success" />
                   Geopend
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'hsl(183, 70%, 60%)' }} />
+                  <span className="h-2 w-2 rounded-full bg-pending" />
                   Geklikt
                 </span>
               </div>
@@ -145,14 +145,14 @@ export default function MarketingAnalytics() {
                   dataKey="label"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: 'hsl(220,4%,68%)' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                   interval="preserveStartEnd"
                 />
                 <YAxis hide />
                 <Tooltip content={chartTooltip} cursor={false} />
                 <Line type="monotone" dataKey="delivered" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="opened" stroke="hsl(183, 70%, 47%)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="clicked" stroke="hsl(183, 70%, 60%)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="opened" stroke="hsl(var(--success))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="clicked" stroke="hsl(var(--pending))" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </NestoCard>

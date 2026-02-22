@@ -4,7 +4,7 @@ import { NestoBadge } from '@/components/polar/NestoBadge';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { useMarketingCampaigns, useDeleteCampaign } from '@/hooks/useMarketingCampaigns';
 import { usePermission } from '@/hooks/usePermission';
-import { Plus, Mail, Trash2 } from 'lucide-react';
+import { Plus, Mail, Trash2, RotateCcw } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
@@ -115,14 +115,25 @@ export default function CampaignesPage() {
                       {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: nl })}
                     </td>
                     <td className="px-4 py-3">
-                      {c.status === 'draft' && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDeleteId(c.id); }}
-                          className="text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {c.status === 'failed' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/marketing/campagnes/nieuw?id=${c.id}&retry=true`); }}
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            title="Opnieuw proberen"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                        )}
+                        {(c.status === 'draft' || c.status === 'failed') && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteId(c.id); }}
+                            className="text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
