@@ -1,82 +1,71 @@
 
+# Sessie 1.5 — Email Verzending + Automation Engine
 
-# Contacten pagina — Enterprise tabel compliance
+## Status: ✅ AFGEROND
 
-## Probleem
+### Wat is gebouwd:
 
-De Contacten pagina en de onderliggende `NestoTable` component volgen niet de Enterprise Design Guide. Meerdere anti-patronen uit Sectie 8 en 13 van de guide worden geschonden.
+#### Database
+- [x] `marketing_email_log` tabel met indexen voor suppressie en webhook lookups
+- [x] `increment_marketing_analytics` RPC voor atomische analytics updates
+- [x] Unique index op `marketing_campaign_analytics(campaign_id, channel)` voor upsert
+- [x] `pg_cron` en `pg_net` extensies geactiveerd
 
-## Gevonden schendingen
+#### Edge Functions
+- [x] `marketing-send-email` — campagne verzending met:
+  - Batch modus (chunks van 100 via Resend batch API)
+  - Scheduled check modus (vindt due scheduled campaigns automatisch)
+  - Consent filtering (marketing_contact_preferences)
+  - Suppressie filtering (max_email_frequency_days uit brand_kit)
+  - Personalisatie ({{first_name}}, {{last_name}}, {{restaurant_name}})
+  - Unsubscribe link in elke email (verschil met transactionele emails)
+  - Stub fallback voor development
+  - Analytics update na verzending
 
-### NestoTable component (`src/components/polar/NestoTable.tsx`)
+- [x] `marketing-email-webhook` — Resend webhook tracking:
+  - Events: delivered, opened, clicked, bounced, complained
+  - Hard bounce: customer email op NULL gezet
+  - Complained/unsubscribe: opted_in=false in contact preferences
+  - Direct unsubscribe link handling (GET request)
+  - Analytics counters increment via RPC
 
-| Schending | Huidig | Correct (Enterprise Guide) |
-|-----------|--------|---------------------------|
-| Zebra striping | `zebra` prop, default `true` | Verboden — alleen `divide-y divide-border/50` |
-| Header achtergrond | `bg-accent hover:bg-accent` | Geen achtergrond (zwevende headers) |
-| Header tekst | `text-label text-muted-foreground` | `text-[11px] font-semibold text-muted-foreground uppercase tracking-wider` |
-| Header padding | `h-11 px-4` | `px-4 pb-2` (alleen onderaan ruimte) |
-| Rij hover | `hover:bg-accent` | `hover:bg-muted/30 transition-colors duration-150` |
-| Rij scheiding | `border-b border-border` per rij | `divide-y divide-border/50` op TableBody |
-| Wrapper border | `border border-border` | Shadow-based (`shadow-card`) of `NestoCard` wrapper |
+- [x] `marketing-process-automation` — automation engine:
+  - Welcome flow (total_visits=1, created < 1d)
+  - Birthday flow (7 dagen voor verjaardag)
+  - Winback flow (configurable days_threshold: 30/60/90)
+  - Post-visit review: geregistreerd maar skip tot sessie 1.5b
+  - Consent + suppressie filtering per flow
+  - Dedup: check marketing_email_log.flow_id
+  - Template laden + personalisatie
+  - Flow stats update na verwerking
 
-### ContactsPage (`src/pages/marketing/ContactsPage.tsx`)
+#### pg_cron Jobs
+- [x] `marketing-send-scheduled` — elke 5 min, vindt due scheduled campaigns
+- [x] `marketing-process-automation` — elke 15 min, verwerkt automation flows
 
-| Schending | Huidig | Correct |
-|-----------|--------|---------|
-| Naam kolom | `font-medium` | `font-semibold text-foreground` (primaire data) |
-| Numerieke kolommen | Geen `tabular-nums` | `tabular-nums` op bezoeken en besteding |
-| Loading state | Raw `div` met `animate-pulse` | `TableSkeleton` component |
-| Valuta format | Geen monospace alignment | `tabular-nums` class |
+### Tests
+Alle 3 edge functions getest en succesvol:
+- `marketing-send-email`: "No scheduled campaigns due" ✅
+- `marketing-process-automation`: `{"processed": 0}` ✅  
+- `marketing-email-webhook`: "OK" ✅
 
-### TableSkeleton (`src/components/polar/LoadingStates.tsx`)
+### Notities
+- Resend webhook URL voor dashboard configuratie: `https://igqcfxizgtdkwnajvers.supabase.co/functions/v1/marketing-email-webhook`
+- `list_segment_customers` RPC bestaat maar gebruikt auth.uid() check — edge functions queryen customers direct met service role
+- Hard bounce → email=NULL is v1 keuze, later te verfijnen met email_status veld
+- Webhook signature verificatie (svix) is een toekomstige verbetering
 
-| Schending | Huidig | Correct |
-|-----------|--------|---------|
-| Header achtergrond | `bg-accent` | Geen achtergrond |
-| Zebra striping | `rowIndex % 2 === 1 && "bg-accent/50"` | Geen zebra, alleen dividers |
+---
 
-## Wijzigingen
+## Sessie 1.5b — Reserveringen ↔ Marketing Integratie
 
-### 1. `src/components/polar/NestoTable.tsx`
+Status: Nog te starten
 
-Herschrijf de tabel styling naar enterprise standaard:
-- Verwijder `zebra` prop (of maak default `false` en negeer)
-- Header: geen achtergrondkleur, zwevende labels met `text-[11px] font-semibold text-muted-foreground uppercase tracking-wider`
-- Header padding: `px-4 pb-2`
-- TableBody: `divide-y divide-border/50` in plaats van per-rij borders
-- Rij hover: `hover:bg-muted/30 transition-colors duration-150`
-- Wrapper: verwijder `border border-border`, gebruik `bg-card rounded-2xl shadow-card` of minimale container
-- Cursor: `cursor-pointer` alleen bij `onRowClick`
-
-### 2. `src/pages/marketing/ContactsPage.tsx`
-
-- Naam kolom: `font-semibold text-foreground` in plaats van `font-medium`
-- Bezoeken kolom: voeg `tabular-nums` toe aan className
-- Gem. besteding kolom: voeg `tabular-nums` toe aan className
-- Loading state: vervang raw div door `TableSkeleton` import uit LoadingStates
-- Lege waarden: gebruik lege string i.p.v. `'—'` (enterprise guide: leeg laten)
-
-### 3. `src/components/polar/LoadingStates.tsx` (TableSkeleton)
-
-- Verwijder `bg-accent` van header row
-- Verwijder zebra striping logica
-- Gebruik `divide-y divide-border/50` voor rij scheiding
-
-### 4. `src/components/polar/DataTable.tsx`
-
-Dezelfde fixes als NestoTable voor consistentie:
-- Header: zwevende labels, geen `bg-accent`
-- Verwijder zebra default
-- Rij hover: `hover:bg-muted/30`
-- Wrapper: `bg-card shadow-card` zonder zware border
-
-## Bestanden
-
-| Bestand | Actie |
-|---------|-------|
-| `src/components/polar/NestoTable.tsx` | Edit — enterprise tabel styling |
-| `src/components/polar/DataTable.tsx` | Edit — enterprise tabel styling |
-| `src/components/polar/LoadingStates.tsx` | Edit — TableSkeleton fix |
-| `src/pages/marketing/ContactsPage.tsx` | Edit — typografie, tabular-nums, skeleton |
-
+Deliverables:
+1. DB trigger: notify_marketing_on_reservation_change
+2. DB trigger: notify_marketing_on_customer_milestone  
+3. pg_cron: detect_empty_shifts
+4. Widget opt-in checkbox + public-booking-api update
+5. Edge Function: marketing-confirm-optin
+6. Update marketing-process-automation voor cross_module_events
+7. pg_cron: cross-module-events-cleanup

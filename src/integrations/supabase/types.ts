@@ -940,6 +940,89 @@ export type Database = {
           },
         ]
       }
+      marketing_email_log: {
+        Row: {
+          bounce_type: string | null
+          bounced_at: string | null
+          campaign_id: string | null
+          clicked_at: string | null
+          created_at: string
+          customer_id: string
+          delivered_at: string | null
+          flow_id: string | null
+          id: string
+          location_id: string
+          opened_at: string | null
+          resend_message_id: string | null
+          sent_at: string
+          status: string
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          bounce_type?: string | null
+          bounced_at?: string | null
+          campaign_id?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          customer_id: string
+          delivered_at?: string | null
+          flow_id?: string | null
+          id?: string
+          location_id: string
+          opened_at?: string | null
+          resend_message_id?: string | null
+          sent_at?: string
+          status?: string
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          bounce_type?: string | null
+          bounced_at?: string | null
+          campaign_id?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          customer_id?: string
+          delivered_at?: string | null
+          flow_id?: string | null
+          id?: string
+          location_id?: string
+          opened_at?: string | null
+          resend_message_id?: string | null
+          sent_at?: string
+          status?: string
+          unsubscribed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_email_log_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_email_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_email_log_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_automation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_email_log_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_segments: {
         Row: {
           created_at: string
@@ -2924,6 +3007,10 @@ export type Database = {
         Args: { _location_id: string; _user_id: string }
         Returns: string[]
       }
+      increment_marketing_analytics: {
+        Args: { p_campaign_id: string; p_field: string; p_location_id: string }
+        Returns: undefined
+      }
       is_employee_at_location: {
         Args: { _location_id: string; _user_id: string }
         Returns: boolean
@@ -2964,6 +3051,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      process_scheduled_campaigns: { Args: never; Returns: undefined }
       reorder_areas: {
         Args: { _area_ids: string[]; _location_id: string }
         Returns: Json
