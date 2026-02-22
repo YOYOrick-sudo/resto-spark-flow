@@ -31,6 +31,7 @@ export default function ContentCalendarPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Kalender"
+        className="border-b-0"
         actions={
           <div className="flex flex-wrap items-center gap-3">
             {/* Primary CTA */}
