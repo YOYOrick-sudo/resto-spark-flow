@@ -173,7 +173,8 @@ export default function PopupPreviewDemo() {
   // Load initial widget via edge function (first load)
   useEffect(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    let widgetUrl = `${supabaseUrl}/functions/v1/marketing-popup-widget?slug=${encodeURIComponent(slug)}&preview=true`;
+    const cacheBuster = Date.now();
+    let widgetUrl = `${supabaseUrl}/functions/v1/marketing-popup-widget?slug=${encodeURIComponent(slug)}&preview=true&_cb=${cacheBuster}`;
     if (popupId) {
       widgetUrl += `&popup_id=${encodeURIComponent(popupId)}`;
     }
