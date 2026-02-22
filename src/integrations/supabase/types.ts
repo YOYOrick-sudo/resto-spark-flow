@@ -3287,6 +3287,219 @@ export type Database = {
           },
         ]
       }
+      waitlist_entries: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          date: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          location_id: string
+          notes: string | null
+          party_size: number
+          phone: string | null
+          preferred_time_from: string | null
+          preferred_time_to: string | null
+          priority_score: number
+          shift_id: string | null
+          status: string
+          ticket_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          date: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          location_id: string
+          notes?: string | null
+          party_size: number
+          phone?: string | null
+          preferred_time_from?: string | null
+          preferred_time_to?: string | null
+          priority_score?: number
+          shift_id?: string | null
+          status?: string
+          ticket_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          date?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          location_id?: string
+          notes?: string | null
+          party_size?: number
+          phone?: string | null
+          preferred_time_from?: string | null
+          preferred_time_to?: string | null
+          priority_score?: number
+          shift_id?: string | null
+          status?: string
+          ticket_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_entries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_entries_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_entries_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_entries_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waitlist_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          invite_token: string
+          location_id: string
+          party_size: number
+          reservation_id: string | null
+          slot_date: string
+          slot_time: string
+          status: string
+          ticket_id: string | null
+          waitlist_entry_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          invite_token: string
+          location_id: string
+          party_size: number
+          reservation_id?: string | null
+          slot_date: string
+          slot_time: string
+          status?: string
+          ticket_id?: string | null
+          waitlist_entry_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          location_id?: string
+          party_size?: number
+          reservation_id?: string | null
+          slot_date?: string
+          slot_time?: string
+          status?: string
+          ticket_id?: string | null
+          waitlist_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_invites_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_invites_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_invites_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_invites_waitlist_entry_id_fkey"
+            columns: ["waitlist_entry_id"]
+            isOneToOne: false
+            referencedRelation: "waitlist_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waitlist_settings: {
+        Row: {
+          auto_invite_delay_minutes: number
+          auto_invite_enabled: boolean
+          created_at: string
+          invite_window_minutes: number
+          location_id: string
+          max_parallel_invites: number
+          priority_mode: string
+          updated_at: string
+          waitlist_enabled: boolean
+        }
+        Insert: {
+          auto_invite_delay_minutes?: number
+          auto_invite_enabled?: boolean
+          created_at?: string
+          invite_window_minutes?: number
+          location_id: string
+          max_parallel_invites?: number
+          priority_mode?: string
+          updated_at?: string
+          waitlist_enabled?: boolean
+        }
+        Update: {
+          auto_invite_delay_minutes?: number
+          auto_invite_enabled?: boolean
+          created_at?: string
+          invite_window_minutes?: number
+          location_id?: string
+          max_parallel_invites?: number
+          priority_mode?: string
+          updated_at?: string
+          waitlist_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_settings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_settings: {
         Row: {
           booking_questions: Json

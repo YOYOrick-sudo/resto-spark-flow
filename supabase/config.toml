@@ -86,3 +86,9 @@ verify_jwt = false
 
 [functions.marketing-evaluate-ab-test]
 verify_jwt = false
+
+[functions.waitlist-invite-engine]
+verify_jwt = false
+
+[functions.waitlist-accept]
+verify_jwt = false

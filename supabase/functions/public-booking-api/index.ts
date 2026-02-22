@@ -811,6 +811,9 @@ async function handleManagePost(body: Record<string, unknown>) {
       changes: { reason: cancellation_reason || 'guest_self_cancel', channel: 'widget' },
     });
 
+    // Trigger waitlist invite engine (non-blocking)
+    triggerWaitlistEngine(res.location_id, res.reservation_date, res.start_time, res.party_size, res.shift_id, res.ticket_id);
+
     return jsonResponse({ success: true, status: 'cancelled' });
   }
 
@@ -1081,6 +1084,220 @@ function isTableFree(reservations: ExistingReservation[], tableId: string, start
 }
 
 // ============================================
+// Waitlist Invite Engine Trigger (non-blocking)
+// ============================================
+
+function triggerWaitlistEngine(locationId: string, date: string, startTime: string, partySize: number, shiftId: string, ticketId: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  fetch(`${supabaseUrl}/functions/v1/waitlist-invite-engine`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${anonKey}`,
+    },
+    body: JSON.stringify({
+      location_id: locationId,
+      date,
+      start_time: startTime,
+      party_size: partySize,
+      shift_id: shiftId,
+      ticket_id: ticketId,
+    }),
+  }).catch(err => console.error('[WAITLIST TRIGGER] Failed:', err));
+}
+
+// ============================================
+// Route: POST /waitlist
+// ============================================
+
+async function handleWaitlistPost(body: Record<string, unknown>, clientIp: string) {
+  const rlKey = `waitlist:${clientIp}`;
+  if (!checkRateLimit(rlKey, 5, 60_000)) {
+    return errorResponse('Too many requests', 429);
+  }
+
+  const {
+    location_id, date, party_size, first_name, last_name, email, phone,
+    shift_id, ticket_id, preferred_time_from, preferred_time_to, notes, honeypot,
+  } = body as {
+    location_id?: string; date?: string; party_size?: number;
+    first_name?: string; last_name?: string; email?: string; phone?: string;
+    shift_id?: string; ticket_id?: string;
+    preferred_time_from?: string; preferred_time_to?: string; notes?: string;
+    honeypot?: string;
+  };
+
+  if (honeypot) return errorResponse('Invalid request', 400);
+  if (!location_id || !date || !party_size || !first_name || !last_name || !email) {
+    return errorResponse('Missing required fields: location_id, date, party_size, first_name, last_name, email', 400);
+  }
+  if (party_size < 1 || party_size > 100) return errorResponse('Invalid party_size', 400);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return errorResponse('Invalid date format', 400);
+
+  const admin = getAdminClient();
+
+  // Check waitlist enabled
+  const { data: settings } = await admin
+    .from('waitlist_settings')
+    .select('waitlist_enabled')
+    .eq('location_id', location_id)
+    .maybeSingle();
+
+  if (!settings?.waitlist_enabled) {
+    return errorResponse('Waitlist is not enabled for this location', 403);
+  }
+
+  // Find or create customer
+  let customerId: string | null = null;
+  const { data: existingCustomer } = await admin
+    .from('customers')
+    .select('id')
+    .eq('location_id', location_id)
+    .ilike('email', email.toLowerCase())
+    .limit(1)
+    .single();
+
+  if (existingCustomer) {
+    customerId = existingCustomer.id;
+  } else {
+    const { data: newCustomer } = await admin
+      .from('customers')
+      .insert({
+        location_id,
+        first_name,
+        last_name,
+        email: email.toLowerCase(),
+        phone_number: phone || null,
+        language: 'nl',
+      })
+      .select('id')
+      .single();
+    customerId = newCustomer?.id || null;
+  }
+
+  // Create waitlist entry
+  const { data: entry, error: entryErr } = await admin
+    .from('waitlist_entries')
+    .insert({
+      location_id,
+      customer_id: customerId,
+      date,
+      party_size,
+      first_name,
+      last_name,
+      email: email.toLowerCase(),
+      phone: phone || null,
+      shift_id: shift_id || null,
+      ticket_id: ticket_id || null,
+      preferred_time_from: preferred_time_from || null,
+      preferred_time_to: preferred_time_to || null,
+      notes: notes || null,
+    })
+    .select('id')
+    .single();
+
+  if (entryErr) return errorResponse(`Failed to create waitlist entry: ${entryErr.message}`, 500);
+
+  // Audit log
+  await admin.from('audit_log').insert({
+    location_id,
+    entity_type: 'waitlist_entry',
+    entity_id: entry!.id,
+    action: 'waitlist_entry_created',
+    actor_type: 'guest',
+    changes: { channel: 'widget', party_size, date },
+  });
+
+  // Send confirmation email (non-blocking)
+  try {
+    await sendWaitlistConfirmationEmail(admin, {
+      location_id,
+      first_name,
+      email: email.toLowerCase(),
+      date,
+      party_size,
+    });
+  } catch (e) {
+    console.error('[WAITLIST] Confirmation email failed:', e);
+  }
+
+  return jsonResponse({ success: true, waitlist_entry_id: entry!.id }, 201);
+}
+
+// ============================================
+// Waitlist Confirmation Email
+// ============================================
+
+async function sendWaitlistConfirmationEmail(admin: ReturnType<typeof getAdminClient>, params: {
+  location_id: string; first_name: string; email: string; date: string; party_size: number;
+}) {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendApiKey) {
+    console.log(`[WAITLIST EMAIL STUB] Would send confirmation to ${params.email}`);
+    return;
+  }
+
+  const [{ data: loc }, { data: commSettings }] = await Promise.all([
+    admin.from('locations').select('name').eq('id', params.location_id).single(),
+    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url').eq('location_id', params.location_id).maybeSingle(),
+  ]);
+
+  const restaurantName = loc?.name ?? 'Restaurant';
+  const senderName = commSettings?.sender_name || restaurantName;
+  const brandColor = commSettings?.brand_color || '#1d979e';
+  const logoUrl = commSettings?.logo_url || null;
+
+  const [y, mo, d] = params.date.split('-');
+  const dateObj = new Date(Number(y), Number(mo) - 1, Number(d));
+  const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+  const monthNames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+  const formattedDate = `${dayNames[dateObj.getDay()]} ${Number(d)} ${monthNames[Number(mo) - 1]} ${y}`;
+
+  const subject = `Je staat op de wachtlijst bij ${restaurantName}`;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#f7f7f7">
+<table width="100%" style="background:#f7f7f7;padding:32px 16px"><tr><td align="center">
+<table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden">
+  ${logoUrl ? `<tr><td style="padding:24px 24px 0;text-align:center"><img src="${logoUrl}" alt="${restaurantName}" style="max-height:48px"></td></tr>` : ''}
+  <tr><td style="padding:24px">
+    <h1 style="margin:0 0 4px;font-size:20px;color:#111">Je staat op de wachtlijst!</h1>
+    <p style="margin:0 0 20px;font-size:14px;color:#666;line-height:1.5">Hoi ${params.first_name}, we hebben je aanmelding ontvangen. Zodra er een plek vrijkomt, sturen we je direct een uitnodiging.</p>
+    <table width="100%" style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:16px">
+      <tr><td style="padding:4px 0;font-size:14px;color:#555">📅 <strong>${formattedDate}</strong></td></tr>
+      <tr><td style="padding:4px 0;font-size:14px;color:#555">👥 <strong>${params.party_size} ${params.party_size === 1 ? 'gast' : 'gasten'}</strong></td></tr>
+    </table>
+    <p style="font-size:13px;color:#999;margin:0">We sturen je een email zodra er plek is. Je hoeft verder niets te doen.</p>
+  </td></tr>
+</table>
+</td></tr></table></body></html>`;
+
+  const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+  const payload: Record<string, unknown> = {
+    from: `${senderName} <${verifiedFrom}>`,
+    to: [params.email],
+    subject,
+    html,
+  };
+  if (commSettings?.reply_to) payload.reply_to = commSettings.reply_to;
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text();
+    console.error(`[WAITLIST EMAIL] Error ${response.status}: ${errBody}`);
+  } else {
+    const result = await response.json();
+    console.log(`[WAITLIST EMAIL] Sent confirmation: ${result.id} to ${params.email}`);
+  }
+}
+
+// ============================================
 // Router
 // ============================================
 Deno.serve(async (req) => {
@@ -1112,6 +1329,7 @@ Deno.serve(async (req) => {
       if (route === 'guest-lookup') return await handleGuestLookup(body, clientIp);
       if (route === 'book') return await handleBook(body, clientIp, req);
       if (route === 'manage') return await handleManagePost(body);
+      if (route === 'waitlist') return await handleWaitlistPost(body, clientIp);
       return errorResponse('Not found', 404);
     }
 
