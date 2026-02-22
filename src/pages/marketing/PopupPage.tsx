@@ -548,7 +548,7 @@ function PopupEditor({
               >
                 {previewType === 'popup' ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 p-4">
-                    <div className="w-full max-w-[380px] bg-card rounded-xl p-6 shadow-lg border border-border text-center" style={{ borderRadius: 12 }}>
+                    <div className="w-full max-w-[380px] bg-card rounded-3xl p-6 shadow-lg border border-border text-center">
                       {brandKit?.logo_url && (
                         <img src={brandKit.logo_url} alt="Logo" className="h-8 max-w-[140px] object-contain mb-3 mx-auto" />
                       )}
@@ -558,8 +558,8 @@ function PopupEditor({
                       {isNewsletter && (
                         <>
                           <div className="flex gap-2 justify-center">
-                            <input type="email" placeholder="je@email.nl" className="flex-1 px-3 py-2 border border-border rounded-lg text-sm bg-background" disabled />
-                            <button className="px-4 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap" style={{ backgroundColor: primaryColor }} disabled>
+                            <input type="email" placeholder="je@email.nl" className="flex-1 px-3 py-2 border border-border rounded-xl text-sm bg-background" disabled />
+                            <button className="px-4 py-2 rounded-xl text-sm font-semibold text-white whitespace-nowrap" style={{ backgroundColor: primaryColor }} disabled>
                               {state.button_text}
                             </button>
                           </div>
@@ -571,7 +571,7 @@ function PopupEditor({
                         <>
                           {featuredTicket && (
                             <div
-                              className="rounded-xl p-4 w-full text-left mb-3"
+                              className="rounded-3xl p-4 w-full text-left mb-3"
                               style={{ background: `linear-gradient(180deg, ${featuredTicket.color}18 0%, transparent 100%)` }}
                             >
                               <p className="text-sm font-bold" style={{ color: '#1a1a1a' }}>{featuredTicket.display_title}</p>
@@ -580,14 +580,14 @@ function PopupEditor({
                               )}
                             </div>
                           )}
-                          <button className="w-full px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: primaryColor }} disabled>
+                          <button className="w-full px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: primaryColor }} disabled>
                             {state.button_text}
                           </button>
                         </>
                       )}
 
                       {isCustom && (
-                        <button className="w-full px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: primaryColor }} disabled>
+                        <button className="w-full px-4 py-2 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: primaryColor }} disabled>
                           <LinkIcon className="h-3.5 w-3.5" />
                           {state.button_text}
                         </button>
@@ -599,9 +599,9 @@ function PopupEditor({
                     <div className="w-full p-3 shadow flex items-center gap-3 flex-wrap" style={{ backgroundColor: primaryColor }}>
                       <span className="text-sm font-semibold text-white flex-1 min-w-0 truncate">{state.headline}</span>
                       {isNewsletter && (
-                        <input type="email" placeholder="je@email.nl" className="px-3 py-1.5 border border-white/30 rounded-lg text-sm bg-white w-[180px]" disabled />
+                        <input type="email" placeholder="je@email.nl" className="px-3 py-1.5 border border-white/30 rounded-xl text-sm bg-white w-[180px]" disabled />
                       )}
-                      <button className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white whitespace-nowrap border border-white bg-transparent" disabled>
+                      <button className="px-4 py-1.5 rounded-xl text-sm font-semibold text-white whitespace-nowrap border border-white bg-transparent" disabled>
                         {state.button_text}
                       </button>
                       <button className="text-white text-lg leading-none opacity-80" disabled>&times;</button>
