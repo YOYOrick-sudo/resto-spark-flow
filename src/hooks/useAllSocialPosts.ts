@@ -108,6 +108,7 @@ export function useCreateFullSocialPost() {
       operator_edited?: boolean;
       ab_test_group?: string;
       ab_test_id?: string;
+      media_urls?: string[];
     }) => {
       if (!currentLocation) throw new Error('No location selected');
       const row = {
@@ -125,6 +126,7 @@ export function useCreateFullSocialPost() {
         operator_edited: input.operator_edited ?? false,
         ab_test_group: input.ab_test_group ?? null,
         ab_test_id: input.ab_test_id ?? null,
+        media_urls: input.media_urls ?? [],
       };
       const { data, error } = await supabase
         .from('marketing_social_posts')
