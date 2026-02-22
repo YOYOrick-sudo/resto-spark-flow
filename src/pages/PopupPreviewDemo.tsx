@@ -51,11 +51,11 @@ function buildStyles(primaryColor: string): string {
     .nesto-featured-title{font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:4px;}
     .nesto-featured-desc{font-size:13px;color:#666;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 
-    .nesto-bar{position:fixed;left:0;right:0;z-index:999999;padding:14px 48px 14px 24px;display:flex;align-items:center;justify-content:center;gap:12px;transform:translateY(100%);transition:transform .3s ease;position:fixed;}
+    .nesto-bar{position:fixed;left:0;right:0;z-index:999999;padding:14px 48px;display:flex;align-items:center;justify-content:space-between;gap:12px;transform:translateY(100%);transition:transform .3s ease;}
     .nesto-bar.top{top:0;box-shadow:0 2px 10px rgba(0,0,0,0.1);transform:translateY(-100%);}
     .nesto-bar.bottom{bottom:0;box-shadow:0 -2px 10px rgba(0,0,0,0.1);}
     .nesto-bar.visible{transform:translateY(0);}
-    .nesto-bar-text{flex:none;font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .nesto-bar-text{flex:1;font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .nesto-bar .nesto-input{width:200px;flex:none;padding:8px 12px;font-size:13px;background:#fff;border:1.5px solid rgba(255,255,255,0.3);}
     .nesto-bar .nesto-btn{padding:8px 16px;font-size:13px;background:rgba(255,255,255,0.15);border:1.5px solid #fff;color:#fff;}
     .nesto-bar .nesto-btn:hover{background:rgba(255,255,255,0.25);}
