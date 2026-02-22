@@ -1,30 +1,18 @@
 
-
-# Horizontale streep onder Kalender header verwijderen
+# Fix: Verkeerde navigatie-URL voor marketing instellingen
 
 ## Probleem
 
-De `PageHeader` component heeft standaard een `border-b border-border` onderaan. Op de kalenderpagina is dit overbodig en storend omdat de kalender grid (in een NestoCard) al visueel gescheiden is van de header door padding en schaduw.
+De "Naar instellingen" knoppen in de Social pagina's navigeren naar `/marketing/instellingen`, maar die route bestaat niet. De correcte route is `/instellingen/marketing` (zoals gedefinieerd in App.tsx regel 151).
 
 ## Oplossing
 
-In `ContentCalendarPage.tsx` een `className` prop meegeven aan `<PageHeader>` om de border te overrulen:
+Verander `/marketing/instellingen` naar `/instellingen/marketing` in drie bestanden:
 
-```tsx
-<PageHeader
-  title="Kalender"
-  className="border-b-0"
-  actions={...}
-/>
-```
+| Bestand | Regels |
+|---------|--------|
+| `src/pages/marketing/SocialPostsPage.tsx` | Regel 135 en 207 |
+| `src/pages/marketing/SocialPostCreatorPage.tsx` | Regel 370 |
+| `src/components/marketing/social/UGCGrid.tsx` | Regel 22 |
 
-Dit raakt alleen de kalenderpagina — alle andere pagina's behouden hun standaard border.
-
-## Technische details
-
-| Bestand | Actie |
-|---------|-------|
-| `src/pages/marketing/ContentCalendarPage.tsx` | Edit: voeg `className="border-b-0"` toe aan PageHeader |
-
-Een wijziging, een regel. Geen andere bestanden geraakt.
-
+Puur een URL-fix, geen andere wijzigingen nodig.
