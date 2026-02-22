@@ -1,41 +1,69 @@
 
 
-# Fix: NestoOutlineButtonGroup dubbele rand verwijderen
+# Fix: AssistantFilters dubbele rand + Design Patroon Documentatie
 
 ## Probleem
-De `NestoOutlineButtonGroup` component (periode selector, template categorieën, etc.) gebruikt `border-[1.5px] border-primary` op de geselecteerde staat. Dit geeft een dikke, zichtbare dubbele rand die niet overeenkomt met de rest van de app.
 
-## Hoe het nu is vs. hoe het moet
+De `AssistantFilters` module-knoppen gebruiken nog het oude `border-[1.5px] border-primary` patroon. Dit moet consistent worden met de rest van de app.
 
-| Eigenschap | Nu (fout) | Straks (correct) |
-|---|---|---|
-| Selected border | `border-[1.5px] border-primary` | `border border-primary/20` |
-| Selected achtergrond | `bg-primary/10` | `bg-primary/10` (ongewijzigd) |
-| Selected tekst | `text-primary` | `text-primary` (ongewijzigd) |
-| Schaduw | geen | `shadow-sm` |
-| Unselected border | `border-[1.5px] border-transparent` | geen border |
+## Twee patronen in de app
 
-Dit is exact het patroon dat al gebruikt wordt in `ViewToggle.tsx` en `DensityToggle.tsx` in de reserveringen module.
+Er zijn twee correcte selectie-patronen, elk voor een ander doel:
+
+### Patroon 1: Toggle Buttons (inline knoppen, periode selectors)
+Gebruikt in: ViewToggle, DensityToggle, NestoOutlineButtonGroup
+
+| Staat | Klassen |
+|---|---|
+| Selected | `bg-primary/10 text-primary border border-primary/20 shadow-sm` |
+| Unselected | `text-muted-foreground hover:text-foreground hover:bg-background/50` |
+
+Geen `border-[1.5px]`, geen opaque `border-primary`. Subtiel en licht.
+
+### Patroon 2: Settings Navigation (sidebar menu items)
+Gebruikt in: SettingsPageLayout categorieën sidebar
+
+| Staat | Klassen |
+|---|---|
+| Selected | `bg-selected-bg border-selected-border text-primary font-semibold border-[1.5px]` |
+| Unselected | `text-muted-foreground bg-transparent border-transparent hover:bg-accent/60 border-[1.5px]` |
+
+Dit gebruikt de semantische `selected-bg` / `selected-border` tokens. De `border-[1.5px]` is hier correct omdat het navigatie-items zijn in een settings sidebar, niet inline toggles.
 
 ## Wijziging
 
-Eén bestand: `src/components/polar/NestoOutlineButtonGroup.tsx`
+### `src/components/assistant/AssistantFilters.tsx` (regels 42-48)
 
-Geselecteerde staat wordt:
+Dit zijn inline toggle-knoppen (Patroon 1). Fix:
+
+Van:
 ```
-bg-primary/10 text-primary border border-primary/20 shadow-sm
+"border-[1.5px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+isSelected
+  ? "bg-primary/10 border-primary text-primary"
+  : "bg-transparent border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
 ```
 
-Niet-geselecteerde staat wordt:
+Naar:
 ```
-bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground
+"focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+isSelected
+  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+  : "bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
 ```
 
-De `border-[1.5px]` class op regel 44 wordt ook verwijderd als base class.
+### Design documentatie
 
-## Impact
-Alle plekken waar `NestoOutlineButtonGroup` gebruikt wordt krijgen automatisch de fix:
-- Analytics periode selector (7d/30d/90d)
-- Campaign builder template categorieën
-- Campaign builder verzendmoment selector
-- Campaign builder desktop/mobile preview toggle
+Nieuw bestand: `docs/design/SELECTION_STATES.md`
+
+Documenteert de twee patronen zodat toekomstige componenten het juiste patroon kiezen:
+- Toggle Buttons: `border border-primary/20 shadow-sm`
+- Settings Navigation: `border-[1.5px] border-selected-border bg-selected-bg`
+
+## Bestanden overzicht
+
+| Bestand | Actie |
+|---|---|
+| `src/components/assistant/AssistantFilters.tsx` | Fix toggle styling |
+| `docs/design/SELECTION_STATES.md` | Nieuw - patroon documentatie |
+
