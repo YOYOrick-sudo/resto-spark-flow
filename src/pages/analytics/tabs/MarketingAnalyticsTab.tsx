@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Info } from 'lucide-react';
+import { Info, Euro, Users, TrendingUp } from 'lucide-react';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoOutlineButtonGroup } from '@/components/polar/NestoOutlineButtonGroup';
 import { NestoTable, type Column } from '@/components/polar/NestoTable';
+import { StatCard } from '@/components/polar/StatCard';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,11 +36,15 @@ const chartTooltip = ({ active, payload, label }: any) => {
 export default function MarketingAnalyticsTab() {
   const [period, setPeriod] = useState('30');
   const periodDays = parseInt(period, 10);
-  const { emailMetrics, revenue, campaignTable, isLoading } = useMarketingAnalytics(periodDays);
+  const { emailMetrics, revenue, campaignTable, revenueWeekly, activeContacts, campaignDetail, isLoading } = useMarketingAnalytics(periodDays);
 
   const emailData = emailMetrics.data ?? [];
   const revenueTotal = revenue.data ?? 0;
   const campaigns = campaignTable.data ?? [];
+  const weeklyData = revenueWeekly.data ?? [];
+  const contactCount = activeContacts.data ?? 0;
+  const detailCampaigns = campaignDetail.data ?? [];
+  const avgRevenue = campaigns.length > 0 ? Math.round(revenueTotal / campaigns.length) : 0;
 
   const campaignColumns: Column<any>[] = [
     { key: 'name', header: 'Naam', render: (item) => <span className="font-medium">{item.name}</span> },
@@ -163,6 +168,80 @@ export default function MarketingAnalyticsTab() {
           <NestoTable
             columns={campaignColumns}
             data={sortedCampaigns}
+            keyExtractor={(item) => item.id}
+          />
+        )}
+      </div>
+
+      {/* Revenue Impact */}
+      <div className="space-y-3">
+        <h2 className="text-h2 text-foreground">Revenue Impact</h2>
+        {revenueWeekly.isLoading ? (
+          <Skeleton className="h-24 w-full rounded-2xl" />
+        ) : revenueTotal === 0 ? (
+          <EmptyState title="Verstuur je eerste campagne om revenue impact te meten." size="sm" />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard label="Marketing revenue" value={`€${revenueTotal.toLocaleString('nl-NL', { maximumFractionDigits: 0 })}`} icon={Euro} />
+              <StatCard label="Revenue per campagne" value={`€${avgRevenue.toLocaleString('nl-NL', { maximumFractionDigits: 0 })}`} icon={TrendingUp} />
+              <StatCard label="Actieve contacten" value={contactCount} icon={Users} />
+            </div>
+            {weeklyData.some((w) => w.revenue > 0) && (
+              <NestoCard className="overflow-hidden !p-0">
+                <div className="p-6 pb-0">
+                  <span className="text-xs text-muted-foreground">Revenue per week (laatste 12 weken)</span>
+                </div>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={weeklyData} margin={{ top: 20, right: 24, bottom: 20, left: 24 }}>
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} interval="preserveStartEnd" />
+                    <YAxis hide />
+                    <Tooltip content={chartTooltip} cursor={false} />
+                    <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </NestoCard>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Email Performance Detail */}
+      <div className="space-y-3">
+        <h2 className="text-h2 text-foreground">Email Performance</h2>
+        {campaignDetail.isLoading ? (
+          <Skeleton className="h-48 w-full rounded-2xl" />
+        ) : detailCampaigns.length === 0 ? (
+          <EmptyState title="Nog geen campagne data beschikbaar" size="sm" />
+        ) : (
+          <NestoTable
+            columns={[
+              { key: 'name', header: 'Naam', render: (item) => <span className="font-medium">{item.name}</span> },
+              { key: 'sent_count', header: 'Verzonden', className: 'tabular-nums text-right', headerClassName: 'text-right' },
+              {
+                key: 'opened_count', header: 'Geopend', className: 'tabular-nums text-right', headerClassName: 'text-right',
+                render: (item) => {
+                  const pct = item.sent_count > 0 ? Math.round((item.opened_count / item.sent_count) * 100) : 0;
+                  return <span>{item.opened_count} <span className="text-muted-foreground">({pct}%)</span></span>;
+                },
+              },
+              {
+                key: 'clicked_count', header: 'Geklikt', className: 'tabular-nums text-right', headerClassName: 'text-right',
+                render: (item) => {
+                  const pct = item.sent_count > 0 ? Math.round((item.clicked_count / item.sent_count) * 100) : 0;
+                  return <span>{item.clicked_count} <span className="text-muted-foreground">({pct}%)</span></span>;
+                },
+              },
+              {
+                key: 'bounced_count', header: 'Bounced', className: 'tabular-nums text-right', headerClassName: 'text-right',
+                render: (item) => <span className={item.bounced_count === 0 ? 'text-muted-foreground' : ''}>{item.bounced_count}</span>,
+              },
+              {
+                key: 'revenue_attributed', header: 'Omzet', className: 'tabular-nums text-right', headerClassName: 'text-right',
+                render: (item) => <span className={item.revenue_attributed === 0 ? 'text-muted-foreground' : ''}>€{item.revenue_attributed.toLocaleString('nl-NL', { maximumFractionDigits: 0 })}</span>,
+              },
+            ] as Column<any>[]}
+            data={detailCampaigns}
             keyExtractor={(item) => item.id}
           />
         )}

@@ -15,6 +15,7 @@ import { useBrandIntelligence } from '@/hooks/useBrandIntelligence';
 import { WeekplanCard } from '@/components/marketing/dashboard/WeekplanCard';
 import { CoachingTipsCard } from '@/components/marketing/dashboard/CoachingTipsCard';
 import { ContentIdeasSection } from '@/components/marketing/dashboard/ContentIdeasSection';
+import { BrandIntelligenceCard } from '@/components/marketing/dashboard/BrandIntelligenceCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -83,6 +84,9 @@ export default function MarketingDashboard() {
 
       {/* Coaching Tips */}
       <CoachingTipsCard />
+
+      {/* Brand Intelligence */}
+      <BrandIntelligenceCard data={intelligence} isLoading={intelligenceLoading} />
 
       {/* KPI Tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
