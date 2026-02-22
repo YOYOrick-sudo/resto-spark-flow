@@ -859,6 +859,47 @@ export type Database = {
           },
         ]
       }
+      marketing_coaching_tips: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          location_id: string
+          priority: number
+          status: string
+          tip_type: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          location_id: string
+          priority?: number
+          status?: string
+          tip_type?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          location_id?: string
+          priority?: number
+          status?: string
+          tip_type?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_coaching_tips_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_contact_preferences: {
         Row: {
           channel: string

@@ -46,6 +46,19 @@ serve(async (req) => {
       }
     }
 
+    // Trigger coaching generation (fire-and-forget)
+    const successLocations = Object.entries(results).filter(([, v]) => v === "ok").map(([k]) => k);
+    if (successLocations.length > 0) {
+      fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/marketing-generate-coaching`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ location_ids: successLocations }),
+      }).catch((e) => console.error("Failed to trigger coaching:", e));
+    }
+
     return new Response(JSON.stringify({ analyzed: uniqueLocationIds.length, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

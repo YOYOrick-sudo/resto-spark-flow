@@ -10,6 +10,7 @@ const SOURCE_BADGE: Record<string, { label: string; variant: 'default' | 'primar
   ai: { label: 'AI', variant: 'primary' },
   menu: { label: 'Menukaart', variant: 'success' },
   seasonal: { label: 'Seizoen', variant: 'warning' },
+  weather: { label: 'Weer', variant: 'warning' },
   cross_module: { label: 'Cross-module', variant: 'default' },
   manual: { label: 'Handmatig', variant: 'default' },
 };
