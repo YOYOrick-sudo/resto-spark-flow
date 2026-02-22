@@ -132,7 +132,7 @@ export default function SocialPostsPage() {
         <EmptyState
           title="Geen social accounts gekoppeld"
           description="Koppel Instagram, Facebook of Google Business in de marketing instellingen."
-          action={{ label: 'Naar instellingen', onClick: () => navigate('/marketing/instellingen') }}
+          action={{ label: 'Naar instellingen', onClick: () => navigate('/instellingen/marketing') }}
         />
       </div>
     );
@@ -204,7 +204,7 @@ export default function SocialPostsPage() {
           <NestoButton
             variant="outline"
             size="sm"
-            onClick={() => navigate('/marketing/instellingen')}
+            onClick={() => navigate('/instellingen/marketing')}
           >
             <Settings className="h-3.5 w-3.5 mr-1.5" />
             Instellingen

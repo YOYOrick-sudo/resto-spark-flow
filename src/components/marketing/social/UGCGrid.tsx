@@ -19,7 +19,7 @@ export function UGCGrid() {
       <EmptyState
         title="Instagram niet gekoppeld"
         description="Koppel Instagram in de marketing instellingen om tagged content te zien."
-        action={{ label: 'Naar instellingen', onClick: () => navigate('/marketing/instellingen') }}
+        action={{ label: 'Naar instellingen', onClick: () => navigate('/instellingen/marketing') }}
       />
     );
   }
