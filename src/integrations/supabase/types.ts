@@ -558,6 +558,68 @@ export type Database = {
           },
         ]
       }
+      marketing_brand_intelligence: {
+        Row: {
+          caption_style_profile: string | null
+          content_type_performance: Json | null
+          created_at: string
+          current_weekplan: Json | null
+          engagement_baseline: Json | null
+          id: string
+          last_analysis_at: string | null
+          learning_stage: string
+          location_id: string
+          optimal_post_times: Json | null
+          posts_analyzed: number
+          top_hashtag_sets: Json | null
+          updated_at: string
+          visual_style_profile: string | null
+          weekly_best_content_type: string | null
+        }
+        Insert: {
+          caption_style_profile?: string | null
+          content_type_performance?: Json | null
+          created_at?: string
+          current_weekplan?: Json | null
+          engagement_baseline?: Json | null
+          id?: string
+          last_analysis_at?: string | null
+          learning_stage?: string
+          location_id: string
+          optimal_post_times?: Json | null
+          posts_analyzed?: number
+          top_hashtag_sets?: Json | null
+          updated_at?: string
+          visual_style_profile?: string | null
+          weekly_best_content_type?: string | null
+        }
+        Update: {
+          caption_style_profile?: string | null
+          content_type_performance?: Json | null
+          created_at?: string
+          current_weekplan?: Json | null
+          engagement_baseline?: Json | null
+          id?: string
+          last_analysis_at?: string | null
+          learning_stage?: string
+          location_id?: string
+          optimal_post_times?: Json | null
+          posts_analyzed?: number
+          top_hashtag_sets?: Json | null
+          updated_at?: string
+          visual_style_profile?: string | null
+          weekly_best_content_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_brand_intelligence_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_brand_kit: {
         Row: {
           accent_color: string | null

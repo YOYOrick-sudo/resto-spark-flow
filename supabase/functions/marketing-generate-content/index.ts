@@ -20,7 +20,6 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Validate JWT and get user
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
@@ -28,7 +27,6 @@ serve(async (req) => {
     const body = await req.json();
     const { type } = body;
 
-    // Get location_id from user's employee record
     const { data: employee } = await supabase
       .from("employees")
       .select("location_id")
@@ -37,19 +35,21 @@ serve(async (req) => {
     if (!employee) throw new Error("No location found for user");
     const locationId = employee.location_id;
 
-    // Load brand kit + location
-    const [brandKitRes, locationRes] = await Promise.all([
+    // Load brand kit + location + brand intelligence
+    const [brandKitRes, locationRes, intelligenceRes] = await Promise.all([
       supabase.from("marketing_brand_kit").select("*").eq("location_id", locationId).maybeSingle(),
       supabase.from("locations").select("name, slug, timezone").eq("id", locationId).single(),
+      supabase.from("marketing_brand_intelligence").select("*").eq("location_id", locationId).maybeSingle(),
     ]);
     const brandKit = brandKitRes.data;
     const location = locationRes.data;
+    const intelligence = intelligenceRes.data;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     if (type === "social") {
-      const result = await generateSocialContent(body, brandKit, location, LOVABLE_API_KEY);
+      const result = await generateSocialContent(body, brandKit, location, intelligence, LOVABLE_API_KEY);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -86,6 +86,15 @@ interface Location {
   timezone: string;
 }
 
+interface BrandIntelligence {
+  caption_style_profile: string | null;
+  visual_style_profile: string | null;
+  content_type_performance: Record<string, any> | null;
+  optimal_post_times: any[] | null;
+  top_hashtag_sets: any[] | null;
+  learning_stage: string | null;
+}
+
 async function callAI(messages: { role: string; content: string }[], tools: any[], toolChoice: any, apiKey: string) {
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -119,10 +128,46 @@ async function callAI(messages: { role: string; content: string }[], tools: any[
   return JSON.parse(toolCall.function.arguments);
 }
 
+function buildIntelligenceContext(intelligence: BrandIntelligence | null): { systemExtra: string; userExtra: string } {
+  if (!intelligence) return { systemExtra: "", userExtra: "" };
+
+  let systemExtra = "";
+  let userExtra = "";
+
+  // Caption style profile
+  if (intelligence.caption_style_profile) {
+    systemExtra += `\n\nSchrijfstijlprofiel (schrijf in EXACT deze stijl):\n${intelligence.caption_style_profile}`;
+  }
+
+  // Visual style hint
+  if (intelligence.visual_style_profile) {
+    systemExtra += `\n\nVisuele stijl hint (voor foto-gerelateerde suggesties):\n${intelligence.visual_style_profile}`;
+  }
+
+  // Content type performance - top 3
+  if (intelligence.content_type_performance && Object.keys(intelligence.content_type_performance).length > 0) {
+    const sorted = Object.entries(intelligence.content_type_performance)
+      .sort((a: any, b: any) => (b[1].avg_engagement ?? 0) - (a[1].avg_engagement ?? 0))
+      .slice(0, 3)
+      .map(([type, perf]: [string, any]) => `${type} (gem. engagement: ${perf.avg_engagement})`)
+      .join(", ");
+    userExtra += `\nBest presterende content types: ${sorted}`;
+  }
+
+  // Top hashtags
+  if (intelligence.top_hashtag_sets && intelligence.top_hashtag_sets.length > 0) {
+    const topTags = intelligence.top_hashtag_sets.slice(0, 10).map((h: any) => h.hashtag).join(", ");
+    userExtra += `\nBest presterende hashtags: ${topTags}`;
+  }
+
+  return { systemExtra, userExtra };
+}
+
 async function generateSocialContent(
   body: { context?: string; platforms?: string[]; content_type_tag?: string },
   brandKit: BrandKit | null,
   location: Location | null,
+  intelligence: BrandIntelligence | null,
   apiKey: string
 ) {
   const platforms = body.platforms ?? ["instagram"];
@@ -143,6 +188,8 @@ async function generateSocialContent(
     return "";
   }).join("\n\n");
 
+  const { systemExtra, userExtra } = buildIntelligenceContext(intelligence);
+
   const systemPrompt = `Je bent een social media copywriter voor ${restaurantName}, een horecabedrijf.
 
 Tone of voice: ${tone}${toneDesc ? ` — ${toneDesc}` : ""}
@@ -151,11 +198,12 @@ Per platform schrijf je een unieke, op maat gemaakte caption. Niet dezelfde teks
 
 ${platformInstructions}
 
-Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatietijd en dag.`;
+Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatietijd en dag.${systemExtra}`;
 
-  const userPrompt = body.context
+  let userPrompt = body.context
     ? `Onderwerp: ${body.context}${body.content_type_tag ? `\nContent type: ${body.content_type_tag}` : ""}`
     : `Schrijf een social media post voor ${restaurantName}.${body.content_type_tag ? `\nContent type: ${body.content_type_tag}` : ""}`;
+  userPrompt += userExtra;
 
   const platformProperties: Record<string, any> = {};
   if (platforms.includes("instagram")) {
@@ -183,6 +231,16 @@ Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatieti
     };
   }
 
+  // Use optimal_post_times from intelligence for suggested_time/day
+  let timeDescription = "Optimal posting time, e.g. 18:00";
+  let dayDescription = "Optimal posting day in Dutch, e.g. donderdag";
+  if (intelligence?.optimal_post_times && intelligence.optimal_post_times.length > 0) {
+    const best = intelligence.optimal_post_times[0];
+    const dayNames = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
+    timeDescription = `Optimal posting time based on data. Best slot: ${String(best.hour).padStart(2, "0")}:00 on ${dayNames[best.day]}`;
+    dayDescription = `Optimal posting day based on data. Best day: ${dayNames[best.day]}`;
+  }
+
   const tools = [
     {
       type: "function",
@@ -194,8 +252,8 @@ Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatieti
           properties: {
             platforms: { type: "object", properties: platformProperties, required: Object.keys(platformProperties) },
             suggested_hashtags: { type: "array", items: { type: "string" }, description: "10 suggested hashtags without #" },
-            suggested_time: { type: "string", description: "Optimal posting time, e.g. 18:00" },
-            suggested_day: { type: "string", description: "Optimal posting day in Dutch, e.g. donderdag" },
+            suggested_time: { type: "string", description: timeDescription },
+            suggested_day: { type: "string", description: dayDescription },
           },
           required: ["platforms", "suggested_hashtags"],
           additionalProperties: false,
