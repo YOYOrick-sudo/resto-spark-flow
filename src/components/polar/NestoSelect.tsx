@@ -34,6 +34,8 @@ export interface NestoSelectProps {
   size?: "sm" | "default";
 }
 
+const ALL_SENTINEL = "_nesto_all_";
+
 const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
   (
     {
@@ -52,6 +54,16 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
   ) => {
     const id = React.useId();
 
+    // Map empty-string values to sentinel for Radix compatibility
+    const mappedValue = value === "" ? ALL_SENTINEL : value;
+    const handleValueChange = (v: string) => {
+      onValueChange?.(v === ALL_SENTINEL ? "" : v);
+    };
+    const mapOption = (opt: SelectOption): SelectOption => ({
+      ...opt,
+      value: opt.value === "" ? ALL_SENTINEL : opt.value,
+    });
+
     return (
       <div className="w-full">
         {label && (
@@ -62,7 +74,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
             {label}
           </label>
         )}
-        <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+        <Select value={mappedValue} onValueChange={handleValueChange} disabled={disabled}>
           <SelectTrigger
             ref={ref}
             id={id}
@@ -79,7 +91,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
           </SelectTrigger>
           <SelectContent className="rounded-dropdown border border-border bg-card">
             {options.length > 0 &&
-              options.map((option) => (
+              options.map(mapOption).map((option) => (
                 <SelectItem
                   key={option.value}
                   value={option.value}
@@ -95,7 +107,7 @@ const NestoSelect = React.forwardRef<HTMLButtonElement, NestoSelectProps>(
                   <SelectLabel className="text-label text-muted-foreground">
                     {group.label}
                   </SelectLabel>
-                  {group.options.map((option) => (
+                  {group.options.map(mapOption).map((option) => (
                     <SelectItem
                       key={option.value}
                       value={option.value}
