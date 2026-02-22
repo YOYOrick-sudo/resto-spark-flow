@@ -30,7 +30,7 @@ export default function ContentCalendarPage() {
   return (
     <div className="flex flex-col h-full">
       <PageHeader
-        title="Kalender"
+        title="Content Kalender"
         className="border-b-0"
         actions={
           <div className="flex flex-wrap items-center gap-3">

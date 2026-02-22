@@ -36,10 +36,10 @@ export default function SegmentsPage() {
     try {
       if (editSegment) {
         await updateMutation.mutateAsync({ id: editSegment.id, ...data });
-        nestoToast.success('Segment bijgewerkt');
+        nestoToast.success('Doelgroep bijgewerkt');
       } else {
         await createMutation.mutateAsync(data);
-        nestoToast.success('Segment aangemaakt');
+        nestoToast.success('Doelgroep aangemaakt');
       }
       setBuilderOpen(false);
     } catch {
@@ -51,7 +51,7 @@ export default function SegmentsPage() {
     if (!deleteTarget) return;
     try {
       await deleteMutation.mutateAsync(deleteTarget);
-      nestoToast.success('Segment verwijderd');
+      nestoToast.success('Doelgroep verwijderd');
     } catch {
       nestoToast.error('Verwijderen mislukt');
     }
@@ -61,10 +61,10 @@ export default function SegmentsPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <PageHeader
-        title="Segmenten"
-        subtitle="Groepeer gasten op basis van gedrag en kenmerken"
+        title="Doelgroepen"
+        subtitle="Maak groepen van gasten voor gerichte campagnes."
         actions={
-          <NestoButton onClick={openCreate}>Nieuw segment</NestoButton>
+          <NestoButton onClick={openCreate}>Nieuwe doelgroep</NestoButton>
         }
       />
 
@@ -76,9 +76,9 @@ export default function SegmentsPage() {
         </div>
       ) : segments.length === 0 ? (
         <EmptyState
-          title="Nog geen segmenten"
-          description="Maak je eerste segment om gasten te groeperen."
-          action={{ label: 'Nieuw segment', onClick: openCreate }}
+          title="Nog geen doelgroepen"
+          description="Maak je eerste doelgroep aan."
+          action={{ label: 'Nieuwe doelgroep', onClick: openCreate }}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -139,8 +139,8 @@ export default function SegmentsPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Segment verwijderen"
-        description="Weet je zeker dat je dit segment wilt verwijderen? Dit kan niet ongedaan worden."
+        title="Doelgroep verwijderen"
+        description="Weet je zeker dat je deze doelgroep wilt verwijderen? Dit kan niet ongedaan worden."
         onConfirm={handleDelete}
         confirmLabel="Verwijderen"
         variant="destructive"

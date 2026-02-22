@@ -80,8 +80,8 @@ export default function ContactsPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <PageHeader
-        title="Contacten"
-        subtitle="Beheer je gastenbestand en marketing voorkeuren"
+        title="Gasten"
+        subtitle="Alle gasten die marketing communicatie ontvangen."
         actions={[
           { label: 'Exporteer', onClick: handleExport, variant: 'outline', icon: Download },
           { label: 'Importeer', onClick: () => setImportOpen(true), variant: 'outline', icon: Upload },

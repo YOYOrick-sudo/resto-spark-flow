@@ -128,7 +128,7 @@ export default function SocialPostsPage() {
   if (allDisconnected) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Social" />
+        <PageHeader title="Social Posts" />
         <EmptyState
           title="Geen social accounts gekoppeld"
           description="Koppel Instagram, Facebook of Google Business in de marketing instellingen."
@@ -167,7 +167,7 @@ export default function SocialPostsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Social"
+        title="Social Posts"
         actions={
           <NestoButton onClick={() => navigate('/marketing/social/nieuw')}>
             <Plus className="h-4 w-4 mr-2" />
