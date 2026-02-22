@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Settings } from 'lucide-react';
+import { Plus, Trash2, Settings, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { PageHeader } from '@/components/polar/PageHeader';
@@ -13,6 +13,8 @@ import { InfoAlert } from '@/components/polar/InfoAlert';
 import { useAllSocialPosts } from '@/hooks/useAllSocialPosts';
 import { useDeleteSocialPost } from '@/hooks/useMarketingSocialPosts';
 import { useMarketingSocialAccounts } from '@/hooks/useMarketingSocialAccounts';
+import { useBrandIntelligence } from '@/hooks/useBrandIntelligence';
+import { useUserContext } from '@/contexts/UserContext';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { nestoToast } from '@/lib/nestoToast';
 import {
@@ -60,10 +62,26 @@ const TABS = [
 
 export default function SocialPostsPage() {
   const navigate = useNavigate();
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
   const [platformTab, setPlatformTab] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [dismissedOnboarding, setDismissedOnboarding] = useState(false);
   const { accountsWithStatus } = useMarketingSocialAccounts();
+  const { data: intelligence } = useBrandIntelligence();
+
+  // Check onboarding feedback card dismiss state
+  const onboardingStorageKey = `nesto_ig_onboarded_${locationId}`;
+  const showOnboardingCard = useMemo(() => {
+    if (dismissedOnboarding) return false;
+    if (!intelligence || intelligence.learning_stage === 'onboarding') return false;
+    const stored = localStorage.getItem(onboardingStorageKey);
+    if (!stored) return false;
+    const storedDate = new Date(stored);
+    const daysSince = (Date.now() - storedDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince < 7;
+  }, [intelligence, dismissedOnboarding, onboardingStorageKey]);
 
   const filters = {
     platform: platformTab === 'all' ? undefined : platformTab,
@@ -127,6 +145,25 @@ export default function SocialPostsPage() {
           </NestoButton>
         }
       />
+
+      {/* Instagram onboarding feedback card */}
+      {showOnboardingCard && (
+        <InfoAlert
+          variant="success"
+          title="Instagram gekoppeld — we kennen nu je stijl en wat het beste werkt."
+          description="Je suggesties worden elke week beter."
+        >
+          <button
+            onClick={() => {
+              setDismissedOnboarding(true);
+              localStorage.removeItem(onboardingStorageKey);
+            }}
+            className="absolute top-3 right-3 p-1 rounded hover:bg-black/5"
+          >
+            <X className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </InfoAlert>
+      )}
 
       {/* Token expiry banners */}
       {expiringAccounts.map((acc) => (

@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.marketing-analyze-brand]
 verify_jwt = false
+
+[functions.marketing-onboard-instagram]
+verify_jwt = false

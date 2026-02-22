@@ -17,6 +17,8 @@ interface SocialContentResult {
   suggested_hashtags: string[];
   suggested_time?: string;
   suggested_day?: string;
+  photo_suggestion?: string;
+  content_type?: string;
 }
 
 interface EmailContentInput {
