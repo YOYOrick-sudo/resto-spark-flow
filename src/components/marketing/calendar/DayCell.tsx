@@ -27,7 +27,7 @@ function DraggableDot({ post }: { post: SocialPost }) {
       {...listeners}
       {...attributes}
       className={cn(
-        'h-2 w-2 rounded-full cursor-grab active:cursor-grabbing transition-opacity',
+        'h-2.5 w-2.5 rounded-full cursor-grab active:cursor-grabbing transition-opacity',
         isDragging && 'opacity-30'
       )}
       style={{ backgroundColor: PLATFORM_COLORS[post.platform] ?? 'hsl(var(--muted-foreground))' }}
@@ -48,19 +48,26 @@ export function DayCell({ date, dateKey, posts, holiday, isCurrentMonth, isToday
       ref={setNodeRef}
       onClick={onClick}
       className={cn(
-        'border-r border-b border-border p-1.5 min-h-[80px] cursor-pointer transition-colors duration-150',
-        'hover:bg-accent/30',
+        'border-r border-b border-border/40 p-2 min-h-[90px] cursor-pointer transition-colors duration-150',
+        'hover:bg-accent/40',
         isOver && 'bg-accent/50',
-        isToday && 'ring-1 ring-primary ring-inset rounded-lg',
-        !isCurrentMonth && 'opacity-40'
+        !isCurrentMonth && 'opacity-30'
       )}
     >
       {/* Day number */}
-      <div className="text-xs font-medium text-foreground mb-0.5">{date.getDate()}</div>
+      <div className="mb-0.5">
+        {isToday ? (
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+            {date.getDate()}
+          </span>
+        ) : (
+          <span className="text-xs font-medium text-foreground">{date.getDate()}</span>
+        )}
+      </div>
 
       {/* Holiday */}
       {holiday && (
-        <div className="text-[10px] text-primary truncate leading-tight mb-0.5">{holiday}</div>
+        <div className="text-[10px] text-primary/80 italic truncate leading-tight mb-0.5">{holiday}</div>
       )}
 
       {/* Platform dots */}
@@ -72,7 +79,7 @@ export function DayCell({ date, dateKey, posts, holiday, isCurrentMonth, isToday
           <Repeat className="h-3 w-3 text-muted-foreground" />
         )}
         {overflow > 0 && (
-          <span className="text-[10px] text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5 leading-none">
+          <span className="text-[10px] text-muted-foreground bg-muted rounded-md px-1.5 py-0.5 leading-none">
             +{overflow}
           </span>
         )}

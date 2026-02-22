@@ -63,18 +63,18 @@ export function CalendarGrid({ month, postsByDay, onDayClick }: CalendarGridProp
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col bg-card border border-border shadow-card rounded-card overflow-hidden">
         {/* Day headers */}
-        <div className="grid grid-cols-7 mb-1">
+        <div className="grid grid-cols-7">
           {DAY_HEADERS.map((d) => (
-            <div key={d} className="text-xs text-muted-foreground uppercase font-medium text-center py-2">
+            <div key={d} className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-center py-2.5">
               {d}
             </div>
           ))}
         </div>
 
         {/* Day cells */}
-        <div className="grid grid-cols-7 flex-1 border-t border-l border-border">
+        <div className="grid grid-cols-7 flex-1">
           {days.map((day) => {
             const key = format(day, 'yyyy-MM-dd');
             return (
