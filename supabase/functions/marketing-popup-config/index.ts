@@ -69,6 +69,20 @@ Deno.serve(async (req) => {
       .eq('location_id', location.id)
       .maybeSingle();
 
+    // Fetch featured ticket if set
+    let featuredTicket = null;
+    if (config.featured_ticket_id) {
+      const { data: ticket } = await supabaseAdmin
+        .from('tickets')
+        .select('id, display_title, short_description, color')
+        .eq('id', config.featured_ticket_id)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (ticket) {
+        featuredTicket = ticket;
+      }
+    }
+
     return new Response(JSON.stringify({
       is_active: config.is_active,
       exit_intent_enabled: config.exit_intent_enabled,
@@ -84,6 +98,7 @@ Deno.serve(async (req) => {
       logo_url: brandKit?.logo_url || null,
       primary_color: brandKit?.primary_color || '#1d979e',
       restaurant_name: location.name,
+      featured_ticket: featuredTicket,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

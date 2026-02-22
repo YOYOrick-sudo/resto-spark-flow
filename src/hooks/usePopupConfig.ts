@@ -16,6 +16,7 @@ export interface PopupConfig {
   button_text: string;
   success_message: string;
   gdpr_text: string;
+  featured_ticket_id: string | null;
   created_at: string;
   updated_at: string;
 }

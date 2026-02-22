@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
   const baseUrl = Deno.env.get('SUPABASE_URL')!;
   const configUrl = `${baseUrl}/functions/v1/marketing-popup-config?slug=${encodeURIComponent(slug)}`;
   const subscribeUrl = `${baseUrl}/functions/v1/marketing-popup-subscribe`;
+  const publicSiteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://resto-spark-flow.lovable.app';
 
   const script = `
 (function(){
@@ -31,6 +32,7 @@ Deno.serve(async (req) => {
   var CONFIG_URL="${configUrl}";
   var SUBSCRIBE_URL="${subscribeUrl}";
   var SLUG="${slug}";
+  var SITE_URL="${publicSiteUrl}";
 
   function init(){
     fetch(CONFIG_URL).then(function(r){return r.json()}).then(function(cfg){
@@ -41,6 +43,7 @@ Deno.serve(async (req) => {
       var shadow=host.attachShadow({mode:"closed"});
 
       var primaryColor=cfg.primary_color||"#1d979e";
+      var ft=cfg.featured_ticket;
 
       var styles=document.createElement("style");
       styles.textContent=\`
@@ -65,6 +68,14 @@ Deno.serve(async (req) => {
         .nesto-success-icon{font-size:40px;color:\${primaryColor};margin-bottom:12px;}
         .nesto-success-msg{font-size:16px;font-weight:600;color:#111827;}
 
+        .nesto-featured{display:flex;align-items:center;gap:10px;margin-top:16px;padding:10px 12px;border-radius:10px;border:1.5px solid #e5e7eb;text-decoration:none;transition:border-color .2s,background .2s;cursor:pointer;}
+        .nesto-featured:hover{background:#f9fafb;}
+        .nesto-featured-bar{width:4px;height:32px;border-radius:4px;flex-shrink:0;}
+        .nesto-featured-info{flex:1;min-width:0;}
+        .nesto-featured-title{font-size:13px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .nesto-featured-desc{font-size:11px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .nesto-featured-cta{font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;color:#fff;flex-shrink:0;text-decoration:none;}
+
         .nesto-bar{position:fixed;left:0;right:0;z-index:999997;background:#fff;box-shadow:0 -2px 10px rgba(0,0,0,0.1);padding:12px 16px;display:flex;align-items:center;gap:12px;transform:translateY(100%);transition:transform .3s ease;}
         .nesto-bar.top{top:0;box-shadow:0 2px 10px rgba(0,0,0,0.1);transform:translateY(-100%);}
         .nesto-bar.bottom{bottom:0;}
@@ -83,6 +94,19 @@ Deno.serve(async (req) => {
       \`;
       shadow.appendChild(styles);
 
+      function buildFeaturedHTML(){
+        if(!ft)return "";
+        var bookUrl=SITE_URL+"/reserveren/"+SLUG;
+        return '<a class="nesto-featured" href="'+bookUrl+'" target="_blank" rel="noopener">'
+          +'<div class="nesto-featured-bar" style="background:'+esc(ft.color)+'"></div>'
+          +'<div class="nesto-featured-info">'
+          +'<div class="nesto-featured-title">'+esc(ft.display_title)+'</div>'
+          +(ft.short_description?'<div class="nesto-featured-desc">'+esc(ft.short_description)+'</div>':'')
+          +'</div>'
+          +'<span class="nesto-featured-cta" style="background:'+esc(ft.color)+'">Reserveer</span>'
+          +'</a>';
+      }
+
       function showPopup(triggerId){
         if(sessionStorage.getItem(triggerId))return;
         sessionStorage.setItem(triggerId,"1");
@@ -99,6 +123,7 @@ Deno.serve(async (req) => {
               <input class="nesto-input" type="email" placeholder="je@email.nl" required>
               <button class="nesto-btn" type="submit">\${esc(cfg.button_text)}</button>
             </form>
+            \${buildFeaturedHTML()}
             <div class="nesto-gdpr">\${esc(cfg.gdpr_text)}</div>
           </div>
         \`;
