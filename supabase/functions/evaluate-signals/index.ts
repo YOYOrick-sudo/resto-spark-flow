@@ -923,6 +923,37 @@ const marketingProvider: SignalProvider = {
       }
     }
 
+    // 7. marketing_popup_suggestion_pending: pending suggestion older than 24h
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+    const { data: pendingSuggestion } = await supabaseAdmin
+      .from('marketing_popup_suggestions')
+      .select('id, headline')
+      .eq('location_id', locationId)
+      .eq('status', 'pending')
+      .lt('created_at', oneDayAgo.toISOString())
+      .limit(1);
+
+    if (pendingSuggestion && pendingSuggestion.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'marketing',
+        signal_type: 'marketing_popup_suggestion_pending',
+        kind: 'signal',
+        severity: 'info',
+        title: 'Er staat een AI popup-suggestie klaar',
+        message: `Suggestie: "${pendingSuggestion[0].headline}"`,
+        action_path: '/marketing/popup',
+        dedup_key: `marketing_popup_suggestion_pending:${locationId}`,
+        actionable: true,
+        priority: 45,
+        cooldown_hours: 168, // 7 days
+        payload: { suggestion_id: pendingSuggestion[0].id },
+      });
+    }
+
     return drafts;
   },
 
@@ -934,6 +965,7 @@ const marketingProvider: SignalProvider = {
         'marketing_negative_review', 'marketing_unscheduled_week',
         'marketing_engagement_dropping', 'marketing_review_score_declining',
         'marketing_at_risk_guests', 'marketing_email_open_rate_declining',
+        'marketing_popup_suggestion_pending',
       ];
     }
 
@@ -963,6 +995,18 @@ const marketingProvider: SignalProvider = {
 
     if (scheduled && scheduled.length >= 3) {
       resolved.push('marketing_unscheduled_week');
+    }
+
+    // Resolve popup_suggestion_pending if no pending suggestions
+    const { data: pendingSugs } = await supabaseAdmin
+      .from('marketing_popup_suggestions')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('status', 'pending')
+      .limit(1);
+
+    if (!pendingSugs || pendingSugs.length === 0) {
+      resolved.push('marketing_popup_suggestion_pending');
     }
 
     return resolved;

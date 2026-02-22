@@ -88,6 +88,16 @@ serve(async (req) => {
           results[intel.location_id] = "error";
         }
       }
+
+      // Popup suggestion (non-blocking, separate try/catch)
+      if (aiAvailable) {
+        try {
+          await generatePopupSuggestion(supabase, intel.location_id, intel, LOVABLE_API_KEY);
+        } catch (e: any) {
+          if (e?.status === 429) aiAvailable = false;
+          else console.error(`Popup suggestion error for ${intel.location_id}:`, e);
+        }
+      }
     }
 
     return new Response(JSON.stringify({ processed: intelligenceRows.length, results }), {
@@ -292,7 +302,190 @@ Kalender: Week van ${weekStart}, seizoen: ${season}, feestdagen: ${holidays.leng
   if (error) {
     console.error(`Weekplan update failed for ${locationId}:`, error);
     throw error;
+}
+
+// ============================================
+// POPUP SUGGESTION GENERATION
+// ============================================
+
+async function generatePopupSuggestion(supabase: any, locationId: string, intel: any, apiKey: string) {
+  // Check if popup config exists
+  const { data: popupConfig } = await supabase
+    .from("marketing_popup_config")
+    .select("is_active, popup_type, headline, description")
+    .eq("location_id", locationId)
+    .maybeSingle();
+
+  if (!popupConfig) return; // No popup configured, skip
+
+  // Get last 5 suggestions for learning context
+  const { data: previousSuggestions } = await supabase
+    .from("marketing_popup_suggestions")
+    .select("headline, popup_type, status, dismiss_reason")
+    .eq("location_id", locationId)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  // Frequency check: if 3+ of last 5 dismissed, skip unless holiday
+  const prev = previousSuggestions ?? [];
+  const dismissedCount = prev.filter((s: any) => s.status === "dismissed").length;
+
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : dayOfWeek === 1 ? 7 : 8 - dayOfWeek;
+  const nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + daysUntilMonday);
+  const weekDates = getWeekDates(nextMonday);
+  const holidays = weekDates.filter((d) => DUTCH_HOLIDAYS_2026[d]);
+
+  if (dismissedCount >= 3 && holidays.length === 0) {
+    console.log(`Popup suggestion skipped for ${locationId}: too many dismissals`);
+    return;
   }
+
+  // Get active tickets
+  const { data: tickets } = await supabase
+    .from("tickets")
+    .select("id, name, short_description, color")
+    .eq("location_id", locationId)
+    .eq("status", "active")
+    .limit(10);
+
+  // Get location name
+  const { data: location } = await supabase
+    .from("locations")
+    .select("name")
+    .eq("id", locationId)
+    .single();
+
+  const season = getSeason(nextMonday);
+
+  // Build learning context
+  let learningContext = "";
+  if (prev.length > 0) {
+    learningContext = "Eerdere popup suggesties en resultaat:\n" +
+      prev.map((s: any, i: number) => {
+        const statusLabel = s.status === "accepted" ? "GEACCEPTEERD" : s.status === "dismissed" ? `AFGEWEZEN: ${s.dismiss_reason || "geen reden"}` : "PENDING";
+        return `${i + 1}. "${s.headline}" (${s.popup_type}) → ${statusLabel}`;
+      }).join("\n");
+
+    const acceptedCount = prev.filter((s: any) => s.status === "accepted").length;
+    learningContext += `\n\nPatronen: ${acceptedCount}/${prev.length} geaccepteerd.`;
+    if (dismissedCount >= 2) {
+      learningContext += " Operator wijst regelmatig suggesties af — wees selectiever en relevanter.";
+    }
+  }
+
+  const ticketList = (tickets ?? []).map((t: any) => `- ${t.name}: ${t.short_description || "geen beschrijving"} (id: ${t.id})`).join("\n");
+  const holidayList = holidays.map((d) => `${DUTCH_HOLIDAYS_2026[d]} (${d})`).join(", ");
+
+  const systemPrompt = `Je bent een marketing assistent voor een horecabedrijf.
+Genereer EEN popup-suggestie voor de komende week. De popup verschijnt op de website van het restaurant.
+
+Kies het beste type:
+- reservation: koppel aan een ticket/evenement, CTA is "Reserveer"
+- newsletter: nieuwsbrief aanmelding, gebruik bij rustige weken zonder events
+- custom: vrije link, gebruik voor speciale pagina's of externe acties
+
+Regels:
+- Headline: max 60 tekens, pakkend en specifiek
+- Description: max 120 tekens, concreet en uitnodigend
+- Als je type "reservation" kiest, geef een featured_ticket_id uit de beschikbare tickets
+- Reasoning: leg kort uit WAAROM dit de beste keuze is (max 2 zinnen)
+- Vermijd herhaling van eerdere suggesties
+${intel.caption_style_profile ? `\nSchrijfstijl: ${intel.caption_style_profile}` : ""}`;
+
+  const userPrompt = `Restaurant: ${location?.name ?? "onbekend"}
+Seizoen: ${season}
+Feestdagen komende week: ${holidayList || "geen"}
+Huidige popup: type=${popupConfig.popup_type}, headline="${popupConfig.headline}"
+
+Beschikbare tickets:
+${ticketList || "Geen actieve tickets"}
+
+${learningContext}`;
+
+  const tools = [{
+    type: "function",
+    function: {
+      name: "return_popup_suggestion",
+      description: "Return a single popup suggestion",
+      parameters: {
+        type: "object",
+        properties: {
+          popup_type: { type: "string", enum: ["reservation", "newsletter", "custom"] },
+          headline: { type: "string", description: "Headline, max 60 tekens" },
+          description: { type: "string", description: "Description, max 120 tekens" },
+          featured_ticket_id: { type: "string", description: "UUID van het ticket (alleen bij reservation type)" },
+          button_text: { type: "string", description: "Knoptekst" },
+          custom_button_url: { type: "string", description: "URL (alleen bij custom type)" },
+          reasoning: { type: "string", description: "Waarom dit de beste keuze is, max 2 zinnen" },
+        },
+        required: ["popup_type", "headline", "description", "reasoning"],
+        additionalProperties: false,
+      },
+    },
+  }];
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      tools,
+      tool_choice: { type: "function", function: { name: "return_popup_suggestion" } },
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) throw Object.assign(new Error("Rate limited"), { status: 429 });
+    console.error("AI popup suggestion error:", response.status, await response.text());
+    return;
+  }
+
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) {
+    console.error("No tool call in popup suggestion response");
+    return;
+  }
+
+  const result = JSON.parse(toolCall.function.arguments);
+
+  // Auto-dismiss old pending suggestions
+  await supabase
+    .from("marketing_popup_suggestions")
+    .update({ status: "dismissed", dismiss_reason: "Vervangen door nieuwe suggestie", responded_at: new Date().toISOString() })
+    .eq("location_id", locationId)
+    .eq("status", "pending");
+
+  // Insert new suggestion
+  const { error } = await supabase
+    .from("marketing_popup_suggestions")
+    .insert({
+      location_id: locationId,
+      popup_type: result.popup_type,
+      headline: result.headline,
+      description: result.description,
+      featured_ticket_id: result.featured_ticket_id || null,
+      custom_button_url: result.custom_button_url || null,
+      button_text: result.button_text || null,
+      reasoning: result.reasoning,
+    });
+
+  if (error) {
+    console.error(`Popup suggestion insert failed for ${locationId}:`, error);
+  } else {
+    console.log(`Popup suggestion generated for ${locationId}: "${result.headline}"`);
+  }
+}
 
   console.log(`Weekplan generated for ${locationId}: ${(result.posts ?? []).length} posts`);
 }

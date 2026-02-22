@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NestoCard } from '@/components/polar/NestoCard';
+import { PopupSuggestionCard } from '@/components/marketing/popup/PopupSuggestionCard';
+import { usePopupSuggestion } from '@/hooks/usePopupSuggestion';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -41,6 +43,7 @@ const DEFAULT_BUTTON_TEXT: Record<PopupType, string> = {
 
 export default function PopupPage() {
   const { data: config, isLoading } = usePopupConfig();
+  const { data: suggestion } = usePopupSuggestion();
   const { data: brandKit } = useMarketingBrandKit();
   const { currentLocation } = useUserContext();
   const updateConfig = useUpdatePopupConfig();
@@ -128,6 +131,9 @@ export default function PopupPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* AI Suggestion */}
+      {suggestion && <PopupSuggestionCard suggestion={suggestion} />}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
