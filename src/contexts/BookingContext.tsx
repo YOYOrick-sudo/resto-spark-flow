@@ -71,6 +71,7 @@ export interface GuestData {
   guest_notes: string;
   booking_answers: Array<{ question_id: string; values: string[] }>;
   honeypot: string;
+  marketing_optin: boolean;
 }
 
 export interface BookingData {
@@ -176,7 +177,7 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
   // Guest data
   const [guestData, setGuestDataState] = useState<GuestData>({
     first_name: '', last_name: '', email: '', phone: '', guest_notes: '',
-    booking_answers: [], honeypot: '',
+    booking_answers: [], honeypot: '', marketing_optin: false,
   });
 
   const setGuestData = useCallback((partial: Partial<GuestData>) => {
@@ -327,6 +328,7 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
           guest_notes: guestData.guest_notes || null,
           booking_answers: guestData.booking_answers,
           honeypot: guestData.honeypot,
+          marketing_optin: guestData.marketing_optin,
         }),
       });
       const result = await res.json();

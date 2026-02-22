@@ -126,6 +126,19 @@ export function GuestDetailsStep() {
           className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 resize-none transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
         />
 
+        {/* Marketing opt-in */}
+        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={guestData.marketing_optin}
+            onChange={e => setGuestData({ marketing_optin: e.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-800 focus:ring-gray-300"
+          />
+          <span className="text-xs text-gray-500 leading-relaxed">
+            Ik wil graag op de hoogte gehouden worden van aanbiedingen en nieuws
+          </span>
+        </label>
+
         {/* Honeypot */}
         <input
           type="text"

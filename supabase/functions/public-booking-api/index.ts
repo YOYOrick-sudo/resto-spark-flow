@@ -277,14 +277,14 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     shift_id, ticket_id, is_squeeze,
     first_name, last_name, email, phone,
     guest_notes, language,
-    booking_answers, honeypot,
+    booking_answers, honeypot, marketing_optin,
   } = body as {
     location_id?: string; date?: string; start_time?: string; party_size?: number;
     shift_id?: string; ticket_id?: string; is_squeeze?: boolean;
     first_name?: string; last_name?: string; email?: string; phone?: string;
     guest_notes?: string; language?: string;
     booking_answers?: Array<{ question_id: string; values: string[] }>;
-    honeypot?: string;
+    honeypot?: string; marketing_optin?: boolean;
   };
 
   // Honeypot check
@@ -414,9 +414,89 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     .eq('id', reservationId)
     .single();
 
-  // 7. Send confirmation email (non-blocking)
-  // NOTE: This email logic is inline for now. When operator-created reservations
-  // also need confirmation emails, extract to a shared function.
+  // 7. Handle marketing opt-in (non-blocking)
+  if (marketing_optin && customerId && email) {
+    try {
+      // Check if preference already exists
+      const { data: existingPref } = await admin
+        .from('marketing_contact_preferences')
+        .select('id, opted_in')
+        .eq('customer_id', customerId)
+        .eq('location_id', location_id)
+        .eq('channel', 'email')
+        .maybeSingle();
+
+      if (!existingPref) {
+        // Load brand kit to check double opt-in setting
+        const { data: brandKit } = await admin
+          .from('marketing_brand_kit')
+          .select('double_opt_in_enabled')
+          .eq('location_id', location_id)
+          .maybeSingle();
+
+        const doubleOptIn = brandKit?.double_opt_in_enabled ?? false;
+        const token = doubleOptIn ? crypto.randomUUID() : null;
+
+        await admin.from('marketing_contact_preferences').insert({
+          customer_id: customerId,
+          location_id: location_id,
+          channel: 'email',
+          consent_source: 'widget',
+          opted_in: !doubleOptIn,
+          opted_in_at: doubleOptIn ? null : new Date().toISOString(),
+          double_opt_in_token: token,
+          double_opt_in_sent_at: doubleOptIn ? new Date().toISOString() : null,
+        });
+
+        // Send double opt-in confirmation email if needed
+        if (doubleOptIn && token) {
+          const confirmUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/marketing-confirm-optin?token=${token}`;
+          const resendApiKey = Deno.env.get('RESEND_API_KEY');
+          const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+
+          if (resendApiKey) {
+            // Get restaurant name for email
+            const { data: locData } = await admin.from('locations').select('name').eq('id', location_id).single();
+            const rName = locData?.name || 'Restaurant';
+
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${resendApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: `${rName} <${verifiedFrom}>`,
+                to: [email],
+                subject: `Bevestig je inschrijving bij ${rName}`,
+                html: `
+                  <div style="font-family:-apple-system,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px;">
+                    <h2 style="font-size:20px;color:#1a1a1a;">Bevestig je inschrijving</h2>
+                    <p style="font-size:14px;color:#6b7280;line-height:1.6;">
+                      Hoi ${first_name}, bedankt voor je interesse! Klik op de knop hieronder om je inschrijving te bevestigen.
+                    </p>
+                    <a href="${confirmUrl}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1a1a1a;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">
+                      Bevestig inschrijving
+                    </a>
+                    <p style="margin-top:24px;font-size:12px;color:#9ca3af;">
+                      Als je dit niet hebt aangevraagd, kun je deze email negeren.
+                    </p>
+                  </div>
+                `,
+              }),
+            });
+          } else {
+            console.log(`[OPTIN STUB] Would send double opt-in email to ${email}, token: ${token}`);
+          }
+        }
+      }
+    } catch (optinErr) {
+      console.error('[BOOKING OPTIN] Error processing marketing opt-in:', optinErr);
+      // Non-blocking
+    }
+  }
+
+  // 8. Send confirmation email (non-blocking)
   try {
     await sendBookingConfirmationEmail(admin, {
       location_id,
@@ -435,7 +515,6 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     });
   } catch (emailErr) {
     console.error('[BOOKING EMAIL] Failed to send confirmation:', emailErr);
-    // Non-blocking: booking is still confirmed
   }
 
   const manageUrl = resData?.manage_token

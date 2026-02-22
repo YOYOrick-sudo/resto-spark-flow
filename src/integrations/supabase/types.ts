@@ -2923,6 +2923,7 @@ export type Database = {
         }
         Returns: string
       }
+      detect_empty_shifts: { Args: never; Returns: undefined }
       extend_option: {
         Args: {
           _actor_id?: string
