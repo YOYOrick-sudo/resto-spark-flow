@@ -31,6 +31,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'marketing-campagnes': '/marketing/campagnes',
   'marketing-segmenten': '/marketing/segmenten',
   'marketing-contacten': '/marketing/contacten',
+  'marketing-kalender': '/marketing/kalender',
   'analytics': '/analytics',
   'settings-voorkeuren': '/instellingen/voorkeuren',
   'settings-keuken': '/instellingen/keuken',
@@ -118,6 +119,7 @@ export const menuItems: MenuItem[] = [
       { id: 'marketing-campagnes', label: 'Campagnes', path: '/marketing/campagnes' },
       { id: 'marketing-segmenten', label: 'Segmenten', path: '/marketing/segmenten' },
       { id: 'marketing-contacten', label: 'Contacten', path: '/marketing/contacten' },
+      { id: 'marketing-kalender', label: 'Kalender', path: '/marketing/kalender' },
     ],
   },
   {
