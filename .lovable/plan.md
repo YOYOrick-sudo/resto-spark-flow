@@ -1,74 +1,63 @@
 
 
-# Weergave-modus: duidelijke keuze tussen Popup en Sticky Bar
+# Sticky bar redesign: enterprise-kwaliteit layout
 
-## Wat verandert er voor de gebruiker
+## Probleem
 
-De huidige "Weergave" kaart toont drie losse switches (exit-intent, timed popup, sticky bar) alsof ze onafhankelijk zijn. Dit is verwarrend: een gebruiker snapt niet dat sticky bar en popup niet samen horen te werken.
-
-De oplossing: vervang de losse switches door een duidelijke **weergave-modus selector** bovenaan, gevolgd door modus-specifieke opties.
+De sticky bar heeft nu een simpele flex-layout waarbij de headline tekst met `flex:1` alle ruimte inneemt en naar links wordt geduwd, terwijl de knop en het kruisje helemaal rechts staan. Dit geeft een "lege" indruk met te veel witruimte ertussen.
 
 ## Nieuw ontwerp
 
+De bar krijgt een gecentreerde layout met de content netjes gegroepeerd in het midden, en alleen de sluitknop rechts:
+
 ```text
-+-----------------------------------------------+
-| Weergave                                       |
-|                                                |
-| Hoe wil je de popup tonen?                     |
-|                                                |
-| +-------------------+  +-------------------+   |
-| | [icon] Popup      |  | [icon] Sticky bar |   |
-| | Overlay die ver-  |  | Vaste balk boven  |   |
-| | schijnt bij een   |  | of onder de       |   |
-| | trigger           |  | pagina            |   |
-| +-------------------+  +-------------------+   |
-|                                                |
-| --- Trigger (alleen bij modus "Popup") ---     |
-|                                                |
-| Exit-intent          [switch]                  |
-| Timed popup          [switch]                  |
-|   -> delay slider                              |
-|                                                |
-| --- Positie (alleen bij modus "Sticky bar") -- |
-|                                                |
-| Positie: [Bovenkant / Onderkant]               |
-|                                                |
-| --- Planning (altijd zichtbaar) ---            |
-| Planning             [switch]                  |
-+-----------------------------------------------+
++------------------------------------------------------------------+
+|     Headline tekst   ·   [ Meer info ]                      [x]  |
++------------------------------------------------------------------+
 ```
 
-## Technische wijzigingen
+Voor newsletter-variant:
 
-### 1. `src/pages/marketing/PopupPage.tsx`
+```text
++------------------------------------------------------------------+
+|   Headline tekst  ·  [je@email.nl]  [ Aanmelden ]           [x]  |
++------------------------------------------------------------------+
+```
 
-**State**: voeg een afgeleide variabele `displayMode` toe:
-- `displayMode = state.sticky_bar_enabled ? 'sticky_bar' : 'popup'`
+Kenmerken:
+- Content (tekst + actie) gecentreerd via `justify-content: center`
+- Tekst heeft GEEN `flex:1` meer, neemt alleen de ruimte in die nodig is
+- Sluitknop absoluut gepositioneerd rechts, zodat de content echt gecentreerd blijft
+- Iets meer padding (14px 24px) voor een ruimer gevoel
+- Subtiele separator dot tussen tekst en actie
+- Knop krijgt een lichte witte achtergrond (`rgba(255,255,255,0.15)`) in plaats van volledig transparant, voor betere zichtbaarheid
 
-**Modus-selector**: vervang de drie losse switch-rijen door een `grid grid-cols-2 gap-2` met twee klikbare kaarten (zelfde patroon als widget_style selector in SettingsReserveringenWidget). Actieve kaart krijgt `border-primary bg-primary/5`.
+## Wijzigingen
 
-**Bij moduswissel**:
-- Kies "Popup": zet `sticky_bar_enabled = false` (exit-intent/timed blijven)
-- Kies "Sticky bar": zet `sticky_bar_enabled = true`, `exit_intent_enabled = false`, `timed_popup_enabled = false`
+### 1. `supabase/functions/marketing-popup-widget/index.ts`
 
-**Conditionele secties**:
-- Modus "Popup": toon exit-intent en timed popup switches (bestaande UI)
-- Modus "Sticky bar": toon positie-selector (bestaande UI)
-- Planning blijft altijd zichtbaar, ongeacht de modus
+CSS aanpassingen in de gegenereerde styles:
+- `.nesto-bar`: `justify-content:center; padding:14px 48px 14px 24px;` (extra rechts voor de close-knop)
+- `.nesto-bar-text`: verwijder `flex:1`, voeg `flex:none` toe
+- `.nesto-bar-close`: `position:absolute; right:16px; top:50%; transform:translateY(-50%);`
+- `.nesto-bar .nesto-btn`: lichte achtergrond `background:rgba(255,255,255,0.15)` standaard
+- Mobiel (`@media max-width:600px`): `flex-direction:column; text-align:center; padding:14px 24px;`
 
-### 2. `supabase/functions/marketing-popup-widget/index.ts`
+HTML aanpassing in de bar-opbouw:
+- `.nesto-bar` krijgt `position:relative` erbij (voor absolute close-knop)
 
-Bestaande logica aanpassen: als `sticky_bar_enabled === true`, registreer geen popup-triggers (exit-intent, timed, fallback). Alleen de sticky bar wordt gerenderd.
+### 2. `src/pages/PopupPreviewDemo.tsx`
 
-### 3. `src/pages/PopupPreviewDemo.tsx`
+Dezelfde CSS-aanpassingen in de `buildStyles` functie (regels 54-63) zodat de preview consistent is met de productie-widget.
 
-Preview-logica aanpassen: als `sticky_bar_enabled === true`, render alleen de sticky bar HTML en sla de overlay popup over.
+### 3. Deployment
 
-## Samenvatting bestanden
+De `marketing-popup-widget` edge function wordt opnieuw gedeployed na de wijzigingen.
+
+## Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/pages/marketing/PopupPage.tsx` | Modus-selector UI, conditionele secties, state-logica bij wissel |
-| `supabase/functions/marketing-popup-widget/index.ts` | Popup triggers overslaan als sticky bar actief |
-| `src/pages/PopupPreviewDemo.tsx` | Overlay overslaan als sticky bar actief |
+| `supabase/functions/marketing-popup-widget/index.ts` | Sticky bar CSS + HTML layout |
+| `src/pages/PopupPreviewDemo.tsx` | Zelfde CSS-aanpassingen voor preview |
 
