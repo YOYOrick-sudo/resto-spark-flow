@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     // Check if Google Business account is linked
     const { data: googleAccount } = await supabaseAdmin
       .from('marketing_social_accounts')
-      .select('id, access_token, account_id')
+      .select('id, access_token, account_id, page_id')
       .eq('location_id', review.location_id)
       .eq('platform', 'google_business')
       .eq('is_active', true)
@@ -69,11 +69,11 @@ Deno.serve(async (req) => {
 
     let googleReplySuccess = false;
 
-    if (googleAccount?.access_token && googleAccount?.account_id) {
+    if (googleAccount?.access_token && googleAccount?.account_id && googleAccount?.page_id) {
       // Try posting to Google Business Profile API
       try {
         const googleRes = await fetch(
-          `https://mybusiness.googleapis.com/v4/accounts/${googleAccount.account_id}/locations/${review.location_id}/reviews/${review.external_review_id}/reply`,
+          `https://mybusiness.googleapis.com/v4/accounts/${googleAccount.account_id}/locations/${googleAccount.page_id}/reviews/${review.external_review_id}/reply`,
           {
             method: 'PUT',
             headers: {
