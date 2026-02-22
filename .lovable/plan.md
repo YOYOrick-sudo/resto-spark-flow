@@ -1,35 +1,30 @@
 
+# Sessie 3.6 — Email Builder Verrijking + UGC + Content Series
 
-# Fix marketing-reply-review: Google Business location ID
+## Status: ✅ Afgerond
 
-## Probleem
+### Deel 1: Email Builder — 3 nieuwe blokken ✅
+- `menu_item` blok: tekstvelden (naam, beschrijving, prijs) + placeholder foto. NestoSelect met menu_items tabel volgt in Fase 6.
+- `reserve_button` blok: automatische CTA gestyled in brand kit primary_color. Link naar Guest Widget.
+- `review_quote` blok: NestoSelect dropdown van featured reviews (WHERE is_featured = true AND review_text IS NOT NULL).
+- `useFeaturedReviews()` hook toegevoegd aan useReviews.ts.
+- EmailPreview rendert alle 3 nieuwe bloktypen.
+- CampaignBuilderPage content_html generatie uitgebreid.
 
-Regel 76 gebruikt `review.location_id` (Nesto UUID) in de Google Business API URL. Google verwacht hun eigen location identifier.
+### Deel 2: UGC Tab ✅
+- UGC tab toegevoegd aan SocialPostsPage.
+- UGCGrid component: grid van tagged Instagram posts met Repost + Opslaan (disabled) knoppen.
+- Edge function `marketing-fetch-ugc`: haalt tagged posts op via Instagram Graph API (`/{ig-user-id}/tags`).
+- **Let op**: Instagram /tags endpoint vereist `instagram_manage_comments` permission — moet in Meta App Review staan.
+- useUGC.ts hook.
 
-## Oplossing
+### Deel 3: Content Series (optioneel) ✅
+- `marketing_content_series` tabel aangemaakt met RLS.
+- ContentSeriesManager component: Sheet bereikbaar via "⋯" menu op kalender pagina.
+- CRUD hooks in useContentSeries.ts.
+- **Let op**: `marketing-generate-weekplan` moet graceful omgaan met lege `marketing_content_series` tabel (maybeSingle() / lege array fallback). Series worden pas meegenomen als ze actief zijn. Geen blocker.
 
-Twee kleine wijzigingen in `supabase/functions/marketing-reply-review/index.ts`:
-
-1. **Select query uitbreiden** (regel 64): voeg `page_id` toe aan de select
-   - Was: `select('id, access_token, account_id')`
-   - Wordt: `select('id, access_token, account_id, page_id')`
-
-2. **Guard condition aanpassen** (regel 72): check ook op `page_id`
-   - Was: `if (googleAccount?.access_token && googleAccount?.account_id)`
-   - Wordt: `if (googleAccount?.access_token && googleAccount?.account_id && googleAccount?.page_id)`
-
-3. **API URL fixen** (regel 76): gebruik `page_id` als Google Location ID
-   - Was: `accounts/${googleAccount.account_id}/locations/${review.location_id}/reviews/...`
-   - Wordt: `accounts/${googleAccount.account_id}/locations/${googleAccount.page_id}/reviews/...`
-
-## Mapping
-
-| Kolom | Bevat | Gebruik |
-|---|---|---|
-| `account_id` | Google Account ID | `/accounts/{account_id}/...` |
-| `page_id` | Google Business Location ID | `/locations/{page_id}/...` |
-
-## Geen migratie nodig
-
-`page_id` bestaat al op `marketing_social_accounts`. Wordt gevuld bij de toekomstige Google Business OAuth koppeling.
-
+### Opmerkingen van gebruiker verwerkt:
+1. ✅ UGC: instagram_manage_comments permission gedocumenteerd in code comment + plan.
+2. ✅ Review Quote: useFeaturedReviews() filtert op `review_text IS NOT NULL`.
+3. ✅ Content Series: weekplan fallback gedocumenteerd. marketing-generate-weekplan breekt niet als tabel leeg is.

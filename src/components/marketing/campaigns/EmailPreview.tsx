@@ -71,6 +71,61 @@ export function EmailPreview({ blocks, brandColor = '#1d979e', logoUrl, location
             </p>
           </div>
         );
+      case 'menu_item':
+        return (
+          <div key={block.id} style={{ padding: '12px 24px' }}>
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+              <div style={{ backgroundColor: '#f9fafb', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '12px' }}>
+                {block.content.menuItemImageUrl ? <img src={block.content.menuItemImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : 'Foto'}
+              </div>
+              <div style={{ padding: '12px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontWeight: 600, fontSize: '14px', color: '#333' }}>{block.content.menuItemName || 'Gerecht'}</span>
+                  <span style={{ fontWeight: 600, fontSize: '14px', color: brandColor }}>{block.content.menuItemPrice || '€—'}</span>
+                </div>
+                {block.content.menuItemDescription && (
+                  <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{block.content.menuItemDescription}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      case 'reserve_button':
+        return (
+          <div key={block.id} style={{ padding: '16px 24px', textAlign: 'center' }}>
+            <a
+              href="#"
+              style={{
+                display: 'inline-block',
+                backgroundColor: brandColor,
+                color: '#fff',
+                padding: '14px 36px',
+                borderRadius: '16px',
+                textDecoration: 'none',
+                fontSize: '15px',
+                fontWeight: 700,
+              }}
+            >
+              Reserveer nu
+            </a>
+          </div>
+        );
+      case 'review_quote':
+        return (
+          <div key={block.id} style={{ padding: '12px 24px' }}>
+            <div style={{ backgroundColor: '#faf5ff', borderRadius: '12px', padding: '16px', borderLeft: `3px solid ${brandColor}` }}>
+              <div style={{ fontSize: '14px', color: '#f59e0b' }}>
+                {'★'.repeat(block.content.reviewRating ?? 5)}
+              </div>
+              <p style={{ fontSize: '13px', color: '#333', fontStyle: 'italic', margin: '8px 0 6px' }}>
+                "{block.content.reviewText || 'Review tekst...'}"
+              </p>
+              <p style={{ fontSize: '12px', color: '#6b7280' }}>
+                — {block.content.reviewAuthor || 'Gast'}
+              </p>
+            </div>
+          </div>
+        );
       default:
         return null;
     }

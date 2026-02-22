@@ -3,7 +3,7 @@ import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoModal } from '@/components/polar/NestoModal';
 import { EmailBlock, type EmailBlockData } from './EmailBlock';
 import { EmailPreview } from './EmailPreview';
-import { Type, Image, MousePointerClick, Minus, Sparkles } from 'lucide-react';
+import { Type, Image, MousePointerClick, Minus, Sparkles, UtensilsCrossed, CalendarDays, Star } from 'lucide-react';
 import { useMarketingBrandKit } from '@/hooks/useMarketingBrandKit';
 import { useGenerateEmailContent } from '@/hooks/useGenerateContent';
 import { useUserContext } from '@/contexts/UserContext';
@@ -19,6 +19,9 @@ const ADD_BLOCK_TYPES = [
   { type: 'image' as const, icon: Image, label: 'Afbeelding' },
   { type: 'button' as const, icon: MousePointerClick, label: 'Button' },
   { type: 'divider' as const, icon: Minus, label: 'Divider' },
+  { type: 'menu_item' as const, icon: UtensilsCrossed, label: 'Menu Item' },
+  { type: 'reserve_button' as const, icon: CalendarDays, label: 'Reserveerknop' },
+  { type: 'review_quote' as const, icon: Star, label: 'Review Quote' },
 ];
 
 export function ContentStep({ blocks, onChange }: ContentStepProps) {

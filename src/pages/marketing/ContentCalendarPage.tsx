@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
 import { format, addMonths, subMonths } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { PageHeader } from '@/components/polar/PageHeader';
 import { useMarketingSocialPosts, groupPostsByDay } from '@/hooks/useMarketingSocialPosts';
 import { CalendarGrid } from '@/components/marketing/calendar/CalendarGrid';
 import { WeekView } from '@/components/marketing/calendar/WeekView';
 import { CalendarSidebar } from '@/components/marketing/calendar/CalendarSidebar';
 import { DayPanel } from '@/components/marketing/calendar/DayPanel';
+import { ContentSeriesManager } from '@/components/marketing/calendar/ContentSeriesManager';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'month' | 'week';
@@ -16,6 +18,7 @@ export default function ContentCalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [seriesOpen, setSeriesOpen] = useState(false);
 
   const { data: posts = [], isLoading } = useMarketingSocialPosts(currentMonth);
   const postsByDay = useMemo(() => groupPostsByDay(posts), [posts]);
@@ -28,6 +31,19 @@ export default function ContentCalendarPage() {
         title="Kalender"
         actions={
           <div className="flex items-center gap-3">
+            {/* More menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors">
+                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSeriesOpen(true)}>
+                  Series beheren
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {/* View toggle */}
             <div className="flex rounded-lg border border-border overflow-hidden">
               {(['month', 'week'] as ViewMode[]).map((mode) => (
@@ -96,6 +112,9 @@ export default function ContentCalendarPage() {
         posts={selectedDate ? (postsByDay[format(selectedDate, 'yyyy-MM-dd')] ?? []) : []}
         onClose={() => setSelectedDate(null)}
       />
+
+      {/* Content Series Manager */}
+      <ContentSeriesManager open={seriesOpen} onOpenChange={setSeriesOpen} />
     </div>
   );
 }
