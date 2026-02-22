@@ -1,6 +1,12 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { startOfWeek, endOfWeek, addWeeks, isWithinInterval, parseISO } from 'date-fns';
+import { Instagram, Facebook, Globe, ArrowRight, Lightbulb } from 'lucide-react';
 import { InfoAlert } from '@/components/polar/InfoAlert';
+import { NestoButton } from '@/components/polar/NestoButton';
+import { useBrandIntelligence } from '@/hooks/useBrandIntelligence';
+import { useContentIdeas } from '@/hooks/useContentIdeas';
+import { useScheduleWeekplan, type WeekplanPost } from '@/hooks/useScheduleWeekplan';
 import type { SocialPost } from '@/hooks/useMarketingSocialPosts';
 
 interface CalendarSidebarProps {
@@ -8,7 +14,34 @@ interface CalendarSidebarProps {
   currentMonth: Date;
 }
 
+const PLATFORM_ICON: Record<string, typeof Instagram> = {
+  instagram: Instagram,
+  facebook: Facebook,
+  google_business: Globe,
+};
+
+const DAY_SHORT: Record<string, string> = {
+  maandag: 'Ma',
+  dinsdag: 'Di',
+  woensdag: 'Wo',
+  donderdag: 'Do',
+  vrijdag: 'Vr',
+  zaterdag: 'Za',
+  zondag: 'Zo',
+};
+
 export function CalendarSidebar({ posts, currentMonth }: CalendarSidebarProps) {
+  const navigate = useNavigate();
+  const { data: intelligence } = useBrandIntelligence();
+  const { data: ideas } = useContentIdeas(3);
+  const schedule = useScheduleWeekplan();
+
+  const weekplan = intelligence?.current_weekplan as unknown as {
+    generated_at: string;
+    week_start: string;
+    posts: WeekplanPost[];
+  } | null;
+
   const stats = useMemo(() => {
     const now = new Date();
     const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -45,16 +78,35 @@ export function CalendarSidebar({ posts, currentMonth }: CalendarSidebarProps) {
         </div>
       </div>
 
-      {/* Content ideeen */}
+      {/* Content ideeën */}
       <div className="border-t border-border pt-4 mt-4">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Content ideeën
         </h3>
-        <InfoAlert
-          variant="info"
-          title="Wordt slim in Sprint 3"
-          description="AI genereert hier content ideeën op basis van je menukaart en seizoen."
-        />
+        {ideas && ideas.length > 0 ? (
+          <div className="space-y-2">
+            {ideas.map((idea) => (
+              <div key={idea.id} className="flex items-start gap-2">
+                <Lightbulb className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium text-foreground block truncate">{idea.title}</span>
+                  <button
+                    onClick={() => navigate(`/marketing/social/nieuw?idea=${idea.id}&content_type=${idea.idea_type}`)}
+                    className="text-[11px] text-primary hover:underline inline-flex items-center gap-0.5 mt-0.5"
+                  >
+                    Maak post <ArrowRight className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <InfoAlert
+            variant="info"
+            title="Wordt slim na eerste posts"
+            description="AI genereert hier content ideeën op basis van je menukaart en seizoen."
+          />
+        )}
       </div>
 
       {/* Weekplan */}
@@ -62,11 +114,38 @@ export function CalendarSidebar({ posts, currentMonth }: CalendarSidebarProps) {
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Weekplan
         </h3>
-        <InfoAlert
-          variant="info"
-          title="Beschikbaar na Instagram koppeling"
-          description="Je weekplanning met optimale posttijden."
-        />
+        {weekplan?.posts?.length ? (
+          <div className="space-y-2">
+            {weekplan.posts.map((post, i) => {
+              const Icon = PLATFORM_ICON[post.platform] ?? Globe;
+              const dayShort = DAY_SHORT[post.day?.toLowerCase()] ?? post.day;
+              return (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground tabular-nums w-12 shrink-0">
+                    {dayShort} {post.time}
+                  </span>
+                  <Icon className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="truncate text-foreground">{post.caption}</span>
+                </div>
+              );
+            })}
+            <NestoButton
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => schedule.mutate({ posts: weekplan.posts, status: 'draft' })}
+              disabled={schedule.isPending}
+            >
+              Auto-fill week
+            </NestoButton>
+          </div>
+        ) : (
+          <InfoAlert
+            variant="info"
+            title="Beschikbaar na Instagram koppeling"
+            description="Je weekplanning met optimale posttijden."
+          />
+        )}
       </div>
     </div>
   );
