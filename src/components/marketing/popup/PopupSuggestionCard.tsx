@@ -8,7 +8,7 @@ import { useAcceptPopupSuggestion, type PopupSuggestion } from '@/hooks/usePopup
 import { DismissReasonModal } from './DismissReasonModal';
 
 const TYPE_LABELS: Record<string, string> = {
-  reservation: 'Reservering',
+  reservation: 'Ervaring',
   newsletter: 'Nieuwsbrief',
   custom: 'Custom',
 };

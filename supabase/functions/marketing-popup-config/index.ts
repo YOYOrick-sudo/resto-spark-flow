@@ -60,6 +60,32 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Server-side schedule check
+    if (config.schedule_start_at && config.schedule_end_at) {
+      const now = new Date();
+      const start = new Date(config.schedule_start_at);
+      const end = new Date(config.schedule_end_at);
+      if (now < start || now > end) {
+        return new Response(JSON.stringify({ is_active: false }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else if (config.schedule_start_at) {
+      const now = new Date();
+      if (now < new Date(config.schedule_start_at)) {
+        return new Response(JSON.stringify({ is_active: false }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else if (config.schedule_end_at) {
+      const now = new Date();
+      if (now > new Date(config.schedule_end_at)) {
+        return new Response(JSON.stringify({ is_active: false }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     const { data: brandKit } = await supabaseAdmin
       .from('marketing_brand_kit')
       .select('logo_url, primary_color, secondary_color')
@@ -92,6 +118,8 @@ Deno.serve(async (req) => {
       success_message: config.success_message,
       gdpr_text: config.gdpr_text,
       custom_button_url: config.custom_button_url || null,
+      schedule_start_at: config.schedule_start_at || null,
+      schedule_end_at: config.schedule_end_at || null,
       logo_url: brandKit?.logo_url || null,
       primary_color: brandKit?.primary_color || '#1d979e',
       restaurant_name: location.name,

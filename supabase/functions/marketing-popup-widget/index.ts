@@ -51,11 +51,11 @@ Deno.serve(async (req) => {
         *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
         .nesto-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999998;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease;}
         .nesto-overlay.visible{opacity:1;}
-        .nesto-popup{background:#fff;border-radius:16px;padding:32px;max-width:420px;width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;transform:translateY(20px);transition:transform .3s ease;}
+        .nesto-popup{background:#fff;border-radius:16px;padding:32px;max-width:420px;width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;transform:translateY(20px);transition:transform .3s ease;text-align:center;}
         .nesto-overlay.visible .nesto-popup{transform:translateY(0);}
         .nesto-close{position:absolute;top:12px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;}
         .nesto-close:hover{background:#f3f4f6;}
-        .nesto-logo{max-height:40px;max-width:160px;margin-bottom:16px;}
+        .nesto-logo{max-height:40px;max-width:160px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;}
         .nesto-headline{font-size:20px;font-weight:700;color:#111827;margin-bottom:8px;line-height:1.3;}
         .nesto-desc{font-size:14px;color:#6b7280;margin-bottom:20px;line-height:1.5;}
         .nesto-form{display:flex;gap:8px;}
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
         .nesto-success-icon{font-size:40px;color:\${primaryColor};margin-bottom:12px;}
         .nesto-success-msg{font-size:16px;font-weight:600;color:#111827;}
 
-        .nesto-featured{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 12px;border-radius:10px;border:1.5px solid #e5e7eb;text-decoration:none;transition:border-color .2s,background .2s;cursor:pointer;}
+        .nesto-featured{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 12px;border-radius:10px;border:1.5px solid #e5e7eb;text-decoration:none;transition:border-color .2s,background .2s;cursor:pointer;margin-left:auto;margin-right:auto;max-width:fit-content;}
         .nesto-featured:hover{background:#f9fafb;}
         .nesto-featured-bar{width:4px;height:32px;border-radius:4px;flex-shrink:0;}
         .nesto-featured-info{flex:1;min-width:0;}
