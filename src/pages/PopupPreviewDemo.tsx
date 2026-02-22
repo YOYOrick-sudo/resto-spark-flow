@@ -116,27 +116,29 @@ function renderPopupInShadow(shadow: ShadowRoot, cfg: PopupConfig, skipAnimation
       <div class="nesto-gdpr">${esc(cfg.gdpr_text)}</div>`;
   }
 
-  // Always show the popup immediately in preview mode
-  const overlay = document.createElement('div');
-  overlay.className = 'nesto-overlay' + (skipAnimation ? ' visible' : '');
-  overlay.setAttribute('data-nesto-popup', 'true');
-  overlay.innerHTML = `<div class="nesto-popup">
-    <button class="nesto-close" aria-label="Sluiten">&times;</button>
-    ${buildPopupContent()}
-  </div>`;
-  shadow.appendChild(overlay);
-  if (!skipAnimation) { requestAnimationFrame(() => overlay.classList.add('visible')); }
+  // Only show overlay popup when NOT in sticky bar mode
+  if (!cfg.sticky_bar_enabled) {
+    const overlay = document.createElement('div');
+    overlay.className = 'nesto-overlay' + (skipAnimation ? ' visible' : '');
+    overlay.setAttribute('data-nesto-popup', 'true');
+    overlay.innerHTML = `<div class="nesto-popup">
+      <button class="nesto-close" aria-label="Sluiten">&times;</button>
+      ${buildPopupContent()}
+    </div>`;
+    shadow.appendChild(overlay);
+    if (!skipAnimation) { requestAnimationFrame(() => overlay.classList.add('visible')); }
 
-  overlay.querySelector('.nesto-close')?.addEventListener('click', () => {
-    overlay.classList.remove('visible');
-    setTimeout(() => overlay.remove(), 300);
-  });
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
+    overlay.querySelector('.nesto-close')?.addEventListener('click', () => {
       overlay.classList.remove('visible');
       setTimeout(() => overlay.remove(), 300);
-    }
-  });
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+      }
+    });
+  }
 
   // Sticky bar
   if (cfg.sticky_bar_enabled) {
