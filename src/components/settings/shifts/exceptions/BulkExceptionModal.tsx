@@ -399,7 +399,7 @@ export function BulkExceptionModal({
                     className={cn(
                       "w-9 h-9 rounded-button text-sm font-medium transition-colors",
                       selectedWeekdays.includes(day.value)
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                     )}
                   >

@@ -143,10 +143,10 @@ export function QuickReservationPanel({
               type="button"
               onClick={() => setIsWalkIn(false)}
               className={cn(
-                "flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors border-[1.5px]",
+                "flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors",
                 !isWalkIn
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-foreground border-border hover:bg-muted"
+                  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                  : "bg-transparent text-muted-foreground border border-border hover:bg-accent hover:text-foreground"
               )}
             >
               Reservering
@@ -155,10 +155,10 @@ export function QuickReservationPanel({
               type="button"
               onClick={() => setIsWalkIn(true)}
               className={cn(
-                "flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors border-[1.5px]",
+                "flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors",
                 isWalkIn
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-foreground border-border hover:bg-muted"
+                  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                  : "bg-transparent text-muted-foreground border border-border hover:bg-accent hover:text-foreground"
               )}
             >
               Walk-in

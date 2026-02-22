@@ -122,7 +122,7 @@ export function TimesStep() {
                 className={cn(
                   "px-3 py-1.5 rounded-control text-sm font-medium transition-colors",
                   isSelected
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >
