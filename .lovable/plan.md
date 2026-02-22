@@ -1,21 +1,18 @@
 
-# Preview automatisch meeschakelen met weergavemodus
+# Sticky bar: meer padding + dunnere knop
 
-## Wat verandert
+## Wijzigingen
 
-Wanneer de gebruiker in de "Weergave" kaart kiest voor **Popup** of **Sticky bar**, schakelt de preview rechts automatisch mee naar het juiste type. Geen handmatige actie meer nodig.
+Twee aanpassingen in beide bestanden:
 
-## Technische wijziging
+1. **Padding verhogen** van `48px` naar `80px` — content schuift iets meer naar het midden
+2. **Knop dunner maken** — padding van `8px 16px` naar `6px 14px` voor een slankere look
 
-### `src/pages/marketing/PopupPage.tsx`
+### Bestanden
 
-In de twee mode-selector `onClick` handlers (regels 463-465 en 487-489):
+| Bestand | Regels | Wat |
+|---|---|---|
+| `supabase/functions/marketing-popup-widget/index.ts` | 85, 91 | `padding:14px 80px` + `.nesto-btn` padding `6px 14px` |
+| `src/pages/PopupPreviewDemo.tsx` | 54, 60 | Zelfde aanpassingen |
 
-- **Popup-knop**: voeg `setPreviewType('popup')` toe
-- **Sticky bar-knop**: voeg `setPreviewType('bar')` toe
-
-Dat is alles — twee regels toevoegen. De `previewType` state en `setPreviewType` setter zijn al beschikbaar in de `PopupEditor` component als props.
-
-| Bestand | Wijziging |
-|---|---|
-| `src/pages/marketing/PopupPage.tsx` | `setPreviewType` aanroepen in beide mode-selector knoppen |
+De `marketing-popup-widget` edge function wordt opnieuw gedeployed.
