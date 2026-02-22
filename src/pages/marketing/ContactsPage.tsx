@@ -1,24 +1,27 @@
 import { useState } from 'react';
-import { UserPlus } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/polar/PageHeader';
 import { StatCard } from '@/components/polar/StatCard';
 import { NestoTable, type Column } from '@/components/polar/NestoTable';
 import { NestoSelect } from '@/components/polar/NestoSelect';
-import { NestoBadge } from '@/components/polar/NestoBadge';
 import { SearchBar } from '@/components/polar/SearchBar';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { TableSkeleton } from '@/components/polar/LoadingStates';
 import { ContactOptInSheet } from '@/components/marketing/contacts/ContactOptInSheet';
-import { useMarketingContacts, useNewContactsThisMonth, type MarketingContact } from '@/hooks/useMarketingContacts';
+import { ImportContactsModal } from '@/components/marketing/contacts/ImportContactsModal';
+import { useMarketingContacts, useNewContactsThisMonth, exportContactsCsv, type MarketingContact } from '@/hooks/useMarketingContacts';
 import { useMarketingSegments } from '@/hooks/useMarketingSegments';
+import { useUserContext } from '@/contexts/UserContext';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
 export default function ContactsPage() {
   const { data: segments = [] } = useMarketingSegments();
+  const { currentLocation } = useUserContext();
   const [selectedSegmentId, setSelectedSegmentId] = useState<string>('__all__');
   const [search, setSearch] = useState('');
   const [selectedContact, setSelectedContact] = useState<MarketingContact | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const selectedSegment = selectedSegmentId !== '__all__' ? segments.find(s => s.id === selectedSegmentId) : undefined;
   const filterRules = selectedSegment?.filter_rules ?? null;
@@ -30,6 +33,11 @@ export default function ContactsPage() {
     { value: '__all__', label: 'Alle contacten' },
     ...segments.map(s => ({ value: s.id, label: s.name })),
   ];
+
+  const handleExport = () => {
+    if (!currentLocation) return;
+    exportContactsCsv(currentLocation.id, filterRules, search);
+  };
 
   const columns: Column<MarketingContact & Record<string, unknown>>[] = [
     {
@@ -74,6 +82,10 @@ export default function ContactsPage() {
       <PageHeader
         title="Contacten"
         subtitle="Beheer je gastenbestand en marketing voorkeuren"
+        actions={[
+          { label: 'Exporteer', onClick: handleExport, variant: 'outline', icon: Download },
+          { label: 'Importeer', onClick: () => setImportOpen(true), variant: 'outline', icon: Upload },
+        ]}
       />
 
       {/* Stats */}
@@ -130,6 +142,11 @@ export default function ContactsPage() {
         open={!!selectedContact}
         onOpenChange={(open) => !open && setSelectedContact(null)}
         contact={selectedContact}
+      />
+
+      <ImportContactsModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
       />
     </div>
   );

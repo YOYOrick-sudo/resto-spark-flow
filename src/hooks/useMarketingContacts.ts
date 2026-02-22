@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
+import { nestoToast } from '@/lib/nestoToast';
+import { format } from 'date-fns';
 import type { FilterRules } from './useMarketingSegments';
 
 export interface MarketingContact {
@@ -146,4 +148,60 @@ export function useNewContactsThisMonth() {
     },
     enabled: !!locationId,
   });
+}
+
+export async function exportContactsCsv(
+  locationId: string,
+  filterRules?: FilterRules | null,
+  search?: string
+) {
+  const { data, error } = await supabase.rpc('list_segment_customers', {
+    _location_id: locationId,
+    _filter_rules: filterRules ?? null as any,
+    _limit: 10000,
+    _offset: 0,
+  });
+  if (error) throw error;
+
+  let results = (data ?? []) as unknown as MarketingContact[];
+
+  if (search) {
+    const q = search.toLowerCase();
+    results = results.filter(c =>
+      `${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||
+      (c.email?.toLowerCase().includes(q) ?? false)
+    );
+  }
+
+  const formatDate = (d: string | null) => {
+    if (!d) return '';
+    try {
+      return format(new Date(d), 'dd-MM-yyyy');
+    } catch {
+      return '';
+    }
+  };
+
+  const header = 'Voornaam;Achternaam;Email;Telefoon;Bezoeken;Laatste bezoek;Gem. besteding;Tags';
+  const csvRows = results.map(c => [
+    c.first_name,
+    c.last_name,
+    c.email ?? '',
+    c.phone_number ?? '',
+    String(c.total_visits),
+    formatDate(c.last_visit_at),
+    c.average_spend != null ? Number(c.average_spend).toFixed(2) : '',
+    Array.isArray(c.tags) ? (c.tags as string[]).join(',') : '',
+  ].join(';'));
+
+  const csv = [header, ...csvRows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nesto-contacten-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  nestoToast.success('Export gedownload');
 }
