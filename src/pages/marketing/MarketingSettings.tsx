@@ -10,6 +10,7 @@ import AutomationFlowsTab from '@/components/marketing/settings/AutomationFlowsT
 import GDPRTab from '@/components/marketing/settings/GDPRTab';
 import SocialAccountsTab from '@/components/marketing/settings/SocialAccountsTab';
 import PopupSettingsTab from '@/components/marketing/settings/PopupSettingsTab';
+import ReviewPlatformsTab from '@/components/marketing/settings/ReviewPlatformsTab';
 
 const TABS = [
   { id: 'algemeen', label: 'Algemeen' },
@@ -19,6 +20,7 @@ const TABS = [
   { id: 'gdpr', label: 'GDPR' },
   { id: 'social', label: 'Social Accounts' },
   { id: 'popup', label: 'Website Popup' },
+  { id: 'reviews', label: 'Review Platforms' },
 ];
 
 export default function MarketingSettings() {
@@ -74,6 +76,10 @@ export default function MarketingSettings() {
 
       <NestoTabContent value="popup" activeValue={activeTab}>
         <PopupSettingsTab readOnly={!canManage} />
+      </NestoTabContent>
+
+      <NestoTabContent value="reviews" activeValue={activeTab}>
+        <ReviewPlatformsTab readOnly={!canManage} />
       </NestoTabContent>
     </SettingsDetailLayout>
   );

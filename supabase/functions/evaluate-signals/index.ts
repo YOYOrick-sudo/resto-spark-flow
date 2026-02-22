@@ -678,10 +678,302 @@ const noShowRiskProvider: SignalProvider = {
 };
 
 // ============================================
+// MARKETING SIGNAL PROVIDER
+// ============================================
+
+async function hasMarketingEntitlement(locationId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('location_entitlements')
+    .select('id')
+    .eq('location_id', locationId)
+    .eq('module_key', 'marketing')
+    .eq('enabled', true)
+    .maybeSingle();
+  return !!data;
+}
+
+const marketingProvider: SignalProvider = {
+  name: 'marketing',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const drafts: SignalDraft[] = [];
+    const hasMkt = await hasMarketingEntitlement(locationId);
+    if (!hasMkt) return drafts;
+
+    // 1. marketing_negative_review: unresponded reviews with rating <= 2
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data: negReviews } = await supabaseAdmin
+      .from('marketing_reviews')
+      .select('id, author_name, rating')
+      .eq('location_id', locationId)
+      .lte('rating', 2)
+      .is('response_text', null)
+      .gt('created_at', sevenDaysAgo.toISOString())
+      .limit(5);
+
+    if (negReviews && negReviews.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'marketing',
+        signal_type: 'marketing_negative_review',
+        kind: 'signal',
+        severity: 'warning',
+        title: `${negReviews.length} negatieve review(s) zonder antwoord`,
+        message: 'Reviews met 1-2 sterren wachten op een reactie.',
+        action_path: '/marketing/reviews',
+        dedup_key: `marketing_negative_review:${locationId}`,
+        actionable: true,
+        priority: 20,
+        cooldown_hours: 24,
+        payload: { count: negReviews.length },
+      });
+    }
+
+    // 2. marketing_unscheduled_week: fewer than 3 scheduled posts next 7 days
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    const { data: scheduled } = await supabaseAdmin
+      .from('marketing_social_posts')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('status', 'scheduled')
+      .gte('scheduled_at', new Date().toISOString())
+      .lte('scheduled_at', nextWeek.toISOString());
+
+    if (!scheduled || scheduled.length < 3) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'marketing',
+        signal_type: 'marketing_unscheduled_week',
+        kind: 'signal',
+        severity: 'info',
+        title: `Slechts ${scheduled?.length ?? 0} post(s) ingepland deze week`,
+        message: 'Plan minimaal 3 posts per week voor consistente zichtbaarheid.',
+        action_path: '/marketing/kalender',
+        dedup_key: `marketing_unscheduled_week:${locationId}`,
+        actionable: true,
+        priority: 50,
+        cooldown_hours: 72,
+        payload: { count: scheduled?.length ?? 0 },
+      });
+    }
+
+    // 3. marketing_review_score_declining: avg rating last 30d vs 30-60d, diff >= 0.3
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+    const { data: recentReviews } = await supabaseAdmin
+      .from('marketing_reviews')
+      .select('rating')
+      .eq('location_id', locationId)
+      .gte('published_at', thirtyDaysAgo.toISOString());
+
+    const { data: olderReviews } = await supabaseAdmin
+      .from('marketing_reviews')
+      .select('rating')
+      .eq('location_id', locationId)
+      .gte('published_at', sixtyDaysAgo.toISOString())
+      .lt('published_at', thirtyDaysAgo.toISOString());
+
+    if (recentReviews && recentReviews.length >= 2 && olderReviews && olderReviews.length >= 2) {
+      const avgRecent = recentReviews.reduce((s, r) => s + r.rating, 0) / recentReviews.length;
+      const avgOlder = olderReviews.reduce((s, r) => s + r.rating, 0) / olderReviews.length;
+      if (avgOlder - avgRecent >= 0.3) {
+        drafts.push({
+          organization_id: orgId,
+          location_id: locationId,
+          module: 'marketing',
+          signal_type: 'marketing_review_score_declining',
+          kind: 'signal',
+          severity: 'warning',
+          title: `Review score gedaald: ${avgRecent.toFixed(1)} vs ${avgOlder.toFixed(1)}`,
+          message: 'Je gemiddelde review score is de afgelopen 30 dagen gedaald.',
+          action_path: '/marketing/reviews',
+          dedup_key: `marketing_review_score_declining:${locationId}`,
+          actionable: true,
+          priority: 25,
+          cooldown_hours: 168,
+          payload: { avg_recent: avgRecent, avg_older: avgOlder },
+        });
+      }
+    }
+
+    // 4. marketing_at_risk_guests: customers with 60+ days since last visit and 2+ visits
+    const sixtyDaysAgoStr = sixtyDaysAgo.toISOString().slice(0, 10);
+    const { data: atRisk } = await supabaseAdmin
+      .from('customers')
+      .select('id')
+      .eq('location_id', locationId)
+      .gte('total_visits', 2)
+      .lt('last_visit_at', sixtyDaysAgoStr)
+      .limit(50);
+
+    if (atRisk && atRisk.length > 10) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'marketing',
+        signal_type: 'marketing_at_risk_guests',
+        kind: 'insight',
+        severity: 'info',
+        title: `${atRisk.length}+ gasten dreigen af te haken`,
+        message: 'Vaste gasten die al 60+ dagen niet zijn geweest. Overweeg een win-back campagne.',
+        action_path: '/marketing/segmenten',
+        dedup_key: `marketing_at_risk_guests:${locationId}`,
+        actionable: true,
+        priority: 40,
+        cooldown_hours: 72,
+        payload: { count: atRisk.length },
+      });
+    }
+
+    // 5. marketing_email_open_rate_declining: avg open rate last 3 campaigns < prev 3
+    const { data: campaigns } = await supabaseAdmin
+      .from('marketing_campaign_analytics')
+      .select('sent_count, opened_count')
+      .eq('location_id', locationId)
+      .eq('channel', 'email')
+      .order('updated_at', { ascending: false })
+      .limit(6);
+
+    if (campaigns && campaigns.length >= 6) {
+      const calcRate = (items: typeof campaigns) => {
+        const totalSent = items.reduce((s, c) => s + c.sent_count, 0);
+        const totalOpened = items.reduce((s, c) => s + c.opened_count, 0);
+        return totalSent > 0 ? totalOpened / totalSent : 0;
+      };
+      const recent3 = calcRate(campaigns.slice(0, 3));
+      const prev3 = calcRate(campaigns.slice(3, 6));
+
+      if (prev3 > 0 && recent3 < prev3) {
+        drafts.push({
+          organization_id: orgId,
+          location_id: locationId,
+          module: 'marketing',
+          signal_type: 'marketing_email_open_rate_declining',
+          kind: 'signal',
+          severity: 'warning',
+          title: `Email open rate gedaald: ${(recent3 * 100).toFixed(0)}% vs ${(prev3 * 100).toFixed(0)}%`,
+          message: 'De open rate van je recente campagnes is lager dan de vorige.',
+          action_path: '/marketing/campagnes',
+          dedup_key: `marketing_email_open_rate_declining:${locationId}`,
+          actionable: true,
+          priority: 35,
+          cooldown_hours: 168,
+          payload: { recent_rate: recent3, prev_rate: prev3 },
+        });
+      }
+    }
+
+    // 6. marketing_engagement_dropping: engagement < 80% of baseline
+    const { data: intel } = await supabaseAdmin
+      .from('marketing_brand_intelligence')
+      .select('engagement_baseline')
+      .eq('location_id', locationId)
+      .maybeSingle();
+
+    if (intel?.engagement_baseline) {
+      const baseline = intel.engagement_baseline as Record<string, unknown>;
+      const avgEngagement = baseline.avg_engagement as number | undefined;
+
+      if (avgEngagement && avgEngagement > 0) {
+        const twoWeeksAgo = new Date();
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+        const { data: recentPosts } = await supabaseAdmin
+          .from('marketing_social_posts')
+          .select('analytics')
+          .eq('location_id', locationId)
+          .eq('status', 'published')
+          .gte('published_at', twoWeeksAgo.toISOString());
+
+        if (recentPosts && recentPosts.length >= 3) {
+          const totalEngagement = recentPosts.reduce((s, p) => {
+            const a = p.analytics as Record<string, number> | null;
+            return s + (a?.engagement || a?.likes || 0);
+          }, 0);
+          const avgRecentEng = totalEngagement / recentPosts.length;
+
+          if (avgRecentEng < avgEngagement * 0.8) {
+            drafts.push({
+              organization_id: orgId,
+              location_id: locationId,
+              module: 'marketing',
+              signal_type: 'marketing_engagement_dropping',
+              kind: 'signal',
+              severity: 'warning',
+              title: 'Social engagement daalt',
+              message: `Engagement is 20%+ onder je baseline van de afgelopen 2 weken.`,
+              action_path: '/marketing/social',
+              dedup_key: `marketing_engagement_dropping:${locationId}`,
+              actionable: true,
+              priority: 30,
+              cooldown_hours: 168,
+              payload: { avg_recent: avgRecentEng, baseline: avgEngagement },
+            });
+          }
+        }
+      }
+    }
+
+    return drafts;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const resolved: string[] = [];
+    const hasMkt = await hasMarketingEntitlement(locationId);
+    if (!hasMkt) {
+      return [
+        'marketing_negative_review', 'marketing_unscheduled_week',
+        'marketing_engagement_dropping', 'marketing_review_score_declining',
+        'marketing_at_risk_guests', 'marketing_email_open_rate_declining',
+      ];
+    }
+
+    // Resolve negative_review if no unresponded reviews with rating <= 2
+    const { data: negReviews } = await supabaseAdmin
+      .from('marketing_reviews')
+      .select('id')
+      .eq('location_id', locationId)
+      .lte('rating', 2)
+      .is('response_text', null)
+      .limit(1);
+
+    if (!negReviews || negReviews.length === 0) {
+      resolved.push('marketing_negative_review');
+    }
+
+    // Resolve unscheduled_week if >= 3 posts scheduled
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const { data: scheduled } = await supabaseAdmin
+      .from('marketing_social_posts')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('status', 'scheduled')
+      .gte('scheduled_at', new Date().toISOString())
+      .lte('scheduled_at', nextWeek.toISOString());
+
+    if (scheduled && scheduled.length >= 3) {
+      resolved.push('marketing_unscheduled_week');
+    }
+
+    return resolved;
+  },
+};
+
+// ============================================
 // SIGNAL ENGINE
 // ============================================
 
-const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider];
+const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider];
 
 async function processLocation(locationId: string, orgId: string) {
   const results = { created: 0, resolved: 0, skipped: 0 };

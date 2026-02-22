@@ -1188,6 +1188,77 @@ export type Database = {
           },
         ]
       }
+      marketing_reviews: {
+        Row: {
+          ai_suggested_response: string | null
+          author_name: string
+          author_photo_url: string | null
+          created_at: string
+          external_review_id: string
+          id: string
+          is_featured: boolean
+          location_id: string
+          platform: string
+          published_at: string | null
+          rating: number
+          responded_at: string | null
+          response_text: string | null
+          review_language: string | null
+          review_text: string | null
+          sentiment: string | null
+          sentiment_aspects: Json | null
+          updated_at: string
+        }
+        Insert: {
+          ai_suggested_response?: string | null
+          author_name?: string
+          author_photo_url?: string | null
+          created_at?: string
+          external_review_id: string
+          id?: string
+          is_featured?: boolean
+          location_id: string
+          platform: string
+          published_at?: string | null
+          rating: number
+          responded_at?: string | null
+          response_text?: string | null
+          review_language?: string | null
+          review_text?: string | null
+          sentiment?: string | null
+          sentiment_aspects?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          ai_suggested_response?: string | null
+          author_name?: string
+          author_photo_url?: string | null
+          created_at?: string
+          external_review_id?: string
+          id?: string
+          is_featured?: boolean
+          location_id?: string
+          platform?: string
+          published_at?: string | null
+          rating?: number
+          responded_at?: string | null
+          response_text?: string | null
+          review_language?: string | null
+          review_text?: string | null
+          sentiment?: string | null
+          sentiment_aspects?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_reviews_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_segments: {
         Row: {
           created_at: string
