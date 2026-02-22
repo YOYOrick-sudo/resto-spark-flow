@@ -1,201 +1,211 @@
 
-# Sessie 2.2 — Content Kalender
+
+# Sessie 2.4 — AI Content Generatie (Basis)
 
 ## Samenvatting
 
-Een volledige content kalender pagina op `/marketing/kalender` met maand- en weekweergave, dag-panel via NestoPanel, quick-create formulier voor social posts, Nederlandse feestdagen, rechter sidebar met quick stats, en een slim overflow patroon (max 3 dots + "+N") voor drukke dagen.
+Een edge function `marketing-generate-content` die via Lovable AI (gateway) per-platform captions + hashtags + timing suggesties genereert op basis van het Brand Kit profiel. De Social Post Creator krijgt een "AI schrijven" knop die een mini-modal opent, en de Email Builder's "Pas aan met AI" knop wordt geactiveerd.
 
 ---
 
 ## Architectuur
 
-Geen database wijzigingen nodig. De `marketing_social_posts` tabel uit sessie 2.1 heeft alle kolommen (platform, status, scheduled_at, content_text, hashtags, media_urls, is_recurring, recurrence_rule, content_type_tag).
-
-### Layout
-
 ```text
-+-----------------------------------------------------------+
-| PageHeader: "Kalender"   [Maand|Week]   [< Februari >]    |
-+-----------------------------------------------------------+
-| Kalender Grid (flex-1)              | Sidebar (w-72)       |
-| 7 kolommen x 5-6 rijen             | Quick stats           |
-| Platform dots (max 3 + "+N")        | Content ideeen        |
-| Click dag -> NestoPanel rechts      | Weekplan              |
-+-----------------------------------------------------------+
+Frontend                        Edge Function                    Lovable AI Gateway
++--------------------+          +-------------------------+      +------------------+
+| Post Creator       |  invoke  | marketing-generate-     |  --> | gemini-3-flash   |
+| "AI schrijven" btn | -------> | content                 |      | -preview         |
+|                    |          |                         |      +------------------+
+| Email Builder      |  invoke  | - Load brand kit        |
+| "Pas aan met AI"   | -------> | - Load location context |
+|                    |          | - Platform-specific     |
++--------------------+          |   system prompts        |
+                                | - Return structured     |
+                                |   output via tool call  |
+                                +-------------------------+
 ```
 
----
-
-## Stap 1: Navigatie + Route
-
-### `src/lib/navigation.ts`
-- Nieuw subItem in marketing groep: `{ id: 'marketing-kalender', label: 'Kalender', path: '/marketing/kalender' }`
-- Nieuwe ROUTE_MAP entry: `'marketing-kalender': '/marketing/kalender'`
-
-### `src/App.tsx`
-- Import + route: `<Route path="/marketing/kalender" element={<ContentCalendarPage />} />`
+Geen database wijzigingen nodig. Gebruikt bestaande `marketing_brand_kit` + `locations` tabellen.
 
 ---
 
-## Stap 2: Data hook
+## Stap 1: Edge Function — marketing-generate-content
 
-### `src/hooks/useMarketingSocialPosts.ts` (nieuw)
+### `supabase/functions/marketing-generate-content/index.ts` (nieuw)
 
-- `useMarketingSocialPosts(month: Date)` -- SELECT posts WHERE location_id AND scheduled_at within month range
-- `useCreateSocialPost()` -- INSERT mutation
-- `useUpdateSocialPost()` -- UPDATE mutation (voor drag-and-drop)
-- `useDeleteSocialPost()` -- DELETE mutation
-- Posts gegroepeerd per dag via helper `groupPostsByDay(posts, month)`
-- Query key: `['marketing-social-posts', locationId, year, month]`
+**Input (body JSON):**
+```typescript
+{
+  type: 'social' | 'email';
+  // For social:
+  context?: string;        // Gebruiker beschrijft onderwerp
+  platforms?: string[];     // ['instagram', 'facebook', 'google_business']
+  content_type_tag?: string; // food_shot, team, etc.
+  // For email:
+  email_body?: string;     // Huidige email tekst
+  instruction?: string;    // Wat wil je aanpassen?
+}
+```
 
----
+**Flow:**
+1. Haal `location_id` uit JWT claims (authenticated request)
+2. Fetch `marketing_brand_kit` voor tone_of_voice, tone_description, social_handles
+3. Fetch `locations` voor restaurant naam, adres, openingstijden context
+4. Bouw platform-specifieke system prompts:
 
-## Stap 3: Nederlandse feestdagen
+**Instagram prompt regels:**
+- Kort (max 150 woorden), visueel beschrijvend
+- 8-12 hashtags, mix van breed en niche
+- Emoji's passend bij tone_of_voice
+- Geen links (Instagram caption links werken niet)
 
-### `src/lib/dutchHolidays.ts` (nieuw)
+**Facebook prompt regels:**
+- Langer, meer context en storytelling
+- Geen hashtags
+- Reserveringslink placeholder: "[RESERVEER_LINK]"
+- Vraag/CTA aan het einde
 
-- Vaste feestdagen: Nieuwjaar, Koningsdag, Bevrijdingsdag (lustrumjaren), Kerst 1e+2e
-- Berekende feestdagen (Pasen-gebaseerd): Goede Vrijdag, 1e+2e Paasdag, Hemelvaart, 1e+2e Pinksterdag
-- Pasen-berekening via Gauss/Meeus algoritme (geen dependency)
-- Export: `getHolidaysForMonth(year, month): { date: Date; name: string }[]`
-- Export: `getHolidayForDate(date: Date): string | null` (voor dag-cel lookup)
+**Google Business prompt regels:**
+- Zakelijk en to-the-point
+- Focus op aanbod/actie
+- Sterke CTA (bijv. "Reserveer nu", "Bezoek ons")
+- Openingstijden vermelding als relevant
 
----
+5. Call Lovable AI gateway (`google/gemini-3-flash-preview`) met tool calling voor gestructureerde output
+6. Return per-platform caption + hashtag suggesties + timing suggestie
 
-## Stap 4: Kalender pagina
+**Output (tool call schema):**
+```typescript
+{
+  platforms: {
+    instagram?: { caption: string; hashtags: string[] };
+    facebook?: { caption: string };
+    google_business?: { caption: string };
+  };
+  suggested_hashtags: string[];  // 10 suggesties als chips
+  suggested_time?: string;       // bijv. "18:00" 
+  suggested_day?: string;        // bijv. "donderdag"
+}
+```
 
-### `src/pages/marketing/ContentCalendarPage.tsx` (nieuw)
+**Voor email type:**
+```typescript
+{
+  updated_body: string;  // Aangepaste email tekst
+}
+```
 
-**PageHeader:**
-- Titel "Kalender"
-- View toggle rechts: Maand / Week (Patroon 1 toggle buttons: `bg-primary/10 text-primary border border-primary/20 shadow-sm`)
-- Maandnavigatie: `ChevronLeft` / `ChevronRight` + maand/jaar label
+**Auth:** `verify_jwt = false` in config.toml, maar validate JWT in code via `getClaims()`.
 
-**Body:** `flex gap-6` met grid (flex-1) en sidebar (w-72 shrink-0)
-
----
-
-## Stap 5: Kalender componenten
-
-### `src/components/marketing/calendar/CalendarGrid.tsx` (nieuw)
-
-**Maand-view:**
-- CSS Grid 7 kolommen, `grid-cols-7`
-- Dag headers: Ma Di Wo Do Vr Za Zo (`text-xs text-muted-foreground uppercase`)
-- Per dag-cel (`DayCell` component):
-  - Dagnummer (muted voor outside-month)
-  - Feestdag label (`text-[10px] text-primary truncate`)
-  - Platform dots: gekleurde bolletjes (h-2 w-2 rounded-full)
-    - Instagram: `bg-[#E1306C]`
-    - Facebook: `bg-[#1877F2]`
-    - Google Business: `bg-[#34A853]`
-  - **Overflow patroon:** max 3 dots getoond. Als meer: `+N` badge (`text-[10px] text-muted-foreground bg-muted rounded-full px-1`)
-  - Herhaal-icoon (Repeat, h-3 w-3 text-muted-foreground) als recurring post
-  - Vandaag: `ring-1 ring-primary rounded-lg`
-  - Hover: `hover:bg-accent/30 transition-colors duration-150`
-  - Click: opent DayPanel
-- Dag-cel is droppable target voor drag-and-drop
-
-### `src/components/marketing/calendar/DayCell.tsx` (nieuw)
-
-Individuele cel. Ontvangt: date, posts[], holiday, isToday, isCurrentMonth, onClick, drag-drop props.
-
-### `src/components/marketing/calendar/WeekView.tsx` (nieuw)
-
-- 7 kolommen met dagnaam + datum header
-- Posts als mini-cards: NestoCard variant="small" nested met:
-  - Links: platform kleur stripe (w-1 rounded-full, absolute left-0)
-  - Caption preview (truncate, text-sm)
-  - Tijd (text-xs text-muted-foreground tabular-nums)
-  - Status badge (NestoBadge, compact)
-- Leeg-state per dag: subtiele dashed border zone
-
----
-
-## Stap 6: Dag-panel
-
-### `src/components/marketing/calendar/DayPanel.tsx` (nieuw)
-
-Gebruikt `NestoPanel` (w-[460px], reveal header).
-
-**Content:**
-- Titel: "Dinsdag 27 februari" (Nederlandse dag/maand via date-fns nl locale)
-- Feestdag badge als van toepassing (NestoBadge variant="default")
-- Posts lijst:
-  - Per post: platform icoon + naam, caption preview (2 regels max), tijd, status badge
-  - Click op post: inline expand met volledige tekst + edit/delete acties
-- Divider (`border-t border-border/50 pt-4 mt-4`)
-- "Nieuw bericht" NestoButton variant="outline" met Plus icoon
-  - Toggle: toont/verbergt QuickCreatePost inline
+**Error handling:**
+- 429 (rate limit): Return specifieke error message
+- 402 (credits): Return specifieke error message
+- Beide surfaced als toast in frontend
 
 ---
 
-## Stap 7: Quick-create formulier
+## Stap 2: Social Post Creator — AI schrijven
 
-### `src/components/marketing/calendar/QuickCreatePost.tsx` (nieuw)
+### `src/pages/marketing/SocialPostCreatorPage.tsx` (edit)
 
-Inline in DayPanel (geen aparte modal):
+**Wijzigingen:**
 
-- **Platform multi-select:** Checkboxes met platform iconen
-  - Alleen gekoppelde accounts actief (query `marketing_social_accounts` via bestaande hook)
-  - Niet-gekoppelde: disabled + tooltip "Koppel eerst in Instellingen"
-- **Caption textarea:** `NestoInput` als textarea met live character counter
-  - Counter toont laagste limiet van geselecteerde platforms (IG: 2200, FB: 63206, Google: 1500)
-  - Counter kleurt rood bij overschrijding
-- **Hashtags input:** Tekstveld, auto-format met `#`
-- **Tijd picker:** Twee NestoSelect dropdowns (uur 00-23, minuut 00/15/30/45), default 12:00
-- **Content type tag:** NestoSelect (food_shot, behind_the_scenes, team, ambiance, seasonal, promo)
-- **Media upload:** Placeholder dashed zone -- "Media upload beschikbaar in Sprint 3"
-- **Submit:** NestoButton primary "Inplannen"
-  - INSERT `marketing_social_posts` met status `'scheduled'`, scheduled_at = gekozen datum+tijd
-  - `nestoToast.success('Bericht ingepland voor {tijd}')`
-  - Reset formulier, invalidate posts query
-
----
-
-## Stap 8: Rechter sidebar
-
-### `src/components/marketing/calendar/CalendarSidebar.tsx` (nieuw)
-
-Volgt SIDEBAR_PANELS.md: `w-72 bg-secondary border border-border rounded-card p-5 sticky top-6`
-
-**Secties (gescheiden door `border-t border-border pt-4 mt-4`):**
-
-1. **QUICK STATS** (uppercase, text-sm font-semibold)
-   - Posts deze week: X
-   - Posts volgende week: X
-   - Ingepland totaal: X
-   - Layout: label links muted, waarde rechts `font-semibold tabular-nums`
-
-2. **CONTENT IDEEEN**
-   - InfoAlert variant="info", title="Wordt slim in Sprint 3"
-   - Description: "AI genereert hier content ideeen op basis van je menukaart en seizoen."
-
-3. **WEEKPLAN**
-   - InfoAlert variant="info", title="Beschikbaar na Instagram koppeling"
-   - Description: "Je weekplanning met optimale posttijden."
+1. Import `Sparkles` icon, `NestoModal`, en een nieuwe hook `useGenerateContent`
+2. Naast het caption textarea: een "AI schrijven" knop (`NestoButton variant="outline" size="sm"` met `Sparkles` icon)
+   - Disabled als geen platforms geselecteerd (tooltip: "Selecteer eerst een platform")
+3. Click opent een `NestoModal` (size="sm"):
+   - Titel: "AI schrijven"
+   - Content type tag doorgeven als context
+   - Textarea: "Waar gaat deze post over?" (placeholder: "Bijv. nieuw seizoensmenu, teamuitje, speciale actie...")
+   - Footer: "Annuleren" + "Genereer" knop
+   - Loading state: "Genereer" knop wordt "Genereren..." met disabled
+4. Na succesvolle generatie:
+   - **Per-platform captions:** Huidige architectuur gebruikt 1 caption voor alle platforms. Wijzig naar per-platform caption state wanneer AI genereert:
+     - Nieuwe state: `platformCaptions: Record<SocialPlatform, string>`
+     - Als AI genereert: vul per platform apart in
+     - Als handmatig getypt: synchroniseer naar alle platforms
+     - Live preview toont per-platform caption
+   - **Hashtag suggesties:** 10 chips onder het hashtag veld, click om toe te voegen
+   - **Timing suggestie:** InfoAlert onder schedule sectie met suggestie
+   - Modal sluit automatisch
+   - `nestoToast.success('Content gegenereerd')`
 
 ---
 
-## Stap 9: Drag-and-drop
+## Stap 3: Hashtag suggestie chips
 
-Maand-view posts verslepen tussen dagen:
+Na AI generatie verschijnen onder het hashtag input veld:
 
-- `@dnd-kit/core` (al beschikbaar)
-- `DndContext` in CalendarGrid
-- Draggable: platform dots op DayCell
-- Droppable: elke DayCell
-- Bij drop: `useUpdateSocialPost` mutation -- update `scheduled_at` naar nieuwe dag (behoud tijd)
-- Drag overlay: mini-card met platform kleur + caption preview
-- Restrictie: alleen binnen weergegeven maand
+```text
+Suggesties: [#restaurant] [#seizoensmenu] [#amsterdam] [#foodie] ...
+```
+
+- Chips: `text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors`
+- Click: voegt hashtag toe aan de lijst (en verwijdert chip)
+- Max 10 chips getoond
 
 ---
 
-## Stap 10: Barrel export
+## Stap 4: Per-platform caption state
 
-### `src/components/marketing/calendar/index.ts` (nieuw)
+De Post Creator wijzigt van 1 caption naar per-platform captions:
 
-Export alle calendar componenten.
+- Nieuw state object: `{ instagram: '', facebook: '', google_business: '' }`
+- Handmatige invoer: schrijft naar alle geselecteerde platforms tegelijk (zoals nu)
+- AI generatie: schrijft per platform apart
+- Toggle "Per platform bewerken" verschijnt na AI generatie:
+  - Uit (default): 1 textarea, sync naar alle
+  - Aan: NestoTabs met per-platform textarea + eigen char counter
+- SocialPreviewPanel ontvangt per-platform captions
+- Bij submit: gebruik platform-specifieke caption als beschikbaar
+
+---
+
+## Stap 5: Email Builder — "Pas aan met AI" activeren
+
+### `src/components/marketing/campaigns/ContentStep.tsx` (edit)
+
+**Wijzigingen:**
+
+1. Verwijder `disabled` van de "Pas aan met AI" knop
+2. Verwijder tooltip "Binnenkort beschikbaar"
+3. Click opent `NestoModal` (size="sm"):
+   - Titel: "Pas aan met AI"
+   - Textarea: "Wat wil je aanpassen?" (placeholder: "Bijv. maak de tekst korter, voeg een CTA toe, maak het persoonlijker...")
+   - Huidige email body wordt meegestuurd als context
+   - Footer: "Annuleren" + "Aanpassen" knop
+4. Na succes:
+   - Update de text blocks met de AI-aangepaste tekst
+   - `nestoToast.success('Email aangepast door AI')`
+   - Modal sluit
+
+---
+
+## Stap 6: Hook voor AI generatie
+
+### `src/hooks/useGenerateContent.ts` (nieuw)
+
+```typescript
+// useGenerateSocialContent(options) -> mutation
+//   Calls supabase.functions.invoke('marketing-generate-content', { body: { type: 'social', ... } })
+//   Returns per-platform captions + hashtags + timing
+
+// useGenerateEmailContent(options) -> mutation
+//   Calls supabase.functions.invoke('marketing-generate-content', { body: { type: 'email', ... } })
+//   Returns updated email body
+```
+
+Beide met error handling voor 429/402 status codes, gesurfaced via `nestoToast.error`.
+
+---
+
+## Stap 7: SocialPreviewPanel update
+
+### `src/components/marketing/social/SocialPreviewPanel.tsx` (edit)
+
+- Props uitbreiden: `captions?: Record<SocialPlatform, string>` (naast bestaande `caption`)
+- Per preview: gebruik platform-specifieke caption als beschikbaar, anders fallback naar algemene `caption`
+- Hashtags per platform: Instagram toont hashtags, Facebook en Google niet
 
 ---
 
@@ -203,51 +213,30 @@ Export alle calendar componenten.
 
 | Bestand | Actie |
 |---|---|
-| `src/lib/navigation.ts` | Edit: marketing-kalender subitem + route map |
-| `src/App.tsx` | Edit: route + import |
-| `src/lib/dutchHolidays.ts` | Nieuw: feestdagen berekening |
-| `src/hooks/useMarketingSocialPosts.ts` | Nieuw: CRUD hooks voor social posts |
-| `src/pages/marketing/ContentCalendarPage.tsx` | Nieuw: hoofdpagina met layout |
-| `src/components/marketing/calendar/CalendarGrid.tsx` | Nieuw: maand grid + DnD context |
-| `src/components/marketing/calendar/DayCell.tsx` | Nieuw: individuele dag cel met overflow |
-| `src/components/marketing/calendar/WeekView.tsx` | Nieuw: week weergave met post cards |
-| `src/components/marketing/calendar/DayPanel.tsx` | Nieuw: NestoPanel dag detail |
-| `src/components/marketing/calendar/QuickCreatePost.tsx` | Nieuw: inline post formulier |
-| `src/components/marketing/calendar/CalendarSidebar.tsx` | Nieuw: rechter sidebar |
-| `src/components/marketing/calendar/index.ts` | Nieuw: barrel export |
-
----
-
-## Overflow patroon (jouw feedback)
-
-Goed punt. Per dag-cel in maand-view:
-- Toon max **3 platform dots**
-- Als meer posts: toon `+N` pill (`text-[10px] text-muted-foreground bg-muted/60 rounded-full px-1.5 py-0.5`)
-- Feestdag label: altijd getoond (prioriteit boven dots bij ruimtegebrek)
-- Herhaal-icoon: telt mee in de 3-dot limiet
-- Alle posts zichtbaar in DayPanel bij click
+| `supabase/functions/marketing-generate-content/index.ts` | Nieuw: AI edge function |
+| `supabase/config.toml` | Edit: verify_jwt = false voor nieuwe function |
+| `src/hooks/useGenerateContent.ts` | Nieuw: mutations voor AI content |
+| `src/pages/marketing/SocialPostCreatorPage.tsx` | Edit: AI knop, per-platform captions, hashtag chips |
+| `src/components/marketing/campaigns/ContentStep.tsx` | Edit: activeer AI knop |
+| `src/components/marketing/social/SocialPreviewPanel.tsx` | Edit: per-platform caption support |
 
 ---
 
 ## Design compliance
 
-- Kalender cellen: flat grid met `divide` borders, geen card-in-card
-- Shadow: alleen op post cards in week-view (NestoCard nested)
-- Platform kleuren: Instagram #E1306C, Facebook #1877F2, Google #34A853
-- Sidebar: SIDEBAR_PANELS.md compliant (bg-secondary, rounded-card, uppercase titles)
-- Panel: NestoPanel met reveal header
-- Toasts: nestoToast.success/error
-- Toggle buttons: Patroon 1 (bg-primary/10 text-primary border border-primary/20 shadow-sm)
-- Vandaag: ring-1 ring-primary
-- Feestdagen: text-[10px] text-primary, geen badge (compact in cel)
-- Dividers in panel/sidebar: border-t border-border/50 pt-4 mt-4
+- AI knop: `variant="outline" size="sm"` met Sparkles icon (consistent met bestaande email builder)
+- Mini-modal: `NestoModal size="sm"`, sentence case labels, rechts uitgelijnde buttons
+- Hashtag chips: `bg-primary/10 text-primary border-primary/20 rounded-full` (Patroon 1 toggle style)
+- Loading state: knoptekst wijzigt ("Genereren..."), geen spinner
+- Toasts: `nestoToast.success('Content gegenereerd')`, `nestoToast.error('Genereren mislukt')`
+- Error handling: 429 -> "Te veel verzoeken, probeer het later opnieuw", 402 -> "AI credits zijn op"
 
 ---
 
 ## Wat NIET in deze sessie
 
-- Media upload naar storage (Sprint 3)
-- AI content generatie (Sprint 3, sessie 3.3)
-- Daadwerkelijk publiceren naar platforms
-- Recurring post CRUD UI (alleen visuele indicator)
-- Cross-month drag-and-drop
+- Brand Intelligence profiel (Sprint 3 — schrijfstijl analyse, visuele stijl, performance data)
+- Streaming output (non-streaming invoke is voldoende voor korte captions)
+- Media/afbeelding suggesties
+- A/B caption auto-generatie
+
