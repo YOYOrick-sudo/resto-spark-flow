@@ -24,6 +24,10 @@ export interface SocialPost {
   created_by: string | null;
   external_post_id: string | null;
   analytics: Record<string, unknown>;
+  ai_original_caption: string | null;
+  operator_edited: boolean;
+  ab_test_group: string | null;
+  ab_test_id: string | null;
 }
 
 export function useMarketingSocialPosts(month: Date) {

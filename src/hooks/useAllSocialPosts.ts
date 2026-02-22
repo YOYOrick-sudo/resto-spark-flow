@@ -3,6 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
 import type { SocialPost } from './useMarketingSocialPosts';
 
+export function useABTestResults(abTestId: string | null) {
+  return useQuery({
+    queryKey: ['ab-test-results', abTestId],
+    queryFn: async () => {
+      if (!abTestId) return [];
+      const { data, error } = await supabase
+        .from('marketing_social_posts')
+        .select('*')
+        .eq('ab_test_id', abTestId)
+        .order('ab_test_group', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as SocialPost[];
+    },
+    enabled: !!abTestId,
+  });
+}
+
 interface SocialPostFilters {
   platform?: string;
   status?: string;
@@ -87,6 +104,10 @@ export function useCreateFullSocialPost() {
       is_recurring?: boolean;
       recurrence_rule?: Record<string, unknown>;
       alternative_caption?: string;
+      ai_original_caption?: string;
+      operator_edited?: boolean;
+      ab_test_group?: string;
+      ab_test_id?: string;
     }) => {
       if (!currentLocation) throw new Error('No location selected');
       const row = {
@@ -100,6 +121,10 @@ export function useCreateFullSocialPost() {
         is_recurring: input.is_recurring ?? false,
         recurrence_rule: input.recurrence_rule ?? null,
         alternative_caption: input.alternative_caption ?? null,
+        ai_original_caption: input.ai_original_caption ?? null,
+        operator_edited: input.operator_edited ?? false,
+        ab_test_group: input.ab_test_group ?? null,
+        ab_test_id: input.ab_test_id ?? null,
       };
       const { data, error } = await supabase
         .from('marketing_social_posts')

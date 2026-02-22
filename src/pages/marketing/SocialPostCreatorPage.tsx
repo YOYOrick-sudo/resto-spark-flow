@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
-import { format, setHours, setMinutes } from 'date-fns';
+import { format, setHours, setMinutes, addHours } from 'date-fns';
 import { PageHeader } from '@/components/polar/PageHeader';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoSelect } from '@/components/polar/NestoSelect';
@@ -87,13 +87,20 @@ export default function SocialPostCreatorPage() {
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState('weekly');
   const [dayOfWeek, setDayOfWeek] = useState('1');
-  const [alternativeCaption, setAltCaption] = useState('');
-  const [showAltCaption, setShowAltCaption] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // AI modal state
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiContext, setAiContext] = useState('');
+
+  // Caption learning cycle state
+  const [aiOriginalCaption, setAiOriginalCaption] = useState<string | null>(null);
+
+  // A/B testing state
+  const [abTestEnabled, setAbTestEnabled] = useState(false);
+  const [variantBCaption, setVariantBCaption] = useState('');
+  const [variantBPlatformCaptions, setVariantBPlatformCaptions] = useState<Partial<Record<SocialPlatform, string>>>({});
+  const [abVariantTab, setAbVariantTab] = useState<'a' | 'b'>('a');
 
   const charLimit = useMemo(() => {
     if (selectedPlatforms.length === 0) return null;
@@ -118,7 +125,6 @@ export default function SocialPostCreatorPage() {
   function handleCaptionChange(value: string) {
     setCaption(value);
     if (!perPlatformMode) {
-      // Sync to all platforms
       const updated: Partial<Record<SocialPlatform, string>> = {};
       selectedPlatforms.forEach((p) => { updated[p] = value; });
       setPlatformCaptions(updated);
@@ -144,41 +150,64 @@ export default function SocialPostCreatorPage() {
         context: aiContext || undefined,
         platforms: selectedPlatforms,
         content_type_tag: contentType === 'none' ? undefined : contentType,
+        ab_test: abTestEnabled,
       });
 
-      // Set per-platform captions
-      const newCaptions: Partial<Record<SocialPlatform, string>> = {};
-      if (result.platforms.instagram?.caption) {
-        newCaptions.instagram = result.platforms.instagram.caption;
-        // Also set hashtags from instagram result
-        if (result.platforms.instagram.hashtags?.length) {
-          setHashtags(result.platforms.instagram.hashtags.join(', '));
+      if (abTestEnabled && result.variants) {
+        // A/B mode: set variant A and B captions
+        const variantA = result.variants.a;
+        const variantB = result.variants.b;
+
+        const newCaptionsA: Partial<Record<SocialPlatform, string>> = {};
+        const newCaptionsB: Partial<Record<SocialPlatform, string>> = {};
+
+        for (const p of selectedPlatforms) {
+          newCaptionsA[p] = variantA?.platforms?.[p]?.caption ?? '';
+          newCaptionsB[p] = variantB?.platforms?.[p]?.caption ?? '';
+        }
+
+        setPlatformCaptions(newCaptionsA);
+        setVariantBPlatformCaptions(newCaptionsB);
+        const firstPlatform = selectedPlatforms[0];
+        setCaption(newCaptionsA[firstPlatform] ?? '');
+        setVariantBCaption(newCaptionsB[firstPlatform] ?? '');
+        setAiOriginalCaption(newCaptionsA[firstPlatform] ?? '');
+        setAbVariantTab('a');
+
+        if (selectedPlatforms.length > 1) {
+          setPerPlatformMode(true);
+          setActivePlatformTab(selectedPlatforms[0]);
+        }
+      } else {
+        // Normal mode
+        const newCaptions: Partial<Record<SocialPlatform, string>> = {};
+        if (result.platforms?.instagram?.caption) {
+          newCaptions.instagram = result.platforms.instagram.caption;
+          if (result.platforms.instagram.hashtags?.length) {
+            setHashtags(result.platforms.instagram.hashtags.join(', '));
+          }
+        }
+        if (result.platforms?.facebook?.caption) {
+          newCaptions.facebook = result.platforms.facebook.caption;
+        }
+        if (result.platforms?.google_business?.caption) {
+          newCaptions.google_business = result.platforms.google_business.caption;
+        }
+
+        setPlatformCaptions(newCaptions);
+        const firstPlatform = selectedPlatforms[0];
+        setCaption(newCaptions[firstPlatform] ?? '');
+        setAiOriginalCaption(newCaptions[firstPlatform] ?? '');
+
+        if (selectedPlatforms.length > 1) {
+          setPerPlatformMode(true);
+          setActivePlatformTab(selectedPlatforms[0]);
         }
       }
-      if (result.platforms.facebook?.caption) {
-        newCaptions.facebook = result.platforms.facebook.caption;
-      }
-      if (result.platforms.google_business?.caption) {
-        newCaptions.google_business = result.platforms.google_business.caption;
-      }
 
-      setPlatformCaptions(newCaptions);
-      // Set the main caption to the first platform's caption
-      const firstPlatform = selectedPlatforms[0];
-      setCaption(newCaptions[firstPlatform] ?? '');
-
-      // Enable per-platform mode if we have multiple platforms
-      if (selectedPlatforms.length > 1) {
-        setPerPlatformMode(true);
-        setActivePlatformTab(selectedPlatforms[0]);
-      }
-
-      // Hashtag suggestions
       if (result.suggested_hashtags?.length) {
         setSuggestedHashtags(result.suggested_hashtags.slice(0, 10));
       }
-
-      // Timing suggestion
       if (result.suggested_time || result.suggested_day) {
         setTimingSuggestion({ time: result.suggested_time, day: result.suggested_day });
       }
@@ -219,8 +248,19 @@ export default function SocialPostCreatorPage() {
         ? { frequency, day: parseInt(dayOfWeek), time: `${hour}:${minute}` }
         : undefined;
 
+      // Determine caption learning fields
+      const getOperatorEdited = (platformCaption: string) => {
+        if (!aiOriginalCaption) return false;
+        return platformCaption !== aiOriginalCaption;
+      };
+
+      const sharedAbTestId = abTestEnabled ? crypto.randomUUID() : undefined;
+
       for (const platform of selectedPlatforms) {
         const platformCaption = getCaptionForPlatform(platform);
+        const operatorEdited = getOperatorEdited(platformCaption);
+
+        // Create variant A (or normal post)
         const result = await createPost.mutateAsync({
           platform,
           content_text: platformCaption,
@@ -230,15 +270,38 @@ export default function SocialPostCreatorPage() {
           status,
           is_recurring: isRecurring,
           recurrence_rule: recurrenceRule,
-          alternative_caption: alternativeCaption || undefined,
+          ai_original_caption: aiOriginalCaption ?? undefined,
+          operator_edited: operatorEdited,
+          ab_test_group: abTestEnabled ? 'A' : undefined,
+          ab_test_id: sharedAbTestId,
         });
 
-        if (publishMode === 'now' && status === 'scheduled') {
+        if (!abTestEnabled && publishMode === 'now' && status === 'scheduled') {
           try {
             await publishPost.mutateAsync(result.id);
           } catch {
             nestoToast.error(`Publiceren naar ${platform} mislukt`);
           }
+        }
+
+        // Create variant B if A/B testing
+        if (abTestEnabled) {
+          const variantBCaptionForPlatform = variantBPlatformCaptions[platform] ?? variantBCaption;
+          const scheduledAtB = scheduledAt ? addHours(new Date(scheduledAt), 24).toISOString() : undefined;
+
+          await createPost.mutateAsync({
+            platform,
+            content_text: variantBCaptionForPlatform,
+            hashtags: hashtagList,
+            scheduled_at: scheduledAtB,
+            content_type_tag: contentType === 'none' ? undefined : contentType,
+            status,
+            is_recurring: false,
+            ai_original_caption: aiOriginalCaption ?? undefined,
+            operator_edited: getOperatorEdited(variantBCaptionForPlatform),
+            ab_test_group: 'B',
+            ab_test_id: sharedAbTestId,
+          });
         }
       }
 
@@ -262,8 +325,12 @@ export default function SocialPostCreatorPage() {
     label: PLATFORMS.find((pl) => pl.id === p)?.label ?? p,
   }));
 
-  // Token expiry check
   const expiringAccounts = accountsWithStatus.filter((a) => a.status === 'expiring');
+
+  const abTabs = [
+    { id: 'a', label: 'Variant A' },
+    { id: 'b', label: 'Variant B' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -285,7 +352,6 @@ export default function SocialPostCreatorPage() {
         }
       />
 
-      {/* Token expiry banners */}
       {expiringAccounts.map((acc) => (
         <InfoAlert
           key={acc.platform}
@@ -304,9 +370,7 @@ export default function SocialPostCreatorPage() {
       ))}
 
       <div className="flex gap-6">
-        {/* Left: form */}
         <div className="flex-1 space-y-6 max-w-2xl">
-          {/* Platform selection */}
           <PlatformSelector
             accountsWithStatus={accountsWithStatus}
             selectedPlatforms={selectedPlatforms}
@@ -321,24 +385,40 @@ export default function SocialPostCreatorPage() {
             />
           )}
 
+          {/* A/B variant tabs */}
+          {abTestEnabled && (
+            <NestoTabs
+              tabs={abTabs}
+              activeTab={abVariantTab}
+              onTabChange={(tab) => setAbVariantTab(tab as 'a' | 'b')}
+            />
+          )}
+
           {/* Caption */}
           <CaptionSection
-            caption={caption}
-            onCaptionChange={handleCaptionChange}
+            caption={abVariantTab === 'b' && abTestEnabled ? variantBCaption : caption}
+            onCaptionChange={abVariantTab === 'b' && abTestEnabled
+              ? (v) => {
+                  setVariantBCaption(v);
+                  if (!perPlatformMode) {
+                    const updated: Partial<Record<SocialPlatform, string>> = {};
+                    selectedPlatforms.forEach((p) => { updated[p] = v; });
+                    setVariantBPlatformCaptions(updated);
+                  }
+                }
+              : handleCaptionChange}
             charLimit={charLimit}
             overLimit={overLimit}
             selectedPlatforms={selectedPlatforms}
             perPlatformMode={perPlatformMode}
             setPerPlatformMode={setPerPlatformMode}
-            platformCaptions={platformCaptions}
-            onPlatformCaptionChange={handlePlatformCaptionChange}
+            platformCaptions={abVariantTab === 'b' && abTestEnabled ? variantBPlatformCaptions : platformCaptions}
+            onPlatformCaptionChange={abVariantTab === 'b' && abTestEnabled
+              ? (p, v) => setVariantBPlatformCaptions((prev) => ({ ...prev, [p]: v }))
+              : handlePlatformCaptionChange}
             platformTabs={platformTabs}
             activePlatformTab={activePlatformTab}
             setActivePlatformTab={setActivePlatformTab}
-            showAltCaption={showAltCaption}
-            setShowAltCaption={setShowAltCaption}
-            alternativeCaption={alternativeCaption}
-            setAltCaption={setAltCaption}
             onAIClick={() => setAiModalOpen(true)}
             aiDisabled={selectedPlatforms.length === 0}
             aiLoading={generateContent.isPending}
@@ -369,18 +449,15 @@ export default function SocialPostCreatorPage() {
             )}
           </section>
 
-          {/* Content type */}
           <section className="space-y-2">
             <label className="text-sm font-medium">Content type</label>
             <NestoSelect value={contentType} onValueChange={setContentType} options={CONTENT_TYPES} placeholder="Selecteer type..." />
           </section>
 
-          {/* Media placeholder */}
           <section className="border border-dashed border-border/50 rounded-xl p-6 flex items-center justify-center">
             <span className="text-sm text-muted-foreground">Media upload beschikbaar in Sprint 3</span>
           </section>
 
-          {/* Publish mode */}
           <PublishSection
             publishMode={publishMode}
             setPublishMode={setPublishMode}
@@ -393,7 +470,6 @@ export default function SocialPostCreatorPage() {
             timingSuggestion={timingSuggestion}
           />
 
-          {/* Recurring */}
           <section className="space-y-3 border-t border-border/50 pt-4">
             <div className="flex items-center gap-3">
               <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
@@ -416,7 +492,6 @@ export default function SocialPostCreatorPage() {
           </section>
         </div>
 
-        {/* Right: live preview */}
         <div className="w-96 shrink-0 hidden lg:block">
           <SocialPreviewPanel
             platforms={selectedPlatforms}
@@ -448,15 +523,24 @@ export default function SocialPostCreatorPage() {
           </div>
         }
       >
-        <div className="space-y-3">
-          <label className="text-sm font-medium">Waar gaat deze post over?</label>
-          <textarea
-            value={aiContext}
-            onChange={(e) => setAiContext(e.target.value)}
-            rows={4}
-            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-            placeholder="Bijv. nieuw seizoensmenu, teamuitje, speciale actie..."
-          />
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Waar gaat deze post over?</label>
+            <textarea
+              value={aiContext}
+              onChange={(e) => setAiContext(e.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              placeholder="Bijv. nieuw seizoensmenu, teamuitje, speciale actie..."
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch checked={abTestEnabled} onCheckedChange={setAbTestEnabled} />
+            <div>
+              <label className="text-sm font-medium">A/B Test</label>
+              <p className="text-xs text-muted-foreground">Genereer twee varianten om te vergelijken</p>
+            </div>
+          </div>
         </div>
       </NestoModal>
     </div>
@@ -522,10 +606,6 @@ function CaptionSection({
   platformTabs,
   activePlatformTab,
   setActivePlatformTab,
-  showAltCaption,
-  setShowAltCaption,
-  alternativeCaption,
-  setAltCaption,
   onAIClick,
   aiDisabled,
   aiLoading,
@@ -542,10 +622,6 @@ function CaptionSection({
   platformTabs: { id: string; label: string }[];
   activePlatformTab: string;
   setActivePlatformTab: (v: string) => void;
-  showAltCaption: boolean;
-  setShowAltCaption: (v: boolean) => void;
-  alternativeCaption: string;
-  setAltCaption: (v: string) => void;
   onAIClick: () => void;
   aiDisabled: boolean;
   aiLoading: boolean;
@@ -630,25 +706,6 @@ function CaptionSection({
             </button>
           )}
         </>
-      )}
-
-      {/* Alt caption */}
-      {!showAltCaption && (
-        <button onClick={() => setShowAltCaption(true)} className="text-xs text-primary hover:underline">
-          + Alternatieve caption
-        </button>
-      )}
-      {showAltCaption && (
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground font-medium">Alternatieve caption (A/B)</label>
-          <textarea
-            value={alternativeCaption}
-            onChange={(e) => setAltCaption(e.target.value)}
-            rows={3}
-            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-            placeholder="Optioneel: alternatieve versie..."
-          />
-        </div>
       )}
     </section>
   );
