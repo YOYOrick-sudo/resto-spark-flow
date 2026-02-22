@@ -1139,6 +1139,7 @@ export type Database = {
           content_type_tag: string | null
           created_at: string
           created_by: string | null
+          error_message: string | null
           external_post_id: string | null
           hashtags: string[]
           id: string
@@ -1161,6 +1162,7 @@ export type Database = {
           content_type_tag?: string | null
           created_at?: string
           created_by?: string | null
+          error_message?: string | null
           external_post_id?: string | null
           hashtags?: string[]
           id?: string
@@ -1183,6 +1185,7 @@ export type Database = {
           content_type_tag?: string | null
           created_at?: string
           created_by?: string | null
+          error_message?: string | null
           external_post_id?: string | null
           hashtags?: string[]
           id?: string
@@ -3190,6 +3193,7 @@ export type Database = {
         Returns: undefined
       }
       process_scheduled_campaigns: { Args: never; Returns: undefined }
+      publish_scheduled_social_posts: { Args: never; Returns: undefined }
       reorder_areas: {
         Args: { _area_ids: string[]; _location_id: string }
         Returns: Json
