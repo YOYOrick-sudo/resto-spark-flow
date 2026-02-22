@@ -1,13 +1,8 @@
 import { Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PLATFORM_COLORS } from '@/lib/platformColors';
 import type { SocialPost } from '@/hooks/useMarketingSocialPosts';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: '#E1306C',
-  facebook: '#1877F2',
-  google_business: '#34A853',
-};
 
 const MAX_DOTS = 3;
 
