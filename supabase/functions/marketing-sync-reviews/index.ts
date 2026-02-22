@@ -87,11 +87,22 @@ Antwoord in JSON format: { "results": [{ "id": "...", "sentiment": "...", "senti
   }
 }
 
-// Generate AI response for negative reviews
-async function generateResponse(reviewText: string, authorName: string, rating: number, brandVoice: string | null): Promise<string | null> {
+// Generate AI response for reviews (all ratings, style varies by rating)
+async function generateResponse(
+  reviewText: string,
+  authorName: string,
+  rating: number,
+  reviewResponseProfile: string | null
+): Promise<string | null> {
   try {
-    const voiceInstruction = brandVoice
-      ? `Schrijf in de volgende brand voice: ${brandVoice}`
+    // Rating-dependent instructions
+    const ratingInstruction = rating >= 4
+      ? 'Schrijf een kort, warm bedankje (1-2 zinnen). Persoonlijk, niet generiek. Noem iets specifieks uit de review.'
+      : `Erken het probleem specifiek (niet generiek). Bied een concrete oplossing of verbetering aan. Nodig de gast uit om terug te komen. Houd het kort (max 3-4 zinnen). Toon empathie zonder excuses te zoeken.`;
+
+    // Use review_response_profile if available, otherwise generic
+    const voiceInstruction = reviewResponseProfile
+      ? `Schrijf het antwoord in EXACT deze stijl:\n${reviewResponseProfile}`
       : 'Schrijf professioneel en vriendelijk.';
 
     const res = await fetch(`${AI_GATEWAY}/v1/chat/completions`, {
@@ -106,11 +117,7 @@ async function generateResponse(reviewText: string, authorName: string, rating: 
 
 Regels:
 - Spreek de reviewer aan met hun voornaam
-- Erken het probleem specifiek (niet generiek)
-- Bied een concrete oplossing of verbetering aan
-- Nodig de gast uit om terug te komen
-- Houd het kort (max 3-4 zinnen)
-- Toon empathie zonder excuses te zoeken`
+- ${ratingInstruction}`
           },
           {
             role: 'user',
@@ -229,35 +236,40 @@ async function processLocation(locationId: string, placeId: string, apiKey: stri
       }
     }
 
-    // 5. Generate AI responses for low-rated reviews
-    const { data: lowRated } = await supabaseAdmin
+    // 5. Generate AI responses for ALL reviews without a suggestion
+    const { data: unresponded } = await supabaseAdmin
       .from('marketing_reviews')
       .select('id, review_text, author_name, rating')
       .eq('location_id', locationId)
-      .lte('rating', 3)
       .is('ai_suggested_response', null)
       .not('review_text', 'is', null);
 
-    if (lowRated && lowRated.length > 0) {
-      // Get brand voice
-      const { data: brandKit } = await supabaseAdmin
+    if (unresponded && unresponded.length > 0) {
+      // Get review_response_profile (NOT caption_style_profile)
+      const { data: brandIntel } = await supabaseAdmin
         .from('marketing_brand_intelligence')
-        .select('caption_style_profile')
+        .select('review_response_profile')
         .eq('location_id', locationId)
         .maybeSingle();
 
-      for (const review of lowRated) {
+      const reviewResponseProfile = brandIntel?.review_response_profile || null;
+
+      for (const review of unresponded) {
         const response = await generateResponse(
           review.review_text!,
           review.author_name,
           review.rating,
-          brandKit?.caption_style_profile || null
+          reviewResponseProfile
         );
 
         if (response) {
+          // Save both ai_suggested_response and ai_original_response (immutable)
           await supabaseAdmin
             .from('marketing_reviews')
-            .update({ ai_suggested_response: response })
+            .update({
+              ai_suggested_response: response,
+              ai_original_response: response,
+            })
             .eq('id', review.id);
         }
       }

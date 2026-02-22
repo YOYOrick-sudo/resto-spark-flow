@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.marketing-onboard-instagram]
 verify_jwt = false
+
+[functions.marketing-reply-review]
+verify_jwt = false

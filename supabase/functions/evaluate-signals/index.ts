@@ -700,7 +700,7 @@ const marketingProvider: SignalProvider = {
     const hasMkt = await hasMarketingEntitlement(locationId);
     if (!hasMkt) return drafts;
 
-    // 1. marketing_negative_review: unresponded reviews with rating <= 2
+    // 1. marketing_negative_review: unresponded reviews with rating <= 3
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -708,7 +708,7 @@ const marketingProvider: SignalProvider = {
       .from('marketing_reviews')
       .select('id, author_name, rating')
       .eq('location_id', locationId)
-      .lte('rating', 2)
+      .lte('rating', 3)
       .is('response_text', null)
       .gt('created_at', sevenDaysAgo.toISOString())
       .limit(5);
@@ -722,7 +722,7 @@ const marketingProvider: SignalProvider = {
         kind: 'signal',
         severity: 'warning',
         title: `${negReviews.length} negatieve review(s) zonder antwoord`,
-        message: 'Reviews met 1-2 sterren wachten op een reactie.',
+        message: 'Reviews met 1-3 sterren wachten op een reactie.',
         action_path: '/marketing/reviews',
         dedup_key: `marketing_negative_review:${locationId}`,
         actionable: true,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, MessageSquare, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
+import { Star, MessageSquare, CheckCircle2, Sparkles, Loader2, Copy, Send, Info } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { PageHeader } from '@/components/polar/PageHeader';
@@ -10,11 +10,20 @@ import { StatCard } from '@/components/polar/StatCard';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { NestoTable, type Column } from '@/components/polar/NestoTable';
 import { usePermission } from '@/hooks/usePermission';
-import { useReviews, useReviewStats, useUpdateReview, useGenerateReviewResponse, type ReviewFilters } from '@/hooks/useReviews';
+import {
+  useReviews,
+  useReviewStats,
+  useUpdateReview,
+  useGenerateReviewResponse,
+  useReplyToGoogle,
+  useGoogleBusinessAccount,
+  type ReviewFilters,
+} from '@/hooks/useReviews';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 
 const SENTIMENT_BADGE: Record<string, { label: string; variant: 'success' | 'default' | 'error' }> = {
@@ -66,6 +75,10 @@ export default function ReviewsPage() {
   const { data: stats } = useReviewStats();
   const updateReview = useUpdateReview();
   const generateResponse = useGenerateReviewResponse();
+  const replyToGoogle = useReplyToGoogle();
+  const { data: googleAccount } = useGoogleBusinessAccount();
+
+  const hasGoogleBusiness = !!googleAccount;
 
   if (!canView) {
     return (
@@ -83,13 +96,35 @@ export default function ReviewsPage() {
 
   const handleSaveResponse = async () => {
     if (!selectedReview) return;
+
+    // Determine operator_edited
+    const operatorEdited = selectedReview.ai_original_response
+      ? responseText.trim() !== selectedReview.ai_original_response.trim()
+      : false;
+
     await updateReview.mutateAsync({
       id: selectedReview.id,
       response_text: responseText,
       responded_at: responseText ? new Date().toISOString() : undefined,
+      operator_edited: operatorEdited,
     });
     toast.success('Antwoord opgeslagen');
     setSelectedReview(null);
+  };
+
+  const handleReplyToGoogle = async () => {
+    if (!selectedReview || !responseText) return;
+    await replyToGoogle.mutateAsync({
+      reviewId: selectedReview.id,
+      responseText,
+    });
+    setSelectedReview(null);
+  };
+
+  const handleCopyResponse = async () => {
+    if (!responseText) return;
+    await navigator.clipboard.writeText(responseText);
+    toast.success('Gekopieerd — plak in Google Maps');
   };
 
   const handleToggleFeatured = async (val: boolean) => {
@@ -175,27 +210,10 @@ export default function ReviewsPage() {
       {stats && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              label="Google score"
-              value={stats.googleRating?.toFixed(1) ?? '—'}
-              unit="/5"
-              icon={Star}
-            />
-            <StatCard
-              label="Totaal reviews"
-              value={stats.googleReviewCount ?? stats.localReviewCount}
-              icon={MessageSquare}
-            />
-            <StatCard
-              label="Response rate"
-              value={stats.responseRate}
-              unit="%"
-              icon={CheckCircle2}
-            />
-            <StatCard
-              label="Recente reviews"
-              value={stats.localReviewCount}
-            />
+            <StatCard label="Google score" value={stats.googleRating?.toFixed(1) ?? '—'} unit="/5" icon={Star} />
+            <StatCard label="Totaal reviews" value={stats.googleReviewCount ?? stats.localReviewCount} icon={MessageSquare} />
+            <StatCard label="Response rate" value={stats.responseRate} unit="%" icon={CheckCircle2} />
+            <StatCard label="Recente reviews" value={stats.localReviewCount} />
           </div>
 
           {/* Rating distribution */}
@@ -309,9 +327,9 @@ export default function ReviewsPage() {
                   </div>
                 )}
 
-                {/* AI suggestion */}
+                {/* Response section */}
                 {canManage && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm font-medium">Antwoord</Label>
                       {!selectedReview.ai_suggested_response && (
@@ -336,13 +354,61 @@ export default function ReviewsPage() {
                       rows={5}
                       placeholder="Schrijf een antwoord op deze review..."
                     />
-                    <NestoButton
-                      onClick={handleSaveResponse}
-                      disabled={updateReview.isPending || !responseText}
-                      className="w-full"
-                    >
-                      Opslaan
-                    </NestoButton>
+
+                    {/* Google Business info alert */}
+                    {!hasGoogleBusiness && (
+                      <Alert className="bg-accent/30 border-border/50">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          Koppel Google Business in Instellingen om direct vanuit Nesto te reageren.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      {hasGoogleBusiness ? (
+                        <>
+                          <NestoButton
+                            onClick={handleReplyToGoogle}
+                            disabled={replyToGoogle.isPending || !responseText}
+                            className="flex-1"
+                          >
+                            {replyToGoogle.isPending ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                            ) : (
+                              <Send className="h-3.5 w-3.5 mr-1.5" />
+                            )}
+                            Reageer op Google
+                          </NestoButton>
+                          <NestoButton
+                            variant="outline"
+                            onClick={handleSaveResponse}
+                            disabled={updateReview.isPending || !responseText}
+                          >
+                            Opslaan als concept
+                          </NestoButton>
+                        </>
+                      ) : (
+                        <>
+                          <NestoButton
+                            onClick={handleCopyResponse}
+                            disabled={!responseText}
+                            className="flex-1"
+                          >
+                            <Copy className="h-3.5 w-3.5 mr-1.5" />
+                            Kopieer reactie
+                          </NestoButton>
+                          <NestoButton
+                            variant="outline"
+                            onClick={handleSaveResponse}
+                            disabled={updateReview.isPending || !responseText}
+                          >
+                            Opslaan
+                          </NestoButton>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
