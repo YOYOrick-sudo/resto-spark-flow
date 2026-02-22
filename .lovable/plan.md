@@ -1,62 +1,96 @@
 
 
-# Marketing Dashboard KPI cards — gelijktrekken met Reviews
+# Marketing Testrapport Fixes
 
-## Huidige situatie
+## Overzicht
 
-**Reviews pagina** (het gewenste patroon):
-```
-StatCard label="Google score" value="4.2" unit="/5" icon={Star}
-StatCard label="Totaal reviews" value={42} icon={MessageSquare}
-StatCard label="Response rate" value={85} unit="%" icon={CheckCircle2}
-StatCard label="Recente reviews" value={12}
-```
-Compact, uniform, minimalistisch. Allemaal via het `StatCard` component.
-
-**Marketing dashboard** (huidige situatie):
-4 custom `NestoCard` blokken met:
-- Inline sparkline chart (omzet)
-- Info tooltip met hover
-- "Bekijk analytics" link
-- Conditionele error-kleur
-- "Win-back sturen" button
-- Flow namen lijstje
-
-Te druk, inconsistent met de rest van het platform.
+Vier fixes uit het testrapport, allemaal laag risico.
 
 ---
 
-## Wijziging
+## Fix 1: PLATFORM_COLORS import centraliseren (2 bestanden)
 
-Vervang de 4 custom KPI `NestoCard` blokken (regels 103-242) door 4 `StatCard` componenten in een grid:
+**SocialPostsPage.tsx**
+- Verwijder regels 38-42 (inline `PLATFORM_COLORS`)
+- Voeg import toe: `import { PLATFORM_COLORS } from '@/lib/platformColors'`
 
-| Card | label | value | unit | icon |
-|------|-------|-------|------|------|
-| 1 | Marketing omzet | `EUR X.XXX` (formatted) | | Euro |
-| 2 | Gasten bereikt | count | | Users |
-| 3 | At-risk gasten | count | | AlertTriangle |
-| 4 | Actieve flows | count | | Zap |
+**DayCell.tsx**
+- Verwijder regels 6-10 (inline `PLATFORM_COLORS`)
+- Voeg import toe: `import { PLATFORM_COLORS } from '@/lib/platformColors'`
 
-### Wat verdwijnt
-- Sparkline chart in omzet card (te druk voor een KPI overzicht)
-- Info tooltip met de EUR 35 uitleg
-- "Bekijk analytics" link (de analytics pagina is al bereikbaar via navigatie)
-- "Win-back sturen" button (bereikbaar via Campagnes)
-- Flow namen lijst onder het getal
-- Alle custom `!p-0` / `!p-6` overrides
+---
 
-### Wat blijft
-- Het 4-koloms grid layout (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`)
-- Loading states (StatCard krijgt value van skeleton of het getal)
-- De rest van de pagina (WeekplanCard, CoachingTips, BrandIntelligence, Campaigns tabel, Activity timeline) blijft identiek
+## Fix 2: config.toml — 8 ontbrekende entries
+
+Voeg toe aan `supabase/config.toml`:
+
+```
+[functions.marketing-attribution]
+verify_jwt = false
+
+[functions.marketing-publish-social]
+verify_jwt = false
+
+[functions.marketing-refresh-tokens]
+verify_jwt = false
+
+[functions.marketing-generate-weekplan]
+verify_jwt = false
+
+[functions.marketing-generate-coaching]
+verify_jwt = false
+
+[functions.marketing-generate-ideas]
+verify_jwt = false
+
+[functions.marketing-sync-reviews]
+verify_jwt = false
+
+[functions.marketing-fetch-ugc]
+verify_jwt = false
+```
+
+Let op: `config.toml` wordt automatisch beheerd, maar deze entries zijn nodig om de functies correct te deployen.
+
+---
+
+## Fix 3: Ontbrekende cron jobs registreren
+
+Via een SQL insert (niet via migration tool, want het bevat project-specifieke URL/key):
+
+| Job | Schema | Doel |
+|-----|--------|------|
+| `marketing-sync-social-stats` | `0 */4 * * *` | Social metrics ophalen elke 4 uur |
+| `marketing-refresh-tokens` | `0 3 * * *` | OAuth tokens vernieuwen dagelijks 03:00 |
+
+Beide via `net.http_post` naar de edge function URL.
+
+---
+
+## Fix 4: marketing-evaluate-ab-test — nieuwe edge function + cron
+
+**Edge function** (`supabase/functions/marketing-evaluate-ab-test/index.ts`):
+- Query `marketing_social_posts` waar `ab_test_id IS NOT NULL`, `status = 'published'`, en `created_at` ouder dan 48 uur
+- Groepeer per `ab_test_id`
+- Vergelijk engagement rate (engagement / reach) per variant (A vs B)
+- Update winnende post met `ab_test_winner = true` in analytics JSON
+- Return samenvatting van geëvalueerde tests
+
+**config.toml entry**: `verify_jwt = false`
+
+**Cron job**: `0 * * * *` (elk uur) via `net.http_post`
 
 ---
 
 ## Technische details
 
 | Bestand | Actie |
-|---|---|
-| `src/pages/marketing/MarketingDashboard.tsx` | Edit: vervang regels 103-242 (4 NestoCard blokken) door 4 StatCard componenten. Voeg `StatCard` import toe, verwijder ongebruikte imports (`AreaChart`, `Area`, `ResponsiveContainer`, `Tooltip` van recharts, `Info`, `UITooltip`, `cn`). Verwijder `sparklineTooltip` functie en `AVG_REVENUE_PER_GUEST` constante. |
+|---------|-------|
+| `src/pages/marketing/SocialPostsPage.tsx` | Edit: verwijder inline PLATFORM_COLORS, voeg import toe |
+| `src/components/marketing/calendar/DayCell.tsx` | Edit: verwijder inline PLATFORM_COLORS, voeg import toe |
+| `supabase/config.toml` | Edit: 8 function entries toevoegen |
+| `supabase/functions/marketing-evaluate-ab-test/index.ts` | Nieuw: A/B test evaluatie functie |
+| SQL (insert, niet migration) | 3 cron jobs registreren |
 
-Eén bestand, eén sectie, netto minder code.
+Geen database schema wijzigingen. Geen breaking changes.
 
