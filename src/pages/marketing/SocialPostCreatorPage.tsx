@@ -367,7 +367,7 @@ export default function SocialPostCreatorPage() {
           <NestoButton
             variant="outline"
             size="sm"
-            onClick={() => navigate('/marketing/instellingen')}
+            onClick={() => navigate('/instellingen/marketing')}
           >
             Instellingen
           </NestoButton>
