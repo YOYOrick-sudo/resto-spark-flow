@@ -24,7 +24,6 @@ export interface NestoTableProps<T> {
   onRowClick?: (item: T) => void;
   emptyMessage?: string;
   stickyHeader?: boolean;
-  zebra?: boolean;
   className?: string;
 }
 
@@ -35,19 +34,18 @@ export function NestoTable<T extends Record<string, unknown>>({
   onRowClick,
   emptyMessage = "Geen gegevens beschikbaar",
   stickyHeader = false,
-  zebra = true,
   className,
 }: NestoTableProps<T>) {
   return (
-    <div className={cn("w-full overflow-auto rounded-card border border-border", className)}>
+    <div className={cn("w-full overflow-auto rounded-2xl bg-card shadow-card", className)}>
       <Table>
-        <TableHeader className={cn(stickyHeader && "sticky top-0 z-10")}>
-          <TableRow className="bg-accent hover:bg-accent border-b border-border">
+        <TableHeader className={cn(stickyHeader && "sticky top-0 z-10 bg-card")}>
+          <TableRow className="border-none hover:bg-transparent">
             {columns.map((column) => (
               <TableHead
                 key={column.key}
                 className={cn(
-                  "h-11 px-4 text-label text-muted-foreground",
+                  "px-4 pb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider",
                   column.headerClassName
                 )}
               >
@@ -56,9 +54,9 @@ export function NestoTable<T extends Record<string, unknown>>({
             ))}
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className="divide-y divide-border/50">
           {data.length === 0 ? (
-            <TableRow>
+            <TableRow className="border-none">
               <TableCell
                 colSpan={columns.length}
                 className="h-24 text-center text-muted-foreground"
@@ -67,21 +65,20 @@ export function NestoTable<T extends Record<string, unknown>>({
               </TableCell>
             </TableRow>
           ) : (
-            data.map((item, index) => (
+            data.map((item) => (
               <TableRow
                 key={keyExtractor(item)}
                 onClick={() => onRowClick?.(item)}
                 className={cn(
-                  "border-b border-border transition-colors",
+                  "border-none transition-colors duration-150",
                   onRowClick && "cursor-pointer",
-                  zebra && index % 2 === 1 && "bg-accent/50",
-                  "hover:bg-accent"
+                  "hover:bg-muted/30"
                 )}
               >
                 {columns.map((column) => (
                   <TableCell
                     key={column.key}
-                    className={cn("px-4 py-3.5 text-secondary", column.className)}
+                    className={cn("px-4 py-3.5 text-sm", column.className)}
                   >
                     {column.render
                       ? column.render(item)

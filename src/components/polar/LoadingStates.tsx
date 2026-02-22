@@ -18,33 +18,32 @@ export function TableSkeleton({
   className,
 }: TableSkeletonProps) {
   return (
-    <div className={cn("w-full overflow-hidden rounded-2xl border border-border", className)}>
+    <div className={cn("w-full overflow-hidden rounded-2xl bg-card shadow-card", className)}>
       {/* Header */}
-      <div className="flex gap-4 bg-accent p-4 border-b border-border">
+      <div className="flex gap-4 px-4 pt-4 pb-2">
         {Array.from({ length: columns }).map((_, i) => (
-          <Skeleton key={i} className="h-4 flex-1 max-w-32" />
+          <Skeleton key={i} className="h-3 flex-1 max-w-32" />
         ))}
       </div>
       {/* Rows */}
-      {Array.from({ length: rows }).map((_, rowIndex) => (
-        <div
-          key={rowIndex}
-          className={cn(
-            "flex gap-4 p-4 border-b border-border last:border-b-0",
-            rowIndex % 2 === 1 && "bg-accent/50"
-          )}
-        >
-          {Array.from({ length: columns }).map((_, colIndex) => (
-            <Skeleton
-              key={colIndex}
-              className={cn(
-                "h-4 flex-1",
-                colIndex === 0 ? "max-w-48" : "max-w-24"
-              )}
-            />
-          ))}
-        </div>
-      ))}
+      <div className="divide-y divide-border/50">
+        {Array.from({ length: rows }).map((_, rowIndex) => (
+          <div
+            key={rowIndex}
+            className="flex gap-4 px-4 py-3.5"
+          >
+            {Array.from({ length: columns }).map((_, colIndex) => (
+              <Skeleton
+                key={colIndex}
+                className={cn(
+                  "h-4 flex-1",
+                  colIndex === 0 ? "max-w-48" : "max-w-24"
+                )}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

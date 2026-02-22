@@ -40,7 +40,6 @@ export interface DataTableProps<T> {
   emptyMessage?: string;
   emptyIcon?: LucideIcon;
   stickyHeader?: boolean;
-  zebra?: boolean;
   className?: string;
 
   // Sorting
@@ -69,7 +68,6 @@ export function DataTable<T>({
   emptyMessage = "Geen gegevens gevonden",
   emptyIcon,
   stickyHeader = false,
-  zebra = true,
   className,
   sortColumn,
   sortDirection,
@@ -117,12 +115,12 @@ export function DataTable<T>({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="w-full overflow-auto rounded-2xl border border-border bg-card">
+      <div className="w-full overflow-auto rounded-2xl bg-card shadow-card">
         <Table>
-          <TableHeader className={cn(stickyHeader && "sticky top-0 z-10")}>
-            <TableRow className="bg-accent hover:bg-accent border-b border-border">
+          <TableHeader className={cn(stickyHeader && "sticky top-0 z-10 bg-card")}>
+            <TableRow className="border-none hover:bg-transparent">
               {selectable && (
-                <TableHead className="h-11 w-12 px-4">
+                <TableHead className="w-12 px-4 pb-2">
                   <Checkbox
                     checked={allSelected}
                     ref={(el) => {
@@ -139,7 +137,7 @@ export function DataTable<T>({
                   key={column.key}
                   onClick={() => handleSort(column)}
                   className={cn(
-                    "h-11 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground",
+                    "px-4 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
                     column.sortable && onSort && "cursor-pointer select-none hover:text-foreground transition-colors",
                     column.headerClassName
                   )}
@@ -164,9 +162,9 @@ export function DataTable<T>({
               ))}
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="divide-y divide-border/50">
             {data.length === 0 ? (
-              <TableRow>
+              <TableRow className="border-none">
                 <TableCell
                   colSpan={columns.length + (selectable ? 1 : 0)}
                   className="h-48"
@@ -179,7 +177,7 @@ export function DataTable<T>({
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((item, index) => {
+              data.map((item) => {
                 const id = keyExtractor(item);
                 const isSelected = selectedRows.includes(id);
 
@@ -188,11 +186,10 @@ export function DataTable<T>({
                     key={id}
                     onClick={() => onRowClick?.(item)}
                     className={cn(
-                      "border-b border-border transition-colors",
+                      "border-none transition-colors duration-150",
                       onRowClick && "cursor-pointer",
-                      zebra && index % 2 === 1 && "bg-accent/50",
                       isSelected && "bg-primary/5",
-                      "hover:bg-accent"
+                      "hover:bg-muted/30"
                     )}
                   >
                     {selectable && (
