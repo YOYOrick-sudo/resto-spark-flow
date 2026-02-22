@@ -1263,6 +1263,72 @@ export type Database = {
           },
         ]
       }
+      marketing_popup_suggestions: {
+        Row: {
+          button_text: string | null
+          created_at: string | null
+          custom_button_url: string | null
+          description: string
+          dismiss_reason: string | null
+          featured_ticket_id: string | null
+          generated_at: string | null
+          headline: string
+          id: string
+          location_id: string
+          popup_type: string
+          reasoning: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          button_text?: string | null
+          created_at?: string | null
+          custom_button_url?: string | null
+          description: string
+          dismiss_reason?: string | null
+          featured_ticket_id?: string | null
+          generated_at?: string | null
+          headline: string
+          id?: string
+          location_id: string
+          popup_type?: string
+          reasoning: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          button_text?: string | null
+          created_at?: string | null
+          custom_button_url?: string | null
+          description?: string
+          dismiss_reason?: string | null
+          featured_ticket_id?: string | null
+          generated_at?: string | null
+          headline?: string
+          id?: string
+          location_id?: string
+          popup_type?: string
+          reasoning?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_popup_suggestions_featured_ticket_id_fkey"
+            columns: ["featured_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_popup_suggestions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_reviews: {
         Row: {
           ai_original_response: string | null

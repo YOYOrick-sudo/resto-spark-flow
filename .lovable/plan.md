@@ -1,23 +1,20 @@
 
-# Website Popup Upgrade — Modulaire Types + Werkpagina
+# AI Popup Suggesties — Wekelijkse Voorstellen met Leercyclus
 
 ## Status: ✅ AFGEROND
 
 ### Wat is gedaan:
 
-1. **Database migratie** — `popup_type` (TEXT, default 'newsletter') en `custom_button_url` (TEXT) kolommen toegevoegd aan `marketing_popup_config`. `featured_ticket_id` bestond al.
+1. **Database migratie** — `marketing_popup_suggestions` tabel aangemaakt met `popup_type`, `headline`, `description`, `featured_ticket_id`, `custom_button_url`, `button_text`, `reasoning`, `status` (pending/accepted/dismissed), `dismiss_reason`. Validation trigger, indexen, RLS met `user_has_location_access`.
 
-2. **Hook update** — `usePopupConfig.ts` uitgebreid met `PopupType` type export en nieuwe velden.
+2. **Hook** — `usePopupSuggestion.ts` met drie exports: `usePopupSuggestion()` (query pending suggestie met ticket join), `useAcceptPopupSuggestion()` (kopieer naar popup_config + mark accepted), `useDismissPopupSuggestion()` (mark dismissed met reden).
 
-3. **PopupPage** (`/marketing/popup`) — Nieuwe werkpagina met:
-   - Type kiezer (Reservering / Nieuwsbrief / Custom)
-   - Conditionele velden per type
-   - Weergave-instellingen (exit-intent, timed, sticky bar)
-   - Live preview met browser viewport simulatie
-   - Autosave met debounce
+3. **UI componenten**:
+   - `PopupSuggestionCard` — Suggestiekaart met headline, description, type badge, ticket naam, reasoning, Toepassen/Afwijzen knoppen.
+   - `DismissReasonModal` — Modal met multi-select redenen + vrij tekstveld.
 
-4. **Edge functions** — `marketing-popup-config` stuurt `popup_type` en `custom_button_url` mee. `marketing-popup-widget` rendert conditioneel per type (reservation: ticket-card + CTA, newsletter: email form, custom: link button).
+4. **PopupPage integratie** — Suggestiekaart verschijnt bovenaan de pagina wanneer een pending suggestie bestaat.
 
-5. **Navigatie** — "Website Popup" toegevoegd aan marketing sub-menu en route in App.tsx.
+5. **Edge function** — `marketing-generate-weekplan` uitgebreid met `generatePopupSuggestion()` blok: haalt popup config, tickets, learning history op, genereert via Lovable AI Gateway (tool calling), auto-dismisst oude pending suggesties, slaat nieuwe op. Frequency check: bij 3+ dismissals van laatste 5, alleen genereren bij feestdag.
 
-6. **Settings vereenvoudigd** — `PopupSettingsTab` teruggebracht tot embed code + link naar werkpagina.
+6. **Signal** — `marketing_popup_suggestion_pending` toegevoegd aan `evaluate-signals` marketing provider. Triggert bij pending suggestie ouder dan 24 uur, cooldown 7 dagen, resolved als geen pending suggesties meer.
