@@ -1199,6 +1199,8 @@ export type Database = {
           is_active: boolean
           location_id: string
           popup_type: string
+          schedule_end_at: string | null
+          schedule_start_at: string | null
           sticky_bar_enabled: boolean
           sticky_bar_position: string
           success_message: string
@@ -1219,6 +1221,8 @@ export type Database = {
           is_active?: boolean
           location_id: string
           popup_type?: string
+          schedule_end_at?: string | null
+          schedule_start_at?: string | null
           sticky_bar_enabled?: boolean
           sticky_bar_position?: string
           success_message?: string
@@ -1239,6 +1243,8 @@ export type Database = {
           is_active?: boolean
           location_id?: string
           popup_type?: string
+          schedule_end_at?: string | null
+          schedule_start_at?: string | null
           sticky_bar_enabled?: boolean
           sticky_bar_position?: string
           success_message?: string

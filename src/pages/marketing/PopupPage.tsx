@@ -10,14 +10,20 @@ import { Slider } from '@/components/ui/slider';
 import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoOutlineButtonGroup } from '@/components/polar/NestoOutlineButtonGroup';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
-import { Check, Globe, ExternalLink, Link as LinkIcon } from 'lucide-react';
+import { Check, Globe, ExternalLink, Link as LinkIcon, CalendarIcon, RefreshCw } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
+import { NestoBadge } from '@/components/polar/NestoBadge';
 import { usePopupConfig, useUpdatePopupConfig, PopupType } from '@/hooks/usePopupConfig';
 import { useMarketingBrandKit } from '@/hooks/useMarketingBrandKit';
 import { useUserContext } from '@/contexts/UserContext';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { nestoToast } from '@/lib/nestoToast';
 import { useTickets } from '@/hooks/useTickets';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { nl } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const POSITION_OPTIONS = [
   { value: 'top', label: 'Boven' },
@@ -27,10 +33,11 @@ const POSITION_OPTIONS = [
 const PREVIEW_OPTIONS = [
   { value: 'popup', label: 'Popup' },
   { value: 'bar', label: 'Sticky bar' },
+  { value: 'live', label: 'Live' },
 ];
 
 const TYPE_OPTIONS = [
-  { value: 'reservation', label: 'Reservering' },
+  { value: 'reservation', label: 'Ervaring' },
   { value: 'newsletter', label: 'Nieuwsbrief' },
   { value: 'custom', label: 'Custom' },
 ];
@@ -50,6 +57,7 @@ export default function PopupPage() {
   const { data: ticketsData } = useTickets(currentLocation?.id);
   const [saved, setSaved] = useState(false);
   const [previewType, setPreviewType] = useState('popup');
+  const [iframeKey, setIframeKey] = useState(0);
 
   const [state, setState] = useState({
     is_active: false,
@@ -66,7 +74,11 @@ export default function PopupPage() {
     gdpr_text: 'Door je aan te melden ga je akkoord met onze privacy policy.',
     featured_ticket_id: null as string | null,
     custom_button_url: '' as string,
+    schedule_start_at: null as string | null,
+    schedule_end_at: null as string | null,
   });
+
+  const [schedulingEnabled, setSchedulingEnabled] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -85,7 +97,10 @@ export default function PopupPage() {
         gdpr_text: config.gdpr_text,
         featured_ticket_id: config.featured_ticket_id ?? null,
         custom_button_url: config.custom_button_url ?? '',
+        schedule_start_at: config.schedule_start_at ?? null,
+        schedule_end_at: config.schedule_end_at ?? null,
       });
+      setSchedulingEnabled(!!(config.schedule_start_at || config.schedule_end_at));
     }
   }, [config]);
 
@@ -107,9 +122,20 @@ export default function PopupPage() {
     debouncedSave({ popup_type: type, button_text: DEFAULT_BUTTON_TEXT[type] });
   };
 
+  const handleScheduleToggle = (enabled: boolean) => {
+    setSchedulingEnabled(enabled);
+    if (!enabled) {
+      setState(prev => ({ ...prev, schedule_start_at: null, schedule_end_at: null }));
+      debouncedSave({ schedule_start_at: null, schedule_end_at: null });
+    }
+  };
+
   const slug = currentLocation?.slug || 'your-slug';
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const previewUrl = `${supabaseUrl}/functions/v1/marketing-popup-preview?slug=${slug}`;
+
+  // Check if schedule is expired
+  const isScheduleExpired = state.is_active && state.schedule_end_at && new Date(state.schedule_end_at) < new Date();
 
   if (isLoading) return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -139,6 +165,11 @@ export default function PopupPage() {
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-bold text-foreground">Website Popup</h1>
+          {isScheduleExpired && (
+            <NestoBadge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50">
+              Verlopen
+            </NestoBadge>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <span className={`flex items-center gap-1 text-xs text-primary transition-opacity duration-200 ${saved ? 'opacity-100' : 'opacity-0'}`}>
@@ -311,104 +342,159 @@ export default function PopupPage() {
                 </div>
               )}
             </div>
-          </NestoCard>
-        </div>
 
-        {/* RIGHT: Live preview */}
-        <div className="space-y-5">
-          <NestoCard className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium">Live preview</h4>
-              <NestoOutlineButtonGroup
-                options={PREVIEW_OPTIONS}
-                value={previewType}
-                onChange={setPreviewType}
-                size="sm"
-              />
-            </div>
-            <div
-              className="border border-border rounded-card overflow-hidden min-h-[400px] relative"
-              style={{
-                backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
-                backgroundSize: '16px 16px',
-                backgroundColor: 'hsl(var(--background))',
-              }}
-            >
-              {previewType === 'popup' ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 p-4">
-                  <div className="w-full max-w-[380px] bg-card rounded-2xl p-6 shadow-lg border border-border">
-                    {brandKit?.logo_url && (
-                      <img src={brandKit.logo_url} alt="Logo" className="h-8 max-w-[140px] object-contain mb-3" />
-                    )}
-                    <h3 className="text-lg font-bold text-foreground mb-1">{state.headline}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{state.description}</p>
+            <div className="border-t border-border" />
 
-                    {/* Newsletter: email form */}
-                    {isNewsletter && (
-                      <>
-                        <div className="flex gap-2">
-                          <input
-                            type="email" placeholder="je@email.nl"
-                            className="flex-1 px-3 py-2 border border-border rounded-lg text-sm bg-background" disabled
-                          />
-                          <button className="px-4 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap" style={{ backgroundColor: primaryColor }} disabled>
-                            {state.button_text}
-                          </button>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-3">{state.gdpr_text}</p>
-                      </>
-                    )}
-
-                    {/* Reservation: ticket card + CTA */}
-                    {isReservation && (
-                      <>
-                        {featuredTicket && (
-                          <div
-                            className="rounded-lg p-2.5 flex items-center gap-2.5 border mb-3"
-                            style={{ borderColor: featuredTicket.color, backgroundColor: `${featuredTicket.color}10` }}
-                          >
-                            <div className="w-1.5 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: featuredTicket.color }} />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-semibold text-foreground truncate">{featuredTicket.display_title}</p>
-                              {featuredTicket.short_description && (
-                                <p className="text-[10px] text-muted-foreground truncate">{featuredTicket.short_description}</p>
-                              )}
-                            </div>
-                            <span className="text-[10px] font-semibold px-2 py-1 rounded-md text-white flex-shrink-0" style={{ backgroundColor: featuredTicket.color }}>
-                              Reserveer
-                            </span>
-                          </div>
-                        )}
-                        <button className="w-full px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: primaryColor }} disabled>
-                          {state.button_text}
-                        </button>
-                      </>
-                    )}
-
-                    {/* Custom: button with link */}
-                    {isCustom && (
-                      <button className="w-full px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: primaryColor }} disabled>
-                        <LinkIcon className="h-3.5 w-3.5" />
-                        {state.button_text}
-                      </button>
-                    )}
-                  </div>
+            {/* Planning / Scheduling */}
+            <div className="py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm">Planning</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Stel een periode in wanneer de popup actief is.</p>
                 </div>
-              ) : (
-                <div className="absolute inset-x-0 flex items-center" style={{ [state.sticky_bar_position === 'top' ? 'top' : 'bottom']: 0 }}>
-                  <div className="w-full bg-card p-3 shadow border-t border-border flex items-center gap-3 flex-wrap">
-                    <span className="text-sm font-semibold text-foreground flex-1 min-w-0 truncate">{state.headline}</span>
-                    {isNewsletter && (
-                      <input type="email" placeholder="je@email.nl" className="px-3 py-1.5 border border-border rounded-lg text-sm bg-background w-[180px]" disabled />
-                    )}
-                    <button className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white whitespace-nowrap" style={{ backgroundColor: primaryColor }} disabled>
-                      {state.button_text}
-                    </button>
-                    <button className="text-muted-foreground text-lg leading-none" disabled>&times;</button>
+                <Switch checked={schedulingEnabled} onCheckedChange={handleScheduleToggle} />
+              </div>
+              {schedulingEnabled && (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Van</Label>
+                    <DateTimePicker
+                      value={state.schedule_start_at ? new Date(state.schedule_start_at) : undefined}
+                      onChange={(d) => update('schedule_start_at', d?.toISOString() ?? null)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Tot</Label>
+                    <DateTimePicker
+                      value={state.schedule_end_at ? new Date(state.schedule_end_at) : undefined}
+                      onChange={(d) => update('schedule_end_at', d?.toISOString() ?? null)}
+                    />
                   </div>
                 </div>
               )}
             </div>
+          </NestoCard>
+        </div>
+
+        {/* RIGHT: Preview */}
+        <div className="space-y-5">
+          <NestoCard className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium">Preview</h4>
+              <div className="flex items-center gap-2">
+                {previewType === 'live' && (
+                  <button
+                    onClick={() => setIframeKey(k => k + 1)}
+                    className="p-1.5 rounded-md hover:bg-accent text-muted-foreground"
+                    title="Ververs"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <NestoOutlineButtonGroup
+                  options={PREVIEW_OPTIONS}
+                  value={previewType}
+                  onChange={setPreviewType}
+                  size="sm"
+                />
+              </div>
+            </div>
+
+            {previewType === 'live' ? (
+              <div className="border border-border rounded-card overflow-hidden" style={{ minHeight: 500 }}>
+                <iframe
+                  key={iframeKey}
+                  src={previewUrl}
+                  className="w-full h-full border-0"
+                  style={{ minHeight: 500 }}
+                  title="Live popup preview"
+                />
+              </div>
+            ) : (
+              <div
+                className="border border-border rounded-card overflow-hidden min-h-[400px] relative"
+                style={{
+                  backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
+                  backgroundSize: '16px 16px',
+                  backgroundColor: 'hsl(var(--background))',
+                }}
+              >
+                {previewType === 'popup' ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 p-4">
+                    <div className="w-full max-w-[380px] bg-card rounded-2xl p-6 shadow-lg border border-border text-center">
+                      {brandKit?.logo_url && (
+                        <img src={brandKit.logo_url} alt="Logo" className="h-8 max-w-[140px] object-contain mb-3 mx-auto" />
+                      )}
+                      <h3 className="text-lg font-bold text-foreground mb-1">{state.headline}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">{state.description}</p>
+
+                      {/* Newsletter: email form */}
+                      {isNewsletter && (
+                        <>
+                          <div className="flex gap-2 justify-center">
+                            <input
+                              type="email" placeholder="je@email.nl"
+                              className="flex-1 px-3 py-2 border border-border rounded-lg text-sm bg-background" disabled
+                            />
+                            <button className="px-4 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap" style={{ backgroundColor: primaryColor }} disabled>
+                              {state.button_text}
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-3">{state.gdpr_text}</p>
+                        </>
+                      )}
+
+                      {/* Reservation: ticket card + CTA */}
+                      {isReservation && (
+                        <>
+                          {featuredTicket && (
+                            <div
+                              className="rounded-lg p-2.5 flex items-center gap-2.5 border mb-3 mx-auto max-w-fit"
+                              style={{ borderColor: featuredTicket.color, backgroundColor: `${featuredTicket.color}10` }}
+                            >
+                              <div className="w-1.5 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: featuredTicket.color }} />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold text-foreground truncate">{featuredTicket.display_title}</p>
+                                {featuredTicket.short_description && (
+                                  <p className="text-[10px] text-muted-foreground truncate">{featuredTicket.short_description}</p>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-semibold px-2 py-1 rounded-md text-white flex-shrink-0" style={{ backgroundColor: featuredTicket.color }}>
+                                Reserveer
+                              </span>
+                            </div>
+                          )}
+                          <button className="w-full px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ backgroundColor: primaryColor }} disabled>
+                            {state.button_text}
+                          </button>
+                        </>
+                      )}
+
+                      {/* Custom: button with link */}
+                      {isCustom && (
+                        <button className="w-full px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: primaryColor }} disabled>
+                          <LinkIcon className="h-3.5 w-3.5" />
+                          {state.button_text}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="absolute inset-x-0 flex items-center" style={{ [state.sticky_bar_position === 'top' ? 'top' : 'bottom']: 0 }}>
+                    <div className="w-full bg-card p-3 shadow border-t border-border flex items-center gap-3 flex-wrap">
+                      <span className="text-sm font-semibold text-foreground flex-1 min-w-0 truncate">{state.headline}</span>
+                      {isNewsletter && (
+                        <input type="email" placeholder="je@email.nl" className="px-3 py-1.5 border border-border rounded-lg text-sm bg-background w-[180px]" disabled />
+                      )}
+                      <button className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white whitespace-nowrap" style={{ backgroundColor: primaryColor }} disabled>
+                        {state.button_text}
+                      </button>
+                      <button className="text-muted-foreground text-lg leading-none" disabled>&times;</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </NestoCard>
 
           <NestoButton
@@ -422,5 +508,33 @@ export default function PopupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Simple DateTimePicker using Popover + Calendar
+function DateTimePicker({ value, onChange }: { value?: Date; onChange: (d: Date | undefined) => void }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "w-full flex items-center gap-2 px-3 py-2 border border-border rounded-lg text-sm text-left bg-background hover:bg-accent/50 transition-colors",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
+          {value ? format(value, 'd MMM yyyy', { locale: nl }) : 'Kies datum'}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={value}
+          onSelect={(d) => onChange(d ?? undefined)}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

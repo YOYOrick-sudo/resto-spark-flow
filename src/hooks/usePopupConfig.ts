@@ -21,6 +21,8 @@ export interface PopupConfig {
   featured_ticket_id: string | null;
   popup_type: PopupType;
   custom_button_url: string | null;
+  schedule_start_at: string | null;
+  schedule_end_at: string | null;
   created_at: string;
   updated_at: string;
 }
