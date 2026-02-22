@@ -8,13 +8,14 @@ import { Slider } from '@/components/ui/slider';
 import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoOutlineButtonGroup } from '@/components/polar/NestoOutlineButtonGroup';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
-import { Check, Globe, Copy } from 'lucide-react';
+import { Check, Globe, Copy, ExternalLink } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { usePopupConfig, useUpdatePopupConfig } from '@/hooks/usePopupConfig';
 import { useMarketingBrandKit } from '@/hooks/useMarketingBrandKit';
 import { useUserContext } from '@/contexts/UserContext';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { nestoToast } from '@/lib/nestoToast';
+import { useTickets } from '@/hooks/useTickets';
 
 interface PopupSettingsTabProps {
   readOnly: boolean;
@@ -35,6 +36,7 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
   const { data: brandKit } = useMarketingBrandKit();
   const { currentLocation } = useUserContext();
   const updateConfig = useUpdatePopupConfig();
+  const { data: ticketsData } = useTickets(currentLocation?.id);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [previewType, setPreviewType] = useState('popup');
@@ -51,6 +53,7 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
     button_text: 'Aanmelden',
     success_message: 'Bedankt voor je inschrijving!',
     gdpr_text: 'Door je aan te melden ga je akkoord met onze privacy policy.',
+    featured_ticket_id: null as string | null,
   });
 
   useEffect(() => {
@@ -67,6 +70,7 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
         button_text: config.button_text,
         success_message: config.success_message,
         gdpr_text: config.gdpr_text,
+        featured_ticket_id: config.featured_ticket_id ?? null,
       });
     }
   }, [config]);
@@ -83,7 +87,10 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
     if (!readOnly) debouncedSave({ [key]: value });
   };
 
-  const embedCode = `<script src="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/marketing-popup-widget?slug=${currentLocation?.slug || 'your-slug'}"></script>`;
+  const slug = currentLocation?.slug || 'your-slug';
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const embedCode = `<script src="${supabaseUrl}/functions/v1/marketing-popup-widget?slug=${slug}"></script>`;
+  const previewUrl = `${supabaseUrl}/functions/v1/marketing-popup-preview?slug=${slug}`;
 
   const handleCopy = async () => {
     const { copyToClipboard } = await import('@/lib/clipboard');
@@ -95,6 +102,14 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
   if (isLoading) return <CardSkeleton lines={6} />;
 
   const primaryColor = brandKit?.primary_color || '#1d979e';
+
+  // Active tickets for the featured ticket selector
+  const activeTickets = ticketsData?.visibleTickets?.filter(t => t.status === 'active') ?? [];
+  const featuredTicket = activeTickets.find(t => t.id === state.featured_ticket_id);
+  const ticketOptions = [
+    { value: '__none__', label: 'Geen' },
+    ...activeTickets.map(t => ({ value: t.id, label: t.display_title || t.name })),
+  ];
 
   return (
     <NestoCard className="p-6">
@@ -257,6 +272,41 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
         </div>
       </div>
 
+      {/* Featured ticket */}
+      <div className="bg-secondary/50 rounded-card p-4 space-y-3 mb-5">
+        <div>
+          <h4 className="text-sm font-medium">Uitgelicht item</h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Toon een reserveringsticket als extra conversie-element in de popup.
+          </p>
+        </div>
+        <div className="max-w-[300px]">
+          <NestoSelect
+            value={state.featured_ticket_id || '__none__'}
+            onValueChange={(v) => update('featured_ticket_id', v === '__none__' ? null : v)}
+            options={ticketOptions}
+            disabled={readOnly}
+          />
+        </div>
+        {featuredTicket && (
+          <div
+            className="rounded-xl p-3 border flex items-center gap-3"
+            style={{ borderColor: featuredTicket.color, backgroundColor: `${featuredTicket.color}10` }}
+          >
+            <div
+              className="w-2 h-10 rounded-full flex-shrink-0"
+              style={{ backgroundColor: featuredTicket.color }}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground truncate">{featuredTicket.display_title}</p>
+              {featuredTicket.short_description && (
+                <p className="text-xs text-muted-foreground truncate">{featuredTicket.short_description}</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Live preview */}
       <div className="bg-secondary/50 rounded-card p-4 mb-5">
         <div className="flex items-center justify-between mb-3">
@@ -268,48 +318,83 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
             size="sm"
           />
         </div>
-        <div className="border border-border rounded-card bg-background p-4 min-h-[200px] flex items-center justify-center">
+        {/* Browser viewport simulation */}
+        <div
+          className="border border-border rounded-card overflow-hidden min-h-[320px] relative"
+          style={{
+            backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)',
+            backgroundSize: '16px 16px',
+            backgroundColor: 'hsl(var(--background))',
+          }}
+        >
           {previewType === 'popup' ? (
-            <div className="w-full max-w-[380px] bg-card rounded-2xl p-6 shadow-lg border border-border">
-              {brandKit?.logo_url && (
-                <img src={brandKit.logo_url} alt="Logo" className="h-8 max-w-[140px] object-contain mb-3" />
-              )}
-              <h3 className="text-lg font-bold text-foreground mb-1">{state.headline}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{state.description}</p>
-              <div className="flex gap-2">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 p-4">
+              <div className="w-full max-w-[380px] bg-card rounded-2xl p-6 shadow-lg border border-border">
+                {brandKit?.logo_url && (
+                  <img src={brandKit.logo_url} alt="Logo" className="h-8 max-w-[140px] object-contain mb-3" />
+                )}
+                <h3 className="text-lg font-bold text-foreground mb-1">{state.headline}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{state.description}</p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="je@email.nl"
+                    className="flex-1 px-3 py-2 border border-border rounded-lg text-sm bg-background"
+                    disabled
+                  />
+                  <button
+                    className="px-4 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap"
+                    style={{ backgroundColor: primaryColor }}
+                    disabled
+                  >
+                    {state.button_text}
+                  </button>
+                </div>
+                {featuredTicket && (
+                  <div
+                    className="mt-3 rounded-lg p-2.5 flex items-center gap-2.5 border"
+                    style={{ borderColor: featuredTicket.color, backgroundColor: `${featuredTicket.color}10` }}
+                  >
+                    <div
+                      className="w-1.5 h-8 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: featuredTicket.color }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-foreground truncate">{featuredTicket.display_title}</p>
+                      {featuredTicket.short_description && (
+                        <p className="text-[10px] text-muted-foreground truncate">{featuredTicket.short_description}</p>
+                      )}
+                    </div>
+                    <span
+                      className="text-[10px] font-semibold px-2 py-1 rounded-md text-white flex-shrink-0"
+                      style={{ backgroundColor: featuredTicket.color }}
+                    >
+                      Reserveer
+                    </span>
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground mt-3">{state.gdpr_text}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="absolute inset-x-0 flex items-center" style={{ [state.sticky_bar_position === 'top' ? 'top' : 'bottom']: 0 }}>
+              <div className="w-full bg-card p-3 shadow border-t border-border flex items-center gap-3 flex-wrap">
+                <span className="text-sm font-semibold text-foreground flex-1 min-w-0 truncate">{state.headline}</span>
                 <input
                   type="email"
                   placeholder="je@email.nl"
-                  className="flex-1 px-3 py-2 border border-border rounded-lg text-sm bg-background"
+                  className="px-3 py-1.5 border border-border rounded-lg text-sm bg-background w-[180px]"
                   disabled
                 />
                 <button
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white whitespace-nowrap"
+                  className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white whitespace-nowrap"
                   style={{ backgroundColor: primaryColor }}
                   disabled
                 >
                   {state.button_text}
                 </button>
+                <button className="text-muted-foreground text-lg leading-none" disabled>&times;</button>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-3">{state.gdpr_text}</p>
-            </div>
-          ) : (
-            <div className="w-full bg-card rounded-xl p-3 shadow border border-border flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-semibold text-foreground flex-1 min-w-0 truncate">{state.headline}</span>
-              <input
-                type="email"
-                placeholder="je@email.nl"
-                className="px-3 py-1.5 border border-border rounded-lg text-sm bg-background w-[180px]"
-                disabled
-              />
-              <button
-                className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white whitespace-nowrap"
-                style={{ backgroundColor: primaryColor }}
-                disabled
-              >
-                {state.button_text}
-              </button>
-              <button className="text-muted-foreground text-lg leading-none" disabled>&times;</button>
             </div>
           )}
         </div>
@@ -326,10 +411,21 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
             {embedCode}
           </pre>
         </div>
-        <NestoButton size="sm" variant="secondary" onClick={handleCopy} className="gap-1.5">
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? 'Gekopieerd' : 'Kopieer code'}
-        </NestoButton>
+        <div className="flex gap-2">
+          <NestoButton size="sm" variant="secondary" onClick={handleCopy} className="gap-1.5">
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? 'Gekopieerd' : 'Kopieer code'}
+          </NestoButton>
+          <NestoButton
+            size="sm"
+            variant="secondary"
+            onClick={() => window.open(previewUrl, '_blank')}
+            className="gap-1.5"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Preview openen
+          </NestoButton>
+        </div>
       </div>
     </NestoCard>
   );

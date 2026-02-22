@@ -1191,6 +1191,7 @@ export type Database = {
           created_at: string
           description: string
           exit_intent_enabled: boolean
+          featured_ticket_id: string | null
           gdpr_text: string
           headline: string
           id: string
@@ -1208,6 +1209,7 @@ export type Database = {
           created_at?: string
           description?: string
           exit_intent_enabled?: boolean
+          featured_ticket_id?: string | null
           gdpr_text?: string
           headline?: string
           id?: string
@@ -1225,6 +1227,7 @@ export type Database = {
           created_at?: string
           description?: string
           exit_intent_enabled?: boolean
+          featured_ticket_id?: string | null
           gdpr_text?: string
           headline?: string
           id?: string
@@ -1238,6 +1241,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "marketing_popup_config_featured_ticket_id_fkey"
+            columns: ["featured_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "marketing_popup_config_location_id_fkey"
             columns: ["location_id"]
