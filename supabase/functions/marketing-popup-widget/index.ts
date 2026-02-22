@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
       function buildPopupContent(){
         var logoHtml=cfg.logo_url?'<img class="nesto-logo" src="'+cfg.logo_url+'" alt="Logo">':'';
         var headlineHtml='<div class="nesto-headline">'+esc(cfg.headline)+'</div>';
-        var descHtml='<div class="nesto-desc">'+esc(cfg.description)+'</div>';
+        var descHtml='<div class="nesto-desc">'+esc(cfg.description).replace(/\n/g,"<br>")+'</div>';
 
         if(popupType==="reservation"){
           var bookUrl=SITE_URL+"/book/"+SLUG;

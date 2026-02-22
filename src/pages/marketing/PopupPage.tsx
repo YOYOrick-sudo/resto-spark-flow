@@ -553,7 +553,7 @@ function PopupEditor({
                         <img src={brandKit.logo_url} alt="Logo" className="h-8 max-w-[140px] object-contain mb-3 mx-auto" />
                       )}
                       <h3 className="text-lg font-bold mb-1" style={{ color: '#1a1a1a' }}>{state.headline}</h3>
-                      <p className="text-sm mb-4" style={{ color: '#666' }}>{state.description}</p>
+                      <p className="text-sm mb-4 whitespace-pre-line" style={{ color: '#666' }}>{state.description}</p>
 
                       {isNewsletter && (
                         <>
