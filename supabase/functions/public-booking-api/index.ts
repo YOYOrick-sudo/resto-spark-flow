@@ -810,9 +810,7 @@ async function handleManagePost(body: Record<string, unknown>) {
       actor_id: null,
       changes: { reason: cancellation_reason || 'guest_self_cancel', channel: 'widget' },
     });
-
-    // Trigger waitlist invite engine (non-blocking)
-    triggerWaitlistEngine(res.location_id, res.reservation_date, res.start_time, res.party_size, res.shift_id, res.ticket_id);
+    // Waitlist invite engine is triggered automatically via DB trigger (trg_waitlist_on_cancel)
 
     return jsonResponse({ success: true, status: 'cancelled' });
   }
@@ -1083,30 +1081,7 @@ function isTableFree(reservations: ExistingReservation[], tableId: string, start
   return true;
 }
 
-// ============================================
-// Waitlist Invite Engine Trigger (non-blocking)
-// ============================================
-
-function triggerWaitlistEngine(locationId: string, date: string, startTime: string, partySize: number, shiftId: string, ticketId: string) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-  fetch(`${supabaseUrl}/functions/v1/waitlist-invite-engine`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${anonKey}`,
-    },
-    body: JSON.stringify({
-      location_id: locationId,
-      date,
-      start_time: startTime,
-      party_size: partySize,
-      shift_id: shiftId,
-      ticket_id: ticketId,
-    }),
-  }).catch(err => console.error('[WAITLIST TRIGGER] Failed:', err));
-}
+// Waitlist invite engine trigger removed — now handled by DB trigger trg_waitlist_on_cancel
 
 // ============================================
 // Route: POST /waitlist
