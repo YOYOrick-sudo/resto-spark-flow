@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.marketing-generate-content]
 verify_jwt = false
+
+[functions.marketing-sync-social-stats]
+verify_jwt = false
+
+[functions.marketing-refresh-google-posts]
+verify_jwt = false

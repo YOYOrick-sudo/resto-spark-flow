@@ -3,9 +3,11 @@ import { PageHeader } from '@/components/polar/PageHeader';
 import { NestoTabs, NestoTabContent } from '@/components/polar/NestoTabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import MarketingAnalyticsTab from './tabs/MarketingAnalyticsTab';
+import SocialAnalyticsTab from './tabs/SocialAnalyticsTab';
 
 const TABS = [
   { id: 'marketing', label: 'Marketing' },
+  { id: 'social', label: 'Social' },
   { id: 'reservations', label: 'Reserveringen', disabled: true },
   { id: 'kitchen', label: 'Keuken', disabled: true },
 ];
@@ -60,6 +62,7 @@ export default function AnalyticsPage() {
       </div>
 
       {activeTab === 'marketing' && <MarketingAnalyticsTab />}
+      {activeTab === 'social' && <SocialAnalyticsTab />}
     </div>
   );
 }
