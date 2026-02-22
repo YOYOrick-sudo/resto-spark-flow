@@ -13,6 +13,9 @@ const SOURCE_BADGE: Record<string, { label: string; variant: 'default' | 'primar
   weather: { label: 'Weer', variant: 'warning' },
   cross_module: { label: 'Cross-module', variant: 'default' },
   manual: { label: 'Handmatig', variant: 'default' },
+  kitchen: { label: 'Keuken', variant: 'warning' },
+  menu_card: { label: 'Menu', variant: 'success' },
+  reservations: { label: 'Reserveringen', variant: 'primary' },
 };
 
 interface ContentIdeasSectionProps {

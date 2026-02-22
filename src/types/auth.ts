@@ -54,6 +54,8 @@ export interface Location {
   slug: string;
   timezone: string;
   is_active: boolean;
+  google_place_id: string | null;
+  tripadvisor_url: string | null;
   created_at: string;
   updated_at: string;
 }
