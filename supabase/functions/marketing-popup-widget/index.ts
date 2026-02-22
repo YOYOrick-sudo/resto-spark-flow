@@ -249,6 +249,13 @@ Deno.serve(async (req) => {
         },(cfg.timed_popup_delay_seconds||15)*1000);
       }
 
+      // Fallback: show popup immediately if active but no trigger is set
+      if(!cfg.timed_popup_enabled && !cfg.exit_intent_enabled){
+        setTimeout(function(){
+          showPopup("nesto_popup_auto_shown");
+        },500);
+      }
+
       function subscribe(email,onSuccess,onError){
         fetch(SUBSCRIBE_URL,{
           method:"POST",

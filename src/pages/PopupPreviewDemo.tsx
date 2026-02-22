@@ -51,7 +51,7 @@ function buildStyles(primaryColor: string): string {
     .nesto-featured-title{font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:4px;}
     .nesto-featured-desc{font-size:13px;color:#666;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 
-    .nesto-bar{position:fixed;left:0;right:0;z-index:999997;padding:12px 16px;display:flex;align-items:center;gap:12px;transform:translateY(100%);transition:transform .3s ease;}
+    .nesto-bar{position:fixed;left:0;right:0;z-index:999999;padding:12px 16px;display:flex;align-items:center;gap:12px;transform:translateY(100%);transition:transform .3s ease;}
     .nesto-bar.top{top:0;box-shadow:0 2px 10px rgba(0,0,0,0.1);transform:translateY(-100%);}
     .nesto-bar.bottom{bottom:0;box-shadow:0 -2px 10px rgba(0,0,0,0.1);}
     .nesto-bar.visible{transform:translateY(0);}
