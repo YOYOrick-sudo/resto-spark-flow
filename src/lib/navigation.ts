@@ -26,9 +26,11 @@ export const ROUTE_MAP: Record<string, string> = {
   'kitchen-orders': '/inkoop',
   'kaartbeheer-gerechten': '/kaartbeheer',
   'service-tasks': '/taken',
+  'marketing-dashboard': '/marketing',
   'marketing-campagnes': '/marketing/campagnes',
   'marketing-segmenten': '/marketing/segmenten',
   'marketing-contacten': '/marketing/contacten',
+  'marketing-analytics': '/marketing/analytics',
   'settings-voorkeuren': '/instellingen/voorkeuren',
   'settings-keuken': '/instellingen/keuken',
   'settings-reserveringen': '/instellingen/reserveringen',
@@ -111,9 +113,11 @@ export const menuItems: MenuItem[] = [
     expandable: true,
     section: 'OPERATIE',
     subItems: [
+      { id: 'marketing-dashboard', label: 'Dashboard', path: '/marketing' },
       { id: 'marketing-campagnes', label: 'Campagnes', path: '/marketing/campagnes' },
       { id: 'marketing-segmenten', label: 'Segmenten', path: '/marketing/segmenten' },
       { id: 'marketing-contacten', label: 'Contacten', path: '/marketing/contacten' },
+      { id: 'marketing-analytics', label: 'Analytics', path: '/marketing/analytics' },
     ],
   },
   {

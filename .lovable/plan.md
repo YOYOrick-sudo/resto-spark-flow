@@ -62,3 +62,39 @@
 - Welcome flow nu getriggerd via cross_module_events (guest_first_visit) i.p.v. directe customer queries
 - detect_empty_shifts skipt shifts zonder shift_tickets (geen capaciteitsberekening mogelijk)
 - 3u delay voor post_visit_review: events worden pas opgepikt als created_at + 3u <= now()
+
+---
+
+# Sessie 1.6 — Marketing Dashboard + Basis Analytics
+
+## Status: ✅ AFGEROND
+
+### Wat is gebouwd:
+
+#### Navigatie
+- [x] Marketing sub-items uitgebreid: Dashboard, Campagnes, Segmenten, Contacten, Analytics
+- [x] Routes toegevoegd: `/marketing` (Dashboard) en `/marketing/analytics`
+
+#### Marketing Dashboard (`/marketing`)
+- [x] 4 KPI tiles (Polar.sh-stijl):
+  - Marketing omzet (sparkline, tooltip met €35/gast disclaimer, min 7 datapunten check)
+  - Gasten bereikt (unieke ontvangers)
+  - At-risk gasten (rood accent >10, "Win-back sturen" CTA)
+  - Actieve flows (count + namen, link naar settings)
+- [x] Recente campagnes tabel (NestoTable, laatste 5)
+- [x] Activiteit timeline (laatste 10 acties)
+
+#### Marketing Analytics (`/marketing/analytics`)
+- [x] Periode selector (7d/30d/90d) via NestoOutlineButtonGroup
+- [x] Revenue hero getal met tooltip disclaimer
+- [x] Email metrics lijn grafiek (Recharts: Verzonden, Geopend, Geklikt)
+- [x] Campagne prestaties tabel (sorteerbaar op omzet)
+
+#### Edge Function
+- [x] `marketing-attribution` — lookback attributie engine (7d=50%, 30d=25%)
+- [x] pg_cron: dagelijks 02:00 UTC
+
+### Notities
+- Revenue berekend als party_size × €35 (geschat). Tooltip bij elk revenue getal meldt dit.
+- Sparkline toont alleen bij 7+ datapunten met waarde >0, anders alleen het getal.
+- UTM direct-click attributie (100%) genoteerd als toekomstige uitbreiding.
