@@ -13,6 +13,7 @@ import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/componen
 import { useMarketingDashboard } from '@/hooks/useMarketingDashboard';
 import { useBrandIntelligence } from '@/hooks/useBrandIntelligence';
 import { WeekplanCard } from '@/components/marketing/dashboard/WeekplanCard';
+import { CoachingTipsCard } from '@/components/marketing/dashboard/CoachingTipsCard';
 import { ContentIdeasSection } from '@/components/marketing/dashboard/ContentIdeasSection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -79,6 +80,9 @@ export default function MarketingDashboard() {
 
       {/* Weekplan Card */}
       <WeekplanCard weekplan={weekplan} isLoading={intelligenceLoading} />
+
+      {/* Coaching Tips */}
+      <CoachingTipsCard />
 
       {/* KPI Tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
