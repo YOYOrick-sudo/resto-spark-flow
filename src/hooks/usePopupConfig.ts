@@ -86,8 +86,8 @@ export function useCreatePopup() {
       if (error) throw error;
       return data as PopupConfig;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
     },
   });
 }
@@ -128,8 +128,8 @@ export function useDeletePopup() {
         .eq('id', popupId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
     },
   });
 }
