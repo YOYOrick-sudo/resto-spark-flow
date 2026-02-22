@@ -233,28 +233,31 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Exit-intent popup (desktop only)
-      if(cfg.exit_intent_enabled&&!("ontouchstart" in window)){
-        document.addEventListener("mouseout",function handler(e){
-          if(e.clientY<=0){
-            document.removeEventListener("mouseout",handler);
-            showPopup("nesto_popup_exit_shown");
-          }
-        });
-      }
+      // Popup triggers — only when NOT in sticky bar mode
+      if(!cfg.sticky_bar_enabled){
+        // Exit-intent popup (desktop only)
+        if(cfg.exit_intent_enabled&&!("ontouchstart" in window)){
+          document.addEventListener("mouseout",function handler(e){
+            if(e.clientY<=0){
+              document.removeEventListener("mouseout",handler);
+              showPopup("nesto_popup_exit_shown");
+            }
+          });
+        }
 
-      // Timed popup
-      if(cfg.timed_popup_enabled){
-        setTimeout(function(){
-          showPopup("nesto_popup_timed_shown");
-        },(cfg.timed_popup_delay_seconds||15)*1000);
-      }
+        // Timed popup
+        if(cfg.timed_popup_enabled){
+          setTimeout(function(){
+            showPopup("nesto_popup_timed_shown");
+          },(cfg.timed_popup_delay_seconds||15)*1000);
+        }
 
-      // Fallback: show popup immediately if active but no trigger is set
-      if(!cfg.timed_popup_enabled && !cfg.exit_intent_enabled){
-        setTimeout(function(){
-          showPopup("nesto_popup_auto_shown");
-        },500);
+        // Fallback: show popup immediately if active but no trigger is set
+        if(!cfg.timed_popup_enabled && !cfg.exit_intent_enabled){
+          setTimeout(function(){
+            showPopup("nesto_popup_auto_shown");
+          },500);
+        }
       }
 
       function subscribe(email,onSuccess,onError){

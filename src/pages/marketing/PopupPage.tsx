@@ -450,62 +450,118 @@ function PopupEditor({
           </NestoCard>
 
           {/* Display settings */}
-          <NestoCard className="p-4 space-y-0">
-            <h4 className="text-sm font-medium mb-3">Weergave</h4>
+          <NestoCard className="p-4 space-y-4">
+            <div>
+              <h4 className="text-sm font-medium">Weergave</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">Hoe wil je de popup tonen?</p>
+            </div>
 
-            <div className="flex items-center justify-between py-3">
-              <div>
-                <Label className="text-sm">Exit-intent popup</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Toon popup bij verlaten pagina (desktop).</p>
-              </div>
-              <Switch checked={state.exit_intent_enabled} onCheckedChange={(v) => update('exit_intent_enabled', v)} />
+            {/* Mode selector */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setState(prev => ({ ...prev, sticky_bar_enabled: false }));
+                  debouncedSave({ sticky_bar_enabled: false });
+                }}
+                className={cn(
+                  'flex items-start gap-3 rounded-card-sm border-[1.5px] px-4 py-3 text-left transition-all duration-150 cursor-pointer',
+                  !state.sticky_bar_enabled
+                    ? 'border-primary bg-primary/5 text-foreground'
+                    : 'border-border bg-background text-muted-foreground hover:border-primary/40'
+                )}
+              >
+                <div className={cn(
+                  'rounded-md p-1.5 shrink-0 mt-0.5',
+                  !state.sticky_bar_enabled ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+                )}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">Popup</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Overlay die verschijnt bij een trigger</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setState(prev => ({ ...prev, sticky_bar_enabled: true, exit_intent_enabled: false, timed_popup_enabled: false }));
+                  debouncedSave({ sticky_bar_enabled: true, exit_intent_enabled: false, timed_popup_enabled: false });
+                }}
+                className={cn(
+                  'flex items-start gap-3 rounded-card-sm border-[1.5px] px-4 py-3 text-left transition-all duration-150 cursor-pointer',
+                  state.sticky_bar_enabled
+                    ? 'border-primary bg-primary/5 text-foreground'
+                    : 'border-border bg-background text-muted-foreground hover:border-primary/40'
+                )}
+              >
+                <div className={cn(
+                  'rounded-md p-1.5 shrink-0 mt-0.5',
+                  state.sticky_bar_enabled ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+                )}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="4" rx="1"/><line x1="2" y1="12" x2="22" y2="12" opacity=".3"/><line x1="2" y1="16" x2="22" y2="16" opacity=".3"/></svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">Sticky bar</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Vaste balk boven of onder de pagina</p>
+                </div>
+              </button>
             </div>
 
             <div className="border-t border-border" />
 
-            <div className="py-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm">Timed popup</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Toon popup na aantal seconden.</p>
+            {/* Popup triggers (only when popup mode) */}
+            {!state.sticky_bar_enabled && (
+              <div className="space-y-0">
+                <div className="flex items-center justify-between py-2">
+                  <div>
+                    <Label className="text-sm">Exit-intent</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Toon bij verlaten pagina (desktop).</p>
+                  </div>
+                  <Switch checked={state.exit_intent_enabled} onCheckedChange={(v) => update('exit_intent_enabled', v)} />
                 </div>
-                <Switch checked={state.timed_popup_enabled} onCheckedChange={(v) => update('timed_popup_enabled', v)} />
-              </div>
-              {state.timed_popup_enabled && (
-                <div className="mt-3 flex items-center gap-3">
-                  <Slider
-                    value={[state.timed_popup_delay_seconds]}
-                    onValueChange={([v]) => update('timed_popup_delay_seconds', v)}
-                    min={2} max={30} step={1}
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap tabular-nums w-16 text-right">
-                    {state.timed_popup_delay_seconds}s
-                  </span>
-                </div>
-              )}
-            </div>
 
-            <div className="border-t border-border" />
+                <div className="border-t border-border" />
 
-            <div className="py-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm">Sticky bar</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Vaste balk boven of onder de pagina.</p>
+                <div className="py-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm">Timed popup</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">Toon na aantal seconden.</p>
+                    </div>
+                    <Switch checked={state.timed_popup_enabled} onCheckedChange={(v) => update('timed_popup_enabled', v)} />
+                  </div>
+                  {state.timed_popup_enabled && (
+                    <div className="mt-3 flex items-center gap-3">
+                      <Slider
+                        value={[state.timed_popup_delay_seconds]}
+                        onValueChange={([v]) => update('timed_popup_delay_seconds', v)}
+                        min={2} max={30} step={1}
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap tabular-nums w-16 text-right">
+                        {state.timed_popup_delay_seconds}s
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <Switch checked={state.sticky_bar_enabled} onCheckedChange={(v) => update('sticky_bar_enabled', v)} />
               </div>
-              {state.sticky_bar_enabled && (
-                <div className="mt-3 max-w-[200px]">
+            )}
+
+            {/* Sticky bar position (only when sticky bar mode) */}
+            {state.sticky_bar_enabled && (
+              <div className="py-2">
+                <Label className="text-sm mb-1.5 block">Positie</Label>
+                <div className="max-w-[200px]">
                   <NestoSelect value={state.sticky_bar_position} onValueChange={(v) => update('sticky_bar_position', v)} options={POSITION_OPTIONS} />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="border-t border-border" />
 
-            <div className="py-3">
+            {/* Planning (always visible) */}
+            <div className="py-2">
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm">Planning</Label>
