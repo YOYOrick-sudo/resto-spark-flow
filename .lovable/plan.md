@@ -12,60 +12,53 @@
 - [x] `pg_cron` en `pg_net` extensies geactiveerd
 
 #### Edge Functions
-- [x] `marketing-send-email` — campagne verzending met:
-  - Batch modus (chunks van 100 via Resend batch API)
-  - Scheduled check modus (vindt due scheduled campaigns automatisch)
-  - Consent filtering (marketing_contact_preferences)
-  - Suppressie filtering (max_email_frequency_days uit brand_kit)
-  - Personalisatie ({{first_name}}, {{last_name}}, {{restaurant_name}})
-  - Unsubscribe link in elke email (verschil met transactionele emails)
-  - Stub fallback voor development
-  - Analytics update na verzending
-
-- [x] `marketing-email-webhook` — Resend webhook tracking:
-  - Events: delivered, opened, clicked, bounced, complained
-  - Hard bounce: customer email op NULL gezet
-  - Complained/unsubscribe: opted_in=false in contact preferences
-  - Direct unsubscribe link handling (GET request)
-  - Analytics counters increment via RPC
-
-- [x] `marketing-process-automation` — automation engine:
-  - Welcome flow (total_visits=1, created < 1d)
-  - Birthday flow (7 dagen voor verjaardag)
-  - Winback flow (configurable days_threshold: 30/60/90)
-  - Post-visit review: geregistreerd maar skip tot sessie 1.5b
-  - Consent + suppressie filtering per flow
-  - Dedup: check marketing_email_log.flow_id
-  - Template laden + personalisatie
-  - Flow stats update na verwerking
+- [x] `marketing-send-email` — campagne verzending met batch modus, consent/suppressie filtering, personalisatie, unsubscribe links
+- [x] `marketing-email-webhook` — Resend webhook tracking (delivered, opened, clicked, bounced, complained)
+- [x] `marketing-process-automation` — automation engine (welcome, birthday, winback, post_visit_review)
 
 #### pg_cron Jobs
 - [x] `marketing-send-scheduled` — elke 5 min, vindt due scheduled campaigns
 - [x] `marketing-process-automation` — elke 15 min, verwerkt automation flows
 
-### Tests
-Alle 3 edge functions getest en succesvol:
-- `marketing-send-email`: "No scheduled campaigns due" ✅
-- `marketing-process-automation`: `{"processed": 0}` ✅  
-- `marketing-email-webhook`: "OK" ✅
-
-### Notities
-- Resend webhook URL voor dashboard configuratie: `https://igqcfxizgtdkwnajvers.supabase.co/functions/v1/marketing-email-webhook`
-- `list_segment_customers` RPC bestaat maar gebruikt auth.uid() check — edge functions queryen customers direct met service role
-- Hard bounce → email=NULL is v1 keuze, later te verfijnen met email_status veld
-- Webhook signature verificatie (svix) is een toekomstige verbetering
-
 ---
 
-## Sessie 1.5b — Reserveringen ↔ Marketing Integratie
+# Sessie 1.5b — Reserveringen ↔ Marketing Integratie
 
-Status: Nog te starten
+## Status: ✅ AFGEROND
 
-Deliverables:
-1. DB trigger: notify_marketing_on_reservation_change
-2. DB trigger: notify_marketing_on_customer_milestone  
-3. pg_cron: detect_empty_shifts
-4. Widget opt-in checkbox + public-booking-api update
-5. Edge Function: marketing-confirm-optin
-6. Update marketing-process-automation voor cross_module_events
-7. pg_cron: cross-module-events-cleanup
+### Wat is gebouwd:
+
+#### Database Triggers
+- [x] `notify_marketing_on_reservation_change()` — INSERT cross_module_events bij status→completed/no_show/cancelled
+- [x] `notify_marketing_on_customer_milestone()` — INSERT cross_module_events bij total_visits = 1/3/10
+
+#### Database Functies
+- [x] `detect_empty_shifts()` — PL/pgSQL functie die shifts met <40% bezetting detecteert
+
+#### pg_cron Jobs
+- [x] `detect-empty-shifts` — dagelijks 16:00 UTC
+- [x] `cross-module-events-cleanup` — dagelijks 03:00 UTC, verwijdert verlopen events
+
+#### Widget Opt-in
+- [x] `marketing_optin` veld toegevoegd aan BookingContext GuestData
+- [x] Opt-in checkbox in GuestDetailsStep (default UIT)
+- [x] `public-booking-api` handleBook verwerkt marketing_optin:
+  - INSERT marketing_contact_preferences met consent_source='widget'
+  - Double opt-in email als brand_kit.double_opt_in_enabled = true
+  - Direct opted_in=true als double_opt_in_enabled = false
+
+#### Edge Functions
+- [x] `marketing-confirm-optin` — publiek GET endpoint voor double opt-in bevestiging met HTML bedankpagina
+- [x] `marketing-process-automation` uitgebreid met cross_module_events consumptie:
+  - `guest_first_visit` → trigger welcome flow
+  - `guest_visit_completed` → trigger post_visit_review flow (3u delay)
+  - Events gemarkeerd als consumed via consumed_by JSONB array
+
+### Tests
+- `marketing-confirm-optin`: "Ongeldige link" bij onbekend token ✅
+- `marketing-process-automation`: `{"processed":0,"sent":0}` ✅
+
+### Notities
+- Welcome flow nu getriggerd via cross_module_events (guest_first_visit) i.p.v. directe customer queries
+- detect_empty_shifts skipt shifts zonder shift_tickets (geen capaciteitsberekening mogelijk)
+- 3u delay voor post_visit_review: events worden pas opgepikt als created_at + 3u <= now()

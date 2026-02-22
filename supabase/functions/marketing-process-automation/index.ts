@@ -79,7 +79,7 @@ async function sendSingleEmail(
 }
 
 /**
- * Processes all active automation flows.
+ * Processes all active automation flows + cross_module_events.
  * Called by pg_cron every 15 minutes.
  */
 Deno.serve(async (req) => {
@@ -95,200 +95,244 @@ Deno.serve(async (req) => {
       .eq('is_active', true);
 
     if (flowsErr) throw flowsErr;
-    if (!flows || flows.length === 0) {
-      return new Response(JSON.stringify({ processed: 0 }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     let totalSent = 0;
 
-    for (const flow of flows) {
-      try {
-        const locationId = flow.location_id;
-        const flowType = flow.flow_type;
-        const triggerConfig = (flow.trigger_config || {}) as Record<string, any>;
+    // ============================================
+    // PART 1: Direct flow processing (welcome, birthday, winback)
+    // ============================================
+    if (flows && flows.length > 0) {
+      for (const flow of flows) {
+        try {
+          const locationId = flow.location_id;
+          const flowType = flow.flow_type;
+          const triggerConfig = (flow.trigger_config || {}) as Record<string, any>;
 
-        // Skip post_visit_review — requires cross_module_events (session 1.5b)
-        if (flowType === 'post_visit_review') continue;
+          // Skip post_visit_review — handled via cross_module_events below
+          if (flowType === 'post_visit_review') continue;
+          // Skip welcome — handled via cross_module_events (guest_first_visit)
+          if (flowType === 'welcome') continue;
 
-        // Load brand kit
-        const { data: brandKit } = await supabaseAdmin
-          .from('marketing_brand_kit')
-          .select('marketing_sender_name, marketing_reply_to, max_email_frequency_days')
-          .eq('location_id', locationId)
-          .maybeSingle();
+          // Load brand kit
+          const { data: brandKit } = await supabaseAdmin
+            .from('marketing_brand_kit')
+            .select('marketing_sender_name, marketing_reply_to, max_email_frequency_days')
+            .eq('location_id', locationId)
+            .maybeSingle();
 
-        const senderName = brandKit?.marketing_sender_name || 'Nesto';
-        const replyTo = brandKit?.marketing_reply_to || undefined;
-        const maxFreqDays = brandKit?.max_email_frequency_days ?? 3;
-        const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
-        const fromEmail = `${senderName} <${verifiedFrom}>`;
+          const senderName = brandKit?.marketing_sender_name || 'Nesto';
+          const replyTo = brandKit?.marketing_reply_to || undefined;
+          const maxFreqDays = brandKit?.max_email_frequency_days ?? 3;
+          const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+          const fromEmail = `${senderName} <${verifiedFrom}>`;
 
-        // Load location name
-        const { data: location } = await supabaseAdmin
-          .from('locations')
-          .select('name')
-          .eq('id', locationId)
-          .single();
-        const restaurantName = location?.name || '';
-
-        // Load template
-        let templateHtml = '<p>{{first_name}}, bedankt voor je bezoek!</p>';
-        let templateSubject = 'Bericht van {{restaurant_name}}';
-        if (flow.template_id) {
-          const { data: template } = await supabaseAdmin
-            .from('marketing_templates')
-            .select('content_html, name')
-            .eq('id', flow.template_id)
+          // Load location name
+          const { data: location } = await supabaseAdmin
+            .from('locations')
+            .select('name')
+            .eq('id', locationId)
             .single();
-          if (template?.content_html) templateHtml = template.content_html;
-          if (template?.name) templateSubject = template.name;
-        }
+          const restaurantName = location?.name || '';
 
-        // Find matching customers based on flow type
-        let candidates: Customer[] = [];
+          // Load template
+          let templateHtml = '<p>{{first_name}}, bedankt voor je bezoek!</p>';
+          let templateSubject = 'Bericht van {{restaurant_name}}';
+          if (flow.template_id) {
+            const { data: template } = await supabaseAdmin
+              .from('marketing_templates')
+              .select('content_html, name')
+              .eq('id', flow.template_id)
+              .single();
+            if (template?.content_html) templateHtml = template.content_html;
+            if (template?.name) templateSubject = template.name;
+          }
 
-        if (flowType === 'welcome') {
-          // Customers with first visit in the last day
-          const oneDayAgo = new Date();
-          oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-          const { data } = await supabaseAdmin
-            .from('customers')
-            .select('id, first_name, last_name, email, total_visits, last_visit_at, birthday, created_at')
+          // Find matching customers based on flow type
+          let candidates: Customer[] = [];
+
+          if (flowType === 'birthday') {
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + 7);
+            const targetMonth = targetDate.getMonth() + 1;
+            const targetDay = targetDate.getDate();
+
+            const { data } = await supabaseAdmin
+              .from('customers')
+              .select('id, first_name, last_name, email, total_visits, last_visit_at, birthday, created_at')
+              .eq('location_id', locationId)
+              .not('email', 'is', null)
+              .not('birthday', 'is', null);
+
+            candidates = ((data || []) as Customer[]).filter((c) => {
+              if (!c.birthday) return false;
+              const bday = new Date(c.birthday);
+              return bday.getMonth() + 1 === targetMonth && bday.getDate() === targetDay;
+            });
+          } else if (flowType === 'winback') {
+            const daysThreshold = triggerConfig.days_threshold || 30;
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() - daysThreshold);
+            const windowEnd = new Date(targetDate);
+            windowEnd.setDate(windowEnd.getDate() - 1);
+
+            const { data } = await supabaseAdmin
+              .from('customers')
+              .select('id, first_name, last_name, email, total_visits, last_visit_at, birthday, created_at')
+              .eq('location_id', locationId)
+              .not('email', 'is', null)
+              .not('last_visit_at', 'is', null)
+              .lte('last_visit_at', targetDate.toISOString())
+              .gte('last_visit_at', windowEnd.toISOString());
+
+            candidates = (data || []) as Customer[];
+          }
+
+          if (candidates.length === 0) continue;
+
+          // Filter: already sent for this flow
+          const candidateIds = candidates.map((c) => c.id);
+          const { data: alreadySent } = await supabaseAdmin
+            .from('marketing_email_log')
+            .select('customer_id')
+            .eq('flow_id', flow.id)
+            .in('customer_id', candidateIds);
+
+          const sentIds = new Set((alreadySent || []).map((r) => r.customer_id));
+
+          // Filter: consent
+          const { data: consentRecords } = await supabaseAdmin
+            .from('marketing_contact_preferences')
+            .select('customer_id')
             .eq('location_id', locationId)
-            .eq('total_visits', 1)
-            .gte('created_at', oneDayAgo.toISOString())
-            .not('email', 'is', null);
-          candidates = (data || []) as Customer[];
-        } else if (flowType === 'birthday') {
-          // Customers whose birthday is in 7 days
-          const targetDate = new Date();
-          targetDate.setDate(targetDate.getDate() + 7);
-          const targetMonth = targetDate.getMonth() + 1;
-          const targetDay = targetDate.getDate();
+            .eq('channel', 'email')
+            .eq('opted_in', true)
+            .in('customer_id', candidateIds);
 
-          // Query all customers with birthdays, filter in JS
-          const { data } = await supabaseAdmin
-            .from('customers')
-            .select('id, first_name, last_name, email, total_visits, last_visit_at, birthday, created_at')
+          const optedInIds = new Set((consentRecords || []).map((r) => r.customer_id));
+
+          // Filter: suppression
+          const suppressionDate = new Date();
+          suppressionDate.setDate(suppressionDate.getDate() - maxFreqDays);
+
+          const { data: recentlySent } = await supabaseAdmin
+            .from('marketing_email_log')
+            .select('customer_id')
             .eq('location_id', locationId)
-            .not('email', 'is', null)
-            .not('birthday', 'is', null);
+            .gte('sent_at', suppressionDate.toISOString())
+            .in('customer_id', candidateIds);
 
-          candidates = ((data || []) as Customer[]).filter((c) => {
-            if (!c.birthday) return false;
-            const bday = new Date(c.birthday);
-            return bday.getMonth() + 1 === targetMonth && bday.getDate() === targetDay;
-          });
-        } else if (flowType === 'winback') {
-          const daysThreshold = triggerConfig.days_threshold || 30;
-          const targetDate = new Date();
-          targetDate.setDate(targetDate.getDate() - daysThreshold);
-          const windowEnd = new Date(targetDate);
-          windowEnd.setDate(windowEnd.getDate() - 1);
+          const suppressedIds = new Set((recentlySent || []).map((r) => r.customer_id));
 
-          const { data } = await supabaseAdmin
-            .from('customers')
-            .select('id, first_name, last_name, email, total_visits, last_visit_at, birthday, created_at')
-            .eq('location_id', locationId)
-            .not('email', 'is', null)
-            .not('last_visit_at', 'is', null)
-            .lte('last_visit_at', targetDate.toISOString())
-            .gte('last_visit_at', windowEnd.toISOString());
-
-          candidates = (data || []) as Customer[];
-        }
-
-        if (candidates.length === 0) continue;
-
-        // Filter: already sent for this flow
-        const candidateIds = candidates.map((c) => c.id);
-        const { data: alreadySent } = await supabaseAdmin
-          .from('marketing_email_log')
-          .select('customer_id')
-          .eq('flow_id', flow.id)
-          .in('customer_id', candidateIds);
-
-        const sentIds = new Set((alreadySent || []).map((r) => r.customer_id));
-
-        // For birthday: also check year — allow re-send next year
-        // For now, simple dedup: skip if ever sent for this flow
-        // TODO: add yearly dedup for birthday flows
-
-        // Filter: consent
-        const { data: consentRecords } = await supabaseAdmin
-          .from('marketing_contact_preferences')
-          .select('customer_id')
-          .eq('location_id', locationId)
-          .eq('channel', 'email')
-          .eq('opted_in', true)
-          .in('customer_id', candidateIds);
-
-        const optedInIds = new Set((consentRecords || []).map((r) => r.customer_id));
-
-        // Filter: suppression
-        const suppressionDate = new Date();
-        suppressionDate.setDate(suppressionDate.getDate() - maxFreqDays);
-
-        const { data: recentlySent } = await supabaseAdmin
-          .from('marketing_email_log')
-          .select('customer_id')
-          .eq('location_id', locationId)
-          .gte('sent_at', suppressionDate.toISOString())
-          .in('customer_id', candidateIds);
-
-        const suppressedIds = new Set((recentlySent || []).map((r) => r.customer_id));
-
-        // Final eligible list
-        const eligible = candidates.filter(
-          (c) => !sentIds.has(c.id) && optedInIds.has(c.id) && !suppressedIds.has(c.id)
-        );
-
-        // Send individual emails
-        for (const customer of eligible) {
-          const personalizedSubject = personalize(templateSubject, customer, restaurantName);
-          const personalizedHtml = personalize(templateHtml, customer, restaurantName);
-          const finalHtml = addUnsubscribeLink(personalizedHtml, customer.id, locationId);
-
-          const resendId = await sendSingleEmail(
-            customer.email,
-            fromEmail,
-            personalizedSubject,
-            finalHtml,
-            replyTo
+          // Final eligible list
+          const eligible = candidates.filter(
+            (c) => !sentIds.has(c.id) && optedInIds.has(c.id) && !suppressedIds.has(c.id)
           );
 
-          // Log
-          await supabaseAdmin.from('marketing_email_log').insert({
-            flow_id: flow.id,
-            customer_id: customer.id,
-            location_id: locationId,
-            resend_message_id: resendId,
-            status: resendId ? 'sent' : 'failed',
-            sent_at: new Date().toISOString(),
-          });
+          // Send individual emails
+          for (const customer of eligible) {
+            const personalizedSubject = personalize(templateSubject, customer, restaurantName);
+            const personalizedHtml = personalize(templateHtml, customer, restaurantName);
+            const finalHtml = addUnsubscribeLink(personalizedHtml, customer.id, locationId);
 
-          if (resendId) totalSent++;
+            const resendId = await sendSingleEmail(
+              customer.email,
+              fromEmail,
+              personalizedSubject,
+              finalHtml,
+              replyTo
+            );
+
+            await supabaseAdmin.from('marketing_email_log').insert({
+              flow_id: flow.id,
+              customer_id: customer.id,
+              location_id: locationId,
+              resend_message_id: resendId,
+              status: resendId ? 'sent' : 'failed',
+              sent_at: new Date().toISOString(),
+            });
+
+            if (resendId) totalSent++;
+          }
+
+          // Update flow stats
+          const currentStats = (flow.stats || {}) as Record<string, any>;
+          const newSentCount = (currentStats.sent_count || 0) + eligible.length;
+          await supabaseAdmin
+            .from('marketing_automation_flows')
+            .update({
+              stats: { ...currentStats, sent_count: newSentCount, last_run_at: new Date().toISOString() },
+            })
+            .eq('id', flow.id);
+
+          console.log(`[AUTOMATION] Flow "${flow.name}" (${flowType}): sent ${eligible.length} emails`);
+        } catch (flowErr) {
+          console.error(`[AUTOMATION] Error processing flow ${flow.id}:`, flowErr);
         }
-
-        // Update flow stats
-        const currentStats = (flow.stats || {}) as Record<string, any>;
-        const newSentCount = (currentStats.sent_count || 0) + eligible.length;
-        await supabaseAdmin
-          .from('marketing_automation_flows')
-          .update({
-            stats: { ...currentStats, sent_count: newSentCount, last_run_at: new Date().toISOString() },
-          })
-          .eq('id', flow.id);
-
-        console.log(`[AUTOMATION] Flow "${flow.name}" (${flowType}): sent ${eligible.length} emails`);
-      } catch (flowErr) {
-        console.error(`[AUTOMATION] Error processing flow ${flow.id}:`, flowErr);
       }
     }
 
-    return new Response(JSON.stringify({ processed: flows.length, sent: totalSent }), {
+    // ============================================
+    // PART 2: Cross-module events consumption
+    // ============================================
+    try {
+      const { data: events } = await supabaseAdmin
+        .from('cross_module_events')
+        .select('*')
+        .in('event_type', ['guest_first_visit', 'guest_visit_completed'])
+        .not('consumed_by', 'cs', '{"marketing-automation"}');
+
+      if (events && events.length > 0) {
+        for (const event of events) {
+          try {
+            const payload = (event.payload || {}) as Record<string, any>;
+            const customerId = payload.customer_id;
+            const locationId = event.location_id;
+
+            if (!customerId) {
+              await markEventConsumed(event.id, event.consumed_by);
+              continue;
+            }
+
+            if (event.event_type === 'guest_first_visit') {
+              // Find active welcome flow for this location
+              const welcomeFlow = flows?.find(
+                (f) => f.location_id === locationId && f.flow_type === 'welcome' && f.is_active
+              );
+              if (welcomeFlow) {
+                await processEventForFlow(welcomeFlow, customerId, locationId, totalSent);
+                totalSent++; // approximate
+              }
+            } else if (event.event_type === 'guest_visit_completed') {
+              // Post-visit review: only process if event is >= 3 hours old
+              const eventAge = Date.now() - new Date(event.created_at).getTime();
+              const threeHoursMs = 3 * 60 * 60 * 1000;
+
+              if (eventAge < threeHoursMs) {
+                // Too early, skip — will be picked up in a future run
+                continue;
+              }
+
+              const reviewFlow = flows?.find(
+                (f) => f.location_id === locationId && f.flow_type === 'post_visit_review' && f.is_active
+              );
+              if (reviewFlow) {
+                await processEventForFlow(reviewFlow, customerId, locationId, totalSent);
+                totalSent++;
+              }
+            }
+
+            // Mark event as consumed
+            await markEventConsumed(event.id, event.consumed_by);
+          } catch (eventErr) {
+            console.error(`[AUTOMATION] Error processing event ${event.id}:`, eventErr);
+          }
+        }
+      }
+    } catch (eventsErr) {
+      console.error('[AUTOMATION] Error loading cross_module_events:', eventsErr);
+    }
+
+    return new Response(JSON.stringify({ processed: flows?.length ?? 0, sent: totalSent }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
@@ -299,3 +343,137 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+/**
+ * Mark a cross_module_event as consumed by marketing-automation
+ */
+async function markEventConsumed(eventId: string, currentConsumedBy: any) {
+  const consumed = Array.isArray(currentConsumedBy) ? currentConsumedBy : [];
+  if (!consumed.includes('marketing-automation')) {
+    consumed.push('marketing-automation');
+  }
+  await supabaseAdmin
+    .from('cross_module_events')
+    .update({ consumed_by: consumed })
+    .eq('id', eventId);
+}
+
+/**
+ * Process a single customer for a flow (consent check, suppression, send)
+ */
+async function processEventForFlow(
+  flow: any,
+  customerId: string,
+  locationId: string,
+  _totalSent: number
+) {
+  // Load customer
+  const { data: customer } = await supabaseAdmin
+    .from('customers')
+    .select('id, first_name, last_name, email, total_visits, last_visit_at, birthday, created_at')
+    .eq('id', customerId)
+    .single();
+
+  if (!customer || !customer.email) return;
+
+  // Check already sent for this flow
+  const { data: alreadySent } = await supabaseAdmin
+    .from('marketing_email_log')
+    .select('id')
+    .eq('flow_id', flow.id)
+    .eq('customer_id', customerId)
+    .limit(1);
+
+  if (alreadySent && alreadySent.length > 0) return;
+
+  // Check consent
+  const { data: consent } = await supabaseAdmin
+    .from('marketing_contact_preferences')
+    .select('opted_in')
+    .eq('customer_id', customerId)
+    .eq('location_id', locationId)
+    .eq('channel', 'email')
+    .eq('opted_in', true)
+    .maybeSingle();
+
+  if (!consent) return;
+
+  // Check suppression
+  const { data: brandKit } = await supabaseAdmin
+    .from('marketing_brand_kit')
+    .select('marketing_sender_name, marketing_reply_to, max_email_frequency_days')
+    .eq('location_id', locationId)
+    .maybeSingle();
+
+  const maxFreqDays = brandKit?.max_email_frequency_days ?? 3;
+  const suppressionDate = new Date();
+  suppressionDate.setDate(suppressionDate.getDate() - maxFreqDays);
+
+  const { data: recentlySent } = await supabaseAdmin
+    .from('marketing_email_log')
+    .select('id')
+    .eq('customer_id', customerId)
+    .eq('location_id', locationId)
+    .gte('sent_at', suppressionDate.toISOString())
+    .limit(1);
+
+  if (recentlySent && recentlySent.length > 0) return;
+
+  // Load template
+  let templateHtml = '<p>{{first_name}}, bedankt voor je bezoek!</p>';
+  let templateSubject = 'Bericht van {{restaurant_name}}';
+  if (flow.template_id) {
+    const { data: template } = await supabaseAdmin
+      .from('marketing_templates')
+      .select('content_html, name')
+      .eq('id', flow.template_id)
+      .single();
+    if (template?.content_html) templateHtml = template.content_html;
+    if (template?.name) templateSubject = template.name;
+  }
+
+  // Load location name
+  const { data: location } = await supabaseAdmin
+    .from('locations')
+    .select('name')
+    .eq('id', locationId)
+    .single();
+  const restaurantName = location?.name || '';
+
+  const senderName = brandKit?.marketing_sender_name || 'Nesto';
+  const replyTo = brandKit?.marketing_reply_to || undefined;
+  const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+  const fromEmail = `${senderName} <${verifiedFrom}>`;
+
+  // Personalize and send
+  const personalizedSubject = personalize(templateSubject, customer as Customer, restaurantName);
+  const personalizedHtml = personalize(templateHtml, customer as Customer, restaurantName);
+  const finalHtml = addUnsubscribeLink(personalizedHtml, customerId, locationId);
+
+  const resendId = await sendSingleEmail(customer.email, fromEmail, personalizedSubject, finalHtml, replyTo);
+
+  // Log
+  await supabaseAdmin.from('marketing_email_log').insert({
+    flow_id: flow.id,
+    customer_id: customerId,
+    location_id: locationId,
+    resend_message_id: resendId,
+    status: resendId ? 'sent' : 'failed',
+    sent_at: new Date().toISOString(),
+  });
+
+  // Update flow stats
+  const currentStats = (flow.stats || {}) as Record<string, any>;
+  await supabaseAdmin
+    .from('marketing_automation_flows')
+    .update({
+      stats: {
+        ...currentStats,
+        sent_count: (currentStats.sent_count || 0) + 1,
+        last_run_at: new Date().toISOString(),
+      },
+    })
+    .eq('id', flow.id);
+
+  console.log(`[AUTOMATION] Event-triggered flow "${flow.name}": sent to ${customer.email}`);
+}
