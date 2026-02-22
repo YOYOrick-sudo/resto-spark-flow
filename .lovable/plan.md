@@ -1,243 +1,175 @@
 
-# Sessie 3.1 — Brand Intelligence Foundation
+# Sessie 3.2 — Instagram Onboarding + Slimme Content Generatie
 
 ## Samenvatting
 
-Een lerend AI-profiel per locatie dat wekelijks analyseert hoe social content presteert. De edge function combineert SQL-analyse (gratis) met AI-gestuurde schrijfstijl- en visuele stijlprofielen. De operator merkt alleen dat suggesties beter worden — het proces is onzichtbaar.
+Drie onderdelen: (1) een nieuwe edge function die na Instagram OAuth-koppeling de laatste 30 posts importeert, insights ophaalt, content type classifieert, en een brand analyse triggert; (2) upgrade van de content generatie output met `photo_suggestion` en `content_type`; (3) heranalyse trigger in de sync function. Plus een feedback card op de social posts pagina.
 
 ---
 
 ## Architectuur
 
 ```text
-pg_cron (zondag 05:00 UTC)
+Instagram OAuth koppeling (sessie 2.1)
         |
         v
-marketing-analyze-brand (edge function)
+marketing-onboard-instagram (nieuw)
         |
-        +-- Laag 0: SQL analyse (gratis)
-        |   - content_type_performance
-        |   - optimal_post_times
-        |   - top_hashtag_sets
-        |   - engagement_baseline
-        |   - posts_analyzed + learning_stage
+        +-- Stap 1: Haal 30 posts op via Graph API
+        +-- Stap 2: Haal insights per post op
+        +-- Stap 3: Classificeer content type per post (AI, batch)
+        +-- Stap 4: Trigger marketing-analyze-brand
         |
-        +-- Laag 2: Caption stijl (AI)
-        |   - Laatste 20 captions -> caption_style_profile
+        v
+marketing_social_posts (status='imported') + marketing_brand_intelligence (bijgewerkt)
+
+marketing-sync-social-stats (edit)
         |
-        +-- Laag 2: Visuele stijl (AI + vision, intern)
-            - 10 best-presterende foto's -> visual_style_profile
-```
+        +-- Na sync: check posts_analyzed_since_last_analysis >= 5
+        +-- Zo ja: trigger marketing-analyze-brand
 
-Resultaat wordt opgeslagen in `marketing_brand_intelligence` en automatisch meegegeven aan `marketing-generate-content` voor betere content generatie.
-
----
-
-## Stap 1: Database — marketing_brand_intelligence
-
-### SQL Migration
-
-```sql
-CREATE TABLE public.marketing_brand_intelligence (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  location_id UUID NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
-  content_type_performance JSONB DEFAULT '{}'::jsonb,
-  optimal_post_times JSONB DEFAULT '{}'::jsonb,
-  top_hashtag_sets JSONB DEFAULT '[]'::jsonb,
-  caption_style_profile TEXT,
-  visual_style_profile TEXT,
-  engagement_baseline JSONB DEFAULT '{}'::jsonb,
-  weekly_best_content_type TEXT,
-  learning_stage TEXT NOT NULL DEFAULT 'onboarding',
-  posts_analyzed INTEGER NOT NULL DEFAULT 0,
-  current_weekplan JSONB,
-  last_analysis_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT marketing_brand_intelligence_location_unique UNIQUE (location_id)
-);
-
-ALTER TABLE public.marketing_brand_intelligence ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY bi_select ON public.marketing_brand_intelligence
-  FOR SELECT USING (user_has_location_access(auth.uid(), location_id));
-
-CREATE POLICY bi_insert ON public.marketing_brand_intelligence
-  FOR INSERT WITH CHECK (user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]));
-
-CREATE POLICY bi_update ON public.marketing_brand_intelligence
-  FOR UPDATE USING (user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]));
-```
-
-Validatie trigger voor `learning_stage`:
-
-```sql
-CREATE OR REPLACE FUNCTION public.validate_learning_stage()
-  RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public' AS $$
-BEGIN
-  IF NEW.learning_stage NOT IN ('onboarding', 'learning', 'optimizing', 'mature') THEN
-    RAISE EXCEPTION 'Invalid learning_stage: must be onboarding, learning, optimizing, or mature';
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER trg_validate_learning_stage
-  BEFORE INSERT OR UPDATE ON public.marketing_brand_intelligence
-  FOR EACH ROW EXECUTE FUNCTION public.validate_learning_stage();
+marketing-generate-content (edit)
+        |
+        +-- Output uitgebreid met photo_suggestion + content_type
 ```
 
 ---
 
-## Stap 2: Edge Function — marketing-analyze-brand
+## Stap 1: Edge Function — marketing-onboard-instagram
 
-### `supabase/functions/marketing-analyze-brand/index.ts` (nieuw)
+### `supabase/functions/marketing-onboard-instagram/index.ts` (nieuw)
 
-Triggered via pg_cron wekelijks zondag 05:00 UTC. Service role key, `verify_jwt = false`.
+Authenticated endpoint. Getriggerd vanuit de frontend na succesvolle Instagram OAuth koppeling.
+
+**Input:** `{ account_id: string }` (ID uit `marketing_social_accounts`)
 
 **Flow:**
 
-1. Query alle locaties met ten minste 1 published/imported social post
-2. Per locatie:
+1. Auth check: haal user, lookup employee -> location_id
+2. Fetch social account by ID, verificeer `platform === 'instagram'` en `is_active === true`
+3. Haal `account_id` (Instagram user ID) en `access_token` op
 
-**Laag 0 — SQL analyse (gratis):**
+**Stap 1 — Haal laatste 30 posts op:**
+- `GET https://graph.facebook.com/v19.0/{ig-user-id}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count&limit=30`
+- Per post: insert in `marketing_social_posts` met:
+  - `status = 'imported'`
+  - `platform = 'instagram'`
+  - `external_post_id = media.id`
+  - `content_text = media.caption`
+  - `media_urls = [media.media_url || media.thumbnail_url]`
+  - `published_at = media.timestamp`
+  - `analytics = { likes: media.like_count, comments: media.comments_count }`
+  - Skip posts die al bestaan (check `external_post_id` uniekheid)
 
-a. **content_type_performance**: Query `marketing_social_posts` WHERE status IN ('published', 'imported') AND analytics IS NOT NULL. Groepeer op `content_type_tag`. Per type: tel posts, bereken gemiddelde `analytics.reach`, `analytics.engagement`, `analytics.impressions`. Output:
-```json
-{
-  "food_shot": { "count": 12, "avg_reach": 450, "avg_engagement": 35 },
-  "team": { "count": 5, "avg_reach": 320, "avg_engagement": 28 }
-}
+**Stap 2 — Haal insights per post:**
+- Per post: `GET https://graph.facebook.com/v19.0/{media-id}/insights?metric=impressions,reach,saved,engagement`
+- Merge metrics in `analytics` JSONB
+- Rate limit handling: als code 4 of 190, stop insights fetch, ga door met classificatie
+
+**Stap 3 — Content type classificatie (AI, batch):**
+- Verzamel alle captions in 1 batch call (max 30)
+- System prompt:
 ```
-
-b. **optimal_post_times**: Groepeer op `EXTRACT(DOW FROM published_at)` + `EXTRACT(HOUR FROM published_at)`. Bereken gemiddelde engagement per dag+uur combinatie. Top 5 slots. Output:
-```json
-[
-  { "day": 4, "hour": 18, "avg_engagement": 42 },
-  { "day": 5, "hour": 12, "avg_engagement": 38 }
-]
+Classificeer elke Instagram caption in exact 1 van deze categorieën:
+food_shot, behind_the_scenes, team, ambiance, seasonal, promo, event, user_generated.
+Geef voor elke caption het nummer en de categorie.
 ```
+- Tool calling met array output: `[{ index: number, tag: string }]`
+- Update `content_type_tag` per post
+- Model: `google/gemini-3-flash-preview` (snel, goedkoop)
 
-c. **top_hashtag_sets**: Unnest `hashtags` array, tel frequentie, correleer met engagement van de post. Top 15 hashtags gesorteerd op gemiddelde engagement. Output:
-```json
-[
-  { "hashtag": "amsterdam", "count": 8, "avg_engagement": 40 },
-  { "hashtag": "foodie", "count": 12, "avg_engagement": 35 }
-]
-```
-
-d. **engagement_baseline**: Bereken overall gemiddelden: avg_reach, avg_engagement, avg_impressions, total_posts.
-
-e. **weekly_best_content_type**: Content type met hoogste avg_engagement.
-
-f. **posts_analyzed**: COUNT van geanalyseerde posts.
-
-g. **learning_stage**: Bepaal op basis van posts_analyzed:
-- 0 -> 'onboarding'
-- 1-15 -> 'learning'
-- 16-50 -> 'optimizing'
-- 51+ -> 'mature'
-
-**Laag 2 — Caption stijl (AI, alleen bij >= 5 posts):**
-
-a. Query laatste 20 captions (content_text) gesorteerd op engagement (hoogste eerst)
-b. System prompt:
-```
-Beschrijf de schrijfstijl van dit restaurant in max 100 woorden:
-tone, woordkeuze, emoji gebruik, zinslengte, favoriete uitdrukkingen, CTA stijl.
-Dit profiel wordt gebruikt om nieuwe captions in exact dezelfde stijl te genereren.
-```
-c. Call Lovable AI (`google/gemini-3-flash-preview`) met tool calling, return als `caption_style_profile` string
-d. Fout? Log en ga door — SQL analyse is het belangrijkst
-
-**Laag 2 — Visuele stijl (AI + vision, alleen bij >= 5 posts met media):**
-
-a. Query 10 best-presterende posts met `media_urls` niet leeg
-b. System prompt:
-```
-Beschrijf de visuele stijl in max 80 woorden: kleurpalet, lichtgebruik,
-compositie, achtergronden, food styling. Dit wordt intern gebruikt voor foto-suggesties.
-```
-c. Call Lovable AI (`google/gemini-3-flash-preview`) met de image URLs als content parts
-d. Sla op als `visual_style_profile` — ALLEEN intern, niet in UI
-e. Fout? Log en ga door
-
-3. Upsert `marketing_brand_intelligence` per locatie met alle resultaten + `last_analysis_at = now()`
+**Stap 4 — Trigger brand analyse:**
+- HTTP POST naar `marketing-analyze-brand` (interne call via Supabase URL + service role key)
+- Fire-and-forget: wacht niet op resultaat
 
 **Error handling:**
-- Per-locatie errors: log en ga door naar volgende locatie
-- AI failures: log, sla SQL analyse resultaten alsnog op
-- Rate limit (429): stop AI calls, SQL resultaten worden alsnog opgeslagen
+- Graph API errors: log en return partial results
+- AI classification failure: log, laat `content_type_tag` als null
+- Per-post errors: skip en ga door
+
+**Response:** `{ imported: number, insights_fetched: number, classified: number }`
 
 ---
 
-## Stap 3: Content generatie verrijken
+## Stap 2: Upgrade marketing-generate-content output
 
 ### `supabase/functions/marketing-generate-content/index.ts` (edit)
 
-De bestaande content generatie edge function wordt verrijkt met brand intelligence data:
+Uitbreiden van de tool calling schema en prompt voor `generateSocialContent`:
 
-1. Na het laden van brand kit + location, ook `marketing_brand_intelligence` laden voor de locatie
-2. Als `caption_style_profile` beschikbaar: toevoegen aan system prompt:
+**Nieuwe output velden in tool schema:**
+- `photo_suggestion`: string — "Concrete foto-tip op basis van visuele stijl analyse"
+- `content_type`: string — het aanbevolen content type tag (food_shot, behind_the_scenes, etc.)
+
+**System prompt aanpassingen:**
+- Als `visual_style_profile` beschikbaar: toevoegen "Geef ook een concrete foto-tip (1 zin) die past bij de visuele stijl van dit restaurant."
+- Als `engagement_baseline` beschikbaar: toevoegen `"Verwachte performance baseline: gem. bereik {avg_reach}, gem. engagement {avg_engagement}"`
+- Als `learning_stage` beschikbaar: gebruik het om de toon van de suggesties aan te passen:
+  - `onboarding`: meer generieke best practices
+  - `learning`/`optimizing`/`mature`: meer gepersonaliseerd op basis van data
+
+**Tool schema update:**
+```json
+{
+  "photo_suggestion": { "type": "string", "description": "Concrete foto-tip in 1 zin, passend bij de visuele stijl" },
+  "content_type": { "type": "string", "description": "Aanbevolen content type: food_shot, behind_the_scenes, team, ambiance, seasonal, promo, event, user_generated" }
+}
 ```
-Schrijfstijlprofiel (schrijf in EXACT deze stijl):
-{caption_style_profile}
-```
-3. Als `visual_style_profile` beschikbaar: toevoegen aan system prompt (alleen als hint, niet als apart UI element):
-```
-Visuele stijl hint (voor foto-gerelateerde suggesties):
-{visual_style_profile}
-```
-4. Als `content_type_performance` beschikbaar: toevoegen aan user prompt context:
-```
-Best presterende content types: {top 3 met avg engagement}
-```
-5. Als `optimal_post_times` beschikbaar: gebruik als basis voor `suggested_time` en `suggested_day` in plaats van AI-gok
-6. Als `top_hashtag_sets` beschikbaar: mee als context voor hashtag suggesties
+
+### `src/hooks/useGenerateContent.ts` (edit)
+
+Update `SocialContentResult` interface:
+- Voeg `photo_suggestion?: string` toe
+- Voeg `content_type?: string` toe
 
 ---
 
-## Stap 4: pg_cron job
+## Stap 3: Heranalyse trigger in sync function
 
-Via SQL insert (niet migratie):
+### `supabase/functions/marketing-sync-social-stats/index.ts` (edit)
 
-```sql
-SELECT cron.schedule(
-  'marketing-analyze-brand-weekly',
-  '0 5 * * 0',  -- zondag 05:00 UTC
-  $$
-  SELECT net.http_post(
-    url := 'https://igqcfxizgtdkwnajvers.supabase.co/functions/v1/marketing-analyze-brand',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}'::jsonb,
-    body := '{"triggered_by": "cron"}'::jsonb
-  ) AS request_id;
-  $$
-);
-```
+Na de sync loop (na alle posts zijn verwerkt):
+
+1. Per unieke `location_id` in de verwerkte posts:
+   - Query `marketing_brand_intelligence` voor `posts_analyzed` en `last_analysis_at`
+   - Query `COUNT(*)` van `marketing_social_posts` met `status IN ('published', 'imported')` voor die locatie
+   - Als `current_count - posts_analyzed >= 5`:
+     - HTTP POST naar `marketing-analyze-brand` (fire-and-forget)
+     - Log: "Triggered re-analysis for location {id}"
 
 ---
 
-## Stap 5: Frontend hook
+## Stap 4: Frontend — Onboarding trigger + Feedback card
 
-### `src/hooks/useBrandIntelligence.ts` (nieuw)
+### `src/hooks/useInstagramOnboarding.ts` (nieuw)
 
 ```typescript
-// useBrandIntelligence() -> query marketing_brand_intelligence by location_id
-// Returns: learning_stage, posts_analyzed, content_type_performance,
-//          optimal_post_times, top_hashtag_sets, engagement_baseline,
-//          caption_style_profile, weekly_best_content_type, last_analysis_at
+// useInstagramOnboarding() -> mutation die marketing-onboard-instagram aanroept
+// Input: { account_id: string }
+// Output: { imported: number, insights_fetched: number, classified: number }
 ```
 
-Read-only hook. Geen mutations nodig — data wordt alleen door de edge function geschreven.
+### `src/pages/marketing/SocialPostsPage.tsx` (edit)
+
+Feedback card na succesvolle onboarding:
+
+- Query `useBrandIntelligence()` 
+- Als `learning_stage !== 'onboarding'` EN er bestaan posts met `status = 'imported'`:
+  - Toon `InfoAlert variant="success"` met auto-dismiss (localStorage key `nesto_ig_onboarded_{locationId}`, check of < 7 dagen oud):
+    - Tekst: "Instagram gekoppeld -- we kennen nu je stijl en wat het beste werkt. Je suggesties worden elke week beter."
+  - Na 7 dagen of handmatige dismiss: niet meer tonen
+
+### Trigger punt:
+De onboarding wordt getriggerd vanuit de Instagram koppeling flow (settings pagina). Na succesvolle OAuth + account opslag, roep `useInstagramOnboarding.mutate({ account_id })` aan. Dit is een edit in de bestaande marketing settings component waar Instagram gekoppeld wordt.
 
 ---
 
-## Stap 6: config.toml update
+## Stap 5: config.toml update
 
 ### `supabase/config.toml` (edit)
 
 ```toml
-[functions.marketing-analyze-brand]
+[functions.marketing-onboard-instagram]
 verify_jwt = false
 ```
 
@@ -247,34 +179,36 @@ verify_jwt = false
 
 | Bestand | Actie |
 |---|---|
-| SQL Migration | Nieuw: marketing_brand_intelligence tabel + RLS + validatie trigger |
-| `supabase/functions/marketing-analyze-brand/index.ts` | Nieuw: wekelijkse analyse edge function |
-| `supabase/functions/marketing-generate-content/index.ts` | Edit: verrijk met intelligence data |
+| `supabase/functions/marketing-onboard-instagram/index.ts` | Nieuw: Instagram import + classificatie + analyse trigger |
+| `supabase/functions/marketing-generate-content/index.ts` | Edit: photo_suggestion + content_type in output |
+| `supabase/functions/marketing-sync-social-stats/index.ts` | Edit: heranalyse trigger na sync |
 | `supabase/config.toml` | Edit: nieuwe function config |
-| pg_cron SQL (via insert tool) | Nieuw: wekelijkse cron job |
-| `src/hooks/useBrandIntelligence.ts` | Nieuw: read-only query hook |
+| `src/hooks/useGenerateContent.ts` | Edit: uitgebreide SocialContentResult interface |
+| `src/hooks/useInstagramOnboarding.ts` | Nieuw: onboarding mutation hook |
+| `src/pages/marketing/SocialPostsPage.tsx` | Edit: feedback card |
 
 ---
 
 ## Technische details
 
-### AI model keuze
-- Caption stijl analyse: `google/gemini-3-flash-preview` (snel, goedkoop, text-only)
-- Visuele stijl analyse: `google/gemini-3-flash-preview` (ondersteunt vision/image URLs)
-- Beide via tool calling voor gestructureerde output
+### Instagram Graph API paginatie
+De `limit=30` parameter haalt maximaal 30 posts op in 1 call. Geen paginatie nodig voor v1.
 
-### Learning stage transitie
-Automatisch bepaald bij elke analyse run. Geen handmatige interventie nodig. De stage wordt meegegeven aan de content generatie zodat het AI model weet hoeveel het kan leunen op het profiel vs. generieke best practices.
+### Content type classificatie — batch approach
+Alle 30 captions in 1 AI call (goedkoper dan 30 losse calls). De AI retourneert een array met index + tag. Dit voorkomt 30 afzonderlijke API calls.
 
-### Geen UI in deze sessie
-Brand Intelligence is een backend-only feature in sessie 3.1. De resultaten worden onzichtbaar meegegeven aan content generatie. De operator merkt alleen dat suggesties beter worden. Latere sessies (3.2+) kunnen optioneel een "Inzichten" sectie toevoegen.
+### Heranalyse drempel
+De drempel van 5 nieuwe posts voorkomt onnodige AI calls. Bij een actief restaurant dat 3-5x per week post, triggert dit ongeveer elke 1-2 weken een heranalyse bovenop de wekelijkse cron.
+
+### Geen database wijzigingen
+Alle benodigde kolommen bestaan al: `marketing_social_posts.content_type_tag`, `marketing_social_posts.external_post_id`, `marketing_social_posts.analytics`, `marketing_brand_intelligence.*`.
 
 ---
 
 ## Wat NIET in deze sessie
 
-- UI voor brand intelligence data (komt eventueel in latere sessies)
-- Coaching tips (sessie 3.2)
-- Content series / weekplan generatie (sessie 3.3+)
-- Handmatige trigger voor analyse (alleen cron)
-- Reviews analyse
+- Facebook/Google Business onboarding (alleen Instagram)
+- Carousel/reels specifieke insights
+- Handmatige herclassificatie van content types
+- UI voor brand intelligence data weergave
+- Weekplan generatie (sessie 3.3+)
