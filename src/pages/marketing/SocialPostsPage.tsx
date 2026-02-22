@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { PageHeader } from '@/components/polar/PageHeader';
 import { NestoButton } from '@/components/polar/NestoButton';
+import { PLATFORM_COLORS } from '@/lib/platformColors';
 import { NestoTabs } from '@/components/polar/NestoTabs';
 import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoBadge } from '@/components/polar/NestoBadge';
@@ -35,11 +36,6 @@ import {
 } from '@/components/ui/table';
 import type { SocialPost } from '@/hooks/useMarketingSocialPosts';
 
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: '#E1306C',
-  facebook: '#1877F2',
-  google_business: '#34A853',
-};
 
 const PLATFORM_LABELS: Record<string, string> = {
   instagram: 'Instagram',

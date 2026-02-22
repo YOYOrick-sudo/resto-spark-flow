@@ -59,3 +59,30 @@ verify_jwt = false
 
 [functions.marketing-reply-review]
 verify_jwt = false
+
+[functions.marketing-attribution]
+verify_jwt = false
+
+[functions.marketing-publish-social]
+verify_jwt = false
+
+[functions.marketing-refresh-tokens]
+verify_jwt = false
+
+[functions.marketing-generate-weekplan]
+verify_jwt = false
+
+[functions.marketing-generate-coaching]
+verify_jwt = false
+
+[functions.marketing-generate-ideas]
+verify_jwt = false
+
+[functions.marketing-sync-reviews]
+verify_jwt = false
+
+[functions.marketing-fetch-ugc]
+verify_jwt = false
+
+[functions.marketing-evaluate-ab-test]
+verify_jwt = false
