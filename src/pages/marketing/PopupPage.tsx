@@ -463,6 +463,7 @@ function PopupEditor({
                 onClick={() => {
                   setState(prev => ({ ...prev, sticky_bar_enabled: false }));
                   debouncedSave({ sticky_bar_enabled: false });
+                  setPreviewType('popup');
                 }}
                 className={cn(
                   'flex items-start gap-3 rounded-card-sm border-[1.5px] px-4 py-3 text-left transition-all duration-150 cursor-pointer',
@@ -487,6 +488,7 @@ function PopupEditor({
                 onClick={() => {
                   setState(prev => ({ ...prev, sticky_bar_enabled: true, exit_intent_enabled: false, timed_popup_enabled: false }));
                   debouncedSave({ sticky_bar_enabled: true, exit_intent_enabled: false, timed_popup_enabled: false });
+                  setPreviewType('bar');
                 }}
                 className={cn(
                   'flex items-start gap-3 rounded-card-sm border-[1.5px] px-4 py-3 text-left transition-all duration-150 cursor-pointer',
