@@ -1,0 +1,133 @@
+import { useState } from 'react';
+import { UserPlus } from 'lucide-react';
+import { PageHeader } from '@/components/polar/PageHeader';
+import { StatCard } from '@/components/polar/StatCard';
+import { NestoTable, type Column } from '@/components/polar/NestoTable';
+import { NestoSelect } from '@/components/polar/NestoSelect';
+import { NestoBadge } from '@/components/polar/NestoBadge';
+import { SearchBar } from '@/components/polar/SearchBar';
+import { EmptyState } from '@/components/polar/EmptyState';
+import { ContactOptInSheet } from '@/components/marketing/contacts/ContactOptInSheet';
+import { useMarketingContacts, useNewContactsThisMonth, type MarketingContact } from '@/hooks/useMarketingContacts';
+import { useMarketingSegments } from '@/hooks/useMarketingSegments';
+import { formatDistanceToNow } from 'date-fns';
+import { nl } from 'date-fns/locale';
+
+export default function ContactsPage() {
+  const { data: segments = [] } = useMarketingSegments();
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string>('__all__');
+  const [search, setSearch] = useState('');
+  const [selectedContact, setSelectedContact] = useState<MarketingContact | null>(null);
+
+  const selectedSegment = selectedSegmentId !== '__all__' ? segments.find(s => s.id === selectedSegmentId) : undefined;
+  const filterRules = selectedSegment?.filter_rules ?? null;
+
+  const { data: contacts = [], isLoading } = useMarketingContacts(filterRules, search);
+  const { data: newThisMonth = 0 } = useNewContactsThisMonth();
+
+  const segmentOptions = [
+    { value: '__all__', label: 'Alle contacten' },
+    ...segments.map(s => ({ value: s.id, label: s.name })),
+  ];
+
+  const columns: Column<MarketingContact & Record<string, unknown>>[] = [
+    {
+      key: 'name',
+      header: 'Naam',
+      render: (item) => (
+        <span className="font-medium">{item.first_name} {item.last_name}</span>
+      ),
+    },
+    {
+      key: 'email',
+      header: 'E-mail',
+      render: (item) => item.email ?? '—',
+    },
+    {
+      key: 'total_visits',
+      header: 'Bezoeken',
+      render: (item) => item.total_visits,
+      className: 'text-right w-24',
+      headerClassName: 'text-right',
+    },
+    {
+      key: 'last_visit_at',
+      header: 'Laatste bezoek',
+      render: (item) =>
+        item.last_visit_at
+          ? formatDistanceToNow(new Date(item.last_visit_at), { addSuffix: true, locale: nl })
+          : '—',
+    },
+    {
+      key: 'average_spend',
+      header: 'Gem. besteding',
+      render: (item) =>
+        item.average_spend != null ? `€${Number(item.average_spend).toFixed(2)}` : '—',
+      className: 'text-right w-32',
+      headerClassName: 'text-right',
+    },
+  ];
+
+  return (
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <PageHeader
+        title="Contacten"
+        subtitle="Beheer je gastenbestand en marketing voorkeuren"
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          label="Totaal contacten"
+          value={isLoading ? '...' : contacts.length}
+        />
+        <StatCard
+          label="Nieuw deze maand"
+          value={`+${newThisMonth}`}
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="w-full sm:w-64">
+          <NestoSelect
+            placeholder="Filter op segment"
+            value={selectedSegmentId}
+            onValueChange={setSelectedSegmentId}
+            options={segmentOptions}
+          />
+        </div>
+        <div className="flex-1">
+          <SearchBar
+            placeholder="Zoek op naam of e-mail..."
+            value={search}
+            onChange={setSearch}
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="h-64 rounded-card bg-accent animate-pulse" />
+      ) : contacts.length === 0 ? (
+        <EmptyState
+          title="Geen contacten gevonden"
+          description={search || selectedSegmentId ? 'Pas je filters aan.' : 'Er zijn nog geen gasten in je bestand.'}
+        />
+      ) : (
+        <NestoTable
+          columns={columns}
+          data={contacts as (MarketingContact & Record<string, unknown>)[]}
+          keyExtractor={(item) => item.id}
+          onRowClick={(item) => setSelectedContact(item)}
+        />
+      )}
+
+      <ContactOptInSheet
+        open={!!selectedContact}
+        onOpenChange={(open) => !open && setSelectedContact(null)}
+        contact={selectedContact}
+      />
+    </div>
+  );
+}

@@ -40,6 +40,8 @@ import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
 import SettingsCommunicatie from "./pages/settings/SettingsCommunicatie";
 import MarketingSettings from "./pages/marketing/MarketingSettings";
+import SegmentsPage from "./pages/marketing/SegmentsPage";
+import ContactsPage from "./pages/marketing/ContactsPage";
 
 // New multi-level settings pages
 import {
@@ -126,6 +128,10 @@ const App = () => (
                   <Route path="/instellingen/communicatie" element={<SettingsCommunicatie />} />
                   
                   {/* Marketing */}
+                  <Route path="/marketing/segmenten" element={<SegmentsPage />} />
+                  <Route path="/marketing/contacten" element={<ContactsPage />} />
+                  
+                  {/* Marketing Settings */}
                   <Route path="/instellingen/marketing" element={<MarketingSettings />} />
                   
                   {/* Settings - Reserveringen (Multi-level) */}

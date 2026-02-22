@@ -950,6 +950,7 @@ export type Database = {
           id: string
           is_dynamic: boolean
           is_system: boolean
+          last_campaign_at: string | null
           location_id: string
           name: string
           updated_at: string
@@ -963,6 +964,7 @@ export type Database = {
           id?: string
           is_dynamic?: boolean
           is_system?: boolean
+          last_campaign_at?: string | null
           location_id: string
           name: string
           updated_at?: string
@@ -976,6 +978,7 @@ export type Database = {
           id?: string
           is_dynamic?: boolean
           is_system?: boolean
+          last_campaign_at?: string | null
           location_id?: string
           name?: string
           updated_at?: string
@@ -2814,6 +2817,10 @@ export type Database = {
         }
         Returns: Json
       }
+      count_segment_customers: {
+        Args: { _filter_rules: Json; _location_id: string }
+        Returns: number
+      }
       create_reservation: {
         Args: {
           _actor_id?: string
@@ -2923,6 +2930,32 @@ export type Database = {
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       is_platform_user: { Args: { _user_id: string }; Returns: boolean }
+      list_segment_customers: {
+        Args: {
+          _filter_rules?: Json
+          _limit?: number
+          _location_id: string
+          _offset?: number
+        }
+        Returns: {
+          average_spend: number
+          birthday: string
+          created_at: string
+          dietary_preferences: string[]
+          email: string
+          first_name: string
+          id: string
+          language: string
+          last_name: string
+          last_visit_at: string
+          notes: string
+          phone_number: string
+          tags: Json
+          total_cancellations: number
+          total_no_shows: number
+          total_visits: number
+        }[]
+      }
       move_reservation_table: {
         Args: {
           _actor_id?: string
