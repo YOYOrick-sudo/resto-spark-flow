@@ -1,211 +1,176 @@
 
-
-# Sessie 2.4 — AI Content Generatie (Basis)
+# Sessie 2.5 — Social Analytics + Google Auto-refresh
 
 ## Samenvatting
 
-Een edge function `marketing-generate-content` die via Lovable AI (gateway) per-platform captions + hashtags + timing suggesties genereert op basis van het Brand Kit profiel. De Social Post Creator krijgt een "AI schrijven" knop die een mini-modal opent, en de Email Builder's "Pas aan met AI" knop wordt geactiveerd.
+Twee edge functions voor metrics sync en Google post auto-refresh, een Social Analytics tab op de Analytics pagina, een read-only Instagram Grid Preview, en polish items (token expiry banners, empty states, loading skeletons).
+
+**Gebruikersfeedback verwerkt:** Instagram Grid Preview is **read-only** in v1. Geen drag-and-drop — de grid toont alleen hoe je feed eruit zal zien. Volgorde aanpassen doe je via de kalender.
 
 ---
 
 ## Architectuur
 
-```text
-Frontend                        Edge Function                    Lovable AI Gateway
-+--------------------+          +-------------------------+      +------------------+
-| Post Creator       |  invoke  | marketing-generate-     |  --> | gemini-3-flash   |
-| "AI schrijven" btn | -------> | content                 |      | -preview         |
-|                    |          |                         |      +------------------+
-| Email Builder      |  invoke  | - Load brand kit        |
-| "Pas aan met AI"   | -------> | - Load location context |
-|                    |          | - Platform-specific     |
-+--------------------+          |   system prompts        |
-                                | - Return structured     |
-                                |   output via tool call  |
-                                +-------------------------+
-```
-
-Geen database wijzigingen nodig. Gebruikt bestaande `marketing_brand_kit` + `locations` tabellen.
+Geen database wijzigingen nodig. `marketing_social_posts.analytics` JSONB is al beschikbaar. `marketing_social_accounts` heeft `token_expires_at` voor expiry detectie.
 
 ---
 
-## Stap 1: Edge Function — marketing-generate-content
+## Stap 1: Edge Function — marketing-sync-social-stats
 
-### `supabase/functions/marketing-generate-content/index.ts` (nieuw)
+### `supabase/functions/marketing-sync-social-stats/index.ts` (nieuw)
 
-**Input (body JSON):**
-```typescript
-{
-  type: 'social' | 'email';
-  // For social:
-  context?: string;        // Gebruiker beschrijft onderwerp
-  platforms?: string[];     // ['instagram', 'facebook', 'google_business']
-  content_type_tag?: string; // food_shot, team, etc.
-  // For email:
-  email_body?: string;     // Huidige email tekst
-  instruction?: string;    // Wat wil je aanpassen?
-}
-```
+Triggered via pg_cron elke 4 uur. Service role key, `verify_jwt = false`.
 
 **Flow:**
-1. Haal `location_id` uit JWT claims (authenticated request)
-2. Fetch `marketing_brand_kit` voor tone_of_voice, tone_description, social_handles
-3. Fetch `locations` voor restaurant naam, adres, openingstijden context
-4. Bouw platform-specifieke system prompts:
-
-**Instagram prompt regels:**
-- Kort (max 150 woorden), visueel beschrijvend
-- 8-12 hashtags, mix van breed en niche
-- Emoji's passend bij tone_of_voice
-- Geen links (Instagram caption links werken niet)
-
-**Facebook prompt regels:**
-- Langer, meer context en storytelling
-- Geen hashtags
-- Reserveringslink placeholder: "[RESERVEER_LINK]"
-- Vraag/CTA aan het einde
-
-**Google Business prompt regels:**
-- Zakelijk en to-the-point
-- Focus op aanbod/actie
-- Sterke CTA (bijv. "Reserveer nu", "Bezoek ons")
-- Openingstijden vermelding als relevant
-
-5. Call Lovable AI gateway (`google/gemini-3-flash-preview`) met tool calling voor gestructureerde output
-6. Return per-platform caption + hashtag suggesties + timing suggestie
-
-**Output (tool call schema):**
-```typescript
-{
-  platforms: {
-    instagram?: { caption: string; hashtags: string[] };
-    facebook?: { caption: string };
-    google_business?: { caption: string };
-  };
-  suggested_hashtags: string[];  // 10 suggesties als chips
-  suggested_time?: string;       // bijv. "18:00" 
-  suggested_day?: string;        // bijv. "donderdag"
-}
-```
-
-**Voor email type:**
-```typescript
-{
-  updated_body: string;  // Aangepaste email tekst
-}
-```
-
-**Auth:** `verify_jwt = false` in config.toml, maar validate JWT in code via `getClaims()`.
-
-**Error handling:**
-- 429 (rate limit): Return specifieke error message
-- 402 (credits): Return specifieke error message
-- Beide surfaced als toast in frontend
+1. Query published posts met `external_post_id IS NOT NULL` en `published_at > now() - 30 days`
+2. Batch account lookups per location+platform
+3. Per post, platform-specifieke API calls:
+   - **Instagram:** `GET /{media-id}/insights?metric=impressions,reach,saved,engagement`
+   - **Facebook:** `GET /{post-id}?fields=insights.metric(post_impressions,post_reach,post_clicks)`
+   - **Google Business:** `GET /v4/{localPostName}?readMask=localPostMetrics`
+4. Merge metrics in `analytics` JSONB + `last_synced` timestamp
+5. Error handling: skip bij rate limit (code 4) of expired token (code 190), log en continue
 
 ---
 
-## Stap 2: Social Post Creator — AI schrijven
+## Stap 2: Edge Function — marketing-refresh-google-posts
+
+### `supabase/functions/marketing-refresh-google-posts/index.ts` (nieuw)
+
+Triggered via pg_cron dagelijks 08:00 UTC. Service role key, `verify_jwt = false`.
+
+**Flow:**
+1. Query Google Business posts waar `published_at < now() - interval '6 days'` en `status = 'published'`
+2. Per post: fetch active account, DELETE oude post via API, re-CREATE met dezelfde content
+3. Update `external_post_id` en `published_at` in database
+4. Bij API failure: set `error_message`, status blijft `published`
+
+---
+
+## Stap 3: pg_cron jobs
+
+Twee SQL migrations:
+
+1. **marketing-sync-social-stats** -- `0 */4 * * *` (elke 4 uur)
+2. **marketing-refresh-google-posts** -- `0 8 * * *` (dagelijks 08:00 UTC)
+
+Beide via `cron.schedule()` met `net.http_post()` naar de edge function URL.
+
+---
+
+## Stap 4: config.toml update
+
+### `supabase/config.toml` (edit)
+
+Twee nieuwe entries:
+```
+[functions.marketing-sync-social-stats]
+verify_jwt = false
+
+[functions.marketing-refresh-google-posts]
+verify_jwt = false
+```
+
+---
+
+## Stap 5: Social Analytics hook
+
+### `src/hooks/useMarketingAnalytics.ts` (edit)
+
+Toevoegen aan bestaande hook (nieuwe parameter `includeSocial?: boolean`):
+
+- **`socialMetrics`** query: query `marketing_social_posts` met status `published` over de gekozen periode, aggregate `analytics` JSONB per dag per platform. Return array voor Recharts: `{ date, label, instagram_reach, facebook_reach, google_reach, instagram_engagement, facebook_engagement, google_clicks }`
+- **`socialPostPerformance`** query: top posts gesorteerd op engagement (analytics.engagement of analytics.reach). Return: `{ id, platform, content_text, impressions, reach, engagement, published_at }`
+- **`bestPostTime`** berekening: analyseer `published_at` van top-10 performing posts, return simpele suggestie string
+
+---
+
+## Stap 6: Social Analytics tab
+
+### `src/pages/analytics/AnalyticsPage.tsx` (edit)
+
+- Voeg `{ id: 'social', label: 'Social' }` toe aan TABS array (tussen marketing en reserveringen)
+- Render `SocialAnalyticsTab` wanneer `activeTab === 'social'`
+
+### `src/pages/analytics/tabs/SocialAnalyticsTab.tsx` (nieuw)
+
+Volgt exact het patroon van `MarketingAnalyticsTab`:
+
+**Periode selector:** `NestoOutlineButtonGroup` (7/30/90 dagen)
+
+**Hero metrics:** Grid van 4 `StatCard`s:
+- Totaal bereik (som reach uit analytics JSONB)
+- Totaal engagement
+- Gepubliceerde posts (count)
+- Gem. engagement rate (engagement / reach * 100, 1 decimaal)
+
+**Per-platform chart:** `NestoCard` met `LineChart` (Recharts):
+- 3 lijnen: Instagram (`#E1306C`), Facebook (`#1877F2`), Google (`#34A853`)
+- DataKey: reach per platform per dag
+- XAxis met datum labels, YAxis hidden, geen grid
+- Tooltip: Nesto stijl (`bg-foreground text-background rounded-lg`)
+- Legenda: gekleurde dots boven de chart
+
+**Beste posttijd:** `InfoAlert variant="info"` met timing suggestie
+- Tekst: "Op basis van je data: [dag] om [tijd] bereikt de meeste mensen"
+- Of: "Post meer om een optimale posttijd te ontdekken" als onvoldoende data
+
+**Post performance tabel:** `NestoTable`:
+- Kolommen: Platform (dot + naam), Bericht (truncated, max-w-[250px]), Bereik (tabular-nums), Engagement (tabular-nums), Datum (muted)
+- Gesorteerd op engagement desc
+- Empty state: "Publiceer je eerste post om prestaties te zien."
+
+**Loading states:** `Skeleton` patroon (h-24 voor StatCards, h-[300px] voor chart, h-48 voor tabel)
+
+---
+
+## Stap 7: Instagram Grid Preview (read-only)
+
+### `src/pages/marketing/SocialPostsPage.tsx` (edit)
+
+Nieuwe sectie boven de posts tabel, zichtbaar wanneer `platformTab === 'all'` of `platformTab === 'instagram'`:
+
+**"Instagram Feed Preview"**
+- Titel: `text-h2`
+- 3x3 CSS grid (`grid grid-cols-3 gap-1 max-w-[360px]`)
+- Data: filter `useAllSocialPosts({ platform: 'instagram' })` op status `published` + `scheduled`, sort op `scheduled_at`/`published_at` desc, neem eerste 9
+- Per cel:
+  - Als `media_urls[0]`: thumbnail image (`aspect-square object-cover rounded-sm`)
+  - Geen media: gradient placeholder (`bg-gradient-to-br from-[#E1306C]/20 to-[#E1306C]/5`) met eerste 2 woorden van caption
+  - Hover overlay: caption preview (`text-[10px] bg-black/60 text-white`)
+  - Geplande posts: `border border-dashed border-border opacity-70` om visueel onderscheid te maken
+- **Geen drag-and-drop** — read-only preview. Volgorde aanpassen via de kalender.
+
+---
+
+## Stap 8: Token expiry banner
+
+### `src/pages/marketing/SocialPostsPage.tsx` (edit)
+
+Boven de NestoTabs, onder PageHeader:
+- Query `useMarketingSocialAccounts()` voor `accountsWithStatus`
+- Filter op `status === 'expiring'`
+- Per expiring account: `InfoAlert variant="warning"`:
+  - Titel: "{Platform} verbinding verloopt binnenkort"
+  - Description: "Ga naar Instellingen om opnieuw te verbinden."
+  - Child: `NestoButton variant="outline" size="sm"` met Settings icon, navigeert naar `/marketing/instellingen`
 
 ### `src/pages/marketing/SocialPostCreatorPage.tsx` (edit)
 
-**Wijzigingen:**
-
-1. Import `Sparkles` icon, `NestoModal`, en een nieuwe hook `useGenerateContent`
-2. Naast het caption textarea: een "AI schrijven" knop (`NestoButton variant="outline" size="sm"` met `Sparkles` icon)
-   - Disabled als geen platforms geselecteerd (tooltip: "Selecteer eerst een platform")
-3. Click opent een `NestoModal` (size="sm"):
-   - Titel: "AI schrijven"
-   - Content type tag doorgeven als context
-   - Textarea: "Waar gaat deze post over?" (placeholder: "Bijv. nieuw seizoensmenu, teamuitje, speciale actie...")
-   - Footer: "Annuleren" + "Genereer" knop
-   - Loading state: "Genereer" knop wordt "Genereren..." met disabled
-4. Na succesvolle generatie:
-   - **Per-platform captions:** Huidige architectuur gebruikt 1 caption voor alle platforms. Wijzig naar per-platform caption state wanneer AI genereert:
-     - Nieuwe state: `platformCaptions: Record<SocialPlatform, string>`
-     - Als AI genereert: vul per platform apart in
-     - Als handmatig getypt: synchroniseer naar alle platforms
-     - Live preview toont per-platform caption
-   - **Hashtag suggesties:** 10 chips onder het hashtag veld, click om toe te voegen
-   - **Timing suggestie:** InfoAlert onder schedule sectie met suggestie
-   - Modal sluit automatisch
-   - `nestoToast.success('Content gegenereerd')`
+Zelfde banner logic toevoegen boven het formulier.
 
 ---
 
-## Stap 3: Hashtag suggestie chips
+## Stap 9: Empty state — geen gekoppelde accounts
 
-Na AI generatie verschijnen onder het hashtag input veld:
+### `src/pages/marketing/SocialPostsPage.tsx` (edit)
 
-```text
-Suggesties: [#restaurant] [#seizoensmenu] [#amsterdam] [#foodie] ...
-```
-
-- Chips: `text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors`
-- Click: voegt hashtag toe aan de lijst (en verwijdert chip)
-- Max 10 chips getoond
-
----
-
-## Stap 4: Per-platform caption state
-
-De Post Creator wijzigt van 1 caption naar per-platform captions:
-
-- Nieuw state object: `{ instagram: '', facebook: '', google_business: '' }`
-- Handmatige invoer: schrijft naar alle geselecteerde platforms tegelijk (zoals nu)
-- AI generatie: schrijft per platform apart
-- Toggle "Per platform bewerken" verschijnt na AI generatie:
-  - Uit (default): 1 textarea, sync naar alle
-  - Aan: NestoTabs met per-platform textarea + eigen char counter
-- SocialPreviewPanel ontvangt per-platform captions
-- Bij submit: gebruik platform-specifieke caption als beschikbaar
-
----
-
-## Stap 5: Email Builder — "Pas aan met AI" activeren
-
-### `src/components/marketing/campaigns/ContentStep.tsx` (edit)
-
-**Wijzigingen:**
-
-1. Verwijder `disabled` van de "Pas aan met AI" knop
-2. Verwijder tooltip "Binnenkort beschikbaar"
-3. Click opent `NestoModal` (size="sm"):
-   - Titel: "Pas aan met AI"
-   - Textarea: "Wat wil je aanpassen?" (placeholder: "Bijv. maak de tekst korter, voeg een CTA toe, maak het persoonlijker...")
-   - Huidige email body wordt meegestuurd als context
-   - Footer: "Annuleren" + "Aanpassen" knop
-4. Na succes:
-   - Update de text blocks met de AI-aangepaste tekst
-   - `nestoToast.success('Email aangepast door AI')`
-   - Modal sluit
-
----
-
-## Stap 6: Hook voor AI generatie
-
-### `src/hooks/useGenerateContent.ts` (nieuw)
-
-```typescript
-// useGenerateSocialContent(options) -> mutation
-//   Calls supabase.functions.invoke('marketing-generate-content', { body: { type: 'social', ... } })
-//   Returns per-platform captions + hashtags + timing
-
-// useGenerateEmailContent(options) -> mutation
-//   Calls supabase.functions.invoke('marketing-generate-content', { body: { type: 'email', ... } })
-//   Returns updated email body
-```
-
-Beide met error handling voor 429/402 status codes, gesurfaced via `nestoToast.error`.
-
----
-
-## Stap 7: SocialPreviewPanel update
-
-### `src/components/marketing/social/SocialPreviewPanel.tsx` (edit)
-
-- Props uitbreiden: `captions?: Record<SocialPlatform, string>` (naast bestaande `caption`)
-- Per preview: gebruik platform-specifieke caption als beschikbaar, anders fallback naar algemene `caption`
-- Hashtags per platform: Instagram toont hashtags, Facebook en Google niet
+Als alle accounts `status === 'disconnected'`:
+- Toon `EmptyState`:
+  - Titel: "Geen social accounts gekoppeld"
+  - Description: "Koppel Instagram, Facebook of Google Business in de marketing instellingen."
+  - Action: navigeer naar `/marketing/instellingen`
+- Verberg de rest van de pagina (tabs, tabel, grid preview)
 
 ---
 
@@ -213,30 +178,36 @@ Beide met error handling voor 429/402 status codes, gesurfaced via `nestoToast.e
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/marketing-generate-content/index.ts` | Nieuw: AI edge function |
-| `supabase/config.toml` | Edit: verify_jwt = false voor nieuwe function |
-| `src/hooks/useGenerateContent.ts` | Nieuw: mutations voor AI content |
-| `src/pages/marketing/SocialPostCreatorPage.tsx` | Edit: AI knop, per-platform captions, hashtag chips |
-| `src/components/marketing/campaigns/ContentStep.tsx` | Edit: activeer AI knop |
-| `src/components/marketing/social/SocialPreviewPanel.tsx` | Edit: per-platform caption support |
+| `supabase/functions/marketing-sync-social-stats/index.ts` | Nieuw |
+| `supabase/functions/marketing-refresh-google-posts/index.ts` | Nieuw |
+| `supabase/config.toml` | Edit: 2 function configs |
+| pg_cron SQL migration | Nieuw: 2 cron jobs |
+| `src/hooks/useMarketingAnalytics.ts` | Edit: social metrics queries |
+| `src/pages/analytics/AnalyticsPage.tsx` | Edit: social tab |
+| `src/pages/analytics/tabs/SocialAnalyticsTab.tsx` | Nieuw |
+| `src/pages/marketing/SocialPostsPage.tsx` | Edit: IG grid, token banner, empty state |
+| `src/pages/marketing/SocialPostCreatorPage.tsx` | Edit: token expiry banner |
 
 ---
 
 ## Design compliance
 
-- AI knop: `variant="outline" size="sm"` met Sparkles icon (consistent met bestaande email builder)
-- Mini-modal: `NestoModal size="sm"`, sentence case labels, rechts uitgelijnde buttons
-- Hashtag chips: `bg-primary/10 text-primary border-primary/20 rounded-full` (Patroon 1 toggle style)
-- Loading state: knoptekst wijzigt ("Genereren..."), geen spinner
-- Toasts: `nestoToast.success('Content gegenereerd')`, `nestoToast.error('Genereren mislukt')`
-- Error handling: 429 -> "Te veel verzoeken, probeer het later opnieuw", 402 -> "AI credits zijn op"
+- StatCards: bestaand component met trend indicators
+- Chart: LineChart zonder grid/YAxis, Nesto tooltip (bg-foreground text-background rounded-lg)
+- Platform kleuren: Instagram #E1306C, Facebook #1877F2, Google #34A853
+- NestoTable: tabular-nums voor getallen
+- InfoAlert: variant="warning" voor token expiry, variant="info" voor timing suggestie
+- EmptyState: standaard component met actie knop
+- Skeletons: rounded-2xl, zelfde hoogte als content
+- IG Grid: aspect-square cellen, gap-1, max 360px breed, read-only
+- Geplande posts in grid: dashed border + opacity om visueel onderscheid te maken
 
 ---
 
 ## Wat NIET in deze sessie
 
-- Brand Intelligence profiel (Sprint 3 — schrijfstijl analyse, visuele stijl, performance data)
-- Streaming output (non-streaming invoke is voldoende voor korte captions)
-- Media/afbeelding suggesties
-- A/B caption auto-generatie
-
+- Drag-and-drop in IG grid (bewust read-only in v1, kalender is de plek voor volgorde)
+- Automatische aggregatie naar marketing_campaign_analytics
+- Social listening / mentions tracking
+- Competitor analysis
+- Carousel/reels metrics
