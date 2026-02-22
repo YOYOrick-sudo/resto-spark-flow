@@ -122,8 +122,7 @@ export default function PopupPage() {
   };
 
   const slug = currentLocation?.slug || 'your-slug';
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const previewUrl = `${supabaseUrl}/functions/v1/marketing-popup-preview?slug=${slug}${selectedId ? `&popup_id=${selectedId}` : ''}`;
+  const previewUrl = `/popup-preview?slug=${slug}${selectedId ? `&popup_id=${selectedId}` : ''}`;
 
   if (isLoading) return (
     <div className="p-6 max-w-7xl mx-auto">

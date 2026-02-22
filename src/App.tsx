@@ -35,6 +35,7 @@ import BookingWidget from "./pages/BookingWidget";
 import ManageReservation from "./pages/ManageReservation";
 import WidgetPreviewDemo from "./pages/WidgetPreviewDemo";
 import WidgetMockups from "./pages/WidgetMockups";
+import PopupPreviewDemo from "./pages/PopupPreviewDemo";
 import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
@@ -88,6 +89,7 @@ const App = () => (
                 <Route path="/panel-demo" element={<PanelDemo />} />
                 <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
                 <Route path="/widget-mockups" element={<WidgetMockups />} />
+                <Route path="/popup-preview" element={<PopupPreviewDemo />} />
                 
                 {/* Protected routes - Layout wrapper with persistent sidebar */}
                 <Route element={
