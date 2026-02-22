@@ -1,84 +1,38 @@
 
+# Media Upload voor Social Posts
 
-# Marketing Testrapport Fixes
+## Wat verandert
 
-## Overzicht
-
-Vier fixes uit het testrapport, allemaal laag risico.
-
----
-
-## Fix 1: PLATFORM_COLORS import centraliseren (2 bestanden)
-
-**SocialPostsPage.tsx**
-- Verwijder regels 38-42 (inline `PLATFORM_COLORS`)
-- Voeg import toe: `import { PLATFORM_COLORS } from '@/lib/platformColors'`
-
-**DayCell.tsx**
-- Verwijder regels 6-10 (inline `PLATFORM_COLORS`)
-- Voeg import toe: `import { PLATFORM_COLORS } from '@/lib/platformColors'`
+De "Media upload beschikbaar in Sprint 3" placeholder wordt vervangen door een werkende afbeelding-upload in twee bestanden.
 
 ---
 
-## Fix 2: config.toml — 8 ontbrekende entries
+## Aanpak
 
-Voeg toe aan `supabase/config.toml`:
+### Nieuw: `src/hooks/useSocialMediaUpload.ts`
+Een herbruikbare hook die:
+- Afbeeldingen upload naar de `communication-assets` bucket onder `{locationId}/social/{timestamp}-{filename}`
+- Ondersteunt PNG, JPG, WebP (max 5 MB)
+- Meerdere bestanden tegelijk (max 4 afbeeldingen per post, standaard voor Instagram)
+- Returns: `uploadFiles(files: File[]) => Promise<string[]>` (array van publieke URLs)
 
-```
-[functions.marketing-attribution]
-verify_jwt = false
+### Edit: `src/components/marketing/calendar/QuickCreatePost.tsx`
+- Verwijder de dashed placeholder (regels 200-203)
+- Voeg een compacte upload zone toe: klik of drag-and-drop
+- Toon thumbnails van geüploade bestanden met verwijder-knop
+- Stuur `media_urls` mee bij `createPost.mutateAsync()`
 
-[functions.marketing-publish-social]
-verify_jwt = false
+### Edit: `src/pages/marketing/SocialPostCreatorPage.tsx`
+- Verwijder de dashed placeholder (regels 458-460)
+- Voeg dezelfde upload zone toe (iets groter formaat)
+- Stuur `media_urls` mee bij `createPost.mutateAsync()`
+- Toon thumbnails in preview panel
 
-[functions.marketing-refresh-tokens]
-verify_jwt = false
+### Edit: `src/hooks/useAllSocialPosts.ts`
+- Voeg `media_urls` toe aan de `input` type en de `row` object in `useCreateFullSocialPost`
 
-[functions.marketing-generate-weekplan]
-verify_jwt = false
-
-[functions.marketing-generate-coaching]
-verify_jwt = false
-
-[functions.marketing-generate-ideas]
-verify_jwt = false
-
-[functions.marketing-sync-reviews]
-verify_jwt = false
-
-[functions.marketing-fetch-ugc]
-verify_jwt = false
-```
-
-Let op: `config.toml` wordt automatisch beheerd, maar deze entries zijn nodig om de functies correct te deployen.
-
----
-
-## Fix 3: Ontbrekende cron jobs registreren
-
-Via een SQL insert (niet via migration tool, want het bevat project-specifieke URL/key):
-
-| Job | Schema | Doel |
-|-----|--------|------|
-| `marketing-sync-social-stats` | `0 */4 * * *` | Social metrics ophalen elke 4 uur |
-| `marketing-refresh-tokens` | `0 3 * * *` | OAuth tokens vernieuwen dagelijks 03:00 |
-
-Beide via `net.http_post` naar de edge function URL.
-
----
-
-## Fix 4: marketing-evaluate-ab-test — nieuwe edge function + cron
-
-**Edge function** (`supabase/functions/marketing-evaluate-ab-test/index.ts`):
-- Query `marketing_social_posts` waar `ab_test_id IS NOT NULL`, `status = 'published'`, en `created_at` ouder dan 48 uur
-- Groepeer per `ab_test_id`
-- Vergelijk engagement rate (engagement / reach) per variant (A vs B)
-- Update winnende post met `ab_test_winner = true` in analytics JSON
-- Return samenvatting van geëvalueerde tests
-
-**config.toml entry**: `verify_jwt = false`
-
-**Cron job**: `0 * * * *` (elk uur) via `net.http_post`
+### Edit: `src/hooks/useMarketingSocialPosts.ts`
+- Voeg `media_urls` toe aan de `input` type in `useCreateSocialPost`
 
 ---
 
@@ -86,11 +40,23 @@ Beide via `net.http_post` naar de edge function URL.
 
 | Bestand | Actie |
 |---------|-------|
-| `src/pages/marketing/SocialPostsPage.tsx` | Edit: verwijder inline PLATFORM_COLORS, voeg import toe |
-| `src/components/marketing/calendar/DayCell.tsx` | Edit: verwijder inline PLATFORM_COLORS, voeg import toe |
-| `supabase/config.toml` | Edit: 8 function entries toevoegen |
-| `supabase/functions/marketing-evaluate-ab-test/index.ts` | Nieuw: A/B test evaluatie functie |
-| SQL (insert, niet migration) | 3 cron jobs registreren |
+| `src/hooks/useSocialMediaUpload.ts` | Nieuw: upload hook |
+| `src/components/marketing/calendar/QuickCreatePost.tsx` | Edit: placeholder vervangen door upload UI + media_urls meesturen |
+| `src/pages/marketing/SocialPostCreatorPage.tsx` | Edit: placeholder vervangen door upload UI + media_urls meesturen |
+| `src/hooks/useAllSocialPosts.ts` | Edit: media_urls toevoegen aan insert |
+| `src/hooks/useMarketingSocialPosts.ts` | Edit: media_urls toevoegen aan insert |
 
-Geen database schema wijzigingen. Geen breaking changes.
+### Upload specificaties
+- Bucket: `communication-assets` (bestaat al)
+- Pad: `{locationId}/social/{timestamp}-{filename}`
+- Types: image/png, image/jpeg, image/webp
+- Max grootte: 5 MB per bestand
+- Max aantal: 4 afbeeldingen per post
 
+### UI componenten
+- Upload zone met `ImagePlus` icoon en "Voeg foto's toe" tekst
+- Drag-and-drop support via native HTML5 drag events
+- Thumbnail grid (2x2) met hover overlay en verwijder-knop (`X`)
+- Loading spinner tijdens upload
+
+Geen database schema wijzigingen nodig — `media_urls` kolom bestaat al.
