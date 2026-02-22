@@ -14,13 +14,18 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const slug = url.searchParams.get('slug');
+  const popupId = url.searchParams.get('popup_id');
 
   if (!slug) {
     return new Response('Missing slug', { status: 400, headers: corsHeaders });
   }
 
   const baseUrl = Deno.env.get('SUPABASE_URL')!;
-  const widgetUrl = `${baseUrl}/functions/v1/marketing-popup-widget?slug=${encodeURIComponent(slug)}`;
+  // Pass preview=true and optional popup_id to the widget
+  let widgetUrl = `${baseUrl}/functions/v1/marketing-popup-widget?slug=${encodeURIComponent(slug)}&preview=true`;
+  if (popupId) {
+    widgetUrl += `&popup_id=${encodeURIComponent(popupId)}`;
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="nl">

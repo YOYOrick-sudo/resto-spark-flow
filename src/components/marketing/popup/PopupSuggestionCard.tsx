@@ -15,14 +15,15 @@ const TYPE_LABELS: Record<string, string> = {
 
 interface Props {
   suggestion: PopupSuggestion;
+  targetPopupId?: string;
 }
 
-export function PopupSuggestionCard({ suggestion }: Props) {
+export function PopupSuggestionCard({ suggestion, targetPopupId }: Props) {
   const [showDismiss, setShowDismiss] = useState(false);
   const accept = useAcceptPopupSuggestion();
 
   const handleAccept = () => {
-    accept.mutate(suggestion, {
+    accept.mutate({ suggestion, targetPopupId }, {
       onSuccess: () => nestoToast.success('Popup bijgewerkt', 'AI suggestie toegepast.'),
       onError: () => nestoToast.error('Fout', 'Kon suggestie niet toepassen.'),
     });

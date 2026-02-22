@@ -14,6 +14,8 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const slug = url.searchParams.get('slug');
+  const isPreview = url.searchParams.get('preview') === 'true';
+  const popupId = url.searchParams.get('popup_id');
 
   if (!slug) {
     return new Response('// Missing slug', {
@@ -22,7 +24,11 @@ Deno.serve(async (req) => {
   }
 
   const baseUrl = Deno.env.get('SUPABASE_URL')!;
-  const configUrl = `${baseUrl}/functions/v1/marketing-popup-config?slug=${encodeURIComponent(slug)}`;
+  let configUrl = `${baseUrl}/functions/v1/marketing-popup-config?slug=${encodeURIComponent(slug)}`;
+  if (isPreview) {
+    configUrl += '&preview=true';
+    if (popupId) configUrl += `&popup_id=${encodeURIComponent(popupId)}`;
+  }
   const subscribeUrl = `${baseUrl}/functions/v1/marketing-popup-subscribe`;
   const publicSiteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://resto-spark-flow.lovable.app';
 
@@ -51,41 +57,40 @@ Deno.serve(async (req) => {
         *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
         .nesto-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999998;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease;}
         .nesto-overlay.visible{opacity:1;}
-        .nesto-popup{background:#fff;border-radius:16px;padding:32px;max-width:420px;width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;transform:translateY(20px);transition:transform .3s ease;text-align:center;}
+        .nesto-popup{background:#fff;border-radius:12px;padding:32px;max-width:420px;width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;transform:translateY(20px);transition:transform .3s ease;text-align:center;}
         .nesto-overlay.visible .nesto-popup{transform:translateY(0);}
-        .nesto-close{position:absolute;top:12px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;}
-        .nesto-close:hover{background:#f3f4f6;}
+        .nesto-close{position:absolute;top:12px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background .2s,color .2s;}
+        .nesto-close:hover{background:\${primaryColor}10;color:\${primaryColor};}
         .nesto-logo{max-height:40px;max-width:160px;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;}
-        .nesto-headline{font-size:20px;font-weight:700;color:#111827;margin-bottom:8px;line-height:1.3;}
-        .nesto-desc{font-size:14px;color:#6b7280;margin-bottom:20px;line-height:1.5;}
-        .nesto-form{display:flex;gap:8px;}
+        .nesto-headline{font-size:20px;font-weight:700;color:#1a1a1a;margin-bottom:8px;line-height:1.3;text-align:center;}
+        .nesto-desc{font-size:14px;color:#666;margin-bottom:20px;line-height:1.5;text-align:center;}
+        .nesto-form{display:flex;gap:8px;justify-content:center;}
         .nesto-input{flex:1;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:border-color .2s;}
         .nesto-input:focus{border-color:\${primaryColor};}
         .nesto-btn{padding:10px 20px;background:\${primaryColor};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .2s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
         .nesto-btn:hover{opacity:0.9;}
         .nesto-btn:disabled{opacity:0.6;cursor:not-allowed;}
         .nesto-btn-full{width:100%;text-align:center;}
-        .nesto-gdpr{font-size:11px;color:#9ca3af;margin-top:12px;line-height:1.4;}
+        .nesto-gdpr{font-size:11px;color:#9ca3af;margin-top:12px;line-height:1.4;text-align:center;}
         .nesto-success{text-align:center;padding:16px 0;}
         .nesto-success-icon{font-size:40px;color:\${primaryColor};margin-bottom:12px;}
-        .nesto-success-msg{font-size:16px;font-weight:600;color:#111827;}
+        .nesto-success-msg{font-size:16px;font-weight:600;color:#1a1a1a;}
 
-        .nesto-featured{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 12px;border-radius:10px;border:1.5px solid #e5e7eb;text-decoration:none;transition:border-color .2s,background .2s;cursor:pointer;margin-left:auto;margin-right:auto;max-width:fit-content;}
-        .nesto-featured:hover{background:#f9fafb;}
-        .nesto-featured-bar{width:4px;height:32px;border-radius:4px;flex-shrink:0;}
-        .nesto-featured-info{flex:1;min-width:0;}
-        .nesto-featured-title{font-size:13px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .nesto-featured-desc{font-size:11px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .nesto-featured-cta{font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;color:#fff;flex-shrink:0;text-decoration:none;}
+        .nesto-featured{display:block;width:100%;padding:16px;border-radius:12px;margin-bottom:16px;text-decoration:none;transition:opacity .2s;cursor:pointer;text-align:left;}
+        .nesto-featured:hover{opacity:0.9;}
+        .nesto-featured-title{font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:4px;}
+        .nesto-featured-desc{font-size:13px;color:#666;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 
-        .nesto-bar{position:fixed;left:0;right:0;z-index:999997;background:#fff;box-shadow:0 -2px 10px rgba(0,0,0,0.1);padding:12px 16px;display:flex;align-items:center;gap:12px;transform:translateY(100%);transition:transform .3s ease;}
+        .nesto-bar{position:fixed;left:0;right:0;z-index:999997;padding:12px 16px;display:flex;align-items:center;gap:12px;transform:translateY(100%);transition:transform .3s ease;}
         .nesto-bar.top{top:0;box-shadow:0 2px 10px rgba(0,0,0,0.1);transform:translateY(-100%);}
-        .nesto-bar.bottom{bottom:0;}
+        .nesto-bar.bottom{bottom:0;box-shadow:0 -2px 10px rgba(0,0,0,0.1);}
         .nesto-bar.visible{transform:translateY(0);}
-        .nesto-bar-text{flex:1;font-size:14px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .nesto-bar .nesto-input{width:200px;flex:none;padding:8px 12px;font-size:13px;}
-        .nesto-bar .nesto-btn{padding:8px 16px;font-size:13px;}
-        .nesto-bar-close{background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280;padding:4px;}
+        .nesto-bar-text{flex:1;font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .nesto-bar .nesto-input{width:200px;flex:none;padding:8px 12px;font-size:13px;background:#fff;border:1.5px solid rgba(255,255,255,0.3);}
+        .nesto-bar .nesto-btn{padding:8px 16px;font-size:13px;background:transparent;border:1.5px solid #fff;color:#fff;}
+        .nesto-bar .nesto-btn:hover{background:rgba(255,255,255,0.15);}
+        .nesto-bar-close{background:none;border:none;font-size:18px;cursor:pointer;color:#fff;padding:4px;opacity:0.8;}
+        .nesto-bar-close:hover{opacity:1;}
 
         @media(max-width:600px){
           .nesto-form{flex-direction:column;}
@@ -99,13 +104,10 @@ Deno.serve(async (req) => {
       function buildFeaturedHTML(){
         if(!ft)return "";
         var bookUrl=SITE_URL+"/book/"+SLUG;
-        return '<a class="nesto-featured" href="'+bookUrl+'" target="_blank" rel="noopener">'
-          +'<div class="nesto-featured-bar" style="background:'+esc(ft.color)+'"></div>'
-          +'<div class="nesto-featured-info">'
+        var bgGradient="linear-gradient(180deg, "+esc(ft.color)+"18 0%, transparent 100%)";
+        return '<a class="nesto-featured" href="'+bookUrl+'" target="_blank" rel="noopener" style="background:'+bgGradient+'">'
           +'<div class="nesto-featured-title">'+esc(ft.display_title)+'</div>'
           +(ft.short_description?'<div class="nesto-featured-desc">'+esc(ft.short_description)+'</div>':'')
-          +'</div>'
-          +'<span class="nesto-featured-cta" style="background:'+esc(ft.color)+'">Reserveer</span>'
           +'</a>';
       }
 
@@ -131,7 +133,6 @@ Deno.serve(async (req) => {
           +'<input class="nesto-input" type="email" placeholder="je@email.nl" required>'
           +'<button class="nesto-btn" type="submit">'+esc(cfg.button_text)+'</button>'
           +'</form>'
-          +buildFeaturedHTML()
           +'<div class="nesto-gdpr">'+esc(cfg.gdpr_text)+'</div>';
       }
 
@@ -186,6 +187,7 @@ Deno.serve(async (req) => {
         if(!sessionStorage.getItem(barKey)){
           var bar=document.createElement("div");
           bar.className="nesto-bar "+(cfg.sticky_bar_position==="top"?"top":"bottom");
+          bar.style.background=primaryColor;
 
           var barHtml='<span class="nesto-bar-text">'+esc(cfg.headline)+'</span>';
           if(popupType==="newsletter"){

@@ -1198,7 +1198,9 @@ export type Database = {
           id: string
           is_active: boolean
           location_id: string
+          name: string
           popup_type: string
+          priority: number
           schedule_end_at: string | null
           schedule_start_at: string | null
           sticky_bar_enabled: boolean
@@ -1220,7 +1222,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           location_id: string
+          name?: string
           popup_type?: string
+          priority?: number
           schedule_end_at?: string | null
           schedule_start_at?: string | null
           sticky_bar_enabled?: boolean
@@ -1242,7 +1246,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           location_id?: string
+          name?: string
           popup_type?: string
+          priority?: number
           schedule_end_at?: string | null
           schedule_start_at?: string | null
           sticky_bar_enabled?: boolean
@@ -1263,7 +1269,7 @@ export type Database = {
           {
             foreignKeyName: "marketing_popup_config_location_id_fkey"
             columns: ["location_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
