@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
         *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
         .nesto-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999998;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease;}
         .nesto-overlay.visible{opacity:1;}
-        .nesto-popup{background:#fff;border-radius:12px;padding:32px;max-width:420px;width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;transform:translateY(20px);transition:transform .3s ease;text-align:center;}
+        .nesto-popup{background:#fff;border-radius:24px;padding:32px;max-width:420px;width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;transform:translateY(20px);transition:transform .3s ease;text-align:center;}
         .nesto-overlay.visible .nesto-popup{transform:translateY(0);}
         .nesto-close{position:absolute;top:12px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background .2s,color .2s;}
         .nesto-close:hover{background:\${primaryColor}10;color:\${primaryColor};}
@@ -65,9 +65,9 @@ Deno.serve(async (req) => {
         .nesto-headline{font-size:20px;font-weight:700;color:#1a1a1a;margin-bottom:8px;line-height:1.3;text-align:center;}
         .nesto-desc{font-size:14px;color:#666;margin-bottom:20px;line-height:1.5;text-align:center;}
         .nesto-form{display:flex;gap:8px;justify-content:center;}
-        .nesto-input{flex:1;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:border-color .2s;}
+        .nesto-input{flex:1;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:12px;font-size:14px;outline:none;transition:border-color .2s;}
         .nesto-input:focus{border-color:\${primaryColor};}
-        .nesto-btn{padding:10px 20px;background:\${primaryColor};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .2s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+        .nesto-btn{padding:10px 20px;background:\${primaryColor};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .2s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
         .nesto-btn:hover{opacity:0.9;}
         .nesto-btn:disabled{opacity:0.6;cursor:not-allowed;}
         .nesto-btn-full{width:100%;text-align:center;}
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
         .nesto-success-icon{font-size:40px;color:\${primaryColor};margin-bottom:12px;}
         .nesto-success-msg{font-size:16px;font-weight:600;color:#1a1a1a;}
 
-        .nesto-featured{display:block;width:100%;padding:16px;border-radius:12px;margin-bottom:16px;text-decoration:none;transition:opacity .2s;cursor:pointer;text-align:left;}
+        .nesto-featured{display:block;width:100%;padding:16px;border-radius:24px;margin-bottom:16px;text-decoration:none;transition:opacity .2s;cursor:pointer;text-align:left;}
         .nesto-featured:hover{opacity:0.9;}
         .nesto-featured-title{font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:4px;}
         .nesto-featured-desc{font-size:13px;color:#666;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
