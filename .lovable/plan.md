@@ -1,39 +1,31 @@
 
-
-# Fix: Preview popup niet zichtbaar in nieuw tabblad
+# Fix: Preview popup niet zichtbaar in nieuw tabblad + live preview check
 
 ## Probleem
 
-Bij het openen van de preview in een nieuw tabblad verschijnt de popup niet. Na onderzoek zijn er twee oorzaken gevonden:
+De drie marketing popup edge functions (`marketing-popup-config`, `marketing-popup-widget`, `marketing-popup-preview`) retourneren allemaal een 404-fout. Dit betekent dat ze niet gedeployed zijn. De vorige deployment is kennelijk niet geslaagd.
 
-### Oorzaak 1: Edge functions niet gedeployed
-De `marketing-popup-config` en `marketing-popup-widget` edge functions retourneren een 404-fout. Het widget-script kan daardoor de configuratie niet ophalen en de popup niet renderen. Deze functies moeten opnieuw gedeployed worden.
+### Gevolg voor "openen in nieuw tabblad"
+Wanneer je op "Preview openen in nieuw tabblad" klikt, opent de React-component `PopupPreviewDemo` in een los tabblad. Omdat het niet in een iframe draait (`isInIframe = false`), wordt de eigen shadow DOM/postMessage-logica overgeslagen en vertrouwt de pagina volledig op het widget-script van de edge function. Dat script wordt geladen via `marketing-popup-widget`, maar die retourneert 404 — dus er verschijnt geen popup.
 
-### Oorzaak 2: Dubbele shadow DOM conflicten
-De `PopupPreviewDemo` component maakt een eigen shadow host aan (`nesto-popup-preview-host`) voor postMessage-updates, terwijl het widget-script ook een eigen shadow host aanmaakt (`nesto-popup-host`). Bij het openen in een nieuw tabblad is er geen parent iframe die postMessage stuurt, dus de eigen shadow host is overbodig en kan conflicteren.
+### Live preview in iframe
+De live preview in de editor werkt via postMessage en is niet afhankelijk van de edge functions. Dit zou al correct moeten werken na de vorige fix. Ik zal dit ook visueel controleren.
 
 ## Oplossing
 
 ### Stap 1: Edge functions deployen
-Deploy `marketing-popup-config` en `marketing-popup-widget` zodat ze weer bereikbaar zijn.
+De drie functies opnieuw deployen:
+- `marketing-popup-config`
+- `marketing-popup-widget`  
+- `marketing-popup-preview`
 
-### Stap 2: PopupPreviewDemo robuuster maken
-In `src/pages/PopupPreviewDemo.tsx`:
-- De eigen shadow host (`nesto-popup-preview-host`) alleen aanmaken als de pagina in een iframe draait (d.w.z. `window.parent !== window`). In een nieuw tabblad is er geen parent en dus geen postMessage-updates.
-- Dit voorkomt conflicten met het widget-script dat zijn eigen shadow DOM beheert.
+### Stap 2: Verifieer deployment
+Na deployment testen of de config-endpoint correct data retourneert voor de locatie `de-proeverij`.
 
-Concreet:
-- Wrap de shadow host useEffect en de postMessage listener in een check: `if (window.parent !== window)` (alleen actief in iframe-modus)
-- In een nieuw tabblad doet alleen het widget-script het werk — geen dubbele rendering
-
-### Stap 3: Fallback bij widget-laadfouten
-Voeg een `onerror` handler toe aan het script-element zodat als het widget-script niet laadt, er een foutmelding in de console verschijnt in plaats van een stille failure.
+### Stap 3: Visueel testen
+- De popup-editor openen, headline/beschrijving wijzigen, en controleren of de live preview iframe direct meeverandert
+- De preview in een nieuw tabblad openen en controleren of de popup verschijnt
 
 ## Bestanden
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/functions/marketing-popup-config/index.ts` | Deployen |
-| `supabase/functions/marketing-popup-widget/index.ts` | Deployen |
-| `src/pages/PopupPreviewDemo.tsx` | Shadow host + postMessage alleen in iframe-modus; script error handling |
-
+Geen codewijzigingen nodig — alleen deployment van bestaande edge functions.
