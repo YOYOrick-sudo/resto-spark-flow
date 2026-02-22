@@ -1,18 +1,22 @@
 
-# Sticky bar: meer padding + dunnere knop
+# Sticky bar finetuning: padding, knop, titel en sluitknop
 
-## Wijzigingen
+De Enterprise Design Guide heeft geen specifieke regels voor de externe marketing widget — die regels gelden voor de in-app UI. De widget CSS is een op zichzelf staand systeem. De voorgestelde aanpassingen zijn dus vrij en conflicteren nergens mee.
 
-Twee aanpassingen in beide bestanden:
+## Vier wijzigingen
 
-1. **Padding verhogen** van `48px` naar `80px` — content schuift iets meer naar het midden
-2. **Knop dunner maken** — padding van `8px 16px` naar `6px 14px` voor een slankere look
+| # | Wat | Was | Wordt |
+|---|-----|-----|-------|
+| 1 | Bar padding (content naar midden) | `14px 80px` | `14px 120px` |
+| 2 | Knop dunner | `6px 14px` | `5px 12px` |
+| 3 | Titel groter | `font-size:14px` | `font-size:15px` |
+| 4 | Sluitknop groter | `font-size:18px` | `font-size:22px` |
 
-### Bestanden
+## Bestanden
 
-| Bestand | Regels | Wat |
-|---|---|---|
-| `supabase/functions/marketing-popup-widget/index.ts` | 85, 91 | `padding:14px 80px` + `.nesto-btn` padding `6px 14px` |
-| `src/pages/PopupPreviewDemo.tsx` | 54, 60 | Zelfde aanpassingen |
+| Bestand | Wat |
+|---|---|
+| `src/pages/PopupPreviewDemo.tsx` | Regels 54, 58, 60, 62 — alle 4 de CSS waarden aanpassen |
+| `supabase/functions/marketing-popup-widget/index.ts` | Regels 85, 89, 91, 93 — zelfde aanpassingen |
 
-De `marketing-popup-widget` edge function wordt opnieuw gedeployed.
+De `marketing-popup-widget` backend function wordt opnieuw gedeployed.
