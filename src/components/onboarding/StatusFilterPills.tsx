@@ -24,8 +24,8 @@ export function StatusFilterPills({ value, onChange }: StatusFilterPillsProps) {
           className={cn(
             'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
             value === filter.value
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground'
+              ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+              : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
           )}
         >
           {filter.label}

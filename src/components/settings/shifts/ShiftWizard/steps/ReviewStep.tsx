@@ -97,10 +97,10 @@ export function ReviewStep() {
                 return (
                   <span
                     key={day}
-                    className={cn(
+                     className={cn(
                       "px-2 py-1 rounded-control flex items-center justify-center text-xs font-medium",
                       isActive
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary/10 text-primary border border-primary/20"
                         : "bg-muted/50 text-muted-foreground"
                     )}
                   >
