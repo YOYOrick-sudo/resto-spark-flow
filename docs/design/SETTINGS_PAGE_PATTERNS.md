@@ -225,11 +225,21 @@ Voor auto-save functionaliteit, toon status rechts van de kaart titel:
 
 ## Checklist Nieuwe Settings Pagina
 
-- [ ] Gebruik `SettingsPageLayout` als wrapper
-- [ ] Definieer `sections` array met `id`, `label`, `icon`
+### Patroon A: Multi-Level Hub (complexe modules met eigen CRUD per sectie)
+- [ ] Gebruik `SettingsModuleLayout` als wrapper met hub-kaarten
+- [ ] Elke sectie krijgt eigen route + `SettingsDetailLayout`
+- [ ] Voorbeeld: Reserveringen instellingen
+
+### Patroon B: Tabbed Single Page (lichtgewicht configuratie)
+- [ ] Gebruik `SettingsDetailLayout` als wrapper met breadcrumbs
+- [ ] Voeg `NestoTabs` toe voor secties
+- [ ] Voorbeeld: Marketing instellingen
+
+### Beide patronen
 - [ ] Wrap elke sectie in `NestoCard className="p-6"`
-- [ ] Voeg sectie header toe met titel, beschrijving, actie
 - [ ] Gebruik `border-t my-6` dividers tussen gerelateerde secties
 - [ ] Implementeer empty state voor lege lijsten
 - [ ] Voeg `Collapsible` archived sectie toe indien relevant
 - [ ] Implementeer auto-save met status indicator waar nodig
+
+> Zie ook: `SETTINGS_PATTERN_DECISION.md` voor keuzecriteria.
