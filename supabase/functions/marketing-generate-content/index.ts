@@ -139,9 +139,21 @@ function buildIntelligenceContext(intelligence: BrandIntelligence | null): { sys
     systemExtra += `\n\nSchrijfstijlprofiel (schrijf in EXACT deze stijl):\n${intelligence.caption_style_profile}`;
   }
 
-  // Visual style hint
+  // Visual style hint + photo suggestion instruction
   if (intelligence.visual_style_profile) {
     systemExtra += `\n\nVisuele stijl hint (voor foto-gerelateerde suggesties):\n${intelligence.visual_style_profile}`;
+    systemExtra += `\n\nGeef ook een concrete foto-tip (1 zin) die past bij de visuele stijl van dit restaurant.`;
+  }
+
+  // Engagement baseline context
+  const baseline = intelligence.engagement_baseline as Record<string, any> | null;
+  if (baseline && baseline.avg_reach) {
+    userExtra += `\nVerwachte performance baseline: gem. bereik ${baseline.avg_reach}, gem. engagement ${baseline.avg_engagement ?? 0}`;
+  }
+
+  // Learning stage tone adjustment
+  if (intelligence.learning_stage && intelligence.learning_stage !== "onboarding") {
+    systemExtra += `\n\nDit restaurant heeft voldoende data (stage: ${intelligence.learning_stage}). Gebruik de beschikbare performance data en stijlprofielen voor gepersonaliseerde suggesties.`;
   }
 
   // Content type performance - top 3
@@ -254,6 +266,8 @@ Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatieti
             suggested_hashtags: { type: "array", items: { type: "string" }, description: "10 suggested hashtags without #" },
             suggested_time: { type: "string", description: timeDescription },
             suggested_day: { type: "string", description: dayDescription },
+            photo_suggestion: { type: "string", description: "Concrete foto-tip in 1 zin, passend bij de visuele stijl" },
+            content_type: { type: "string", description: "Aanbevolen content type: food_shot, behind_the_scenes, team, ambiance, seasonal, promo, event, user_generated" },
           },
           required: ["platforms", "suggested_hashtags"],
           additionalProperties: false,

@@ -181,6 +181,41 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Re-analysis trigger: check if 5+ new posts since last analysis ──
+    const locationIds = [...new Set(posts!.map((p) => p.location_id))];
+    for (const locId of locationIds) {
+      try {
+        const { data: bi } = await supabase
+          .from("marketing_brand_intelligence")
+          .select("posts_analyzed")
+          .eq("location_id", locId)
+          .maybeSingle();
+
+        const { count } = await supabase
+          .from("marketing_social_posts")
+          .select("id", { count: "exact", head: true })
+          .eq("location_id", locId)
+          .in("status", ["published", "imported"]);
+
+        const currentCount = count ?? 0;
+        const analyzed = bi?.posts_analyzed ?? 0;
+
+        if (currentCount - analyzed >= 5) {
+          console.log(`Triggered re-analysis for location ${locId}`);
+          fetch(`${supabaseUrl}/functions/v1/marketing-analyze-brand`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${serviceKey}`,
+            },
+            body: JSON.stringify({ triggered_by: "sync_reanalysis", location_id: locId }),
+          }).catch((e) => console.error("Re-analysis trigger failed:", e));
+        }
+      } catch (e) {
+        console.error(`Re-analysis check failed for ${locId}:`, e);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         processed: results.length,
