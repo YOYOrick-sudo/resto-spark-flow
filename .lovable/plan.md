@@ -1,100 +1,140 @@
 
-# Sessie 1.5 — Email Verzending + Automation Engine
 
-## Status: ✅ AFGEROND
+# Sessie 1.8 — Analytics Herstructurering + WhatsApp Kanaal Fix
 
-### Wat is gebouwd:
-
-#### Database
-- [x] `marketing_email_log` tabel met indexen voor suppressie en webhook lookups
-- [x] `increment_marketing_analytics` RPC voor atomische analytics updates
-- [x] Unique index op `marketing_campaign_analytics(campaign_id, channel)` voor upsert
-- [x] `pg_cron` en `pg_net` extensies geactiveerd
-
-#### Edge Functions
-- [x] `marketing-send-email` — campagne verzending met batch modus, consent/suppressie filtering, personalisatie, unsubscribe links
-- [x] `marketing-email-webhook` — Resend webhook tracking (delivered, opened, clicked, bounced, complained)
-- [x] `marketing-process-automation` — automation engine (welcome, birthday, winback, post_visit_review)
-
-#### pg_cron Jobs
-- [x] `marketing-send-scheduled` — elke 5 min, vindt due scheduled campaigns
-- [x] `marketing-process-automation` — elke 15 min, verwerkt automation flows
+Twee onderdelen: (1) analytics naar centraal platform verplaatsen, (2) SMS vervangen door WhatsApp in contacten UI.
 
 ---
 
-# Sessie 1.5b — Reserveringen ↔ Marketing Integratie
+## 1. Route wijzigingen
 
-## Status: ✅ AFGEROND
+### Verwijderen
+- `/marketing/analytics` route uit `src/App.tsx` (regel 140)
+- `marketing-analytics` uit `ROUTE_MAP` in `src/lib/navigation.ts` (regel 33)
 
-### Wat is gebouwd:
-
-#### Database Triggers
-- [x] `notify_marketing_on_reservation_change()` — INSERT cross_module_events bij status→completed/no_show/cancelled
-- [x] `notify_marketing_on_customer_milestone()` — INSERT cross_module_events bij total_visits = 1/3/10
-
-#### Database Functies
-- [x] `detect_empty_shifts()` — PL/pgSQL functie die shifts met <40% bezetting detecteert
-
-#### pg_cron Jobs
-- [x] `detect-empty-shifts` — dagelijks 16:00 UTC
-- [x] `cross-module-events-cleanup` — dagelijks 03:00 UTC, verwijdert verlopen events
-
-#### Widget Opt-in
-- [x] `marketing_optin` veld toegevoegd aan BookingContext GuestData
-- [x] Opt-in checkbox in GuestDetailsStep (default UIT)
-- [x] `public-booking-api` handleBook verwerkt marketing_optin:
-  - INSERT marketing_contact_preferences met consent_source='widget'
-  - Double opt-in email als brand_kit.double_opt_in_enabled = true
-  - Direct opted_in=true als double_opt_in_enabled = false
-
-#### Edge Functions
-- [x] `marketing-confirm-optin` — publiek GET endpoint voor double opt-in bevestiging met HTML bedankpagina
-- [x] `marketing-process-automation` uitgebreid met cross_module_events consumptie:
-  - `guest_first_visit` → trigger welcome flow
-  - `guest_visit_completed` → trigger post_visit_review flow (3u delay)
-  - Events gemarkeerd als consumed via consumed_by JSONB array
-
-### Tests
-- `marketing-confirm-optin`: "Ongeldige link" bij onbekend token ✅
-- `marketing-process-automation`: `{"processed":0,"sent":0}` ✅
-
-### Notities
-- Welcome flow nu getriggerd via cross_module_events (guest_first_visit) i.p.v. directe customer queries
-- detect_empty_shifts skipt shifts zonder shift_tickets (geen capaciteitsberekening mogelijk)
-- 3u delay voor post_visit_review: events worden pas opgepikt als created_at + 3u <= now()
+### Toevoegen
+- `/analytics` route in `src/App.tsx` met nieuw `AnalyticsPage` component
+- `analytics` entry in `ROUTE_MAP`: `'analytics': '/analytics'`
 
 ---
 
-# Sessie 1.6 — Marketing Dashboard + Basis Analytics
+## 2. Navigatie (`src/lib/navigation.ts`)
 
-## Status: ✅ AFGEROND
+### Marketing sub-items (regel 115-121)
+Verwijder "Analytics" sub-item. Marketing behoudt 4 sub-items:
+- Dashboard (`/marketing`)
+- Campagnes (`/marketing/campagnes`)
+- Segmenten (`/marketing/segmenten`)
+- Contacten (`/marketing/contacten`)
 
-### Wat is gebouwd:
+### Analytics top-level menu-item
+Voeg "Analytics" toe als nieuw top-level item in de OPERATIE sectie, direct NA het marketing blok:
 
-#### Navigatie
-- [x] Marketing sub-items uitgebreid: Dashboard, Campagnes, Segmenten, Contacten, Analytics
-- [x] Routes toegevoegd: `/marketing` (Dashboard) en `/marketing/analytics`
+| Eigenschap | Waarde |
+|---|---|
+| id | `analytics` |
+| label | Analytics |
+| icon | `BarChart3` |
+| path | `/analytics` |
+| section | `OPERATIE` |
 
-#### Marketing Dashboard (`/marketing`)
-- [x] 4 KPI tiles (Polar.sh-stijl):
-  - Marketing omzet (sparkline, tooltip met €35/gast disclaimer, min 7 datapunten check)
-  - Gasten bereikt (unieke ontvangers)
-  - At-risk gasten (rood accent >10, "Win-back sturen" CTA)
-  - Actieve flows (count + namen, link naar settings)
-- [x] Recente campagnes tabel (NestoTable, laatste 5)
-- [x] Activiteit timeline (laatste 10 acties)
+### getExpandedGroupFromPath (regel 195-212)
+Geen aanpassing nodig. `/analytics` is geen expandable group, het valt in de default `null` return.
 
-#### Marketing Analytics (`/marketing/analytics`)
-- [x] Periode selector (7d/30d/90d) via NestoOutlineButtonGroup
-- [x] Revenue hero getal met tooltip disclaimer
-- [x] Email metrics lijn grafiek (Recharts: Verzonden, Geopend, Geklikt)
-- [x] Campagne prestaties tabel (sorteerbaar op omzet)
+---
 
-#### Edge Function
-- [x] `marketing-attribution` — lookback attributie engine (7d=50%, 30d=25%)
-- [x] pg_cron: dagelijks 02:00 UTC
+## 3. Bestanden herstructurering
 
-### Notities
-- Revenue berekend als party_size × €35 (geschat). Tooltip bij elk revenue getal meldt dit.
-- Sparkline toont alleen bij 7+ datapunten met waarde >0, anders alleen het getal.
-- UTM direct-click attributie (100%) genoteerd als toekomstige uitbreiding.
+### Nieuw: `src/pages/analytics/AnalyticsPage.tsx`
+- `PageHeader` met titel "Analytics"
+- `NestoTabs` met 3 tabs:
+  - "Marketing" (id: `marketing`, enabled, default actief)
+  - "Reserveringen" (id: `reservations`, disabled: true)
+  - "Keuken" (id: `kitchen`, disabled: true)
+- NestoTabs ondersteunt al `disabled` met `cursor-not-allowed opacity-50` styling
+- Disabled tabs krijgen extra tooltip "Binnenkort beschikbaar" via wrapping
+- Rendert `MarketingAnalyticsTab` als actieve tab `marketing` is
+
+### Nieuw: `src/pages/analytics/tabs/MarketingAnalyticsTab.tsx`
+- Exacte content uit huidige `MarketingAnalytics.tsx` (regels 15-178):
+  - Periode selector (`NestoOutlineButtonGroup`)
+  - Revenue hero card met schatting-tooltip
+  - Email metrics line chart (Recharts)
+  - Campagne performance tabel
+  - Loading/empty states
+- Importeert `useMarketingAnalytics` (pad ongewijzigd)
+
+### Verwijderen: `src/pages/marketing/MarketingAnalytics.tsx`
+
+---
+
+## 4. Marketing Dashboard aanpassing (`src/pages/marketing/MarketingDashboard.tsx`)
+
+In de Marketing omzet KPI tile (regel 78-128), voeg onder de sparkline een "Bekijk analytics" link toe:
+- `text-xs text-muted-foreground hover:text-foreground` met `ArrowUpRight` icon
+- Navigeert naar `/analytics`
+
+---
+
+## 5. App.tsx route wijzigingen
+
+- Verwijder: `import MarketingAnalytics` (regel 48) en `/marketing/analytics` route (regel 140)
+- Toevoeg: `import AnalyticsPage` van `src/pages/analytics/AnalyticsPage` en `/analytics` route binnen het protected layout blok
+
+---
+
+## 6. SMS -> WhatsApp kanaal fix
+
+### `src/components/marketing/contacts/ContactOptInSheet.tsx` (regel 14-17)
+CHANNELS array wijzigen van:
+```
+{ key: 'email', label: 'E-mail' },
+{ key: 'sms', label: 'SMS' },
+```
+Naar:
+```
+{ key: 'email', label: 'E-mail' },
+{ key: 'whatsapp', label: 'WhatsApp', disabled: true },
+```
+
+Rendering aanpassen (regel 44-66): als `ch.disabled` is `true`:
+- Switch wordt `disabled` met tooltip "Beschikbaar na WhatsApp koppeling"
+- Toggle is niet klikbaar
+- Subtekst toont "Beschikbaar na WhatsApp koppeling" in plaats van consent bron
+
+### `src/lib/settingsRouteConfig.ts` (regel 118)
+Wijzig beschrijving van "E-mail en SMS instellingen" naar "E-mail instellingen" (of "E-mail en WhatsApp instellingen" als je wilt vooruitlopen).
+
+---
+
+## Bestanden overzicht
+
+| Bestand | Actie |
+|---------|-------|
+| `src/pages/marketing/MarketingAnalytics.tsx` | Verwijderen |
+| `src/pages/analytics/AnalyticsPage.tsx` | Nieuw |
+| `src/pages/analytics/tabs/MarketingAnalyticsTab.tsx` | Nieuw (content uit oude MarketingAnalytics) |
+| `src/lib/navigation.ts` | Analytics top-level toevoegen, marketing-analytics verwijderen |
+| `src/App.tsx` | Route `/analytics` toevoegen, `/marketing/analytics` verwijderen |
+| `src/pages/marketing/MarketingDashboard.tsx` | "Bekijk analytics" link toevoegen |
+| `src/components/marketing/contacts/ContactOptInSheet.tsx` | SMS -> WhatsApp (disabled) |
+| `src/lib/settingsRouteConfig.ts` | SMS uit beschrijving |
+
+## Wat NIET verandert
+
+- `useMarketingAnalytics.ts` -- ongewijzigd (alleen import pad vanuit nieuwe tab)
+- `useMarketingDashboard.ts` -- ongewijzigd
+- Marketing dashboard KPI tiles -- ongewijzigd (behalve link toevoeging)
+- Attribution engine -- ongewijzigd
+- Database schema -- geen wijzigingen
+- Alle overige marketing pagina's -- ongewijzigd
+
+## Toekomstig patroon
+
+Wanneer een nieuwe module analytics krijgt:
+1. Maak `src/pages/analytics/tabs/ReservationsAnalyticsTab.tsx`
+2. Enable de tab in `AnalyticsPage.tsx`
+3. Klaar -- geen refactoring nodig
+
+WhatsApp toggle wordt enabled wanneer Fase 4.14/6A WhatsApp integratie gebouwd wordt.
+
