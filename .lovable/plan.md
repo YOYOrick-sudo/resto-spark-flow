@@ -1,136 +1,135 @@
 
-
-# Sessie 4.1 -- Brand Intelligence Dashboard + Geavanceerde Analytics
+# Sessie 4.2 -- A/B Testing Social Posts + Caption Leercyklus
 
 ## Samenvatting
 
-Drie onderdelen: (1) BrandIntelligenceCard op het marketing dashboard, (2) uitbreiding van Marketing en Social analytics tabs met revenue-attributie en content performance, (3) nieuwe Reviews analytics tab. Geen database migraties nodig -- alle data zit in bestaande tabellen.
+Twee onderdelen: (1) Caption leercyclus activeren -- bewaar AI-origineel vs operator-aanpassing, (2) A/B testing -- genereer twee caption varianten, publiceer beide, vergelijk resultaten. Plus: upsertData bug fixen en oude alternative_caption UI verwijderen.
 
 ---
 
-## Deel 1: BrandIntelligenceCard op Dashboard
+## Deel 1: Database migratie
 
-### Nieuw bestand: `src/components/marketing/dashboard/BrandIntelligenceCard.tsx`
+Vier nieuwe kolommen op `marketing_social_posts`:
 
-Component dat `marketing_brand_intelligence` data visueel toont:
-
-**Props:** `data` (brand intelligence row of null), `isLoading` (boolean)
-
-**Layout:**
-- NestoCard, header "AI Intelligentie" met `Brain` icon (lucide-react)
-- Learning stage progress: 4 stappen horizontaal verbonden met lijn
-  - Stappen: Onboarding, Learning, Optimizing, Mature
-  - Huidige stap + voorgaande in `bg-primary`, toekomstige in `bg-muted`
-  - Labels onder elke stap in `text-xs text-muted-foreground`
-
-**Conditionele content:**
-- `learning_stage === 'onboarding'`: InfoAlert "Post meer content om de AI te trainen. Na 5 posts leert de AI je stijl."
-- Anders: compact overzicht met:
-  - "Posts geanalyseerd: {posts_analyzed}" -- `text-muted-foreground`
-  - "Sterkste content type: {weekly_best_content_type}" -- NestoBadge
-  - "Optimale posttijden:" -- top 3 uit `optimal_post_times` JSON array, geformatteerd als "Di 11:30, Do 18:00, Za 12:00"
-  - "Google score: {google_rating}/5 ({google_review_count} reviews)" -- alleen als aanwezig in `engagement_baseline` JSON
-- Stijlprofielen (caption_style_profile, visual_style_profile, review_response_profile) worden NIET getoond
-
-### Edit: `src/pages/marketing/MarketingDashboard.tsx`
-
-- Import BrandIntelligenceCard
-- Render na CoachingTipsCard (regel 85), voor KPI tiles grid (regel 88)
-- Props: `data={intelligence}` `isLoading={intelligenceLoading}` -- beide al beschikbaar via bestaande `useBrandIntelligence()` call op regel 45
+```text
+ai_original_caption  TEXT           -- originele AI-gegenereerde caption
+operator_edited      BOOLEAN        DEFAULT false
+ab_test_group        TEXT           -- 'A' of 'B' (null voor normale posts)
+ab_test_id           UUID           -- gedeelde UUID die twee A/B varianten koppelt
+```
 
 ---
 
-## Deel 2: Marketing Analytics Tab uitbreiding
+## Deel 2: Caption Leercyclus
 
-### Edit: `src/hooks/useMarketingAnalytics.ts`
+### 2.1 SocialPost type uitbreiden
 
-Drie nieuwe queries toevoegen:
+**`src/hooks/useMarketingSocialPosts.ts` (edit)**
 
-1. **revenueWeeklyQuery**: Haal alle `marketing_campaign_analytics` op voor locatie, groepeer client-side per ISO week (date-fns `startOfWeek`), som `revenue_attributed` per week, laatste 12 weken
-2. **activeContactsQuery**: `marketing_contact_preferences` COUNT WHERE `opted_in = true` AND `location_id`
-3. **campaignDetailQuery**: `marketing_campaign_analytics` met alle kolommen inclusief `bounced_count`, joined met `marketing_campaigns.name` en `sent_at`, laatste 90 dagen
+Voeg 4 velden toe aan `SocialPost` interface:
+- `ai_original_caption: string | null`
+- `operator_edited: boolean`
+- `ab_test_group: string | null`
+- `ab_test_id: string | null`
 
-Return object uitbreiden met: `revenueWeekly`, `activeContacts`, `campaignDetail`
+### 2.2 useCreateFullSocialPost uitbreiden
 
-### Edit: `src/pages/analytics/tabs/MarketingAnalyticsTab.tsx`
+**`src/hooks/useAllSocialPosts.ts` (edit)**
 
-Na de bestaande "Campagne prestaties" sectie, twee nieuwe secties toevoegen:
+- Voeg `ai_original_caption`, `operator_edited`, `ab_test_group`, `ab_test_id` toe aan de mutation input type (regels 80-89) en de insert row (regels 92-103)
 
-**Revenue Impact sectie:**
-- Section header "Revenue Impact"
-- 3 StatCards in grid (`grid-cols-3`):
-  - "Marketing revenue" -- SUM revenue_attributed (al beschikbaar via bestaande `revenue` query, hergebruiken)
-  - "Revenue per campagne" -- gemiddelde (total / campaign count)
-  - "Actieve contacten" -- uit nieuwe activeContactsQuery
-- LineChart: revenue per week (laatste 12 weken), primary color lijn
-- Empty state: "Verstuur je eerste campagne om revenue impact te meten."
+### 2.3 SocialPostCreatorPage caption tracking
 
-**Email Performance Detail sectie:**
-- Section header "Email Performance"
-- NestoTable met uitgebreide campagne data (bounced_count kolom toegevoegd)
-- Kolommen: Naam, Verzonden, Geopend (%), Geklikt (%), Bounced, Revenue
-- Muted text styling voor 0-waarden
+**`src/pages/marketing/SocialPostCreatorPage.tsx` (edit)**
 
----
+- Nieuwe state: `aiOriginalCaption` (string) -- wordt gezet in `handleAIGenerate` (regel 168) wanneer de eerste platform caption wordt opgeslagen
+- Bij `handleSubmit` (regels 222-234): vergelijk `content_text` met `aiOriginalCaption`
+  - Als `aiOriginalCaption` bestaat en verschilt van de uiteindelijke caption: `ai_original_caption = aiOriginalCaption`, `operator_edited = true`
+  - Als ongewijzigd: `ai_original_caption = aiOriginalCaption`, `operator_edited = false`
+  - Als geen AI gebruikt: beide velden null/false
 
-## Deel 3: Social Analytics Tab uitbreiding
+### 2.4 marketing-analyze-brand: bug fix + caption leercyclus
 
-### Edit: `src/pages/analytics/tabs/SocialAnalyticsTab.tsx`
+**`supabase/functions/marketing-analyze-brand/index.ts` (edit)**
 
-Na de bestaande "Post prestaties" tabel, twee nieuwe secties:
+**Bug fix (kritiek):** Regel 232 (`upsertData.review_response_profile = reviewResponseProfile`) gebruikt `upsertData` voordat het op regel 242 wordt gedeclareerd. Fix: verplaats `const upsertData` declaratie (regels 242-253) naar VOOR het review response style blok (voor regel 218).
 
-**Content Prestaties per Type:**
-- Import en gebruik `useBrandIntelligence()` (bestaande hook)
-- NestoCard met section header
-- Horizontale BarChart (`layout="vertical"`, Recharts) 
-- Data: parse `content_type_performance` JSON -- verwachte structuur: `{ "behind_the_scenes": { "avg_engagement": 45, "post_count": 8 }, ... }`
-- Bars in primary color, gesorteerd op avg_engagement desc
-- EmptyState als geen data
-
-**Top Hashtags:**
-- NestoCard met section header
-- Data: parse `top_hashtag_sets` JSON
-- Chip-achtige weergave: `bg-primary/10 text-primary rounded-full px-3 py-1 text-sm`
-- UITooltip per hashtag met avg_engagement
-- Max 15, gesorteerd op performance
+**Caption leercyklus blok** (na het review response blok):
+- Query: `marketing_social_posts WHERE operator_edited = true AND ai_original_caption IS NOT NULL AND location_id = locationId ORDER BY updated_at DESC LIMIT 20`
+- Drempel: minimaal 5 resultaten
+- AI prompt: vergelijk AI-suggesties met operator-aanpassingen, verfijn het bestaande caption_style_profile (huidige profiel als context meegegeven)
+- Opslag: `upsertData.caption_style_profile = verfijndProfiel`
 
 ---
 
-## Deel 4: Reviews Analytics Tab (nieuw)
+## Deel 3: A/B Testing
 
-### Edit: `src/pages/analytics/AnalyticsPage.tsx`
+### 3.1 marketing-generate-content A/B modus
 
-- Voeg `{ id: 'reviews', label: 'Reviews' }` toe aan TABS array na 'social' (voor 'reservations')
-- Verwijder `disabled: true` niet van reservations/kitchen
-- Import en render `ReviewsAnalyticsTab` bij `activeTab === 'reviews'`
+**`supabase/functions/marketing-generate-content/index.ts` (edit)**
 
-### Nieuw bestand: `src/hooks/useReviewAnalytics.ts`
+- Nieuwe parameter in `generateSocialContent` body: `ab_test: boolean`
+- Als `ab_test = true`:
+  - System prompt uitbreiden: vraag om 2 varianten (A: huidige stijl, B: alternatieve aanpak met andere openingszin/CTA/hashtags)
+  - Tool schema aanpassen: `platforms` wordt genest onder `variants.a` en `variants.b`, elk met dezelfde platformstructuur
+  - Output: `{ variants: { a: { platforms: {...} }, b: { platforms: {...} } }, suggested_hashtags, suggested_time, suggested_day }`
+- Als `ab_test = false` (of niet meegegeven): bestaand gedrag ongewijzigd
 
-Hook `useReviewAnalytics(periodDays: number)`:
-- Query `marketing_reviews` voor locatie, gefilterd op `published_at` binnen periode
-- Client-side berekeningen:
-  - Sentiment trend: groepeer per week, tel positive/neutral/negative per week
-  - Rating verdeling: tel per rating (5,4,3,2,1)
-  - Response rate: reviews met `responded_at` IS NOT NULL / totaal
-  - Gemiddeld sentiment: positive=3, neutral=2, negative=1, gemiddelde
-- Hergebruik `useBrandIntelligence()` voor Google score/count uit `engagement_baseline`
+### 3.2 SocialPostCreatorPage A/B UI
 
-### Nieuw bestand: `src/pages/analytics/tabs/ReviewsAnalyticsTab.tsx`
+**`src/pages/marketing/SocialPostCreatorPage.tsx` (edit)**
 
-Layout:
-- Periode selector: NestoOutlineButtonGroup 30/90/365 dagen
-- 4 StatCards in grid:
-  - Google score (uit engagement_baseline.google_rating)
-  - Totaal reviews (uit engagement_baseline.google_review_count)
-  - Response rate (%)
-  - Gemiddeld sentiment score
-- Sentiment trend LineChart: 3 lijnen per week
-  - Positive: `hsl(var(--success))` (groen)
-  - Neutral: `hsl(var(--muted-foreground))` (grijs)
-  - Negative: `hsl(var(--error))` (rood)
-- Rating verdeling: horizontale bars 5-4-3-2-1 sterren
-  - Progress component met custom styling per rating
-  - Toon count + percentage per rating
+**Verwijder oude alternative_caption UI:**
+- Verwijder `alternativeCaption` state (regel 90), `showAltCaption` state (regel 91)
+- Verwijder props doorvoer naar CaptionSection (regels 338-341)
+- Verwijder de "+ Alternatieve caption" button en textarea uit CaptionSection (regels 635-652)
+- Verwijder `showAltCaption`, `setShowAltCaption`, `alternativeCaption`, `setAltCaption` uit CaptionSection props (regels 525-528, 545-548)
+- Verwijder `alternative_caption` uit handleSubmit (regel 233)
+
+**Nieuwe A/B state en UI:**
+- States: `abTestEnabled` (boolean), `variantBCaption` (string), `variantBPlatformCaptions` (Record), `abVariantTab` ('a' | 'b')
+- In AI modal (regels 430-461): voeg Switch "A/B Test" toe (default uit)
+- Na AI generatie met `ab_test = true`:
+  - Sla variant A en B captions apart op in state
+  - Toon 2 tabs boven caption area: "Variant A" / "Variant B"
+  - Elk met eigen caption textarea
+- Bij opslaan met A/B aan:
+  - Genereer 1 `ab_test_id` via `crypto.randomUUID()`
+  - Loop over `selectedPlatforms` (bestaande for-loop, regel 222)
+  - Per platform: maak 2 posts aan:
+    - Post A: `ab_test_group = 'A'`, `ab_test_id = sharedId`, originele `scheduled_at`, caption = variant A voor dit platform
+    - Post B: `ab_test_group = 'B'`, `ab_test_id = sharedId`, `scheduled_at + 24 uur`, caption = variant B voor dit platform
+  - **Alle posts delen dezelfde `ab_test_id`** -- zowel A-Instagram als A-Facebook als B-Instagram als B-Facebook
+
+### 3.3 Multi-platform A/B verduidelijking
+
+Bij Instagram + Facebook geselecteerd met A/B aan:
+- 4 posts totaal: A-Instagram, A-Facebook, B-Instagram, B-Facebook
+- Alle 4 delen dezelfde `ab_test_id`
+- `ab_test_group = 'A'` voor A-Instagram en A-Facebook
+- `ab_test_group = 'B'` voor B-Instagram en B-Facebook
+- Variant B scheduled_at = Variant A + 24 uur (alle B-posts op hetzelfde moment)
+
+### 3.4 SocialPostsPage A/B badge + vergelijkings-Sheet
+
+**`src/pages/marketing/SocialPostsPage.tsx` (edit)**
+
+- In de tabel (regels 289-290): posts met `ab_test_id` tonen een "A/B" NestoBadge (variant="primary", size="sm") naast de status badge
+- Nieuwe state: `selectedAbTestId` (string | null) voor het openen van een Sheet
+- Klik op een A/B post row zet `selectedAbTestId`
+- Sheet component (inline):
+  - Twee kolommen: Variant A vs Variant B
+  - Per variant per platform: caption (truncated 100 chars), bereik/engagement/engagement rate uit `analytics` JSON
+  - Winnaar: hoogste engagement rate krijgt groene "Winnaar" badge
+  - Als beide < 48 uur oud: InfoAlert "Resultaten nog niet compleet"
+  - Label onderaan: "Indicatieve vergelijking" met tooltip uitleg
+
+### 3.5 useABTestResults hook
+
+**`src/hooks/useAllSocialPosts.ts` (edit)**
+
+Nieuwe export:
+- `useABTestResults(abTestId: string | null)`: query `marketing_social_posts WHERE ab_test_id = abTestId`, return alle varianten (2 of 4 posts), enabled: `!!abTestId`
 
 ---
 
@@ -138,34 +137,32 @@ Layout:
 
 | Bestand | Actie |
 |---|---|
-| `src/components/marketing/dashboard/BrandIntelligenceCard.tsx` | Nieuw |
-| `src/pages/marketing/MarketingDashboard.tsx` | Edit: BrandIntelligenceCard na CoachingTipsCard |
-| `src/hooks/useMarketingAnalytics.ts` | Edit: revenueWeekly + activeContacts + campaignDetail queries |
-| `src/pages/analytics/tabs/MarketingAnalyticsTab.tsx` | Edit: revenue impact + email detail secties |
-| `src/pages/analytics/tabs/SocialAnalyticsTab.tsx` | Edit: content type perf + hashtags secties |
-| `src/hooks/useReviewAnalytics.ts` | Nieuw |
-| `src/pages/analytics/tabs/ReviewsAnalyticsTab.tsx` | Nieuw |
-| `src/pages/analytics/AnalyticsPage.tsx` | Edit: Reviews tab toevoegen |
+| SQL Migratie | 4 kolommen: ai_original_caption, operator_edited, ab_test_group, ab_test_id |
+| `src/hooks/useMarketingSocialPosts.ts` | Edit: SocialPost type uitbreiden (4 velden) |
+| `src/hooks/useAllSocialPosts.ts` | Edit: createPost input uitbreiden + useABTestResults hook |
+| `src/pages/marketing/SocialPostCreatorPage.tsx` | Edit: verwijder old alt caption UI, voeg aiOriginalCaption tracking + A/B toggle + dual variant UI + multi-platform submit logica toe |
+| `supabase/functions/marketing-generate-content/index.ts` | Edit: ab_test parameter + dual variant generatie |
+| `supabase/functions/marketing-analyze-brand/index.ts` | Edit: fix upsertData bug + caption leercyclus blok |
+| `src/pages/marketing/SocialPostsPage.tsx` | Edit: A/B badge in tabel + vergelijkings-Sheet |
 
-## Geen database migratie nodig
-
-Alle benodigde data zit in bestaande tabellen:
-- `marketing_brand_intelligence` (learning_stage, content_type_performance, optimal_post_times, top_hashtag_sets, engagement_baseline, weekly_best_content_type, posts_analyzed)
-- `marketing_campaign_analytics` (revenue_attributed, bounced_count, etc.)
-- `marketing_contact_preferences` (opted_in)
-- `marketing_reviews` (rating, sentiment, responded_at, published_at)
+---
 
 ## Technische details
 
-**Learning stage mapping:** onboarding=0, learning=1, optimizing=2, mature=3. Progress visueel als 4 connected circles met labels.
+### upsertData bug fix
+Regel 232 zet `upsertData.review_response_profile` maar `upsertData` wordt pas op regel 242 gedeclareerd. Verplaats de declaratie naar voor regel 218. Zowel review response style, caption leercyclus, als de uiteindelijke upsert schrijven dan naar hetzelfde object.
 
-**Content type performance JSON:** Verwachte structuur `{ "type_name": { "avg_engagement": number, "post_count": number } }`. Parse met `Object.entries()`, sorteer op avg_engagement, map naar BarChart data.
+### Oude alternative_caption verwijderen
+De "+ Alternatieve caption" UI (regels 636-652) en bijbehorende state wordt volledig verwijderd. Het `alternative_caption` database veld blijft bestaan maar wordt niet meer gebruikt. Het nieuwe A/B systeem vervangt dit volledig.
 
-**Revenue weekly groepering:** Client-side via date-fns `startOfWeek()` + `format()`. Geen database functie nodig.
+### Multi-platform A/B: 1 gedeelde ab_test_id
+Alle posts (ongeacht platform) delen dezelfde `ab_test_id`. De vergelijkings-Sheet groepeert op `ab_test_group` ('A' vs 'B') en toont per groep de resultaten per platform. Dit maakt het duidelijk dat A-Instagram en A-Facebook dezelfde variant zijn.
 
-**Reviews sentiment scoring:** Simpele mapping positive=3, neutral=2, negative=1. Gemiddelde over alle reviews in de periode.
+### Caption leercyclus inclusief A/B posts
+A/B posts met `operator_edited = true` doen mee in de caption leercyclus. Dit is gewenst gedrag -- de AI leert van elke operator-aanpassing, ongeacht of het een A/B test is.
 
-**Google rating bron:** Uit `engagement_baseline.google_rating` en `.google_review_count` (JSON velden in marketing_brand_intelligence), niet uit individuele marketing_reviews records.
+### A/B resultaten label
+"Indicatieve vergelijking" met tooltip: "Organische social media posts hebben te weinig volume voor statistische significantie."
 
-**Revenue empty state:** Als er geen campaign analytics data is (alle totalen = 0), toon: "Verstuur je eerste campagne om revenue impact te meten." in plaats van 0-waarden.
-
+### A/B timing
+Alle B-variant posts worden 24 uur na de A-variant ingepland. Operator kan dit handmatig aanpassen.
