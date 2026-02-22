@@ -5,6 +5,7 @@ interface SocialPreviewPanelProps {
   platforms: SocialPlatform[];
   caption: string;
   hashtags: string[];
+  platformCaptions?: Partial<Record<SocialPlatform, string>>;
 }
 
 const PLATFORM_META: Record<SocialPlatform, { label: string; color: string }> = {
@@ -39,8 +40,7 @@ function InstagramPreview({ caption, hashtags }: { caption: string; hashtags: st
   );
 }
 
-function FacebookPreview({ caption, hashtags }: { caption: string; hashtags: string[] }) {
-  const hashtagText = hashtags.length > 0 ? '\n' + hashtags.map((h) => `#${h}`).join(' ') : '';
+function FacebookPreview({ caption }: { caption: string }) {
   return (
     <div className="rounded-xl border border-border overflow-hidden bg-background">
       <div className="flex items-center gap-2 px-3 py-2.5">
@@ -52,7 +52,7 @@ function FacebookPreview({ caption, hashtags }: { caption: string; hashtags: str
       </div>
       <div className="px-3 pb-2">
         <p className="text-xs leading-relaxed line-clamp-4">
-          {caption || 'Je bericht verschijnt hier...'}{hashtagText}
+          {caption || 'Je bericht verschijnt hier...'}
         </p>
       </div>
       <div className="border-t border-border/50 px-3 py-2 flex justify-around text-[10px] text-muted-foreground font-medium">
@@ -83,7 +83,7 @@ function GooglePreview({ caption }: { caption: string }) {
   );
 }
 
-export function SocialPreviewPanel({ platforms, caption, hashtags }: SocialPreviewPanelProps) {
+export function SocialPreviewPanel({ platforms, caption, hashtags, platformCaptions }: SocialPreviewPanelProps) {
   if (platforms.length === 0) {
     return (
       <div className="sticky top-6 bg-secondary border border-border rounded-xl p-6">
@@ -92,25 +92,27 @@ export function SocialPreviewPanel({ platforms, caption, hashtags }: SocialPrevi
     );
   }
 
+  const getCaption = (platform: SocialPlatform) => platformCaptions?.[platform] || caption;
+
   return (
     <div className="sticky top-6 space-y-4">
       <h3 className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">Live preview</h3>
       {platforms.includes('instagram') && (
         <div className="space-y-1.5">
           <p className="text-xs font-medium" style={{ color: PLATFORM_META.instagram.color }}>Instagram</p>
-          <InstagramPreview caption={caption} hashtags={hashtags} />
+          <InstagramPreview caption={getCaption('instagram')} hashtags={hashtags} />
         </div>
       )}
       {platforms.includes('facebook') && (
         <div className="space-y-1.5">
           <p className="text-xs font-medium" style={{ color: PLATFORM_META.facebook.color }}>Facebook</p>
-          <FacebookPreview caption={caption} hashtags={hashtags} />
+          <FacebookPreview caption={getCaption('facebook')} />
         </div>
       )}
       {platforms.includes('google_business') && (
         <div className="space-y-1.5">
           <p className="text-xs font-medium" style={{ color: PLATFORM_META.google_business.color }}>Google Business</p>
-          <GooglePreview caption={caption} />
+          <GooglePreview caption={getCaption('google_business')} />
         </div>
       )}
     </div>
