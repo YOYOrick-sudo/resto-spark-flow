@@ -180,6 +180,7 @@ export default function PopupPreviewDemo() {
 
     const script = document.createElement('script');
     script.src = widgetUrl;
+    script.onerror = () => console.warn('[Nesto] Widget script failed to load from:', widgetUrl);
     document.body.appendChild(script);
 
     return () => {
@@ -191,8 +192,12 @@ export default function PopupPreviewDemo() {
     };
   }, [slug, popupId]);
 
-  // Ensure our shadow host exists
+  // Ensure our shadow host exists — only when inside an iframe (editor preview)
+  const isInIframe = typeof window !== 'undefined' && window.parent !== window;
+
   useEffect(() => {
+    if (!isInIframe) return;
+
     const host = document.createElement('div');
     host.id = 'nesto-popup-preview-host';
     document.body.appendChild(host);
@@ -204,9 +209,9 @@ export default function PopupPreviewDemo() {
       shadowHostRef.current = null;
       shadowRootRef.current = null;
     };
-  }, []);
+  }, [isInIframe]);
 
-  // Listen for postMessage config updates
+  // Listen for postMessage config updates — only in iframe mode
   const handleMessage = useCallback((event: MessageEvent) => {
     if (!event.data || event.data.type !== 'nesto-popup-config-update') return;
     const cfg = event.data.config as PopupConfig;
@@ -221,9 +226,10 @@ export default function PopupPreviewDemo() {
   }, []);
 
   useEffect(() => {
+    if (!isInIframe) return;
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [handleMessage]);
+  }, [handleMessage, isInIframe]);
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#2d2d2d] font-sans">
