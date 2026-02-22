@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { PopupSuggestionCard } from '@/components/marketing/popup/PopupSuggestionCard';
 import { usePopupSuggestion } from '@/hooks/usePopupSuggestion';
@@ -240,7 +240,7 @@ function PopupEditor({
   saved, setSaved, onDelete,
 }: PopupEditorProps) {
   const updateConfig = useUpdatePopupConfig(popup.id);
-
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [state, setState] = useState({
     name: popup.name,
     is_active: popup.is_active,
@@ -289,6 +289,33 @@ function PopupEditor({
       debouncedSave({ schedule_start_at: null, schedule_end_at: null });
     }
   };
+
+  // Send postMessage to live iframe preview on every state change
+  useEffect(() => {
+    if (previewType !== 'live' || !iframeRef.current?.contentWindow) return;
+    const ft = activeTickets.find(t => t.id === state.featured_ticket_id);
+    iframeRef.current.contentWindow.postMessage({
+      type: 'nesto-popup-config-update',
+      config: {
+        headline: state.headline,
+        description: state.description,
+        button_text: state.button_text,
+        popup_type: state.popup_type,
+        primary_color: primaryColor,
+        logo_url: brandKit?.logo_url || null,
+        featured_ticket: ft ? { display_title: ft.display_title, short_description: ft.short_description, color: ft.color } : null,
+        sticky_bar_enabled: state.sticky_bar_enabled,
+        sticky_bar_position: state.sticky_bar_position,
+        exit_intent_enabled: state.exit_intent_enabled,
+        timed_popup_enabled: state.timed_popup_enabled,
+        timed_popup_delay_seconds: state.timed_popup_delay_seconds,
+        success_message: state.success_message,
+        gdpr_text: state.gdpr_text,
+        custom_button_url: state.custom_button_url,
+        is_active: state.is_active,
+      },
+    }, '*');
+  }, [state, primaryColor, brandKit, previewType, activeTickets]);
 
   const isScheduleExpired = state.is_active && state.schedule_end_at && new Date(state.schedule_end_at) < new Date();
   const featuredTicket = activeTickets.find(t => t.id === state.featured_ticket_id);
@@ -530,6 +557,7 @@ function PopupEditor({
             {previewType === 'live' ? (
               <div className="border border-border rounded-card overflow-hidden" style={{ minHeight: 500 }}>
                 <iframe
+                  ref={iframeRef}
                   key={iframeKey}
                   src={previewUrl}
                   className="w-full h-full border-0"
