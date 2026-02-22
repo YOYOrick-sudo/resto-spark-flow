@@ -1049,6 +1049,59 @@ export type Database = {
           },
         ]
       }
+      marketing_content_series: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          description: string | null
+          episode_count: number
+          frequency: string
+          id: string
+          is_active: boolean
+          location_id: string
+          name: string
+          preferred_day: string | null
+          template_prompt: string | null
+          updated_at: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          description?: string | null
+          episode_count?: number
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          name: string
+          preferred_day?: string | null
+          template_prompt?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          description?: string | null
+          episode_count?: number
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          name?: string
+          preferred_day?: string | null
+          template_prompt?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_content_series_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_email_log: {
         Row: {
           bounce_type: string | null

@@ -10,6 +10,7 @@ import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { InfoAlert } from '@/components/polar/InfoAlert';
+import { UGCGrid } from '@/components/marketing/social/UGCGrid';
 import { useAllSocialPosts } from '@/hooks/useAllSocialPosts';
 import { useDeleteSocialPost } from '@/hooks/useMarketingSocialPosts';
 import { useMarketingSocialAccounts } from '@/hooks/useMarketingSocialAccounts';
@@ -58,6 +59,7 @@ const TABS = [
   { id: 'instagram', label: 'Instagram' },
   { id: 'facebook', label: 'Facebook' },
   { id: 'google_business', label: 'Google' },
+  { id: 'ugc', label: 'UGC' },
 ];
 
 export default function SocialPostsPage() {
@@ -244,7 +246,10 @@ export default function SocialPostsPage() {
         </div>
       )}
 
-      {posts.length === 0 && !isLoading ? (
+      {/* UGC Tab */}
+      {platformTab === 'ugc' ? (
+        <UGCGrid />
+      ) : posts.length === 0 && !isLoading ? (
         <EmptyState
           title="Nog geen social posts"
           description="Maak je eerste bericht aan om te starten."

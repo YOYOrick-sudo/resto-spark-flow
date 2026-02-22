@@ -91,6 +91,28 @@ export function useReviewStats() {
   });
 }
 
+export function useFeaturedReviews() {
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+
+  return useQuery({
+    queryKey: ['marketing-featured-reviews', locationId],
+    enabled: !!locationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('marketing_reviews')
+        .select('id, author_name, rating, review_text')
+        .eq('location_id', locationId!)
+        .eq('is_featured', true)
+        .not('review_text', 'is', null)
+        .order('published_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useUpdateReview() {
   const queryClient = useQueryClient();
 

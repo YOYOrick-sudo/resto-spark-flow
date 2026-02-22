@@ -1,17 +1,27 @@
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoInput } from '@/components/polar/NestoInput';
-import { Trash2, GripVertical, Type, Image, MousePointerClick, Minus, Heading, AlignLeft } from 'lucide-react';
+import { NestoSelect } from '@/components/polar/NestoSelect';
+import { Trash2, GripVertical, Type, Image, MousePointerClick, Minus, Heading, AlignLeft, UtensilsCrossed, CalendarDays, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFeaturedReviews } from '@/hooks/useReviews';
 
 export interface EmailBlockData {
   id: string;
-  type: 'header' | 'text' | 'image' | 'button' | 'divider' | 'footer';
+  type: 'header' | 'text' | 'image' | 'button' | 'divider' | 'footer' | 'menu_item' | 'reserve_button' | 'review_quote';
   content: {
     text?: string;
     url?: string;
     imageUrl?: string;
     buttonText?: string;
     buttonUrl?: string;
+    menuItemName?: string;
+    menuItemDescription?: string;
+    menuItemPrice?: string;
+    menuItemImageUrl?: string;
+    reviewId?: string;
+    reviewRating?: number;
+    reviewText?: string;
+    reviewAuthor?: string;
   };
 }
 
@@ -20,6 +30,42 @@ interface EmailBlockProps {
   onChange: (block: EmailBlockData) => void;
   onRemove: () => void;
   isAutoBlock?: boolean;
+}
+
+function ReviewQuoteEditor({ block, onUpdate }: { block: EmailBlockData; onUpdate: (u: Partial<EmailBlockData['content']>) => void }) {
+  const { data: reviews = [] } = useFeaturedReviews();
+  if (block.type !== 'review_quote') return null;
+
+  const options = reviews.map((r) => ({
+    value: r.id,
+    label: `${'★'.repeat(r.rating)} ${(r.review_text ?? '').slice(0, 40)}… — ${r.author_name}`,
+  }));
+
+  return (
+    <div className="space-y-2">
+      <NestoSelect
+        value={block.content.reviewId ?? ''}
+        onValueChange={(id) => {
+          const rev = reviews.find((r) => r.id === id);
+          if (rev) {
+            onUpdate({
+              reviewId: rev.id,
+              reviewRating: rev.rating,
+              reviewText: (rev.review_text ?? '').slice(0, 150),
+              reviewAuthor: rev.author_name,
+            });
+          }
+        }}
+        options={options}
+        placeholder="Kies een featured review..."
+      />
+      {block.content.reviewAuthor && (
+        <div className="text-xs text-muted-foreground">
+          {'★'.repeat(block.content.reviewRating ?? 0)} — {block.content.reviewAuthor}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function EmailBlock({ block, onChange, onRemove, isAutoBlock }: EmailBlockProps) {
@@ -34,6 +80,9 @@ export function EmailBlock({ block, onChange, onRemove, isAutoBlock }: EmailBloc
     button: MousePointerClick,
     divider: Minus,
     footer: AlignLeft,
+    menu_item: UtensilsCrossed,
+    reserve_button: CalendarDays,
+    review_quote: Star,
   };
 
   const Icon = BLOCK_ICONS[block.type] ?? Type;
@@ -90,6 +139,35 @@ export function EmailBlock({ block, onChange, onRemove, isAutoBlock }: EmailBloc
         {block.type === 'footer' && (
           <div className="text-xs text-muted-foreground italic">Footer — automatisch: locatie-info + uitschrijflink</div>
         )}
+
+        {block.type === 'menu_item' && (
+          <div className="space-y-2">
+            <NestoInput
+              placeholder="Naam gerecht"
+              value={block.content.menuItemName ?? ''}
+              onChange={(e) => updateContent({ menuItemName: e.target.value })}
+            />
+            <NestoInput
+              placeholder="Beschrijving"
+              value={block.content.menuItemDescription ?? ''}
+              onChange={(e) => updateContent({ menuItemDescription: e.target.value })}
+            />
+            <NestoInput
+              placeholder="Prijs (bijv. €14,50)"
+              value={block.content.menuItemPrice ?? ''}
+              onChange={(e) => updateContent({ menuItemPrice: e.target.value })}
+            />
+            <div className="flex items-center justify-center h-16 rounded-button border-2 border-dashed border-border bg-muted/30 text-muted-foreground text-xs">
+              Foto uploaden (binnenkort)
+            </div>
+          </div>
+        )}
+
+        {block.type === 'reserve_button' && (
+          <div className="text-xs text-muted-foreground italic">Reserveerknop — automatisch link naar Guest Widget</div>
+        )}
+
+        <ReviewQuoteEditor block={block} onUpdate={updateContent} />
       </div>
 
       {!isAutoBlock && (

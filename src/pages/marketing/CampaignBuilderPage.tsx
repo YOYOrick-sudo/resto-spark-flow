@@ -101,10 +101,16 @@ export default function CampaignBuilderPage() {
     }
 
     // Build simple HTML from blocks
-    const contentHtml = blocks
-      .filter((b) => b.type === 'text')
-      .map((b) => `<p>${b.content.text ?? ''}</p>`)
-      .join('');
+    const contentParts = blocks
+      .filter((b) => ['text', 'menu_item', 'reserve_button', 'review_quote'].includes(b.type))
+      .map((b) => {
+        if (b.type === 'text') return `<p>${b.content.text ?? ''}</p>`;
+        if (b.type === 'menu_item') return `<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:8px 0"><strong>${b.content.menuItemName ?? ''}</strong> — ${b.content.menuItemPrice ?? ''}<br/><small>${b.content.menuItemDescription ?? ''}</small></div>`;
+        if (b.type === 'reserve_button') return `<div style="text-align:center;padding:16px 0"><a href="/reserveren" style="background:${brandKit?.primary_color ?? '#1d979e'};color:#fff;padding:14px 36px;border-radius:16px;text-decoration:none;font-weight:700">Reserveer nu</a></div>`;
+        if (b.type === 'review_quote') return `<blockquote style="border-left:3px solid ${brandKit?.primary_color ?? '#1d979e'};padding:12px;margin:8px 0"><em>"${b.content.reviewText ?? ''}"</em><br/><small>— ${b.content.reviewAuthor ?? ''}</small></blockquote>`;
+        return '';
+      });
+    const contentHtml = contentParts.join('');
 
     createCampaign.mutate(
       {
