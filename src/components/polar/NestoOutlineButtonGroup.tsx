@@ -41,11 +41,11 @@ export function NestoOutlineButtonGroup({
             disabled={option.disabled}
             className={cn(
               "rounded-button font-medium transition-all duration-200",
-              "border-[1.5px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
               sizeClasses[size],
               isSelected
-                ? "bg-primary/10 border-primary text-primary"
-                : "bg-transparent border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+                ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                : "bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
               option.disabled && "opacity-50 cursor-not-allowed"
             )}
           >
