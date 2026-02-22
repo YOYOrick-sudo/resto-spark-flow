@@ -262,6 +262,9 @@ export default function SocialPostCreatorPage() {
     label: PLATFORMS.find((pl) => pl.id === p)?.label ?? p,
   }));
 
+  // Token expiry check
+  const expiringAccounts = accountsWithStatus.filter((a) => a.status === 'expiring');
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -281,6 +284,24 @@ export default function SocialPostCreatorPage() {
           </div>
         }
       />
+
+      {/* Token expiry banners */}
+      {expiringAccounts.map((acc) => (
+        <InfoAlert
+          key={acc.platform}
+          variant="warning"
+          title={`${PLATFORMS.find((p) => p.id === acc.platform)?.label ?? acc.platform} verbinding verloopt binnenkort`}
+          description="Ga naar Instellingen om opnieuw te verbinden."
+        >
+          <NestoButton
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/marketing/instellingen')}
+          >
+            Instellingen
+          </NestoButton>
+        </InfoAlert>
+      ))}
 
       <div className="flex gap-6">
         {/* Left: form */}

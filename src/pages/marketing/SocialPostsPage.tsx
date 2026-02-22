@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { PageHeader } from '@/components/polar/PageHeader';
@@ -9,8 +9,10 @@ import { NestoTabs } from '@/components/polar/NestoTabs';
 import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { EmptyState } from '@/components/polar/EmptyState';
+import { InfoAlert } from '@/components/polar/InfoAlert';
 import { useAllSocialPosts } from '@/hooks/useAllSocialPosts';
 import { useDeleteSocialPost } from '@/hooks/useMarketingSocialPosts';
+import { useMarketingSocialAccounts } from '@/hooks/useMarketingSocialAccounts';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { nestoToast } from '@/lib/nestoToast';
 import {
@@ -61,6 +63,7 @@ export default function SocialPostsPage() {
   const [platformTab, setPlatformTab] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { accountsWithStatus } = useMarketingSocialAccounts();
 
   const filters = {
     platform: platformTab === 'all' ? undefined : platformTab,
@@ -69,6 +72,24 @@ export default function SocialPostsPage() {
 
   const { data: posts = [], isLoading } = useAllSocialPosts(filters);
   const deletePost = useDeleteSocialPost();
+
+  // Check for disconnected / expiring accounts
+  const allDisconnected = accountsWithStatus.every((a) => a.status === 'disconnected');
+  const expiringAccounts = accountsWithStatus.filter((a) => a.status === 'expiring');
+
+  // Instagram grid preview data
+  const igGridPosts = useMemo(() => {
+    if (platformTab !== 'all' && platformTab !== 'instagram') return [];
+    const igPosts = (posts ?? [])
+      .filter((p) => p.platform === 'instagram' && (p.status === 'published' || p.status === 'scheduled'))
+      .sort((a, b) => {
+        const dateA = a.scheduled_at || a.published_at || a.created_at;
+        const dateB = b.scheduled_at || b.published_at || b.created_at;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      })
+      .slice(0, 9);
+    return igPosts;
+  }, [posts, platformTab]);
 
   function handleDelete() {
     if (!deleteId) return;
@@ -79,6 +100,20 @@ export default function SocialPostsPage() {
       },
       onError: () => nestoToast.error('Verwijderen mislukt'),
     });
+  }
+
+  // Empty state: no connected accounts
+  if (allDisconnected) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Social" />
+        <EmptyState
+          title="Geen social accounts gekoppeld"
+          description="Koppel Instagram, Facebook of Google Business in de marketing instellingen."
+          action={{ label: 'Naar instellingen', onClick: () => navigate('/marketing/instellingen') }}
+        />
+      </div>
+    );
   }
 
   return (
@@ -92,6 +127,25 @@ export default function SocialPostsPage() {
           </NestoButton>
         }
       />
+
+      {/* Token expiry banners */}
+      {expiringAccounts.map((acc) => (
+        <InfoAlert
+          key={acc.platform}
+          variant="warning"
+          title={`${PLATFORM_LABELS[acc.platform] ?? acc.platform} verbinding verloopt binnenkort`}
+          description="Ga naar Instellingen om opnieuw te verbinden."
+        >
+          <NestoButton
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/marketing/instellingen')}
+          >
+            <Settings className="h-3.5 w-3.5 mr-1.5" />
+            Instellingen
+          </NestoButton>
+        </InfoAlert>
+      ))}
 
       <NestoTabs
         tabs={TABS}
@@ -109,6 +163,49 @@ export default function SocialPostsPage() {
           />
         </div>
       </div>
+
+      {/* Instagram Feed Preview */}
+      {igGridPosts.length > 0 && (platformTab === 'all' || platformTab === 'instagram') && (
+        <div className="space-y-3">
+          <h2 className="text-h2 text-foreground">Instagram Feed Preview</h2>
+          <div className="grid grid-cols-3 gap-1 max-w-[360px]">
+            {igGridPosts.map((post) => {
+              const isScheduled = post.status === 'scheduled';
+              const hasMedia = post.media_urls && post.media_urls.length > 0;
+              const firstWords = (post.content_text ?? '').split(' ').slice(0, 2).join(' ');
+
+              return (
+                <div
+                  key={post.id}
+                  className={`relative aspect-square rounded-sm overflow-hidden group ${
+                    isScheduled ? 'border border-dashed border-border opacity-70' : ''
+                  }`}
+                >
+                  {hasMedia ? (
+                    <img
+                      src={post.media_urls[0]}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#E1306C]/20 to-[#E1306C]/5 flex items-center justify-center">
+                      <span className="text-[10px] text-muted-foreground text-center px-1 line-clamp-2">
+                        {firstWords || '...'}
+                      </span>
+                    </div>
+                  )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
+                    <span className="text-[10px] text-white line-clamp-3">
+                      {post.content_text || '(geen tekst)'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {posts.length === 0 && !isLoading ? (
         <EmptyState
