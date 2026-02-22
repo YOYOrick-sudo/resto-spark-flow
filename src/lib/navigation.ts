@@ -10,6 +10,7 @@ import {
   Settings,
   UserPlus,
   Megaphone,
+  BarChart3,
 } from 'lucide-react';
 import { AssistentIcon } from '@/components/icons/AssistentIcon';
 
@@ -30,7 +31,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'marketing-campagnes': '/marketing/campagnes',
   'marketing-segmenten': '/marketing/segmenten',
   'marketing-contacten': '/marketing/contacten',
-  'marketing-analytics': '/marketing/analytics',
+  'analytics': '/analytics',
   'settings-voorkeuren': '/instellingen/voorkeuren',
   'settings-keuken': '/instellingen/keuken',
   'settings-reserveringen': '/instellingen/reserveringen',
@@ -117,8 +118,14 @@ export const menuItems: MenuItem[] = [
       { id: 'marketing-campagnes', label: 'Campagnes', path: '/marketing/campagnes' },
       { id: 'marketing-segmenten', label: 'Segmenten', path: '/marketing/segmenten' },
       { id: 'marketing-contacten', label: 'Contacten', path: '/marketing/contacten' },
-      { id: 'marketing-analytics', label: 'Analytics', path: '/marketing/analytics' },
     ],
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    icon: BarChart3,
+    path: '/analytics',
+    section: 'OPERATIE',
   },
   {
     id: 'takeaway',

@@ -45,7 +45,7 @@ import ContactsPage from "./pages/marketing/ContactsPage";
 import CampaignesPage from "./pages/marketing/CampaignesPage";
 import CampaignBuilderPage from "./pages/marketing/CampaignBuilderPage";
 import MarketingDashboard from "./pages/marketing/MarketingDashboard";
-import MarketingAnalytics from "./pages/marketing/MarketingAnalytics";
+import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 
 // New multi-level settings pages
 import {
@@ -137,7 +137,7 @@ const App = () => (
                   <Route path="/marketing/campagnes/nieuw" element={<CampaignBuilderPage />} />
                   <Route path="/marketing/segmenten" element={<SegmentsPage />} />
                   <Route path="/marketing/contacten" element={<ContactsPage />} />
-                  <Route path="/marketing/analytics" element={<MarketingAnalytics />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
                   
                   {/* Marketing Settings */}
                   <Route path="/instellingen/marketing" element={<MarketingSettings />} />

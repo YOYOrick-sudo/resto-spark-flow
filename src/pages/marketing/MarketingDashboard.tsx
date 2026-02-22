@@ -99,6 +99,12 @@ export default function MarketingDashboard() {
               </span>
             )}
             <p className="text-xs text-muted-foreground mt-0.5">laatste 30 dagen</p>
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate('/analytics'); }}
+              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-1 transition-colors"
+            >
+              Bekijk analytics <ArrowUpRight className="h-3 w-3" />
+            </button>
           </div>
           <div className="mt-3">
             {hasEnoughSparklineData ? (

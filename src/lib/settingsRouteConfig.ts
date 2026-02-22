@@ -115,7 +115,7 @@ export const reserveringenConfig: SettingsModuleConfig = {
       id: "notificaties",
       label: "Notificaties",
       path: "/instellingen/reserveringen/notificaties",
-      description: "E-mail en SMS instellingen",
+      description: "E-mail instellingen",
       icon: Bell,
     },
     {

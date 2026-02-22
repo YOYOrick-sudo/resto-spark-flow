@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Info } from 'lucide-react';
-import { PageHeader } from '@/components/polar/PageHeader';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoOutlineButtonGroup } from '@/components/polar/NestoOutlineButtonGroup';
 import { NestoTable, type Column } from '@/components/polar/NestoTable';
-import { NestoBadge } from '@/components/polar/NestoBadge';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMarketingAnalytics } from '@/hooks/useMarketingAnalytics';
-import { cn } from '@/lib/utils';
 
 const AVG_REVENUE_PER_GUEST = 35;
 
@@ -35,7 +32,7 @@ const chartTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function MarketingAnalytics() {
+export default function MarketingAnalyticsTab() {
   const [period, setPeriod] = useState('30');
   const periodDays = parseInt(period, 10);
   const { emailMetrics, revenue, campaignTable, isLoading } = useMarketingAnalytics(periodDays);
@@ -79,18 +76,14 @@ export default function MarketingAnalytics() {
     },
   ];
 
-  // Sort campaigns client-side by revenue
   const sortedCampaigns = [...campaigns].sort((a, b) => b.revenue_attributed - a.revenue_attributed);
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Analytics"
-        subtitle="Email en campagne prestaties"
-        actions={
-          <NestoOutlineButtonGroup options={periodOptions} value={period} onChange={setPeriod} size="sm" />
-        }
-      />
+      {/* Period selector */}
+      <div className="flex justify-end">
+        <NestoOutlineButtonGroup options={periodOptions} value={period} onChange={setPeriod} size="sm" />
+      </div>
 
       {/* Revenue hero */}
       <NestoCard className="!p-6">

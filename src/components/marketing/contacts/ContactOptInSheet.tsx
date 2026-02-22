@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useContactPreferences, useUpdateContactPreference, type MarketingContact } from '@/hooks/useMarketingContacts';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -12,8 +13,8 @@ interface ContactOptInSheetProps {
 }
 
 const CHANNELS = [
-  { key: 'email', label: 'E-mail' },
-  { key: 'sms', label: 'SMS' },
+  { key: 'email', label: 'E-mail', disabled: false },
+  { key: 'whatsapp', label: 'WhatsApp', disabled: true },
 ];
 
 export function ContactOptInSheet({ open, onOpenChange, contact }: ContactOptInSheetProps) {
@@ -45,23 +46,38 @@ export function ContactOptInSheet({ open, onOpenChange, contact }: ContactOptInS
               <div key={ch.key} className="flex items-center justify-between py-2 border-b border-border/50">
                 <div>
                   <Label className="text-body">{ch.label}</Label>
-                  {pref?.consent_source && (
+                  {ch.disabled ? (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Beschikbaar na WhatsApp koppeling
+                    </p>
+                  ) : pref?.consent_source ? (
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Bron: {pref.consent_source}
                       {pref.opted_in_at && ` • ${format(new Date(pref.opted_in_at), 'd MMM yyyy', { locale: nl })}`}
                     </p>
-                  )}
+                  ) : null}
                 </div>
-                <Switch
-                  checked={isOptedIn}
-                  onCheckedChange={(checked) => {
-                    updatePref.mutate({
-                      customerId: contact.id,
-                      channel: ch.key,
-                      optedIn: checked,
-                    });
-                  }}
-                />
+                {ch.disabled ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span><Switch checked={false} disabled /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p className="text-xs">Beschikbaar na WhatsApp koppeling</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Switch
+                    checked={isOptedIn}
+                    onCheckedChange={(checked) => {
+                      updatePref.mutate({
+                        customerId: contact.id,
+                        channel: ch.key,
+                        optedIn: checked,
+                      });
+                    }}
+                  />
+                )}
               </div>
             );
           })}
