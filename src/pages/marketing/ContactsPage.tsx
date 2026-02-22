@@ -7,6 +7,7 @@ import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { SearchBar } from '@/components/polar/SearchBar';
 import { EmptyState } from '@/components/polar/EmptyState';
+import { TableSkeleton } from '@/components/polar/LoadingStates';
 import { ContactOptInSheet } from '@/components/marketing/contacts/ContactOptInSheet';
 import { useMarketingContacts, useNewContactsThisMonth, type MarketingContact } from '@/hooks/useMarketingContacts';
 import { useMarketingSegments } from '@/hooks/useMarketingSegments';
@@ -35,19 +36,19 @@ export default function ContactsPage() {
       key: 'name',
       header: 'Naam',
       render: (item) => (
-        <span className="font-medium">{item.first_name} {item.last_name}</span>
+        <span className="font-semibold text-foreground">{item.first_name} {item.last_name}</span>
       ),
     },
     {
       key: 'email',
       header: 'E-mail',
-      render: (item) => item.email ?? '—',
+      render: (item) => item.email ?? '',
     },
     {
       key: 'total_visits',
       header: 'Bezoeken',
       render: (item) => item.total_visits,
-      className: 'text-right w-24',
+      className: 'text-right w-24 tabular-nums',
       headerClassName: 'text-right',
     },
     {
@@ -56,14 +57,14 @@ export default function ContactsPage() {
       render: (item) =>
         item.last_visit_at
           ? formatDistanceToNow(new Date(item.last_visit_at), { addSuffix: true, locale: nl })
-          : '—',
+          : '',
     },
     {
       key: 'average_spend',
       header: 'Gem. besteding',
       render: (item) =>
-        item.average_spend != null ? `€${Number(item.average_spend).toFixed(2)}` : '—',
-      className: 'text-right w-32',
+        item.average_spend != null ? `€${Number(item.average_spend).toFixed(2)}` : '',
+      className: 'text-right w-32 tabular-nums',
       headerClassName: 'text-right',
     },
   ];
@@ -108,7 +109,7 @@ export default function ContactsPage() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="h-64 rounded-card bg-accent animate-pulse" />
+        <TableSkeleton rows={5} columns={5} />
       ) : contacts.length === 0 ? (
         <EmptyState
           title="Geen contacten gevonden"
