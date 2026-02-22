@@ -49,6 +49,7 @@ import ContentCalendarPage from "./pages/marketing/ContentCalendarPage";
 import SocialPostsPage from "./pages/marketing/SocialPostsPage";
 import SocialPostCreatorPage from "./pages/marketing/SocialPostCreatorPage";
 import ReviewsPage from "./pages/marketing/ReviewsPage";
+import PopupPage from "./pages/marketing/PopupPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 
 // New multi-level settings pages
@@ -145,6 +146,7 @@ const App = () => (
                   <Route path="/marketing/social" element={<SocialPostsPage />} />
                   <Route path="/marketing/social/nieuw" element={<SocialPostCreatorPage />} />
                   <Route path="/marketing/reviews" element={<ReviewsPage />} />
+                  <Route path="/marketing/popup" element={<PopupPage />} />
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   
                   {/* Marketing Settings */}

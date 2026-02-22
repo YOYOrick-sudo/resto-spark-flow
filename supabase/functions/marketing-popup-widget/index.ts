@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
 
       var primaryColor=cfg.primary_color||"#1d979e";
       var ft=cfg.featured_ticket;
+      var popupType=cfg.popup_type||"newsletter";
 
       var styles=document.createElement("style");
       styles.textContent=\`
@@ -60,15 +61,16 @@ Deno.serve(async (req) => {
         .nesto-form{display:flex;gap:8px;}
         .nesto-input{flex:1;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;transition:border-color .2s;}
         .nesto-input:focus{border-color:\${primaryColor};}
-        .nesto-btn{padding:10px 20px;background:\${primaryColor};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
+        .nesto-btn{padding:10px 20px;background:\${primaryColor};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .2s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
         .nesto-btn:hover{opacity:0.9;}
         .nesto-btn:disabled{opacity:0.6;cursor:not-allowed;}
+        .nesto-btn-full{width:100%;text-align:center;}
         .nesto-gdpr{font-size:11px;color:#9ca3af;margin-top:12px;line-height:1.4;}
         .nesto-success{text-align:center;padding:16px 0;}
         .nesto-success-icon{font-size:40px;color:\${primaryColor};margin-bottom:12px;}
         .nesto-success-msg{font-size:16px;font-weight:600;color:#111827;}
 
-        .nesto-featured{display:flex;align-items:center;gap:10px;margin-top:16px;padding:10px 12px;border-radius:10px;border:1.5px solid #e5e7eb;text-decoration:none;transition:border-color .2s,background .2s;cursor:pointer;}
+        .nesto-featured{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 12px;border-radius:10px;border:1.5px solid #e5e7eb;text-decoration:none;transition:border-color .2s,background .2s;cursor:pointer;}
         .nesto-featured:hover{background:#f9fafb;}
         .nesto-featured-bar{width:4px;height:32px;border-radius:4px;flex-shrink:0;}
         .nesto-featured-info{flex:1;min-width:0;}
@@ -96,7 +98,7 @@ Deno.serve(async (req) => {
 
       function buildFeaturedHTML(){
         if(!ft)return "";
-        var bookUrl=SITE_URL+"/reserveren/"+SLUG;
+        var bookUrl=SITE_URL+"/book/"+SLUG;
         return '<a class="nesto-featured" href="'+bookUrl+'" target="_blank" rel="noopener">'
           +'<div class="nesto-featured-bar" style="background:'+esc(ft.color)+'"></div>'
           +'<div class="nesto-featured-info">'
@@ -107,63 +109,75 @@ Deno.serve(async (req) => {
           +'</a>';
       }
 
+      function buildPopupContent(){
+        var logoHtml=cfg.logo_url?'<img class="nesto-logo" src="'+cfg.logo_url+'" alt="Logo">':'';
+        var headlineHtml='<div class="nesto-headline">'+esc(cfg.headline)+'</div>';
+        var descHtml='<div class="nesto-desc">'+esc(cfg.description)+'</div>';
+
+        if(popupType==="reservation"){
+          var bookUrl=SITE_URL+"/book/"+SLUG;
+          return logoHtml+headlineHtml+descHtml
+            +buildFeaturedHTML()
+            +'<a class="nesto-btn nesto-btn-full" href="'+bookUrl+'" target="_blank" rel="noopener">'+esc(cfg.button_text)+'</a>';
+        }
+        if(popupType==="custom"){
+          var customUrl=cfg.custom_button_url||"#";
+          return logoHtml+headlineHtml+descHtml
+            +'<a class="nesto-btn nesto-btn-full" href="'+esc(customUrl)+'" target="_blank" rel="noopener">'+esc(cfg.button_text)+'</a>';
+        }
+        // newsletter (default)
+        return logoHtml+headlineHtml+descHtml
+          +'<form class="nesto-form">'
+          +'<input class="nesto-input" type="email" placeholder="je@email.nl" required>'
+          +'<button class="nesto-btn" type="submit">'+esc(cfg.button_text)+'</button>'
+          +'</form>'
+          +buildFeaturedHTML()
+          +'<div class="nesto-gdpr">'+esc(cfg.gdpr_text)+'</div>';
+      }
+
       function showPopup(triggerId){
         if(sessionStorage.getItem(triggerId))return;
         sessionStorage.setItem(triggerId,"1");
 
         var overlay=document.createElement("div");
         overlay.className="nesto-overlay";
-        overlay.innerHTML=\`
-          <div class="nesto-popup">
-            <button class="nesto-close" aria-label="Sluiten">&times;</button>
-            \${cfg.logo_url?'<img class="nesto-logo" src="'+cfg.logo_url+'" alt="Logo">':''}
-            <div class="nesto-headline">\${esc(cfg.headline)}</div>
-            <div class="nesto-desc">\${esc(cfg.description)}</div>
-            <form class="nesto-form">
-              <input class="nesto-input" type="email" placeholder="je@email.nl" required>
-              <button class="nesto-btn" type="submit">\${esc(cfg.button_text)}</button>
-            </form>
-            \${buildFeaturedHTML()}
-            <div class="nesto-gdpr">\${esc(cfg.gdpr_text)}</div>
-          </div>
-        \`;
+        overlay.innerHTML='<div class="nesto-popup">'
+          +'<button class="nesto-close" aria-label="Sluiten">&times;</button>'
+          +buildPopupContent()
+          +'</div>';
         shadow.appendChild(overlay);
         requestAnimationFrame(function(){overlay.classList.add("visible");});
 
-        overlay.querySelector(".nesto-close").addEventListener("click",function(){
+        function closeOverlay(){
           overlay.classList.remove("visible");
           setTimeout(function(){overlay.remove();},300);
-        });
-        overlay.addEventListener("click",function(e){
-          if(e.target===overlay){
-            overlay.classList.remove("visible");
-            setTimeout(function(){overlay.remove();},300);
-          }
-        });
+        }
 
-        var form=overlay.querySelector("form");
-        form.addEventListener("submit",function(e){
-          e.preventDefault();
-          var input=form.querySelector("input");
-          var btn=form.querySelector("button");
-          btn.disabled=true;
-          btn.textContent="...";
-          subscribe(input.value,function(){
-            overlay.querySelector(".nesto-popup").innerHTML=\`
-              <div class="nesto-success">
-                <div class="nesto-success-icon">✓</div>
-                <div class="nesto-success-msg">\${esc(cfg.success_message)}</div>
-              </div>
-            \`;
-            setTimeout(function(){
-              overlay.classList.remove("visible");
-              setTimeout(function(){overlay.remove();},300);
-            },2500);
-          },function(){
-            btn.disabled=false;
-            btn.textContent=cfg.button_text;
-          });
-        });
+        overlay.querySelector(".nesto-close").addEventListener("click",closeOverlay);
+        overlay.addEventListener("click",function(e){if(e.target===overlay)closeOverlay();});
+
+        // Newsletter form handler
+        if(popupType==="newsletter"){
+          var form=overlay.querySelector("form");
+          if(form){
+            form.addEventListener("submit",function(e){
+              e.preventDefault();
+              var input=form.querySelector("input");
+              var btn=form.querySelector("button");
+              btn.disabled=true;btn.textContent="...";
+              subscribe(input.value,function(){
+                overlay.querySelector(".nesto-popup").innerHTML=
+                  '<div class="nesto-success">'
+                  +'<div class="nesto-success-icon">✓</div>'
+                  +'<div class="nesto-success-msg">'+esc(cfg.success_message)+'</div>'
+                  +'</div>';
+                setTimeout(function(){closeOverlay();},2500);
+              },function(){
+                btn.disabled=false;btn.textContent=cfg.button_text;
+              });
+            });
+          }
+        }
       }
 
       // Sticky bar
@@ -172,12 +186,20 @@ Deno.serve(async (req) => {
         if(!sessionStorage.getItem(barKey)){
           var bar=document.createElement("div");
           bar.className="nesto-bar "+(cfg.sticky_bar_position==="top"?"top":"bottom");
-          bar.innerHTML=\`
-            <span class="nesto-bar-text">\${esc(cfg.headline)}</span>
-            <input class="nesto-input" type="email" placeholder="je@email.nl">
-            <button class="nesto-btn">\${esc(cfg.button_text)}</button>
-            <button class="nesto-bar-close" aria-label="Sluiten">&times;</button>
-          \`;
+
+          var barHtml='<span class="nesto-bar-text">'+esc(cfg.headline)+'</span>';
+          if(popupType==="newsletter"){
+            barHtml+='<input class="nesto-input" type="email" placeholder="je@email.nl">'
+              +'<button class="nesto-btn">'+esc(cfg.button_text)+'</button>';
+          } else if(popupType==="reservation"){
+            var bookUrl=SITE_URL+"/book/"+SLUG;
+            barHtml+='<a class="nesto-btn" href="'+bookUrl+'" target="_blank" rel="noopener">'+esc(cfg.button_text)+'</a>';
+          } else {
+            var customUrl=cfg.custom_button_url||"#";
+            barHtml+='<a class="nesto-btn" href="'+esc(customUrl)+'" target="_blank" rel="noopener">'+esc(cfg.button_text)+'</a>';
+          }
+          barHtml+='<button class="nesto-bar-close" aria-label="Sluiten">&times;</button>';
+          bar.innerHTML=barHtml;
           shadow.appendChild(bar);
           requestAnimationFrame(function(){bar.classList.add("visible");});
 
@@ -187,23 +209,24 @@ Deno.serve(async (req) => {
             setTimeout(function(){bar.remove();},300);
           });
 
-          var barBtn=bar.querySelector(".nesto-btn");
-          var barInput=bar.querySelector(".nesto-input");
-          barBtn.addEventListener("click",function(){
-            if(!barInput.value||!barInput.value.includes("@"))return;
-            barBtn.disabled=true;
-            barBtn.textContent="...";
-            subscribe(barInput.value,function(){
-              bar.innerHTML='<span class="nesto-bar-text" style="text-align:center;width:100%">✓ '+esc(cfg.success_message)+'</span>';
-              setTimeout(function(){
-                bar.classList.remove("visible");
-                setTimeout(function(){bar.remove();},300);
-              },2500);
-            },function(){
-              barBtn.disabled=false;
-              barBtn.textContent=cfg.button_text;
+          // Newsletter bar subscribe
+          if(popupType==="newsletter"){
+            var barBtn=bar.querySelector(".nesto-btn");
+            var barInput=bar.querySelector(".nesto-input");
+            barBtn.addEventListener("click",function(){
+              if(!barInput.value||!barInput.value.includes("@"))return;
+              barBtn.disabled=true;barBtn.textContent="...";
+              subscribe(barInput.value,function(){
+                bar.innerHTML='<span class="nesto-bar-text" style="text-align:center;width:100%">✓ '+esc(cfg.success_message)+'</span>';
+                setTimeout(function(){
+                  bar.classList.remove("visible");
+                  setTimeout(function(){bar.remove();},300);
+                },2500);
+              },function(){
+                barBtn.disabled=false;barBtn.textContent=cfg.button_text;
+              });
             });
-          });
+          }
         }
       }
 

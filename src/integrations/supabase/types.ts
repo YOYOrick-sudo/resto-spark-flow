@@ -1189,6 +1189,7 @@ export type Database = {
         Row: {
           button_text: string
           created_at: string
+          custom_button_url: string | null
           description: string
           exit_intent_enabled: boolean
           featured_ticket_id: string | null
@@ -1197,6 +1198,7 @@ export type Database = {
           id: string
           is_active: boolean
           location_id: string
+          popup_type: string
           sticky_bar_enabled: boolean
           sticky_bar_position: string
           success_message: string
@@ -1207,6 +1209,7 @@ export type Database = {
         Insert: {
           button_text?: string
           created_at?: string
+          custom_button_url?: string | null
           description?: string
           exit_intent_enabled?: boolean
           featured_ticket_id?: string | null
@@ -1215,6 +1218,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           location_id: string
+          popup_type?: string
           sticky_bar_enabled?: boolean
           sticky_bar_position?: string
           success_message?: string
@@ -1225,6 +1229,7 @@ export type Database = {
         Update: {
           button_text?: string
           created_at?: string
+          custom_button_url?: string | null
           description?: string
           exit_intent_enabled?: boolean
           featured_ticket_id?: string | null
@@ -1233,6 +1238,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           location_id?: string
+          popup_type?: string
           sticky_bar_enabled?: boolean
           sticky_bar_position?: string
           success_message?: string
