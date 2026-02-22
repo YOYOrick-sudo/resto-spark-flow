@@ -1023,6 +1023,68 @@ export type Database = {
           },
         ]
       }
+      marketing_popup_config: {
+        Row: {
+          button_text: string
+          created_at: string
+          description: string
+          exit_intent_enabled: boolean
+          gdpr_text: string
+          headline: string
+          id: string
+          is_active: boolean
+          location_id: string
+          sticky_bar_enabled: boolean
+          sticky_bar_position: string
+          success_message: string
+          timed_popup_delay_seconds: number
+          timed_popup_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          button_text?: string
+          created_at?: string
+          description?: string
+          exit_intent_enabled?: boolean
+          gdpr_text?: string
+          headline?: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          sticky_bar_enabled?: boolean
+          sticky_bar_position?: string
+          success_message?: string
+          timed_popup_delay_seconds?: number
+          timed_popup_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          button_text?: string
+          created_at?: string
+          description?: string
+          exit_intent_enabled?: boolean
+          gdpr_text?: string
+          headline?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          sticky_bar_enabled?: boolean
+          sticky_bar_position?: string
+          success_message?: string
+          timed_popup_delay_seconds?: number
+          timed_popup_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_popup_config_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_segments: {
         Row: {
           created_at: string
