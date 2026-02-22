@@ -1,13 +1,17 @@
+import { useNavigate } from 'react-router-dom';
 import { SettingsDetailLayout } from "@/components/settings/layouts";
-import { NestoCard } from "@/components/polar/NestoCard";
 import { TitleHelp } from "@/components/polar/TitleHelp";
+import { EmptyState } from "@/components/polar/EmptyState";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
+import { MessagesSquare, ArrowRight } from "lucide-react";
 
 /**
  * Niveau 4: Notifications settings page
+ * Redirects users to Communicatie > Gastberichten (Fase 4.14)
  */
 export default function SettingsReserveringenNotificaties() {
   const breadcrumbs = buildBreadcrumbs("reserveringen", "notificaties");
+  const navigate = useNavigate();
 
   return (
     <SettingsDetailLayout
@@ -23,9 +27,16 @@ export default function SettingsReserveringenNotificaties() {
       breadcrumbs={breadcrumbs}
     >
       <div className="max-w-2xl">
-        <NestoCard className="p-6">
-          <p className="text-muted-foreground">Notificatie instellingen komen hier.</p>
-        </NestoCard>
+        <EmptyState
+          icon={MessagesSquare}
+          title="Gastberichten zijn verplaatst"
+          description="Bevestigingen, reminders en review-verzoeken worden geconfigureerd onder Instellingen > Communicatie > Gastberichten."
+          action={{
+            label: 'Ga naar Communicatie',
+            onClick: () => navigate('/instellingen/communicatie'),
+            icon: ArrowRight,
+          }}
+        />
       </div>
     </SettingsDetailLayout>
   );
