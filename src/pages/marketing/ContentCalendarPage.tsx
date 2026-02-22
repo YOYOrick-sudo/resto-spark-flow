@@ -30,7 +30,7 @@ export default function ContentCalendarPage() {
       <PageHeader
         title="Kalender"
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {/* More menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -102,8 +102,10 @@ export default function ContentCalendarPage() {
           )}
         </div>
 
-        {/* Right sidebar */}
-        <CalendarSidebar posts={posts} currentMonth={currentMonth} />
+        {/* Right sidebar — hidden on mobile */}
+        <div className="hidden lg:block">
+          <CalendarSidebar posts={posts} currentMonth={currentMonth} />
+        </div>
       </div>
 
       {/* Day panel */}

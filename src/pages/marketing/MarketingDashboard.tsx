@@ -12,10 +12,12 @@ import { EmptyState } from '@/components/polar/EmptyState';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMarketingDashboard } from '@/hooks/useMarketingDashboard';
 import { useBrandIntelligence } from '@/hooks/useBrandIntelligence';
+import { useMarketingOnboardingStatus } from '@/hooks/useMarketingOnboarding';
 import { WeekplanCard } from '@/components/marketing/dashboard/WeekplanCard';
 import { CoachingTipsCard } from '@/components/marketing/dashboard/CoachingTipsCard';
 import { ContentIdeasSection } from '@/components/marketing/dashboard/ContentIdeasSection';
 import { BrandIntelligenceCard } from '@/components/marketing/dashboard/BrandIntelligenceCard';
+import { MarketingOnboardingWizard } from '@/components/marketing/onboarding/MarketingOnboardingWizard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -41,10 +43,19 @@ const sparklineTooltip = ({ active, payload }: any) => {
 
 export default function MarketingDashboard() {
   const navigate = useNavigate();
+  const { needsOnboarding, isLoading: onboardingLoading } = useMarketingOnboardingStatus();
   const { revenue, guestsReached, atRisk, activeFlows, recentCampaigns, activity, isLoading } =
     useMarketingDashboard();
   const { data: intelligence, isLoading: intelligenceLoading } = useBrandIntelligence();
   const weekplan = intelligence?.current_weekplan as { generated_at: string; week_start: string; posts: any[] } | null;
+
+  if (onboardingLoading) {
+    return <Skeleton className="h-96 w-full rounded-card" />;
+  }
+
+  if (needsOnboarding) {
+    return <MarketingOnboardingWizard />;
+  }
 
   const revenueTotal = revenue.data?.totalRevenue ?? 0;
   const sparklineData = revenue.data?.sparklineData ?? [];
@@ -247,12 +258,14 @@ export default function MarketingDashboard() {
             size="sm"
           />
         ) : (
-          <NestoTable
-            columns={campaignColumns}
-            data={recentCampaigns.data ?? []}
-            keyExtractor={(item) => item.id}
-            onRowClick={(item) => navigate(`/marketing/campagnes`)}
-          />
+          <div className="overflow-x-auto">
+            <NestoTable
+              columns={campaignColumns}
+              data={recentCampaigns.data ?? []}
+              keyExtractor={(item) => item.id}
+              onRowClick={(item) => navigate(`/marketing/campagnes`)}
+            />
+          </div>
         )}
       </div>
 

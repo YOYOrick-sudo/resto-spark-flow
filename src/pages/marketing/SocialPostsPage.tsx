@@ -281,7 +281,7 @@ export default function SocialPostsPage() {
           action={{ label: 'Nieuw bericht', onClick: () => navigate('/marketing/social/nieuw') }}
         />
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-xl border border-border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -366,7 +366,7 @@ export default function SocialPostsPage() {
 
       {/* A/B Test Comparison Sheet */}
       <Sheet open={!!selectedAbTestId} onOpenChange={(open) => !open && setSelectedAbTestId(null)}>
-        <SheetContent className="sm:max-w-lg">
+        <SheetContent className="w-full sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>A/B Test Vergelijking</SheetTitle>
           </SheetHeader>
