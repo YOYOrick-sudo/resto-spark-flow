@@ -1432,7 +1432,10 @@ export type Database = {
       }
       marketing_social_posts: {
         Row: {
+          ab_test_group: string | null
+          ab_test_id: string | null
           ai_generated: boolean
+          ai_original_caption: string | null
           alternative_caption: string | null
           analytics: Json
           campaign_id: string | null
@@ -1447,6 +1450,7 @@ export type Database = {
           is_recurring: boolean
           location_id: string
           media_urls: string[]
+          operator_edited: boolean
           platform: string
           post_type: string
           published_at: string | null
@@ -1455,7 +1459,10 @@ export type Database = {
           status: string
         }
         Insert: {
+          ab_test_group?: string | null
+          ab_test_id?: string | null
           ai_generated?: boolean
+          ai_original_caption?: string | null
           alternative_caption?: string | null
           analytics?: Json
           campaign_id?: string | null
@@ -1470,6 +1477,7 @@ export type Database = {
           is_recurring?: boolean
           location_id: string
           media_urls?: string[]
+          operator_edited?: boolean
           platform: string
           post_type?: string
           published_at?: string | null
@@ -1478,7 +1486,10 @@ export type Database = {
           status?: string
         }
         Update: {
+          ab_test_group?: string | null
+          ab_test_id?: string | null
           ai_generated?: boolean
+          ai_original_caption?: string | null
           alternative_caption?: string | null
           analytics?: Json
           campaign_id?: string | null
@@ -1493,6 +1504,7 @@ export type Database = {
           is_recurring?: boolean
           location_id?: string
           media_urls?: string[]
+          operator_edited?: boolean
           platform?: string
           post_type?: string
           published_at?: string | null

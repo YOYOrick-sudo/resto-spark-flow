@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Settings, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -11,13 +11,20 @@ import { NestoBadge } from '@/components/polar/NestoBadge';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { InfoAlert } from '@/components/polar/InfoAlert';
 import { UGCGrid } from '@/components/marketing/social/UGCGrid';
-import { useAllSocialPosts } from '@/hooks/useAllSocialPosts';
+import { useAllSocialPosts, useABTestResults } from '@/hooks/useAllSocialPosts';
 import { useDeleteSocialPost } from '@/hooks/useMarketingSocialPosts';
 import { useMarketingSocialAccounts } from '@/hooks/useMarketingSocialAccounts';
 import { useBrandIntelligence } from '@/hooks/useBrandIntelligence';
 import { useUserContext } from '@/contexts/UserContext';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { nestoToast } from '@/lib/nestoToast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import {
   Table,
   TableBody,
@@ -26,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import type { SocialPost } from '@/hooks/useMarketingSocialPosts';
 
 const PLATFORM_COLORS: Record<string, string> = {
   instagram: '#E1306C',
@@ -70,10 +78,10 @@ export default function SocialPostsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [dismissedOnboarding, setDismissedOnboarding] = useState(false);
+  const [selectedAbTestId, setSelectedAbTestId] = useState<string | null>(null);
   const { accountsWithStatus } = useMarketingSocialAccounts();
   const { data: intelligence } = useBrandIntelligence();
 
-  // Check onboarding feedback card dismiss state
   const onboardingStorageKey = `nesto_ig_onboarded_${locationId}`;
   const showOnboardingCard = useMemo(() => {
     if (dismissedOnboarding) return false;
@@ -92,12 +100,11 @@ export default function SocialPostsPage() {
 
   const { data: posts = [], isLoading } = useAllSocialPosts(filters);
   const deletePost = useDeleteSocialPost();
+  const { data: abTestPosts = [] } = useABTestResults(selectedAbTestId);
 
-  // Check for disconnected / expiring accounts
   const allDisconnected = accountsWithStatus.every((a) => a.status === 'disconnected');
   const expiringAccounts = accountsWithStatus.filter((a) => a.status === 'expiring');
 
-  // Instagram grid preview data
   const igGridPosts = useMemo(() => {
     if (platformTab !== 'all' && platformTab !== 'instagram') return [];
     const igPosts = (posts ?? [])
@@ -122,7 +129,6 @@ export default function SocialPostsPage() {
     });
   }
 
-  // Empty state: no connected accounts
   if (allDisconnected) {
     return (
       <div className="space-y-6">
@@ -136,6 +142,32 @@ export default function SocialPostsPage() {
     );
   }
 
+  // A/B test comparison helpers
+  const abVariantA = abTestPosts.filter((p) => p.ab_test_group === 'A');
+  const abVariantB = abTestPosts.filter((p) => p.ab_test_group === 'B');
+  const abPostsAge = abTestPosts.length > 0
+    ? Math.min(...abTestPosts.map((p) => (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60)))
+    : 0;
+  const abResultsComplete = abPostsAge >= 48;
+
+  function getEngagementRate(post: SocialPost): number {
+    const analytics = post.analytics as Record<string, unknown> | null;
+    if (!analytics) return 0;
+    const reach = Number(analytics.reach ?? 0);
+    const engagement = Number(analytics.engagement ?? 0);
+    return reach > 0 ? (engagement / reach) * 100 : 0;
+  }
+
+  function getWinner(): 'A' | 'B' | null {
+    if (!abResultsComplete) return null;
+    const avgA = abVariantA.reduce((sum, p) => sum + getEngagementRate(p), 0) / (abVariantA.length || 1);
+    const avgB = abVariantB.reduce((sum, p) => sum + getEngagementRate(p), 0) / (abVariantB.length || 1);
+    if (avgA === avgB) return null;
+    return avgA > avgB ? 'A' : 'B';
+  }
+
+  const winner = getWinner();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -148,7 +180,6 @@ export default function SocialPostsPage() {
         }
       />
 
-      {/* Instagram onboarding feedback card */}
       {showOnboardingCard && (
         <InfoAlert
           variant="success"
@@ -167,7 +198,6 @@ export default function SocialPostsPage() {
         </InfoAlert>
       )}
 
-      {/* Token expiry banners */}
       {expiringAccounts.map((acc) => (
         <InfoAlert
           key={acc.platform}
@@ -221,11 +251,7 @@ export default function SocialPostsPage() {
                   }`}
                 >
                   {hasMedia ? (
-                    <img
-                      src={post.media_urls[0]}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={post.media_urls[0]} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-[#E1306C]/20 to-[#E1306C]/5 flex items-center justify-center">
                       <span className="text-[10px] text-muted-foreground text-center px-1 line-clamp-2">
@@ -233,7 +259,6 @@ export default function SocialPostsPage() {
                       </span>
                     </div>
                   )}
-                  {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
                     <span className="text-[10px] text-white line-clamp-3">
                       {post.content_text || '(geen tekst)'}
@@ -271,7 +296,15 @@ export default function SocialPostsPage() {
               {posts.map((post) => {
                 const status = STATUS_MAP[post.status] ?? STATUS_MAP.draft;
                 return (
-                  <TableRow key={post.id} className="cursor-pointer hover:bg-accent/30">
+                  <TableRow
+                    key={post.id}
+                    className="cursor-pointer hover:bg-accent/30"
+                    onClick={() => {
+                      if (post.ab_test_id) {
+                        setSelectedAbTestId(post.ab_test_id);
+                      }
+                    }}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div
@@ -287,7 +320,12 @@ export default function SocialPostsPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <NestoBadge variant={status.variant}>{status.label}</NestoBadge>
+                      <div className="flex items-center gap-1.5">
+                        <NestoBadge variant={status.variant}>{status.label}</NestoBadge>
+                        {post.ab_test_id && (
+                          <NestoBadge variant="primary" size="sm">A/B</NestoBadge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground tabular-nums">
@@ -325,6 +363,76 @@ export default function SocialPostsPage() {
         onConfirm={handleDelete}
         isLoading={deletePost.isPending}
       />
+
+      {/* A/B Test Comparison Sheet */}
+      <Sheet open={!!selectedAbTestId} onOpenChange={(open) => !open && setSelectedAbTestId(null)}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>A/B Test Vergelijking</SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            {!abResultsComplete && (
+              <InfoAlert
+                variant="warning"
+                title="Resultaten nog niet compleet"
+                description="Wacht minimaal 48 uur na publicatie voor betrouwbare indicaties."
+              />
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Variant A */}
+              <div className={`space-y-3 p-3 rounded-xl border ${winner === 'A' ? 'border-success bg-success-light/30' : 'border-border'}`}>
+                <div className="flex items-center gap-2">
+                  <NestoBadge variant="primary" size="sm">Variant A</NestoBadge>
+                  {winner === 'A' && <NestoBadge variant="success" size="sm">Winnaar</NestoBadge>}
+                </div>
+                {abVariantA.map((post) => (
+                  <div key={post.id} className="space-y-1.5">
+                    <span className="text-xs text-muted-foreground">{PLATFORM_LABELS[post.platform] ?? post.platform}</span>
+                    <p className="text-sm line-clamp-3">{post.content_text || '(geen tekst)'}</p>
+                    <div className="text-xs text-muted-foreground space-y-0.5">
+                      <p>Bereik: {Number((post.analytics as any)?.reach ?? 0)}</p>
+                      <p>Engagement: {Number((post.analytics as any)?.engagement ?? 0)}</p>
+                      <p>Rate: {getEngagementRate(post).toFixed(1)}%</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Variant B */}
+              <div className={`space-y-3 p-3 rounded-xl border ${winner === 'B' ? 'border-success bg-success-light/30' : 'border-border'}`}>
+                <div className="flex items-center gap-2">
+                  <NestoBadge variant="primary" size="sm">Variant B</NestoBadge>
+                  {winner === 'B' && <NestoBadge variant="success" size="sm">Winnaar</NestoBadge>}
+                </div>
+                {abVariantB.map((post) => (
+                  <div key={post.id} className="space-y-1.5">
+                    <span className="text-xs text-muted-foreground">{PLATFORM_LABELS[post.platform] ?? post.platform}</span>
+                    <p className="text-sm line-clamp-3">{post.content_text || '(geen tekst)'}</p>
+                    <div className="text-xs text-muted-foreground space-y-0.5">
+                      <p>Bereik: {Number((post.analytics as any)?.reach ?? 0)}</p>
+                      <p>Engagement: {Number((post.analytics as any)?.engagement ?? 0)}</p>
+                      <p>Rate: {getEngagementRate(post).toFixed(1)}%</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-xs text-muted-foreground text-center cursor-help">
+                  Indicatieve vergelijking
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>
+                Organische social media posts hebben te weinig volume voor statistische significantie.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -6,13 +6,20 @@ interface SocialContentInput {
   context?: string;
   platforms: string[];
   content_type_tag?: string;
+  ab_test?: boolean;
+}
+
+interface PlatformContent {
+  instagram?: { caption: string; hashtags: string[] };
+  facebook?: { caption: string };
+  google_business?: { caption: string };
 }
 
 interface SocialContentResult {
-  platforms: {
-    instagram?: { caption: string; hashtags: string[] };
-    facebook?: { caption: string };
-    google_business?: { caption: string };
+  platforms?: PlatformContent;
+  variants?: {
+    a: { platforms: PlatformContent };
+    b: { platforms: PlatformContent };
   };
   suggested_hashtags: string[];
   suggested_time?: string;

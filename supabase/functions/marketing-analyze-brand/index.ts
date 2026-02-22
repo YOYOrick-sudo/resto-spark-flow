@@ -17,7 +17,6 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Find all locations with at least 1 published/imported post
     const { data: locations } = await supabase
       .from("marketing_social_posts")
       .select("location_id")
@@ -46,7 +45,6 @@ serve(async (req) => {
       }
     }
 
-    // Trigger coaching generation (fire-and-forget)
     const successLocations = Object.entries(results).filter(([, v]) => v === "ok").map(([k]) => k);
     if (successLocations.length > 0) {
       fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/marketing-generate-coaching`, {
@@ -77,7 +75,6 @@ async function analyzeLocation(
   apiKey: string | undefined,
   aiAvailable: boolean
 ): Promise<string> {
-  // Fetch all published/imported posts with analytics for this location
   const { data: posts } = await supabase
     .from("marketing_social_posts")
     .select("content_type_tag, published_at, analytics, hashtags, content_text, media_urls")
@@ -90,8 +87,6 @@ async function analyzeLocation(
   const postsWithAnalytics = allPosts.filter((p: any) => p.analytics && Object.keys(p.analytics).length > 0);
 
   // --- Layer 0: SQL analysis ---
-
-  // a. content_type_performance
   const typeMap: Record<string, { count: number; totalReach: number; totalEngagement: number; totalImpressions: number }> = {};
   for (const p of postsWithAnalytics) {
     const tag = p.content_type_tag || "unknown";
@@ -111,7 +106,6 @@ async function analyzeLocation(
     };
   }
 
-  // b. optimal_post_times
   const timeMap: Record<string, { count: number; totalEngagement: number }> = {};
   for (const p of postsWithAnalytics) {
     if (!p.published_at) continue;
@@ -129,7 +123,6 @@ async function analyzeLocation(
     .sort((a, b) => b.avg_engagement - a.avg_engagement)
     .slice(0, 5);
 
-  // c. top_hashtag_sets
   const hashMap: Record<string, { count: number; totalEngagement: number }> = {};
   for (const p of postsWithAnalytics) {
     const engagement = Number(p.analytics?.engagement ?? 0);
@@ -146,7 +139,6 @@ async function analyzeLocation(
     .sort((a, b) => b.avg_engagement - a.avg_engagement)
     .slice(0, 15);
 
-  // d. engagement_baseline
   const totalPosts = postsWithAnalytics.length;
   let totalReach = 0, totalEngagement = 0, totalImpressions = 0;
   for (const p of postsWithAnalytics) {
@@ -163,7 +155,6 @@ async function analyzeLocation(
       }
     : { avg_reach: 0, avg_engagement: 0, avg_impressions: 0, total_posts: 0 };
 
-  // e. weekly_best_content_type
   let weeklyBest: string | null = null;
   let bestAvg = 0;
   for (const [tag, perf] of Object.entries(contentTypePerformance)) {
@@ -173,10 +164,8 @@ async function analyzeLocation(
     }
   }
 
-  // f. posts_analyzed
   const postsAnalyzed = allPosts.length;
 
-  // g. learning_stage
   let learningStage = "onboarding";
   if (postsAnalyzed >= 51) learningStage = "mature";
   else if (postsAnalyzed >= 16) learningStage = "optimizing";
@@ -185,6 +174,20 @@ async function analyzeLocation(
   // --- Layer 2: AI analysis ---
   let captionStyleProfile: string | null = null;
   let visualStyleProfile: string | null = null;
+
+  // Declare upsertData BEFORE the AI blocks so it can be populated by review + caption learning
+  const upsertData: any = {
+    location_id: locationId,
+    content_type_performance: contentTypePerformance,
+    optimal_post_times: optimalPostTimes,
+    top_hashtag_sets: topHashtagSets,
+    engagement_baseline: engagementBaseline,
+    weekly_best_content_type: weeklyBest,
+    posts_analyzed: postsAnalyzed,
+    learning_stage: learningStage,
+    last_analysis_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
   if (aiAvailable && apiKey && postsAnalyzed >= 5) {
     // Caption style
@@ -236,21 +239,32 @@ async function analyzeLocation(
       if (e?.status === 429) return "rate_limited";
       console.error("Review response style analysis failed:", e);
     }
+
+    // Caption learning cycle: learn from operator edits on AI-generated captions
+    try {
+      const { data: editedCaptions } = await supabase
+        .from('marketing_social_posts')
+        .select('ai_original_caption, content_text, platform, content_type_tag')
+        .eq('location_id', locationId)
+        .eq('operator_edited', true)
+        .not('ai_original_caption', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (editedCaptions && editedCaptions.length >= 5) {
+        // Get existing caption_style_profile for context
+        const existingProfile = captionStyleProfile || upsertData.caption_style_profile || null;
+        const refinedProfile = await analyzeCaptionEdits(editedCaptions, existingProfile, apiKey);
+        if (refinedProfile) {
+          captionStyleProfile = refinedProfile;
+        }
+      }
+    } catch (e: any) {
+      if (e?.status === 429) return "rate_limited";
+      console.error("Caption learning cycle failed:", e);
+    }
   }
 
-  // Upsert result
-  const upsertData: any = {
-    location_id: locationId,
-    content_type_performance: contentTypePerformance,
-    optimal_post_times: optimalPostTimes,
-    top_hashtag_sets: topHashtagSets,
-    engagement_baseline: engagementBaseline,
-    weekly_best_content_type: weeklyBest,
-    posts_analyzed: postsAnalyzed,
-    learning_stage: learningStage,
-    last_analysis_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
   if (captionStyleProfile) upsertData.caption_style_profile = captionStyleProfile;
   if (visualStyleProfile) upsertData.visual_style_profile = visualStyleProfile;
 
@@ -429,6 +443,77 @@ Dit profiel wordt gebruikt om toekomstige reactie-suggesties in EXACT deze stijl
     if (response.status === 429) throw Object.assign(new Error("Rate limited"), { status: 429 });
     const text = await response.text();
     console.error("AI review response style error:", response.status, text);
+    throw new Error("AI error");
+  }
+
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new Error("No tool call in response");
+  const args = JSON.parse(toolCall.function.arguments);
+  return args.style_profile;
+}
+
+async function analyzeCaptionEdits(
+  editedCaptions: { ai_original_caption: string; content_text: string; platform: string; content_type_tag: string | null }[],
+  existingProfile: string | null,
+  apiKey: string
+): Promise<string | null> {
+  const pairs = editedCaptions
+    .map((c, i) => `Paar ${i + 1} (${c.platform}${c.content_type_tag ? `, ${c.content_type_tag}` : ''}):
+[AI suggestie]: ${c.ai_original_caption}
+[Operator versie]: ${c.content_text}`)
+    .join('\n\n---\n\n');
+
+  if (!pairs) return null;
+
+  const profileContext = existingProfile
+    ? `\n\nHuidig schrijfstijlprofiel (verfijn dit, niet vervangen):\n${existingProfile}`
+    : '';
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "system",
+          content: `Analyseer hoe deze restaurateur AI-gegenereerde social media captions aanpast.
+Je krijgt paren van [AI suggestie] en [Operator versie].
+
+Vergelijk de AI-suggesties met de operator-aanpassingen en beschrijf de patronen in max 100 woorden:
+- Wat verandert de operator structureel? (openingszin, CTA, lengte, emoji gebruik)
+- Welke woorden/uitdrukkingen voegt de operator toe of verwijdert die?
+- Wat is het verschil in toon?
+- Welke elementen behoudt de operator altijd uit de AI suggestie?
+
+${existingProfile ? 'Verfijn het bestaande profiel met deze nieuwe inzichten — niet volledig vervangen.' : 'Maak een nieuw schrijfstijlprofiel.'}${profileContext}`,
+        },
+        { role: "user", content: pairs },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "return_refined_caption_style",
+            description: "Return the refined caption style profile",
+            parameters: {
+              type: "object",
+              properties: { style_profile: { type: "string", description: "The refined writing style profile in max 100 words" } },
+              required: ["style_profile"],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "return_refined_caption_style" } },
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) throw Object.assign(new Error("Rate limited"), { status: 429 });
+    const text = await response.text();
+    console.error("AI caption learning error:", response.status, text);
     throw new Error("AI error");
   }
 

@@ -35,7 +35,6 @@ serve(async (req) => {
     if (!employee) throw new Error("No location found for user");
     const locationId = employee.location_id;
 
-    // Load brand kit + location + brand intelligence
     const [brandKitRes, locationRes, intelligenceRes] = await Promise.all([
       supabase.from("marketing_brand_kit").select("*").eq("location_id", locationId).maybeSingle(),
       supabase.from("locations").select("name, slug, timezone").eq("id", locationId).single(),
@@ -134,29 +133,24 @@ function buildIntelligenceContext(intelligence: BrandIntelligence | null): { sys
   let systemExtra = "";
   let userExtra = "";
 
-  // Caption style profile
   if (intelligence.caption_style_profile) {
     systemExtra += `\n\nSchrijfstijlprofiel (schrijf in EXACT deze stijl):\n${intelligence.caption_style_profile}`;
   }
 
-  // Visual style hint + photo suggestion instruction
   if (intelligence.visual_style_profile) {
     systemExtra += `\n\nVisuele stijl hint (voor foto-gerelateerde suggesties):\n${intelligence.visual_style_profile}`;
     systemExtra += `\n\nGeef ook een concrete foto-tip (1 zin) die past bij de visuele stijl van dit restaurant.`;
   }
 
-  // Engagement baseline context
   const baseline = intelligence.engagement_baseline as Record<string, any> | null;
   if (baseline && baseline.avg_reach) {
     userExtra += `\nVerwachte performance baseline: gem. bereik ${baseline.avg_reach}, gem. engagement ${baseline.avg_engagement ?? 0}`;
   }
 
-  // Learning stage tone adjustment
   if (intelligence.learning_stage && intelligence.learning_stage !== "onboarding") {
     systemExtra += `\n\nDit restaurant heeft voldoende data (stage: ${intelligence.learning_stage}). Gebruik de beschikbare performance data en stijlprofielen voor gepersonaliseerde suggesties.`;
   }
 
-  // Content type performance - top 3
   if (intelligence.content_type_performance && Object.keys(intelligence.content_type_performance).length > 0) {
     const sorted = Object.entries(intelligence.content_type_performance)
       .sort((a: any, b: any) => (b[1].avg_engagement ?? 0) - (a[1].avg_engagement ?? 0))
@@ -166,7 +160,6 @@ function buildIntelligenceContext(intelligence: BrandIntelligence | null): { sys
     userExtra += `\nBest presterende content types: ${sorted}`;
   }
 
-  // Top hashtags
   if (intelligence.top_hashtag_sets && intelligence.top_hashtag_sets.length > 0) {
     const topTags = intelligence.top_hashtag_sets.slice(0, 10).map((h: any) => h.hashtag).join(", ");
     userExtra += `\nBest presterende hashtags: ${topTags}`;
@@ -176,13 +169,14 @@ function buildIntelligenceContext(intelligence: BrandIntelligence | null): { sys
 }
 
 async function generateSocialContent(
-  body: { context?: string; platforms?: string[]; content_type_tag?: string },
+  body: { context?: string; platforms?: string[]; content_type_tag?: string; ab_test?: boolean },
   brandKit: BrandKit | null,
   location: Location | null,
   intelligence: BrandIntelligence | null,
   apiKey: string
 ) {
   const platforms = body.platforms ?? ["instagram"];
+  const abTest = body.ab_test === true;
   const tone = brandKit?.tone_of_voice ?? "professioneel en gastvrij";
   const toneDesc = brandKit?.tone_description ?? "";
   const restaurantName = location?.name ?? "het restaurant";
@@ -202,6 +196,13 @@ async function generateSocialContent(
 
   const { systemExtra, userExtra } = buildIntelligenceContext(intelligence);
 
+  const abTestInstruction = abTest
+    ? `\n\nGENEREER TWEE VARIANTEN:
+- Variant A: Gebruik de huidige stijl en aanpak.
+- Variant B: Gebruik een alternatieve aanpak — andere openingszin, andere CTA, andere invalshoek. Hashtags mogen ook variëren.
+Beide varianten moeten over hetzelfde onderwerp gaan, maar op een duidelijk andere manier geschreven zijn.`
+    : "";
+
   const systemPrompt = `Je bent een social media copywriter voor ${restaurantName}, een horecabedrijf.
 
 Tone of voice: ${tone}${toneDesc ? ` — ${toneDesc}` : ""}
@@ -210,7 +211,7 @@ Per platform schrijf je een unieke, op maat gemaakte caption. Niet dezelfde teks
 
 ${platformInstructions}
 
-Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatietijd en dag.${systemExtra}`;
+Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatietijd en dag.${systemExtra}${abTestInstruction}`;
 
   let userPrompt = body.context
     ? `Onderwerp: ${body.context}${body.content_type_tag ? `\nContent type: ${body.content_type_tag}` : ""}`
@@ -243,7 +244,6 @@ Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatieti
     };
   }
 
-  // Use optimal_post_times from intelligence for suggested_time/day
   let timeDescription = "Optimal posting time, e.g. 18:00";
   let dayDescription = "Optimal posting day in Dutch, e.g. donderdag";
   if (intelligence?.optimal_post_times && intelligence.optimal_post_times.length > 0) {
@@ -253,6 +253,56 @@ Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatieti
     dayDescription = `Optimal posting day based on data. Best day: ${dayNames[best.day]}`;
   }
 
+  if (abTest) {
+    // A/B test mode: return variants.a and variants.b
+    const variantSchema = {
+      type: "object",
+      properties: {
+        platforms: { type: "object", properties: platformProperties, required: Object.keys(platformProperties) },
+      },
+      required: ["platforms"],
+    };
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "return_social_content",
+          description: "Return generated social media content with two A/B test variants",
+          parameters: {
+            type: "object",
+            properties: {
+              variants: {
+                type: "object",
+                properties: {
+                  a: variantSchema,
+                  b: variantSchema,
+                },
+                required: ["a", "b"],
+              },
+              suggested_hashtags: { type: "array", items: { type: "string" }, description: "10 suggested hashtags without #" },
+              suggested_time: { type: "string", description: timeDescription },
+              suggested_day: { type: "string", description: dayDescription },
+            },
+            required: ["variants", "suggested_hashtags"],
+            additionalProperties: false,
+          },
+        },
+      },
+    ];
+
+    return await callAI(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      tools,
+      { type: "function", function: { name: "return_social_content" } },
+      apiKey
+    );
+  }
+
+  // Normal mode (no A/B)
   const tools = [
     {
       type: "function",
