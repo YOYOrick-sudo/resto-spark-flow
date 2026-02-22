@@ -476,7 +476,7 @@ function PopupEditor({
                   <Slider
                     value={[state.timed_popup_delay_seconds]}
                     onValueChange={([v]) => update('timed_popup_delay_seconds', v)}
-                    min={5} max={60} step={5}
+                    min={2} max={30} step={1}
                     className="flex-1"
                   />
                   <span className="text-sm text-muted-foreground whitespace-nowrap tabular-nums w-16 text-right">
