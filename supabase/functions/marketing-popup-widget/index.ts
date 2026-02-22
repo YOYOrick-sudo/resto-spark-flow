@@ -1,6 +1,6 @@
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
       function buildPopupContent(){
         var logoHtml=cfg.logo_url?'<img class="nesto-logo" src="'+cfg.logo_url+'" alt="Logo">':'';
         var headlineHtml='<div class="nesto-headline">'+esc(cfg.headline)+'</div>';
-        var descHtml='<div class="nesto-desc">'+esc(cfg.description).replace(/\n/g,"<br>")+'</div>';
+        var descHtml='<div class="nesto-desc">'+esc(cfg.description).replace(/\\n/g,"<br>")+'</div>';
 
         if(popupType==="reservation"){
           var bookUrl=SITE_URL+"/book/"+SLUG;
