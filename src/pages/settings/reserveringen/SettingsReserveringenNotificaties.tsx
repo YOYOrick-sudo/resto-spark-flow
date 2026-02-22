@@ -23,7 +23,7 @@ export default function SettingsReserveringenNotificaties() {
           </TitleHelp>
         </span>
       }
-      description="Configureer e-mail en push notificaties voor reserveringen."
+      description="Gastberichten zoals bevestigingen, reminders en review-verzoeken worden geconfigureerd onder Communicatie."
       breadcrumbs={breadcrumbs}
     >
       <div className="max-w-2xl">
