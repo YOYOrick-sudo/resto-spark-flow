@@ -26,6 +26,8 @@ export const ROUTE_MAP: Record<string, string> = {
   'kitchen-orders': '/inkoop',
   'kaartbeheer-gerechten': '/kaartbeheer',
   'service-tasks': '/taken',
+  'marketing-segmenten': '/marketing/segmenten',
+  'marketing-contacten': '/marketing/contacten',
   'settings-voorkeuren': '/instellingen/voorkeuren',
   'settings-keuken': '/instellingen/keuken',
   'settings-reserveringen': '/instellingen/reserveringen',
@@ -99,6 +101,17 @@ export const menuItems: MenuItem[] = [
     subItems: [
       { id: 'kaartbeheer-gerechten', label: 'Gerechten', path: '/kaartbeheer' },
       { id: 'kaartbeheer-menu-engineering', label: 'Menu-engineering', disabled: true },
+    ],
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing',
+    icon: Megaphone,
+    expandable: true,
+    section: 'OPERATIE',
+    subItems: [
+      { id: 'marketing-segmenten', label: 'Segmenten', path: '/marketing/segmenten' },
+      { id: 'marketing-contacten', label: 'Contacten', path: '/marketing/contacten' },
     ],
   },
   {
@@ -185,6 +198,7 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
     return 'kitchen';
   }
   if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
+  if (path.startsWith('/marketing')) return 'marketing';
   if (path.startsWith('/taken')) return 'service';
   if (path.startsWith('/instellingen')) return 'settings';
   if (path.startsWith('/onboarding')) return null;
