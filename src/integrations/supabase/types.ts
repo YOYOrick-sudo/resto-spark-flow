@@ -564,6 +564,7 @@ export type Database = {
           content_type_performance: Json | null
           created_at: string
           current_weekplan: Json | null
+          email_tone_profile: string | null
           engagement_baseline: Json | null
           id: string
           last_analysis_at: string | null
@@ -571,6 +572,7 @@ export type Database = {
           location_id: string
           optimal_post_times: Json | null
           posts_analyzed: number
+          review_response_profile: string | null
           top_hashtag_sets: Json | null
           updated_at: string
           visual_style_profile: string | null
@@ -581,6 +583,7 @@ export type Database = {
           content_type_performance?: Json | null
           created_at?: string
           current_weekplan?: Json | null
+          email_tone_profile?: string | null
           engagement_baseline?: Json | null
           id?: string
           last_analysis_at?: string | null
@@ -588,6 +591,7 @@ export type Database = {
           location_id: string
           optimal_post_times?: Json | null
           posts_analyzed?: number
+          review_response_profile?: string | null
           top_hashtag_sets?: Json | null
           updated_at?: string
           visual_style_profile?: string | null
@@ -598,6 +602,7 @@ export type Database = {
           content_type_performance?: Json | null
           created_at?: string
           current_weekplan?: Json | null
+          email_tone_profile?: string | null
           engagement_baseline?: Json | null
           id?: string
           last_analysis_at?: string | null
@@ -605,6 +610,7 @@ export type Database = {
           location_id?: string
           optimal_post_times?: Json | null
           posts_analyzed?: number
+          review_response_profile?: string | null
           top_hashtag_sets?: Json | null
           updated_at?: string
           visual_style_profile?: string | null
@@ -1190,6 +1196,7 @@ export type Database = {
       }
       marketing_reviews: {
         Row: {
+          ai_original_response: string | null
           ai_suggested_response: string | null
           author_name: string
           author_photo_url: string | null
@@ -1198,6 +1205,7 @@ export type Database = {
           id: string
           is_featured: boolean
           location_id: string
+          operator_edited: boolean
           platform: string
           published_at: string | null
           rating: number
@@ -1210,6 +1218,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_original_response?: string | null
           ai_suggested_response?: string | null
           author_name?: string
           author_photo_url?: string | null
@@ -1218,6 +1227,7 @@ export type Database = {
           id?: string
           is_featured?: boolean
           location_id: string
+          operator_edited?: boolean
           platform: string
           published_at?: string | null
           rating: number
@@ -1230,6 +1240,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_original_response?: string | null
           ai_suggested_response?: string | null
           author_name?: string
           author_photo_url?: string | null
@@ -1238,6 +1249,7 @@ export type Database = {
           id?: string
           is_featured?: boolean
           location_id?: string
+          operator_edited?: boolean
           platform?: string
           published_at?: string | null
           rating?: number

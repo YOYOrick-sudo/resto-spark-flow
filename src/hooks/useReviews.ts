@@ -95,11 +95,18 @@ export function useUpdateReview() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { id: string; response_text?: string; is_featured?: boolean; responded_at?: string }) => {
+    mutationFn: async (params: {
+      id: string;
+      response_text?: string;
+      is_featured?: boolean;
+      responded_at?: string;
+      operator_edited?: boolean;
+    }) => {
       const updates: Record<string, unknown> = {};
       if (params.response_text !== undefined) updates.response_text = params.response_text;
       if (params.is_featured !== undefined) updates.is_featured = params.is_featured;
       if (params.responded_at !== undefined) updates.responded_at = params.responded_at;
+      if (params.operator_edited !== undefined) updates.operator_edited = params.operator_edited;
 
       const { error } = await supabase
         .from('marketing_reviews')
@@ -141,6 +148,58 @@ export function useGenerateReviewResponse() {
     },
     onError: () => {
       toast.error('Kon geen AI-suggestie genereren');
+    },
+  });
+}
+
+export function useReplyToGoogle() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: { reviewId: string; responseText: string }) => {
+      const { data, error } = await supabase.functions.invoke('marketing-reply-review', {
+        body: {
+          review_id: params.reviewId,
+          response_text: params.responseText,
+        },
+      });
+
+      if (error) throw error;
+      return data as { success: boolean; google_reply_posted: boolean; operator_edited: boolean };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['marketing-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['marketing-review-stats'] });
+      if (data.google_reply_posted) {
+        toast.success('Reactie geplaatst op Google');
+      } else {
+        toast.success('Reactie opgeslagen');
+      }
+    },
+    onError: () => {
+      toast.error('Kon reactie niet plaatsen');
+    },
+  });
+}
+
+export function useGoogleBusinessAccount() {
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+
+  return useQuery({
+    queryKey: ['google-business-account', locationId],
+    enabled: !!locationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('marketing_social_accounts')
+        .select('id, account_name')
+        .eq('location_id', locationId!)
+        .eq('platform', 'google_business')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
     },
   });
 }
