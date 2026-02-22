@@ -25,6 +25,8 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const slug = url.searchParams.get('slug');
+  const isPreview = url.searchParams.get('preview') === 'true';
+  const previewPopupId = url.searchParams.get('popup_id');
 
   if (!slug) {
     return new Response(JSON.stringify({ error: 'Missing slug parameter' }), {
@@ -48,42 +50,59 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: config } = await supabaseAdmin
-      .from('marketing_popup_config')
-      .select('*')
-      .eq('location_id', location.id)
-      .maybeSingle();
+    let config: any = null;
 
-    if (!config || !config.is_active) {
+    if (isPreview && previewPopupId) {
+      // Preview mode: fetch specific popup regardless of status
+      const { data } = await supabaseAdmin
+        .from('marketing_popup_config')
+        .select('*')
+        .eq('id', previewPopupId)
+        .eq('location_id', location.id)
+        .maybeSingle();
+      config = data;
+    } else {
+      // Normal mode: fetch all active popups, apply schedule filter, pick highest priority
+      const { data: allConfigs } = await supabaseAdmin
+        .from('marketing_popup_config')
+        .select('*')
+        .eq('location_id', location.id)
+        .eq('is_active', true)
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (allConfigs && allConfigs.length > 0) {
+        const now = new Date();
+        // Find first config that passes schedule check (or has no schedule)
+        config = allConfigs.find((c: any) => {
+          if (isPreview) return true; // preview mode skips schedule
+          if (c.schedule_start_at && c.schedule_end_at) {
+            return now >= new Date(c.schedule_start_at) && now <= new Date(c.schedule_end_at);
+          } else if (c.schedule_start_at) {
+            return now >= new Date(c.schedule_start_at);
+          } else if (c.schedule_end_at) {
+            return now <= new Date(c.schedule_end_at);
+          }
+          return true; // no schedule = always active
+        }) || null;
+      }
+    }
+
+    if (!config) {
       return new Response(JSON.stringify({ is_active: false }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Server-side schedule check
-    if (config.schedule_start_at && config.schedule_end_at) {
-      const now = new Date();
-      const start = new Date(config.schedule_start_at);
-      const end = new Date(config.schedule_end_at);
-      if (now < start || now > end) {
-        return new Response(JSON.stringify({ is_active: false }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } else if (config.schedule_start_at) {
-      const now = new Date();
-      if (now < new Date(config.schedule_start_at)) {
-        return new Response(JSON.stringify({ is_active: false }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } else if (config.schedule_end_at) {
-      const now = new Date();
-      if (now > new Date(config.schedule_end_at)) {
-        return new Response(JSON.stringify({ is_active: false }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+    // In preview mode, always return as active
+    if (isPreview && !config.is_active) {
+      config.is_active = true;
+    }
+
+    if (!config.is_active) {
+      return new Response(JSON.stringify({ is_active: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const { data: brandKit } = await supabaseAdmin
@@ -92,7 +111,7 @@ Deno.serve(async (req) => {
       .eq('location_id', location.id)
       .maybeSingle();
 
-    // Fetch featured ticket if set (for reservation type)
+    // Fetch featured ticket if set
     let featuredTicket = null;
     if (config.featured_ticket_id) {
       const { data: ticket } = await supabaseAdmin
@@ -105,7 +124,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      is_active: config.is_active,
+      is_active: true,
       popup_type: config.popup_type || 'newsletter',
       exit_intent_enabled: config.exit_intent_enabled,
       timed_popup_enabled: config.timed_popup_enabled,

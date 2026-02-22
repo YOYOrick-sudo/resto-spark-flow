@@ -18,7 +18,6 @@ export interface PopupSuggestion {
   generated_at: string;
   responded_at: string | null;
   created_at: string;
-  // Joined ticket data
   tickets?: { name: string; short_description: string | null; color: string } | null;
 }
 
@@ -45,18 +44,17 @@ export function usePopupSuggestion() {
   });
 }
 
+// Accept suggestion and apply to a specific popup (or create new one)
 export function useAcceptPopupSuggestion() {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (suggestion: PopupSuggestion) => {
+    mutationFn: async ({ suggestion, targetPopupId }: { suggestion: PopupSuggestion; targetPopupId?: string }) => {
       if (!locationId) throw new Error('No location selected');
 
-      // 1. Copy suggestion fields to popup config
       const configUpdate: Record<string, unknown> = {
-        location_id: locationId,
         popup_type: suggestion.popup_type,
         headline: suggestion.headline,
         description: suggestion.description,
@@ -67,12 +65,22 @@ export function useAcceptPopupSuggestion() {
         configUpdate.button_text = suggestion.button_text;
       }
 
-      const { error: configError } = await supabase
-        .from('marketing_popup_config')
-        .upsert(configUpdate as any, { onConflict: 'location_id' });
-      if (configError) throw configError;
+      if (targetPopupId) {
+        // Update existing popup
+        const { error: configError } = await supabase
+          .from('marketing_popup_config')
+          .update(configUpdate as any)
+          .eq('id', targetPopupId);
+        if (configError) throw configError;
+      } else {
+        // Create new popup with suggestion data
+        const { error: configError } = await supabase
+          .from('marketing_popup_config')
+          .insert({ location_id: locationId, name: suggestion.headline, ...configUpdate } as any);
+        if (configError) throw configError;
+      }
 
-      // 2. Mark suggestion as accepted
+      // Mark suggestion as accepted
       const { error: sugError } = await supabase
         .from('marketing_popup_suggestions')
         .update({ status: 'accepted', responded_at: new Date().toISOString() } as any)
@@ -81,7 +89,7 @@ export function useAcceptPopupSuggestion() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['popup-suggestion', locationId] });
-      queryClient.invalidateQueries({ queryKey: ['popup-config', locationId] });
+      queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
     },
   });
 }

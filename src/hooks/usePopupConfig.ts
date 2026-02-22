@@ -7,6 +7,8 @@ export type PopupType = 'reservation' | 'newsletter' | 'custom';
 export interface PopupConfig {
   id: string;
   location_id: string;
+  name: string;
+  priority: number;
   is_active: boolean;
   exit_intent_enabled: boolean;
   timed_popup_enabled: boolean;
@@ -27,45 +29,107 @@ export interface PopupConfig {
   updated_at: string;
 }
 
-export function usePopupConfig() {
+type PopupConfigUpdates = Partial<Omit<PopupConfig, 'id' | 'location_id' | 'created_at' | 'updated_at'>>;
+
+// Fetch ALL popups for the current location
+export function usePopupConfigs() {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
 
   return useQuery({
-    queryKey: ['popup-config', locationId],
+    queryKey: ['popup-configs', locationId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('marketing_popup_config')
         .select('*')
         .eq('location_id', locationId!)
-        .maybeSingle();
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as PopupConfig | null;
+      return (data ?? []) as PopupConfig[];
     },
     enabled: !!locationId,
   });
 }
 
-type PopupConfigUpdates = Partial<Omit<PopupConfig, 'id' | 'location_id' | 'created_at' | 'updated_at'>>;
+// Fetch a single popup by ID
+export function usePopupConfig(id?: string | null) {
+  return useQuery({
+    queryKey: ['popup-config', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('marketing_popup_config')
+        .select('*')
+        .eq('id', id!)
+        .single();
+      if (error) throw error;
+      return data as PopupConfig;
+    },
+    enabled: !!id,
+  });
+}
 
-export function useUpdatePopupConfig() {
+// Create a new popup
+export function useCreatePopup() {
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (name?: string) => {
+      if (!locationId) throw new Error('No location selected');
+      const { data, error } = await supabase
+        .from('marketing_popup_config')
+        .insert({ location_id: locationId, name: name || 'Nieuwe popup' } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as PopupConfig;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
+    },
+  });
+}
+
+// Update a specific popup by ID
+export function useUpdatePopupConfig(id?: string | null) {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (updates: PopupConfigUpdates) => {
-      if (!locationId) throw new Error('No location selected');
+      if (!id) throw new Error('No popup selected');
       const { error } = await supabase
         .from('marketing_popup_config')
-        .upsert(
-          { location_id: locationId, ...updates } as any,
-          { onConflict: 'location_id' }
-        );
+        .update(updates as any)
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['popup-config', locationId] });
+      queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
+      queryClient.invalidateQueries({ queryKey: ['popup-config', id] });
+    },
+  });
+}
+
+// Delete a popup
+export function useDeletePopup() {
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (popupId: string) => {
+      const { error } = await supabase
+        .from('marketing_popup_config')
+        .delete()
+        .eq('id', popupId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
     },
   });
 }
