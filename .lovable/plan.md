@@ -1,20 +1,58 @@
 
-# AI Popup Suggesties — Wekelijkse Voorstellen met Leercyclus
 
-## Status: ✅ AFGEROND
+# Marketing Navigatie — Hernoemen voor Duidelijkheid
 
-### Wat is gedaan:
+## Overzicht
 
-1. **Database migratie** — `marketing_popup_suggestions` tabel aangemaakt met `popup_type`, `headline`, `description`, `featured_ticket_id`, `custom_button_url`, `button_text`, `reasoning`, `status` (pending/accepted/dismissed), `dismiss_reason`. Validation trigger, indexen, RLS met `user_has_location_access`.
+Vier sidebar labels en bijbehorende page titles/descriptions worden hernoemt naar begrijpelijkere taal. Geen URL- of structuurwijzigingen.
 
-2. **Hook** — `usePopupSuggestion.ts` met drie exports: `usePopupSuggestion()` (query pending suggestie met ticket join), `useAcceptPopupSuggestion()` (kopieer naar popup_config + mark accepted), `useDismissPopupSuggestion()` (mark dismissed met reden).
+---
 
-3. **UI componenten**:
-   - `PopupSuggestionCard` — Suggestiekaart met headline, description, type badge, ticket naam, reasoning, Toepassen/Afwijzen knoppen.
-   - `DismissReasonModal` — Modal met multi-select redenen + vrij tekstveld.
+## Wijzigingen per bestand
 
-4. **PopupPage integratie** — Suggestiekaart verschijnt bovenaan de pagina wanneer een pending suggestie bestaat.
+### 1. `src/lib/navigation.ts`
 
-5. **Edge function** — `marketing-generate-weekplan` uitgebreid met `generatePopupSuggestion()` blok: haalt popup config, tickets, learning history op, genereert via Lovable AI Gateway (tool calling), auto-dismisst oude pending suggesties, slaat nieuwe op. Frequency check: bij 3+ dismissals van laatste 5, alleen genereren bij feestdag.
+Vier labels aanpassen in de marketing subItems array:
 
-6. **Signal** — `marketing_popup_suggestion_pending` toegevoegd aan `evaluate-signals` marketing provider. Triggert bij pending suggestie ouder dan 24 uur, cooldown 7 dagen, resolved als geen pending suggesties meer.
+| Huidig | Nieuw |
+|--------|-------|
+| `Segmenten` | `Doelgroepen` |
+| `Contacten` | `Gasten` |
+| `Social` | `Social Posts` |
+| `Kalender` | `Content Kalender` |
+
+### 2. `src/pages/marketing/SegmentsPage.tsx`
+
+- PageHeader title: "Segmenten" → "Doelgroepen"
+- PageHeader subtitle: "Groepeer gasten op basis van gedrag en kenmerken" → "Maak groepen van gasten voor gerichte campagnes."
+- Button: "Nieuw segment" → "Nieuwe doelgroep" (2 plekken: PageHeader action + EmptyState action)
+- EmptyState title: "Nog geen segmenten" → "Nog geen doelgroepen"
+- EmptyState description: "Maak je eerste segment om gasten te groeperen." → "Maak je eerste doelgroep aan."
+- Toast: "Segment bijgewerkt" → "Doelgroep bijgewerkt"
+- Toast: "Segment aangemaakt" → "Doelgroep aangemaakt"
+- Toast: "Segment verwijderd" → "Doelgroep verwijderd"
+- ConfirmDialog title: "Segment verwijderen" → "Doelgroep verwijderen"
+- ConfirmDialog description: "...dit segment..." → "...deze doelgroep..."
+
+### 3. `src/pages/marketing/ContactsPage.tsx`
+
+- PageHeader title: "Contacten" → "Gasten"
+- PageHeader subtitle: "Beheer je gastenbestand en marketing voorkeuren" → "Alle gasten die marketing communicatie ontvangen."
+
+### 4. `src/pages/marketing/SocialPostsPage.tsx`
+
+- PageHeader title: "Social" → "Social Posts" (meerdere plekken in het bestand)
+
+### 5. `src/pages/marketing/ContentCalendarPage.tsx`
+
+- PageHeader title: "Kalender" → "Content Kalender"
+
+---
+
+## Wat NIET verandert
+
+- URLs (routes blijven `/marketing/segmenten`, `/marketing/contacten`, etc.)
+- Database tabellen en hooks (interne naamgeving ongewijzigd)
+- Component bestandsnamen
+- INSTELLINGEN > Marketing tabs
+
