@@ -337,7 +337,7 @@ export default function SocialPostCreatorPage() {
       <PageHeader
         title="Nieuw bericht"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <NestoButton variant="ghost" onClick={() => navigate('/marketing/social')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Terug

@@ -61,7 +61,7 @@ export function WeekplanCard({ weekplan, isLoading }: WeekplanCardProps) {
 
   return (
     <NestoCard className="border-primary/20">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-primary" />
           <h2 className="text-h2 text-foreground">Je weekplan staat klaar</h2>
@@ -98,7 +98,7 @@ export function WeekplanCard({ weekplan, isLoading }: WeekplanCardProps) {
         })}
       </div>
 
-      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mt-4 pt-4 border-t border-border">
         <NestoButton
           size="sm"
           onClick={() => schedule.mutate({ posts: weekplan.posts, status: 'scheduled' })}

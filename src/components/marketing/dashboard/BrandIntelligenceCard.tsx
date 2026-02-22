@@ -88,7 +88,7 @@ export function BrandIntelligenceCard({ data, isLoading }: BrandIntelligenceCard
                 )}
               />
               <span className={cn(
-                'text-xs whitespace-nowrap',
+                'text-[10px] sm:text-xs whitespace-nowrap',
                 idx <= currentIdx ? 'text-foreground font-medium' : 'text-muted-foreground'
               )}>
                 {stage.label}

@@ -23,7 +23,7 @@ export default function AnalyticsPage() {
 
       {/* Custom tab bar with tooltips on disabled tabs */}
       <div className="border-b border-border">
-        <nav className="flex gap-6" role="tablist" aria-label="Analytics tabs">
+        <nav className="flex gap-4 sm:gap-6 overflow-x-auto" role="tablist" aria-label="Analytics tabs">
           {TABS.map((tab) => {
             const isActive = tab.id === activeTab;
             const button = (
