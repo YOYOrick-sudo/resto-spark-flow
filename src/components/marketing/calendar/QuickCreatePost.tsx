@@ -9,10 +9,12 @@ import { useMarketingSocialAccounts, type SocialPlatform } from '@/hooks/useMark
 import { nestoToast } from '@/lib/nestoToast';
 import { cn } from '@/lib/utils';
 
+import { PLATFORM_COLORS } from '@/lib/platformColors';
+
 const PLATFORMS: { id: SocialPlatform; label: string; color: string; maxChars: number }[] = [
-  { id: 'instagram', label: 'Instagram', color: '#E1306C', maxChars: 2200 },
-  { id: 'facebook', label: 'Facebook', color: '#1877F2', maxChars: 63206 },
-  { id: 'google_business', label: 'Google Business', color: '#34A853', maxChars: 1500 },
+  { id: 'instagram', label: 'Instagram', color: PLATFORM_COLORS.instagram, maxChars: 2200 },
+  { id: 'facebook', label: 'Facebook', color: PLATFORM_COLORS.facebook, maxChars: 63206 },
+  { id: 'google_business', label: 'Google Business', color: PLATFORM_COLORS.google_business, maxChars: 1500 },
 ];
 
 const CONTENT_TYPES = [

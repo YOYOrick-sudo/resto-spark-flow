@@ -43,9 +43,10 @@ export function TicketCard({ ticket, onEdit, onDuplicate, onArchive }: TicketCar
   const pricing = getPricingBadge(ticket);
   const isNotBookable = ticket.status === "active" && ticket.shiftCount === 0;
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (ticket.friend_url_token) {
-      navigator.clipboard.writeText(ticket.friend_url_token);
+      const { copyToClipboard } = await import('@/lib/clipboard');
+      await copyToClipboard(ticket.friend_url_token);
     }
   };
 

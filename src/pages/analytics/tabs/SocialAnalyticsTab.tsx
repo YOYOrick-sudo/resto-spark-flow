@@ -27,11 +27,7 @@ const PLATFORM_LABELS: Record<string, string> = {
   google_business: 'Google',
 };
 
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: '#E1306C',
-  facebook: '#1877F2',
-  google_business: '#34A853',
-};
+import { PLATFORM_COLORS } from '@/lib/platformColors';
 
 const periodOptions = [
   { value: '7', label: '7 dagen' },
