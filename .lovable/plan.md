@@ -1,176 +1,278 @@
 
-# Sessie 2.5 — Social Analytics + Google Auto-refresh
+
+# Sessie 2.6 — Website Popup & Sticky Bar
 
 ## Samenvatting
 
-Twee edge functions voor metrics sync en Google post auto-refresh, een Social Analytics tab op de Analytics pagina, een read-only Instagram Grid Preview, en polish items (token expiry banners, empty states, loading skeletons).
-
-**Gebruikersfeedback verwerkt:** Instagram Grid Preview is **read-only** in v1. Geen drag-and-drop — de grid toont alleen hoe je feed eruit zal zien. Volgorde aanpassen doe je via de kalender.
+Embeddable email opt-in widgets (exit-intent popup, timed popup, sticky bar) voor de restaurant website. Bevat een nieuwe database tabel, twee publieke edge functions (config + subscribe), een embeddable JavaScript widget met Shadow DOM, en een settings tab in de marketing instellingen met live preview.
 
 ---
 
 ## Architectuur
 
-Geen database wijzigingen nodig. `marketing_social_posts.analytics` JSONB is al beschikbaar. `marketing_social_accounts` heeft `token_expires_at` voor expiry detectie.
+```text
+Restaurant Website              Edge Functions (publiek)            Database
++-----------------+             +-------------------------+         +---------------------+
+| <script> tag    |  GET config | marketing-popup-config  | ------> | marketing_popup_    |
+| widget.js       | ----------> | /[location-slug]        |         | config              |
+|                 |             +-------------------------+         | marketing_brand_kit |
+| Shadow DOM      |  POST sub   +-------------------------+         +---------------------+
+| - popup/bar UI  | ----------> | marketing-popup-        | ------> | customers           |
+|                 |             | subscribe               |         | marketing_contact_  |
++-----------------+             +-------------------------+         | preferences         |
+                                                                    +---------------------+
 
----
-
-## Stap 1: Edge Function — marketing-sync-social-stats
-
-### `supabase/functions/marketing-sync-social-stats/index.ts` (nieuw)
-
-Triggered via pg_cron elke 4 uur. Service role key, `verify_jwt = false`.
-
-**Flow:**
-1. Query published posts met `external_post_id IS NOT NULL` en `published_at > now() - 30 days`
-2. Batch account lookups per location+platform
-3. Per post, platform-specifieke API calls:
-   - **Instagram:** `GET /{media-id}/insights?metric=impressions,reach,saved,engagement`
-   - **Facebook:** `GET /{post-id}?fields=insights.metric(post_impressions,post_reach,post_clicks)`
-   - **Google Business:** `GET /v4/{localPostName}?readMask=localPostMetrics`
-4. Merge metrics in `analytics` JSONB + `last_synced` timestamp
-5. Error handling: skip bij rate limit (code 4) of expired token (code 190), log en continue
-
----
-
-## Stap 2: Edge Function — marketing-refresh-google-posts
-
-### `supabase/functions/marketing-refresh-google-posts/index.ts` (nieuw)
-
-Triggered via pg_cron dagelijks 08:00 UTC. Service role key, `verify_jwt = false`.
-
-**Flow:**
-1. Query Google Business posts waar `published_at < now() - interval '6 days'` en `status = 'published'`
-2. Per post: fetch active account, DELETE oude post via API, re-CREATE met dezelfde content
-3. Update `external_post_id` en `published_at` in database
-4. Bij API failure: set `error_message`, status blijft `published`
-
----
-
-## Stap 3: pg_cron jobs
-
-Twee SQL migrations:
-
-1. **marketing-sync-social-stats** -- `0 */4 * * *` (elke 4 uur)
-2. **marketing-refresh-google-posts** -- `0 8 * * *` (dagelijks 08:00 UTC)
-
-Beide via `cron.schedule()` met `net.http_post()` naar de edge function URL.
-
----
-
-## Stap 4: config.toml update
-
-### `supabase/config.toml` (edit)
-
-Twee nieuwe entries:
-```
-[functions.marketing-sync-social-stats]
-verify_jwt = false
-
-[functions.marketing-refresh-google-posts]
-verify_jwt = false
+Nesto Settings UI
++-----------------+
+| Marketing       |
+| Instellingen    |
+| Tab: Popup      |
+| - Toggles       |
+| - Teksten       |
+| - Live preview  |
+| - Embed code    |
++-----------------+
 ```
 
 ---
 
-## Stap 5: Social Analytics hook
+## Stap 1: Database — marketing_popup_config
 
-### `src/hooks/useMarketingAnalytics.ts` (edit)
+### SQL Migration
 
-Toevoegen aan bestaande hook (nieuwe parameter `includeSocial?: boolean`):
+```sql
+CREATE TABLE public.marketing_popup_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  location_id UUID NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
+  is_active BOOLEAN NOT NULL DEFAULT false,
 
-- **`socialMetrics`** query: query `marketing_social_posts` met status `published` over de gekozen periode, aggregate `analytics` JSONB per dag per platform. Return array voor Recharts: `{ date, label, instagram_reach, facebook_reach, google_reach, instagram_engagement, facebook_engagement, google_clicks }`
-- **`socialPostPerformance`** query: top posts gesorteerd op engagement (analytics.engagement of analytics.reach). Return: `{ id, platform, content_text, impressions, reach, engagement, published_at }`
-- **`bestPostTime`** berekening: analyseer `published_at` van top-10 performing posts, return simpele suggestie string
+  -- Exit-intent popup (desktop only)
+  exit_intent_enabled BOOLEAN NOT NULL DEFAULT false,
 
----
+  -- Timed popup (desktop + mobile)
+  timed_popup_enabled BOOLEAN NOT NULL DEFAULT false,
+  timed_popup_delay_seconds INTEGER NOT NULL DEFAULT 15,
 
-## Stap 6: Social Analytics tab
+  -- Sticky bar (desktop + mobile)
+  sticky_bar_enabled BOOLEAN NOT NULL DEFAULT false,
+  sticky_bar_position TEXT NOT NULL DEFAULT 'bottom',
 
-### `src/pages/analytics/AnalyticsPage.tsx` (edit)
+  -- Content
+  headline TEXT NOT NULL DEFAULT 'Mis geen enkele actie!',
+  description TEXT NOT NULL DEFAULT 'Schrijf je in voor onze nieuwsbrief en ontvang exclusieve aanbiedingen.',
+  button_text TEXT NOT NULL DEFAULT 'Aanmelden',
+  success_message TEXT NOT NULL DEFAULT 'Bedankt voor je inschrijving!',
+  gdpr_text TEXT NOT NULL DEFAULT 'Door je aan te melden ga je akkoord met onze privacy policy.',
 
-- Voeg `{ id: 'social', label: 'Social' }` toe aan TABS array (tussen marketing en reserveringen)
-- Render `SocialAnalyticsTab` wanneer `activeTab === 'social'`
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-### `src/pages/analytics/tabs/SocialAnalyticsTab.tsx` (nieuw)
+  CONSTRAINT marketing_popup_config_location_unique UNIQUE (location_id)
+);
 
-Volgt exact het patroon van `MarketingAnalyticsTab`:
+-- RLS
+ALTER TABLE public.marketing_popup_config ENABLE ROW LEVEL SECURITY;
 
-**Periode selector:** `NestoOutlineButtonGroup` (7/30/90 dagen)
+CREATE POLICY popup_config_select ON public.marketing_popup_config
+  FOR SELECT USING (user_has_location_access(auth.uid(), location_id));
 
-**Hero metrics:** Grid van 4 `StatCard`s:
-- Totaal bereik (som reach uit analytics JSONB)
-- Totaal engagement
-- Gepubliceerde posts (count)
-- Gem. engagement rate (engagement / reach * 100, 1 decimaal)
+CREATE POLICY popup_config_insert ON public.marketing_popup_config
+  FOR INSERT WITH CHECK (user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]));
 
-**Per-platform chart:** `NestoCard` met `LineChart` (Recharts):
-- 3 lijnen: Instagram (`#E1306C`), Facebook (`#1877F2`), Google (`#34A853`)
-- DataKey: reach per platform per dag
-- XAxis met datum labels, YAxis hidden, geen grid
-- Tooltip: Nesto stijl (`bg-foreground text-background rounded-lg`)
-- Legenda: gekleurde dots boven de chart
-
-**Beste posttijd:** `InfoAlert variant="info"` met timing suggestie
-- Tekst: "Op basis van je data: [dag] om [tijd] bereikt de meeste mensen"
-- Of: "Post meer om een optimale posttijd te ontdekken" als onvoldoende data
-
-**Post performance tabel:** `NestoTable`:
-- Kolommen: Platform (dot + naam), Bericht (truncated, max-w-[250px]), Bereik (tabular-nums), Engagement (tabular-nums), Datum (muted)
-- Gesorteerd op engagement desc
-- Empty state: "Publiceer je eerste post om prestaties te zien."
-
-**Loading states:** `Skeleton` patroon (h-24 voor StatCards, h-[300px] voor chart, h-48 voor tabel)
+CREATE POLICY popup_config_update ON public.marketing_popup_config
+  FOR UPDATE USING (user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]));
+```
 
 ---
 
-## Stap 7: Instagram Grid Preview (read-only)
+## Stap 2: Edge Function — marketing-popup-config
 
-### `src/pages/marketing/SocialPostsPage.tsx` (edit)
+### `supabase/functions/marketing-popup-config/index.ts` (nieuw)
 
-Nieuwe sectie boven de posts tabel, zichtbaar wanneer `platformTab === 'all'` of `platformTab === 'instagram'`:
+**Publiek endpoint, geen auth.** Retourneert popup config + brand kit kleuren voor een location slug.
 
-**"Instagram Feed Preview"**
-- Titel: `text-h2`
-- 3x3 CSS grid (`grid grid-cols-3 gap-1 max-w-[360px]`)
-- Data: filter `useAllSocialPosts({ platform: 'instagram' })` op status `published` + `scheduled`, sort op `scheduled_at`/`published_at` desc, neem eerste 9
-- Per cel:
-  - Als `media_urls[0]`: thumbnail image (`aspect-square object-cover rounded-sm`)
-  - Geen media: gradient placeholder (`bg-gradient-to-br from-[#E1306C]/20 to-[#E1306C]/5`) met eerste 2 woorden van caption
-  - Hover overlay: caption preview (`text-[10px] bg-black/60 text-white`)
-  - Geplande posts: `border border-dashed border-border opacity-70` om visueel onderscheid te maken
-- **Geen drag-and-drop** — read-only preview. Volgorde aanpassen via de kalender.
+**Route:** `GET ?slug=[location-slug]`
+
+**Flow:**
+1. Parse `slug` uit query params
+2. Lookup `locations` by slug (service role)
+3. Fetch `marketing_popup_config` by `location_id`
+4. Fetch `marketing_brand_kit` by `location_id` (logo_url, primary_color, secondary_color)
+5. Return merged config JSON (zonder interne IDs)
+
+**Response:**
+```json
+{
+  "is_active": true,
+  "exit_intent_enabled": true,
+  "timed_popup_enabled": true,
+  "timed_popup_delay_seconds": 15,
+  "sticky_bar_enabled": true,
+  "sticky_bar_position": "bottom",
+  "headline": "Mis geen enkele actie!",
+  "description": "Schrijf je in...",
+  "button_text": "Aanmelden",
+  "success_message": "Bedankt!",
+  "gdpr_text": "Door je aan te melden...",
+  "logo_url": "https://...",
+  "primary_color": "#1d979e",
+  "restaurant_name": "Restaurant X"
+}
+```
+
+**Config.toml:**
+```toml
+[functions.marketing-popup-config]
+verify_jwt = false
+```
 
 ---
 
-## Stap 8: Token expiry banner
+## Stap 3: Edge Function — marketing-popup-subscribe
 
-### `src/pages/marketing/SocialPostsPage.tsx` (edit)
+### `supabase/functions/marketing-popup-subscribe/index.ts` (nieuw)
 
-Boven de NestoTabs, onder PageHeader:
-- Query `useMarketingSocialAccounts()` voor `accountsWithStatus`
-- Filter op `status === 'expiring'`
-- Per expiring account: `InfoAlert variant="warning"`:
-  - Titel: "{Platform} verbinding verloopt binnenkort"
-  - Description: "Ga naar Instellingen om opnieuw te verbinden."
-  - Child: `NestoButton variant="outline" size="sm"` met Settings icon, navigeert naar `/marketing/instellingen`
+**Publiek endpoint, geen auth.** Verwerkt email opt-in submissions.
 
-### `src/pages/marketing/SocialPostCreatorPage.tsx` (edit)
+**Route:** `POST` met body `{ slug, email }`
 
-Zelfde banner logic toevoegen boven het formulier.
+**Flow:**
+1. Valideer email (regex)
+2. Lookup location by slug
+3. Rate limiting: in-memory Map met IP+location als key, max 10 per uur. Bij overschrijding: 429
+4. Upsert `customers` (email + location_id), get customer_id
+5. Upsert `marketing_contact_preferences`:
+   - `channel = 'email'`
+   - `opted_in = true` (of `false` als double opt-in)
+   - `consent_source = 'website_popup'`
+   - `opted_in_at = now()`
+6. Als `marketing_brand_kit.double_opt_in_enabled`: genereer token, stuur bevestigingsemail via Resend (hergebruik patroon van `marketing-confirm-optin`)
+7. Return `{ success: true, double_opt_in: boolean }`
+
+**Config.toml:**
+```toml
+[functions.marketing-popup-subscribe]
+verify_jwt = false
+```
 
 ---
 
-## Stap 9: Empty state — geen gekoppelde accounts
+## Stap 4: Embeddable Widget Script
 
-### `src/pages/marketing/SocialPostsPage.tsx` (edit)
+### `supabase/functions/marketing-popup-widget/index.ts` (nieuw)
 
-Als alle accounts `status === 'disconnected'`:
-- Toon `EmptyState`:
-  - Titel: "Geen social accounts gekoppeld"
-  - Description: "Koppel Instagram, Facebook of Google Business in de marketing instellingen."
-  - Action: navigeer naar `/marketing/instellingen`
-- Verberg de rest van de pagina (tabs, tabel, grid preview)
+Edge function die het JavaScript widget script serveert. Dit is de `<script src="...">` die restaurant websites laden.
+
+**Route:** `GET ?slug=[location-slug]`
+**Response:** `Content-Type: application/javascript`
+
+Het script:
+1. Haalt config op via `marketing-popup-config?slug=...`
+2. Als `is_active === false`: exit (geen widget)
+3. Creëert een Shadow DOM container op de pagina
+4. Rendert de actieve widget types:
+
+**Exit-intent popup (desktop only):**
+- `document.addEventListener('mouseout', ...)` detectie op `e.clientY <= 0`
+- 1x per sessie: `sessionStorage.setItem('nesto_popup_exit_shown', '1')`
+- Centered overlay met achtergrond dim
+- Logo, headline, description, email input, submit knop, GDPR tekst
+
+**Timed popup (desktop + mobile):**
+- `setTimeout(() => show(), delay * 1000)`
+- 1x per sessie: `sessionStorage.setItem('nesto_popup_timed_shown', '1')`
+- Zelfde UI als exit-intent
+
+**Sticky bar (desktop + mobile):**
+- Vaste balk boven of onder (`position: fixed`)
+- Compact: headline + email input + submit knop op 1 rij
+- Dismiss knop (x), dismissed voor sessie: `sessionStorage.setItem('nesto_bar_dismissed', '1')`
+
+**Alle widget types:**
+- Shadow DOM (voorkomt CSS conflicten)
+- Submit: POST naar `marketing-popup-subscribe`
+- Success state: vervangt form met success_message + checkmark
+- Kleuren: `primary_color` uit brand kit voor submit knop
+- Logo: `logo_url` uit brand kit
+- Responsive: popup past zich aan op mobiel (full-width, kleinere padding)
+
+**Config.toml:**
+```toml
+[functions.marketing-popup-widget]
+verify_jwt = false
+```
+
+---
+
+## Stap 5: Settings Tab — Website Popup
+
+### `src/components/marketing/settings/PopupSettingsTab.tsx` (nieuw)
+
+Nieuwe tab component voor de Marketing instellingen pagina.
+
+**Layout:** Volgt exact het patroon van bestaande tabs (AlgemeenTab, GDPRTab):
+- `NestoCard className="p-6"` wrapper
+- Auto-save via `useDebouncedCallback`
+- "Opgeslagen" indicator (Check icon)
+
+**Secties:**
+
+1. **Master toggle** (bg-secondary/50 block):
+   - Switch: `is_active`
+   - Label: "Website Popup actief"
+   - Beschrijving: "Schakel alle popup widgets in of uit op je website."
+
+2. **Widget types** (bg-secondary/50 block, border-t dividers):
+   - **Exit-intent popup:**
+     - Switch: `exit_intent_enabled`
+     - Label: "Exit-intent popup"
+     - Beschrijving: "Toon een popup wanneer bezoekers de pagina dreigen te verlaten (alleen desktop)."
+   - **Timed popup:**
+     - Switch: `timed_popup_enabled`
+     - Label: "Timed popup"
+     - Beschrijving: "Toon een popup na een ingesteld aantal seconden."
+     - Slider of NestoInput (type=number): `timed_popup_delay_seconds` (5-60, default 15)
+     - Suffix: "seconden"
+   - **Sticky bar:**
+     - Switch: `sticky_bar_enabled`
+     - Label: "Sticky bar"
+     - Beschrijving: "Toon een vaste balk boven of onder de pagina."
+     - NestoSelect: `sticky_bar_position` (opties: "Boven" / "Onder")
+
+3. **Teksten** (bg-secondary/50 block):
+   - Input: `headline` (label: "Koptekst")
+   - Textarea: `description` (label: "Beschrijving")
+   - Input: `button_text` (label: "Knoptekst")
+   - Input: `success_message` (label: "Succesmelding")
+   - Textarea: `gdpr_text` (label: "GDPR tekst")
+
+4. **Live preview** (bg-secondary/50 block):
+   - NestoOutlineButtonGroup met 3 opties: "Popup" / "Sticky bar"
+   - Rendert een visuele preview van het geselecteerde type met de huidige teksten en brand kit kleuren
+   - Preview container: `border border-border rounded-card bg-background p-4 min-h-[200px]`
+
+5. **Embed code** (bg-secondary/50 block):
+   - Read-only code block met kopieerknop (hergebruik patroon van `EmbedCodePreview`)
+   - Code: `<script src="https://[supabase-url]/functions/v1/marketing-popup-widget?slug=[location-slug]"></script>`
+   - Instructie: "Plak dit in de `<head>` van je website."
+
+### `src/pages/marketing/MarketingSettings.tsx` (edit)
+
+- Voeg `{ id: 'popup', label: 'Website Popup' }` toe aan TABS array (7e tab)
+- Import en render `PopupSettingsTab` bij `activeTab === 'popup'`
+
+---
+
+## Stap 6: Hook — usePopupConfig
+
+### `src/hooks/usePopupConfig.ts` (nieuw)
+
+```typescript
+// usePopupConfig() -> query marketing_popup_config by location_id
+// useUpdatePopupConfig() -> upsert mutation with debounced save
+```
+
+Volgt exact het patroon van `useMarketingBrandKit` / `useUpdateMarketingBrandKit`.
 
 ---
 
@@ -178,36 +280,34 @@ Als alle accounts `status === 'disconnected'`:
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/marketing-sync-social-stats/index.ts` | Nieuw |
-| `supabase/functions/marketing-refresh-google-posts/index.ts` | Nieuw |
-| `supabase/config.toml` | Edit: 2 function configs |
-| pg_cron SQL migration | Nieuw: 2 cron jobs |
-| `src/hooks/useMarketingAnalytics.ts` | Edit: social metrics queries |
-| `src/pages/analytics/AnalyticsPage.tsx` | Edit: social tab |
-| `src/pages/analytics/tabs/SocialAnalyticsTab.tsx` | Nieuw |
-| `src/pages/marketing/SocialPostsPage.tsx` | Edit: IG grid, token banner, empty state |
-| `src/pages/marketing/SocialPostCreatorPage.tsx` | Edit: token expiry banner |
+| SQL Migration | Nieuw: marketing_popup_config tabel + RLS |
+| `supabase/functions/marketing-popup-config/index.ts` | Nieuw: publieke config endpoint |
+| `supabase/functions/marketing-popup-subscribe/index.ts` | Nieuw: email subscribe endpoint |
+| `supabase/functions/marketing-popup-widget/index.ts` | Nieuw: JS widget server |
+| `supabase/config.toml` | Edit: 3 nieuwe function configs |
+| `src/hooks/usePopupConfig.ts` | Nieuw: config CRUD hook |
+| `src/components/marketing/settings/PopupSettingsTab.tsx` | Nieuw: settings tab |
+| `src/pages/marketing/MarketingSettings.tsx` | Edit: nieuwe tab |
 
 ---
 
 ## Design compliance
 
-- StatCards: bestaand component met trend indicators
-- Chart: LineChart zonder grid/YAxis, Nesto tooltip (bg-foreground text-background rounded-lg)
-- Platform kleuren: Instagram #E1306C, Facebook #1877F2, Google #34A853
-- NestoTable: tabular-nums voor getallen
-- InfoAlert: variant="warning" voor token expiry, variant="info" voor timing suggestie
-- EmptyState: standaard component met actie knop
-- Skeletons: rounded-2xl, zelfde hoogte als content
-- IG Grid: aspect-square cellen, gap-1, max 360px breed, read-only
-- Geplande posts in grid: dashed border + opacity om visueel onderscheid te maken
+- Settings tab: volgt exact AlgemeenTab/GDPRTab patroon (NestoCard p-6, bg-secondary/50 blocks, auto-save)
+- Widget script: Shadow DOM isolatie, geen CSS leakage
+- Popup UI: centered overlay, afgeronde hoeken (16px), brand kit primary_color voor knop
+- Sticky bar: compact single-row layout, fixed positioning
+- Embed code: hergebruikt `EmbedCodePreview` patroon (copy knop, read-only code block)
+- Rate limiting: 10 submits per IP per uur (in-memory counter in edge function)
+- Session tracking: `sessionStorage` voor 1x per sessie logica
 
 ---
 
 ## Wat NIET in deze sessie
 
-- Drag-and-drop in IG grid (bewust read-only in v1, kalender is de plek voor volgorde)
-- Automatische aggregatie naar marketing_campaign_analytics
-- Social listening / mentions tracking
-- Competitor analysis
-- Carousel/reels metrics
+- A/B testing van popup varianten
+- Popup analytics (impression count, conversion rate)
+- Custom CSS theming voor de popup
+- Multi-step signup flows
+- Exit-intent op mobiel (technisch niet betrouwbaar)
+
