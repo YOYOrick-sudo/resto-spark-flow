@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 export interface ReviewFilters {
   platform?: string;
@@ -34,6 +34,7 @@ export function useReviews(filters: ReviewFilters = {}) {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -88,6 +89,7 @@ export function useReviewStats() {
         ratingDistribution: ratingDist,
       };
     },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -110,6 +112,7 @@ export function useFeaturedReviews() {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -169,7 +172,7 @@ export function useGenerateReviewResponse() {
       return data?.content as string;
     },
     onError: () => {
-      toast.error('Kon geen AI-suggestie genereren');
+      nestoToast.error('Kon geen AI-suggestie genereren');
     },
   });
 }
@@ -193,13 +196,13 @@ export function useReplyToGoogle() {
       queryClient.invalidateQueries({ queryKey: ['marketing-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['marketing-review-stats'] });
       if (data.google_reply_posted) {
-        toast.success('Reactie geplaatst op Google');
+        nestoToast.success('Reactie geplaatst op Google');
       } else {
-        toast.success('Reactie opgeslagen');
+        nestoToast.success('Reactie opgeslagen');
       }
     },
     onError: () => {
-      toast.error('Kon reactie niet plaatsen');
+      nestoToast.error('Kon reactie niet plaatsen');
     },
   });
 }
@@ -223,5 +226,6 @@ export function useGoogleBusinessAccount() {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000,
   });
 }

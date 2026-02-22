@@ -46,8 +46,9 @@ export function EmbedCodePreview({ mode, slug, color, accentColor, buttonLabel, 
     return widgetUrl;
   })();
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+  const handleCopy = async () => {
+    const { copyToClipboard } = await import('@/lib/clipboard');
+    await copyToClipboard(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

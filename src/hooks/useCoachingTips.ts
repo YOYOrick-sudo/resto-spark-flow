@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 export interface CoachingTip {
   id: string;
@@ -32,6 +32,7 @@ export function useCoachingTips() {
       return (data ?? []) as CoachingTip[];
     },
     enabled: !!locationId,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -48,10 +49,10 @@ export function useDismissCoachingTip() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['marketing-coaching-tips'] });
-      toast.success('Tip verwijderd');
+      nestoToast.success('Tip verwijderd');
     },
     onError: () => {
-      toast.error('Tip kon niet worden verwijderd');
+      nestoToast.error('Tip kon niet worden verwijderd');
     },
   });
 }

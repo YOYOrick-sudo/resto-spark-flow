@@ -24,7 +24,8 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
+import { copyToClipboard } from '@/lib/clipboard';
 
 const SENTIMENT_BADGE: Record<string, { label: string; variant: 'success' | 'default' | 'error' }> = {
   positive: { label: 'Positief', variant: 'success' },
@@ -108,7 +109,7 @@ export default function ReviewsPage() {
       responded_at: responseText ? new Date().toISOString() : undefined,
       operator_edited: operatorEdited,
     });
-    toast.success('Antwoord opgeslagen');
+    nestoToast.success('Antwoord opgeslagen');
     setSelectedReview(null);
   };
 
@@ -123,15 +124,15 @@ export default function ReviewsPage() {
 
   const handleCopyResponse = async () => {
     if (!responseText) return;
-    await navigator.clipboard.writeText(responseText);
-    toast.success('Gekopieerd — plak in Google Maps');
+    await copyToClipboard(responseText);
+    nestoToast.success('Gekopieerd — plak in Google Maps');
   };
 
   const handleToggleFeatured = async (val: boolean) => {
     if (!selectedReview) return;
     setIsFeatured(val);
     await updateReview.mutateAsync({ id: selectedReview.id, is_featured: val });
-    toast.success(val ? 'Review gemarkeerd als featured' : 'Featured verwijderd');
+    nestoToast.success(val ? 'Review gemarkeerd als featured' : 'Featured verwijderd');
   };
 
   const handleGenerateAI = async () => {
@@ -144,7 +145,7 @@ export default function ReviewsPage() {
     });
     if (content) {
       setResponseText(content);
-      toast.success('AI-suggestie gegenereerd');
+      nestoToast.success('AI-suggestie gegenereerd');
     }
   };
 

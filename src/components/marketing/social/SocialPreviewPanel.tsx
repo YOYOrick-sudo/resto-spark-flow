@@ -1,5 +1,6 @@
 import type { SocialPlatform } from '@/hooks/useMarketingSocialAccounts';
 import { cn } from '@/lib/utils';
+import { PLATFORM_COLORS } from '@/lib/platformColors';
 
 interface SocialPreviewPanelProps {
   platforms: SocialPlatform[];
@@ -9,9 +10,9 @@ interface SocialPreviewPanelProps {
 }
 
 const PLATFORM_META: Record<SocialPlatform, { label: string; color: string }> = {
-  instagram: { label: 'Instagram', color: '#E1306C' },
-  facebook: { label: 'Facebook', color: '#1877F2' },
-  google_business: { label: 'Google Business', color: '#34A853' },
+  instagram: { label: 'Instagram', color: PLATFORM_COLORS.instagram },
+  facebook: { label: 'Facebook', color: PLATFORM_COLORS.facebook },
+  google_business: { label: 'Google Business', color: PLATFORM_COLORS.google_business },
 };
 
 function InstagramPreview({ caption, hashtags }: { caption: string; hashtags: string[] }) {

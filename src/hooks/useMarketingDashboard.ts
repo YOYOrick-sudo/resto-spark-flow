@@ -43,6 +43,7 @@ export function useMarketingDashboard() {
       return { totalRevenue, sparklineData };
     },
     enabled: !!locationId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const guestsReachedQuery = useQuery({
@@ -60,6 +61,7 @@ export function useMarketingDashboard() {
       return uniqueIds.size;
     },
     enabled: !!locationId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const atRiskQuery = useQuery({
@@ -76,6 +78,7 @@ export function useMarketingDashboard() {
       return (data || []).length;
     },
     enabled: !!locationId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const activeFlowsQuery = useQuery({
@@ -90,6 +93,7 @@ export function useMarketingDashboard() {
       return data || [];
     },
     enabled: !!locationId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const recentCampaignsQuery = useQuery({
@@ -105,6 +109,7 @@ export function useMarketingDashboard() {
       return data || [];
     },
     enabled: !!locationId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const activityQuery = useQuery({
@@ -120,6 +125,7 @@ export function useMarketingDashboard() {
       return data || [];
     },
     enabled: !!locationId,
+    staleTime: 5 * 60 * 1000,
   });
 
   return {

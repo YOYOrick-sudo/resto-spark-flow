@@ -6,7 +6,7 @@ import { FormSection, FormField } from '@/components/polar/FormSection';
 import { TitleHelp } from '@/components/polar/TitleHelp';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { toast } from 'sonner';
+import { nestoToast } from '@/lib/nestoToast';
 
 interface Props {
   readOnly: boolean;
@@ -40,9 +40,9 @@ export default function ReviewPlatformsTab({ readOnly }: Props) {
     setSaving(false);
 
     if (error) {
-      toast.error('Opslaan mislukt');
+      nestoToast.error('Opslaan mislukt');
     } else {
-      toast.success('Review platforms opgeslagen');
+      nestoToast.success('Review platforms opgeslagen');
     }
   };
 

@@ -22,6 +22,10 @@ Nesto is een SaaS platform voor horeca management met modules voor reserveringen
 
 - ✅ Fase 4.3.C: Shift Exceptions UI
 - ✅ Fase 4.3.D: Bulk Exceptions
+- ✅ Marketing Module Sprint 1 (1.1-1.9): Email + Campagnes + Segmenten + Contacten + Analytics
+- ✅ Marketing Module Sprint 2 (2.1-2.6): Social + Kalender + Popup + Brand Intelligence basis
+- ✅ Marketing Module Sprint 3 (3.1-3.6): Reviews + Brand Intelligence Engine + Coaching + Weekplan
+- ✅ Marketing Module Sprint 4 (4.1-4.4): Analytics + A/B Testing + Mobile + Polish
 
 ### IN UITVOERING
 - 🔄 Fase 4.4: Tickets + PolicySet Foundation

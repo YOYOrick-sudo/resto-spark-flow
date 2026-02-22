@@ -18,11 +18,7 @@ const PLATFORM_LABELS: Record<string, string> = {
   google_business: 'Google Business',
 };
 
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: '#E1306C',
-  facebook: '#1877F2',
-  google_business: '#34A853',
-};
+import { PLATFORM_COLORS } from '@/lib/platformColors';
 
 const STATUS_MAP: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   draft: 'default',

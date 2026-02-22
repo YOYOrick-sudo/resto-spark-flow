@@ -85,8 +85,9 @@ export default function PopupSettingsTab({ readOnly }: PopupSettingsTabProps) {
 
   const embedCode = `<script src="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/marketing-popup-widget?slug=${currentLocation?.slug || 'your-slug'}"></script>`;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(embedCode);
+  const handleCopy = async () => {
+    const { copyToClipboard } = await import('@/lib/clipboard');
+    await copyToClipboard(embedCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

@@ -634,4 +634,14 @@ Zie `MARKETING_SPRINT_PLAN.md` voor het complete stap-voor-stap build plan met 2
 
 ---
 
+## Sprint Status
+
+- Sprint 1 (1.1-1.9): AFGEROND — Foundation + Email
+- Sprint 2 (2.1-2.6): AFGEROND — Social + Kalender + Popup
+- Sprint 3 (3.1-3.6): AFGEROND — Brand Intelligence + Reviews + Learning Cycle + Email Verrijking
+- Sprint 3.5b: AFGEROND — Review Response Learning + Google Reply fix
+- Sprint 4 (4.1-4.4): AFGEROND — Analytics + A/B Testing + Polish
+
+---
+
 *Dit document wordt geraadpleegd bij elke Lovable sessie die marketing-features bouwt. v2 — 22 februari 2026*

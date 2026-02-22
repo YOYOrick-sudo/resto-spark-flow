@@ -6,12 +6,7 @@ import { NestoBadge } from '@/components/polar/NestoBadge';
 import { getHolidayForDate } from '@/lib/dutchHolidays';
 import { cn } from '@/lib/utils';
 import type { SocialPost } from '@/hooks/useMarketingSocialPosts';
-
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: '#E1306C',
-  facebook: '#1877F2',
-  google_business: '#34A853',
-};
+import { PLATFORM_COLORS } from '@/lib/platformColors';
 
 const STATUS_MAP: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
   draft: 'default',
