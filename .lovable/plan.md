@@ -1,69 +1,106 @@
 
 
-# Fix: AssistantFilters dubbele rand + Design Patroon Documentatie
+# Sessie 1.9 — CSV Import + Export voor Contacten
 
-## Probleem
+## Samenvatting
 
-De `AssistantFilters` module-knoppen gebruiken nog het oude `border-[1.5px] border-primary` patroon. Dit moet consistent worden met de rest van de app.
+Twee features op de Contacten pagina: een directe CSV export van de gefilterde contactlijst, en een 3-staps CSV import modal voor het importeren van gastlijsten uit externe systemen.
 
-## Twee patronen in de app
+---
 
-Er zijn twee correcte selectie-patronen, elk voor een ander doel:
+## 1. CSV Export
 
-### Patroon 1: Toggle Buttons (inline knoppen, periode selectors)
-Gebruikt in: ViewToggle, DensityToggle, NestoOutlineButtonGroup
+### Wat de gebruiker ziet
+- Een "Exporteer" knop (outline variant, Download icoon) verschijnt in de PageHeader
+- Klikken downloadt direct een CSV bestand met de huidige gefilterde lijst
+- Toast bevestiging: "Export gedownload"
 
-| Staat | Klassen |
-|---|---|
-| Selected | `bg-primary/10 text-primary border border-primary/20 shadow-sm` |
-| Unselected | `text-muted-foreground hover:text-foreground hover:bg-background/50` |
+### Technisch
 
-Geen `border-[1.5px]`, geen opaque `border-primary`. Subtiel en licht.
+**`src/hooks/useMarketingContacts.ts`** -- nieuwe `exportContactsCsv()` functie:
+- Roept dezelfde `list_segment_customers` RPC aan maar zonder LIMIT (of limit 10000)
+- Past client-side search filter toe (zelfde logica als bestaande hook)
+- Genereert CSV string met puntkomma-scheidingsteken (NL Excel standaard)
+- Kolommen: Voornaam;Achternaam;Email;Telefoon;Bezoeken;Laatste bezoek;Gem. besteding;Tags
+- Datums in DD-MM-YYYY format
+- Download via `Blob` + `URL.createObjectURL` + `<a>` click
+- Bestandsnaam: `nesto-contacten-YYYY-MM-DD.csv`
 
-### Patroon 2: Settings Navigation (sidebar menu items)
-Gebruikt in: SettingsPageLayout categorieën sidebar
+**`src/pages/marketing/ContactsPage.tsx`** -- PageHeader actions toevoegen:
+- Export knop als `NestoButton variant="outline"` met `Download` icoon
 
-| Staat | Klassen |
-|---|---|
-| Selected | `bg-selected-bg border-selected-border text-primary font-semibold border-[1.5px]` |
-| Unselected | `text-muted-foreground bg-transparent border-transparent hover:bg-accent/60 border-[1.5px]` |
+---
 
-Dit gebruikt de semantische `selected-bg` / `selected-border` tokens. De `border-[1.5px]` is hier correct omdat het navigatie-items zijn in een settings sidebar, niet inline toggles.
+## 2. CSV Import
 
-## Wijziging
+### Wat de gebruiker ziet
+- Een "Importeer" knop (outline variant, Upload icoon) in de PageHeader
+- Opent een 3-staps modal (NestoModal met StepIndicator, size="lg")
 
-### `src/components/assistant/AssistantFilters.tsx` (regels 42-48)
+### Stap 1: Bestand uploaden
+- Drag-and-drop zone met dashed border + "Kies bestand" knop
+- Accepteert .csv, .tsv, .txt (max 5MB)
+- Na upload: parsed met **papaparse** (nieuwe dependency)
+- Preview: eerste 5 rijen in een mini-tabel
+- Automatische scheidingsteken-detectie
 
-Dit zijn inline toggle-knoppen (Patroon 1). Fix:
+### Stap 2: Kolommen koppelen
+- Links: gedetecteerde CSV kolommen (headers)
+- Rechts: NestoSelect dropdowns met Nesto velden
+- Nesto velden: Voornaam (verplicht), Achternaam, Email (verplicht), Telefoon, Verjaardag, Tags, Overslaan
+- Auto-matching op bekende header namen (email, e-mail, voornaam, first_name, etc.)
+- Validatie: Voornaam en Email moeten gekoppeld zijn
 
-Van:
-```
-"border-[1.5px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-isSelected
-  ? "bg-primary/10 border-primary text-primary"
-  : "bg-transparent border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
-```
+### Stap 3: Bevestigen
+- Samenvatting: "XX contacten worden geimporteerd"
+- Waarschuwingen voor ongeldige emails en bestaande contacten
+- Checkbox: "Importeer als marketing opt-in" (default UIT)
+- "Importeer" knop start verwerking
 
-Naar:
-```
-"focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-isSelected
-  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
-  : "bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
-```
+### Import logica
 
-### Design documentatie
+**`src/hooks/useImportContacts.ts`** -- nieuw bestand:
+- `useImportContacts()` mutation
+- Per rij: valideer email (regex), check bestaande customer (email + location_id)
+- Bestaand: UPDATE naam/telefoon/verjaardag/tags (merge, niet overschrijven als leeg)
+- Nieuw: INSERT customer
+- Als opt-in aan: UPSERT `marketing_contact_preferences` met `consent_source='import'`, `opted_in=false`
+- Verwerking in chunks van 50
+- Resultaat: `{ imported, updated, skipped, errors }`
+- Toast na afloop met samenvatting
+- Invalidate contacten queries
 
-Nieuw bestand: `docs/design/SELECTION_STATES.md`
+### Opt-in verwerking
+Gebruikt het simpelere alternatief: bestaande `marketing-process-automation` cron pikt nieuwe contacten met `opted_in=false` automatisch op. Geen aparte edge function nodig.
 
-Documenteert de twee patronen zodat toekomstige componenten het juiste patroon kiezen:
-- Toggle Buttons: `border border-primary/20 shadow-sm`
-- Settings Navigation: `border-[1.5px] border-selected-border bg-selected-bg`
+---
+
+## Nieuwe dependency
+
+- **papaparse** -- CSV parsing library (niet aanwezig in project, moet geinstalleerd worden)
+
+---
 
 ## Bestanden overzicht
 
 | Bestand | Actie |
 |---|---|
-| `src/components/assistant/AssistantFilters.tsx` | Fix toggle styling |
-| `docs/design/SELECTION_STATES.md` | Nieuw - patroon documentatie |
+| `src/pages/marketing/ContactsPage.tsx` | Edit: import/export knoppen in PageHeader, modal state |
+| `src/hooks/useMarketingContacts.ts` | Edit: `exportContactsCsv()` functie toevoegen |
+| `src/hooks/useImportContacts.ts` | Nieuw: import mutation + validatie + chunked upsert |
+| `src/components/marketing/contacts/ImportContactsModal.tsx` | Nieuw: 3-staps import modal met drag-drop, mapping, bevestiging |
+| `src/components/marketing/contacts/ColumnMapper.tsx` | Nieuw: kolom koppeling UI component |
+| `src/components/marketing/contacts/ImportPreview.tsx` | Nieuw: CSV preview mini-tabel |
+
+---
+
+## Design compliance
+
+- Modal: NestoModal size="lg" met StepIndicator (3 stappen)
+- Secties gescheiden door `border-t border-border/50 pt-4 mt-4`
+- Footer buttons: rechts uitgelijnd, `flex justify-end gap-3`
+- Toasts: `nestoToast.success()` / `nestoToast.error()`
+- Buttons: outline variant voor import/export, primary voor "Importeer"
+- Drag-drop zone: dashed border `border-2 border-dashed border-border rounded-card`
+- Alle labels in sentence case
 
