@@ -1,97 +1,44 @@
 
-# Live Preview — Realtime meeveranderen bij wijzigingen
 
-## Probleem
+# Popup Automatisch Tonen + Sticky Bar Fix + Timed Slider
 
-De "Live" preview (iframe) laadt de popup config eenmalig via de edge function. Wijzigingen in headline, beschrijving, type, etc. zijn pas zichtbaar na handmatig refreshen.
+## 1. Timed popup slider aanpassen
 
-De "Popup" en "Sticky bar" mockup-previews (rechts in de editor) veranderen WEL live mee — die lezen direct uit de React state. Maar de Live iframe-tab en het nieuwe tabblad niet.
+De slider gaat van 5-60s (stappen van 5) naar **2-30s** (stappen van 1).
 
-## Oplossing: postMessage bridge
+**Bestand:** `PopupPage.tsx` regel 479
+- `min={5}` naar `min={2}`
+- `max={60}` naar `max={30}`
+- `step={5}` naar `step={1}`
 
-De meest robuuste aanpak zonder de widget edge function te herschrijven:
+## 2. Popup automatisch tonen als actief (edge function widget)
 
-### Hoe het werkt
+Wanneer een popup actief is maar geen exit-intent en geen timed popup aan staat, verschijnt de popup nu nooit voor bezoekers. Dat is niet logisch.
 
-1. **PopupPage.tsx** stuurt bij elke state-wijziging een `postMessage` naar het iframe met de volledige popup config
-2. **PopupPreviewDemo.tsx** luistert op `message` events en her-rendert de popup direct met de ontvangen config, zonder opnieuw de edge function aan te roepen
-3. De widget wordt bij eerste load normaal geladen (via edge function), maar daarna overgenomen door de postMessage updates
+**Bestand:** `marketing-popup-widget/index.ts`
+- Na de bestaande exit-intent en timed popup logica, voeg een fallback toe:
+- Als `is_active` en geen timed popup en geen exit-intent: roep `showPopup()` aan na 500ms
 
-### Stappen
+## 3. Sticky bar fix in Live preview
 
-**1. PopupPreviewDemo.tsx — message listener toevoegen**
+De sticky bar werkt in de mockup-preview (tab "Sticky bar"), maar in de **Live iframe** preview kan het probleem zijn dat de popup overlay de sticky bar bedekt of dat de sticky bar buiten beeld valt in het iframe.
 
-- Luister op `window.addEventListener('message', ...)` voor berichten met type `nesto-popup-config-update`
-- Bij ontvangst: verwijder bestaande popup/bar uit de shadow DOM
-- Render opnieuw met de ontvangen config data (hergebruik dezelfde DOM-constructie logica die het widget al gebruikt)
-- Dit vereist dat de widget-rendering logica als lokale functies in de demo page leeft (in plaats van in de edge function script)
+Na inspectie van `PopupPreviewDemo.tsx`: de `renderPopupInShadow` functie rendert zowel de popup overlay (met `position:fixed; inset:0`) als de sticky bar. De popup overlay bedekt het hele scherm met een semi-transparante achtergrond, waardoor de sticky bar erachter verdwijnt.
 
-**2. PopupPage.tsx — postMessage bij elke wijziging**
+**Fix in `PopupPreviewDemo.tsx`:**
+- Geef de sticky bar een hogere `z-index` dan de overlay (999999 vs 999998) zodat deze altijd zichtbaar blijft bovenop de popup
 
-- Voeg een `useEffect` toe die bij elke `state` wijziging een `postMessage` stuurt naar het iframe via een ref
-- Payload bevat alle velden die de widget nodig heeft: headline, description, button_text, popup_type, primary_color, logo_url, featured_ticket, sticky_bar config, etc.
-- Dit gebeurt onmiddellijk (niet debounced), zodat de preview instant reageert
+## 4. Console warning fixen
 
-**3. Nieuw tabblad — optioneel**
+Er is een React warning: "Function components cannot be given refs" voor `PopupEditor`. Dit is geen crash maar moet opgelost worden.
 
-Het nieuwe tabblad (via "Preview openen") kan niet via postMessage bereikt worden tenzij we een `window.open` ref bewaren. Dit is fragiel. Twee opties:
-- **Optie A**: Accepteer dat het nieuwe tabblad een snapshot is (huidige edge function config)
-- **Optie B**: Het nieuwe tabblad gebruikt ook dezelfde message listener, en de parent bewaart een ref naar het geopende window
+**Fix:** Wrap `PopupEditor` met `React.forwardRef` of verwijder de ref-doorgifte als die niet nodig is (de `iframeRef` leeft al binnen de component zelf, dus er wordt geen externe ref doorgegeven -- de warning komt waarschijnlijk van een andere bron).
 
-Aanbeveling: Optie A — het nieuwe tabblad is voor een eindcheck, niet voor live editing.
+## Samenvatting bestanden
 
-## Technisch detail
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/pages/marketing/PopupPage.tsx` | Slider min/max/step aanpassen |
+| `supabase/functions/marketing-popup-widget/index.ts` | Fallback: popup direct tonen als geen trigger actief |
+| `src/pages/PopupPreviewDemo.tsx` | Sticky bar z-index verhogen zodat deze boven de overlay blijft |
 
-### Message format
-```text
-{
-  type: 'nesto-popup-config-update',
-  config: {
-    headline, description, button_text, popup_type,
-    primary_color, logo_url, featured_ticket,
-    sticky_bar_enabled, sticky_bar_position,
-    exit_intent_enabled, timed_popup_enabled,
-    timed_popup_delay_seconds,
-    success_message, gdpr_text, custom_button_url
-  }
-}
-```
-
-### PopupPreviewDemo rendering
-
-De demo page krijgt een eigen rendering engine (puur vanilla JS in een useEffect) die:
-- Een shadow DOM host maakt (of hergebruikt)
-- Bij elk config-update de shadow DOM content vervangt
-- Dezelfde CSS en HTML structuur gebruikt als het widget
-
-Dit betekent een stuk van de widget logica wordt gedupliceerd in de demo page. Maar dit is bewust: de demo page is puur voor preview, het echte widget blijft ongewijzigd.
-
-### PopupPage iframe ref
-
-```text
-const iframeRef = useRef<HTMLIFrameElement>(null);
-
-useEffect(() => {
-  if (previewType === 'live' && iframeRef.current) {
-    iframeRef.current.contentWindow?.postMessage({
-      type: 'nesto-popup-config-update',
-      config: { ...state, primary_color: primaryColor, ... }
-    }, '*');
-  }
-}, [state, primaryColor, featuredTicket, brandKit, previewType]);
-```
-
-## Bestanden
-
-| Bestand | Actie |
-|---------|-------|
-| `src/pages/PopupPreviewDemo.tsx` | Message listener + lokale popup rendering engine toevoegen |
-| `src/pages/marketing/PopupPage.tsx` | iframe ref + postMessage bij state changes |
-
-## Resultaat
-
-- Live iframe preview verandert direct mee bij elke wijziging
-- Geen extra API calls naar de edge function
-- Popup/bar mockup preview blijft werken zoals nu
-- Widget edge function blijft ongewijzigd
-- Nieuw tabblad toont een snapshot (acceptabel)
