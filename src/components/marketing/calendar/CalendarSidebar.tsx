@@ -65,10 +65,10 @@ export function CalendarSidebar({ posts, currentMonth }: CalendarSidebarProps) {
   }, [posts]);
 
   return (
-    <div className="w-72 shrink-0 bg-secondary border border-border rounded-xl p-5 sticky top-6 self-start space-y-0">
+    <div className="w-72 shrink-0 bg-card border border-border shadow-card rounded-card p-5 sticky top-6 self-start space-y-0">
       {/* Quick stats */}
       <div>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Quick stats
         </h3>
         <div className="space-y-2">
@@ -79,8 +79,8 @@ export function CalendarSidebar({ posts, currentMonth }: CalendarSidebarProps) {
       </div>
 
       {/* Content ideeën */}
-      <div className="border-t border-border pt-4 mt-4">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+      <div className="border-t border-border/50 pt-4 mt-4">
+        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Content ideeën
         </h3>
         {ideas && ideas.length > 0 ? (
@@ -110,8 +110,8 @@ export function CalendarSidebar({ posts, currentMonth }: CalendarSidebarProps) {
       </div>
 
       {/* Weekplan */}
-      <div className="border-t border-border pt-4 mt-4">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+      <div className="border-t border-border/50 pt-4 mt-4">
+        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Weekplan
         </h3>
         {weekplan?.posts?.length ? (

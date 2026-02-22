@@ -1,20 +1,22 @@
 import { useState, useMemo } from 'react';
-import { format, addMonths, subMonths } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Repeat } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { NestoButton } from '@/components/polar/NestoButton';
 import { useMarketingSocialPosts, groupPostsByDay } from '@/hooks/useMarketingSocialPosts';
 import { CalendarGrid } from '@/components/marketing/calendar/CalendarGrid';
 import { WeekView } from '@/components/marketing/calendar/WeekView';
 import { CalendarSidebar } from '@/components/marketing/calendar/CalendarSidebar';
 import { DayPanel } from '@/components/marketing/calendar/DayPanel';
 import { ContentSeriesManager } from '@/components/marketing/calendar/ContentSeriesManager';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'month' | 'week';
 
 export default function ContentCalendarPage() {
+  const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -31,19 +33,26 @@ export default function ContentCalendarPage() {
         title="Kalender"
         actions={
           <div className="flex flex-wrap items-center gap-3">
-            {/* More menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors">
-                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setSeriesOpen(true)}>
-                  Series beheren
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Primary CTA */}
+            <NestoButton
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={() => navigate('/marketing/social/nieuw')}
+            >
+              Nieuw bericht
+            </NestoButton>
+
+            {/* Series button */}
+            <NestoButton
+              variant="outline"
+              size="sm"
+              leftIcon={<Repeat className="h-3.5 w-3.5" />}
+              onClick={() => setSeriesOpen(true)}
+            >
+              Series
+            </NestoButton>
+
             {/* View toggle */}
             <div className="flex rounded-lg border border-border overflow-hidden">
               {(['month', 'week'] as ViewMode[]).map((mode) => (
@@ -51,9 +60,9 @@ export default function ContentCalendarPage() {
                   key={mode}
                   onClick={() => setViewMode(mode)}
                   className={cn(
-                    'px-3 py-1.5 text-sm font-medium transition-colors',
+                    'px-3.5 py-1.5 text-sm font-medium transition-all duration-150',
                     viewMode === mode
-                      ? 'bg-primary/10 text-primary border-primary/20 shadow-sm'
+                      ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   )}
                 >
@@ -66,18 +75,24 @@ export default function ContentCalendarPage() {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-                className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors"
+                className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors duration-150"
               >
                 <ChevronLeft className="h-4 w-4 text-muted-foreground" />
               </button>
-              <span className="text-sm font-medium min-w-[140px] text-center capitalize">
+              <span className="text-base font-semibold min-w-[160px] text-center capitalize">
                 {monthLabel}
               </span>
               <button
                 onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-                className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors"
+                className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors duration-150"
               >
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <button
+                onClick={() => setCurrentMonth(startOfMonth(new Date()))}
+                className="ml-1 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors duration-150"
+              >
+                Vandaag
               </button>
             </div>
           </div>

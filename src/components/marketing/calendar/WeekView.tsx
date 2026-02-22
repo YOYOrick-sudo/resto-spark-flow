@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { startOfWeek, addDays, format, isToday } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { getHolidayForDate } from '@/lib/dutchHolidays';
 import { cn } from '@/lib/utils';
@@ -40,35 +39,35 @@ export function WeekView({ month, postsByDay, onDayClick }: WeekViewProps) {
           <div
             key={key}
             className={cn(
-              'flex flex-col min-h-0',
-              today && 'ring-1 ring-primary rounded-lg'
+              'flex flex-col min-h-0 bg-card/50 rounded-xl border border-border/40',
+              today && 'border-primary/30'
             )}
           >
             {/* Header */}
             <div
-              className="text-center py-2 cursor-pointer hover:bg-accent/30 rounded-t-lg transition-colors"
+              className="text-center py-2 cursor-pointer hover:bg-accent/30 rounded-t-xl transition-colors duration-150"
               onClick={() => onDayClick(day)}
             >
-              <div className="text-xs text-muted-foreground uppercase">
+              <div className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
                 {format(day, 'EEE', { locale: nl })}
               </div>
               <div className="text-sm font-medium">{format(day, 'd')}</div>
               {holiday && (
-                <div className="text-[10px] text-primary truncate px-1">{holiday}</div>
+                <div className="text-[10px] text-primary/80 italic truncate px-1">{holiday}</div>
               )}
             </div>
 
             {/* Posts */}
-            <div className="flex-1 overflow-y-auto space-y-2 px-1 pb-2">
+            <div className="flex-1 overflow-y-auto space-y-2 px-1.5 pb-2">
               {dayPosts.length === 0 && (
-                <div className="border border-dashed border-border/50 rounded-lg h-16 flex items-center justify-center">
-                  <span className="text-xs text-muted-foreground">Geen posts</span>
+                <div className="h-16 flex items-center justify-center">
+                  <span className="text-xs text-muted-foreground/60">Geen posts</span>
                 </div>
               )}
               {dayPosts.map((post) => (
-                <NestoCard
+                <div
                   key={post.id}
-                  className="relative pl-3 cursor-pointer hover:shadow-md transition-shadow"
+                  className="relative pl-3 bg-secondary/50 rounded-lg border border-border/40 cursor-pointer hover:bg-secondary/80 transition-colors duration-150"
                   onClick={() => onDayClick(day)}
                 >
                   {/* Platform color stripe */}
@@ -87,7 +86,7 @@ export function WeekView({ month, postsByDay, onDayClick }: WeekViewProps) {
                       </NestoBadge>
                     </div>
                   </div>
-                </NestoCard>
+                </div>
               ))}
             </div>
           </div>
