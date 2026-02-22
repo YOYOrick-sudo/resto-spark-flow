@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { LineChart, Line, BarChart, Bar, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Eye, Users, FileText, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -9,7 +9,9 @@ import { StatCard } from '@/components/polar/StatCard';
 import { InfoAlert } from '@/components/polar/InfoAlert';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSocialAnalytics } from '@/hooks/useSocialAnalytics';
+import { useBrandIntelligence } from '@/hooks/useBrandIntelligence';
 import {
   Table,
   TableBody,
@@ -55,9 +57,32 @@ export default function SocialAnalyticsTab() {
   const [period, setPeriod] = useState('30');
   const periodDays = parseInt(period, 10);
   const { socialMetrics, postPerformance, heroMetrics, bestPostTimeText, isLoading } = useSocialAnalytics(periodDays);
+  const { data: intelligence, isLoading: biLoading } = useBrandIntelligence();
 
   const chartData = socialMetrics.data ?? [];
   const posts = postPerformance.data ?? [];
+
+  // Parse content type performance from brand intelligence
+  const contentTypePerf = (() => {
+    const raw = intelligence?.content_type_performance;
+    if (!raw || typeof raw !== 'object') return [];
+    return Object.entries(raw as Record<string, any>)
+      .map(([name, val]) => ({
+        name: name.replace(/_/g, ' '),
+        avg_engagement: (val as any)?.avg_engagement ?? 0,
+        post_count: (val as any)?.post_count ?? 0,
+      }))
+      .sort((a, b) => b.avg_engagement - a.avg_engagement);
+  })();
+
+  // Parse top hashtags from brand intelligence
+  const topHashtags = (() => {
+    const raw = intelligence?.top_hashtag_sets;
+    if (!raw || !Array.isArray(raw)) return [];
+    return (raw as any[])
+      .slice(0, 15)
+      .sort((a, b) => (b.avg_engagement ?? 0) - (a.avg_engagement ?? 0));
+  })();
 
   return (
     <div className="space-y-8">
@@ -180,6 +205,74 @@ export default function SocialAnalyticsTab() {
               </TableBody>
             </Table>
           </div>
+        )}
+      </div>
+
+      {/* Content Type Performance */}
+      <div className="space-y-3">
+        <h2 className="text-h2 text-foreground">Content Prestaties per Type</h2>
+        {biLoading ? (
+          <Skeleton className="h-[250px] w-full rounded-2xl" />
+        ) : contentTypePerf.length === 0 ? (
+          <EmptyState title="Publiceer meer posts om prestaties per type te zien." size="sm" />
+        ) : (
+          <NestoCard className="overflow-hidden !p-0">
+            <ResponsiveContainer width="100%" height={Math.max(200, contentTypePerf.length * 50)}>
+              <BarChart data={contentTypePerf} layout="vertical" margin={{ top: 20, right: 40, bottom: 20, left: 120 }}>
+                <XAxis type="number" hide />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
+                  width={110}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload;
+                    return (
+                      <div className="bg-foreground text-background text-xs rounded-lg px-3 py-2 shadow-lg space-y-0.5">
+                        <p className="font-medium capitalize">{d.name}</p>
+                        <p>Gem. engagement: {d.avg_engagement}</p>
+                        <p>Posts: {d.post_count}</p>
+                      </div>
+                    );
+                  }}
+                  cursor={false}
+                />
+                <Bar dataKey="avg_engagement" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} barSize={24} />
+              </BarChart>
+            </ResponsiveContainer>
+          </NestoCard>
+        )}
+      </div>
+
+      {/* Top Hashtags */}
+      <div className="space-y-3">
+        <h2 className="text-h2 text-foreground">Top Hashtags</h2>
+        {biLoading ? (
+          <Skeleton className="h-20 w-full rounded-2xl" />
+        ) : topHashtags.length === 0 ? (
+          <EmptyState title="Nog geen hashtag data beschikbaar." size="sm" />
+        ) : (
+          <NestoCard>
+            <div className="flex flex-wrap gap-2">
+              {topHashtags.map((tag: any, idx: number) => (
+                <UITooltip key={idx}>
+                  <TooltipTrigger asChild>
+                    <span className="bg-primary/10 text-primary rounded-full px-3 py-1 text-sm cursor-default">
+                      #{tag.tag || tag.hashtag || tag.name || tag}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">Gem. engagement: {tag.avg_engagement ?? '—'}</p>
+                  </TooltipContent>
+                </UITooltip>
+              ))}
+            </div>
+          </NestoCard>
         )}
       </div>
     </div>
