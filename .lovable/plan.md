@@ -1,135 +1,138 @@
 
-# Sessie 4.2 -- A/B Testing Social Posts + Caption Leercyklus
+
+# Sessie 4.3 -- Mobile Responsive + Marketing Onboarding Flow
 
 ## Samenvatting
 
-Twee onderdelen: (1) Caption leercyclus activeren -- bewaar AI-origineel vs operator-aanpassing, (2) A/B testing -- genereer twee caption varianten, publiceer beide, vergelijk resultaten. Plus: upsertData bug fixen en oude alternative_caption UI verwijderen.
+Twee onderdelen: (1) Responsive Tailwind fixes voor alle marketing pagina's, (2) onboarding wizard voor nieuwe marketing gebruikers. Geen database migratie nodig.
 
 ---
 
-## Deel 1: Database migratie
+## Deel 1: Mobile Responsive Fixes
 
-Vier nieuwe kolommen op `marketing_social_posts`:
+Alle wijzigingen zijn Tailwind utility classes. Geen nieuwe componenten, geen CSS.
+
+### 1.1 MarketingDashboard.tsx
+
+- KPI grid (regel 92): al `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` -- geen wijziging
+- Campagne tabel (regel 250-255): wrap `NestoTable` in `<div className="overflow-x-auto">` -- NestoCard heeft geen `overflow-hidden` dus dit werkt
+- Activity timeline items (regel 272): al responsive
+
+### 1.2 WeekplanCard.tsx
+
+- Header (regel 64): wijzig naar `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2`
+- Action buttons (regel 101): wijzig naar `flex flex-col sm:flex-row items-stretch sm:items-center gap-2`
+
+### 1.3 BrandIntelligenceCard.tsx
+
+- Stage labels (regel 90-94): voeg `text-[10px] sm:text-xs` toe i.p.v. alleen `text-xs`
+
+### 1.4 ContentIdeasSection.tsx
+
+- Idee items (regel 60-96): al verticaal gestapeld met flex, werkt op mobiel
+- "Maak post" button: al `shrink-0` -- geen wijziging nodig
+
+### 1.5 SocialPostCreatorPage.tsx
+
+- PageHeader actions (regel 340): wijzig naar `flex flex-col sm:flex-row gap-2`
+- Platform checkboxes: voeg `flex-wrap` toe als dat ontbreekt
+- Main layout (regel 372): preview panel is al `hidden lg:block` -- goed
+
+### 1.6 ContentCalendarPage.tsx
+
+- CalendarSidebar (regel 106): wijzig naar `<div className="hidden lg:block"><CalendarSidebar .../></div>` -- sidebar verborgen op mobiel, DayPanel (Sheet) blijft beschikbaar bij klik
+- Header actions (regel 33): voeg `flex-wrap` toe
+- View toggle + month nav: wrap in `flex flex-wrap gap-2`
+
+### 1.7 ReviewsPage.tsx
+
+- Stats grid (regel 212): al `grid-cols-2 lg:grid-cols-4` -- goed
+- Filters (regel 230): al `flex flex-wrap gap-3` -- goed
+- Detail Sheet (regel 278): `sm:max-w-lg` is al standaard SheetContent full-width op mobiel -- goed
+
+### 1.8 SocialPostsPage.tsx
+
+- Tabel (regel 284): wrap in `<div className="overflow-x-auto">`
+- A/B comparison Sheet: voeg `w-full sm:max-w-lg` toe
+
+### 1.9 CampaignBuilderPage.tsx
+
+- Heeft al "Desktop vereist" op mobiel -- geen wijziging
+
+### 1.10 AnalyticsPage.tsx
+
+- Tab bar (regel 26): wijzig naar `flex gap-4 sm:gap-6 overflow-x-auto` voor horizontale scroll op mobiel
+
+### 1.11 CampaignesPage / ContactsPage / SegmentsPage
+
+- CampaignesPage: tabel is card-based layout, al responsive
+- ContactsPage: NestoTable -- wrap in `overflow-x-auto`
+- SegmentsPage: card-based layout, al responsive
+
+---
+
+## Deel 2: Marketing Onboarding Flow
+
+### 2.1 Hook: useMarketingOnboardingStatus
+
+**`src/hooks/useMarketingOnboarding.ts` (nieuw)**
+
+- Hergebruikt `useMarketingBrandKit()` intern
+- Return: `{ needsOnboarding: boolean, isLoading: boolean }`
+- Logic: `needsOnboarding = !data || !data.tone_of_voice`
+
+### 2.2 MarketingOnboardingWizard
+
+**`src/components/marketing/onboarding/MarketingOnboardingWizard.tsx` (nieuw)**
+
+Full-page overlay (`fixed inset-0 z-50 bg-background`):
+
+**Stap 1 -- Welkom**
+- Titel: "Marketing instellen"
+- Beschrijving: "In 3 stappen is je marketing klaar. De AI leert je stijl en helpt je groeien."
+- NestoButton "Start"
+
+**Stap 2 -- Brand Kit Basis**
+- Tone of voice: NestoSelect met opties (professioneel, vriendelijk, casual, speels)
+- Tone beschrijving: Textarea (optioneel)
+- Primary color: NestoInput type="color"
+- Logo upload: placeholder tekst
+- "Volgende" knop -- slaat op via `useUpdateMarketingBrandKit`
+
+**Stap 3 -- Social Accounts (optioneel)**
+- Render bestaande `SocialAccountsTab` component
+- "Overslaan" link + "Volgende" knop
+- **Instagram detectie**: De wizard draait een eigen `useMarketingSocialAccounts()` call. Een `useEffect` watched `accountsWithStatus` -- wanneer een Instagram account verschijnt met `status === 'active'`, triggert de wizard `useInstagramOnboarding().mutate({ account_id })`. Dit werkt omdat `SocialAccountsTab` na koppeling de query invalidate (via `useSocialAccountMutations`), waardoor de wizard's eigen query automatisch refetcht.
+
+**Stap 4 -- Klaar**
+- Samenvatting van ingestelde opties
+- Als Instagram gekoppeld: "We importeren je posts en leren je stijl."
+- "Ga naar Dashboard" knop
+
+### 2.3 MarketingDashboard.tsx edit
+
+- Import `useMarketingOnboardingStatus` en `MarketingOnboardingWizard`
+- Bovenaan render: als `needsOnboarding && !isLoading` -> render wizard i.p.v. dashboard
+- Wizard is niet blokkerend: operator kan via sidebar naar andere pagina's
+
+### 2.4 Instagram detectie -- technisch detail
+
+Het probleem: `SocialAccountsTab` is een extern component zonder callback prop. De wizard kan niet weten wanneer een account wordt gekoppeld.
+
+De oplossing: De wizard draait zijn eigen `useMarketingSocialAccounts()` hook. Wanneer `SocialAccountsTab` een account koppelt/ontkoppelt, invalidate `useSocialAccountMutations` de query key `['marketing-social-accounts', locationId]`. Omdat beide hooks dezelfde query key gebruiken, refetcht React Query automatisch de data in de wizard. Een `useEffect` met dependency op `accountsWithStatus` detecteert de change en triggert `useInstagramOnboarding`:
 
 ```text
-ai_original_caption  TEXT           -- originele AI-gegenereerde caption
-operator_edited      BOOLEAN        DEFAULT false
-ab_test_group        TEXT           -- 'A' of 'B' (null voor normale posts)
-ab_test_id           UUID           -- gedeelde UUID die twee A/B varianten koppelt
+const prevInstagramRef = useRef(false);
+useEffect(() => {
+  const ig = accountsWithStatus.find(a => a.platform === 'instagram');
+  if (ig?.status === 'active' && !prevInstagramRef.current) {
+    onboardInstagram.mutate({ account_id: ig.account!.account_id! });
+  }
+  prevInstagramRef.current = ig?.status === 'active';
+}, [accountsWithStatus]);
 ```
 
----
-
-## Deel 2: Caption Leercyclus
-
-### 2.1 SocialPost type uitbreiden
-
-**`src/hooks/useMarketingSocialPosts.ts` (edit)**
-
-Voeg 4 velden toe aan `SocialPost` interface:
-- `ai_original_caption: string | null`
-- `operator_edited: boolean`
-- `ab_test_group: string | null`
-- `ab_test_id: string | null`
-
-### 2.2 useCreateFullSocialPost uitbreiden
-
-**`src/hooks/useAllSocialPosts.ts` (edit)**
-
-- Voeg `ai_original_caption`, `operator_edited`, `ab_test_group`, `ab_test_id` toe aan de mutation input type (regels 80-89) en de insert row (regels 92-103)
-
-### 2.3 SocialPostCreatorPage caption tracking
-
-**`src/pages/marketing/SocialPostCreatorPage.tsx` (edit)**
-
-- Nieuwe state: `aiOriginalCaption` (string) -- wordt gezet in `handleAIGenerate` (regel 168) wanneer de eerste platform caption wordt opgeslagen
-- Bij `handleSubmit` (regels 222-234): vergelijk `content_text` met `aiOriginalCaption`
-  - Als `aiOriginalCaption` bestaat en verschilt van de uiteindelijke caption: `ai_original_caption = aiOriginalCaption`, `operator_edited = true`
-  - Als ongewijzigd: `ai_original_caption = aiOriginalCaption`, `operator_edited = false`
-  - Als geen AI gebruikt: beide velden null/false
-
-### 2.4 marketing-analyze-brand: bug fix + caption leercyclus
-
-**`supabase/functions/marketing-analyze-brand/index.ts` (edit)**
-
-**Bug fix (kritiek):** Regel 232 (`upsertData.review_response_profile = reviewResponseProfile`) gebruikt `upsertData` voordat het op regel 242 wordt gedeclareerd. Fix: verplaats `const upsertData` declaratie (regels 242-253) naar VOOR het review response style blok (voor regel 218).
-
-**Caption leercyklus blok** (na het review response blok):
-- Query: `marketing_social_posts WHERE operator_edited = true AND ai_original_caption IS NOT NULL AND location_id = locationId ORDER BY updated_at DESC LIMIT 20`
-- Drempel: minimaal 5 resultaten
-- AI prompt: vergelijk AI-suggesties met operator-aanpassingen, verfijn het bestaande caption_style_profile (huidige profiel als context meegegeven)
-- Opslag: `upsertData.caption_style_profile = verfijndProfiel`
-
----
-
-## Deel 3: A/B Testing
-
-### 3.1 marketing-generate-content A/B modus
-
-**`supabase/functions/marketing-generate-content/index.ts` (edit)**
-
-- Nieuwe parameter in `generateSocialContent` body: `ab_test: boolean`
-- Als `ab_test = true`:
-  - System prompt uitbreiden: vraag om 2 varianten (A: huidige stijl, B: alternatieve aanpak met andere openingszin/CTA/hashtags)
-  - Tool schema aanpassen: `platforms` wordt genest onder `variants.a` en `variants.b`, elk met dezelfde platformstructuur
-  - Output: `{ variants: { a: { platforms: {...} }, b: { platforms: {...} } }, suggested_hashtags, suggested_time, suggested_day }`
-- Als `ab_test = false` (of niet meegegeven): bestaand gedrag ongewijzigd
-
-### 3.2 SocialPostCreatorPage A/B UI
-
-**`src/pages/marketing/SocialPostCreatorPage.tsx` (edit)**
-
-**Verwijder oude alternative_caption UI:**
-- Verwijder `alternativeCaption` state (regel 90), `showAltCaption` state (regel 91)
-- Verwijder props doorvoer naar CaptionSection (regels 338-341)
-- Verwijder de "+ Alternatieve caption" button en textarea uit CaptionSection (regels 635-652)
-- Verwijder `showAltCaption`, `setShowAltCaption`, `alternativeCaption`, `setAltCaption` uit CaptionSection props (regels 525-528, 545-548)
-- Verwijder `alternative_caption` uit handleSubmit (regel 233)
-
-**Nieuwe A/B state en UI:**
-- States: `abTestEnabled` (boolean), `variantBCaption` (string), `variantBPlatformCaptions` (Record), `abVariantTab` ('a' | 'b')
-- In AI modal (regels 430-461): voeg Switch "A/B Test" toe (default uit)
-- Na AI generatie met `ab_test = true`:
-  - Sla variant A en B captions apart op in state
-  - Toon 2 tabs boven caption area: "Variant A" / "Variant B"
-  - Elk met eigen caption textarea
-- Bij opslaan met A/B aan:
-  - Genereer 1 `ab_test_id` via `crypto.randomUUID()`
-  - Loop over `selectedPlatforms` (bestaande for-loop, regel 222)
-  - Per platform: maak 2 posts aan:
-    - Post A: `ab_test_group = 'A'`, `ab_test_id = sharedId`, originele `scheduled_at`, caption = variant A voor dit platform
-    - Post B: `ab_test_group = 'B'`, `ab_test_id = sharedId`, `scheduled_at + 24 uur`, caption = variant B voor dit platform
-  - **Alle posts delen dezelfde `ab_test_id`** -- zowel A-Instagram als A-Facebook als B-Instagram als B-Facebook
-
-### 3.3 Multi-platform A/B verduidelijking
-
-Bij Instagram + Facebook geselecteerd met A/B aan:
-- 4 posts totaal: A-Instagram, A-Facebook, B-Instagram, B-Facebook
-- Alle 4 delen dezelfde `ab_test_id`
-- `ab_test_group = 'A'` voor A-Instagram en A-Facebook
-- `ab_test_group = 'B'` voor B-Instagram en B-Facebook
-- Variant B scheduled_at = Variant A + 24 uur (alle B-posts op hetzelfde moment)
-
-### 3.4 SocialPostsPage A/B badge + vergelijkings-Sheet
-
-**`src/pages/marketing/SocialPostsPage.tsx` (edit)**
-
-- In de tabel (regels 289-290): posts met `ab_test_id` tonen een "A/B" NestoBadge (variant="primary", size="sm") naast de status badge
-- Nieuwe state: `selectedAbTestId` (string | null) voor het openen van een Sheet
-- Klik op een A/B post row zet `selectedAbTestId`
-- Sheet component (inline):
-  - Twee kolommen: Variant A vs Variant B
-  - Per variant per platform: caption (truncated 100 chars), bereik/engagement/engagement rate uit `analytics` JSON
-  - Winnaar: hoogste engagement rate krijgt groene "Winnaar" badge
-  - Als beide < 48 uur oud: InfoAlert "Resultaten nog niet compleet"
-  - Label onderaan: "Indicatieve vergelijking" met tooltip uitleg
-
-### 3.5 useABTestResults hook
-
-**`src/hooks/useAllSocialPosts.ts` (edit)**
-
-Nieuwe export:
-- `useABTestResults(abTestId: string | null)`: query `marketing_social_posts WHERE ab_test_id = abTestId`, return alle varianten (2 of 4 posts), enabled: `!!abTestId`
+Dit voorkomt dat de import opnieuw triggert bij re-renders (ref tracked vorige state).
 
 ---
 
@@ -137,32 +140,32 @@ Nieuwe export:
 
 | Bestand | Actie |
 |---|---|
-| SQL Migratie | 4 kolommen: ai_original_caption, operator_edited, ab_test_group, ab_test_id |
-| `src/hooks/useMarketingSocialPosts.ts` | Edit: SocialPost type uitbreiden (4 velden) |
-| `src/hooks/useAllSocialPosts.ts` | Edit: createPost input uitbreiden + useABTestResults hook |
-| `src/pages/marketing/SocialPostCreatorPage.tsx` | Edit: verwijder old alt caption UI, voeg aiOriginalCaption tracking + A/B toggle + dual variant UI + multi-platform submit logica toe |
-| `supabase/functions/marketing-generate-content/index.ts` | Edit: ab_test parameter + dual variant generatie |
-| `supabase/functions/marketing-analyze-brand/index.ts` | Edit: fix upsertData bug + caption leercyclus blok |
-| `src/pages/marketing/SocialPostsPage.tsx` | Edit: A/B badge in tabel + vergelijkings-Sheet |
+| `src/pages/marketing/MarketingDashboard.tsx` | Edit: onboarding check + table overflow-x-auto |
+| `src/components/marketing/dashboard/WeekplanCard.tsx` | Edit: responsive header + buttons |
+| `src/components/marketing/dashboard/BrandIntelligenceCard.tsx` | Edit: responsive label sizes |
+| `src/pages/marketing/SocialPostCreatorPage.tsx` | Edit: responsive header actions |
+| `src/pages/marketing/ContentCalendarPage.tsx` | Edit: sidebar hidden on mobile, header wrap |
+| `src/pages/marketing/SocialPostsPage.tsx` | Edit: table overflow + Sheet responsive |
+| `src/pages/marketing/ContactsPage.tsx` | Edit: table overflow |
+| `src/pages/analytics/AnalyticsPage.tsx` | Edit: tab bar overflow |
+| `src/hooks/useMarketingOnboarding.ts` | Nieuw |
+| `src/components/marketing/onboarding/MarketingOnboardingWizard.tsx` | Nieuw |
 
----
+## Geen database migratie nodig
+
+Onboarding status wordt bepaald door bestaand `marketing_brand_kit` record + `tone_of_voice` veld. De `useUpdateMarketingBrandKit` hook doet een upsert.
 
 ## Technische details
 
-### upsertData bug fix
-Regel 232 zet `upsertData.review_response_profile` maar `upsertData` wordt pas op regel 242 gedeclareerd. Verplaats de declaratie naar voor regel 218. Zowel review response style, caption leercyclus, als de uiteindelijke upsert schrijven dan naar hetzelfde object.
+### NestoCard en overflow
+NestoCard heeft geen `overflow-hidden` in zijn styling (bevestigd in broncode). `overflow-x-auto` op een child wrapper werkt correct.
 
-### Oude alternative_caption verwijderen
-De "+ Alternatieve caption" UI (regels 636-652) en bijbehorende state wordt volledig verwijderd. Het `alternative_caption` database veld blijft bestaan maar wordt niet meer gebruikt. Het nieuwe A/B systeem vervangt dit volledig.
+### CalendarSidebar op mobiel
+Wordt `hidden lg:block`. Op mobiel is de sidebar niet zichtbaar maar de DayPanel (Sheet) is beschikbaar bij klik op een dag in de CalendarGrid. Dit is voldoende voor mobiel gebruik.
 
-### Multi-platform A/B: 1 gedeelde ab_test_id
-Alle posts (ongeacht platform) delen dezelfde `ab_test_id`. De vergelijkings-Sheet groepeert op `ab_test_group` ('A' vs 'B') en toont per groep de resultaten per platform. Dit maakt het duidelijk dat A-Instagram en A-Facebook dezelfde variant zijn.
+### Wizard is niet blokkerend
+De wizard vervangt het dashboard component maar de sidebar navigatie blijft beschikbaar. Operator kan altijd naar `/marketing/instellingen` om handmatig in te stellen.
 
-### Caption leercyclus inclusief A/B posts
-A/B posts met `operator_edited = true` doen mee in de caption leercyclus. Dit is gewenst gedrag -- de AI leert van elke operator-aanpassing, ongeacht of het een A/B test is.
+### Instagram onboarding detectie
+Gebruikt `useRef` + `useEffect` pattern op de gedeelde React Query cache. Geen polling nodig -- React Query invalidation doet het werk. De ref voorkomt dubbele triggers bij re-renders.
 
-### A/B resultaten label
-"Indicatieve vergelijking" met tooltip: "Organische social media posts hebben te weinig volume voor statistische significantie."
-
-### A/B timing
-Alle B-variant posts worden 24 uur na de A-variant ingepland. Operator kan dit handmatig aanpassen.
