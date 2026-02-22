@@ -11,6 +11,9 @@ import { NestoButton } from '@/components/polar/NestoButton';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMarketingDashboard } from '@/hooks/useMarketingDashboard';
+import { useBrandIntelligence } from '@/hooks/useBrandIntelligence';
+import { WeekplanCard } from '@/components/marketing/dashboard/WeekplanCard';
+import { ContentIdeasSection } from '@/components/marketing/dashboard/ContentIdeasSection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +41,8 @@ export default function MarketingDashboard() {
   const navigate = useNavigate();
   const { revenue, guestsReached, atRisk, activeFlows, recentCampaigns, activity, isLoading } =
     useMarketingDashboard();
+  const { data: intelligence, isLoading: intelligenceLoading } = useBrandIntelligence();
+  const weekplan = intelligence?.current_weekplan as { generated_at: string; week_start: string; posts: any[] } | null;
 
   const revenueTotal = revenue.data?.totalRevenue ?? 0;
   const sparklineData = revenue.data?.sparklineData ?? [];
@@ -71,6 +76,9 @@ export default function MarketingDashboard() {
   return (
     <div className="space-y-8">
       <PageHeader title="Marketing" subtitle="Overzicht van je marketing prestaties" />
+
+      {/* Weekplan Card */}
+      <WeekplanCard weekplan={weekplan} isLoading={intelligenceLoading} />
 
       {/* KPI Tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -239,6 +247,9 @@ export default function MarketingDashboard() {
           />
         )}
       </div>
+
+      {/* Content Ideas */}
+      <ContentIdeasSection bestContentType={intelligence?.weekly_best_content_type} />
 
       {/* Activity timeline */}
       <div className="space-y-3">
