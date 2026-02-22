@@ -25,7 +25,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "bg-card rounded-2xl p-6 space-y-4 border border-border/50 shadow-card",
+        "bg-card rounded-xl p-4 space-y-2 border border-border/50 shadow-card",
         className
       )}
     >
@@ -35,15 +35,15 @@ export function StatCard({
           {label}
         </span>
         {Icon && (
-          <div className="flex items-center justify-center w-10 h-10 bg-surface-subtle rounded-xl">
-            <Icon className="h-5 w-5 text-muted-foreground" />
+          <div className="flex items-center justify-center w-8 h-8 bg-surface-subtle rounded-lg">
+            <Icon className="h-4 w-4 text-muted-foreground" />
           </div>
         )}
       </div>
 
       {/* Value */}
       <div className="flex items-baseline gap-1.5">
-        <span className="text-display text-foreground leading-none">
+        <span className="text-2xl font-bold text-foreground leading-none">
           {value}
         </span>
         {unit && (
