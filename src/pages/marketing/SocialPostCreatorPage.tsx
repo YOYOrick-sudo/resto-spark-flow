@@ -17,6 +17,8 @@ import { useGenerateSocialContent } from '@/hooks/useGenerateContent';
 import { nestoToast } from '@/lib/nestoToast';
 import { cn } from '@/lib/utils';
 import { SocialPreviewPanel } from '@/components/marketing/social/SocialPreviewPanel';
+import { MediaUploadZone } from '@/components/marketing/social/MediaUploadZone';
+import { useSocialMediaUpload } from '@/hooks/useSocialMediaUpload';
 import { PLATFORM_COLORS } from '@/lib/platformColors';
 
 const PLATFORMS: { id: SocialPlatform; label: string; color: string; maxChars: number }[] = [
@@ -89,7 +91,7 @@ export default function SocialPostCreatorPage() {
   const [frequency, setFrequency] = useState('weekly');
   const [dayOfWeek, setDayOfWeek] = useState('1');
   const [submitting, setSubmitting] = useState(false);
-
+  const { mediaUrls, uploading, uploadFiles, removeMedia } = useSocialMediaUpload();
   // AI modal state
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiContext, setAiContext] = useState('');
@@ -275,6 +277,7 @@ export default function SocialPostCreatorPage() {
           operator_edited: operatorEdited,
           ab_test_group: abTestEnabled ? 'A' : undefined,
           ab_test_id: sharedAbTestId,
+          media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
         });
 
         if (!abTestEnabled && publishMode === 'now' && status === 'scheduled') {
@@ -302,6 +305,7 @@ export default function SocialPostCreatorPage() {
             operator_edited: getOperatorEdited(variantBCaptionForPlatform),
             ab_test_group: 'B',
             ab_test_id: sharedAbTestId,
+            media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
           });
         }
       }
@@ -455,8 +459,14 @@ export default function SocialPostCreatorPage() {
             <NestoSelect value={contentType} onValueChange={setContentType} options={CONTENT_TYPES} placeholder="Selecteer type..." />
           </section>
 
-          <section className="border border-dashed border-border/50 rounded-xl p-6 flex items-center justify-center">
-            <span className="text-sm text-muted-foreground">Media upload beschikbaar in Sprint 3</span>
+          <section className="space-y-2">
+            <label className="text-sm font-medium">Media</label>
+            <MediaUploadZone
+              mediaUrls={mediaUrls}
+              uploading={uploading}
+              onUpload={uploadFiles}
+              onRemove={removeMedia}
+            />
           </section>
 
           <PublishSection

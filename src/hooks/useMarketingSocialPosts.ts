@@ -79,6 +79,7 @@ export function useCreateSocialPost() {
       hashtags: string[];
       scheduled_at: string;
       content_type_tag?: string;
+      media_urls?: string[];
     }) => {
       if (!currentLocation) throw new Error('No location selected');
       const { data, error } = await supabase
@@ -90,6 +91,7 @@ export function useCreateSocialPost() {
           hashtags: input.hashtags,
           scheduled_at: input.scheduled_at,
           content_type_tag: input.content_type_tag ?? null,
+          media_urls: input.media_urls ?? [],
           status: 'scheduled',
         })
         .select()

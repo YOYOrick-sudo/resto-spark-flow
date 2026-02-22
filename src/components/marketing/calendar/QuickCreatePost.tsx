@@ -6,6 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCreateSocialPost } from '@/hooks/useMarketingSocialPosts';
 import { useMarketingSocialAccounts, type SocialPlatform } from '@/hooks/useMarketingSocialAccounts';
+import { useSocialMediaUpload } from '@/hooks/useSocialMediaUpload';
+import { MediaUploadZone } from '@/components/marketing/social/MediaUploadZone';
 import { nestoToast } from '@/lib/nestoToast';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +56,7 @@ export function QuickCreatePost({ date, onCancel, onCreated }: QuickCreatePostPr
 
   const createPost = useCreateSocialPost();
   const { accountsWithStatus } = useMarketingSocialAccounts();
+  const { mediaUrls, uploading, uploadFiles, removeMedia } = useSocialMediaUpload();
 
   const charLimit = useMemo(() => {
     if (selectedPlatforms.length === 0) return null;
@@ -94,6 +97,7 @@ export function QuickCreatePost({ date, onCancel, onCreated }: QuickCreatePostPr
           hashtags: hashtagList,
           scheduled_at: scheduledAt.toISOString(),
           content_type_tag: contentType || undefined,
+          media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
         });
       }
       nestoToast.success(`Bericht ingepland voor ${hour}:${minute}`);
@@ -198,9 +202,13 @@ export function QuickCreatePost({ date, onCancel, onCreated }: QuickCreatePostPr
       </div>
 
       {/* Media placeholder */}
-      <div className="border border-dashed border-border/50 rounded-xl p-4 flex items-center justify-center">
-        <span className="text-xs text-muted-foreground">Media upload beschikbaar in Sprint 3</span>
-      </div>
+      <MediaUploadZone
+        mediaUrls={mediaUrls}
+        uploading={uploading}
+        onUpload={uploadFiles}
+        onRemove={removeMedia}
+        compact
+      />
 
       {/* Actions */}
       <div className="flex gap-2">
