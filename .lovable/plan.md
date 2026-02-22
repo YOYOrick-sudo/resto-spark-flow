@@ -1,46 +1,40 @@
 
 
-# Popup lijst direct bijwerken bij toevoegen/verwijderen
+# Fix: Popup "flashy" re-render bij config updates
 
 ## Probleem
 
-Bij het aanmaken of verwijderen van een popup duurt het even voordat de lijst bijwerkt. Dit komt doordat `invalidateQueries` een achtergrond-refetch start maar niet wacht tot die klaar is. De UI toont pas de nieuwe staat nadat de refetch compleet is.
+Elke keer dat de editor een postMessage stuurt (bij elke wijziging), wordt `renderPopupInShadow` aangeroepen die:
+1. `shadow.innerHTML = ''` -- alles wist
+2. De overlay opnieuw aanmaakt met `opacity: 0`
+3. Via `requestAnimationFrame` de class `visible` toevoegt (opacity: 1)
+
+Dit veroorzaakt een zichtbare flash/fade-in bij elke toetsaanslag.
 
 ## Oplossing
 
-Twee kleine aanpassingen in `src/hooks/usePopupConfig.ts`:
+Bij een re-render (niet de eerste keer) de transitie overslaan door de `visible` class direct mee te geven in plaats van via `requestAnimationFrame`.
 
-### 1. `useCreatePopup` — await invalidation
+### Bestand: `src/pages/PopupPreviewDemo.tsx`
 
-In de `onSuccess` callback, vervang `queryClient.invalidateQueries(...)` door `await queryClient.invalidateQueries(...)` en maak de callback `async`. Hierdoor wacht de mutatie tot de verse data er is voordat de UI-callback (`onSuccess` in `handleCreate`) vuur.
+**Wijziging 1**: `renderPopupInShadow` krijgt een parameter `skipAnimation: boolean`
 
-### 2. `useDeletePopup` — await invalidation
+- Als `skipAnimation` true is: overlay en sticky bar krijgen direct de class `visible` (geen fade)
+- Als false: huidige gedrag met `requestAnimationFrame` behouden
 
-Zelfde aanpassing: maak `onSuccess` async en await de invalidation. De popup verdwijnt dan direct uit de lijst voordat de toast verschijnt.
+**Wijziging 2**: Eerste render (via edge function widget) blijft animeren. De `handleMessage` callback roept `renderPopupInShadow` aan met `skipAnimation = true`.
 
-## Technisch detail
-
-**Bestand:** `src/hooks/usePopupConfig.ts`
-
-Twee wijzigingen:
-
-```
-// useCreatePopup — onSuccess
-onSuccess: async () => {
-  await queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
-},
-
-// useDeletePopup — onSuccess
-onSuccess: async () => {
-  await queryClient.invalidateQueries({ queryKey: ['popup-configs', locationId] });
-},
-```
-
-Door `await` toe te voegen wacht React Query tot de refetch compleet is voordat de mutatie als "geslaagd" wordt beschouwd. De UI krijgt de verse data voordat de success-handlers in `PopupPage.tsx` draaien.
+Concreet:
+- Regel 74: signature wordt `function renderPopupInShadow(shadow: ShadowRoot, cfg: PopupConfig, skipAnimation = false)`
+- Regel 121: overlay class wordt `'nesto-overlay' + (skipAnimation ? ' visible' : '')`
+- Regel 128: `requestAnimationFrame` wordt gewrapped: `if (!skipAnimation) { requestAnimationFrame(...) }`
+- Regel 144: zelfde voor sticky bar class
+- Regel 157: zelfde voor sticky bar `requestAnimationFrame`
+- Regel 219: aanroep wordt `renderPopupInShadow(shadowRootRef.current, cfg, true)`
 
 ## Resultaat
 
-- Nieuwe popup verschijnt direct in de lijst na aanmaken
-- Verwijderde popup verdwijnt direct uit de lijst
-- Geen extra API calls, geen optimistic updates nodig — alleen wachten op de refetch die al plaatsvindt
+- Eerste load: popup animeert netjes in (fade + slide)
+- Config updates via editor: popup update instant zonder flash
+- Sticky bar idem
 
