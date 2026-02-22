@@ -1076,6 +1076,143 @@ export type Database = {
           },
         ]
       }
+      marketing_social_accounts: {
+        Row: {
+          access_token: string | null
+          account_id: string | null
+          account_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          location_id: string
+          page_id: string | null
+          platform: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_id?: string | null
+          account_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          page_id?: string | null
+          platform: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          account_id?: string | null
+          account_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          page_id?: string | null
+          platform?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_social_accounts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_social_posts: {
+        Row: {
+          ai_generated: boolean
+          alternative_caption: string | null
+          analytics: Json
+          campaign_id: string | null
+          content_text: string | null
+          content_type_tag: string | null
+          created_at: string
+          created_by: string | null
+          external_post_id: string | null
+          hashtags: string[]
+          id: string
+          is_recurring: boolean
+          location_id: string
+          media_urls: string[]
+          platform: string
+          post_type: string
+          published_at: string | null
+          recurrence_rule: Json | null
+          scheduled_at: string | null
+          status: string
+        }
+        Insert: {
+          ai_generated?: boolean
+          alternative_caption?: string | null
+          analytics?: Json
+          campaign_id?: string | null
+          content_text?: string | null
+          content_type_tag?: string | null
+          created_at?: string
+          created_by?: string | null
+          external_post_id?: string | null
+          hashtags?: string[]
+          id?: string
+          is_recurring?: boolean
+          location_id: string
+          media_urls?: string[]
+          platform: string
+          post_type?: string
+          published_at?: string | null
+          recurrence_rule?: Json | null
+          scheduled_at?: string | null
+          status?: string
+        }
+        Update: {
+          ai_generated?: boolean
+          alternative_caption?: string | null
+          analytics?: Json
+          campaign_id?: string | null
+          content_text?: string | null
+          content_type_tag?: string | null
+          created_at?: string
+          created_by?: string | null
+          external_post_id?: string | null
+          hashtags?: string[]
+          id?: string
+          is_recurring?: boolean
+          location_id?: string
+          media_urls?: string[]
+          platform?: string
+          post_type?: string
+          published_at?: string | null
+          recurrence_rule?: Json | null
+          scheduled_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_social_posts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_social_posts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_templates: {
         Row: {
           category: string
