@@ -110,7 +110,7 @@ export default function AuthPage() {
         <div className="text-center mb-8">
           <NestoLogo size="lg" />
           <p className="text-muted-foreground mt-2">
-            Horeca management platform
+            Restaurant management platform
           </p>
         </div>
 
