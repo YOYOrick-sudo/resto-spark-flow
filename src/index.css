@@ -144,6 +144,9 @@
     --shadow-card: 0 1px 4px rgba(0,0,0,0.12), 0 2px 10px rgba(0,0,0,0.08);
     --shadow-hover: 0 4px 12px rgba(0,0,0,0.08);
     --shadow-toast: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.03);
+    --shadow-dropdown: 0 4px 16px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-focus: 0 0 0 3px hsl(var(--ring) / 0.15);
   }
 
   .dark {
@@ -198,6 +201,14 @@
     --pending-light: 36 80% 20%;
     --warning-light: 30 80% 20%;
     --error-light: 0 70% 22%;
+
+    /* Shadow tokens - Dark */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-card: 0 1px 4px rgba(0,0,0,0.3), 0 2px 10px rgba(0,0,0,0.25);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,0.25);
+    --shadow-toast: 0 4px 24px rgba(0,0,0,0.3);
+    --shadow-dropdown: 0 4px 16px rgba(0,0,0,0.3), 0 1px 4px rgba(0,0,0,0.2);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.25);
   }
 }
 
@@ -335,21 +346,31 @@
   }
 }
 
-/* Component Baselines */
+/* Component Baselines - Nest 2.0 */
 @layer components {
+  /* ========== Button Variants ========== */
   .nesto-button-primary {
     @apply bg-primary text-primary-foreground px-5 py-2.5 font-medium;
     border-radius: 16px;
     font-size: var(--text-secondary-size);
-    transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .nesto-button-primary:hover {
     background-color: hsl(var(--primary-hover));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  .nesto-button-primary:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 
   .nesto-button-secondary {
-    @apply bg-card text-primary border border-primary px-5 py-2.5 font-medium;
+    @apply bg-card text-primary border px-5 py-2.5 font-medium;
+    border-color: hsl(var(--primary));
+    border-width: 1.5px;
     border-radius: 8px;
     font-size: var(--text-secondary-size);
     transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -370,14 +391,156 @@
     @apply bg-accent text-accent-foreground;
   }
 
+  .nesto-button-danger {
+    @apply bg-transparent text-error border px-5 py-2.5 font-medium;
+    border-color: hsl(var(--error));
+    border-width: 1.5px;
+    border-radius: 8px;
+    font-size: var(--text-secondary-size);
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .nesto-button-danger:hover {
+    @apply bg-error/10;
+  }
+
+  /* ========== Input Styles ========== */
   .polar-input {
-    @apply rounded-lg bg-card border border-border px-3 py-2.5;
+    @apply rounded-lg bg-card border px-3 py-2.5;
+    border-color: hsl(var(--border));
+    border-width: 1.5px;
     font-size: var(--text-body-size);
-    transition: border-color 0.15s ease;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
   }
 
   .polar-input:focus {
-    @apply border-ring outline-none;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.15);
+    outline: none;
+  }
+
+  .polar-input::placeholder {
+    color: hsl(var(--text-tertiary));
+  }
+
+  /* ========== Card Styles ========== */
+  .nesto-card {
+    @apply bg-card rounded-card;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .nesto-card-interactive {
+    @apply nesto-card cursor-pointer;
+  }
+
+  .nesto-card-interactive:hover {
+    box-shadow: var(--shadow-hover);
+  }
+
+  .nesto-card-selected {
+    @apply bg-card;
+    border: 2px solid hsl(var(--selected-border));
+    background-color: hsl(var(--selected-background));
+    border-radius: 16px;
+  }
+
+  /* ========== Badge Styles ========== */
+  .nesto-badge {
+    @apply inline-flex items-center px-2 py-0.5 font-medium;
+    font-size: var(--text-small-size);
+    border-radius: 6px;
+  }
+
+  .nesto-badge-success {
+    @apply nesto-badge;
+    background-color: hsl(var(--success-light));
+    color: hsl(var(--success));
+  }
+
+  .nesto-badge-warning {
+    @apply nesto-badge;
+    background-color: hsl(var(--warning-light));
+    color: hsl(var(--warning));
+  }
+
+  .nesto-badge-error {
+    @apply nesto-badge;
+    background-color: hsl(var(--error-light));
+    color: hsl(var(--error));
+  }
+
+  .nesto-badge-pending {
+    @apply nesto-badge;
+    background-color: hsl(var(--pending-light));
+    color: hsl(var(--pending));
+  }
+
+  .nesto-badge-neutral {
+    @apply nesto-badge;
+    background-color: hsl(var(--surface-subtle));
+    color: hsl(var(--text-secondary));
+  }
+
+  /* ========== Dropdown/Popover Styles ========== */
+  .nesto-dropdown {
+    @apply bg-card border border-border;
+    border-radius: 12px;
+    box-shadow: var(--shadow-dropdown, 0 4px 16px rgba(0,0,0,0.1));
+    overflow: hidden;
+  }
+
+  .nesto-dropdown-item {
+    @apply px-3 py-2 text-foreground cursor-pointer;
+    font-size: var(--text-body-size);
+    transition: background-color 150ms ease;
+  }
+
+  .nesto-dropdown-item:hover {
+    background-color: hsl(var(--hover-on-default));
+  }
+
+  /* ========== Status Dot Styles ========== */
+  .nesto-status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .nesto-status-dot-success {
+    @apply nesto-status-dot;
+    background-color: hsl(var(--success));
+  }
+
+  .nesto-status-dot-warning {
+    @apply nesto-status-dot;
+    background-color: hsl(var(--warning));
+  }
+
+  .nesto-status-dot-error {
+    @apply nesto-status-dot;
+    background-color: hsl(var(--error));
+  }
+
+  .nesto-status-dot-pending {
+    @apply nesto-status-dot;
+    background-color: hsl(var(--pending));
+  }
+
+  /* ========== Divider Styles ========== */
+  .nesto-divider {
+    @apply border-t;
+    border-color: hsl(var(--border-subtle));
+  }
+
+  /* ========== Icon Button Styles ========== */
+  .nesto-icon-button {
+    @apply inline-flex items-center justify-center p-2 rounded-button;
+    color: hsl(var(--text-secondary));
+    transition: all 150ms ease;
+  }
+
+  .nesto-icon-button:hover {
+    background-color: hsl(var(--hover-on-default));
+    color: hsl(var(--text-primary));
   }
 }
 
