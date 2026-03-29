@@ -1014,10 +1014,143 @@ const marketingProvider: SignalProvider = {
 };
 
 // ============================================
+// WAITLIST SIGNAL PROVIDER
+// ============================================
+
+const waitlistProvider: SignalProvider = {
+  name: 'waitlist',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const drafts: SignalDraft[] = [];
+    const hasRes = await hasReservationsEntitlement(locationId);
+    if (!hasRes) return drafts;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    // 1. Guests on waitlist today
+    const { count: waitingCount } = await supabaseAdmin
+      .from('waitlist_entries')
+      .select('id', { count: 'exact', head: true })
+      .eq('location_id', locationId)
+      .eq('date', today)
+      .eq('status', 'pending');
+
+    if (waitingCount && waitingCount > 0) {
+      drafts.push({
+        organization_id: orgId, location_id: locationId, module: 'reserveringen',
+        signal_type: 'waitlist_pending_today', kind: 'signal', severity: 'info',
+        title: `${waitingCount} gast(en) op wachtlijst vandaag`,
+        action_path: '/reserveringen', dedup_key: `waitlist_pending_today:${locationId}:${today}`,
+        actionable: false, priority: 40, cooldown_hours: 6,
+        payload: { count: waitingCount, date: today },
+      });
+    }
+
+    // 2. Expired invites with pending entries remaining
+    const { count: expiredCount } = await supabaseAdmin
+      .from('waitlist_invites')
+      .select('id', { count: 'exact', head: true })
+      .eq('location_id', locationId)
+      .eq('status', 'expired')
+      .gte('created_at', new Date(Date.now() - 3600000).toISOString());
+
+    if (expiredCount && expiredCount > 0 && waitingCount && waitingCount > 0) {
+      drafts.push({
+        organization_id: orgId, location_id: locationId, module: 'reserveringen',
+        signal_type: 'waitlist_invite_expired', kind: 'signal', severity: 'warning',
+        title: `Uitnodiging verlopen — nog ${waitingCount} wachtend`,
+        action_path: '/reserveringen', dedup_key: `waitlist_invite_expired:${locationId}:${today}`,
+        actionable: true, priority: 30, cooldown_hours: 4,
+        payload: { expired: expiredCount, waiting: waitingCount },
+      });
+    }
+
+    // 3. Conversions (accepted in last 24h)
+    const { data: conversions } = await supabaseAdmin
+      .from('waitlist_invites')
+      .select('id, waitlist_entries!inner(first_name, last_name)')
+      .eq('location_id', locationId)
+      .eq('status', 'accepted')
+      .gte('accepted_at', new Date(Date.now() - 86400000).toISOString())
+      .limit(5);
+
+    for (const c of (conversions || [])) {
+      const entry = (c as any).waitlist_entries;
+      const name = `${entry?.first_name || ''} ${entry?.last_name || ''}`.trim();
+      drafts.push({
+        organization_id: orgId, location_id: locationId, module: 'reserveringen',
+        signal_type: 'waitlist_conversion', kind: 'signal', severity: 'ok',
+        title: `Wachtlijst-conversie: ${name} heeft geboekt!`,
+        action_path: '/reserveringen', dedup_key: `waitlist_conversion:${c.id}`,
+        actionable: false, priority: 50,
+        payload: { invite_id: c.id, name },
+      });
+    }
+
+    // 4. High no-show risk + waitlist match
+    const { data: highRiskWithWaitlist } = await supabaseAdmin
+      .from('reservations')
+      .select('id, reservation_date, start_time, party_size, no_show_risk_score')
+      .eq('location_id', locationId)
+      .eq('reservation_date', today)
+      .in('status', ['confirmed', 'option'])
+      .gte('no_show_risk_score', 60);
+
+    if (highRiskWithWaitlist && highRiskWithWaitlist.length > 0 && waitingCount && waitingCount > 0) {
+      drafts.push({
+        organization_id: orgId, location_id: locationId, module: 'reserveringen',
+        signal_type: 'waitlist_noshow_match', kind: 'signal', severity: 'warning',
+        title: `Hoge no-show kans + wachtlijst match beschikbaar`,
+        message: `${highRiskWithWaitlist.length} reservering(en) met hoog risico en ${waitingCount} gast(en) op de wachtlijst.`,
+        action_path: '/reserveringen', dedup_key: `waitlist_noshow_match:${locationId}:${today}`,
+        actionable: true, priority: 15, cooldown_hours: 12,
+        payload: { high_risk_count: highRiskWithWaitlist.length, waiting: waitingCount },
+      });
+    }
+
+    // 5. Not reconfirmed + waitlist match (12h+ since reconfirm sent)
+    const twelveHoursAgo = new Date(Date.now() - 12 * 3600000).toISOString();
+    const { data: notReconfirmed } = await supabaseAdmin
+      .from('reservations')
+      .select('id')
+      .eq('location_id', locationId)
+      .in('reservation_date', [today])
+      .in('status', ['confirmed', 'option'])
+      .not('reconfirm_sent_at', 'is', null)
+      .is('reconfirmed_at', null)
+      .lt('reconfirm_sent_at', twelveHoursAgo);
+
+    if (notReconfirmed && notReconfirmed.length > 0 && waitingCount && waitingCount > 0) {
+      drafts.push({
+        organization_id: orgId, location_id: locationId, module: 'reserveringen',
+        signal_type: 'waitlist_not_reconfirmed', kind: 'signal', severity: 'warning',
+        title: `Niet herbevestigd + wachtlijst match beschikbaar`,
+        message: `${notReconfirmed.length} gast(en) hebben niet herbevestigd na 12+ uur. ${waitingCount} wachtende(n).`,
+        action_path: '/reserveringen', dedup_key: `waitlist_not_reconfirmed:${locationId}:${today}`,
+        actionable: true, priority: 10, cooldown_hours: 12,
+        payload: { not_reconfirmed: notReconfirmed.length, waiting: waitingCount },
+      });
+    }
+
+    return drafts;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const resolved: string[] = [];
+    const hasRes = await hasReservationsEntitlement(locationId);
+    if (!hasRes) {
+      return ['waitlist_pending_today', 'waitlist_invite_expired', 'waitlist_conversion', 'waitlist_noshow_match', 'waitlist_not_reconfirmed'];
+    }
+    // Date-based signals resolve naturally via cooldown
+    return resolved;
+  },
+};
+
+// ============================================
 // SIGNAL ENGINE
 // ============================================
 
-const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider];
+const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider];
 
 async function processLocation(locationId: string, orgId: string) {
   const results = { created: 0, resolved: 0, skipped: 0 };

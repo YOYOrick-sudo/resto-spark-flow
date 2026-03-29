@@ -64,4 +64,8 @@ export const defaultReservationSettings: Omit<ReservationSettings, 'id' | 'locat
   options_enabled: false,
   option_default_expiry_hours: 24,
   option_auto_release: true,
+  reminder_24h_enabled: true,
+  reminder_3h_enabled: true,
+  reconfirm_enabled: false,
+  reconfirm_min_risk_score: 60,
 };
