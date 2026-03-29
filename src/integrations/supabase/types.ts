@@ -1676,6 +1676,56 @@ export type Database = {
           },
         ]
       }
+      mollie_connections: {
+        Row: {
+          access_token_encrypted: string | null
+          created_at: string
+          id: string
+          location_id: string
+          mollie_organization_id: string | null
+          mollie_profile_id: string | null
+          oauth_state: string | null
+          onboarding_status: string
+          refresh_token_encrypted: string | null
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          created_at?: string
+          id?: string
+          location_id: string
+          mollie_organization_id?: string | null
+          mollie_profile_id?: string | null
+          oauth_state?: string | null
+          onboarding_status?: string
+          refresh_token_encrypted?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          created_at?: string
+          id?: string
+          location_id?: string
+          mollie_organization_id?: string | null
+          mollie_profile_id?: string | null
+          oauth_state?: string | null
+          onboarding_status?: string
+          refresh_token_encrypted?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mollie_connections_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ob_tasks: {
         Row: {
           assigned_role: Database["public"]["Enums"]["location_role"] | null
@@ -2532,9 +2582,12 @@ export type Database = {
           is_squeeze: boolean
           location_id: string
           manage_token: string
+          mollie_payment_id: string | null
           no_show_risk_score: number | null
           option_expires_at: string | null
           party_size: number
+          payment_amount: number | null
+          payment_status: string
           reconfirm_sent_at: string | null
           reconfirm_token: string | null
           reconfirmed_at: string | null
@@ -2566,9 +2619,12 @@ export type Database = {
           is_squeeze?: boolean
           location_id: string
           manage_token?: string
+          mollie_payment_id?: string | null
           no_show_risk_score?: number | null
           option_expires_at?: string | null
           party_size: number
+          payment_amount?: number | null
+          payment_status?: string
           reconfirm_sent_at?: string | null
           reconfirm_token?: string | null
           reconfirmed_at?: string | null
@@ -2600,9 +2656,12 @@ export type Database = {
           is_squeeze?: boolean
           location_id?: string
           manage_token?: string
+          mollie_payment_id?: string | null
           no_show_risk_score?: number | null
           option_expires_at?: string | null
           party_size?: number
+          payment_amount?: number | null
+          payment_status?: string
           reconfirm_sent_at?: string | null
           reconfirm_token?: string | null
           reconfirmed_at?: string | null
