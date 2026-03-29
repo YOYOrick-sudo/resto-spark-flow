@@ -149,7 +149,7 @@ function SeatedCountRow({
     return quarterSlots.map((time) => ({
       time,
       count: getSeatedCountAtTime(reservations, time),
-      limit: getPacingLimitForTime(time),
+      limit: 20, // Default display limit — real pacing is enforced server-side
     }));
   }, [reservations, quarterSlots]);
 
