@@ -98,3 +98,15 @@ verify_jwt = false
 
 [functions.reservation-reminders]
 verify_jwt = false
+
+[functions.mollie-oauth]
+verify_jwt = false
+
+[functions.mollie-create-payment]
+verify_jwt = false
+
+[functions.mollie-webhook]
+verify_jwt = false
+
+[functions.mollie-create-refund]
+verify_jwt = false
