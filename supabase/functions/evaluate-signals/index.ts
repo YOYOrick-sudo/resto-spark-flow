@@ -1150,7 +1150,92 @@ const waitlistProvider: SignalProvider = {
 // SIGNAL ENGINE
 // ============================================
 
-const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider];
+// ============================================
+// PACING SIGNAL PROVIDER
+// ============================================
+
+const pacingProvider: SignalProvider = {
+  name: 'pacing',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const drafts: SignalDraft[] = [];
+    const hasRes = await hasReservationsEntitlement(locationId);
+    if (!hasRes) return drafts;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Get shift exceptions with pacing overrides for today
+    const { data: overrides } = await supabaseAdmin
+      .from('shift_exceptions')
+      .select('id, shift_id, override_pacing_limit_covers, override_max_covers_total, override_online_booking_enabled, shifts!inner(name)')
+      .eq('location_id', locationId)
+      .eq('exception_date', today)
+      .not('shift_id', 'is', null);
+
+    for (const exc of (overrides || [])) {
+      const shiftName = (exc as any).shifts?.name || 'Shift';
+
+      // 1. Pacing override active
+      if (exc.override_pacing_limit_covers != null) {
+        drafts.push({
+          organization_id: orgId, location_id: locationId, module: 'reserveringen',
+          signal_type: 'pacing_override_active', kind: 'signal', severity: 'info',
+          title: `Pacing override actief: ${shiftName} heeft ${exc.override_pacing_limit_covers} covers`,
+          action_path: '/reserveringen', dedup_key: `pacing_override_active:${exc.shift_id}:${today}`,
+          actionable: false, priority: 55, cooldown_hours: 12,
+          payload: { shift_id: exc.shift_id, covers: exc.override_pacing_limit_covers },
+        });
+      }
+
+      // 2. Max covers approaching 80%
+      if (exc.override_max_covers_total != null) {
+        const { data: resCount } = await supabaseAdmin
+          .from('reservations')
+          .select('party_size')
+          .eq('location_id', locationId)
+          .eq('reservation_date', today)
+          .eq('shift_id', exc.shift_id!)
+          .in('status', ['confirmed', 'seated', 'option']);
+
+        const totalCovers = (resCount || []).reduce((s: number, r: any) => s + r.party_size, 0);
+        if (totalCovers >= exc.override_max_covers_total * 0.8) {
+          drafts.push({
+            organization_id: orgId, location_id: locationId, module: 'reserveringen',
+            signal_type: 'pacing_capacity_warning', kind: 'signal', severity: 'warning',
+            title: `Pacing bereikt 80%: ${shiftName} heeft ${totalCovers}/${exc.override_max_covers_total} covers`,
+            action_path: '/reserveringen', dedup_key: `pacing_capacity_warning:${exc.shift_id}:${today}`,
+            actionable: true, priority: 20, cooldown_hours: 6,
+            payload: { shift_id: exc.shift_id, current: totalCovers, max: exc.override_max_covers_total },
+          });
+        }
+      }
+
+      // 3. Online booking disabled
+      if (exc.override_online_booking_enabled === false) {
+        drafts.push({
+          organization_id: orgId, location_id: locationId, module: 'reserveringen',
+          signal_type: 'pacing_online_disabled', kind: 'signal', severity: 'info',
+          title: `Online boeken uitgeschakeld voor ${shiftName} vandaag`,
+          action_path: '/reserveringen', dedup_key: `pacing_online_disabled:${exc.shift_id}:${today}`,
+          actionable: false, priority: 45, cooldown_hours: 12,
+          payload: { shift_id: exc.shift_id },
+        });
+      }
+    }
+
+    return drafts;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const hasRes = await hasReservationsEntitlement(locationId);
+    if (!hasRes) {
+      return ['pacing_override_active', 'pacing_capacity_warning', 'pacing_online_disabled'];
+    }
+    return [];
+  },
+};
+
+const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider, pacingProvider];
 
 async function processLocation(locationId: string, orgId: string) {
   const results = { created: 0, resolved: 0, skipped: 0 };
