@@ -9,6 +9,7 @@ import {
   Ticket,
   Shield,
   Globe,
+  ListOrdered,
   type LucideIcon,
 } from "lucide-react";
 
@@ -124,6 +125,13 @@ export const reserveringenConfig: SettingsModuleConfig = {
       path: "/instellingen/reserveringen/widget",
       description: "Publieke boekingswidget configureren",
       icon: Globe,
+    },
+    {
+      id: "wachtlijst",
+      label: "Wachtlijst",
+      path: "/instellingen/reserveringen/wachtlijst",
+      description: "Wachtlijst en auto-invite configuratie",
+      icon: ListOrdered,
     },
   ],
 };
