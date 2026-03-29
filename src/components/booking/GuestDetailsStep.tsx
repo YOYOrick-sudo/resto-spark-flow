@@ -209,6 +209,16 @@ export function GuestDetailsStep() {
         </div>
       )}
 
+      {/* Deposit info — shown when ticket requires payment */}
+      {config?.deposit_info && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="font-medium">💳 Aanbetaling vereist</p>
+          <p className="text-xs mt-0.5">
+            €{(config.deposit_info.amount_per_person_cents / 100).toFixed(2)} p.p. · Totaal: €{((config.deposit_info.amount_per_person_cents * (config.deposit_info.party_size || 1)) / 100).toFixed(2)}
+          </p>
+        </div>
+      )}
+
       {/* Submit button */}
       <button
         type="button"
@@ -222,6 +232,8 @@ export function GuestDetailsStep() {
             <Loader2 className="h-4 w-4 animate-spin" />
             Bezig met boeken...
           </>
+        ) : config?.deposit_info ? (
+          '💳 Betaal & Reserveer'
         ) : (
           'Bevestigen'
         )}
