@@ -7,7 +7,6 @@ import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, pointerWithin,
 import { cn } from "@/lib/utils";
 import type { DensityType } from "./DensityToggle";
 import type { Reservation } from "@/types/reservation";
-import type { Reservation } from "@/types/reservation";
 import type { AreaWithTables } from "@/types/reservations";
 import {
   getDisplayName,
