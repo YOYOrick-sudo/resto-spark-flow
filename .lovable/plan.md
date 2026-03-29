@@ -1,97 +1,124 @@
 
 
-# Fase 4.11 Ronde 2 — Waitlist UI
+# Sprint: Waitlist R3 + Email Templates + Reminders + Squeeze Caps
 
-Backend is compleet (POST /waitlist endpoint, waitlist-accept, waitlist-invite-engine, DB trigger). Nu bouwen we de volledige UI-laag.
-
----
-
-## 1. Widget: Wachtlijst CTA + Formulier
-
-**Bestand:** `src/components/booking/SelectionStep.tsx`
-
-Wanneer `flatSlots.length === 0` en niet loading, vervang de huidige tekst "Geen tijden beschikbaar" door:
-- Bolder tekst: "Helaas, deze dag is volgeboekt"
-- CTA knop: "Zet me op de wachtlijst →"
-- Klik toont inline `WaitlistForm` component
-
-**Nieuw bestand:** `src/components/booking/WaitlistForm.tsx`
-- Pre-filled: party_size, datum uit BookingContext
-- Velden: tijdvoorkeur (dropdown: "Maakt niet uit" / "Liefst tussen [van] en [tot]"), naam, email, telefoon, opmerkingen
-- Honeypot veld (hidden)
-- Submit POST naar `public-booking-api/waitlist`
-- Succes: toon bevestiging "Je staat op de wachtlijst! We mailen je zodra er plek is." met checkmark
+Vier onderdelen, waarvan squeeze caps al gebouwd is (gratis).
 
 ---
 
-## 2. Accept Pagina — `/waitlist/accept/:token`
+## Huidige staat
 
-**Nieuw bestand:** `src/pages/WaitlistAccept.tsx`
-- Public route (geen auth nodig)
-- On mount: GET `waitlist-accept?token=:token` → laad invite data
-- **Geldig invite:** toon restaurantnaam, logo, datum, tijd, gasten, ticket, countdown timer tot `expires_at`
-  - "Reserveer nu" knop → POST `waitlist-accept` met `{ token }`
-  - Succes: checkmark animatie, manage-link, zelfde stijl als `ConfirmationStep`
-- **Verlopen:** "Deze uitnodiging is verlopen. Je staat weer op de wachtlijst."
-- **Slot bezet (409):** "Helaas, deze plek is net vergeven. Je staat weer op de wachtlijst."
-
-**Route:** `src/App.tsx` — toevoegen `<Route path="/waitlist/accept/:token" element={<WaitlistAccept />} />`
+- **Waitlist R1+R2**: compleet (tabellen, edge functions, trigger, widget, operator UI, settings)
+- **evaluate-signals**: 4 providers (config, onboarding, noshow_risk, marketing) — geen waitlist provider
+- **SettingsCommunicatie**: Gastberichten tab is placeholder (disabled, EmptyState)
+- **reservations tabel**: mist `reconfirmed_at`, `reconfirm_token`, `reminder_24h_sent_at`, `reminder_3h_sent_at`, `reconfirm_sent_at`
+- **reservation_settings**: mist reminder/reconfirm kolommen
+- **Geen** `reservation_email_templates` tabel
+- **Reconfirm in policy_sets**: `reconfirm_enabled`, `reconfirm_hours_before`, `reconfirm_required` bestaan al — de reminder engine kan deze per-ticket config gebruiken
+- **ReservationBadges**: toont al "Herbevestigd" badge wanneer `reconfirmed_at` gezet is
 
 ---
 
-## 3. Operator UI — Wachtlijst tab
+## 1. Database migratie
 
-### ViewToggle uitbreiden
-**Bestand:** `src/components/reserveringen/ViewToggle.tsx`
-- `ViewType` wordt `"list" | "grid" | "waitlist" | "calendar"`
-- Nieuw icoon: `Clock` of `ListOrdered` voor wachtlijst
+Eén migratie met alles:
 
-### WaitlistView component
-**Nieuw bestand:** `src/components/reserveringen/WaitlistView.tsx`
-- Query: `waitlist_entries` voor geselecteerde datum + locatie
-- Tabel (NestoTable-stijl grid): naam, party size, tijdvoorkeur, status badge, aangemaakt op
-- Status badges: Wachtend (geel), Uitgenodigd + countdown (blauw), Geboekt (groen), Verlopen (grijs)
-- Filters: status dropdown
-- Acties per rij: handmatig uitnodigen (kies slot modal), annuleren
-- Empty state als geen entries
+**Nieuwe tabel `reservation_email_templates`:**
+- `id`, `location_id` (FK), `template_key` (text), `subject`, `body`, `is_active` (default true), `created_at`, `updated_at`
+- UNIQUE(location_id, template_key)
+- template_key values: `confirmation`, `waitlist_confirmation`, `waitlist_invite`, `cancellation`, `reminder_24h`, `reminder_3h`, `reconfirm`
+- RLS: location-scoped via `user_has_location_access`
 
-### Hook
-**Nieuw bestand:** `src/hooks/useWaitlistEntries.ts`
-- Query `waitlist_entries` gefilterd op location_id + datum
-- Join met `waitlist_invites` voor status/countdown info
-- React Query met refetch interval
+**Kolommen op `reservations`:**
+- `reminder_24h_sent_at` timestamptz nullable
+- `reminder_3h_sent_at` timestamptz nullable
+- `reconfirm_sent_at` timestamptz nullable
+- `reconfirmed_at` timestamptz nullable
+- `reconfirm_token` text nullable
 
-### Reserveringen pagina
-**Bestand:** `src/pages/Reserveringen.tsx`
-- Import WaitlistView
-- In de view switch: `activeView === "waitlist"` → render WaitlistView
+**Kolommen op `reservation_settings`:**
+- `reminder_24h_enabled` boolean DEFAULT true
+- `reminder_3h_enabled` boolean DEFAULT true
+- `reconfirm_enabled` boolean DEFAULT false
+- `reconfirm_min_risk_score` integer DEFAULT 60
 
 ---
 
-## 4. Settings — Wachtlijst
+## 2. Waitlist Ronde 3
 
-### Route config
-**Bestand:** `src/lib/settingsRouteConfig.ts`
-- Nieuwe sectie in `reserveringenConfig.sections`: `{ id: "wachtlijst", label: "Wachtlijst", path: "/instellingen/reserveringen/wachtlijst", icon: ListOrdered }`
+### A) `waitlist-auto-expire` Edge Function (nieuw)
 
-### Settings pagina
-**Nieuw bestand:** `src/pages/settings/reserveringen/SettingsReserveringenWachtlijst.tsx`
-- Upsert naar `waitlist_settings` voor location_id
-- Toggle: Wachtlijst inschakelen (`waitlist_enabled`)
-- Toggle: Automatisch uitnodigen (`auto_invite_enabled`)
-- Vertraging na annulering: number input (`auto_invite_delay_minutes`, default 5)
-- Geldigheid uitnodiging: number input (`invite_window_minutes`, default 30)
-- Gelijktijdige uitnodigingen: number input (`max_parallel_invites`, default 1)
-- Prioriteit: select Automatisch/Handmatig (`priority_mode`)
-- Volgt bestaand settings card pattern (NestoCard, FormSection dividers)
+Elke 5 min via pg_cron:
+1. Expire invites: `waitlist_invites` WHERE status='sent' AND expires_at < NOW() → status='expired'
+2. Reset entries: bijbehorende `waitlist_entries` terug naar 'pending'
+3. Expire oude entries: `waitlist_entries` WHERE date < CURRENT_DATE AND status='pending' → status='expired'
+4. Per affected location_id+date: roep `waitlist-invite-engine` aan (next-in-line)
+5. Audit log entries voor expires
 
-### Hook
-**Nieuw bestand:** `src/hooks/useWaitlistSettings.ts`
-- Query + mutation voor `waitlist_settings` per location_id
+### B) WaitlistSignalProvider in `evaluate-signals`
 
-### Route + export
-- `src/App.tsx`: route `/instellingen/reserveringen/wachtlijst`
-- `src/pages/settings/reserveringen/index.ts`: export toevoegen
+Nieuwe provider toevoegen aan de providers array:
+- "X gasten op wachtlijst voor vandaag" (info, count > 0)
+- "Uitnodiging verlopen — nog X wachtend" (warning)
+- "Wachtlijst-conversie: [naam] heeft geboekt!" (ok)
+- "Hoge no-show kans + wachtlijst match" (warning, no_show_risk_score >= 60 + matching pending entry)
+- **Nieuw (user feedback):** "Niet herbevestigd + wachtlijst match beschikbaar" (warning, reconfirm_sent_at IS NOT NULL AND reconfirmed_at IS NULL AND sent > 12h ago + matching waitlist entry)
+
+### C) Audit log in waitlist edge functions
+
+Toevoegen aan `waitlist-invite-engine`: `waitlist_invite_sent`, `waitlist_entry_cancelled`
+Toevoegen aan `waitlist-accept`: `waitlist_entry_converted` (naast bestaande `waitlist_invite_accepted`)
+
+---
+
+## 3. Email Templates Editor
+
+### Gastberichten tab activeren in `SettingsCommunicatie.tsx`
+- Remove `disabled: true` van gastberichten tab
+- Replace EmptyState met `GastberichtenTab` component
+
+### `GastberichtenTab.tsx` (nieuw)
+- Lijst van template cards per template_key
+- Per template: subject input, body textarea
+- Merge fields helper: `{voornaam}`, `{achternaam}`, `{datum}`, `{tijd}`, `{gasten}`, `{restaurant}`, `{beheerlink}`, `{ticket}`
+- Preview knop met voorbeeld-data in modal
+- Reset naar standaard knop (hardcoded defaults)
+- Reminder toggles sectie onderaan:
+  - T-24h reminder: aan/uit
+  - T-3h reminder: aan/uit
+  - Reconfirm: aan/uit + drempel (risicoscore slider/input)
+
+### `useReservationEmailTemplates.ts` (nieuw)
+- CRUD hook voor `reservation_email_templates` per location_id
+
+### Backend template lookup
+- `public-booking-api`, `waitlist-invite-engine`, `waitlist-accept`: fetch template uit `reservation_email_templates` met fallback naar huidige hardcoded HTML
+
+---
+
+## 4. Reminder + Reconfirm
+
+### `reservation-reminders` Edge Function (nieuw)
+Elke 15 min via pg_cron:
+1. T-24h: reserveringen voor morgen WHERE reminder_24h_sent_at IS NULL AND status IN ('confirmed','option') → stuur email, set reminder_24h_sent_at
+2. T-3h: reserveringen komende 3 uur WHERE reminder_3h_sent_at IS NULL → stuur email, set reminder_3h_sent_at
+3. Reconfirm: reserveringen met no_show_risk_score >= threshold WHERE reconfirm_sent_at IS NULL → genereer reconfirm_token, stuur email met link, set reconfirm_sent_at
+4. Respecteert per-locatie settings (`reminder_24h_enabled`, etc.) en per-ticket policy_set reconfirm config
+
+### Public route `/reconfirm/:token`
+- `ReconfirmReservation.tsx`: fetch reservation via token, toon "Bevestig je reservering", POST → update reconfirmed_at
+- Eenvoudige branded pagina (restaurant naam, datum/tijd, checkmark na bevestiging)
+
+### Operator-kant (user feedback #1)
+- `ReservationBadges.tsx`: toont al "Herbevestigd" badge — **werkt automatisch** zodra `reconfirmed_at` kolom bestaat
+- `ReservationDetailPanel.tsx`: toon "Herbevestigd om {timestamp}" onder status badge wanneer `reconfirmed_at` gezet is
+- Grid/List view: de badge is al zichtbaar via `ReservationBadges` component
+
+---
+
+## 5. Squeeze Caps
+
+Geen werk nodig — al volledig geïmplementeerd in `check-availability`, `public-booking-api`, en `waitlist-invite-engine`.
 
 ---
 
@@ -99,16 +126,29 @@ Wanneer `flatSlots.length === 0` en niet loading, vervang de huidige tekst "Geen
 
 | Bestand | Actie |
 |---|---|
-| `src/components/booking/SelectionStep.tsx` | Wachtlijst CTA bij geen slots |
-| `src/components/booking/WaitlistForm.tsx` | **Nieuw** — inline formulier |
-| `src/pages/WaitlistAccept.tsx` | **Nieuw** — public accept pagina |
-| `src/components/reserveringen/ViewToggle.tsx` | Type uitbreiden met "waitlist" |
-| `src/components/reserveringen/WaitlistView.tsx` | **Nieuw** — operator wachtlijst tab |
-| `src/hooks/useWaitlistEntries.ts` | **Nieuw** — query hook |
-| `src/hooks/useWaitlistSettings.ts` | **Nieuw** — settings hook |
-| `src/pages/settings/reserveringen/SettingsReserveringenWachtlijst.tsx` | **Nieuw** — settings pagina |
-| `src/lib/settingsRouteConfig.ts` | Sectie toevoegen |
-| `src/pages/settings/reserveringen/index.ts` | Export toevoegen |
-| `src/pages/Reserveringen.tsx` | WaitlistView renderen |
-| `src/App.tsx` | 2 routes toevoegen |
+| SQL migratie | `reservation_email_templates` + reservations kolommen + reservation_settings kolommen |
+| `supabase/functions/waitlist-auto-expire/index.ts` | **Nieuw** — cron expire handler |
+| `supabase/functions/evaluate-signals/index.ts` | Waitlist provider toevoegen |
+| `supabase/functions/waitlist-invite-engine/index.ts` | Audit log + template lookup |
+| `supabase/functions/waitlist-accept/index.ts` | Audit log + template lookup |
+| `supabase/functions/reservation-reminders/index.ts` | **Nieuw** — T-24h, T-3h, reconfirm |
+| `supabase/functions/public-booking-api/index.ts` | Template lookup |
+| `src/pages/settings/SettingsCommunicatie.tsx` | Gastberichten tab activeren |
+| `src/components/settings/communication/GastberichtenTab.tsx` | **Nieuw** — template editor + reminder toggles |
+| `src/hooks/useReservationEmailTemplates.ts` | **Nieuw** |
+| `src/pages/ReconfirmReservation.tsx` | **Nieuw** — public bevestigingspagina |
+| `src/components/reservations/ReservationDetailPanel.tsx` | Reconfirmed timestamp tonen |
+| `src/App.tsx` | Route `/reconfirm/:token` toevoegen |
+| pg_cron inserts (2x) | waitlist-auto-expire elke 5 min, reservation-reminders elke 15 min |
+
+## Volgorde
+
+1. DB migratie (alles in één)
+2. `waitlist-auto-expire` + pg_cron
+3. `evaluate-signals` waitlist provider
+4. Audit log in invite-engine + accept
+5. `GastberichtenTab` + hook + template lookup in edge functions
+6. `reservation-reminders` + pg_cron + `ReconfirmReservation.tsx`
+7. Detail panel reconfirm timestamp
+8. Deploy alle edge functions
 
