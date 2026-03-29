@@ -20,7 +20,9 @@ export type ReasonCode =
   | 'channel_blocked'
   | 'pacing_full'
   | 'max_covers'
-  | 'tables_full';
+  | 'tables_full'
+  | 'shift_capacity_reached'
+  | 'online_booking_disabled';
 
 export type SlotType = 'normal' | 'squeeze';
 
@@ -56,6 +58,10 @@ export interface EffectiveShift {
   color: string;
   status: string;
   exception_label: string | null;
+  effective_pacing_limit_covers: number | null;
+  effective_pacing_limit_arrivals: number | null;
+  effective_max_covers_total: number | null;
+  effective_online_booking_enabled: boolean;
 }
 
 export interface TicketData {
@@ -314,6 +320,10 @@ export async function loadEngineData(
       color: s.color,
       status: exc ? exc.exception_type : 'active',
       exception_label: exc?.label || null,
+      effective_pacing_limit_covers: exc?.override_pacing_limit_covers ?? null,
+      effective_pacing_limit_arrivals: exc?.override_pacing_limit_arrivals ?? null,
+      effective_max_covers_total: exc?.override_max_covers_total ?? null,
+      effective_online_booking_enabled: exc?.override_online_booking_enabled ?? true,
     });
   }
 

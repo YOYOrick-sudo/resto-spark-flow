@@ -37,6 +37,10 @@ export interface ShiftException {
   override_end_time: string | null;
   label: string | null;
   notes: string | null;
+  override_pacing_limit_covers: number | null;
+  override_pacing_limit_arrivals: number | null;
+  override_max_covers_total: number | null;
+  override_online_booking_enabled: boolean | null;
   created_at: string;
   // Optional joined data
   shift?: Shift;
@@ -60,6 +64,10 @@ export interface EffectiveShiftSchedule {
   color: string;
   status: EffectiveShiftStatus;
   exception_label: string | null;
+  effective_pacing_limit_covers: number | null;
+  effective_pacing_limit_arrivals: number | null;
+  effective_max_covers_total: number | null;
+  effective_online_booking_enabled: boolean;
 }
 
 // ============================================

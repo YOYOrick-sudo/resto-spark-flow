@@ -2707,6 +2707,10 @@ export type Database = {
           location_id: string
           notes: string | null
           override_end_time: string | null
+          override_max_covers_total: number | null
+          override_online_booking_enabled: boolean | null
+          override_pacing_limit_arrivals: number | null
+          override_pacing_limit_covers: number | null
           override_start_time: string | null
           shift_id: string | null
         }
@@ -2719,6 +2723,10 @@ export type Database = {
           location_id: string
           notes?: string | null
           override_end_time?: string | null
+          override_max_covers_total?: number | null
+          override_online_booking_enabled?: boolean | null
+          override_pacing_limit_arrivals?: number | null
+          override_pacing_limit_covers?: number | null
           override_start_time?: string | null
           shift_id?: string | null
         }
@@ -2731,6 +2739,10 @@ export type Database = {
           location_id?: string
           notes?: string | null
           override_end_time?: string | null
+          override_max_covers_total?: number | null
+          override_online_booking_enabled?: boolean | null
+          override_pacing_limit_arrivals?: number | null
+          override_pacing_limit_covers?: number | null
           override_start_time?: string | null
           shift_id?: string | null
         }
@@ -3792,6 +3804,10 @@ export type Database = {
         Returns: {
           arrival_interval_minutes: number
           color: string
+          effective_max_covers_total: number
+          effective_online_booking_enabled: boolean
+          effective_pacing_limit_arrivals: number
+          effective_pacing_limit_covers: number
           end_time: string
           exception_label: string
           shift_id: string
