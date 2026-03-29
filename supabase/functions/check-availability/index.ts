@@ -41,8 +41,27 @@ function checkAvailability(
   const shiftResults: ShiftResult[] = [];
 
   for (const shift of data.shifts) {
+    // === Shift-level pacing override checks (before per-ticket loop) ===
+
+    // Online booking disabled for this shift today?
+    if (shift.effective_online_booking_enabled === false && channel !== 'operator') {
+      // Skip entire shift for non-operator channels
+      continue;
+    }
+
     const configs = data.shiftTicketConfigs.get(shift.shift_id) || [];
     if (configs.length === 0) continue;
+
+    // Max covers total check (shift-level cap)
+    let shiftCapacityReached = false;
+    if (shift.effective_max_covers_total != null) {
+      const totalShiftCovers = data.reservations
+        .filter(r => r.shift_id === shift.shift_id)
+        .reduce((sum, r) => sum + r.party_size, 0);
+      if (totalShiftCovers >= shift.effective_max_covers_total) {
+        shiftCapacityReached = true;
+      }
+    }
 
     const slotTimes = generateSlotTimes(
       shift.start_time,
@@ -58,6 +77,20 @@ function checkAvailability(
       for (const config of configs) {
         const ticket = data.tickets.get(config.ticket_id);
         if (!ticket) continue;
+
+        // If shift capacity reached, all slots are unavailable
+        if (shiftCapacityReached) {
+          slots.push({
+            time: slotTime,
+            available: false,
+            slot_type: null,
+            reason_code: 'shift_capacity_reached',
+            ticket_id: config.ticket_id,
+            ticket_name: config.ticket_name,
+            duration_minutes: config.duration_minutes,
+          });
+          continue;
+        }
 
         const result = evaluateSlot(
           slotMinutes,
