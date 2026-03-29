@@ -2386,6 +2386,47 @@ export type Database = {
         }
         Relationships: []
       }
+      reservation_email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          location_id: string
+          subject: string
+          template_key: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          subject?: string
+          template_key: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          subject?: string
+          template_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservation_email_templates_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservation_settings: {
         Row: {
           allow_multi_table: boolean
@@ -2405,6 +2446,10 @@ export type Database = {
           option_auto_release: boolean
           option_default_expiry_hours: number
           options_enabled: boolean
+          reconfirm_enabled: boolean
+          reconfirm_min_risk_score: number
+          reminder_24h_enabled: boolean
+          reminder_3h_enabled: boolean
           squeeze_enabled: boolean
           updated_at: string
           waitlist_auto_invite_enabled: boolean
@@ -2427,6 +2472,10 @@ export type Database = {
           option_auto_release?: boolean
           option_default_expiry_hours?: number
           options_enabled?: boolean
+          reconfirm_enabled?: boolean
+          reconfirm_min_risk_score?: number
+          reminder_24h_enabled?: boolean
+          reminder_3h_enabled?: boolean
           squeeze_enabled?: boolean
           updated_at?: string
           waitlist_auto_invite_enabled?: boolean
@@ -2449,6 +2498,10 @@ export type Database = {
           option_auto_release?: boolean
           option_default_expiry_hours?: number
           options_enabled?: boolean
+          reconfirm_enabled?: boolean
+          reconfirm_min_risk_score?: number
+          reminder_24h_enabled?: boolean
+          reminder_3h_enabled?: boolean
           squeeze_enabled?: boolean
           updated_at?: string
           waitlist_auto_invite_enabled?: boolean
@@ -2482,6 +2535,11 @@ export type Database = {
           no_show_risk_score: number | null
           option_expires_at: string | null
           party_size: number
+          reconfirm_sent_at: string | null
+          reconfirm_token: string | null
+          reconfirmed_at: string | null
+          reminder_24h_sent_at: string | null
+          reminder_3h_sent_at: string | null
           reservation_date: string
           risk_factors: Json | null
           shift_id: string
@@ -2511,6 +2569,11 @@ export type Database = {
           no_show_risk_score?: number | null
           option_expires_at?: string | null
           party_size: number
+          reconfirm_sent_at?: string | null
+          reconfirm_token?: string | null
+          reconfirmed_at?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_3h_sent_at?: string | null
           reservation_date: string
           risk_factors?: Json | null
           shift_id: string
@@ -2540,6 +2603,11 @@ export type Database = {
           no_show_risk_score?: number | null
           option_expires_at?: string | null
           party_size?: number
+          reconfirm_sent_at?: string | null
+          reconfirm_token?: string | null
+          reconfirmed_at?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_3h_sent_at?: string | null
           reservation_date?: string
           risk_factors?: Json | null
           shift_id?: string
