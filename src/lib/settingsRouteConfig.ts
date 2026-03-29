@@ -10,6 +10,7 @@ import {
   Shield,
   Globe,
   ListOrdered,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -143,8 +144,20 @@ export const reserveringenConfig: SettingsModuleConfig = {
 export const settingsModules: SettingsModuleConfig[] = [
   reserveringenConfig,
   // TODO: Add more modules as they are migrated
-  // keukenConfig,
-  // voorkeurenConfig,
+];
+
+// ============================================
+// Standalone Settings Pages (not in module)
+// ============================================
+
+export const standaloneSettingsPages = [
+  {
+    id: "betalingen",
+    label: "Betalingen",
+    path: "/instellingen/betalingen",
+    description: "Mollie verbinding en betalingsinstellingen",
+    icon: CreditCard,
+  },
 ];
 
 // ============================================

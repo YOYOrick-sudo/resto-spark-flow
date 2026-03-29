@@ -40,6 +40,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
 import SettingsCommunicatie from "./pages/settings/SettingsCommunicatie";
+import SettingsBetalingen from "./pages/settings/SettingsBetalingen";
 import MarketingSettings from "./pages/marketing/MarketingSettings";
 import SegmentsPage from "./pages/marketing/SegmentsPage";
 import ContactsPage from "./pages/marketing/ContactsPage";
@@ -142,6 +143,7 @@ const App = () => (
                   <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
                   <Route path="/instellingen/onboarding" element={<SettingsOnboarding />} />
                   <Route path="/instellingen/communicatie" element={<SettingsCommunicatie />} />
+                  <Route path="/instellingen/betalingen" element={<SettingsBetalingen />} />
                   
                   {/* Marketing */}
                   <Route path="/marketing" element={<MarketingDashboard />} />

@@ -87,6 +87,12 @@ export interface BookingResult {
   reservation_id: string;
   manage_token: string | null;
   manage_url: string | null;
+  requires_payment?: boolean;
+  payment_info?: {
+    amount_cents: number;
+    amount_per_person_cents: number;
+    currency: string;
+  };
 }
 
 export type BookingStep = 1 | 2 | 3;
@@ -334,6 +340,32 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Booking failed');
       setBookingResult(result);
+
+      // If payment is required, redirect to Mollie checkout
+      if (result.requires_payment && result.reservation_id) {
+        try {
+          const paymentRes = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mollie-create-payment`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              },
+              body: JSON.stringify({ reservation_id: result.reservation_id }),
+            }
+          );
+          const paymentResult = await paymentRes.json();
+          if (paymentResult.checkout_url) {
+            window.location.href = paymentResult.checkout_url;
+            return; // Don't go to confirmation step — redirecting
+          }
+        } catch (payErr) {
+          console.error('[BOOKING] Payment creation failed:', payErr);
+          // Fall through to confirmation step — user can retry from manage page
+        }
+      }
+
       setStep(3); // Go to confirmation
     } catch (err: any) {
       setBookingError(err.message || 'Er ging iets mis bij het boeken.');
