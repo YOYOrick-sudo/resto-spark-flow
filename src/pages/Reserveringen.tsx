@@ -11,6 +11,7 @@ import { DateNavigator } from "@/components/reserveringen/DateNavigator";
 import { ReservationListView } from "@/components/reserveringen/ReservationListView";
 import { ReservationGridView } from "@/components/reserveringen/ReservationGridView";
 import { ReservationFooter } from "@/components/reserveringen/ReservationFooter";
+import { WaitlistView } from "@/components/reserveringen/WaitlistView";
 import {
   ReservationFilters,
   type ReservationFiltersState,
@@ -192,6 +193,10 @@ export default function Reserveringen() {
                 onReservationClick={handleReservationClick}
                 density={density}
               />
+            )}
+
+            {activeView === "waitlist" && (
+              <WaitlistView selectedDate={selectedDate} />
             )}
 
             {activeView === "calendar" && (

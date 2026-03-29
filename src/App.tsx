@@ -52,6 +52,7 @@ import SocialPostCreatorPage from "./pages/marketing/SocialPostCreatorPage";
 import ReviewsPage from "./pages/marketing/ReviewsPage";
 import PopupPage from "./pages/marketing/PopupPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
+import WaitlistAccept from "./pages/WaitlistAccept";
 
 // New multi-level settings pages
 import {
@@ -68,6 +69,7 @@ import {
   SettingsReserveringenTicketDetail,
   SettingsReserveringenBeleid,
   SettingsReserveringenWidget,
+  SettingsReserveringenWachtlijst,
 } from "./pages/settings/reserveringen";
 
 const queryClient = new QueryClient();
@@ -86,6 +88,7 @@ const App = () => (
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/book/:slug" element={<BookingWidget />} />
                 <Route path="/manage/:token" element={<ManageReservation />} />
+                <Route path="/waitlist/accept/:token" element={<WaitlistAccept />} />
                 <Route path="/panel-demo" element={<PanelDemo />} />
                 <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
                 <Route path="/widget-mockups" element={<WidgetMockups />} />
@@ -169,6 +172,7 @@ const App = () => (
                   <Route path="/instellingen/reserveringen/shift-tijden" element={<SettingsReserveringenShiftTijden />} />
                   <Route path="/instellingen/reserveringen/notificaties" element={<SettingsReserveringenNotificaties />} />
                   <Route path="/instellingen/reserveringen/widget" element={<SettingsReserveringenWidget />} />
+                  <Route path="/instellingen/reserveringen/wachtlijst" element={<SettingsReserveringenWachtlijst />} />
                 </Route>
                 
                 {/* Catch-all outside layout */}
