@@ -7,6 +7,7 @@ import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, pointerWithin,
 import { cn } from "@/lib/utils";
 import type { DensityType } from "./DensityToggle";
 import type { Reservation } from "@/types/reservation";
+import type { Reservation } from "@/types/reservation";
 import type { AreaWithTables } from "@/types/reservations";
 import {
   getDisplayName,
@@ -18,7 +19,8 @@ import {
   type GridTimeConfig,
   defaultGridConfig,
 } from "@/lib/reservationUtils";
-import { getPacingLimitForTime } from "@/data/pacingMockData";
+import { usePacingOverrides, type PacingOverride } from "@/hooks/usePacingOverrides";
+import { PacingOverridePopover } from "./PacingOverridePopover";
 import { useAreasForGrid } from "@/hooks/useAreasWithTables";
 import { useUserContext } from "@/contexts/UserContext";
 import { useShifts } from "@/hooks/useShifts";
