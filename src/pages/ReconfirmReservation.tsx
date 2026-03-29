@@ -101,8 +101,8 @@ export default function ReconfirmReservation() {
 
           {state === 'confirmed' && (
             <>
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <Check className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Check className="h-8 w-8 text-primary" />
               </div>
               <h1 className="text-xl font-semibold text-foreground mb-2">Bedankt!</h1>
               <p className="text-sm text-muted-foreground">
@@ -113,8 +113,8 @@ export default function ReconfirmReservation() {
 
           {state === 'error' && (
             <>
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="h-8 w-8 text-red-600" />
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-8 w-8 text-destructive" />
               </div>
               <h1 className="text-xl font-semibold text-foreground mb-2">Oeps</h1>
               <p className="text-sm text-muted-foreground">{errorMsg}</p>

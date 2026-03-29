@@ -121,7 +121,7 @@ export function GastberichtenTab() {
     };
     let text = t.body;
     for (const [k, v] of Object.entries(vars)) {
-      text = text.replaceAll(k, v);
+      text = text.split(k).join(v);
     }
     return text;
   };
@@ -244,7 +244,7 @@ export function GastberichtenTab() {
 
       {/* Preview modal */}
       {previewKey && (
-        <NestoModal open onClose={() => setPreviewKey(null)} title={`Preview: ${TEMPLATE_LABELS[previewKey]}`}>
+        <NestoModal open onOpenChange={() => setPreviewKey(null)} title={`Preview: ${TEMPLATE_LABELS[previewKey]}`}>
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-muted-foreground">Onderwerp</Label>
@@ -293,7 +293,7 @@ function TemplateCard({ templateKey, template, expanded, onToggle, onChange, onR
           )}
         </div>
         <div className="flex items-center gap-2">
-          <NestoBadge variant={template.is_active ? 'primary' : 'muted'} size="sm">
+          <NestoBadge variant={template.is_active ? 'primary' : 'default'} size="sm">
             {template.is_active ? 'Actief' : 'Uit'}
           </NestoBadge>
           {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}

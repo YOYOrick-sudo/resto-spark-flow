@@ -16,13 +16,14 @@ import { usePermission } from '@/hooks/usePermission';
 import { nestoToast } from '@/lib/nestoToast';
 import { LogoUploadField } from '@/components/settings/communication/LogoUploadField';
 import { Check, Mail, MessageSquare, MessagesSquare } from 'lucide-react';
+import { GastberichtenTab } from '@/components/settings/communication/GastberichtenTab';
 
 const isValidEmail = (email: string) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 
 const TABS = [
   { id: 'huisstijl', label: 'Huisstijl' },
-  { id: 'gastberichten', label: 'Gastberichten', disabled: true },
+  { id: 'gastberichten', label: 'Gastberichten' },
   { id: 'whatsapp', label: 'WhatsApp', disabled: true },
 ];
 
@@ -304,12 +305,7 @@ export default function SettingsCommunicatie() {
       </NestoTabContent>
 
       <NestoTabContent value="gastberichten" activeValue={activeTab}>
-        <EmptyState
-          icon={MessagesSquare}
-          title="Gastberichten"
-          description="Configureer bevestigingen, reminders en review-verzoeken voor gasten. Beschikbaar in een toekomstige update."
-          size="md"
-        />
+        <GastberichtenTab />
       </NestoTabContent>
 
       <NestoTabContent value="whatsapp" activeValue={activeTab}>
