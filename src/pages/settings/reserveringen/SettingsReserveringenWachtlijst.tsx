@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ListOrdered } from 'lucide-react';
-import { SettingsSectionLayout } from '@/components/settings/SettingsSectionLayout';
+import { SettingsDetailLayout } from '@/components/settings/layouts/SettingsDetailLayout';
 import { buildBreadcrumbs } from '@/lib/settingsRouteConfig';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { Switch } from '@/components/ui/switch';
@@ -46,16 +46,22 @@ export default function SettingsReserveringenWachtlijst() {
 
   if (isLoading || !local) {
     return (
-      <SettingsSectionLayout breadcrumbs={breadcrumbs} title="Wachtlijst" icon={ListOrdered}>
+      <SettingsDetailLayout
+        title={<span className="flex items-center gap-2"><ListOrdered className="w-5 h-5" /> Wachtlijst</span>}
+        breadcrumbs={breadcrumbs}
+      >
         <div className="flex items-center justify-center py-16">
           <div className="w-6 h-6 border-2 border-muted border-t-primary rounded-full animate-spin" />
         </div>
-      </SettingsSectionLayout>
+      </SettingsDetailLayout>
     );
   }
 
   return (
-    <SettingsSectionLayout breadcrumbs={breadcrumbs} title="Wachtlijst" icon={ListOrdered}>
+    <SettingsDetailLayout
+      title={<span className="flex items-center gap-2"><ListOrdered className="w-5 h-5" /> Wachtlijst</span>}
+      breadcrumbs={breadcrumbs}
+    >
       <div className="space-y-8 max-w-2xl">
         {/* Main toggle */}
         <NestoCard>
@@ -187,6 +193,6 @@ export default function SettingsReserveringenWachtlijst() {
           </NestoCard>
         )}
       </div>
-    </SettingsSectionLayout>
+    </SettingsDetailLayout>
   );
 }

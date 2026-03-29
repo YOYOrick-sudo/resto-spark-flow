@@ -27,22 +27,22 @@ function getStatusBadge(entry: WaitlistEntryWithInvites) {
         if (diffMs > 0) {
           const mins = Math.floor(diffMs / 60000);
           return (
-            <NestoBadge variant="info">
+            <NestoBadge variant="primary">
               Uitgenodigd · {mins}m
             </NestoBadge>
           );
         }
       }
-      return <NestoBadge variant="info">Uitgenodigd</NestoBadge>;
+      return <NestoBadge variant="primary">Uitgenodigd</NestoBadge>;
     }
     case 'converted':
       return <NestoBadge variant="success">Geboekt</NestoBadge>;
     case 'expired':
-      return <NestoBadge variant="neutral">Verlopen</NestoBadge>;
+      return <NestoBadge variant="default">Verlopen</NestoBadge>;
     case 'cancelled':
-      return <NestoBadge variant="neutral">Geannuleerd</NestoBadge>;
+      return <NestoBadge variant="default">Geannuleerd</NestoBadge>;
     default:
-      return <NestoBadge variant="neutral">{entry.status}</NestoBadge>;
+      return <NestoBadge variant="default">{entry.status}</NestoBadge>;
   }
 }
 
