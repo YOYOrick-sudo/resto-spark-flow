@@ -92,3 +92,9 @@ verify_jwt = false
 
 [functions.waitlist-accept]
 verify_jwt = false
+
+[functions.waitlist-auto-expire]
+verify_jwt = false
+
+[functions.reservation-reminders]
+verify_jwt = false

@@ -53,6 +53,7 @@ import ReviewsPage from "./pages/marketing/ReviewsPage";
 import PopupPage from "./pages/marketing/PopupPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 import WaitlistAccept from "./pages/WaitlistAccept";
+import ReconfirmReservation from "./pages/ReconfirmReservation";
 
 // New multi-level settings pages
 import {
@@ -89,6 +90,7 @@ const App = () => (
                 <Route path="/book/:slug" element={<BookingWidget />} />
                 <Route path="/manage/:token" element={<ManageReservation />} />
                 <Route path="/waitlist/accept/:token" element={<WaitlistAccept />} />
+                <Route path="/reconfirm/:token" element={<ReconfirmReservation />} />
                 <Route path="/panel-demo" element={<PanelDemo />} />
                 <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
                 <Route path="/widget-mockups" element={<WidgetMockups />} />

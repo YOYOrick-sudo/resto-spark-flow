@@ -95,6 +95,10 @@ export interface ReservationSettings {
   options_enabled: boolean;
   option_default_expiry_hours: number;
   option_auto_release: boolean;
+  reminder_24h_enabled: boolean;
+  reminder_3h_enabled: boolean;
+  reconfirm_enabled: boolean;
+  reconfirm_min_risk_score: number;
   created_at: string;
   updated_at: string;
 }
