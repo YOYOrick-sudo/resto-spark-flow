@@ -4,6 +4,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Minus, Plus, Check, Calendar as CalendarIcon, List, Users, Clock,
 } from 'lucide-react';
+import { WaitlistForm } from './WaitlistForm';
 
 const DAY_NAMES = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
 const DAY_NAMES_SHORT = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
@@ -21,6 +22,7 @@ export function SelectionStep() {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [calendarMode, setCalendarMode] = useState(false);
   const [viewMonth, setViewMonth] = useState(new Date());
+  const [showWaitlistForm, setShowWaitlistForm] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const today = useMemo(() => new Date(), []);
@@ -366,7 +368,19 @@ export function SelectionStep() {
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                 </div>
               ) : flatSlots.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">Geen tijden beschikbaar op deze dag. Kies een andere datum.</p>
+                showWaitlistForm ? (
+                  <WaitlistForm onBack={() => setShowWaitlistForm(false)} />
+                ) : (
+                  <div className="text-center py-6 space-y-3">
+                    <p className="text-sm font-semibold text-gray-700">Helaas, deze dag is volgeboekt</p>
+                    <button
+                      onClick={() => setShowWaitlistForm(true)}
+                      className="text-sm font-medium text-gray-800 underline underline-offset-4 hover:text-gray-600 transition-colors"
+                    >
+                      Zet me op de wachtlijst →
+                    </button>
+                  </div>
+                )
               ) : (
                 <div className="grid grid-cols-4 gap-1.5">
                   {flatSlots.map(({ slot, shift }) => {
