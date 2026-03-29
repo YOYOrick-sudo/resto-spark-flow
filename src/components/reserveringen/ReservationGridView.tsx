@@ -563,6 +563,35 @@ export function ReservationGridView({
             <NowIndicator config={config} scrollContainerRef={containerRef} />
             <TimelineHeader config={config} />
 
+            {/* Shift pacing headers */}
+            {locationId && shifts.filter(s => s.is_active).map((shift) => {
+              const override = pacingOverrides.find(o => o.shift_id === shift.id);
+              const hasOverride = override && (
+                override.override_pacing_limit_covers != null ||
+                override.override_pacing_limit_arrivals != null ||
+                override.override_max_covers_total != null ||
+                override.override_online_booking_enabled != null
+              );
+              return (
+                <div key={`pacing-${shift.id}`} className="flex items-center h-7 border-b border-border/50 bg-muted/30 px-3 gap-2">
+                  <span className={cn("text-xs font-medium", hasOverride ? "text-primary" : "text-muted-foreground")}>
+                    {shift.name} ({shift.start_time.slice(0,5)}-{shift.end_time.slice(0,5)})
+                    {override?.override_pacing_limit_covers != null && ` · ${override.override_pacing_limit_covers} covers`}
+                    {override?.override_pacing_limit_arrivals != null && ` / ${override.override_pacing_limit_arrivals} arrivals`}
+                    {override?.override_max_covers_total != null && ` · max ${override.override_max_covers_total}`}
+                    {override?.override_online_booking_enabled === false && ' · Online uit'}
+                  </span>
+                  <PacingOverridePopover
+                    locationId={locationId}
+                    shiftId={shift.id}
+                    shiftName={shift.name}
+                    date={dateString}
+                    override={override}
+                  />
+                </div>
+              );
+            })}
+
             <SeatedCountRow
               reservations={reservations}
               config={config}
