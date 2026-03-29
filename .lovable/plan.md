@@ -1,154 +1,145 @@
 
 
-# Sprint: Waitlist R3 + Email Templates + Reminders + Squeeze Caps
+# Fase 4.11.5 — Pacing Override per Dag
 
-Vier onderdelen, waarvan squeeze caps al gebouwd is (gratis).
+## Samenvatting
 
----
-
-## Huidige staat
-
-- **Waitlist R1+R2**: compleet (tabellen, edge functions, trigger, widget, operator UI, settings)
-- **evaluate-signals**: 4 providers (config, onboarding, noshow_risk, marketing) — geen waitlist provider
-- **SettingsCommunicatie**: Gastberichten tab is placeholder (disabled, EmptyState)
-- **reservations tabel**: mist `reconfirmed_at`, `reconfirm_token`, `reminder_24h_sent_at`, `reminder_3h_sent_at`, `reconfirm_sent_at`
-- **reservation_settings**: mist reminder/reconfirm kolommen
-- **Geen** `reservation_email_templates` tabel
-- **Reconfirm in policy_sets**: `reconfirm_enabled`, `reconfirm_hours_before`, `reconfirm_required` bestaan al — de reminder engine kan deze per-ticket config gebruiken
-- **ReservationBadges**: toont al "Herbevestigd" badge wanneer `reconfirmed_at` gezet is
+Operators kunnen per dag per shift de pacing overschrijven via de bestaande `shift_exceptions` tabel. Vier nullable kolommen worden toegevoegd. De availability engine, RPC, en widget respecteren deze overrides. Een popover op het Grid laat operators snel aanpassen.
 
 ---
 
 ## 1. Database migratie
 
-Eén migratie met alles:
+4 kolommen op `shift_exceptions`:
 
-**Nieuwe tabel `reservation_email_templates`:**
-- `id`, `location_id` (FK), `template_key` (text), `subject`, `body`, `is_active` (default true), `created_at`, `updated_at`
-- UNIQUE(location_id, template_key)
-- template_key values: `confirmation`, `waitlist_confirmation`, `waitlist_invite`, `cancellation`, `reminder_24h`, `reminder_3h`, `reconfirm`
-- RLS: location-scoped via `user_has_location_access`
+```sql
+ALTER TABLE public.shift_exceptions
+  ADD COLUMN override_pacing_limit_covers INTEGER,
+  ADD COLUMN override_pacing_limit_arrivals INTEGER,
+  ADD COLUMN override_max_covers_total INTEGER,
+  ADD COLUMN override_online_booking_enabled BOOLEAN;
+```
 
-**Kolommen op `reservations`:**
-- `reminder_24h_sent_at` timestamptz nullable
-- `reminder_3h_sent_at` timestamptz nullable
-- `reconfirm_sent_at` timestamptz nullable
-- `reconfirmed_at` timestamptz nullable
-- `reconfirm_token` text nullable
-
-**Kolommen op `reservation_settings`:**
-- `reminder_24h_enabled` boolean DEFAULT true
-- `reminder_3h_enabled` boolean DEFAULT true
-- `reconfirm_enabled` boolean DEFAULT false
-- `reconfirm_min_risk_score` integer DEFAULT 60
+Geen constraints — NULL = gebruik standaard.
 
 ---
 
-## 2. Waitlist Ronde 3
+## 2. RPC: `get_effective_shift_schedule` uitbreiden
 
-### A) `waitlist-auto-expire` Edge Function (nieuw)
+Return type krijgt 4 extra kolommen:
 
-Elke 5 min via pg_cron:
-1. Expire invites: `waitlist_invites` WHERE status='sent' AND expires_at < NOW() → status='expired'
-2. Reset entries: bijbehorende `waitlist_entries` terug naar 'pending'
-3. Expire oude entries: `waitlist_entries` WHERE date < CURRENT_DATE AND status='pending' → status='expired'
-4. Per affected location_id+date: roep `waitlist-invite-engine` aan (next-in-line)
-5. Audit log entries voor expires
+| Kolom | Logica |
+|---|---|
+| `effective_pacing_limit_covers` | `e.override_pacing_limit_covers` (NULL als niet ingesteld) |
+| `effective_pacing_limit_arrivals` | `e.override_pacing_limit_arrivals` (NULL als niet ingesteld) |
+| `effective_max_covers_total` | `e.override_max_covers_total` (NULL als niet ingesteld) |
+| `effective_online_booking_enabled` | `COALESCE(e.override_online_booking_enabled, true)` |
 
-### B) WaitlistSignalProvider in `evaluate-signals`
-
-Nieuwe provider toevoegen aan de providers array:
-- "X gasten op wachtlijst voor vandaag" (info, count > 0)
-- "Uitnodiging verlopen — nog X wachtend" (warning)
-- "Wachtlijst-conversie: [naam] heeft geboekt!" (ok)
-- "Hoge no-show kans + wachtlijst match" (warning, no_show_risk_score >= 60 + matching pending entry)
-- **Nieuw (user feedback):** "Niet herbevestigd + wachtlijst match beschikbaar" (warning, reconfirm_sent_at IS NOT NULL AND reconfirmed_at IS NULL AND sent > 12h ago + matching waitlist entry)
-
-### C) Audit log in waitlist edge functions
-
-Toevoegen aan `waitlist-invite-engine`: `waitlist_invite_sent`, `waitlist_entry_cancelled`
-Toevoegen aan `waitlist-accept`: `waitlist_entry_converted` (naast bestaande `waitlist_invite_accepted`)
+Geen COALESCE met shift-level default — shifts hebben geen pacing kolommen (pacing zit op `shift_tickets.pacing_limit`). De override is een **shift-level cap** die boven de per-ticket pacing zit.
 
 ---
 
-## 3. Email Templates Editor
+## 3. Availability Engine
 
-### Gastberichten tab activeren in `SettingsCommunicatie.tsx`
-- Remove `disabled: true` van gastberichten tab
-- Replace EmptyState met `GastberichtenTab` component
+### `_shared/availabilityEngine.ts`
 
-### `GastberichtenTab.tsx` (nieuw)
-- Lijst van template cards per template_key
-- Per template: subject input, body textarea
-- Merge fields helper: `{voornaam}`, `{achternaam}`, `{datum}`, `{tijd}`, `{gasten}`, `{restaurant}`, `{beheerlink}`, `{ticket}`
-- Preview knop met voorbeeld-data in modal
-- Reset naar standaard knop (hardcoded defaults)
-- Reminder toggles sectie onderaan:
-  - T-24h reminder: aan/uit
-  - T-3h reminder: aan/uit
-  - Reconfirm: aan/uit + drempel (risicoscore slider/input)
+- `EffectiveShift` type: voeg 4 velden toe (`effective_pacing_limit_covers`, `effective_pacing_limit_arrivals`, `effective_max_covers_total`, `effective_online_booking_enabled`)
+- `ReasonCode`: voeg `'shift_capacity_reached'` en `'online_booking_disabled'` toe
+- `loadEngineData`: lees de 4 override kolommen uit `shift_exceptions` query en merge in `activeShifts`
 
-### `useReservationEmailTemplates.ts` (nieuw)
-- CRUD hook voor `reservation_email_templates` per location_id
+### `check-availability/index.ts`
 
-### Backend template lookup
-- `public-booking-api`, `waitlist-invite-engine`, `waitlist-accept`: fetch template uit `reservation_email_templates` met fallback naar huidige hardcoded HTML
+In `checkAvailability()`, vóór de per-ticket loop per shift:
+
+1. **Online booking check**: als `shift.effective_online_booking_enabled === false` en `channel !== 'operator'` → skip gehele shift (geen slots genereren)
+2. **Max covers total check**: als `shift.effective_max_covers_total` is ingesteld → tel alle bevestigde covers voor die shift+dag. Als totaal >= max → alle slots unavailable met `shift_capacity_reached`
+3. **Per-interval pacing override**: als `shift.effective_pacing_limit_covers` is ingesteld → gebruik als **plafond** naast de bestaande `config.pacing_limit` check (meest restrictieve wint)
+
+### Andere edge functions
+
+Zelfde logica toepassen in `public-booking-api`, `waitlist-invite-engine`, `waitlist-accept` — zij lezen dezelfde `loadEngineData` dus de shift-level overrides komen automatisch mee. Alleen de online_booking_enabled en max_covers checks moeten toegevoegd worden in hun evaluatie loops.
 
 ---
 
-## 4. Reminder + Reconfirm
+## 4. UI — Pacing Override Popover
 
-### `reservation-reminders` Edge Function (nieuw)
-Elke 15 min via pg_cron:
-1. T-24h: reserveringen voor morgen WHERE reminder_24h_sent_at IS NULL AND status IN ('confirmed','option') → stuur email, set reminder_24h_sent_at
-2. T-3h: reserveringen komende 3 uur WHERE reminder_3h_sent_at IS NULL → stuur email, set reminder_3h_sent_at
-3. Reconfirm: reserveringen met no_show_risk_score >= threshold WHERE reconfirm_sent_at IS NULL → genereer reconfirm_token, stuur email met link, set reconfirm_sent_at
-4. Respecteert per-locatie settings (`reminder_24h_enabled`, etc.) en per-ticket policy_set reconfirm config
+### Nieuw: `PacingOverridePopover.tsx`
 
-### Public route `/reconfirm/:token`
-- `ReconfirmReservation.tsx`: fetch reservation via token, toon "Bevestig je reservering", POST → update reconfirmed_at
-- Eenvoudige branded pagina (restaurant naam, datum/tijd, checkmark na bevestiging)
+Popover (Radix) met:
+- Covers per interval: number input
+- Arrivals per interval: number input  
+- Max covers totaal: number input (optioneel)
+- Online boeken: toggle
+- [Opslaan] → **upsert** `shift_exceptions` op `location_id + shift_id + exception_date`
+  - Als record al bestaat: UPDATE alleen de 4 override kolommen
+  - Als geen record: INSERT met `exception_type = 'modified'`
+- [Reset] → zet 4 override kolommen op NULL (verwijder record niet — kan andere exception data bevatten)
 
-### Operator-kant (user feedback #1)
-- `ReservationBadges.tsx`: toont al "Herbevestigd" badge — **werkt automatisch** zodra `reconfirmed_at` kolom bestaat
-- `ReservationDetailPanel.tsx`: toon "Herbevestigd om {timestamp}" onder status badge wanneer `reconfirmed_at` gezet is
-- Grid/List view: de badge is al zichtbaar via `ReservationBadges` component
+### `ReservationGridView.tsx` aanpassen
+
+Boven de bestaande pacing rij, per actieve shift een header balk:
+- Toont: `"Diner (17:30-22:00) · Pacing: 40 covers [Aanpassen]"`
+- Bij override actief → tekst blauw + indicator bolletje
+- Klik "Aanpassen" → opent PacingOverridePopover
+
+Vervang `getPacingLimitForTime()` (mock data) door echte shift exception data.
+
+### Nieuw: `usePacingOverrides.ts`
+
+- Query: `shift_exceptions` voor datum + locatie, select de 4 override kolommen
+- Mutation: upsert op `location_id + shift_id + exception_date`
+- Audit log bij opslaan/reset
 
 ---
 
-## 5. Squeeze Caps
+## 5. Signals — evaluate-signals
 
-Geen werk nodig — al volledig geïmplementeerd in `check-availability`, `public-booking-api`, en `waitlist-invite-engine`.
+Nieuw `pacingProvider` in providers array:
+- "Pacing override actief: [shift] heeft [X] covers (standaard: [Y])" (info)
+- "Pacing bereikt 80%: [shift] heeft [X]/[max] covers" (warning)
+- "Online boeken uitgeschakeld voor [shift] vandaag" (info)
 
 ---
 
-## Bestanden overzicht
+## 6. Audit Log
+
+Bij pacing override upsert/reset → log naar `audit_log`:
+- `pacing_override_updated` / `pacing_override_reset`
+
+---
+
+## Kritieke implementatiedetails
+
+1. **Online booking disabled in widget**: `check-availability` skipt de shift voor non-operator channels. De widget ziet die shift niet → geen slots. Dit is de correcte plek — `public-booking-api` hoeft niet apart te checken want die roept `check-availability` aan.
+
+2. **Upsert logica**: match op `location_id + shift_id + exception_date`. Een dag kan al een exception hebben (bijv. aangepaste tijden). De pacing override UPDATE die bestaande record, maakt geen nieuwe aan. Bij geen bestaand record: INSERT met `exception_type = 'modified'`.
+
+3. **Pacing check volgorde**: shift-level override draait VÓÓR per-ticket check. `effective_max_covers_total` en `effective_pacing_limit_covers` worden gecheckt voordat de per-`config.pacing_limit` check draait.
+
+---
+
+## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| SQL migratie | `reservation_email_templates` + reservations kolommen + reservation_settings kolommen |
-| `supabase/functions/waitlist-auto-expire/index.ts` | **Nieuw** — cron expire handler |
-| `supabase/functions/evaluate-signals/index.ts` | Waitlist provider toevoegen |
-| `supabase/functions/waitlist-invite-engine/index.ts` | Audit log + template lookup |
-| `supabase/functions/waitlist-accept/index.ts` | Audit log + template lookup |
-| `supabase/functions/reservation-reminders/index.ts` | **Nieuw** — T-24h, T-3h, reconfirm |
-| `supabase/functions/public-booking-api/index.ts` | Template lookup |
-| `src/pages/settings/SettingsCommunicatie.tsx` | Gastberichten tab activeren |
-| `src/components/settings/communication/GastberichtenTab.tsx` | **Nieuw** — template editor + reminder toggles |
-| `src/hooks/useReservationEmailTemplates.ts` | **Nieuw** |
-| `src/pages/ReconfirmReservation.tsx` | **Nieuw** — public bevestigingspagina |
-| `src/components/reservations/ReservationDetailPanel.tsx` | Reconfirmed timestamp tonen |
-| `src/App.tsx` | Route `/reconfirm/:token` toevoegen |
-| pg_cron inserts (2x) | waitlist-auto-expire elke 5 min, reservation-reminders elke 15 min |
+| SQL migratie | 4 kolommen op `shift_exceptions` + RPC update |
+| `supabase/functions/_shared/availabilityEngine.ts` | Types + loadEngineData uitbreiden |
+| `supabase/functions/check-availability/index.ts` | Online booking + max covers + pacing override checks |
+| `supabase/functions/public-booking-api/index.ts` | Zelfde checks |
+| `supabase/functions/waitlist-invite-engine/index.ts` | Zelfde checks |
+| `supabase/functions/waitlist-accept/index.ts` | Zelfde checks |
+| `src/components/reserveringen/PacingOverridePopover.tsx` | **Nieuw** |
+| `src/components/reserveringen/ReservationGridView.tsx` | Shift pacing header + vervang mock |
+| `src/hooks/usePacingOverrides.ts` | **Nieuw** |
+| `supabase/functions/evaluate-signals/index.ts` | pacingProvider toevoegen |
+| `src/types/shifts.ts` | ShiftException type uitbreiden |
 
 ## Volgorde
 
-1. DB migratie (alles in één)
-2. `waitlist-auto-expire` + pg_cron
-3. `evaluate-signals` waitlist provider
-4. Audit log in invite-engine + accept
-5. `GastberichtenTab` + hook + template lookup in edge functions
-6. `reservation-reminders` + pg_cron + `ReconfirmReservation.tsx`
-7. Detail panel reconfirm timestamp
-8. Deploy alle edge functions
+1. DB migratie (kolommen + RPC)
+2. `availabilityEngine.ts` types + data loader
+3. `check-availability` + `public-booking-api` + waitlist functions
+4. `PacingOverridePopover` + hook + Grid integratie
+5. `evaluate-signals` pacingProvider
+6. Types bijwerken
 
