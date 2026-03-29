@@ -418,7 +418,9 @@ export function ReservationGridView({
 
   // Use real areas from database
   const { data: areas = [] } = useAreasForGrid(locationId);
-
+  
+  // Pacing overrides for this date
+  const { data: pacingOverrides = [] } = usePacingOverrides(locationId, dateString);
   const gridWidth = (config.endHour - config.startHour) * 60 * config.pixelsPerMinute;
   const totalWidth = STICKY_COL_WIDTH + gridWidth;
 
