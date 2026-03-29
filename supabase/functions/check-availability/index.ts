@@ -191,7 +191,7 @@ function evaluateSlot(
     }
   }
 
-  // === 4. Pacing Check ===
+  // === 4. Shift-level Pacing Override Check (most restrictive wins) ===
   const slotEndMinutes = slotMinutes + baseDuration + buffer;
   const reservationsInSlot = getReservationsInInterval(
     data.reservations,
@@ -201,6 +201,23 @@ function evaluateSlot(
     shift.arrival_interval_minutes
   );
 
+  if (shift.effective_pacing_limit_covers != null) {
+    // Shift-level: count ALL reservations in this interval across all tickets
+    const allReservationsInSlot = data.reservations.filter(r => {
+      if (r.shift_id !== shift.shift_id) return false;
+      const rStart = timeToMinutes(r.start_time);
+      return rStart >= slotMinutes && rStart < slotMinutes + shift.arrival_interval_minutes;
+    });
+    const allCovers = allReservationsInSlot.reduce((sum, r) => sum + r.party_size, 0);
+    if (allCovers + partySize > shift.effective_pacing_limit_covers + overbookingCovers) {
+      return trySqueezeOrFail(
+        slotTime, slotMinutes, shift, config, ticket, data,
+        partySize, overbookingCovers, 'pacing_full', baseDuration
+      );
+    }
+  }
+
+  // === 5. Per-ticket Pacing Check ===
   if (!config.ignore_pacing && config.pacing_limit != null) {
     const currentCovers = reservationsInSlot.reduce((sum, r) => sum + r.party_size, 0);
     if (currentCovers + partySize > config.pacing_limit + overbookingCovers) {
@@ -211,7 +228,7 @@ function evaluateSlot(
     }
   }
 
-  // === 5. Max Covers (Seating Limit) Check ===
+  // === 6. Max Covers (Seating Limit) Check ===
   if (config.seating_limit_guests != null) {
     const totalCoversInShift = getShiftTotalCovers(
       data.reservations,
