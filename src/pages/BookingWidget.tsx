@@ -259,8 +259,8 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
 
           {/* Back button */}
           <div className="flex gap-3">
-            <button onClick={back} className="h-12 w-12 rounded-[10px] bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <button onClick={back} className="h-12 w-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all">
+              <ChevronLeft className="w-5 h-5" style={{ color: 'var(--widget-primary)' }} />
             </button>
             <div className="flex-1" />
           </div>
