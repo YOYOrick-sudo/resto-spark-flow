@@ -1,51 +1,72 @@
 
 
-# Sidebar Premium Polish
+# Widget Redesign — Premium & Brand-Aware
 
-De sidebar is functioneel solide maar kan visueel verfijnder. Hier zijn de verbeteringen:
+## Probleem
 
----
+De widget gebruikt overal hardcoded `bg-gray-800` en `#1a1a1a`. Het restaurant configureert een `brand_color` in de widget settings, maar die wordt nergens toegepast. De widget voelt generiek en niet van het kaliber dat bij Nesto hoort.
 
-## Wijzigingen
+## Aanpak: Brand Color Doorvoeren + Premium Polish
 
-### 1. Zoekbalk — subtielere styling
-- Achtergrond naar `bg-muted/50` i.p.v. `bg-background` met border
-- Border verwijderen in default state, alleen border op hover/focus
-- `rounded-xl` voor zachtere vorm
-- ⌘K badge: kleiner, `text-[10px]`, subtielere achtergrond
+### 1. Brand color als primaire kleur overal
 
-### 2. Menu items — betere active state
-- Active items: zachte `bg-card shadow-sm` i.p.v. alleen `bg-card border-border` — schaduw geeft diepte
-- Hover state: `hover:bg-accent/40` met subtiele overgang
-- Padding verhogen naar `py-2 px-3` voor meer ademruimte
-- Icon size naar 18px voor betere balans
+De `config.brand_color` (al beschikbaar via BookingContext) wordt de primaire interactiekleur:
 
-### 3. Section labels — verfijnder
-- Letter-spacing iets vergroten (`tracking-[0.12em]`)
-- Font-size naar `text-[10px]` voor meer contrast met menu items
-- Meer spacing erboven (`pt-6`)
+- **CTA knoppen**: `brand_color` achtergrond i.p.v. `#1a1a1a`
+- **Geselecteerde datumchip**: `brand_color` i.p.v. `bg-gray-800`
+- **Geselecteerde tijdslot**: `brand_color` i.p.v. `bg-gray-800`
+- **Geselecteerde ticket ring**: `brand_color` border i.p.v. `#1a1a1a`
+- **Progress bars**: `brand_color` i.p.v. `bg-gray-800`
+- **Booking question chips**: `brand_color` i.p.v. `bg-gray-800`
+- **Focus rings**: `brand_color/30` i.p.v. `ring-gray-300`
+- **Checkmark cirkel**: `brand_color` tint i.p.v. hardcoded `bg-green-100`
 
-### 4. Sub-items — strakker
-- Verticale lijn: van `muted-foreground/25` naar `border/80` — subtielere kleur
-- Active sub-item: toevoegen van een kleine teal dot (4px) links van het label als indicator
+### 2. Subtiele UI polish
 
-### 5. Footer — premium user card
-- User avatar: subtiele `ring-1 ring-border` eromheen
-- Restaurant naam: `text-xs text-muted-foreground` (kleiner, secundair)
-- User naam: `text-sm font-medium`
-- Hele footer card: `bg-muted/30 rounded-xl mx-2 mb-2 p-2.5` — floating card effect
+- **Input fields**: Verfijnd met `rounded-2xl` (consistent met knoppen), subtielere borders
+- **Confirmation card**: Ticket naam prominent bovenaan, serif font voor restaurantnaam
+- **Footer**: Restaurantnaam in lichtere tint, kleiner, eleganter
+- **Spacing**: Iets meer lucht tussen secties (space-y-4 → space-y-5 waar nodig)
 
-### 6. Header — cleaner
-- Icoon knoppen (Zap, PanelLeft): `hover:bg-accent/50 rounded-lg` voor consistentie
-- Meer spacing onder header (`pb-2`)
+### 3. Accent color als secondary
 
----
+De `config.accent_color` (ook beschikbaar) wordt gebruikt voor:
+- "Welkom terug" heart icon
+- Availability dots (medium → accent, low → red blijft)
+- Secondary links hover state
+
+### 4. Implementatie — CSS custom properties
+
+In `BookingWidgetInner`, zet CSS custom properties op de container:
+```
+style={{
+  '--widget-primary': config.brand_color || '#1a1a1a',
+  '--widget-accent': config.accent_color || '#10B981',
+}}
+```
+
+Dan in alle child components: `style={{ backgroundColor: 'var(--widget-primary)' }}` i.p.v. hardcoded waarden. Dit voorkomt prop-drilling en werkt met inline styles.
 
 ## Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/layout/NestoSidebar.tsx` | Alle bovenstaande polish |
+| `src/pages/BookingWidget.tsx` | CSS vars zetten, CTA knoppen, progress bars, summary |
+| `src/components/booking/SelectionStep.tsx` | Datum/tijd/ticket selectie kleuren |
+| `src/components/booking/GuestDetailsStep.tsx` | Submit knop, input focus, chips |
+| `src/components/booking/ConfirmationStep.tsx` | Checkmark kleur, retry knop |
+| `src/components/booking/BookingProgress.tsx` | Progress bars brand color |
+| `src/components/booking/WaitlistForm.tsx` | CTA knop kleur |
 
-Geen nieuwe bestanden, geen functionele wijzigingen. Puur visuele verfijning.
+## Wat NIET verandert
+
+- Layout en flow (3 stappen, selector logica, embed mode)
+- Typografie (Inter blijft)
+- Achtergrondkleur (`#FAFAFA` blijft)
+- Ambient background effect
+- Functionele logica
+
+## Resultaat
+
+Een widget die eruitziet alsof het *van* het restaurant is — met hun kleuren — maar met de strakke Nesto-kwaliteit erachter. Vergelijkbaar met hoe Stripe Checkout de merchant-kleuren overneemt.
 

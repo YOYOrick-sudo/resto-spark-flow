@@ -120,7 +120,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
       collapsed ? "w-14" : "w-60"
     )}>
       {/* Header */}
-      <div className={cn("p-4 pb-2", collapsed && "px-2 py-4 flex justify-center")}>
+      <div className={cn("p-4", collapsed && "px-2 py-4 flex justify-center")}>
         {collapsed ? (
           <NestoLogo size="sm" showWordmark={false} />
         ) : (
@@ -129,7 +129,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="p-1.5 rounded-lg transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
+                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
                 aria-label="Notificaties"
               >
                 <Zap size={18} strokeWidth={0} className="fill-foreground" />
@@ -140,7 +140,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className="p-1.5 rounded-lg transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 aria-label="Sidebar inklappen"
               >
                 <PanelLeft size={18} strokeWidth={2} className="text-foreground" />
@@ -159,10 +159,10 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
             className="relative group w-full"
           >
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <div className="w-full h-9 pl-9 pr-12 bg-muted/50 rounded-xl text-sm text-muted-foreground flex items-center hover:bg-muted/80 transition-colors">
+            <div className="w-full h-9 pl-9 pr-12 bg-background border-[1.5px] border-border rounded-lg text-sm text-muted-foreground flex items-center hover:border-primary/40 transition-colors">
               Zoeken...
             </div>
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/70 bg-background/80 border border-border/50 px-1.5 py-0.5 rounded-md pointer-events-none">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded-md pointer-events-none">
               ⌘K
             </span>
           </button>
@@ -236,8 +236,8 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
               <li key={item.id}>
                 {/* Section label */}
                 {showSectionLabel && (
-                  <div className="px-3 pt-6 pb-1">
-                    <span className="text-[10px] text-muted-foreground/60 tracking-[0.12em] uppercase">
+                  <div className="px-3 pt-5 pb-1">
+                    <span className="text-caption text-muted-foreground/60 tracking-widest uppercase">
                       {item.section}
                     </span>
                   </div>
@@ -258,14 +258,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         handleExpandableClick(item);
                       }}
                       className={cn(
-'group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-colors duration-200',
+'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
                         'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                         hasActiveChild
-                          ? 'bg-card border-border shadow-sm text-foreground font-medium'
-                          : 'border-transparent text-muted-foreground font-medium hover:text-foreground hover:bg-accent/40'
+                          ? 'bg-card border-border text-foreground font-medium'
+                          : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
                       )}
                     >
-                      <Icon size={18} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
+                      <Icon size={16} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
                       <span className="flex-1 text-left">{item.label}</span>
                       {item.id === 'marketing' && atRiskCount > 10 && (
                         <NestoBadge variant="error" size="sm" className="ml-auto mr-1">{atRiskCount}</NestoBadge>
@@ -280,7 +280,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     </button>
                     
                     <ExpandableContent isOpen={isExpanded || !!hasActiveChild}>
-                      <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-border/80">
+                      <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
                         <ul>
                           {item.subItems.map((subItem) => {
                             const isSubActive = activeItemId === subItem.id;
@@ -306,14 +306,13 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center gap-2 px-2.5 py-1 text-[13px] transition-colors duration-200 rounded-lg',
+                                    'w-full flex items-center px-2.5 py-1 text-[13px] transition-colors duration-200 rounded-lg',
                                     'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                                     isSubActive
                                       ? 'text-primary font-medium hover:text-primary'
                                       : 'text-muted-foreground font-medium hover:text-foreground'
                                   )}
                                 >
-                                  {isSubActive && <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />}
                                   {subItem.label}
                                 </button>
                               </li>
@@ -340,14 +339,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     type="button"
                     onClick={() => { if (item.path) handleNavigation(item.path); }}
                     className={cn(
-                      'group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-colors duration-200',
+                      'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
                       'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                       isActive
-                        ? 'bg-card border-border shadow-sm text-foreground font-medium'
-                        : 'text-muted-foreground font-medium hover:text-foreground hover:bg-accent/40'
+                        ? 'bg-card border-border text-foreground font-medium'
+                        : 'text-muted-foreground font-medium hover:text-foreground'
                     )}
                   >
-                    <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
+                    <Icon size={16} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
                     <span>{item.label}</span>
                     {item.id === 'assistent' && hasAttentionSignals && (
                       <span className="w-1.5 h-1.5 rounded-full bg-warning ml-auto flex-shrink-0" />
@@ -381,19 +380,17 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
           </div>
         </div>
       ) : (
-        <div className="px-2 pb-2">
-          <div className="bg-muted/30 rounded-xl p-2.5 space-y-2">
-            <div className="flex items-center gap-2 px-1">
-              <Building2 size={14} className="text-muted-foreground flex-shrink-0" />
-              <span className="text-xs text-muted-foreground truncate">Restaurant Demo</span>
+        <div className="border-t border-border px-3 pt-3 pb-3 space-y-2">
+          <div className="flex items-center gap-2 px-2.5">
+            <Building2 size={16} className="text-muted-foreground flex-shrink-0" />
+            <span className="text-sm font-medium text-foreground truncate">Restaurant Demo</span>
+          </div>
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+            <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center flex-shrink-0">
+              JD
             </div>
-            <div className="flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-accent/40 cursor-pointer transition-colors">
-              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center flex-shrink-0 ring-1 ring-border">
-                JD
-              </div>
-              <span className="text-sm font-medium text-foreground truncate flex-1">Jan de Vries</span>
-              <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
-            </div>
+            <span className="text-sm text-foreground truncate flex-1">Jan de Vries</span>
+            <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
           </div>
         </div>
       )}
