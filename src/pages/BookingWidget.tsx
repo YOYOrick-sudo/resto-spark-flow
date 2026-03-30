@@ -205,10 +205,10 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
           <button
             onClick={next}
             disabled={!canGoNext}
-            className="w-full h-12 rounded-2xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 text-white hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-            style={{ backgroundColor: 'var(--widget-primary)' }}
+            className="w-full h-12 rounded-2xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 text-white hover:scale-[1.02] active:scale-[0.98]"
+            style={{ backgroundColor: 'var(--widget-primary)', boxShadow: canGoNext ? `0 4px 14px color-mix(in srgb, var(--widget-primary) 30%, transparent)` : undefined }}
           >
-            Volgende (1/2)
+            Volgende
           </button>
         </div>
       )}
