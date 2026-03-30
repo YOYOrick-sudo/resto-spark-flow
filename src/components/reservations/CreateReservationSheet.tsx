@@ -632,8 +632,18 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Email toggle — only if customer has email */}
+              {!isWalkIn && selectedCustomer?.email && (
+                <div className="flex items-center justify-between p-3 rounded-xl border border-border">
+                  <div>
+                    <p className="text-sm font-medium">Bevestigingsmail sturen</p>
+                    <p className="text-xs text-muted-foreground">{selectedCustomer.email}</p>
+                  </div>
+                  <Switch checked={sendConfirmation} onCheckedChange={setSendConfirmation} />
+                </div>
+              )}
             </div>
-          )}
         </div>
       )}
     </NestoPanel>

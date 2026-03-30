@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Plus, Footprints, Calendar } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { EmptyState } from "@/components/polar";
