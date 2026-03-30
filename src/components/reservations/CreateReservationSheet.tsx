@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Switch } from '@/components/ui/switch';
+import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -111,6 +113,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const [channel, setChannel] = useState<ReservationChannel>('operator');
   const [guestNotes, setGuestNotes] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
+  const [sendConfirmation, setSendConfirmation] = useState(true);
   const [initialStatus, setInitialStatus] = useState<ReservationStatus>('confirmed');
   const [preview, setPreview] = useState<AssignTableResult | null>(null);
 
@@ -280,6 +283,16 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
       // result is a UUID string from create_reservation RPC
       const reservationId = result as string;
 
+      // Send confirmation email (fire-and-forget)
+      const customerEmail = selectedCustomer?.email;
+      if (sendConfirmation && !isWalkIn && customerEmail && reservationId) {
+        supabase.functions.invoke('send-reservation-email', {
+          body: { reservation_id: reservationId, template_key: 'confirmation' },
+        }).catch((err) => console.error('[EMAIL]', err));
+      }
+
+      const emailSent = sendConfirmation && !isWalkIn && !!customerEmail;
+
       // Auto-assign after creation
       if (tableMode === 'auto' && effectiveDuration && reservationId) {
         try {
@@ -294,15 +307,15 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
             reservation_id: reservationId,
           });
           if (assignResult.assigned) {
-            nestoToast.success(`Reservering aangemaakt — ${assignResult.table_name} toegewezen`);
+            nestoToast.success(`Reservering aangemaakt — ${assignResult.table_name} toegewezen${emailSent ? ' · Bevestiging verstuurd' : ''}`);
           } else {
-            nestoToast.warning('Reservering aangemaakt zonder tafel');
+            nestoToast.warning(`Reservering aangemaakt zonder tafel${emailSent ? ' · Bevestiging verstuurd' : ''}`);
           }
         } catch {
-          nestoToast.warning('Reservering aangemaakt, tafeltoewijzing mislukt');
+          nestoToast.warning(`Reservering aangemaakt, tafeltoewijzing mislukt${emailSent ? ' · Bevestiging verstuurd' : ''}`);
         }
       } else {
-        nestoToast.success('Reservering aangemaakt');
+        nestoToast.success(`Reservering aangemaakt${emailSent ? ' · Bevestiging verstuurd' : ''}`);
       }
       handleClose();
     } catch (err: any) {
@@ -619,6 +632,17 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Email toggle — only if customer has email */}
+              {!isWalkIn && selectedCustomer?.email && (
+                <div className="flex items-center justify-between p-3 rounded-xl border border-border">
+                  <div>
+                    <p className="text-sm font-medium">Bevestigingsmail sturen</p>
+                    <p className="text-xs text-muted-foreground">{selectedCustomer.email}</p>
+                  </div>
+                  <Switch checked={sendConfirmation} onCheckedChange={setSendConfirmation} />
+                </div>
+              )}
             </div>
           )}
         </div>
