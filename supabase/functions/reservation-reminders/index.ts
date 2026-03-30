@@ -20,15 +20,15 @@ function getAdminClient() {
 const DEFAULT_TEMPLATES: Record<string, { subject: string; body: string }> = {
   reminder_24h: {
     subject: 'Herinnering: je reservering morgen bij {restaurant}',
-    body: 'Hoi {voornaam}, dit is een herinnering voor je reservering morgen.\n\n📅 {datum}\n🕐 {tijd}\n👥 {gasten} gasten\n\nWe kijken ernaar uit je te verwelkomen!\n\n{restaurant}',
+    body: 'Beste {voornaam}, dit is een herinnering voor je reservering morgen.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nWe kijken ernaar uit je te verwelkomen.\n\n{restaurant}',
   },
   reminder_3h: {
     subject: 'Vanavond: je reservering bij {restaurant} om {tijd}',
-    body: 'Hoi {voornaam}, nog even ter herinnering — je reservering is vandaag!\n\n📅 {datum}\n🕐 {tijd}\n👥 {gasten} gasten\n\nTot straks!\n\n{restaurant}',
+    body: 'Beste {voornaam}, nog even ter herinnering — je reservering is vandaag.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nTot straks.\n\n{restaurant}',
   },
   reconfirm: {
     subject: 'Bevestig je reservering bij {restaurant}',
-    body: 'Hoi {voornaam}, wil je je reservering even bevestigen?\n\n📅 {datum}\n🕐 {tijd}\n👥 {gasten} gasten\n\nKlik op de knop hieronder om te bevestigen.',
+    body: 'Beste {voornaam}, wil je je reservering even bevestigen?\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nKlik op de knop hieronder om te bevestigen.',
   },
 };
 
