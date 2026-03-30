@@ -188,9 +188,10 @@ export function GuestDetailsStep() {
                       }}
                       className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                         selected
-                          ? 'border-gray-800 bg-gray-800 text-white'
+                          ? 'text-white border-transparent'
                           : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                       }`}
+                      style={selected ? { backgroundColor: 'var(--widget-primary)', borderColor: 'var(--widget-primary)' } : undefined}
                     >
                       {opt}
                     </button>
