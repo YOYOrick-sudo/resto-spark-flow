@@ -110,3 +110,6 @@ verify_jwt = false
 
 [functions.mollie-create-refund]
 verify_jwt = false
+
+[functions.send-reservation-email]
+verify_jwt = false
