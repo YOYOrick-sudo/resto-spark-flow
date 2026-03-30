@@ -259,12 +259,12 @@ export function SelectionStep() {
                           key={i}
                           data-day={i}
                           onClick={() => handleDateSelect(i)}
-                          className={`flex flex-col items-center min-w-[48px] py-2 px-1.5 rounded-2xl transition-all duration-200 text-center ${
+                          className={`flex flex-col items-center min-w-[50px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center ${
                             isSelected
-                              ? 'text-white shadow-md'
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
+                              ? 'text-white'
+                              : 'bg-white text-gray-600 hover:bg-gray-50 hover:-translate-y-0.5'
                           }`}
-                          style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } : { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+                          style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: `0 4px 14px color-mix(in srgb, var(--widget-primary) 35%, transparent)` } : { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
                         >
                           <span className="text-[10px] uppercase font-medium opacity-70">{DAY_NAMES[d.getDay()]}</span>
                           <span className="text-base font-bold">{d.getDate()}</span>
