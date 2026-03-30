@@ -113,6 +113,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
   const [channel, setChannel] = useState<ReservationChannel>('operator');
   const [guestNotes, setGuestNotes] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
+  const [sendConfirmation, setSendConfirmation] = useState(true);
   const [initialStatus, setInitialStatus] = useState<ReservationStatus>('confirmed');
   const [preview, setPreview] = useState<AssignTableResult | null>(null);
 
