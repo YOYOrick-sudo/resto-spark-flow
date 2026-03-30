@@ -397,12 +397,12 @@ export function SelectionStep() {
                           isUnavailable
                             ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
                             : isSelected
-                            ? 'bg-gray-800 text-white shadow-md'
+                            ? 'text-white shadow-md'
                             : availability === 'low'
                             ? 'bg-red-50 text-gray-700 hover:bg-red-100'
                             : 'bg-white text-gray-700 hover:bg-gray-100'
                         }`}
-                        style={!isSelected && !isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
+                        style={isSelected ? { backgroundColor: 'var(--widget-primary)' } : (!isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {})}
                       >
                         <span>{slot.time}</span>
                         {!isUnavailable && availability === 'medium' && (
