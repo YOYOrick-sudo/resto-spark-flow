@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { User, Mail, Phone, Loader2, Heart } from 'lucide-react';
+import { User, Mail, Phone, Loader2, Heart, Check } from 'lucide-react';
 
 function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
   icon: React.ReactNode; label: string; value: string; onChange: (v: string) => void; type?: string; onBlur?: () => void;
