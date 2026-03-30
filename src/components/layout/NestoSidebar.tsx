@@ -120,7 +120,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
       collapsed ? "w-14" : "w-60"
     )}>
       {/* Header */}
-      <div className={cn("p-4", collapsed && "px-2 py-4 flex justify-center")}>
+      <div className={cn("p-4 pb-2", collapsed && "px-2 py-4 flex justify-center")}>
         {collapsed ? (
           <NestoLogo size="sm" showWordmark={false} />
         ) : (
@@ -129,7 +129,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
+                className="p-1.5 rounded-lg transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
                 aria-label="Notificaties"
               >
                 <Zap size={18} strokeWidth={0} className="fill-foreground" />
@@ -140,7 +140,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="p-1.5 rounded-lg transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 aria-label="Sidebar inklappen"
               >
                 <PanelLeft size={18} strokeWidth={2} className="text-foreground" />
