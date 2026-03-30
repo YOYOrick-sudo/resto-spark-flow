@@ -335,7 +335,7 @@ export function SelectionStep() {
 
             {/* Guests */}
             <div>
-              <div className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3">
+              <div className="flex items-center justify-between bg-gray-50/80 rounded-2xl px-4 py-3.5">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-400" />
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Gasten</span>
@@ -343,14 +343,14 @@ export function SelectionStep() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setPartySize(Math.max(minParty, data.party_size - 1))}
-                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                    className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-gray-300 hover:shadow-sm transition-all"
                   >
                     <Minus className="w-3.5 h-3.5 text-gray-600" />
                   </button>
                   <span className="text-lg font-bold w-8 text-center text-gray-900 tabular-nums">{data.party_size}</span>
                   <button
                     onClick={() => setPartySize(Math.min(maxParty, data.party_size + 1))}
-                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                    className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-gray-300 hover:shadow-sm transition-all"
                   >
                     <Plus className="w-3.5 h-3.5 text-gray-600" />
                   </button>
