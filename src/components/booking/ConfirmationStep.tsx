@@ -1,5 +1,9 @@
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { Calendar, ExternalLink, Check } from 'lucide-react';
+import { Calendar, ExternalLink, Check, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+type PaymentState = 'checking' | 'paid' | 'pending' | 'failed' | 'timeout';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -13,12 +17,79 @@ function Row({ label, value }: { label: string; value: string }) {
 export function ConfirmationStep() {
   const { config, data, guestData, bookingResult, setStep, setDate, setPartySize, setSelectedSlot, setSelectedTicket, setGuestData } = useBooking();
 
+  const [paymentState, setPaymentState] = useState<PaymentState>(
+    bookingResult?.requires_payment ? 'checking' : 'paid'
+  );
+  const pollCount = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Poll payment status
+  useEffect(() => {
+    if (!bookingResult?.requires_payment || !bookingResult.manage_token) return;
+
+    const poll = async () => {
+      pollCount.current++;
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-booking-api?action=manage&token=${bookingResult.manage_token}`
+        );
+        if (!res.ok) return;
+        const json = await res.json();
+        const status = json.reservation?.payment_status;
+
+        if (status === 'paid' || status === 'deposit_paid') {
+          setPaymentState('paid');
+          stopPolling();
+        } else if (status === 'expired' || status === 'failed' || status === 'canceled') {
+          setPaymentState('failed');
+          stopPolling();
+        } else {
+          setPaymentState('pending');
+        }
+      } catch {
+        // continue polling
+      }
+
+      if (pollCount.current >= 20) {
+        setPaymentState('timeout');
+        stopPolling();
+      }
+    };
+
+    poll(); // immediate first check
+    intervalRef.current = setInterval(poll, 3000);
+
+    return stopPolling;
+  }, [bookingResult?.requires_payment, bookingResult?.manage_token, stopPolling]);
+
+  const handleRetryPayment = async () => {
+    if (!bookingResult?.reservation_id) return;
+    setPaymentState('checking');
+    try {
+      const { data: paymentData, error } = await supabase.functions.invoke('mollie-create-payment', {
+        body: { reservation_id: bookingResult.reservation_id },
+      });
+      if (error) throw error;
+      if (paymentData?.checkout_url) {
+        window.location.href = paymentData.checkout_url;
+      }
+    } catch {
+      setPaymentState('failed');
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
-  // Google Calendar link
   const calendarUrl = (() => {
     if (!data.date || !data.selectedSlot) return null;
     const start = new Date(`${data.date}T${data.selectedSlot.time}:00`);
@@ -40,13 +111,58 @@ export function ConfirmationStep() {
     setPartySize(2);
     setSelectedSlot(null, null);
     setSelectedTicket(null);
-    setGuestData({ first_name: '', last_name: '', email: '', phone: '', guest_notes: '', booking_answers: [], honeypot: '' });
+    setGuestData({ first_name: '', last_name: '', email: '', phone: '', guest_notes: '', booking_answers: [], honeypot: '', marketing_optin: false });
     setStep(1);
   };
 
+  // Payment pending/checking states
+  if (paymentState === 'checking' || paymentState === 'pending') {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4 px-5">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-sm text-gray-500 text-center">Betaling wordt verwerkt...</p>
+      </div>
+    );
+  }
+
+  if (paymentState === 'failed') {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4 px-5">
+        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-red-600" />
+        </div>
+        <div className="text-center space-y-1">
+          <h3 className="text-lg font-bold text-gray-800">Betaling mislukt</h3>
+          <p className="text-sm text-gray-500">De betaling is niet gelukt. Probeer het opnieuw.</p>
+        </div>
+        <button
+          onClick={handleRetryPayment}
+          className="h-11 rounded-[10px] px-6 text-sm font-medium bg-primary text-primary-foreground flex items-center gap-2 hover:opacity-90 transition-all"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Opnieuw betalen
+        </button>
+      </div>
+    );
+  }
+
+  if (paymentState === 'timeout') {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4 px-5">
+        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-amber-600" />
+        </div>
+        <div className="text-center space-y-1">
+          <h3 className="text-lg font-bold text-gray-800">Even geduld</h3>
+          <p className="text-sm text-gray-500">We wachten nog op de bevestiging van je betaling. Controleer je e-mail voor updates.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // paymentState === 'paid' — normal confirmation
   return (
     <div className="flex flex-col items-center justify-center py-8 space-y-6 px-5">
-      {/* Animated checkmark */}
       <div
         className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center"
         style={{ animation: 'checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
@@ -59,7 +175,6 @@ export function ConfirmationStep() {
         <p className="text-sm text-gray-500">Je reservering is geplaatst. Je ontvangt een bevestiging per e-mail.</p>
       </div>
 
-      {/* Ticket-style summary card */}
       <div className="w-full bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <div className="border-b-2 border-dashed border-gray-200 px-5 py-3">
           <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold text-center">Reservering</p>
@@ -75,7 +190,6 @@ export function ConfirmationStep() {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="w-full flex flex-col gap-2">
         {calendarUrl && (
           <a
