@@ -7,9 +7,9 @@ type PaymentState = 'checking' | 'paid' | 'pending' | 'failed' | 'timeout';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between text-sm">
-      <span className="text-gray-500">{label}</span>
-      <span className="font-medium text-gray-800">{value}</span>
+    <div className="flex justify-between items-baseline py-1">
+      <span className="text-[11px] uppercase tracking-widest text-gray-400 font-medium">{label}</span>
+      <span className="text-[15px] font-semibold text-gray-800">{value}</span>
     </div>
   );
 }
