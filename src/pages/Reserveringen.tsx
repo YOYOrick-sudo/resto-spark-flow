@@ -121,6 +121,15 @@ export default function Reserveringen() {
     }, {
       onSuccess: () => {
         nestoToast.success(`Status gewijzigd naar: ${STATUS_LABELS[newStatus] || newStatus}`);
+
+        // Send cancellation email if status changed to cancelled
+        if (newStatus === 'cancelled' && reservation.customer_id && reservation.customer?.email) {
+          supabase.functions.invoke('send-reservation-email', {
+            body: { reservation_id: reservation.id, template_key: 'cancellation' },
+          }).then(() => {
+            nestoToast.info('Annuleringsmail verstuurd');
+          }).catch((err) => console.error('[EMAIL]', err));
+        }
       },
       onError: (err: Error) => {
         nestoToast.error(`Fout: ${err.message}`);
