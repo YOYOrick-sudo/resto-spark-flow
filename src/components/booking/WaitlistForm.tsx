@@ -78,8 +78,8 @@ export function WaitlistForm({ onBack }: WaitlistFormProps) {
   if (submitted) {
     return (
       <div className="text-center py-8 px-4 space-y-4">
-        <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-          <Check className="w-7 h-7 text-green-600" />
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: 'color-mix(in srgb, var(--widget-primary) 15%, transparent)' }}>
+          <Check className="w-7 h-7" style={{ color: 'var(--widget-primary)' }} />
         </div>
         <div>
           <h3 className="text-lg font-bold text-gray-900">Je staat op de wachtlijst!</h3>

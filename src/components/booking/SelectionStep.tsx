@@ -406,7 +406,7 @@ export function SelectionStep() {
                       >
                         <span>{slot.time}</span>
                         {!isUnavailable && availability === 'medium' && (
-                          <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white/50' : 'bg-amber-400'}`} />
+                          <span className="w-1.5 h-1.5 rounded-full mt-1" style={{ backgroundColor: isSelected ? 'rgba(255,255,255,0.5)' : 'var(--widget-accent)' }} />
                         )}
                         {!isUnavailable && availability === 'low' && (
                           <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white/50' : 'bg-red-400'}`} />
