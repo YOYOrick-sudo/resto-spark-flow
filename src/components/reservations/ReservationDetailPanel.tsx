@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, ArrowRightLeft, Trash2 } from 'lucide-react';
+import { Sparkles, ArrowRightLeft, Trash2, CreditCard } from 'lucide-react';
 import { NestoPanel } from '@/components/polar/NestoPanel';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { InfoAlert } from '@/components/polar/InfoAlert';
@@ -22,6 +22,8 @@ import { AuditLogTimeline } from './AuditLogTimeline';
 import { OptionBadge } from './OptionBadge';
 import { TableMoveDialog } from './TableMoveDialog';
 import { TableSelector } from './TableSelector';
+import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
+import { useMollieRefund } from '@/hooks/useMollieRefund';
 import { cn } from '@/lib/utils';
 
 interface ReservationDetailPanelProps {
