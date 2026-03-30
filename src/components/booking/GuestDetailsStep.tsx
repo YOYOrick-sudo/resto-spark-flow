@@ -14,7 +14,10 @@ function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
         onChange={e => onChange(e.target.value)}
         onBlur={onBlur}
         placeholder={label}
-        className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+        className="w-full h-12 pl-10 pr-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:outline-none focus:border-gray-300"
+        style={{ boxShadow: 'var(--input-focus-shadow, 0 1px 2px rgba(0,0,0,0.04))' }}
+        onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px color-mix(in srgb, var(--widget-primary) 12%, transparent)`}
+        onBlurCapture={e => e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'}
       />
     </div>
   );
