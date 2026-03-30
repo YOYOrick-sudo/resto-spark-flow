@@ -251,7 +251,7 @@ export function SelectionStep() {
               <div className="relative">
                 {/* Week strip */}
                 <div className={`transition-all duration-300 ${calendarMode ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
-                  <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                  <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-3 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
                     {dates.map((d, i) => {
                       const isSelected = selectedDayIndex === i;
                       return (
