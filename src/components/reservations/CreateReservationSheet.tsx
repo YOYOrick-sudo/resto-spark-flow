@@ -644,6 +644,7 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
                 </div>
               )}
             </div>
+          )}
         </div>
       )}
     </NestoPanel>
