@@ -306,13 +306,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                   type="button"
                                   onClick={() => subItem.path && handleNavigation(subItem.path)}
                                   className={cn(
-                                    'w-full flex items-center px-2.5 py-1 text-[13px] transition-colors duration-200 rounded-lg',
+                                    'w-full flex items-center gap-2 px-2.5 py-1 text-[13px] transition-colors duration-200 rounded-lg',
                                     'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                                     isSubActive
                                       ? 'text-primary font-medium hover:text-primary'
                                       : 'text-muted-foreground font-medium hover:text-foreground'
                                   )}
                                 >
+                                  {isSubActive && <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />}
                                   {subItem.label}
                                 </button>
                               </li>
