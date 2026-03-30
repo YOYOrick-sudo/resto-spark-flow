@@ -1,67 +1,72 @@
 
 
-# Send Reservation Email — Operator Bevestiging + Annulering
+# Widget Redesign — Premium & Brand-Aware
 
-## Samenvatting
+## Probleem
 
-Nieuwe generieke Edge Function `send-reservation-email` die voor elk template type (confirmation, cancellation, etc.) de juiste email verstuurt. Operator UI roept deze aan na het aanmaken of annuleren van een reservering.
+De widget gebruikt overal hardcoded `bg-gray-800` en `#1a1a1a`. Het restaurant configureert een `brand_color` in de widget settings, maar die wordt nergens toegepast. De widget voelt generiek en niet van het kaliber dat bij Nesto hoort.
 
----
+## Aanpak: Brand Color Doorvoeren + Premium Polish
 
-## 1. Edge Function: `send-reservation-email/index.ts`
+### 1. Brand color als primaire kleur overal
 
-**Input:** `{ reservation_id, template_key }`
+De `config.brand_color` (al beschikbaar via BookingContext) wordt de primaire interactiekleur:
 
-Logica:
-1. Laad reservering + customer (email, naam) + ticket + location uit database
-2. Als geen customer email → return early (geen email mogelijk)
-3. Laad template uit `reservation_email_templates` voor location + template_key, fallback naar DEFAULT_TEMPLATES
-4. Vervang placeholders ({restaurant}, {datum}, {tijd}, {gasten}, {voornaam}, {beheerlink})
-5. Laad branding uit `communication_settings` (logo, brand_color, footer_text, sender_name, reply_to)
-6. Bouw email via `buildEmailHtml` uit `_shared/emailLayout.ts` met details tabel
-7. Verstuur via Resend (zelfde pattern als `bookingEmail.ts`)
-8. Log resultaat
+- **CTA knoppen**: `brand_color` achtergrond i.p.v. `#1a1a1a`
+- **Geselecteerde datumchip**: `brand_color` i.p.v. `bg-gray-800`
+- **Geselecteerde tijdslot**: `brand_color` i.p.v. `bg-gray-800`
+- **Geselecteerde ticket ring**: `brand_color` border i.p.v. `#1a1a1a`
+- **Progress bars**: `brand_color` i.p.v. `bg-gray-800`
+- **Booking question chips**: `brand_color` i.p.v. `bg-gray-800`
+- **Focus rings**: `brand_color/30` i.p.v. `ring-gray-300`
+- **Checkmark cirkel**: `brand_color` tint i.p.v. hardcoded `bg-green-100`
 
-Registreer in `config.toml` met `verify_jwt = false`.
+### 2. Subtiele UI polish
 
-## 2. Operator UI — CreateReservationSheet
+- **Input fields**: Verfijnd met `rounded-2xl` (consistent met knoppen), subtielere borders
+- **Confirmation card**: Ticket naam prominent bovenaan, serif font voor restaurantnaam
+- **Footer**: Restaurantnaam in lichtere tint, kleiner, eleganter
+- **Spacing**: Iets meer lucht tussen secties (space-y-4 → space-y-5 waar nodig)
 
-**Bestand:** `src/components/reservations/CreateReservationSheet.tsx`
+### 3. Accent color als secondary
 
-In `handleSubmit` (regel 260-311), na succesvolle reservering:
-- Check: heeft selectedCustomer een email?
-- Zo ja: fire-and-forget `supabase.functions.invoke('send-reservation-email', { body: { reservation_id, template_key: 'confirmation' } })`
-- Pas toast aan: "Reservering aangemaakt · Bevestiging verstuurd" (als email gestuurd) vs bestaande toast (als geen email)
+De `config.accent_color` (ook beschikbaar) wordt gebruikt voor:
+- "Welkom terug" heart icon
+- Availability dots (medium → accent, low → red blijft)
+- Secondary links hover state
 
-**Confirm stap (regel 345-365):** Voeg een toggle toe "Bevestigingsmail sturen" (default: aan, alleen zichtbaar als customer email heeft). Sla state op in `sendConfirmation` boolean.
+### 4. Implementatie — CSS custom properties
 
-## 3. Operator UI — Annulering
+In `BookingWidgetInner`, zet CSS custom properties op de container:
+```
+style={{
+  '--widget-primary': config.brand_color || '#1a1a1a',
+  '--widget-accent': config.accent_color || '#10B981',
+}}
+```
 
-**Bestand:** `src/pages/Reserveringen.tsx`
-
-In `handleStatusChange` (regel 99-112): als `newStatus === 'cancelled'`, na succesvolle transitie:
-- Check: heeft reservation een customer_id + email?
-- Zo ja: fire-and-forget `supabase.functions.invoke('send-reservation-email', { body: { reservation_id: reservation.id, template_key: 'cancellation' } })`
-- Pas toast aan: "Geannuleerd · Annuleringsmail verstuurd"
-
-## 4. useCreateReservation hook
-
-Geen wijzigingen nodig — de email wordt vanuit de UI component aangestuurd, niet vanuit de hook.
-
----
+Dan in alle child components: `style={{ backgroundColor: 'var(--widget-primary)' }}` i.p.v. hardcoded waarden. Dit voorkomt prop-drilling en werkt met inline styles.
 
 ## Bestanden
 
-| Bestand | Actie |
+| Bestand | Wijziging |
 |---|---|
-| `supabase/functions/send-reservation-email/index.ts` | **Nieuw** — generieke email sender |
-| `supabase/config.toml` | Registratie |
-| `src/components/reservations/CreateReservationSheet.tsx` | Email na aanmaken + toggle |
-| `src/pages/Reserveringen.tsx` | Email na annulering |
+| `src/pages/BookingWidget.tsx` | CSS vars zetten, CTA knoppen, progress bars, summary |
+| `src/components/booking/SelectionStep.tsx` | Datum/tijd/ticket selectie kleuren |
+| `src/components/booking/GuestDetailsStep.tsx` | Submit knop, input focus, chips |
+| `src/components/booking/ConfirmationStep.tsx` | Checkmark kleur, retry knop |
+| `src/components/booking/BookingProgress.tsx` | Progress bars brand color |
+| `src/components/booking/WaitlistForm.tsx` | CTA knop kleur |
 
-## Volgorde
+## Wat NIET verandert
 
-1. Edge Function + config.toml
-2. CreateReservationSheet (email + toggle)
-3. Reserveringen.tsx (annulering email)
+- Layout en flow (3 stappen, selector logica, embed mode)
+- Typografie (Inter blijft)
+- Achtergrondkleur (`#FAFAFA` blijft)
+- Ambient background effect
+- Functionele logica
+
+## Resultaat
+
+Een widget die eruitziet alsof het *van* het restaurant is — met hun kleuren — maar met de strakke Nesto-kwaliteit erachter. Vergelijkbaar met hoe Stripe Checkout de merchant-kleuren overneemt.
 
