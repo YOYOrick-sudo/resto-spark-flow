@@ -283,6 +283,16 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
       // result is a UUID string from create_reservation RPC
       const reservationId = result as string;
 
+      // Send confirmation email (fire-and-forget)
+      const customerEmail = selectedCustomer?.email;
+      if (sendConfirmation && !isWalkIn && customerEmail && reservationId) {
+        supabase.functions.invoke('send-reservation-email', {
+          body: { reservation_id: reservationId, template_key: 'confirmation' },
+        }).catch((err) => console.error('[EMAIL]', err));
+      }
+
+      const emailSent = sendConfirmation && !isWalkIn && !!customerEmail;
+
       // Auto-assign after creation
       if (tableMode === 'auto' && effectiveDuration && reservationId) {
         try {
@@ -297,15 +307,15 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
             reservation_id: reservationId,
           });
           if (assignResult.assigned) {
-            nestoToast.success(`Reservering aangemaakt — ${assignResult.table_name} toegewezen`);
+            nestoToast.success(`Reservering aangemaakt — ${assignResult.table_name} toegewezen${emailSent ? ' · Bevestiging verstuurd' : ''}`);
           } else {
-            nestoToast.warning('Reservering aangemaakt zonder tafel');
+            nestoToast.warning(`Reservering aangemaakt zonder tafel${emailSent ? ' · Bevestiging verstuurd' : ''}`);
           }
         } catch {
-          nestoToast.warning('Reservering aangemaakt, tafeltoewijzing mislukt');
+          nestoToast.warning(`Reservering aangemaakt, tafeltoewijzing mislukt${emailSent ? ' · Bevestiging verstuurd' : ''}`);
         }
       } else {
-        nestoToast.success('Reservering aangemaakt');
+        nestoToast.success(`Reservering aangemaakt${emailSent ? ' · Bevestiging verstuurd' : ''}`);
       }
       handleClose();
     } catch (err: any) {
