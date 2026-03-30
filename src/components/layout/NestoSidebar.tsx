@@ -340,14 +340,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     type="button"
                     onClick={() => { if (item.path) handleNavigation(item.path); }}
                     className={cn(
-                      'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
+                      'group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-colors duration-200',
                       'border border-transparent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                       isActive
-                        ? 'bg-card border-border text-foreground font-medium'
-                        : 'text-muted-foreground font-medium hover:text-foreground'
+                        ? 'bg-card border-border shadow-sm text-foreground font-medium'
+                        : 'text-muted-foreground font-medium hover:text-foreground hover:bg-accent/40'
                     )}
                   >
-                    <Icon size={16} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
+                    <Icon size={18} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
                     <span>{item.label}</span>
                     {item.id === 'assistent' && hasAttentionSignals && (
                       <span className="w-1.5 h-1.5 rounded-full bg-warning ml-auto flex-shrink-0" />
