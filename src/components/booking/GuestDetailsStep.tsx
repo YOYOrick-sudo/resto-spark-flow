@@ -173,7 +173,7 @@ export function GuestDetailsStep() {
                 type="text"
                 value={getAnswer(q.id)[0] ?? ''}
                 onChange={e => updateAnswer(q.id, [e.target.value])}
-                className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+                className="w-full h-12 px-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:outline-none focus:border-gray-300"
               />
             )}
 
