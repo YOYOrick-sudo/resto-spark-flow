@@ -295,6 +295,24 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
               durationMinutes={reservation.duration_minutes}
             />
           )}
+
+          {/* Refund confirm dialog */}
+          {reservation && (
+            <ConfirmDialog
+              open={refundDialogOpen}
+              onOpenChange={setRefundDialogOpen}
+              title="Terugbetalen"
+              description={`Weet je zeker dat je €${((reservation.payment_amount ?? 0) / 100).toFixed(2)} wilt terugbetalen?`}
+              confirmLabel="Terugbetalen"
+              variant="destructive"
+              isLoading={mollieRefund.isPending}
+              onConfirm={() => {
+                mollieRefund.mutate({ reservationId: reservation.id }, {
+                  onSuccess: () => setRefundDialogOpen(false),
+                });
+              }}
+            />
+          )}
         </>
       )}
     </NestoPanel>
