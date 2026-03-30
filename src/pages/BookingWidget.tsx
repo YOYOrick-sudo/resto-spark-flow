@@ -144,7 +144,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   };
 
   return (
-    <div ref={mainRef} className="h-full flex flex-col relative" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div ref={mainRef} className="h-full flex flex-col relative" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif", '--widget-primary': config.primary_color || '#1a1a1a', '--widget-accent': config.accent_color || '#10B981' } as React.CSSProperties}>
       {/* Ambient background */}
       {ambientImage && !isConfirmation && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
