@@ -381,17 +381,19 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
           </div>
         </div>
       ) : (
-        <div className="border-t border-border px-3 pt-3 pb-3 space-y-2">
-          <div className="flex items-center gap-2 px-2.5">
-            <Building2 size={16} className="text-muted-foreground flex-shrink-0" />
-            <span className="text-sm font-medium text-foreground truncate">Restaurant Demo</span>
-          </div>
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-            <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center flex-shrink-0">
-              JD
+        <div className="px-2 pb-2">
+          <div className="bg-muted/30 rounded-xl p-2.5 space-y-2">
+            <div className="flex items-center gap-2 px-1">
+              <Building2 size={14} className="text-muted-foreground flex-shrink-0" />
+              <span className="text-xs text-muted-foreground truncate">Restaurant Demo</span>
             </div>
-            <span className="text-sm text-foreground truncate flex-1">Jan de Vries</span>
-            <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
+            <div className="flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-accent/40 cursor-pointer transition-colors">
+              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center flex-shrink-0 ring-1 ring-border">
+                JD
+              </div>
+              <span className="text-sm font-medium text-foreground truncate flex-1">Jan de Vries</span>
+              <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
+            </div>
           </div>
         </div>
       )}
