@@ -24,8 +24,9 @@ export function BookingProgress() {
           <div
             key={i}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              isActive ? 'w-6 bg-gray-800' : isCompleted ? 'w-1.5 bg-gray-800' : 'w-1.5 bg-gray-300'
+              isActive ? 'w-6' : isCompleted ? 'w-1.5' : 'w-1.5 bg-gray-300'
             }`}
+            style={(isActive || isCompleted) ? { backgroundColor: 'var(--widget-primary)' } : undefined}
           />
         );
       })}

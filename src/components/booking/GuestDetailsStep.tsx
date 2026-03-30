@@ -79,7 +79,7 @@ export function GuestDetailsStep() {
       {/* Welcome back */}
       {welcomeBack && (
         <div className="flex items-center gap-2.5 px-1">
-          <Heart className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <Heart className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--widget-accent)' }} />
           <div className="text-left">
             <p className="text-sm font-semibold text-gray-700">Welkom terug, {welcomeBack}</p>
             <p className="text-xs text-gray-400">Fijn je weer te zien</p>
