@@ -144,7 +144,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
   };
 
   return (
-    <div ref={mainRef} className="h-full flex flex-col relative" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div ref={mainRef} className="h-full flex flex-col relative" style={{ backgroundColor: '#FAFAFA', fontFamily: "'Inter', system-ui, sans-serif", '--widget-primary': config.primary_color || '#1a1a1a', '--widget-accent': config.accent_color || '#10B981' } as React.CSSProperties}>
       {/* Ambient background */}
       {ambientImage && !isConfirmation && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -206,7 +206,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
             onClick={next}
             disabled={!canGoNext}
             className="w-full h-12 rounded-2xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 text-white hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-            style={{ backgroundColor: '#1a1a1a' }}
+            style={{ backgroundColor: 'var(--widget-primary)' }}
           >
             Volgende (1/2)
           </button>

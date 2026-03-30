@@ -164,10 +164,10 @@ export function ConfirmationStep() {
   return (
     <div className="flex flex-col items-center justify-center py-8 space-y-6 px-5">
       <div
-        className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center"
-        style={{ animation: 'checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
+        className="w-20 h-20 rounded-full flex items-center justify-center"
+        style={{ animation: 'checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards', backgroundColor: 'color-mix(in srgb, var(--widget-primary) 15%, transparent)' }}
       >
-        <Check className="w-10 h-10 text-green-600" />
+        <Check className="w-10 h-10" style={{ color: 'var(--widget-primary)' }} />
       </div>
 
       <div className="text-center space-y-2">

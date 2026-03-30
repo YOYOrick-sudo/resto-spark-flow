@@ -79,7 +79,7 @@ export function GuestDetailsStep() {
       {/* Welcome back */}
       {welcomeBack && (
         <div className="flex items-center gap-2.5 px-1">
-          <Heart className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <Heart className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--widget-accent)' }} />
           <div className="text-left">
             <p className="text-sm font-semibold text-gray-700">Welkom terug, {welcomeBack}</p>
             <p className="text-xs text-gray-400">Fijn je weer te zien</p>
@@ -188,9 +188,10 @@ export function GuestDetailsStep() {
                       }}
                       className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                         selected
-                          ? 'border-gray-800 bg-gray-800 text-white'
+                          ? 'text-white border-transparent'
                           : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                       }`}
+                      style={selected ? { backgroundColor: 'var(--widget-primary)', borderColor: 'var(--widget-primary)' } : undefined}
                     >
                       {opt}
                     </button>
@@ -215,7 +216,7 @@ export function GuestDetailsStep() {
         disabled={!canSubmit || bookingLoading}
         onClick={submitBooking}
         className="w-full h-12 rounded-2xl text-white font-semibold text-sm transition-all duration-200 disabled:opacity-40 flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-        style={{ backgroundColor: '#1a1a1a' }}
+        style={{ backgroundColor: 'var(--widget-primary)' }}
       >
         {bookingLoading ? (
           <>

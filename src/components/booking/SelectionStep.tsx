@@ -261,10 +261,10 @@ export function SelectionStep() {
                           onClick={() => handleDateSelect(i)}
                           className={`flex flex-col items-center min-w-[48px] py-2 px-1.5 rounded-2xl transition-all duration-200 text-center ${
                             isSelected
-                              ? 'bg-gray-800 text-white shadow-md'
+                              ? 'text-white shadow-md'
                               : 'bg-white text-gray-600 hover:bg-gray-100'
                           }`}
-                          style={!isSelected ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
+                          style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } : { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
                         >
                           <span className="text-[10px] uppercase font-medium opacity-70">{DAY_NAMES[d.getDay()]}</span>
                           <span className="text-base font-bold">{d.getDate()}</span>
@@ -316,9 +316,10 @@ export function SelectionStep() {
                                   cell.disabled
                                     ? 'text-gray-300 cursor-not-allowed'
                                     : isSelected
-                                    ? 'bg-gray-800 text-white shadow-md'
+                                    ? 'text-white shadow-md'
                                     : 'text-gray-700 hover:bg-gray-100'
                                 }`}
+                                style={isSelected && !cell.disabled ? { backgroundColor: 'var(--widget-primary)' } : undefined}
                               >
                                 <span>{cell.date.getDate()}</span>
                               </button>
@@ -396,16 +397,16 @@ export function SelectionStep() {
                           isUnavailable
                             ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
                             : isSelected
-                            ? 'bg-gray-800 text-white shadow-md'
+                            ? 'text-white shadow-md'
                             : availability === 'low'
                             ? 'bg-red-50 text-gray-700 hover:bg-red-100'
                             : 'bg-white text-gray-700 hover:bg-gray-100'
                         }`}
-                        style={!isSelected && !isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {}}
+                        style={isSelected ? { backgroundColor: 'var(--widget-primary)' } : (!isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {})}
                       >
                         <span>{slot.time}</span>
                         {!isUnavailable && availability === 'medium' && (
-                          <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white/50' : 'bg-amber-400'}`} />
+                          <span className="w-1.5 h-1.5 rounded-full mt-1" style={{ backgroundColor: isSelected ? 'rgba(255,255,255,0.5)' : 'var(--widget-accent)' }} />
                         )}
                         {!isUnavailable && availability === 'low' && (
                           <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white/50' : 'bg-red-400'}`} />
@@ -442,11 +443,11 @@ export function SelectionStep() {
                   className={`w-full text-left rounded-3xl overflow-hidden transition-all duration-300 ${
                     !available ? 'opacity-40 grayscale-[30%]' : ''
                   }`}
-                  style={{
-                    boxShadow: isSelected
-                      ? '0 0 0 2px #1a1a1a, 0 8px 20px rgba(0,0,0,0.1)'
-                      : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
-                  }}
+                    style={{
+                      boxShadow: isSelected
+                        ? '0 0 0 2px var(--widget-primary), 0 8px 20px rgba(0,0,0,0.1)'
+                        : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
+                    }}
                 >
                   {hasImage ? (
                     <div className="relative w-full overflow-hidden" style={{ aspectRatio: '2.4/1' }}>

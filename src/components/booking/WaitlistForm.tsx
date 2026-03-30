@@ -78,8 +78,8 @@ export function WaitlistForm({ onBack }: WaitlistFormProps) {
   if (submitted) {
     return (
       <div className="text-center py-8 px-4 space-y-4">
-        <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-          <Check className="w-7 h-7 text-green-600" />
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: 'color-mix(in srgb, var(--widget-primary) 15%, transparent)' }}>
+          <Check className="w-7 h-7" style={{ color: 'var(--widget-primary)' }} />
         </div>
         <div>
           <h3 className="text-lg font-bold text-gray-900">Je staat op de wachtlijst!</h3>
@@ -117,9 +117,10 @@ export function WaitlistForm({ onBack }: WaitlistFormProps) {
             onClick={() => setTimePreference('any')}
             className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
               timePreference === 'any'
-                ? 'bg-gray-800 text-white'
+                ? 'text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
+            style={timePreference === 'any' ? { backgroundColor: 'var(--widget-primary)' } : undefined}
           >
             Maakt niet uit
           </button>
@@ -127,9 +128,10 @@ export function WaitlistForm({ onBack }: WaitlistFormProps) {
             onClick={() => setTimePreference('range')}
             className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
               timePreference === 'range'
-                ? 'bg-gray-800 text-white'
+                ? 'text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
+            style={timePreference === 'range' ? { backgroundColor: 'var(--widget-primary)' } : undefined}
           >
             Liefst tussen…
           </button>
@@ -228,7 +230,8 @@ export function WaitlistForm({ onBack }: WaitlistFormProps) {
       <button
         onClick={handleSubmit}
         disabled={submitting || !firstName || !lastName || !email}
-        className="w-full py-3 rounded-2xl text-sm font-bold text-white bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-full py-3 rounded-2xl text-sm font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90"
+        style={{ backgroundColor: 'var(--widget-primary)' }}
       >
         {submitting ? (
           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
