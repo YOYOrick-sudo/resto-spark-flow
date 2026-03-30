@@ -128,9 +128,10 @@ export function WaitlistForm({ onBack }: WaitlistFormProps) {
             onClick={() => setTimePreference('range')}
             className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
               timePreference === 'range'
-                ? 'bg-gray-800 text-white'
+                ? 'text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
+            style={timePreference === 'range' ? { backgroundColor: 'var(--widget-primary)' } : undefined}
           >
             Liefst tussen…
           </button>
