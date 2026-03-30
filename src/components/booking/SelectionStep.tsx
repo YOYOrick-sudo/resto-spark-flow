@@ -200,7 +200,7 @@ export function SelectionStep() {
   }, [hasFullSelection]);
 
   return (
-    <div className="space-y-3 px-5">
+    <div className="space-y-4 px-5">
       {/* Date, Guests & Time selector */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <button
