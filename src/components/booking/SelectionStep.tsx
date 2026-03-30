@@ -200,7 +200,7 @@ export function SelectionStep() {
   }, [hasFullSelection]);
 
   return (
-    <div className="space-y-3 px-5">
+    <div className="space-y-4 px-5">
       {/* Date, Guests & Time selector */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <button
@@ -259,12 +259,12 @@ export function SelectionStep() {
                           key={i}
                           data-day={i}
                           onClick={() => handleDateSelect(i)}
-                          className={`flex flex-col items-center min-w-[48px] py-2 px-1.5 rounded-2xl transition-all duration-200 text-center ${
+                          className={`flex flex-col items-center min-w-[50px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center ${
                             isSelected
-                              ? 'text-white shadow-md'
-                              : 'bg-white text-gray-600 hover:bg-gray-100'
+                              ? 'text-white'
+                              : 'bg-white text-gray-600 hover:bg-gray-50 hover:-translate-y-0.5'
                           }`}
-                          style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } : { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+                          style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: `0 4px 14px color-mix(in srgb, var(--widget-primary) 35%, transparent)` } : { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
                         >
                           <span className="text-[10px] uppercase font-medium opacity-70">{DAY_NAMES[d.getDay()]}</span>
                           <span className="text-base font-bold">{d.getDate()}</span>
@@ -335,7 +335,7 @@ export function SelectionStep() {
 
             {/* Guests */}
             <div>
-              <div className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3">
+              <div className="flex items-center justify-between bg-gray-50/80 rounded-2xl px-4 py-3.5">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-400" />
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Gasten</span>
@@ -343,14 +343,14 @@ export function SelectionStep() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setPartySize(Math.max(minParty, data.party_size - 1))}
-                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                    className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-gray-300 hover:shadow-sm transition-all"
                   >
                     <Minus className="w-3.5 h-3.5 text-gray-600" />
                   </button>
                   <span className="text-lg font-bold w-8 text-center text-gray-900 tabular-nums">{data.party_size}</span>
                   <button
                     onClick={() => setPartySize(Math.min(maxParty, data.party_size + 1))}
-                    className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                    className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-gray-300 hover:shadow-sm transition-all"
                   >
                     <Plus className="w-3.5 h-3.5 text-gray-600" />
                   </button>
@@ -383,7 +383,7 @@ export function SelectionStep() {
                   </div>
                 )
               ) : (
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-3 gap-2">
                   {flatSlots.map(({ slot, shift }) => {
                     const isUnavailable = !slot.available;
                     const isSelected = data.selectedSlot?.time === slot.time && data.selectedSlot?.ticket_id === slot.ticket_id;
@@ -393,16 +393,16 @@ export function SelectionStep() {
                         key={`${slot.time}-${slot.ticket_id}`}
                         onClick={() => !isUnavailable && handleTimeSelect({ slot, shift })}
                         disabled={isUnavailable}
-                        className={`flex flex-col items-center rounded-xl text-sm font-semibold py-2.5 transition-all duration-200 ${
+                        className={`flex flex-col items-center rounded-2xl text-sm font-semibold h-11 justify-center transition-all duration-200 ${
                           isUnavailable
                             ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
                             : isSelected
-                            ? 'text-white shadow-md'
+                            ? 'text-white'
                             : availability === 'low'
-                            ? 'bg-red-50 text-gray-700 hover:bg-red-100'
-                            : 'bg-white text-gray-700 hover:bg-gray-100'
+                            ? 'bg-red-50 text-gray-700 hover:bg-red-100 hover:-translate-y-0.5'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 hover:-translate-y-0.5'
                         }`}
-                        style={isSelected ? { backgroundColor: 'var(--widget-primary)' } : (!isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {})}
+                        style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: `0 4px 14px color-mix(in srgb, var(--widget-primary) 35%, transparent)` } : (!isUnavailable ? { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' } : {})}
                       >
                         <span>{slot.time}</span>
                         {!isUnavailable && availability === 'medium' && (
@@ -424,10 +424,10 @@ export function SelectionStep() {
       {/* Divider */}
       {tickets.length > 0 && (
         <>
-          <div className="flex items-center gap-3 pt-1">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Kies je ervaring</span>
-            <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex items-center gap-3 pt-2 pb-1">
+            <div className="flex-1 h-px bg-gray-200/70" />
+            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Kies je ervaring</span>
+            <div className="flex-1 h-px bg-gray-200/70" />
           </div>
 
           {/* Tickets */}
@@ -441,7 +441,7 @@ export function SelectionStep() {
                   key={ticket.id}
                   onClick={() => handleTicketSelect(ticket)}
                   className={`w-full text-left rounded-3xl overflow-hidden transition-all duration-300 ${
-                    !available ? 'opacity-40 grayscale-[30%]' : ''
+                    !available ? 'opacity-40 grayscale-[30%]' : 'hover:scale-[1.01]'
                   }`}
                     style={{
                       boxShadow: isSelected

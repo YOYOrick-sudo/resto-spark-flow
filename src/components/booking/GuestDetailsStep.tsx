@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
-import { User, Mail, Phone, Loader2, Heart } from 'lucide-react';
+import { User, Mail, Phone, Loader2, Heart, Check } from 'lucide-react';
 
 function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
   icon: React.ReactNode; label: string; value: string; onChange: (v: string) => void; type?: string; onBlur?: () => void;
@@ -14,7 +14,10 @@ function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
         onChange={e => onChange(e.target.value)}
         onBlur={onBlur}
         placeholder={label}
-        className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+        className="w-full h-12 pl-10 pr-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:outline-none focus:border-gray-300"
+        style={{ boxShadow: 'var(--input-focus-shadow, 0 1px 2px rgba(0,0,0,0.04))' }}
+        onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px color-mix(in srgb, var(--widget-primary) 12%, transparent)`}
+        onBlurCapture={e => e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'}
       />
     </div>
   );
@@ -73,8 +76,8 @@ export function GuestDetailsStep() {
   const canSubmit = !!(guestData.first_name && guestData.last_name && guestData.email);
 
   return (
-    <div className="flex flex-col gap-4 px-5">
-      <h3 className="text-lg font-bold text-gray-800 text-center">Je gegevens</h3>
+    <div className="flex flex-col gap-5 px-5">
+      <h3 className="text-base font-medium text-gray-700 text-center tracking-wide">Je gegevens</h3>
 
       {/* Welcome back */}
       {welcomeBack && (
@@ -123,17 +126,24 @@ export function GuestDetailsStep() {
           onChange={e => setGuestData({ guest_notes: e.target.value })}
           placeholder="Opmerkingen"
           rows={3}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 resize-none transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+          className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-900 resize-none shadow-sm transition-all placeholder:text-gray-400 focus:outline-none focus:border-gray-300"
+          onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px color-mix(in srgb, var(--widget-primary) 12%, transparent)`}
+          onBlur={e => e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'}
         />
 
         {/* Marketing opt-in */}
-        <label className="flex items-start gap-2.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={guestData.marketing_optin}
-            onChange={e => setGuestData({ marketing_optin: e.target.checked })}
-            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-800 focus:ring-gray-300"
-          />
+        <label className="flex items-start gap-3 cursor-pointer select-none py-1">
+          <div className="relative mt-0.5">
+            <input
+              type="checkbox"
+              checked={guestData.marketing_optin}
+              onChange={e => setGuestData({ marketing_optin: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-5 h-5 rounded-lg border-2 border-gray-300 peer-checked:border-transparent transition-all flex items-center justify-center peer-checked:bg-[var(--widget-primary)]">
+              {guestData.marketing_optin && <Check className="w-3 h-3 text-white" />}
+            </div>
+          </div>
           <span className="text-xs text-gray-500 leading-relaxed">
             Ik wil graag op de hoogte gehouden worden van aanbiedingen en nieuws
           </span>
@@ -163,7 +173,7 @@ export function GuestDetailsStep() {
                 type="text"
                 value={getAnswer(q.id)[0] ?? ''}
                 onChange={e => updateAnswer(q.id, [e.target.value])}
-                className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+                className="w-full h-12 px-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-900 shadow-sm transition-all placeholder:text-gray-400 focus:outline-none focus:border-gray-300"
               />
             )}
 
@@ -186,10 +196,10 @@ export function GuestDetailsStep() {
                           updateAnswer(q.id, next);
                         }
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                      className={`px-3.5 py-2 rounded-2xl text-sm border transition-all duration-200 ${
                         selected
                           ? 'text-white border-transparent'
-                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:-translate-y-0.5'
                       }`}
                       style={selected ? { backgroundColor: 'var(--widget-primary)', borderColor: 'var(--widget-primary)' } : undefined}
                     >

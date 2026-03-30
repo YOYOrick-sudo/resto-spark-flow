@@ -205,10 +205,10 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
           <button
             onClick={next}
             disabled={!canGoNext}
-            className="w-full h-12 rounded-2xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 text-white hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-            style={{ backgroundColor: 'var(--widget-primary)' }}
+            className="w-full h-12 rounded-2xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 text-white hover:scale-[1.02] active:scale-[0.98]"
+            style={{ backgroundColor: 'var(--widget-primary)', boxShadow: canGoNext ? `0 4px 14px color-mix(in srgb, var(--widget-primary) 30%, transparent)` : undefined }}
           >
-            Volgende (1/2)
+            Volgende
           </button>
         </div>
       )}
@@ -259,8 +259,8 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
 
           {/* Back button */}
           <div className="flex gap-3">
-            <button onClick={back} className="h-12 w-12 rounded-[10px] bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <button onClick={back} className="h-12 w-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all">
+              <ChevronLeft className="w-5 h-5" style={{ color: 'var(--widget-primary)' }} />
             </button>
             <div className="flex-1" />
           </div>
@@ -269,12 +269,12 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
 
       {/* Footer */}
       {config.location_name && (
-        <footer className="shrink-0 pb-8 pt-1 text-center relative z-10">
-          <p className={`font-extrabold text-gray-400 tracking-normal ${getNameSize(config.location_name)}`} style={{ fontFamily: "'Inter', sans-serif" }}>
+        <footer className="shrink-0 pb-8 pt-2 text-center relative z-10">
+          <p className={`font-medium text-gray-300 tracking-wider ${getNameSize(config.location_name)}`} style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.08em' }}>
             {config.location_name}
           </p>
           {config.show_nesto_branding && (
-            <span className="text-[10px] text-gray-300">Powered by Nesto</span>
+            <span className="inline-block mt-1.5 text-[9px] text-gray-300 border border-gray-200 rounded-full px-2.5 py-0.5 tracking-wide uppercase">Powered by Nesto</span>
           )}
         </footer>
       )}
