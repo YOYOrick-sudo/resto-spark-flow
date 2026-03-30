@@ -383,7 +383,7 @@ export function SelectionStep() {
                   </div>
                 )
               ) : (
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-3 gap-2">
                   {flatSlots.map(({ slot, shift }) => {
                     const isUnavailable = !slot.available;
                     const isSelected = data.selectedSlot?.time === slot.time && data.selectedSlot?.ticket_id === slot.ticket_id;
@@ -393,16 +393,16 @@ export function SelectionStep() {
                         key={`${slot.time}-${slot.ticket_id}`}
                         onClick={() => !isUnavailable && handleTimeSelect({ slot, shift })}
                         disabled={isUnavailable}
-                        className={`flex flex-col items-center rounded-xl text-sm font-semibold py-2.5 transition-all duration-200 ${
+                        className={`flex flex-col items-center rounded-2xl text-sm font-semibold h-11 justify-center transition-all duration-200 ${
                           isUnavailable
                             ? 'bg-gray-100 text-gray-300 line-through cursor-not-allowed'
                             : isSelected
-                            ? 'text-white shadow-md'
+                            ? 'text-white'
                             : availability === 'low'
-                            ? 'bg-red-50 text-gray-700 hover:bg-red-100'
-                            : 'bg-white text-gray-700 hover:bg-gray-100'
+                            ? 'bg-red-50 text-gray-700 hover:bg-red-100 hover:-translate-y-0.5'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 hover:-translate-y-0.5'
                         }`}
-                        style={isSelected ? { backgroundColor: 'var(--widget-primary)' } : (!isUnavailable ? { boxShadow: '0 1px 3px rgba(0,0,0,0.06)' } : {})}
+                        style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: `0 4px 14px color-mix(in srgb, var(--widget-primary) 35%, transparent)` } : (!isUnavailable ? { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' } : {})}
                       >
                         <span>{slot.time}</span>
                         {!isUnavailable && availability === 'medium' && (
