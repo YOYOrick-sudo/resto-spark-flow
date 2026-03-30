@@ -141,11 +141,13 @@ async function sendConfirmationEmail(
   admin: ReturnType<typeof createClient>,
   params: { location_id: string; reservation_id: string; manage_token: string; date: string; start_time: string; end_time: string; party_size: number; first_name: string; email: string; ticket_id: string }
 ) {
+  const { buildEmailHtml, formatDateNL } = await import('../_shared/emailLayout.ts');
+
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
   if (!resendApiKey) return;
 
   const [{ data: commSettings }, { data: loc }, { data: ticket }] = await Promise.all([
-    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url').eq('location_id', params.location_id).maybeSingle(),
+    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url, footer_text').eq('location_id', params.location_id).maybeSingle(),
     admin.from('locations').select('name').eq('id', params.location_id).single(),
     admin.from('tickets').select('display_title, name').eq('id', params.ticket_id).single(),
   ]);
@@ -154,45 +156,50 @@ async function sendConfirmationEmail(
   const senderName = commSettings?.sender_name || restaurantName;
   const brandColor = commSettings?.brand_color || '#1d979e';
   const logoUrl = commSettings?.logo_url || null;
+  const footerText = commSettings?.footer_text || '';
   const ticketName = ticket?.display_title || ticket?.name || '';
 
-  const [y, mo, d] = params.date.split('-');
-  const dateObj = new Date(Number(y), Number(mo) - 1, Number(d));
-  const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-  const monthNames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
-  const formattedDate = `${dayNames[dateObj.getDay()]} ${Number(d)} ${monthNames[Number(mo) - 1]} ${y}`;
+  const formattedDate = formatDateNL(params.date);
   const formattedTime = params.start_time.slice(0, 5);
 
   const baseUrl = (Deno.env.get('PUBLIC_SITE_URL') || 'https://resto-spark-flow.lovable.app').replace(/\/$/, '');
   const manageUrl = `${baseUrl}/manage/${params.manage_token}`;
 
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'DATUM', value: formattedDate },
+    { label: 'TIJD', value: `${formattedTime} uur` },
+    { label: 'GASTEN', value: `${params.party_size} ${params.party_size === 1 ? 'persoon' : 'personen'}` },
+  ];
+  if (ticketName) details.push({ label: 'TICKET', value: ticketName });
+
   const subject = `Bevestiging: ${restaurantName} op ${formattedDate} om ${formattedTime}`;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#f7f7f7">
-<table width="100%" style="background:#f7f7f7;padding:32px 16px"><tr><td align="center">
-<table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden">
-  ${logoUrl ? `<tr><td style="padding:24px 24px 0;text-align:center"><img src="${logoUrl}" alt="${restaurantName}" style="max-height:48px"></td></tr>` : ''}
-  <tr><td style="padding:24px">
-    <h1 style="margin:0 0 4px;font-size:20px;color:#111">Je reservering via de wachtlijst is bevestigd!</h1>
-    <p style="margin:0 0 20px;font-size:14px;color:#666">Gefeliciteerd ${params.first_name}, er was een plek voor je!</p>
-    <table width="100%" style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:16px">
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">📅 <strong>${formattedDate}</strong></td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">🕐 <strong>${formattedTime} uur</strong></td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">👥 <strong>${params.party_size} gasten</strong></td></tr>
-      ${ticketName ? `<tr><td style="padding:4px 0;font-size:14px;color:#555">🎫 ${ticketName}</td></tr>` : ''}
-    </table>
-    <table width="100%" style="margin-bottom:12px"><tr><td align="center">
-      <a href="${manageUrl}" style="display:inline-block;background:${brandColor};color:#fff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none">Beheer je reservering</a>
-    </td></tr></table>
-  </td></tr>
-</table>
-</td></tr></table></body></html>`;
+
+  const html = buildEmailHtml({
+    logoUrl,
+    restaurantName,
+    brandColor,
+    footerText,
+    heading: 'Je reservering via de wachtlijst is bevestigd',
+    intro: `Gefeliciteerd ${params.first_name}, er was een plek voor je.`,
+    details,
+    ctaUrl: manageUrl,
+    ctaLabel: 'Beheer je reservering',
+  });
 
   const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+  const replyTo = commSettings?.reply_to || undefined;
+  const payload: Record<string, unknown> = {
+    from: `${senderName} <${verifiedFrom}>`,
+    to: [params.email],
+    subject,
+    html,
+  };
+  if (replyTo) payload.reply_to = replyTo;
+
   await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: `${senderName} <${verifiedFrom}>`, to: [params.email], subject, html }),
+    body: JSON.stringify(payload),
   });
 }
 
