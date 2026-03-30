@@ -316,9 +316,10 @@ export function SelectionStep() {
                                   cell.disabled
                                     ? 'text-gray-300 cursor-not-allowed'
                                     : isSelected
-                                    ? 'bg-gray-800 text-white shadow-md'
+                                    ? 'text-white shadow-md'
                                     : 'text-gray-700 hover:bg-gray-100'
                                 }`}
+                                style={isSelected && !cell.disabled ? { backgroundColor: 'var(--widget-primary)' } : undefined}
                               >
                                 <span>{cell.date.getDate()}</span>
                               </button>
