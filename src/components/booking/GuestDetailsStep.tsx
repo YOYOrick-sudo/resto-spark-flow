@@ -76,8 +76,8 @@ export function GuestDetailsStep() {
   const canSubmit = !!(guestData.first_name && guestData.last_name && guestData.email);
 
   return (
-    <div className="flex flex-col gap-4 px-5">
-      <h3 className="text-lg font-bold text-gray-800 text-center">Je gegevens</h3>
+    <div className="flex flex-col gap-5 px-5">
+      <h3 className="text-base font-medium text-gray-700 text-center tracking-wide">Je gegevens</h3>
 
       {/* Welcome back */}
       {welcomeBack && (
