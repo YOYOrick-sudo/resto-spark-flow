@@ -1,132 +1,67 @@
 
 
-# Email Template Redesign — Premium Restaurant Stijl
+# Send Reservation Email — Operator Bevestiging + Annulering
 
 ## Samenvatting
 
-Alle email templates herontwerpen naar een clean, typografie-gebaseerd design zonder emoji's. Fine dining bevestigingsmails: rustig, zelfverzekerd, geen visuele ruis.
+Nieuwe generieke Edge Function `send-reservation-email` die voor elk template type (confirmation, cancellation, etc.) de juiste email verstuurt. Operator UI roept deze aan na het aanmaken of annuleren van een reservering.
 
 ---
 
-## Design Systeem (toegepast op alle emails)
+## 1. Edge Function: `send-reservation-email/index.ts`
 
-```text
-┌─────────────────────────────────────────┐  #f8f8f8
-│                                         │
-│   ┌─────────────────────────────┐       │
-│   │  [LOGO max 72px, center]    │  wit  │
-│   │          32px gap           │       │
-│   │  Heading (20px, #222)       │       │
-│   │  Intro (14px, #666)        │       │
-│   │                             │       │
-│   │  DATUM    vrijdag 28 mrt    │       │
-│   │  ─────────────────────────  │  1px  │
-│   │  TIJD     19:30             │  #eee │
-│   │  ─────────────────────────  │       │
-│   │  GASTEN   4 personen        │       │
-│   │  ─────────────────────────  │       │
-│   │  TICKET   Diner             │       │
-│   │                             │       │
-│   │    [ CTA Button ]           │       │
-│   │                             │       │
-│   │  ─── footer (#aaa, 12px) ──│       │
-│   └─────────────────────────────┘       │
-│                                         │
-└─────────────────────────────────────────┘
-```
+**Input:** `{ reservation_id, template_key }`
 
-**Labels**: 13px, #888, uppercase, letter-spacing 0.5px, left-aligned
-**Values**: 15px, #222, font-weight 600, right-aligned
-**CTA**: brand_color bg, white text, border-radius 6px, padding 14px 32px, geen uppercase
-**Font**: Georgia, serif fallback (restaurant feel)
+Logica:
+1. Laad reservering + customer (email, naam) + ticket + location uit database
+2. Als geen customer email → return early (geen email mogelijk)
+3. Laad template uit `reservation_email_templates` voor location + template_key, fallback naar DEFAULT_TEMPLATES
+4. Vervang placeholders ({restaurant}, {datum}, {tijd}, {gasten}, {voornaam}, {beheerlink})
+5. Laad branding uit `communication_settings` (logo, brand_color, footer_text, sender_name, reply_to)
+6. Bouw email via `buildEmailHtml` uit `_shared/emailLayout.ts` met details tabel
+7. Verstuur via Resend (zelfde pattern als `bookingEmail.ts`)
+8. Log resultaat
 
----
+Registreer in `config.toml` met `verify_jwt = false`.
 
-## Shared HTML Builder — `_shared/emailLayout.ts` (nieuw)
+## 2. Operator UI — CreateReservationSheet
 
-Eén gedeelde functie die alle emails renderen. Voorkomt 5x dezelfde HTML duplicatie.
+**Bestand:** `src/components/reservations/CreateReservationSheet.tsx`
 
-```typescript
-interface EmailLayoutParams {
-  logoUrl: string | null;
-  restaurantName: string;
-  brandColor: string;
-  footerText: string;
-  heading: string;
-  intro: string;
-  details: Array<{ label: string; value: string }>; // DATUM, TIJD, etc.
-  ctaUrl?: string;
-  ctaLabel?: string;
-  secondaryLink?: { url: string; label: string };
-  note?: string; // policy note, expiry, etc.
-}
-// Returns complete HTML string
-```
+In `handleSubmit` (regel 260-311), na succesvolle reservering:
+- Check: heeft selectedCustomer een email?
+- Zo ja: fire-and-forget `supabase.functions.invoke('send-reservation-email', { body: { reservation_id, template_key: 'confirmation' } })`
+- Pas toast aan: "Reservering aangemaakt · Bevestiging verstuurd" (als email gestuurd) vs bestaande toast (als geen email)
 
-- Outer table: `background:#f8f8f8`, padding 40px 16px
-- Inner table: `max-width:520px`, `background:#fff`, border-radius 8px
-- Logo: max-height 72px, padding-bottom 32px
-- Details: table rows met label/value, 1px #eee border-bottom
-- CTA: brand_color, border-radius 6px, padding 14px 32px
-- Footer: 12px, #aaa, border-top 1px #eee
-- Font-family: Georgia, 'Times New Roman', serif
-- Geen emoji's, nergens
+**Confirm stap (regel 345-365):** Voeg een toggle toe "Bevestigingsmail sturen" (default: aan, alleen zichtbaar als customer email heeft). Sla state op in `sendConfirmation` boolean.
+
+## 3. Operator UI — Annulering
+
+**Bestand:** `src/pages/Reserveringen.tsx`
+
+In `handleStatusChange` (regel 99-112): als `newStatus === 'cancelled'`, na succesvolle transitie:
+- Check: heeft reservation een customer_id + email?
+- Zo ja: fire-and-forget `supabase.functions.invoke('send-reservation-email', { body: { reservation_id: reservation.id, template_key: 'cancellation' } })`
+- Pas toast aan: "Geannuleerd · Annuleringsmail verstuurd"
+
+## 4. useCreateReservation hook
+
+Geen wijzigingen nodig — de email wordt vanuit de UI component aangestuurd, niet vanuit de hook.
 
 ---
 
 ## Bestanden
 
-### 1. `supabase/functions/_shared/emailLayout.ts` — **Nieuw**
-Shared HTML builder functie. Alle email-verstuurders importeren dit.
-
-### 2. `supabase/functions/_shared/bookingEmail.ts` — Refactor
-- Verwijder inline HTML
-- Import `buildEmailHtml` uit `emailLayout.ts`
-- Details array: `[{ label: 'DATUM', value: formattedDate }, { label: 'TIJD', value: ... }, ...]`
-- Guest notes als `note` parameter (geen emoji)
-- Calendar link als `secondaryLink`
-
-### 3. `supabase/functions/waitlist-invite-engine/index.ts` — `sendInviteEmail`
-- Verwijder inline HTML (regels 298-322)
-- Import `buildEmailHtml`
-- Heading: "Er is een plek vrijgekomen"
-- Note: "Geldig tot {time} uur" (geen ⏰)
-- CTA: "Reserveer deze plek"
-
-### 4. `supabase/functions/waitlist-accept/index.ts` — `sendConfirmationEmail`
-- Verwijder inline HTML (regels 170-189)
-- Import `buildEmailHtml`
-- Heading: "Je reservering via de wachtlijst is bevestigd"
-
-### 5. `supabase/functions/reservation-reminders/index.ts` — `sendEmail`
-- Verwijder inline HTML (regels 99-109)
-- Import `buildEmailHtml`
-- Body tekst wordt parsed naar intro + details tabel (niet als losse `<p>` tags)
-
-### 6. `src/hooks/useReservationEmailTemplates.ts` — `DEFAULT_TEMPLATES`
-Verwijder alle emoji uit body teksten:
-
-| Template | Oud | Nieuw |
-|---|---|---|
-| confirmation | `📅 {datum}\n🕐 {tijd}\n👥 {gasten}` | `Je reservering bij {restaurant} is bevestigd.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen` |
-| waitlist_confirmation | Emoji-vrij (ok) | Kleine tone aanpassing |
-| waitlist_invite | `📅 🕐 👥` | Emoji-vrij, strakke tekst |
-| cancellation | Emoji-vrij (ok) | Ok |
-| reminder_24h | `📅 🕐 👥` | Emoji-vrij |
-| reminder_3h | `📅 🕐 👥` | Emoji-vrij |
-| reconfirm | Emoji-vrij (ok) | Ok |
-
-Ook de `DEFAULT_TEMPLATES` in `reservation-reminders/index.ts` (regels 20-33) updaten.
-
----
+| Bestand | Actie |
+|---|---|
+| `supabase/functions/send-reservation-email/index.ts` | **Nieuw** — generieke email sender |
+| `supabase/config.toml` | Registratie |
+| `src/components/reservations/CreateReservationSheet.tsx` | Email na aanmaken + toggle |
+| `src/pages/Reserveringen.tsx` | Email na annulering |
 
 ## Volgorde
 
-1. `_shared/emailLayout.ts` — shared builder
-2. `_shared/bookingEmail.ts` — refactor naar builder
-3. `waitlist-invite-engine` — refactor sendInviteEmail
-4. `waitlist-accept` — refactor sendConfirmationEmail
-5. `reservation-reminders` — refactor sendEmail + DEFAULT_TEMPLATES
-6. `useReservationEmailTemplates.ts` — emoji-vrije defaults
-7. Deploy alle edge functions
+1. Edge Function + config.toml
+2. CreateReservationSheet (email + toggle)
+3. Reserveringen.tsx (annulering email)
 
