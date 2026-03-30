@@ -258,14 +258,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         handleExpandableClick(item);
                       }}
                       className={cn(
-'group w-full flex items-center gap-3 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors duration-200',
+'group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-colors duration-200',
                         'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                         hasActiveChild
-                          ? 'bg-card border-border text-foreground font-medium'
-                          : 'border-transparent text-muted-foreground font-medium hover:text-foreground'
+                          ? 'bg-card border-border shadow-sm text-foreground font-medium'
+                          : 'border-transparent text-muted-foreground font-medium hover:text-foreground hover:bg-accent/40'
                       )}
                     >
-                      <Icon size={16} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
+                      <Icon size={18} className={cn("flex-shrink-0 transition-colors", hasActiveChild ? "text-primary" : "group-hover:text-foreground")} />
                       <span className="flex-1 text-left">{item.label}</span>
                       {item.id === 'marketing' && atRiskCount > 10 && (
                         <NestoBadge variant="error" size="sm" className="ml-auto mr-1">{atRiskCount}</NestoBadge>
