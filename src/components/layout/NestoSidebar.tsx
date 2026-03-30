@@ -280,7 +280,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     </button>
                     
                     <ExpandableContent isOpen={isExpanded || !!hasActiveChild}>
-                      <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
+                      <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-border/80">
                         <ul>
                           {item.subItems.map((subItem) => {
                             const isSubActive = activeItemId === subItem.id;
