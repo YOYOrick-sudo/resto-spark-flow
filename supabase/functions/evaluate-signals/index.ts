@@ -1235,7 +1235,102 @@ const pacingProvider: SignalProvider = {
   },
 };
 
-const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider, pacingProvider];
+// ============================================
+// MOLLIE PROVIDER
+// ============================================
+
+const mollieProvider: SignalProvider = {
+  name: 'mollie',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const signals: SignalDraft[] = [];
+
+    // Check if any policy_sets require payment
+    const { data: policySets } = await supabaseAdmin
+      .from('policy_sets')
+      .select('id, payment_type')
+      .eq('location_id', locationId)
+      .neq('payment_type', 'none');
+
+    if (policySets && policySets.length > 0) {
+      // Check if Mollie is connected
+      const { data: mollieConn } = await supabaseAdmin
+        .from('mollie_connections')
+        .select('id, mollie_organization_id')
+        .eq('location_id', locationId)
+        .maybeSingle();
+
+      if (!mollieConn?.mollie_organization_id) {
+        signals.push({
+          organization_id: orgId,
+          location_id: locationId,
+          module: 'payments',
+          signal_type: 'mollie_not_connected',
+          kind: 'signal',
+          severity: 'warning',
+          title: 'Mollie niet verbonden — deposits niet mogelijk',
+          message: 'Er zijn tickets die een betaling vereisen, maar Mollie is niet gekoppeld.',
+          action_path: '/instellingen/betalingen',
+          dedup_key: `mollie_not_connected_${locationId}`,
+          actionable: true,
+          priority: 80,
+          cooldown_hours: 24,
+        });
+      }
+    }
+
+    // Check recent expired payments
+    const yesterday = new Date(Date.now() - 86400000).toISOString();
+    const { data: expiredPayments } = await supabaseAdmin
+      .from('reservations')
+      .select('id, customer_id, reservation_date, start_time')
+      .eq('location_id', locationId)
+      .eq('payment_status', 'expired')
+      .gte('reservation_date', new Date().toISOString().split('T')[0])
+      .gte('updated_at', yesterday)
+      .limit(5);
+
+    if (expiredPayments) {
+      for (const r of expiredPayments) {
+        signals.push({
+          organization_id: orgId,
+          location_id: locationId,
+          module: 'payments',
+          signal_type: 'payment_expired',
+          kind: 'signal',
+          severity: 'info',
+          title: `Betaling verlopen voor reservering ${r.reservation_date} ${r.start_time}`,
+          action_path: `/reserveringen?id=${r.id}`,
+          dedup_key: `payment_expired_${r.id}`,
+          actionable: true,
+          priority: 40,
+          cooldown_hours: 48,
+        });
+      }
+    }
+
+    return signals;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const staleTypes: string[] = [];
+
+    // Resolve mollie_not_connected if now connected
+    const { data: mollieConn } = await supabaseAdmin
+      .from('mollie_connections')
+      .select('mollie_organization_id')
+      .eq('location_id', locationId)
+      .maybeSingle();
+
+    if (mollieConn?.mollie_organization_id) {
+      staleTypes.push('mollie_not_connected');
+    }
+
+    return staleTypes;
+  },
+};
+
+const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider, pacingProvider, mollieProvider];
 
 async function processLocation(locationId: string, orgId: string) {
   const results = { created: 0, resolved: 0, skipped: 0 };
