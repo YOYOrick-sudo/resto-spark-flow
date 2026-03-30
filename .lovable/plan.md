@@ -1,72 +1,61 @@
 
 
-# Widget Redesign — Premium & Brand-Aware
+# Widget Selectie Card — Meer Contrast & Nesto-Stijl
 
 ## Probleem
 
-De widget gebruikt overal hardcoded `bg-gray-800` en `#1a1a1a`. Het restaurant configureert een `brand_color` in de widget settings, maar die wordt nergens toegepast. De widget voelt generiek en niet van het kaliber dat bij Nesto hoort.
+De witte selectie-kaart (`bg-white rounded-2xl border border-gray-100`) op de `#FAFAFA` achtergrond heeft nauwelijks contrast. De shadow (`0 1px 4px rgba(0,0,0,0.06)`) is te subtiel. Het "zweeft" niet — het valt weg.
 
-## Aanpak: Brand Color Doorvoeren + Premium Polish
+## Oplossing
 
-### 1. Brand color als primaire kleur overal
+De selectie-card en andere content-blokken meer visuele diepte geven, in lijn met het Nesto design system (shadow als primaire afbakening, niet borders).
 
-De `config.brand_color` (al beschikbaar via BookingContext) wordt de primaire interactiekleur:
+### Wijzigingen
 
-- **CTA knoppen**: `brand_color` achtergrond i.p.v. `#1a1a1a`
-- **Geselecteerde datumchip**: `brand_color` i.p.v. `bg-gray-800`
-- **Geselecteerde tijdslot**: `brand_color` i.p.v. `bg-gray-800`
-- **Geselecteerde ticket ring**: `brand_color` border i.p.v. `#1a1a1a`
-- **Progress bars**: `brand_color` i.p.v. `bg-gray-800`
-- **Booking question chips**: `brand_color` i.p.v. `bg-gray-800`
-- **Focus rings**: `brand_color/30` i.p.v. `ring-gray-300`
-- **Checkmark cirkel**: `brand_color` tint i.p.v. hardcoded `bg-green-100`
+**1. Selectie-card (datum/gasten/tijd) — `SelectionStep.tsx` regel 205**
 
-### 2. Subtiele UI polish
-
-- **Input fields**: Verfijnd met `rounded-2xl` (consistent met knoppen), subtielere borders
-- **Confirmation card**: Ticket naam prominent bovenaan, serif font voor restaurantnaam
-- **Footer**: Restaurantnaam in lichtere tint, kleiner, eleganter
-- **Spacing**: Iets meer lucht tussen secties (space-y-4 → space-y-5 waar nodig)
-
-### 3. Accent color als secondary
-
-De `config.accent_color` (ook beschikbaar) wordt gebruikt voor:
-- "Welkom terug" heart icon
-- Availability dots (medium → accent, low → red blijft)
-- Secondary links hover state
-
-### 4. Implementatie — CSS custom properties
-
-In `BookingWidgetInner`, zet CSS custom properties op de container:
+Huidige stijl:
 ```
-style={{
-  '--widget-primary': config.brand_color || '#1a1a1a',
-  '--widget-accent': config.accent_color || '#10B981',
-}}
+bg-white rounded-2xl border border-gray-100
+boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
 ```
 
-Dan in alle child components: `style={{ backgroundColor: 'var(--widget-primary)' }}` i.p.v. hardcoded waarden. Dit voorkomt prop-drilling en werkt met inline styles.
+Nieuwe stijl:
+```
+bg-white rounded-2xl border border-gray-200/60
+boxShadow: '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)'
+```
 
-## Bestanden
+Sterkere shadow (dubbele laag zoals NestoCard), iets zichtbaardere border.
 
-| Bestand | Wijziging |
-|---|---|
-| `src/pages/BookingWidget.tsx` | CSS vars zetten, CTA knoppen, progress bars, summary |
-| `src/components/booking/SelectionStep.tsx` | Datum/tijd/ticket selectie kleuren |
-| `src/components/booking/GuestDetailsStep.tsx` | Submit knop, input focus, chips |
-| `src/components/booking/ConfirmationStep.tsx` | Checkmark kleur, retry knop |
-| `src/components/booking/BookingProgress.tsx` | Progress bars brand color |
-| `src/components/booking/WaitlistForm.tsx` | CTA knop kleur |
+**2. Ticket cards — `SelectionStep.tsx`**
 
-## Wat NIET verandert
+Zelfde shadow-upgrade voor de ticket selectie kaarten. Niet-geselecteerde tickets krijgen dezelfde verhoogde shadow.
 
-- Layout en flow (3 stappen, selector logica, embed mode)
-- Typografie (Inter blijft)
-- Achtergrondkleur (`#FAFAFA` blijft)
-- Ambient background effect
+**3. Gasten stepper — `SelectionStep.tsx`**
+
+De gasten-rij (Minus/Plus knoppen) zit in dezelfde card, geen aparte wijziging nodig.
+
+**4. Tijd-slots**
+
+Tijd-pills zijn klein genoeg — die hoeven geen extra shadow. Ze zitten al binnen de card.
+
+**5. Summary dropdown (stap 2) — `BookingWidget.tsx` regel 220**
+
+Zelfde shadow-upgrade als de selectie-card:
+```
+boxShadow: '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)'
+```
+
+### Wat NIET verandert
+- Achtergrondkleur (#FAFAFA) blijft
+- Rounded-2xl blijft
+- Brand color systeem blijft
 - Functionele logica
 
-## Resultaat
-
-Een widget die eruitziet alsof het *van* het restaurant is — met hun kleuren — maar met de strakke Nesto-kwaliteit erachter. Vergelijkbaar met hoe Stripe Checkout de merchant-kleuren overneemt.
+### Bestanden
+| Bestand | Wijziging |
+|---|---|
+| `src/components/booking/SelectionStep.tsx` | Shadow + border upgrade op selectie-card en ticket cards |
+| `src/pages/BookingWidget.tsx` | Shadow upgrade op summary dropdown |
 
