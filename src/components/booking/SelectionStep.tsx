@@ -451,8 +451,8 @@ export function SelectionStep() {
                   }`}
                     style={{
                       boxShadow: isSelected
-                        ? '0 0 0 2px var(--widget-primary), 0 8px 20px rgba(0,0,0,0.1)'
-                        : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
+                       ? '0 0 0 2px var(--widget-primary), 0 8px 20px rgba(0,0,0,0.12)'
+                        : '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
                     }}
                 >
                   {hasImage ? (
