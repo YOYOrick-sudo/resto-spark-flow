@@ -47,6 +47,8 @@ export interface Reservation {
   cancellation_reason?: string | null;
   // Future fields (nullable until their phases)
   payment_status?: string | null;
+  payment_amount?: number | null;
+  mollie_payment_id?: string | null;
   option_expires_at?: string | null;
   reconfirmed_at?: string | null;
   badges?: Record<string, unknown> | null;

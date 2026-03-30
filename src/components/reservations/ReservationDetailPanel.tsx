@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, ArrowRightLeft, Trash2 } from 'lucide-react';
+import { Sparkles, ArrowRightLeft, Trash2, CreditCard } from 'lucide-react';
 import { NestoPanel } from '@/components/polar/NestoPanel';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { InfoAlert } from '@/components/polar/InfoAlert';
@@ -22,6 +22,8 @@ import { AuditLogTimeline } from './AuditLogTimeline';
 import { OptionBadge } from './OptionBadge';
 import { TableMoveDialog } from './TableMoveDialog';
 import { TableSelector } from './TableSelector';
+import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
+import { useMollieRefund } from '@/hooks/useMollieRefund';
 import { cn } from '@/lib/utils';
 
 interface ReservationDetailPanelProps {
@@ -42,6 +44,8 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
   );
   const [tableMoveOpen, setTableMoveOpen] = useState(false);
   const [showManualSelect, setShowManualSelect] = useState(false);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const mollieRefund = useMollieRefund();
 
   const isTerminal = reservation?.status === 'cancelled' || reservation?.status === 'no_show' || reservation?.status === 'completed';
 
@@ -238,6 +242,31 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
                 </div>
               )}
 
+              {/* Payment / Refund section */}
+              {reservation.payment_status && reservation.payment_status !== 'none' && (
+                <div className="rounded-card border border-border bg-card p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Betaling</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      €{((reservation.payment_amount ?? 0) / 100).toFixed(2)}
+                    </span>
+                  </div>
+                  {reservation.payment_status === 'paid' && (
+                    <NestoButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setRefundDialogOpen(true)}
+                      className="w-full"
+                    >
+                      Terugbetalen
+                    </NestoButton>
+                  )}
+                </div>
+              )}
+
               {/* Section 3: Customer Card */}
               <CustomerCard
                 customer={reservation.customer}
@@ -264,6 +293,24 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
               reservationDate={reservation.reservation_date}
               startTime={reservation.start_time}
               durationMinutes={reservation.duration_minutes}
+            />
+          )}
+
+          {/* Refund confirm dialog */}
+          {reservation && (
+            <ConfirmDialog
+              open={refundDialogOpen}
+              onOpenChange={setRefundDialogOpen}
+              title="Terugbetalen"
+              description={`Weet je zeker dat je €${((reservation.payment_amount ?? 0) / 100).toFixed(2)} wilt terugbetalen?`}
+              confirmLabel="Terugbetalen"
+              variant="destructive"
+              isLoading={mollieRefund.isPending}
+              onConfirm={() => {
+                mollieRefund.mutate({ reservationId: reservation.id }, {
+                  onSuccess: () => setRefundDialogOpen(false),
+                });
+              }}
             />
           )}
         </>

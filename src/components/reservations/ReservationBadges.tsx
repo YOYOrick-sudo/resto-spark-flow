@@ -54,14 +54,20 @@ export function ReservationBadges({ reservation, className }: ReservationBadgesP
     badges.push({ key: 'allergies', label: 'Allergieën', icon: Wheat, colorClass: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' });
   }
 
-  // 6. Prepaid
-  if (reservation.payment_status === 'paid') {
-    badges.push({ key: 'prepaid', label: 'Prepaid', icon: CreditCard, colorClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' });
-  }
-
-  // 7. Deposit
-  if (reservation.payment_status === 'deposit_paid') {
-    badges.push({ key: 'deposit', label: 'Deposit', icon: CreditCard, colorClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' });
+  // 6. Payment status badges
+  const ps = reservation.payment_status;
+  if (ps === 'paid') {
+    badges.push({ key: 'payment', label: 'Betaald', icon: CreditCard, colorClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' });
+  } else if (ps === 'deposit_paid') {
+    badges.push({ key: 'payment', label: 'Deposit', icon: CreditCard, colorClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' });
+  } else if (ps === 'pending' || ps === 'pending_payment') {
+    badges.push({ key: 'payment', label: 'Wacht op betaling', icon: CreditCard, colorClass: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' });
+  } else if (ps === 'expired' || ps === 'failed' || ps === 'canceled') {
+    badges.push({ key: 'payment', label: 'Betaling mislukt', icon: CreditCard, colorClass: 'bg-destructive/10 text-destructive' });
+  } else if (ps === 'refunded') {
+    badges.push({ key: 'payment', label: 'Terugbetaald', icon: CreditCard, colorClass: 'bg-muted text-muted-foreground' });
+  } else if (ps === 'partially_refunded') {
+    badges.push({ key: 'payment', label: 'Deels terugbetaald', icon: CreditCard, colorClass: 'bg-muted text-muted-foreground' });
   }
 
   // 8. Optie verloopt
