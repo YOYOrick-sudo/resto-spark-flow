@@ -424,10 +424,10 @@ export function SelectionStep() {
       {/* Divider */}
       {tickets.length > 0 && (
         <>
-          <div className="flex items-center gap-3 pt-1">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Kies je ervaring</span>
-            <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex items-center gap-3 pt-2 pb-1">
+            <div className="flex-1 h-px bg-gray-200/70" />
+            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Kies je ervaring</span>
+            <div className="flex-1 h-px bg-gray-200/70" />
           </div>
 
           {/* Tickets */}
