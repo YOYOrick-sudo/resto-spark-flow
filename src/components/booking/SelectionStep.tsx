@@ -202,7 +202,7 @@ export function SelectionStep() {
   return (
     <div className="space-y-4 px-5">
       {/* Date, Guests & Time selector */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <div className="bg-white rounded-2xl border border-gray-200/60 overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}>
         <button
           onClick={() => setSelectorOpen(o => !o)}
           className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
@@ -451,8 +451,8 @@ export function SelectionStep() {
                   }`}
                     style={{
                       boxShadow: isSelected
-                        ? '0 0 0 2px var(--widget-primary), 0 8px 20px rgba(0,0,0,0.1)'
-                        : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
+                       ? '0 0 0 2px var(--widget-primary), 0 8px 20px rgba(0,0,0,0.12)'
+                        : '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
                     }}
                 >
                   {hasImage ? (

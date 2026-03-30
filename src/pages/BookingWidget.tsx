@@ -217,7 +217,7 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
       {step === 2 && (
         <div className="shrink-0 px-5 pb-4 pt-2 space-y-2 relative z-10">
           {/* Summary dropdown */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div className="bg-white rounded-2xl border border-gray-200/60 overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}>
             <button
               onClick={() => setSummaryOpen(o => !o)}
               className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
