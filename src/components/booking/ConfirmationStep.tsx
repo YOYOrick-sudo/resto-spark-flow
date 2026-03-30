@@ -164,14 +164,14 @@ export function ConfirmationStep() {
   return (
     <div className="flex flex-col items-center justify-center py-8 space-y-6 px-5">
       <div
-        className="w-20 h-20 rounded-full flex items-center justify-center"
-        style={{ animation: 'checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards', backgroundColor: 'color-mix(in srgb, var(--widget-primary) 15%, transparent)' }}
+        className="w-24 h-24 rounded-full flex items-center justify-center"
+        style={{ animation: 'checkPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards', backgroundColor: 'color-mix(in srgb, var(--widget-primary) 12%, transparent)' }}
       >
-        <Check className="w-10 h-10" style={{ color: 'var(--widget-primary)' }} />
+        <Check className="w-11 h-11" style={{ color: 'var(--widget-primary)' }} />
       </div>
 
       <div className="text-center space-y-2">
-        <h3 className="text-xl font-bold text-gray-800">Bevestigd!</h3>
+        <h3 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>Bevestigd</h3>
         <p className="text-sm text-gray-500">Je reservering is geplaatst. Je ontvangt een bevestiging per e-mail.</p>
       </div>
 
