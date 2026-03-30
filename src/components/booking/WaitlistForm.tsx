@@ -230,7 +230,8 @@ export function WaitlistForm({ onBack }: WaitlistFormProps) {
       <button
         onClick={handleSubmit}
         disabled={submitting || !firstName || !lastName || !email}
-        className="w-full py-3 rounded-2xl text-sm font-bold text-white bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-full py-3 rounded-2xl text-sm font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90"
+        style={{ backgroundColor: 'var(--widget-primary)' }}
       >
         {submitting ? (
           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />

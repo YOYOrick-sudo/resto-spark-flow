@@ -443,11 +443,11 @@ export function SelectionStep() {
                   className={`w-full text-left rounded-3xl overflow-hidden transition-all duration-300 ${
                     !available ? 'opacity-40 grayscale-[30%]' : ''
                   }`}
-                  style={{
-                    boxShadow: isSelected
-                      ? '0 0 0 2px #1a1a1a, 0 8px 20px rgba(0,0,0,0.1)'
-                      : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
-                  }}
+                    style={{
+                      boxShadow: isSelected
+                        ? '0 0 0 2px var(--widget-primary), 0 8px 20px rgba(0,0,0,0.1)'
+                        : '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
+                    }}
                 >
                   {hasImage ? (
                     <div className="relative w-full overflow-hidden" style={{ aspectRatio: '2.4/1' }}>
