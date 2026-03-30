@@ -236,8 +236,8 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
               <li key={item.id}>
                 {/* Section label */}
                 {showSectionLabel && (
-                  <div className="px-3 pt-5 pb-1">
-                    <span className="text-caption text-muted-foreground/60 tracking-widest uppercase">
+                  <div className="px-3 pt-6 pb-1">
+                    <span className="text-[10px] text-muted-foreground/60 tracking-[0.12em] uppercase">
                       {item.section}
                     </span>
                   </div>
