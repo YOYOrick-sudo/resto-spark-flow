@@ -251,27 +251,33 @@ export function SelectionStep() {
               <div className="relative">
                 {/* Week strip */}
                 <div className={`transition-all duration-300 ${calendarMode ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
-                  <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-3 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
-                    {dates.map((d, i) => {
-                      const isSelected = selectedDayIndex === i;
-                      return (
-                        <button
-                          key={i}
-                          data-day={i}
-                          onClick={() => handleDateSelect(i)}
-                          className={`flex flex-col items-center min-w-[50px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center ${
-                            isSelected
-                              ? 'text-white'
-                              : 'bg-white text-gray-600 hover:bg-gray-50 hover:-translate-y-0.5'
-                          }`}
-                          style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: `0 4px 14px color-mix(in srgb, var(--widget-primary) 35%, transparent)` } : { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-                        >
-                          <span className="text-[10px] uppercase font-medium opacity-70">{DAY_NAMES[d.getDay()]}</span>
-                          <span className="text-base font-bold">{d.getDate()}</span>
-                          <span className="text-[10px] opacity-70">{MONTH_NAMES[d.getMonth()]}</span>
-                        </button>
-                      );
-                    })}
+                  <div className="overflow-y-visible -mx-1 px-1">
+                    <div
+                      ref={scrollRef}
+                      className="flex gap-2 overflow-x-auto overflow-y-visible pb-4"
+                      style={{ WebkitOverflowScrolling: 'touch' }}
+                    >
+                      {dates.map((d, i) => {
+                        const isSelected = selectedDayIndex === i;
+                        return (
+                          <button
+                            key={i}
+                            data-day={i}
+                            onClick={() => handleDateSelect(i)}
+                            className={`flex flex-col items-center min-w-[50px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center ${
+                              isSelected
+                                ? 'text-white'
+                                : 'bg-white text-gray-600 hover:bg-gray-50 hover:-translate-y-0.5'
+                            }`}
+                            style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: `0 4px 14px color-mix(in srgb, var(--widget-primary) 35%, transparent)` } : { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+                          >
+                            <span className="text-[10px] uppercase font-medium opacity-70">{DAY_NAMES[d.getDay()]}</span>
+                            <span className="text-base font-bold">{d.getDate()}</span>
+                            <span className="text-[10px] opacity-70">{MONTH_NAMES[d.getMonth()]}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
