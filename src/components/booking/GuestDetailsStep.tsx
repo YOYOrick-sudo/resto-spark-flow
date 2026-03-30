@@ -126,7 +126,9 @@ export function GuestDetailsStep() {
           onChange={e => setGuestData({ guest_notes: e.target.value })}
           placeholder="Opmerkingen"
           rows={3}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 resize-none transition-all placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+          className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-900 resize-none shadow-sm transition-all placeholder:text-gray-400 focus:outline-none focus:border-gray-300"
+          onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px color-mix(in srgb, var(--widget-primary) 12%, transparent)`}
+          onBlur={e => e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'}
         />
 
         {/* Marketing opt-in */}
