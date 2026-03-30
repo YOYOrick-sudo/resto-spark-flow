@@ -79,6 +79,8 @@ async function sendEmail(
   ctaUrl?: string,
   ctaLabel?: string
 ) {
+  const { buildEmailHtml } = await import('../_shared/emailLayout.ts');
+
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
   if (!resendApiKey) {
     console.log(`[REMINDERS STUB] Would send to ${toEmail}: ${subject}`);
@@ -86,7 +88,7 @@ async function sendEmail(
   }
 
   const [{ data: commSettings }, { data: loc }] = await Promise.all([
-    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url').eq('location_id', locationId).maybeSingle(),
+    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url, footer_text').eq('location_id', locationId).maybeSingle(),
     admin.from('locations').select('name').eq('id', locationId).single(),
   ]);
 
@@ -95,18 +97,38 @@ async function sendEmail(
   const brandColor = commSettings?.brand_color || '#1d979e';
   const logoUrl = commSettings?.logo_url || null;
   const replyTo = commSettings?.reply_to || undefined;
+  const footerText = commSettings?.footer_text || '';
 
-  const bodyHtml = bodyText.split('\n').map(line => `<p style="margin:0 0 8px;font-size:14px;color:#555;line-height:1.5">${line}</p>`).join('');
-  const ctaBlock = ctaUrl ? `<table width="100%" style="margin:16px 0"><tr><td align="center"><a href="${ctaUrl}" style="display:inline-block;background:${brandColor};color:#fff;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:600;text-decoration:none">${ctaLabel || 'Bevestigen'}</a></td></tr></table>` : '';
+  // Parse body text into heading (first line) + intro + detail lines
+  const lines = bodyText.split('\n').filter(l => l.trim() !== '');
+  const intro = lines[0] || '';
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#f7f7f7">
-<table width="100%" style="background:#f7f7f7;padding:32px 16px"><tr><td align="center">
-<table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden">
-  ${logoUrl ? `<tr><td style="padding:24px 24px 0;text-align:center"><img src="${logoUrl}" alt="${restaurantName}" style="max-height:48px"></td></tr>` : ''}
-  <tr><td style="padding:24px">${bodyHtml}${ctaBlock}</td></tr>
-</table>
-</td></tr></table></body></html>`;
+  // Extract detail-like lines (contains ": " pattern)
+  const details: Array<{ label: string; value: string }> = [];
+  const otherLines: string[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const match = lines[i].match(/^(.+?):\s+(.+)$/);
+    if (match) {
+      details.push({ label: match[1].toUpperCase(), value: match[2] });
+    } else {
+      otherLines.push(lines[i]);
+    }
+  }
+
+  const note = otherLines.join(' ');
+
+  const html = buildEmailHtml({
+    logoUrl,
+    restaurantName,
+    brandColor,
+    footerText,
+    heading: subject,
+    intro,
+    details,
+    ctaUrl,
+    ctaLabel,
+    note: note || undefined,
+  });
 
   const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
   const payload: Record<string, unknown> = {

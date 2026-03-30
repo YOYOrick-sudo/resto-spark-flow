@@ -39,31 +39,31 @@ export const TEMPLATE_LABELS: Record<TemplateKey, string> = {
 export const DEFAULT_TEMPLATES: Record<TemplateKey, { subject: string; body: string }> = {
   confirmation: {
     subject: 'Bevestiging: {restaurant} op {datum} om {tijd}',
-    body: 'Hoi {voornaam},\n\nJe reservering is bevestigd!\n\n📅 {datum}\n🕐 {tijd}\n👥 {gasten} gasten\n\nBeheer je reservering: {beheerlink}\n\nTot dan!\n{restaurant}',
+    body: 'Je reservering bij {restaurant} is bevestigd.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nBeheer je reservering via de onderstaande link.\n\n{beheerlink}',
   },
   waitlist_confirmation: {
     subject: 'Je staat op de wachtlijst bij {restaurant}',
-    body: 'Hoi {voornaam},\n\nJe staat op de wachtlijst voor {datum}. We laten het je weten zodra er een plek vrijkomt!\n\n{restaurant}',
+    body: 'Beste {voornaam},\n\nJe staat op de wachtlijst voor {datum}. We laten het je weten zodra er een plek vrijkomt.\n\n{restaurant}',
   },
   waitlist_invite: {
-    subject: 'Er is een plek vrijgekomen bij {restaurant}!',
-    body: 'Hoi {voornaam},\n\nGoed nieuws — er is een plek vrijgekomen!\n\n📅 {datum}\n🕐 {tijd}\n👥 {gasten} gasten\n\nReserveer snel via de link in de email.',
+    subject: 'Er is een plek vrijgekomen bij {restaurant}',
+    body: 'Beste {voornaam},\n\nEr is een plek vrijgekomen op jouw gewenste datum.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nReserveer snel via de link in deze email.',
   },
   cancellation: {
     subject: 'Annulering: {restaurant} op {datum}',
-    body: 'Hoi {voornaam},\n\nJe reservering op {datum} om {tijd} is geannuleerd.\n\nWe hopen je snel weer te zien!\n\n{restaurant}',
+    body: 'Beste {voornaam},\n\nJe reservering op {datum} om {tijd} is geannuleerd.\n\nWe hopen je snel weer te zien.\n\n{restaurant}',
   },
   reminder_24h: {
     subject: 'Herinnering: je reservering morgen bij {restaurant}',
-    body: 'Hoi {voornaam},\n\nDit is een herinnering voor je reservering morgen.\n\n📅 {datum}\n🕐 {tijd}\n👥 {gasten} gasten\n\nWe kijken ernaar uit je te verwelkomen!\n\n{restaurant}',
+    body: 'Beste {voornaam},\n\nDit is een herinnering voor je reservering morgen.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nWe kijken ernaar uit je te verwelkomen.\n\n{restaurant}',
   },
   reminder_3h: {
     subject: 'Vanavond: je reservering bij {restaurant} om {tijd}',
-    body: 'Hoi {voornaam},\n\nNog even ter herinnering — je reservering is vandaag!\n\n📅 {datum}\n🕐 {tijd}\n👥 {gasten} gasten\n\nTot straks!\n\n{restaurant}',
+    body: 'Beste {voornaam},\n\nNog even ter herinnering — je reservering is vandaag.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nTot straks.\n\n{restaurant}',
   },
   reconfirm: {
     subject: 'Bevestig je reservering bij {restaurant}',
-    body: 'Hoi {voornaam},\n\nWil je je reservering even bevestigen?\n\n📅 {datum}\n🕐 {tijd}\n👥 {gasten} gasten\n\nKlik op de knop om te bevestigen.',
+    body: 'Beste {voornaam},\n\nWil je je reservering even bevestigen?\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nKlik op de knop hieronder om te bevestigen.',
   },
 };
 

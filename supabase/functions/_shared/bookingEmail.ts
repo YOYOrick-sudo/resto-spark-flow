@@ -1,8 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { buildEmailHtml, formatDateNL } from './emailLayout.ts';
 
 // ============================================
 // Shared Booking Confirmation Email
-// Extracted from public-booking-api for reuse by mollie-webhook
+// Premium restaurant style — no emoji, pure typography
 // ============================================
 
 export interface BookingEmailParams {
@@ -58,11 +59,7 @@ export async function sendBookingConfirmationEmail(
   }
 
   // Format date
-  const [y, mo, d] = params.date.split('-');
-  const dateObj = new Date(Number(y), Number(mo) - 1, Number(d));
-  const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-  const monthNames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
-  const formattedDate = `${dayNames[dateObj.getDay()]} ${Number(d)} ${monthNames[Number(mo) - 1]} ${y}`;
+  const formattedDate = formatDateNL(params.date);
   const formattedTime = params.start_time.slice(0, 5);
 
   // Google Calendar link
@@ -76,40 +73,33 @@ export async function sendBookingConfirmationEmail(
   const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://resto-spark-flow.lovable.app';
   const manageUrl = `${baseUrl}/manage/${params.manage_token}`;
 
+  const intro = params.is_returning_guest
+    ? `Leuk dat je weer bij ons reserveert, ${params.first_name}. We kijken ernaar uit je te verwelkomen.`
+    : `Beste ${params.first_name}, we kijken ernaar uit je te verwelkomen.`;
+
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'DATUM', value: formattedDate },
+    { label: 'TIJD', value: `${formattedTime} uur` },
+    { label: 'GASTEN', value: `${params.party_size} ${params.party_size === 1 ? 'persoon' : 'personen'}` },
+  ];
+  if (ticketName) details.push({ label: 'TICKET', value: ticketName });
+  if (params.guest_notes) details.push({ label: 'OPMERKING', value: params.guest_notes });
+
   const subject = `Bevestiging: ${restaurantName} op ${formattedDate} om ${formattedTime}`;
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f7f7">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f7;padding:32px 16px">
-<tr><td align="center">
-<table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden">
-  ${logoUrl ? `<tr><td style="padding:24px 24px 0;text-align:center"><img src="${logoUrl}" alt="${restaurantName}" style="max-height:48px;max-width:200px"></td></tr>` : ''}
-  <tr><td style="padding:24px">
-    <h1 style="margin:0 0 4px;font-size:20px;color:#111">Je reservering is bevestigd!</h1>
-    <p style="margin:0 0 20px;font-size:14px;color:#666">${params.is_returning_guest ? `Leuk dat je weer bij ons reserveert, ${params.first_name}!` : `Hallo ${params.first_name}, we kijken ernaar uit je te verwelkomen.`}</p>
-    <table width="100%" style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:16px" cellpadding="0" cellspacing="0">
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">📅 <strong>${formattedDate}</strong></td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">🕐 <strong>${formattedTime} uur</strong></td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">👥 <strong>${params.party_size} ${params.party_size === 1 ? 'gast' : 'gasten'}</strong></td></tr>
-      ${ticketName ? `<tr><td style="padding:4px 0;font-size:14px;color:#555">🎫 ${ticketName}</td></tr>` : ''}
-      ${params.guest_notes ? `<tr><td style="padding:4px 0;font-size:13px;color:#888">💬 ${params.guest_notes}</td></tr>` : ''}
-    </table>
-    ${policyNote ? `<p style="font-size:13px;color:#888;margin:0 0 16px">${policyNote}</p>` : ''}
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px">
-      <tr><td align="center">
-        <a href="${manageUrl}" style="display:inline-block;background:${brandColor};color:#fff;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none">Beheer je reservering</a>
-      </td></tr>
-    </table>
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td align="center">
-        <a href="${calendarUrl}" style="font-size:13px;color:${brandColor};text-decoration:none">📅 Voeg toe aan Google Calendar</a>
-      </td></tr>
-    </table>
-  </td></tr>
-  ${footerText ? `<tr><td style="padding:16px 24px;border-top:1px solid #eee;text-align:center"><p style="margin:0;font-size:12px;color:#999">${footerText}</p></td></tr>` : ''}
-</table>
-</td></tr></table>
-</body></html>`;
+  const html = buildEmailHtml({
+    logoUrl,
+    restaurantName,
+    brandColor,
+    footerText,
+    heading: 'Je reservering is bevestigd',
+    intro,
+    details,
+    ctaUrl: manageUrl,
+    ctaLabel: 'Beheer je reservering',
+    secondaryLink: { url: calendarUrl, label: 'Voeg toe aan Google Calendar' },
+    note: policyNote || undefined,
+  });
 
   const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
   const payload: Record<string, unknown> = {

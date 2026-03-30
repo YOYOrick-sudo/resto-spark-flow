@@ -255,6 +255,8 @@ async function sendInviteEmail(
   invite: any,
   locationId: string
 ) {
+  const { buildEmailHtml, formatDateNL } = await import('../_shared/emailLayout.ts');
+
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
   if (!resendApiKey) {
     console.log(`[WAITLIST EMAIL STUB] Would send invite to ${entry.email}`);
@@ -263,7 +265,7 @@ async function sendInviteEmail(
 
   const [{ data: loc }, { data: commSettings }, { data: ticket }] = await Promise.all([
     admin.from('locations').select('name').eq('id', locationId).single(),
-    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url').eq('location_id', locationId).maybeSingle(),
+    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url, footer_text').eq('location_id', locationId).maybeSingle(),
     invite.ticket_id ? admin.from('tickets').select('display_title, name').eq('id', invite.ticket_id).single() : Promise.resolve({ data: null }),
   ]);
 
@@ -272,14 +274,10 @@ async function sendInviteEmail(
   const replyTo = commSettings?.reply_to || undefined;
   const brandColor = commSettings?.brand_color || '#1d979e';
   const logoUrl = commSettings?.logo_url || null;
+  const footerText = commSettings?.footer_text || '';
   const ticketName = ticket?.display_title || ticket?.name || '';
 
-  // Format date
-  const [y, mo, d] = invite.slot_date.split('-');
-  const dateObj = new Date(Number(y), Number(mo) - 1, Number(d));
-  const dayNames = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-  const monthNames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
-  const formattedDate = `${dayNames[dateObj.getDay()]} ${Number(d)} ${monthNames[Number(mo) - 1]} ${y}`;
+  const formattedDate = formatDateNL(invite.slot_date);
   const formattedTime = invite.slot_time.slice(0, 5);
 
   const expiresDate = new Date(invite.expires_at);
@@ -288,38 +286,31 @@ async function sendInviteEmail(
   const baseUrl = (Deno.env.get('PUBLIC_SITE_URL') || 'https://resto-spark-flow.lovable.app').replace(/\/$/, '');
   const acceptUrl = `${baseUrl}/waitlist/accept/${invite.invite_token}`;
 
-  const isReturning = !!entry.customer_id;
-  const greeting = isReturning
-    ? `Leuk dat je weer bij ons wilt komen, ${entry.first_name}!`
-    : `Hoi ${entry.first_name}, goed nieuws!`;
+  const intro = entry.customer_id
+    ? `Leuk dat je weer bij ons wilt komen, ${entry.first_name}. Er is een plek vrijgekomen op jouw gewenste datum.`
+    : `Beste ${entry.first_name}, goed nieuws — er is een plek vrijgekomen.`;
 
-  const subject = `Er is een plek vrijgekomen bij ${restaurantName}!`;
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'DATUM', value: formattedDate },
+    { label: 'TIJD', value: `${formattedTime} uur` },
+    { label: 'GASTEN', value: `${invite.party_size} ${invite.party_size === 1 ? 'persoon' : 'personen'}` },
+  ];
+  if (ticketName) details.push({ label: 'TICKET', value: ticketName });
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f7f7">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f7;padding:32px 16px">
-<tr><td align="center">
-<table width="100%" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden">
-  ${logoUrl ? `<tr><td style="padding:24px 24px 0;text-align:center"><img src="${logoUrl}" alt="${restaurantName}" style="max-height:48px;max-width:200px"></td></tr>` : ''}
-  <tr><td style="padding:24px">
-    <h1 style="margin:0 0 4px;font-size:20px;color:#111">Er is een plek vrijgekomen!</h1>
-    <p style="margin:0 0 20px;font-size:14px;color:#666;line-height:1.5">${greeting}</p>
-    <table width="100%" style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:16px" cellpadding="0" cellspacing="0">
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">📅 <strong>${formattedDate}</strong></td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">🕐 <strong>${formattedTime} uur</strong></td></tr>
-      <tr><td style="padding:4px 0;font-size:14px;color:#555">👥 <strong>${invite.party_size} ${invite.party_size === 1 ? 'gast' : 'gasten'}</strong></td></tr>
-      ${ticketName ? `<tr><td style="padding:4px 0;font-size:14px;color:#555">🎫 ${ticketName}</td></tr>` : ''}
-    </table>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px">
-      <tr><td align="center">
-        <a href="${acceptUrl}" style="display:inline-block;background:${brandColor};color:#fff;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:600;text-decoration:none">Reserveer deze plek</a>
-      </td></tr>
-    </table>
-    <p style="text-align:center;font-size:13px;color:#999;margin:0">⏰ Geldig tot ${expiresFormatted} uur</p>
-  </td></tr>
-</table>
-</td></tr></table>
-</body></html>`;
+  const subject = `Er is een plek vrijgekomen bij ${restaurantName}`;
+
+  const html = buildEmailHtml({
+    logoUrl,
+    restaurantName,
+    brandColor,
+    footerText,
+    heading: 'Er is een plek vrijgekomen',
+    intro,
+    details,
+    ctaUrl: acceptUrl,
+    ctaLabel: 'Reserveer deze plek',
+    note: `Deze uitnodiging is geldig tot ${expiresFormatted} uur.`,
+  });
 
   const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
   const payload: Record<string, unknown> = {
