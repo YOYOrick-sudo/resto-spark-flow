@@ -269,12 +269,12 @@ function BookingWidgetInner({ isEmbed }: { isEmbed: boolean }) {
 
       {/* Footer */}
       {config.location_name && (
-        <footer className="shrink-0 pb-8 pt-1 text-center relative z-10">
-          <p className={`font-extrabold text-gray-400 tracking-normal ${getNameSize(config.location_name)}`} style={{ fontFamily: "'Inter', sans-serif" }}>
+        <footer className="shrink-0 pb-8 pt-2 text-center relative z-10">
+          <p className={`font-medium text-gray-300 tracking-wider ${getNameSize(config.location_name)}`} style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '0.08em' }}>
             {config.location_name}
           </p>
           {config.show_nesto_branding && (
-            <span className="text-[10px] text-gray-300">Powered by Nesto</span>
+            <span className="inline-block mt-1.5 text-[9px] text-gray-300 border border-gray-200 rounded-full px-2.5 py-0.5 tracking-wide uppercase">Powered by Nesto</span>
           )}
         </footer>
       )}

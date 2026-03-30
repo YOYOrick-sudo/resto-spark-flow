@@ -196,10 +196,10 @@ export function GuestDetailsStep() {
                           updateAnswer(q.id, next);
                         }
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                      className={`px-3.5 py-2 rounded-2xl text-sm border transition-all duration-200 ${
                         selected
                           ? 'text-white border-transparent'
-                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:-translate-y-0.5'
                       }`}
                       style={selected ? { backgroundColor: 'var(--widget-primary)', borderColor: 'var(--widget-primary)' } : undefined}
                     >

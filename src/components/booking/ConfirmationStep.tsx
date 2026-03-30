@@ -190,15 +190,15 @@ export function ConfirmationStep() {
         </div>
       </div>
 
-      <div className="w-full flex flex-col gap-2">
+      <div className="w-full flex flex-col gap-2.5">
         {calendarUrl && (
           <a
             href={calendarUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-200 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all duration-150 text-gray-700 hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full h-12 rounded-2xl text-sm font-medium border border-gray-200 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all duration-200 text-gray-700 hover:scale-[1.02] active:scale-[0.98]"
           >
-            <Calendar className="h-4 w-4" />
+            <Calendar className="h-4 w-4" style={{ color: 'var(--widget-primary)' }} />
             Voeg toe aan agenda
           </a>
         )}
@@ -206,9 +206,9 @@ export function ConfirmationStep() {
         {manageUrl && (
           <a
             href={manageUrl}
-            className="w-full h-11 rounded-[10px] text-sm font-medium border border-gray-200 flex items-center justify-center gap-2 transition-all duration-150 text-gray-700 hover:bg-gray-50 hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full h-12 rounded-2xl text-sm font-medium border border-gray-200 flex items-center justify-center gap-2 transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:scale-[1.02] active:scale-[0.98]"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="h-4 w-4" style={{ color: 'var(--widget-primary)' }} />
             Reservering beheren
           </a>
         )}

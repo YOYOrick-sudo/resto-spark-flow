@@ -441,7 +441,7 @@ export function SelectionStep() {
                   key={ticket.id}
                   onClick={() => handleTicketSelect(ticket)}
                   className={`w-full text-left rounded-3xl overflow-hidden transition-all duration-300 ${
-                    !available ? 'opacity-40 grayscale-[30%]' : ''
+                    !available ? 'opacity-40 grayscale-[30%]' : 'hover:scale-[1.01]'
                   }`}
                     style={{
                       boxShadow: isSelected
