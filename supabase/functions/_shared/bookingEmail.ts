@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { buildEmailHtml, formatDateNL } from './emailLayout.ts';
+import { getLocationBranding } from './brandingHelper.ts';
 
 // ============================================
 // Shared Booking Confirmation Email
