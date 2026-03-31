@@ -125,3 +125,12 @@ verify_jwt = false
 
 [functions.send-whatsapp]
 verify_jwt = false
+
+[functions.webchat-message]
+verify_jwt = false
+
+[functions.webchat-messages]
+verify_jwt = false
+
+[functions.webchat-preferences]
+verify_jwt = false
