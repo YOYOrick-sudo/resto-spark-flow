@@ -4,6 +4,8 @@ import { Phone, LogIn, Footprints, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Reservation } from "@/types/reservation";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
+import { SparkleIndicator } from "@/components/polar/SparkleIndicator";
+import { isAiChannel } from "@/utils/isAiGenerated";
 import {
   getDisplayName,
   isWalkIn,
