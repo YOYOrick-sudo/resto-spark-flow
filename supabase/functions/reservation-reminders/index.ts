@@ -13,50 +13,12 @@ function getAdminClient() {
   );
 }
 
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
 // ============================================
-// Template loading with fallback
+// Helpers
 // ============================================
-
-const DEFAULT_TEMPLATES: Record<string, { subject: string; body: string }> = {
-  reminder_24h: {
-    subject: 'Herinnering: je reservering morgen bij {restaurant}',
-    body: 'Beste {voornaam}, dit is een herinnering voor je reservering morgen.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nWe kijken ernaar uit je te verwelkomen.\n\n{restaurant}',
-  },
-  reminder_3h: {
-    subject: 'Vanavond: je reservering bij {restaurant} om {tijd}',
-    body: 'Beste {voornaam}, nog even ter herinnering — je reservering is vandaag.\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nTot straks.\n\n{restaurant}',
-  },
-  reconfirm: {
-    subject: 'Bevestig je reservering bij {restaurant}',
-    body: 'Beste {voornaam}, wil je je reservering even bevestigen?\n\nDatum: {datum}\nTijd: {tijd}\nGasten: {gasten} personen\n\nKlik op de knop hieronder om te bevestigen.',
-  },
-};
-
-async function loadTemplate(admin: ReturnType<typeof createClient>, locationId: string, key: string) {
-  const { data } = await admin
-    .from('reservation_email_templates')
-    .select('subject, body, is_active')
-    .eq('location_id', locationId)
-    .eq('template_key', key)
-    .maybeSingle();
-
-  if (data && data.is_active && data.subject && data.body) {
-    return { subject: data.subject, body: data.body };
-  }
-  return DEFAULT_TEMPLATES[key] || { subject: '', body: '' };
-}
-
-function renderMergeFields(text: string, vars: Record<string, string>): string {
-  return text
-    .replace(/\{voornaam\}/g, vars.voornaam || '')
-    .replace(/\{achternaam\}/g, vars.achternaam || '')
-    .replace(/\{datum\}/g, vars.datum || '')
-    .replace(/\{tijd\}/g, vars.tijd || '')
-    .replace(/\{gasten\}/g, vars.gasten || '')
-    .replace(/\{restaurant\}/g, vars.restaurant || '')
-    .replace(/\{beheerlink\}/g, vars.beheerlink || '')
-    .replace(/\{ticket\}/g, vars.ticket || '');
-}
 
 function formatDateNL(dateStr: string): string {
   const [y, mo, d] = dateStr.split('-');
@@ -66,87 +28,39 @@ function formatDateNL(dateStr: string): string {
   return `${dayNames[dateObj.getDay()]} ${Number(d)} ${monthNames[Number(mo) - 1]} ${y}`;
 }
 
-// ============================================
-// Email sending
-// ============================================
-
-async function sendEmail(
-  admin: ReturnType<typeof createClient>,
+async function sendViaMessaging(
   locationId: string,
-  toEmail: string,
-  subject: string,
-  bodyText: string,
-  ctaUrl?: string,
-  ctaLabel?: string
-) {
-  const { buildEmailHtml } = await import('../_shared/emailLayout.ts');
+  customerId: string,
+  templateKey: string,
+  templateParams: Record<string, string>,
+  reservationId: string
+): Promise<boolean> {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        location_id: locationId,
+        customer_id: customerId,
+        template_key: templateKey,
+        template_params: templateParams,
+        reservation_id: reservationId,
+      }),
+    });
 
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  if (!resendApiKey) {
-    console.log(`[REMINDERS STUB] Would send to ${toEmail}: ${subject}`);
-    return;
-  }
-
-  const [{ data: commSettings }, { data: loc }] = await Promise.all([
-    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url, footer_text').eq('location_id', locationId).maybeSingle(),
-    admin.from('locations').select('name').eq('id', locationId).single(),
-  ]);
-
-  const restaurantName = loc?.name ?? 'Restaurant';
-  const senderName = commSettings?.sender_name || restaurantName;
-  const brandColor = commSettings?.brand_color || '#1d979e';
-  const logoUrl = commSettings?.logo_url || null;
-  const replyTo = commSettings?.reply_to || undefined;
-  const footerText = commSettings?.footer_text || '';
-
-  // Parse body text into heading (first line) + intro + detail lines
-  const lines = bodyText.split('\n').filter(l => l.trim() !== '');
-  const intro = lines[0] || '';
-
-  // Extract detail-like lines (contains ": " pattern)
-  const details: Array<{ label: string; value: string }> = [];
-  const otherLines: string[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const match = lines[i].match(/^(.+?):\s+(.+)$/);
-    if (match) {
-      details.push({ label: match[1].toUpperCase(), value: match[2] });
-    } else {
-      otherLines.push(lines[i]);
+    if (!response.ok) {
+      const err = await response.text();
+      console.error(`[REMINDERS] send-message failed for ${templateKey}: ${err}`);
+      return false;
     }
-  }
 
-  const note = otherLines.join(' ');
-
-  const html = buildEmailHtml({
-    logoUrl,
-    restaurantName,
-    brandColor,
-    footerText,
-    heading: subject,
-    intro,
-    details,
-    ctaUrl,
-    ctaLabel,
-    note: note || undefined,
-  });
-
-  const verifiedFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
-  const payload: Record<string, unknown> = {
-    from: `${senderName} <${verifiedFrom}>`,
-    to: [toEmail],
-    subject,
-    html,
-  };
-  if (replyTo) payload.reply_to = replyTo;
-
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    console.error(`[REMINDERS] Resend error ${response.status}: ${await response.text()}`);
+    return true;
+  } catch (err) {
+    console.error(`[REMINDERS] send-message error for ${templateKey}:`, err);
+    return false;
   }
 }
 
@@ -162,7 +76,7 @@ Deno.serve(async (req) => {
   const admin = getAdminClient();
 
   try {
-    // Get all active locations with reservation entitlement
+    // Get all active locations
     const { data: locations } = await admin
       .from('locations')
       .select('id, name, timezone')
@@ -174,7 +88,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let totalSent = { reminder_24h: 0, reminder_3h: 0, reconfirm: 0 };
+    const totalSent = { reminder_24h: 0, reminder_3h: 0, reconfirm: 0 };
 
     for (const loc of locations) {
       // Get settings
@@ -184,7 +98,6 @@ Deno.serve(async (req) => {
         .eq('location_id', loc.id)
         .maybeSingle();
 
-      // Default to enabled if no settings row
       const r24 = settings?.reminder_24h_enabled ?? true;
       const r3 = settings?.reminder_3h_enabled ?? true;
       const reconfirmEnabled = settings?.reconfirm_enabled ?? false;
@@ -201,13 +114,11 @@ Deno.serve(async (req) => {
       const threeHoursLater = nowMinutes + 180;
       const threeHoursTime = `${String(Math.floor(threeHoursLater / 60)).padStart(2, '0')}:${String(threeHoursLater % 60).padStart(2, '0')}:00`;
 
-      const baseUrl = (Deno.env.get('PUBLIC_SITE_URL') || 'https://resto-spark-flow.lovable.app').replace(/\/$/, '');
-
       // T-24h reminders (reservations for tomorrow)
       if (r24) {
         const { data: reservations24 } = await admin
           .from('reservations')
-          .select('id, reservation_date, start_time, end_time, party_size, manage_token, customer_id, customers:customer_id(first_name, last_name, email)')
+          .select('id, reservation_date, start_time, party_size, customer_id, customers:customer_id(first_name, last_name, email)')
           .eq('location_id', loc.id)
           .eq('reservation_date', tomorrowStr)
           .in('status', ['confirmed', 'option'])
@@ -217,21 +128,18 @@ Deno.serve(async (req) => {
           const customer = (res as any).customers;
           if (!customer?.email) continue;
 
-          const template = await loadTemplate(admin, loc.id, 'reminder_24h');
-          const vars = {
-            voornaam: customer.first_name || '',
-            achternaam: customer.last_name || '',
+          const sent = await sendViaMessaging(loc.id, res.customer_id, 'reminder_24h', {
+            naam: customer.first_name || '',
             datum: formatDateNL(res.reservation_date),
             tijd: res.start_time?.slice(0, 5) || '',
-            gasten: String(res.party_size),
+            personen: String(res.party_size),
             restaurant: loc.name,
-            beheerlink: `${baseUrl}/manage/${res.manage_token}`,
-            ticket: '',
-          };
+          }, res.id);
 
-          await sendEmail(admin, loc.id, customer.email, renderMergeFields(template.subject, vars), renderMergeFields(template.body, vars));
-          await admin.from('reservations').update({ reminder_24h_sent_at: new Date().toISOString() }).eq('id', res.id);
-          totalSent.reminder_24h++;
+          if (sent) {
+            await admin.from('reservations').update({ reminder_24h_sent_at: new Date().toISOString() }).eq('id', res.id);
+            totalSent.reminder_24h++;
+          }
         }
       }
 
@@ -241,7 +149,7 @@ Deno.serve(async (req) => {
 
         const { data: reservations3 } = await admin
           .from('reservations')
-          .select('id, reservation_date, start_time, end_time, party_size, manage_token, customer_id, customers:customer_id(first_name, last_name, email)')
+          .select('id, reservation_date, start_time, party_size, customer_id, customers:customer_id(first_name, last_name, email)')
           .eq('location_id', loc.id)
           .eq('reservation_date', todayStr)
           .in('status', ['confirmed', 'option'])
@@ -253,21 +161,18 @@ Deno.serve(async (req) => {
           const customer = (res as any).customers;
           if (!customer?.email) continue;
 
-          const template = await loadTemplate(admin, loc.id, 'reminder_3h');
-          const vars = {
-            voornaam: customer.first_name || '',
-            achternaam: customer.last_name || '',
+          const sent = await sendViaMessaging(loc.id, res.customer_id, 'reminder_3h', {
+            naam: customer.first_name || '',
             datum: formatDateNL(res.reservation_date),
             tijd: res.start_time?.slice(0, 5) || '',
-            gasten: String(res.party_size),
+            personen: String(res.party_size),
             restaurant: loc.name,
-            beheerlink: `${baseUrl}/manage/${res.manage_token}`,
-            ticket: '',
-          };
+          }, res.id);
 
-          await sendEmail(admin, loc.id, customer.email, renderMergeFields(template.subject, vars), renderMergeFields(template.body, vars));
-          await admin.from('reservations').update({ reminder_3h_sent_at: new Date().toISOString() }).eq('id', res.id);
-          totalSent.reminder_3h++;
+          if (sent) {
+            await admin.from('reservations').update({ reminder_3h_sent_at: new Date().toISOString() }).eq('id', res.id);
+            totalSent.reminder_3h++;
+          }
         }
       }
 
@@ -275,7 +180,7 @@ Deno.serve(async (req) => {
       if (reconfirmEnabled) {
         const { data: highRisk } = await admin
           .from('reservations')
-          .select('id, reservation_date, start_time, end_time, party_size, manage_token, no_show_risk_score, customer_id, customers:customer_id(first_name, last_name, email)')
+          .select('id, reservation_date, start_time, party_size, manage_token, no_show_risk_score, customer_id, customers:customer_id(first_name, last_name, email)')
           .eq('location_id', loc.id)
           .in('reservation_date', [todayStr, tomorrowStr])
           .in('status', ['confirmed', 'option'])
@@ -293,27 +198,17 @@ Deno.serve(async (req) => {
             reconfirm_sent_at: new Date().toISOString(),
           }).eq('id', res.id);
 
-          const template = await loadTemplate(admin, loc.id, 'reconfirm');
-          const reconfirmUrl = `${baseUrl}/reconfirm/${token}`;
-          const vars = {
-            voornaam: customer.first_name || '',
-            achternaam: customer.last_name || '',
+          const sent = await sendViaMessaging(loc.id, res.customer_id, 'reservation_reconfirm', {
+            naam: customer.first_name || '',
             datum: formatDateNL(res.reservation_date),
             tijd: res.start_time?.slice(0, 5) || '',
-            gasten: String(res.party_size),
+            personen: String(res.party_size),
             restaurant: loc.name,
-            beheerlink: `${baseUrl}/manage/${res.manage_token}`,
-            ticket: '',
-          };
+          }, res.id);
 
-          await sendEmail(
-            admin, loc.id, customer.email,
-            renderMergeFields(template.subject, vars),
-            renderMergeFields(template.body, vars),
-            reconfirmUrl,
-            'Bevestig mijn reservering'
-          );
-          totalSent.reconfirm++;
+          if (sent) {
+            totalSent.reconfirm++;
+          }
         }
       }
     }
