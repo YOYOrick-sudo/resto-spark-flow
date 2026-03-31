@@ -582,6 +582,7 @@ async function handleManageGet(url: URL) {
       id, reservation_date, start_time, end_time, party_size,
       status, channel, guest_notes, is_squeeze, duration_minutes,
       checked_in_at, option_expires_at, cancellation_reason, tags,
+      customer_id,
       customers:customer_id(first_name, last_name, email, phone_number),
       tickets:ticket_id(name, display_title, policy_set_id),
       shifts:shift_id(name, short_name)
@@ -599,7 +600,7 @@ async function handleManageGet(url: URL) {
     policySetId
       ? admin.from('policy_sets').select('cancel_policy_type, cancel_window_hours, cancel_cutoff_time, refund_type, refund_percentage').eq('id', policySetId).single()
       : Promise.resolve({ data: null }),
-    admin.from('locations').select('name').eq('id', data.location_id).single(),
+    admin.from('locations').select('name, logo_url, brand_color_primary, hero_image_url').eq('id', data.location_id).single(),
     admin.from('communication_settings').select('logo_url').eq('location_id', data.location_id).maybeSingle(),
   ]);
   cancelPolicy = policyResult?.data ?? null;
@@ -623,7 +624,11 @@ async function handleManageGet(url: URL) {
   return jsonResponse({
     location_id: data.location_id,
     restaurant_name: loc?.name ?? null,
-    logo_url: commSettings?.logo_url ?? null,
+    logo_url: loc?.logo_url ?? commSettings?.logo_url ?? null,
+    brand_color: loc?.brand_color_primary ?? '#0F766E',
+    hero_image_url: loc?.hero_image_url ?? null,
+    customer_id: data.customer_id ?? null,
+    manage_token: token,
     reservation: {
       id: data.id,
       date: data.reservation_date,
