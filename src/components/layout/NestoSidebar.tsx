@@ -346,8 +346,8 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                   >
                     <Icon size={16} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
                     <span>{item.label}</span>
-                    {item.id === 'assistent' && hasAttentionSignals && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-warning ml-auto flex-shrink-0" />
+                    {item.id === 'assistent' && signalCount > 0 && (
+                      <NestoBadge variant="warning" size="sm" className="ml-auto">{signalCount}</NestoBadge>
                     )}
                   </button>
                 )}
