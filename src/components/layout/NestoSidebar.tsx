@@ -214,8 +214,10 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         )}
                       >
                         <Icon size={16} className={cn("flex-shrink-0", isItemActive && "text-primary")} />
-                        {item.id === 'assistent' && hasAttentionSignals && (
-                          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-warning" />
+                        {item.id === 'assistent' && signalCount > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5">
+                            <NestoBadge variant="warning" size="sm">{signalCount}</NestoBadge>
+                          </span>
                         )}
                       </button>
                     </TooltipTrigger>
