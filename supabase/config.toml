@@ -116,3 +116,9 @@ verify_jwt = false
 
 [functions.check-autonomy]
 verify_jwt = false
+
+[functions.send-message]
+verify_jwt = false
+
+[functions.send-whatsapp]
+verify_jwt = false

@@ -431,6 +431,89 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          channel: string
+          channel_contact_id: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string | null
+          customer_id: string | null
+          handled_by: string | null
+          id: string
+          last_message_at: string | null
+          location_id: string
+          reservation_id: string | null
+          service_window_expires_at: string | null
+          status: string | null
+          unread_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          channel?: string
+          channel_contact_id?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          handled_by?: string | null
+          id?: string
+          last_message_at?: string | null
+          location_id: string
+          reservation_id?: string | null
+          service_window_expires_at?: string | null
+          status?: string | null
+          unread_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          channel?: string
+          channel_contact_id?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          handled_by?: string | null
+          id?: string
+          last_message_at?: string | null
+          location_id?: string
+          reservation_id?: string | null
+          service_window_expires_at?: string | null
+          status?: string | null
+          unread_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cross_module_events: {
         Row: {
           consumed_by: Json
@@ -494,6 +577,7 @@ export type Database = {
           total_no_shows: number
           total_visits: number
           updated_at: string
+          whatsapp_opt_in: boolean | null
         }
         Insert: {
           average_spend?: number | null
@@ -516,6 +600,7 @@ export type Database = {
           total_no_shows?: number
           total_visits?: number
           updated_at?: string
+          whatsapp_opt_in?: boolean | null
         }
         Update: {
           average_spend?: number | null
@@ -538,6 +623,7 @@ export type Database = {
           total_no_shows?: number
           total_visits?: number
           updated_at?: string
+          whatsapp_opt_in?: boolean | null
         }
         Relationships: [
           {
@@ -771,6 +857,9 @@ export type Database = {
           tone_of_voice: string | null
           tripadvisor_url: string | null
           updated_at: string
+          whatsapp_business_account_id: string | null
+          whatsapp_enabled: boolean | null
+          whatsapp_phone_number_id: string | null
         }
         Insert: {
           brand_color_accent?: string | null
@@ -791,6 +880,9 @@ export type Database = {
           tone_of_voice?: string | null
           tripadvisor_url?: string | null
           updated_at?: string
+          whatsapp_business_account_id?: string | null
+          whatsapp_enabled?: boolean | null
+          whatsapp_phone_number_id?: string | null
         }
         Update: {
           brand_color_accent?: string | null
@@ -811,6 +903,9 @@ export type Database = {
           tone_of_voice?: string | null
           tripadvisor_url?: string | null
           updated_at?: string
+          whatsapp_business_account_id?: string | null
+          whatsapp_enabled?: boolean | null
+          whatsapp_phone_number_id?: string | null
         }
         Relationships: [
           {
@@ -1992,6 +2087,240 @@ export type Database = {
             foreignKeyName: "marketing_templates_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          body: string
+          buttons: Json | null
+          channel: string
+          created_at: string | null
+          footer: string | null
+          header: Json | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          language: string
+          location_id: string
+          subject: string | null
+          template_key: string
+          updated_at: string | null
+          wa_category: string | null
+          wa_status: string | null
+          wa_template_id: string | null
+          wa_template_name: string | null
+        }
+        Insert: {
+          body: string
+          buttons?: Json | null
+          channel?: string
+          created_at?: string | null
+          footer?: string | null
+          header?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          language?: string
+          location_id: string
+          subject?: string | null
+          template_key: string
+          updated_at?: string | null
+          wa_category?: string | null
+          wa_status?: string | null
+          wa_template_id?: string | null
+          wa_template_name?: string | null
+        }
+        Update: {
+          body?: string
+          buttons?: Json | null
+          channel?: string
+          created_at?: string | null
+          footer?: string | null
+          header?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          language?: string
+          location_id?: string
+          subject?: string | null
+          template_key?: string
+          updated_at?: string | null
+          wa_category?: string | null
+          wa_status?: string | null
+          wa_template_id?: string | null
+          wa_template_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_templates_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          channel: string
+          content: string | null
+          content_rich: Json | null
+          conversation_id: string
+          created_at: string | null
+          direction: string
+          id: string
+          is_ai_generated: boolean | null
+          location_id: string
+          message_type: string
+          read_at: string | null
+          reservation_id: string | null
+          sent_by: string | null
+          template_name: string | null
+          template_params: Json | null
+          wa_error_code: string | null
+          wa_message_id: string | null
+          wa_status: string | null
+        }
+        Insert: {
+          channel?: string
+          content?: string | null
+          content_rich?: Json | null
+          conversation_id: string
+          created_at?: string | null
+          direction?: string
+          id?: string
+          is_ai_generated?: boolean | null
+          location_id: string
+          message_type?: string
+          read_at?: string | null
+          reservation_id?: string | null
+          sent_by?: string | null
+          template_name?: string | null
+          template_params?: Json | null
+          wa_error_code?: string | null
+          wa_message_id?: string | null
+          wa_status?: string | null
+        }
+        Update: {
+          channel?: string
+          content?: string | null
+          content_rich?: Json | null
+          conversation_id?: string
+          created_at?: string | null
+          direction?: string
+          id?: string
+          is_ai_generated?: boolean | null
+          location_id?: string
+          message_type?: string
+          read_at?: string | null
+          reservation_id?: string | null
+          sent_by?: string | null
+          template_name?: string | null
+          template_params?: Json | null
+          wa_error_code?: string | null
+          wa_message_id?: string | null
+          wa_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_config: {
+        Row: {
+          active_window_end: string | null
+          active_window_start: string | null
+          ai_agent_enabled: boolean | null
+          auto_cancel_reservations: boolean | null
+          auto_modify_reservations: boolean | null
+          created_at: string | null
+          d360_api_key_encrypted: string | null
+          escalation_message: string | null
+          greeting_message: string | null
+          id: string
+          languages: string[] | null
+          large_party_threshold: number | null
+          location_id: string
+          outside_window_reply: string | null
+          personality_tone: string | null
+          updated_at: string | null
+          webchat_enabled: boolean | null
+          whatsapp_enabled: boolean | null
+        }
+        Insert: {
+          active_window_end?: string | null
+          active_window_start?: string | null
+          ai_agent_enabled?: boolean | null
+          auto_cancel_reservations?: boolean | null
+          auto_modify_reservations?: boolean | null
+          created_at?: string | null
+          d360_api_key_encrypted?: string | null
+          escalation_message?: string | null
+          greeting_message?: string | null
+          id?: string
+          languages?: string[] | null
+          large_party_threshold?: number | null
+          location_id: string
+          outside_window_reply?: string | null
+          personality_tone?: string | null
+          updated_at?: string | null
+          webchat_enabled?: boolean | null
+          whatsapp_enabled?: boolean | null
+        }
+        Update: {
+          active_window_end?: string | null
+          active_window_start?: string | null
+          ai_agent_enabled?: boolean | null
+          auto_cancel_reservations?: boolean | null
+          auto_modify_reservations?: boolean | null
+          created_at?: string | null
+          d360_api_key_encrypted?: string | null
+          escalation_message?: string | null
+          greeting_message?: string | null
+          id?: string
+          languages?: string[] | null
+          large_party_threshold?: number | null
+          location_id?: string
+          outside_window_reply?: string | null
+          personality_tone?: string | null
+          updated_at?: string | null
+          webchat_enabled?: boolean | null
+          whatsapp_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_config_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
