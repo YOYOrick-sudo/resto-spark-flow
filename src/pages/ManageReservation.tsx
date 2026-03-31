@@ -224,6 +224,7 @@ export default function ManageReservation() {
   const { reservation: res } = data;
   const brandColor = data.brand_color || '#0F766E';
   const isActive = res.status === 'confirmed' || res.status === 'option';
+  const manageToken = data.manage_token || token;
 
   return (
     <div className="min-h-screen flex flex-col items-center" style={{ background: '#FAFAFA' }}>
@@ -440,19 +441,19 @@ export default function ManageReservation() {
         </div>
 
         {/* Preferences section */}
-        {data.manage_token && isActive && (
+        {manageToken && isActive && (
           <div
             className="mt-4 bg-white rounded-2xl p-5"
             style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}
           >
-            <GuestPreferences manageToken={data.manage_token} brandColor={brandColor} />
+            <GuestPreferences manageToken={manageToken} brandColor={brandColor} />
           </div>
         )}
 
         {/* Chat section */}
-        {data.manage_token && isActive && (
+        {manageToken && isActive && (
           <div className="mt-4">
-            <GuestChat manageToken={data.manage_token} brandColor={brandColor} />
+            <GuestChat manageToken={manageToken} brandColor={brandColor} />
           </div>
         )}
       </main>
