@@ -442,6 +442,7 @@ export type Database = {
           handled_by: string | null
           id: string
           last_message_at: string | null
+          last_notification_at: string | null
           location_id: string
           reservation_id: string | null
           service_window_expires_at: string | null
@@ -459,6 +460,7 @@ export type Database = {
           handled_by?: string | null
           id?: string
           last_message_at?: string | null
+          last_notification_at?: string | null
           location_id: string
           reservation_id?: string | null
           service_window_expires_at?: string | null
@@ -476,6 +478,7 @@ export type Database = {
           handled_by?: string | null
           id?: string
           last_message_at?: string | null
+          last_notification_at?: string | null
           location_id?: string
           reservation_id?: string | null
           service_window_expires_at?: string | null
@@ -560,7 +563,7 @@ export type Database = {
           average_spend: number | null
           birthday: string | null
           created_at: string
-          dietary_preferences: string[] | null
+          dietary_preferences: Json | null
           email: string | null
           favorite_items: Json | null
           first_name: string
@@ -583,7 +586,7 @@ export type Database = {
           average_spend?: number | null
           birthday?: string | null
           created_at?: string
-          dietary_preferences?: string[] | null
+          dietary_preferences?: Json | null
           email?: string | null
           favorite_items?: Json | null
           first_name: string
@@ -606,7 +609,7 @@ export type Database = {
           average_spend?: number | null
           birthday?: string | null
           created_at?: string
-          dietary_preferences?: string[] | null
+          dietary_preferences?: Json | null
           email?: string | null
           favorite_items?: Json | null
           first_name?: string
