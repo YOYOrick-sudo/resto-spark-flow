@@ -13,6 +13,8 @@ import type { Reservation, ReservationChannel } from "@/types/reservation";
 import { STATUS_CONFIG, ALLOWED_TRANSITIONS } from "@/types/reservation";
 import { getDisplayName, isWalkIn, formatTime, getTicketAbbreviation } from "@/lib/reservationUtils";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
+import { SparkleIndicator } from "@/components/polar/SparkleIndicator";
+import { isAiChannel } from "@/utils/isAiGenerated";
 import type { DensityType } from "./DensityToggle";
 
 const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_160px_120px_80px_32px] gap-x-3 items-center";
