@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Sparkles, ArrowRightLeft, Trash2, CreditCard } from 'lucide-react';
+import { SparkleIndicator } from '@/components/polar/SparkleIndicator';
+import { isAiChannel } from '@/utils/isAiGenerated';
 import { NestoPanel } from '@/components/polar/NestoPanel';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { InfoAlert } from '@/components/polar/InfoAlert';
