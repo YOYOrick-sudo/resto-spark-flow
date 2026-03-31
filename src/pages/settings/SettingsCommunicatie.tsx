@@ -306,6 +306,10 @@ export default function SettingsCommunicatie() {
         </NestoCard>
       </NestoTabContent>
 
+      <NestoTabContent value="branding" activeValue={activeTab}>
+        <BrandingTab />
+      </NestoTabContent>
+
       <NestoTabContent value="gastberichten" activeValue={activeTab}>
         <GastberichtenTab />
       </NestoTabContent>
