@@ -40,6 +40,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
 import SettingsCommunicatie from "./pages/settings/SettingsCommunicatie";
+import SettingsAssistent from "./pages/settings/SettingsAssistent";
 import SettingsBetalingen from "./pages/settings/SettingsBetalingen";
 import MarketingSettings from "./pages/marketing/MarketingSettings";
 import SegmentsPage from "./pages/marketing/SegmentsPage";
