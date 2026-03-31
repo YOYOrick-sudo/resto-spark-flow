@@ -43,6 +43,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'settings-leveranciers': '/instellingen/leveranciers',
   'settings-onboarding': '/instellingen/onboarding',
   'settings-communicatie': '/instellingen/communicatie',
+  'settings-assistent': '/instellingen/assistent',
   'onboarding': '/onboarding',
   'settings-marketing': '/instellingen/marketing',
 };
