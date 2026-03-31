@@ -73,11 +73,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
   
   const activeItemId = getActiveItemFromPath(location.pathname);
 
-  const { signals } = useSignals();
-  const hasAttentionSignals = useMemo(() => 
-    signals.some(item => item.actionable && (item.severity === 'error' || item.severity === 'warning')),
-    [signals]
-  );
+  const signalCount = useSignalCount();
 
   const { data: atRiskCount = 0 } = useMarketingBadge();
 
