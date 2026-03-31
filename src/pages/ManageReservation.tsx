@@ -224,6 +224,7 @@ export default function ManageReservation() {
   const { reservation: res } = data;
   const brandColor = data.brand_color || '#0F766E';
   const isActive = res.status === 'confirmed' || res.status === 'option';
+  const manageToken = data.manage_token || token;
 
   return (
     <div className="min-h-screen flex flex-col items-center" style={{ background: '#FAFAFA' }}>
