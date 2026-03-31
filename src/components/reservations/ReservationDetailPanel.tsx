@@ -105,8 +105,11 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
               {/* Section 1: Header + Summary */}
               <div className="p-5">
                 <p className="text-xs text-muted-foreground mb-1">Reservering</p>
-                <h2 ref={titleRef} className="text-lg font-semibold text-foreground">
+                <h2 ref={titleRef} className="text-lg font-semibold text-foreground flex items-center gap-1.5">
                   {getDisplayName(reservation)}
+                  {isAiChannel(reservation.channel) && (
+                    <SparkleIndicator size="md" label="Automatisch geboekt via AI-kanaal" />
+                  )}
                 </h2>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 flex-wrap">

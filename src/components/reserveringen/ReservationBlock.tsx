@@ -252,6 +252,10 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
           {guestName}
         </span>
 
+        {isAiChannel(reservation.channel) && (
+          <SparkleIndicator size="sm" className="flex-shrink-0" />
+        )}
+
         {reservation.is_squeeze && (
           <span className="text-caption px-1 py-0.5 rounded bg-accent/20 text-accent-foreground font-bold flex-shrink-0" title="Squeeze">S</span>
         )}

@@ -175,6 +175,9 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         <span className="font-medium text-foreground truncate text-sm">
           {guestName}
         </span>
+        {isAiChannel(reservation.channel) && (
+          <SparkleIndicator size="sm" label="Automatisch geboekt" />
+        )}
         {walkIn && (
           <NestoBadge variant="outline" size="sm">WALK-IN</NestoBadge>
         )}
