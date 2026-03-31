@@ -14,6 +14,256 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_actions: {
+        Row: {
+          action_data: Json | null
+          action_type: string
+          beschrijving: string | null
+          created_at: string | null
+          goedgekeurd_door: string | null
+          goedgekeurd_op: string | null
+          id: string
+          location_id: string
+          referentie_id: string | null
+          referentie_type: string | null
+          status: string | null
+          title: string
+          verloopt_op: string | null
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type: string
+          beschrijving?: string | null
+          created_at?: string | null
+          goedgekeurd_door?: string | null
+          goedgekeurd_op?: string | null
+          id?: string
+          location_id: string
+          referentie_id?: string | null
+          referentie_type?: string | null
+          status?: string | null
+          title: string
+          verloopt_op?: string | null
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string
+          beschrijving?: string | null
+          created_at?: string | null
+          goedgekeurd_door?: string | null
+          goedgekeurd_op?: string | null
+          id?: string
+          location_id?: string
+          referentie_id?: string | null
+          referentie_type?: string | null
+          status?: string | null
+          title?: string
+          verloopt_op?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_actions_goedgekeurd_door_fkey"
+            columns: ["goedgekeurd_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_actions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_configurations: {
+        Row: {
+          autonomy_level: string
+          configuration: Json | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          location_id: string
+          task_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          autonomy_level?: string
+          configuration?: Json | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          location_id: string
+          task_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          autonomy_level?: string
+          configuration?: Json | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          location_id?: string
+          task_key?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_configurations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_feedback: {
+        Row: {
+          action_id: string | null
+          correction_data: Json | null
+          created_at: string | null
+          feedback_type: string
+          given_by: string | null
+          id: string
+          location_id: string
+        }
+        Insert: {
+          action_id?: string | null
+          correction_data?: Json | null
+          created_at?: string | null
+          feedback_type: string
+          given_by?: string | null
+          id?: string
+          location_id: string
+        }
+        Update: {
+          action_id?: string | null
+          correction_data?: Json | null
+          created_at?: string | null
+          feedback_type?: string
+          given_by?: string | null
+          id?: string
+          location_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_feedback_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "agent_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_feedback_given_by_fkey"
+            columns: ["given_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_feedback_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_cache: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          feature: string
+          hit_count: number | null
+          id: string
+          location_id: string
+          model: string
+          query_text: string
+          response: Json
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          feature: string
+          hit_count?: number | null
+          id?: string
+          location_id: string
+          model: string
+          query_text: string
+          response: Json
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          feature?: string
+          hit_count?: number | null
+          id?: string
+          location_id?: string
+          model?: string
+          query_text?: string
+          response?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_cache_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_logs: {
+        Row: {
+          cost_usd: number | null
+          created_at: string | null
+          error_message: string | null
+          feature: string
+          id: string
+          input_tokens: number | null
+          latency_ms: number | null
+          location_id: string
+          model: string
+          output_tokens: number | null
+          status: string | null
+        }
+        Insert: {
+          cost_usd?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          feature: string
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
+          location_id: string
+          model: string
+          output_tokens?: number | null
+          status?: string | null
+        }
+        Update: {
+          cost_usd?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          feature?: string
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
+          location_id?: string
+          model?: string
+          output_tokens?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_logs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       areas: {
         Row: {
           created_at: string
@@ -371,6 +621,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "employees_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_base: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string | null
+          hit_count: number | null
+          id: string
+          is_active: boolean | null
+          location_id: string
+          question: string | null
+          source: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          answer: string
+          category: string
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          location_id: string
+          question?: string | null
+          source?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string
+          question?: string | null
+          source?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"

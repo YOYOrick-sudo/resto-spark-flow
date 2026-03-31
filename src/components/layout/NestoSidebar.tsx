@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Zap, PanelLeft, Search, Building2 } from 'lucide-react';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
@@ -48,7 +48,7 @@ function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: Re
   );
 }
 
-import { useSignals } from '@/hooks/useSignals';
+import { useSignalCount } from '@/hooks/useSignalCount';
 import { useMarketingBadge } from '@/hooks/useMarketingBadge';
 import { NestoLogo } from '@/components/polar/NestoLogo';
 import { NestoBadge } from '@/components/polar/NestoBadge';
@@ -73,11 +73,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
   
   const activeItemId = getActiveItemFromPath(location.pathname);
 
-  const { signals } = useSignals();
-  const hasAttentionSignals = useMemo(() => 
-    signals.some(item => item.actionable && (item.severity === 'error' || item.severity === 'warning')),
-    [signals]
-  );
+  const signalCount = useSignalCount();
 
   const { data: atRiskCount = 0 } = useMarketingBadge();
 
@@ -218,8 +214,10 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         )}
                       >
                         <Icon size={16} className={cn("flex-shrink-0", isItemActive && "text-primary")} />
-                        {item.id === 'assistent' && hasAttentionSignals && (
-                          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-warning" />
+                        {item.id === 'assistent' && signalCount > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5">
+                            <NestoBadge variant="warning" size="sm">{signalCount}</NestoBadge>
+                          </span>
                         )}
                       </button>
                     </TooltipTrigger>
@@ -348,8 +346,8 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                   >
                     <Icon size={16} className={cn("flex-shrink-0 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
                     <span>{item.label}</span>
-                    {item.id === 'assistent' && hasAttentionSignals && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-warning ml-auto flex-shrink-0" />
+                    {item.id === 'assistent' && signalCount > 0 && (
+                      <NestoBadge variant="warning" size="sm" className="ml-auto">{signalCount}</NestoBadge>
                     )}
                   </button>
                 )}
