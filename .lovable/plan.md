@@ -1,61 +1,77 @@
 
 
-# Widget Selectie Card — Meer Contrast & Nesto-Stijl
+# Sprint E.1b — WhatsApp Webhook (Receive)
 
-## Probleem
+## Huidige Staat
 
-De witte selectie-kaart (`bg-white rounded-2xl border border-gray-100`) op de `#FAFAFA` achtergrond heeft nauwelijks contrast. De shadow (`0 1px 4px rgba(0,0,0,0.06)`) is te subtiel. Het "zweeft" niet — het valt weg.
+- **conversations + messages tabellen** bestaan (Sprint E.1a)
+- **send-whatsapp** Edge Function bestaat
+- **customers** tabel heeft `phone_number` (NIET `phone` zoals sprint spec schrijft) en `whatsapp_opt_in`
+- **locations** tabel heeft `whatsapp_phone_number_id`, `whatsapp_enabled`
+- **evaluate-signals** heeft 7 providers inline in index.ts (geen aparte bestanden), provider interface: `{ name, evaluate(locationId, orgId), resolveStale(locationId) }`
+- **D360_API_KEY** secret is nog niet gezet (komt later)
+- **META_APP_SECRET** en **WHATSAPP_VERIFY_TOKEN** secrets moeten nog worden aangevraagd
+- `EdgeRuntime.waitUntil()` is beschikbaar in Supabase Edge Functions
 
-## Oplossing
+## Wat gebouwd wordt
 
-De selectie-card en andere content-blokken meer visuele diepte geven, in lijn met het Nesto design system (shadow als primaire afbakening, niet borders).
+### 1. Edge Function — `whatsapp-webhook/index.ts`
 
-### Wijzigingen
+Eén endpoint voor alles:
 
-**1. Selectie-card (datum/gasten/tijd) — `SelectionStep.tsx` regel 205**
+**GET** — Webhook verificatie challenge (hub.mode + hub.verify_token + hub.challenge)
 
-Huidige stijl:
-```
-bg-white rounded-2xl border border-gray-100
-boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
-```
+**POST** — Inkomende events:
+- HMAC signature verificatie via `META_APP_SECRET`
+- Direct 200 retourneren, verwerking via `EdgeRuntime.waitUntil()`
+- Location lookup via `whatsapp_phone_number_id`
+- Inbound berichten: idempotency check op `wa_message_id`, find-or-create customer (op `phone_number`, niet `phone`), find-or-create conversation, update service window, increment unread_count
+- Status updates: update `wa_status` op messages, zet `read_at` bij read, log `wa_error_code` bij failed
+- Content extractie: text, interactive, image, document, audio, video, location, button
 
-Nieuwe stijl:
-```
-bg-white rounded-2xl border border-gray-200/60
-boxShadow: '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)'
-```
+Registreer in `config.toml` met `verify_jwt = false`.
 
-Sterkere shadow (dubbele laag zoals NestoCard), iets zichtbaardere border.
+### 2. MessagingSignalProvider
 
-**2. Ticket cards — `SelectionStep.tsx`**
+Toevoegen als inline provider in `evaluate-signals/index.ts` (conform bestaand pattern — alle providers staan inline, geen aparte bestanden):
 
-Zelfde shadow-upgrade voor de ticket selectie kaarten. Niet-geselecteerde tickets krijgen dezelfde verhoogde shadow.
+- **whatsapp_delivery_failures**: 5+ failed berichten in 24u → warning
+- **whatsapp_escalation_waiting**: escalated conversations >30 min zonder antwoord → warning
+- **whatsapp_opt_in_low**: <30% opt-in bij 20+ customers → info/insight
 
-**3. Gasten stepper — `SelectionStep.tsx`**
+Module: `'messaging'`
 
-De gasten-rij (Minus/Plus knoppen) zit in dezelfde card, geen aparte wijziging nodig.
+### 3. Conversation cleanup cron
 
-**4. Tijd-slots**
+pg_cron job (elke 4 uur): sluit WhatsApp conversations waar service window verlopen is en >24u geen activiteit.
 
-Tijd-pills zijn klein genoeg — die hoeven geen extra shadow. Ze zitten al binnen de card.
+### 4. Secrets
 
-**5. Summary dropdown (stap 2) — `BookingWidget.tsx` regel 220**
+Vraag `META_APP_SECRET` en `WHATSAPP_VERIFY_TOKEN` aan via add_secret. Zonder deze werkt signature verificatie niet, maar de webhook kan deployed worden.
 
-Zelfde shadow-upgrade als de selectie-card:
-```
-boxShadow: '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)'
-```
+---
 
-### Wat NIET verandert
-- Achtergrondkleur (#FAFAFA) blijft
-- Rounded-2xl blijft
-- Brand color systeem blijft
-- Functionele logica
+## Aanpassingen t.o.v. sprint spec
 
-### Bestanden
-| Bestand | Wijziging |
+| Spec | Werkelijkheid | Aanpassing |
+|---|---|---|
+| `phone` kolom op customers | `phone_number` | Gebruik `phone_number` |
+| Aparte provider file | Alle providers inline in index.ts | Inline toevoegen |
+| Provider interface: `evaluate(locationId, supabase)` | `evaluate(locationId, orgId)` + globale `supabaseAdmin` | Volg bestaand pattern |
+
+## Bestanden
+
+| Bestand | Actie |
 |---|---|
-| `src/components/booking/SelectionStep.tsx` | Shadow + border upgrade op selectie-card en ticket cards |
-| `src/pages/BookingWidget.tsx` | Shadow upgrade op summary dropdown |
+| `supabase/functions/whatsapp-webhook/index.ts` | **Nieuw** |
+| `supabase/config.toml` | Registratie |
+| `supabase/functions/evaluate-signals/index.ts` | MessagingSignalProvider inline toevoegen |
+| Cron job (via insert tool) | cleanup-expired-conversations |
+
+## Volgorde
+
+1. whatsapp-webhook Edge Function + config.toml
+2. MessagingSignalProvider in evaluate-signals
+3. Secrets aanvragen
+4. Conversation cleanup cron
 
