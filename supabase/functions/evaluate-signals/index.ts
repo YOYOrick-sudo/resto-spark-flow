@@ -1330,7 +1330,166 @@ const mollieProvider: SignalProvider = {
   },
 };
 
-const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider, pacingProvider, mollieProvider];
+// ============================================
+// MESSAGING SIGNAL PROVIDER
+// ============================================
+
+const messagingProvider: SignalProvider = {
+  name: 'messaging',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const drafts: SignalDraft[] = [];
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    // 1. Delivery failures (5+ in 24u)
+    const { count: failedCount } = await supabaseAdmin
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('location_id', locationId)
+      .eq('channel', 'whatsapp')
+      .eq('direction', 'outbound')
+      .eq('wa_status', 'failed')
+      .gte('created_at', twentyFourHoursAgo.toISOString());
+
+    if (failedCount && failedCount >= 5) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'messaging',
+        signal_type: 'whatsapp_delivery_failures',
+        kind: 'signal',
+        severity: 'warning',
+        title: `${failedCount} WhatsApp berichten niet bezorgd`,
+        message: 'Controleer of je WhatsApp-nummer correct is geconfigureerd.',
+        action_path: '/instellingen/communicatie',
+        dedup_key: `wa_delivery_fail:${locationId}:${now.toISOString().slice(0, 10)}`,
+        actionable: true,
+        priority: 20,
+        cooldown_hours: 4,
+      });
+    }
+
+    // 2. Onbeantwoorde escalaties (>30 min)
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+    const { data: escalations } = await supabaseAdmin
+      .from('conversations')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('status', 'escalated')
+      .lte('updated_at', thirtyMinutesAgo.toISOString());
+
+    if (escalations && escalations.length > 0) {
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'messaging',
+        signal_type: 'whatsapp_escalation_waiting',
+        kind: 'signal',
+        severity: 'warning',
+        title: `${escalations.length} gast${escalations.length > 1 ? 'en' : ''} wacht${escalations.length > 1 ? 'en' : ''} op antwoord`,
+        message: 'Er zijn geëscaleerde gesprekken die langer dan 30 minuten wachten.',
+        action_path: '/assistent?tab=berichten',
+        dedup_key: `wa_escalation:${locationId}:${now.toISOString().slice(0, 13)}`,
+        actionable: true,
+        priority: 10,
+        cooldown_hours: 1,
+      });
+    }
+
+    // 3. Lage opt-in rate
+    const { count: totalCustomers } = await supabaseAdmin
+      .from('customers')
+      .select('*', { count: 'exact', head: true })
+      .eq('location_id', locationId);
+
+    const { count: optInCustomers } = await supabaseAdmin
+      .from('customers')
+      .select('*', { count: 'exact', head: true })
+      .eq('location_id', locationId)
+      .eq('whatsapp_opt_in', true);
+
+    if (totalCustomers && totalCustomers > 20) {
+      const optInRate = (optInCustomers || 0) / totalCustomers;
+      if (optInRate < 0.3) {
+        drafts.push({
+          organization_id: orgId,
+          location_id: locationId,
+          module: 'messaging',
+          signal_type: 'whatsapp_opt_in_low',
+          kind: 'insight',
+          severity: 'info',
+          title: `WhatsApp opt-in: ${Math.round(optInRate * 100)}%`,
+          message: 'Minder dan 30% van je gasten ontvangt berichten via WhatsApp. Tip: activeer de opt-in checkbox in je widget.',
+          action_path: '/instellingen/communicatie?tab=whatsapp',
+          dedup_key: `wa_optin_low:${locationId}`,
+          actionable: true,
+          priority: 50,
+          cooldown_hours: 168, // 1 week
+        });
+      }
+    }
+
+    return drafts;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const resolved: string[] = [];
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    // Resolve delivery failures if <5 in last 24h
+    const { count: failedCount } = await supabaseAdmin
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('location_id', locationId)
+      .eq('channel', 'whatsapp')
+      .eq('direction', 'outbound')
+      .eq('wa_status', 'failed')
+      .gte('created_at', twentyFourHoursAgo.toISOString());
+
+    if (!failedCount || failedCount < 5) {
+      resolved.push('whatsapp_delivery_failures');
+    }
+
+    // Resolve escalation waiting if no pending escalations
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+    const { data: escalations } = await supabaseAdmin
+      .from('conversations')
+      .select('id')
+      .eq('location_id', locationId)
+      .eq('status', 'escalated')
+      .lte('updated_at', thirtyMinutesAgo.toISOString())
+      .limit(1);
+
+    if (!escalations || escalations.length === 0) {
+      resolved.push('whatsapp_escalation_waiting');
+    }
+
+    // Resolve opt-in low if now >= 30%
+    const { count: totalCustomers } = await supabaseAdmin
+      .from('customers')
+      .select('*', { count: 'exact', head: true })
+      .eq('location_id', locationId);
+
+    const { count: optInCustomers } = await supabaseAdmin
+      .from('customers')
+      .select('*', { count: 'exact', head: true })
+      .eq('location_id', locationId)
+      .eq('whatsapp_opt_in', true);
+
+    if (totalCustomers && totalCustomers > 0) {
+      const optInRate = (optInCustomers || 0) / totalCustomers;
+      if (optInRate >= 0.3) {
+        resolved.push('whatsapp_opt_in_low');
+      }
+    }
+
+    return resolved;
+  },
+};
+
+const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider, pacingProvider, mollieProvider, messagingProvider];
 
 async function processLocation(locationId: string, orgId: string) {
   const results = { created: 0, resolved: 0, skipped: 0 };
