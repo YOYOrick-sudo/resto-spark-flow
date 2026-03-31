@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { buildEmailHtml, formatDateNL } from './emailLayout.ts';
+import { getLocationBranding } from './brandingHelper.ts';
 
 // ============================================
 // Shared Booking Confirmation Email
@@ -32,19 +33,18 @@ export async function sendBookingConfirmationEmail(
     return;
   }
 
-  // Fetch branding
-  const [{ data: commSettings }, { data: location }, { data: ticket }] = await Promise.all([
-    admin.from('communication_settings').select('sender_name, reply_to, brand_color, logo_url, footer_text').eq('location_id', params.location_id).maybeSingle(),
-    admin.from('locations').select('name').eq('id', params.location_id).single(),
+  // Fetch branding via helper (3-step fallback: locations → communication_settings → defaults)
+  const [branding, { data: ticket }] = await Promise.all([
+    getLocationBranding(admin, params.location_id),
     admin.from('tickets').select('display_title, name, policy_set_id').eq('id', params.ticket_id).single(),
   ]);
 
-  const restaurantName = location?.name ?? 'Restaurant';
-  const senderName = commSettings?.sender_name || restaurantName;
-  const replyTo = commSettings?.reply_to || undefined;
-  const brandColor = commSettings?.brand_color || '#1d979e';
-  const logoUrl = commSettings?.logo_url || null;
-  const footerText = commSettings?.footer_text || '';
+  const restaurantName = branding.restaurantName;
+  const senderName = branding.senderName;
+  const replyTo = branding.replyTo;
+  const brandColor = branding.brandColor;
+  const logoUrl = branding.logoUrl;
+  const footerText = branding.footerText;
   const ticketName = ticket?.display_title || ticket?.name || '';
 
   // Cancel policy summary

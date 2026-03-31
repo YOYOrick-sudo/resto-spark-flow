@@ -4,6 +4,8 @@ import { Phone, LogIn, Footprints, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Reservation } from "@/types/reservation";
 import { OptionBadge } from "@/components/reservations/OptionBadge";
+import { SparkleIndicator } from "@/components/polar/SparkleIndicator";
+import { isAiChannel } from "@/utils/isAiGenerated";
 import {
   getDisplayName,
   isWalkIn,
@@ -249,6 +251,10 @@ export const ReservationBlock = forwardRef<HTMLDivElement, ReservationBlockProps
         <span className={cn("truncate text-foreground/80 font-medium min-w-0", isCompact ? "text-caption" : "text-xs")}>
           {guestName}
         </span>
+
+        {isAiChannel(reservation.channel) && (
+          <SparkleIndicator size="sm" className="flex-shrink-0" />
+        )}
 
         {reservation.is_squeeze && (
           <span className="text-caption px-1 py-0.5 rounded bg-accent/20 text-accent-foreground font-bold flex-shrink-0" title="Squeeze">S</span>

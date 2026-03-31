@@ -456,38 +456,62 @@ export type Database = {
       }
       locations: {
         Row: {
+          brand_color_accent: string | null
+          brand_color_primary: string | null
+          brand_color_secondary: string | null
           created_at: string
+          description_short: string | null
           google_place_id: string | null
+          guest_greeting: string | null
+          hero_image_url: string | null
           id: string
           is_active: boolean
+          logo_url: string | null
           name: string
           organization_id: string
           slug: string
           timezone: string
+          tone_of_voice: string | null
           tripadvisor_url: string | null
           updated_at: string
         }
         Insert: {
+          brand_color_accent?: string | null
+          brand_color_primary?: string | null
+          brand_color_secondary?: string | null
           created_at?: string
+          description_short?: string | null
           google_place_id?: string | null
+          guest_greeting?: string | null
+          hero_image_url?: string | null
           id?: string
           is_active?: boolean
+          logo_url?: string | null
           name: string
           organization_id: string
           slug: string
           timezone?: string
+          tone_of_voice?: string | null
           tripadvisor_url?: string | null
           updated_at?: string
         }
         Update: {
+          brand_color_accent?: string | null
+          brand_color_primary?: string | null
+          brand_color_secondary?: string | null
           created_at?: string
+          description_short?: string | null
           google_place_id?: string | null
+          guest_greeting?: string | null
+          hero_image_url?: string | null
           id?: string
           is_active?: boolean
+          logo_url?: string | null
           name?: string
           organization_id?: string
           slug?: string
           timezone?: string
+          tone_of_voice?: string | null
           tripadvisor_url?: string | null
           updated_at?: string
         }

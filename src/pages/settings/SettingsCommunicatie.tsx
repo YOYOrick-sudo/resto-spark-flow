@@ -17,12 +17,14 @@ import { nestoToast } from '@/lib/nestoToast';
 import { LogoUploadField } from '@/components/settings/communication/LogoUploadField';
 import { Check, Mail, MessageSquare, MessagesSquare } from 'lucide-react';
 import { GastberichtenTab } from '@/components/settings/communication/GastberichtenTab';
+import { BrandingTab } from '@/components/settings/communication/BrandingTab';
 
 const isValidEmail = (email: string) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 
 const TABS = [
-  { id: 'huisstijl', label: 'Huisstijl' },
+  { id: 'huisstijl', label: 'E-mail opmaak' },
+  { id: 'branding', label: 'Branding' },
   { id: 'gastberichten', label: 'Gastberichten' },
   { id: 'whatsapp', label: 'WhatsApp', disabled: true },
 ];
@@ -302,6 +304,10 @@ export default function SettingsCommunicatie() {
             </div>
           </div>
         </NestoCard>
+      </NestoTabContent>
+
+      <NestoTabContent value="branding" activeValue={activeTab}>
+        <BrandingTab />
       </NestoTabContent>
 
       <NestoTabContent value="gastberichten" activeValue={activeTab}>
