@@ -2,6 +2,8 @@ import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Loader2, Clock, Users, Calendar, Minus, Plus, AlertCircle, UtensilsCrossed } from 'lucide-react';
 import { NestoLogo } from '@/components/polar/NestoLogo';
+import { GuestChat } from '@/components/guest/GuestChat';
+import { GuestPreferences } from '@/components/guest/GuestPreferences';
 
 // ── Types ──────────────────────────────────────────────
 interface ReservationData {
@@ -23,6 +25,10 @@ interface ManageData {
   location_id: string;
   restaurant_name: string | null;
   logo_url: string | null;
+  brand_color: string;
+  hero_image_url: string | null;
+  customer_id: string | null;
+  manage_token: string;
   reservation: ReservationData;
   cancel_policy: any;
   can_cancel: boolean;
@@ -64,22 +70,15 @@ const statusLabel: Record<string, string> = {
   no_show: 'No-show',
 };
 
-const statusStyles: Record<string, { bg: string; text: string }> = {
-  confirmed: { bg: '#ECFDF5', text: '#065F46' },
-  cancelled: { bg: '#FEF2F2', text: '#991B1B' },
-  option: { bg: '#FFFBEB', text: '#92400E' },
-  seated: { bg: '#EFF6FF', text: '#1E40AF' },
-  completed: { bg: '#F3F4F6', text: '#374151' },
-  no_show: { bg: '#FEF2F2', text: '#991B1B' },
-};
-
 // ── Components ─────────────────────────────────────────
-function StatusBadge({ status }: { status: string }) {
-  const style = statusStyles[status] ?? { bg: '#F3F4F6', text: '#374151' };
+function StatusBadge({ status, brandColor }: { status: string; brandColor: string }) {
+  const isPositive = status === 'confirmed' || status === 'seated';
+  const bg = isPositive ? brandColor + '15' : status === 'cancelled' || status === 'no_show' ? '#FEF2F2' : '#F3F4F6';
+  const text = isPositive ? brandColor : status === 'cancelled' || status === 'no_show' ? '#991B1B' : '#374151';
   return (
     <span
       className="inline-block px-3 py-1 rounded-full text-xs font-semibold"
-      style={{ backgroundColor: style.bg, color: style.text }}
+      style={{ backgroundColor: bg, color: text }}
     >
       {statusLabel[status] ?? status}
     </span>
@@ -223,199 +222,243 @@ export default function ManageReservation() {
 
   if (!data) return null;
   const { reservation: res } = data;
+  const brandColor = data.brand_color || '#0F766E';
+  const isActive = res.status === 'confirmed' || res.status === 'option';
 
   return (
-    <div className="min-h-screen flex flex-col items-center py-10 px-4" style={{ background: '#FAFAFA' }}>
-      <main className="w-full max-w-md bg-white rounded-2xl shadow-sm overflow-hidden">
-        {/* Restaurant branding */}
-        <div className="pt-6 pb-4 flex flex-col items-center gap-3 border-b border-gray-100">
-          {data.logo_url ? (
-            <img src={data.logo_url} alt={data.restaurant_name ?? ''} className="max-h-12 max-w-[200px] object-contain" />
-          ) : data.restaurant_name ? (
-            <span className="text-base font-semibold text-gray-800">{data.restaurant_name}</span>
-          ) : null}
+    <div className="min-h-screen flex flex-col items-center" style={{ background: '#FAFAFA' }}>
+      {/* Hero banner */}
+      {data.hero_image_url && (
+        <div className="w-full h-32 sm:h-40 relative overflow-hidden">
+          <img
+            src={data.hero_image_url}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/50" />
         </div>
+      )}
 
-        {/* Guest name + status */}
-        <div className="px-5 pt-5 pb-1 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">
-              {res.customer ? `${res.customer.first_name} ${res.customer.last_name}` : 'Je reservering'}
-            </h1>
+      <main className="w-full max-w-md px-4" style={{ marginTop: data.hero_image_url ? '-2rem' : '2.5rem' }}>
+        {/* Main card */}
+        <div
+          className="bg-white rounded-2xl overflow-hidden"
+          style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}
+        >
+          {/* Restaurant branding */}
+          <div className="pt-6 pb-4 flex flex-col items-center gap-3 border-b border-gray-100">
+            {data.logo_url ? (
+              <img src={data.logo_url} alt={data.restaurant_name ?? ''} className="max-h-14 max-w-[220px] object-contain" />
+            ) : data.restaurant_name ? (
+              <span
+                className="text-lg font-semibold"
+                style={{ fontFamily: 'Georgia, serif', color: '#1a1a1a' }}
+              >
+                {data.restaurant_name}
+              </span>
+            ) : null}
           </div>
-          <StatusBadge status={res.status} />
-        </div>
 
-        {/* Details */}
-        <div className="px-5 py-4 space-y-3">
-          <DetailRow icon={Calendar}>{formatDate(res.date)}</DetailRow>
-          <DetailRow icon={Clock}>{formatTime(res.start_time)} – {formatTime(res.end_time)}</DetailRow>
-          <DetailRow icon={Users}>{res.party_size} {res.party_size === 1 ? 'gast' : 'gasten'}</DetailRow>
-          {res.ticket && (
-            <DetailRow icon={UtensilsCrossed}>{res.ticket.display_title || res.ticket.name}</DetailRow>
-          )}
-          {res.guest_notes && (
-            <div className="text-sm text-gray-500 bg-gray-50 rounded-xl p-3 ml-7">
-              {res.guest_notes}
-            </div>
-          )}
-        </div>
-
-        {/* Modify mode */}
-        {modifyMode && (
-          <div className="px-5 py-4 border-t border-gray-100 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700">Reservering wijzigen</h3>
-
-            {/* Party size */}
+          {/* Guest name + status */}
+          <div className="px-5 pt-5 pb-1 flex items-center justify-between">
             <div>
-              <label className="text-xs text-gray-500">Aantal gasten</label>
-              <div className="flex items-center gap-3 mt-1">
-                <button
-                  onClick={() => setNewPartySize(Math.max(1, newPartySize - 1))}
-                  className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                  disabled={newPartySize <= 1}
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <span className="text-lg font-semibold w-8 text-center">{newPartySize}</span>
-                <button
-                  onClick={() => setNewPartySize(newPartySize + 1)}
-                  className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
+              <h1 className="text-lg font-semibold text-gray-900">
+                {res.customer ? `${res.customer.first_name} ${res.customer.last_name}` : 'Je reservering'}
+              </h1>
             </div>
+            <StatusBadge status={res.status} brandColor={brandColor} />
+          </div>
 
-            {/* Date */}
-            <div>
-              <label className="text-xs text-gray-500">Datum</label>
-              <input
-                type="date"
-                value={newDate}
-                onChange={e => setNewDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-              />
-            </div>
-
-            {/* Time selection */}
-            {slotsLoading ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
+          {/* Details */}
+          <div className="px-5 py-4 space-y-3">
+            <DetailRow icon={Calendar}>{formatDate(res.date)}</DetailRow>
+            <DetailRow icon={Clock}>{formatTime(res.start_time)} – {formatTime(res.end_time)}</DetailRow>
+            <DetailRow icon={Users}>{res.party_size} {res.party_size === 1 ? 'gast' : 'gasten'}</DetailRow>
+            {res.ticket && (
+              <DetailRow icon={UtensilsCrossed}>{res.ticket.display_title || res.ticket.name}</DetailRow>
+            )}
+            {res.guest_notes && (
+              <div className="text-sm text-gray-500 bg-gray-50 rounded-xl p-3 ml-7">
+                {res.guest_notes}
               </div>
-            ) : (
+            )}
+          </div>
+
+          {/* Modify mode */}
+          {modifyMode && (
+            <div className="px-5 py-4 border-t border-gray-100 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700">Reservering wijzigen</h3>
+
+              {/* Party size */}
               <div>
-                <label className="text-xs text-gray-500">Tijd</label>
-                <div className="mt-1 grid grid-cols-4 gap-1.5">
-                  {availableShifts.flatMap(s => s.slots.filter(sl => sl.available)).map(slot => (
-                    <button
-                      key={`${slot.time}-${slot.ticket_id}`}
-                      onClick={() => setNewTime(slot.time)}
-                      className="py-2 rounded-xl text-xs font-medium border transition-all"
-                      style={{
-                        borderColor: newTime === slot.time ? '#111' : '#e5e7eb',
-                        backgroundColor: newTime === slot.time ? '#111' : '#fff',
-                        color: newTime === slot.time ? '#fff' : '#374151',
-                      }}
-                    >
-                      {formatTime(slot.time)}
-                    </button>
-                  ))}
+                <label className="text-xs text-gray-500">Aantal gasten</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <button
+                    onClick={() => setNewPartySize(Math.max(1, newPartySize - 1))}
+                    className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                    disabled={newPartySize <= 1}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <span className="text-lg font-semibold w-8 text-center">{newPartySize}</span>
+                  <button
+                    onClick={() => setNewPartySize(newPartySize + 1)}
+                    className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
-            )}
 
-            {modifyError && (
-              <div className="flex items-center gap-2 text-sm text-red-600">
-                <AlertCircle className="h-4 w-4" />
-                {modifyError}
+              {/* Date */}
+              <div>
+                <label className="text-xs text-gray-500">Datum</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={e => setNewDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                />
               </div>
-            )}
 
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => {
-                  setModifyMode(false);
-                  setNewPartySize(res.party_size);
-                  setNewDate(res.date);
-                  setNewTime(res.start_time);
-                }}
-                className="flex-1 py-2.5 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                Annuleren
-              </button>
-              <button
-                onClick={handleModify}
-                disabled={modifying || !newTime}
-                className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
-              >
-                {modifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Opslaan'}
-              </button>
+              {/* Time selection */}
+              {slotsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs text-gray-500">Tijd</label>
+                  <div className="mt-1 grid grid-cols-4 gap-1.5">
+                    {availableShifts.flatMap(s => s.slots.filter(sl => sl.available)).map(slot => (
+                      <button
+                        key={`${slot.time}-${slot.ticket_id}`}
+                        onClick={() => setNewTime(slot.time)}
+                        className="py-2 rounded-xl text-xs font-medium border transition-all"
+                        style={{
+                          borderColor: newTime === slot.time ? brandColor : '#e5e7eb',
+                          backgroundColor: newTime === slot.time ? brandColor : '#fff',
+                          color: newTime === slot.time ? '#fff' : '#374151',
+                        }}
+                      >
+                        {formatTime(slot.time)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {modifyError && (
+                <div className="flex items-center gap-2 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  {modifyError}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => {
+                    setModifyMode(false);
+                    setNewPartySize(res.party_size);
+                    setNewDate(res.date);
+                    setNewTime(res.start_time);
+                  }}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  Annuleren
+                </button>
+                <button
+                  onClick={handleModify}
+                  disabled={modifying || !newTime}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  {modifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Opslaan'}
+                </button>
+              </div>
             </div>
+          )}
+
+          {/* Cancel confirm */}
+          {showCancelConfirm && (
+            <div className="px-5 py-4 border-t border-gray-100 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-700">Weet je het zeker?</h3>
+              <p className="text-xs text-gray-500">Je reservering wordt geannuleerd. Dit kan niet ongedaan gemaakt worden.</p>
+              <textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="Reden (optioneel)"
+                rows={2}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  Terug
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={cancelling}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
+                >
+                  {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Annuleer reservering'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          {!modifyMode && !showCancelConfirm && isActive && (
+            <div className="px-5 py-4 border-t border-gray-100 flex flex-col gap-2">
+              {data.can_modify !== false && (
+                <button
+                  onClick={() => setModifyMode(true)}
+                  className="w-full py-2.5 rounded-2xl text-sm font-medium border text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  style={{ borderColor: brandColor + '40', color: brandColor }}
+                >
+                  Wijzig reservering
+                </button>
+              )}
+              {data.can_cancel && (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="w-full py-2.5 rounded-2xl text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 active:scale-[0.98] transition-all"
+                >
+                  Annuleer reservering
+                </button>
+              )}
+              {!data.can_cancel && (
+                <p className="text-xs text-gray-400 text-center">
+                  Deze reservering kan niet online geannuleerd worden. Neem contact op met het restaurant.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Preferences section */}
+        {data.manage_token && isActive && (
+          <div
+            className="mt-4 bg-white rounded-2xl p-5"
+            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}
+          >
+            <GuestPreferences manageToken={data.manage_token} brandColor={brandColor} />
           </div>
         )}
 
-        {/* Cancel confirm */}
-        {showCancelConfirm && (
-          <div className="px-5 py-4 border-t border-gray-100 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700">Weet je het zeker?</h3>
-            <p className="text-xs text-gray-500">Je reservering wordt geannuleerd. Dit kan niet ongedaan gemaakt worden.</p>
-            <textarea
-              value={cancelReason}
-              onChange={e => setCancelReason(e.target.value)}
-              placeholder="Reden (optioneel)"
-              rows={2}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowCancelConfirm(false)}
-                className="flex-1 py-2.5 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                Terug
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
-              >
-                {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Annuleer reservering'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        {!modifyMode && !showCancelConfirm && (res.status === 'confirmed' || res.status === 'option') && (
-          <div className="px-5 py-4 border-t border-gray-100 flex flex-col gap-2">
-            {data.can_modify !== false && (
-              <button
-                onClick={() => setModifyMode(true)}
-                className="w-full py-2.5 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
-              >
-                Wijzig reservering
-              </button>
-            )}
-            {data.can_cancel && (
-              <button
-                onClick={() => setShowCancelConfirm(true)}
-                className="w-full py-2.5 rounded-2xl text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 active:scale-[0.98] transition-all"
-              >
-                Annuleer reservering
-              </button>
-            )}
-            {!data.can_cancel && (
-              <p className="text-xs text-gray-400 text-center">
-                Deze reservering kan niet online geannuleerd worden. Neem contact op met het restaurant.
-              </p>
-            )}
+        {/* Chat section */}
+        {data.manage_token && isActive && (
+          <div className="mt-4">
+            <GuestChat manageToken={data.manage_token} brandColor={brandColor} />
           </div>
         )}
       </main>
 
       {/* Powered by Nesto */}
-      <footer className="mt-6 flex items-center justify-center gap-1.5">
+      <footer className="mt-8 mb-6 flex items-center justify-center gap-1.5">
         <span className="text-xs text-gray-300">Powered by</span>
         <NestoLogo size="sm" showWordmark showIcon={false} className="text-gray-400" />
       </footer>
