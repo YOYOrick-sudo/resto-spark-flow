@@ -624,7 +624,11 @@ async function handleManageGet(url: URL) {
   return jsonResponse({
     location_id: data.location_id,
     restaurant_name: loc?.name ?? null,
-    logo_url: commSettings?.logo_url ?? null,
+    logo_url: loc?.logo_url ?? commSettings?.logo_url ?? null,
+    brand_color: loc?.brand_color_primary ?? '#0F766E',
+    hero_image_url: loc?.hero_image_url ?? null,
+    customer_id: data.customer_id ?? null,
+    manage_token: token,
     reservation: {
       id: data.id,
       date: data.reservation_date,
