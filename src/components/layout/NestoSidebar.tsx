@@ -48,7 +48,7 @@ function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: Re
   );
 }
 
-import { useSignals } from '@/hooks/useSignals';
+import { useSignalCount } from '@/hooks/useSignalCount';
 import { useMarketingBadge } from '@/hooks/useMarketingBadge';
 import { NestoLogo } from '@/components/polar/NestoLogo';
 import { NestoBadge } from '@/components/polar/NestoBadge';
