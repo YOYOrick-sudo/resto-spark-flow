@@ -646,6 +646,7 @@ async function handleManageGet(url: URL) {
     logo_url: loc?.logo_url ?? commSettings?.logo_url ?? null,
     brand_color: loc?.brand_color_primary ?? '#0F766E',
     hero_image_url: loc?.hero_image_url ?? null,
+    description_short: (loc as any)?.description_short ?? null,
     customer_id: data.customer_id ?? null,
     manage_token: token,
     reservation: {
