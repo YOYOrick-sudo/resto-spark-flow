@@ -123,7 +123,9 @@ export default function WaitlistAccept() {
       }
 
       const result = await res.json();
-      setManageUrl(result.manage_url || null);
+      // Use current origin so preview stays in preview
+      const manageToken = result.manage_token;
+      setManageUrl(manageToken ? `${window.location.origin}/manage/${manageToken}` : result.manage_url || null);
       setState('accepted');
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Er ging iets mis');

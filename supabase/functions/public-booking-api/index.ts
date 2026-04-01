@@ -579,7 +579,7 @@ async function handleManageGet(url: URL) {
   const { data, error } = await admin
     .from('reservations')
     .select(`
-      id, reservation_date, start_time, end_time, party_size,
+      id, location_id, reservation_date, start_time, end_time, party_size,
       status, channel, guest_notes, is_squeeze, duration_minutes,
       checked_in_at, option_expires_at, cancellation_reason, tags,
       customer_id,
