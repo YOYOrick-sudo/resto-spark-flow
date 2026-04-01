@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Phone, UserPlus, CalendarDays, Eye } from 'lucide-react';
+import { Mail, Phone, UserPlus, CalendarDays, Eye, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useReservationsByCustomer } from '@/hooks/useReservationsByCustomer';
 import { STATUS_CONFIG } from '@/types/reservation';
