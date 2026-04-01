@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
 import { User, Mail, Phone, Loader2, Heart, Check } from 'lucide-react';
+import { DietarySelector } from './DietarySelector';
 
 function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
   icon: React.ReactNode; label: string; value: string; onChange: (v: string) => void; type?: string; onBlur?: () => void;
