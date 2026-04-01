@@ -63,6 +63,13 @@ export interface AvailableShift {
   slots: AvailableSlot[];
 }
 
+export interface DietaryPreferences {
+  allergies: string[];
+  vegetarian: boolean;
+  vegan: boolean;
+  other: string;
+}
+
 export interface GuestData {
   first_name: string;
   last_name: string;
@@ -72,6 +79,7 @@ export interface GuestData {
   booking_answers: Array<{ question_id: string; values: string[] }>;
   honeypot: string;
   marketing_optin: boolean;
+  dietary_preferences: DietaryPreferences;
 }
 
 export interface BookingData {
@@ -184,6 +192,7 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
   const [guestData, setGuestDataState] = useState<GuestData>({
     first_name: '', last_name: '', email: '', phone: '', guest_notes: '',
     booking_answers: [], honeypot: '', marketing_optin: false,
+    dietary_preferences: { allergies: [], vegetarian: false, vegan: false, other: '' },
   });
 
   const setGuestData = useCallback((partial: Partial<GuestData>) => {
@@ -335,6 +344,12 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
           booking_answers: guestData.booking_answers,
           honeypot: guestData.honeypot,
           marketing_optin: guestData.marketing_optin,
+          dietary_preferences: guestData.dietary_preferences.allergies.length > 0 ||
+            guestData.dietary_preferences.vegetarian ||
+            guestData.dietary_preferences.vegan ||
+            guestData.dietary_preferences.other
+            ? guestData.dietary_preferences
+            : undefined,
         }),
       });
       const result = await res.json();

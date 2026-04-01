@@ -75,6 +75,7 @@ export interface Customer {
   total_cancellations: number;
   first_visit_at: string | null;
   last_visit_at: string | null;
+  dietary_preferences: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

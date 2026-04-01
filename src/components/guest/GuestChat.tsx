@@ -13,6 +13,7 @@ interface ChatMessage {
 interface GuestChatProps {
   manageToken: string;
   brandColor: string;
+  inline?: boolean;
 }
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
@@ -30,7 +31,7 @@ function timeAgo(dateStr: string): string {
   return `${days} dagen geleden`;
 }
 
-export function GuestChat({ manageToken, brandColor }: GuestChatProps) {
+export function GuestChat({ manageToken, brandColor, inline = false }: GuestChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState('');
@@ -132,7 +133,7 @@ export function GuestChat({ manageToken, brandColor }: GuestChatProps) {
     }
   };
 
-  if (!isOpen) {
+  if (!isOpen && !inline) {
     return (
       <button
         onClick={() => setIsOpen(true)}
@@ -151,6 +152,67 @@ export function GuestChat({ manageToken, brandColor }: GuestChatProps) {
       </button>
     );
   }
+
+  // Inline mode: skip the header/border wrapper
+  const chatContent = (
+    <>
+      {/* Messages */}
+      <div ref={scrollRef} className="h-64 overflow-y-auto px-1 py-3 space-y-3">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
+          </div>
+        ) : messages.length === 0 ? (
+          <p className="text-center text-xs text-gray-400 py-8">
+            Stel gerust een vraag — we reageren zo snel mogelijk.
+          </p>
+        ) : (
+          messages.map(msg => {
+            const isGuest = msg.direction === 'inbound';
+            return (
+              <div key={msg.id} className={`flex ${isGuest ? 'justify-end' : 'justify-start'}`}>
+                <div className="max-w-[80%]">
+                  <div
+                    className="px-3 py-2 rounded-2xl text-sm"
+                    style={isGuest
+                      ? { backgroundColor: '#f3f4f6', color: '#374151' }
+                      : { backgroundColor: brandColor + '15', color: '#1a1a1a' }
+                    }
+                  >
+                    {msg.content}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-0.5 px-1">{timeAgo(msg.created_at)}</p>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSend()}
+          placeholder="Stel je vraag..."
+          maxLength={2000}
+          className="flex-1 text-sm px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim() || sending}
+          className="p-2 rounded-xl text-white disabled:opacity-40 transition-colors"
+          style={{ backgroundColor: brandColor }}
+        >
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        </button>
+      </div>
+    </>
+  );
+
+  if (inline) return <div>{chatContent}</div>;
 
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden">

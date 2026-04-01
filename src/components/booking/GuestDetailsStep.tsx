@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useBooking } from '@/contexts/BookingContext';
 import { User, Mail, Phone, Loader2, Heart, Check } from 'lucide-react';
+import { DietarySelector } from './DietarySelector';
 
 function IconInput({ icon, label, value, onChange, type = 'text', onBlur }: {
   icon: React.ReactNode; label: string; value: string; onChange: (v: string) => void; type?: string; onBlur?: () => void;
@@ -129,6 +130,12 @@ export function GuestDetailsStep() {
           className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-900 resize-none shadow-sm transition-all placeholder:text-gray-400 focus:outline-none focus:border-gray-300"
           onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 3px color-mix(in srgb, var(--widget-primary) 12%, transparent)`}
           onBlur={e => e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'}
+        />
+
+        {/* Dietary preferences */}
+        <DietarySelector
+          value={guestData.dietary_preferences}
+          onChange={prefs => setGuestData({ dietary_preferences: prefs })}
         />
 
         {/* Marketing opt-in */}

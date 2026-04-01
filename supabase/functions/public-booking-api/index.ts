@@ -279,6 +279,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     first_name, last_name, email, phone,
     guest_notes, language,
     booking_answers, honeypot, marketing_optin,
+    dietary_preferences,
   } = body as {
     location_id?: string; date?: string; start_time?: string; party_size?: number;
     shift_id?: string; ticket_id?: string; is_squeeze?: boolean;
@@ -286,6 +287,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     guest_notes?: string; language?: string;
     booking_answers?: Array<{ question_id: string; values: string[] }>;
     honeypot?: string; marketing_optin?: boolean;
+    dietary_preferences?: { allergies?: string[]; vegetarian?: boolean; vegan?: boolean; other?: string };
   };
 
   // Honeypot check
@@ -334,7 +336,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
 
   const { data: existingCustomer } = await admin
     .from('customers')
-    .select('id, tags')
+    .select('id, tags, dietary_preferences')
     .eq('location_id', location_id)
     .ilike('email', email.toLowerCase())
     .limit(1)
@@ -342,14 +344,26 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
 
   if (existingCustomer) {
     customerId = existingCustomer.id;
+    const updateData: Record<string, unknown> = {};
     // Merge customer tags (deduplicate)
     if (customerTags.length > 0) {
       const existingTags = (existingCustomer.tags as string[]) || [];
-      const mergedTags = [...new Set([...existingTags, ...customerTags])];
-      await admin
-        .from('customers')
-        .update({ tags: mergedTags, phone_number: phone || undefined })
-        .eq('id', customerId);
+      updateData.tags = [...new Set([...existingTags, ...customerTags])];
+    }
+    if (phone) updateData.phone_number = phone;
+    // Merge dietary preferences
+    if (dietary_preferences) {
+      const existing = (existingCustomer as any).dietary_preferences || {};
+      const mergedAllergies = [...new Set([...(existing.allergies || []), ...(dietary_preferences.allergies || [])])];
+      updateData.dietary_preferences = {
+        allergies: mergedAllergies,
+        vegetarian: dietary_preferences.vegetarian ?? existing.vegetarian ?? false,
+        vegan: dietary_preferences.vegan ?? existing.vegan ?? false,
+        other: dietary_preferences.other || existing.other || '',
+      };
+    }
+    if (Object.keys(updateData).length > 0) {
+      await admin.from('customers').update(updateData).eq('id', customerId);
     }
   } else {
     const { data: newCustomer, error: custErr } = await admin
@@ -362,6 +376,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
         phone_number: phone || null,
         language: language || 'nl',
         tags: customerTags,
+        ...(dietary_preferences ? { dietary_preferences } : {}),
       })
       .select('id')
       .single();
@@ -412,12 +427,16 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
 
   if (resErr) return errorResponse(`Booking failed: ${resErr.message}`, 500);
 
-  // 6. Save reservation tags
-  if (reservationTags.length > 0) {
-    await admin
-      .from('reservations')
-      .update({ tags: reservationTags })
-      .eq('id', reservationId);
+  // 6. Save reservation tags + allergy badges
+  const hasAllergies = dietary_preferences && (
+    (dietary_preferences.allergies && dietary_preferences.allergies.length > 0) ||
+    dietary_preferences.vegetarian || dietary_preferences.vegan
+  );
+  const updatePayload: Record<string, unknown> = {};
+  if (reservationTags.length > 0) updatePayload.tags = reservationTags;
+  if (hasAllergies) updatePayload.badges = { allergies: true };
+  if (Object.keys(updatePayload).length > 0) {
+    await admin.from('reservations').update(updatePayload).eq('id', reservationId);
   }
 
   // 7. Auto-assign table via RPC
@@ -600,7 +619,7 @@ async function handleManageGet(url: URL) {
     policySetId
       ? admin.from('policy_sets').select('cancel_policy_type, cancel_window_hours, cancel_cutoff_time, refund_type, refund_percentage').eq('id', policySetId).single()
       : Promise.resolve({ data: null }),
-    admin.from('locations').select('name, logo_url, brand_color_primary, hero_image_url').eq('id', data.location_id).single(),
+    admin.from('locations').select('name, logo_url, brand_color_primary, hero_image_url, description_short').eq('id', data.location_id).single(),
     admin.from('communication_settings').select('logo_url').eq('location_id', data.location_id).maybeSingle(),
   ]);
   cancelPolicy = policyResult?.data ?? null;
@@ -627,6 +646,7 @@ async function handleManageGet(url: URL) {
     logo_url: loc?.logo_url ?? commSettings?.logo_url ?? null,
     brand_color: loc?.brand_color_primary ?? '#0F766E',
     hero_image_url: loc?.hero_image_url ?? null,
+    description_short: (loc as any)?.description_short ?? null,
     customer_id: data.customer_id ?? null,
     manage_token: token,
     reservation: {

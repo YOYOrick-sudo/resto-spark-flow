@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Loader2, Clock, Users, Calendar, Minus, Plus, AlertCircle, UtensilsCrossed } from 'lucide-react';
+import { Loader2, Clock, Users, Calendar, Minus, Plus, AlertCircle, UtensilsCrossed, MessageCircle, ChevronDown, Info } from 'lucide-react';
 import { NestoLogo } from '@/components/polar/NestoLogo';
 import { GuestChat } from '@/components/guest/GuestChat';
 import { GuestPreferences } from '@/components/guest/GuestPreferences';
@@ -27,6 +27,7 @@ interface ManageData {
   logo_url: string | null;
   brand_color: string;
   hero_image_url: string | null;
+  description_short: string | null;
   customer_id: string | null;
   manage_token: string;
   reservation: ReservationData;
@@ -58,7 +59,7 @@ const formatTime = (t: string) => t.slice(0, 5);
 
 const formatDate = (dateStr: string) => {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
 };
 
 const statusLabel: Record<string, string> = {
@@ -70,14 +71,14 @@ const statusLabel: Record<string, string> = {
   no_show: 'No-show',
 };
 
-// ── Components ─────────────────────────────────────────
+// ── Sub-components ─────────────────────────────────────
 function StatusBadge({ status, brandColor }: { status: string; brandColor: string }) {
   const isPositive = status === 'confirmed' || status === 'seated';
-  const bg = isPositive ? brandColor + '15' : status === 'cancelled' || status === 'no_show' ? '#FEF2F2' : '#F3F4F6';
+  const bg = isPositive ? brandColor + '18' : status === 'cancelled' || status === 'no_show' ? '#FEF2F2' : '#F3F4F6';
   const text = isPositive ? brandColor : status === 'cancelled' || status === 'no_show' ? '#991B1B' : '#374151';
   return (
     <span
-      className="inline-block px-3 py-1 rounded-full text-xs font-semibold"
+      className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold"
       style={{ backgroundColor: bg, color: text }}
     >
       {statusLabel[status] ?? status}
@@ -85,11 +86,69 @@ function StatusBadge({ status, brandColor }: { status: string; brandColor: strin
   );
 }
 
-function DetailRow({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+function ActionCard({
+  icon: Icon,
+  title,
+  subtitle,
+  onClick,
+  brandColor,
+  badge,
+}: {
+  icon: React.ElementType;
+  title: string;
+  subtitle: string;
+  onClick: () => void;
+  brandColor: string;
+  badge?: number;
+}) {
   return (
-    <div className="flex items-center gap-3 text-sm text-gray-700">
-      <Icon className="h-4 w-4 text-gray-400 shrink-0" />
-      <span>{children}</span>
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-100 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] relative"
+      style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+    >
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center"
+        style={{ backgroundColor: brandColor + '12' }}
+      >
+        <Icon className="w-5 h-5" style={{ color: brandColor }} />
+      </div>
+      <span className="text-xs font-semibold text-gray-800 leading-tight">{title}</span>
+      <span className="text-[10px] text-gray-400 leading-tight">{subtitle}</span>
+      {badge != null && badge > 0 && (
+        <span
+          className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+          style={{ backgroundColor: brandColor }}
+        >
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ── Expandable section wrapper ─────────────────────────
+function ExpandableSection({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+        <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+          Sluiten
+        </button>
+      </div>
+      {children}
     </div>
   );
 }
@@ -100,6 +159,9 @@ export default function ManageReservation() {
   const [data, setData] = useState<ManageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Active section: null | 'preferences' | 'chat' | 'info'
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   // Cancel state
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -150,7 +212,6 @@ export default function ManageReservation() {
       .finally(() => setSlotsLoading(false));
   }, [modifyMode, newDate, newPartySize]);
 
-  // Cancel handler
   const handleCancel = async () => {
     if (!token) return;
     setCancelling(true);
@@ -171,7 +232,6 @@ export default function ManageReservation() {
     }
   };
 
-  // Modify handler
   const handleModify = async () => {
     if (!token) return;
     setModifying(true);
@@ -227,70 +287,112 @@ export default function ManageReservation() {
   const manageToken = data.manage_token || token;
 
   return (
-    <div className="min-h-screen flex flex-col items-center" style={{ background: '#FAFAFA' }}>
-      {/* Hero banner */}
-      {data.hero_image_url && (
-        <div className="w-full h-32 sm:h-40 relative overflow-hidden">
-          <img
-            src={data.hero_image_url}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/50" />
+    <div className="min-h-screen flex flex-col" style={{ background: '#FAFAFA' }}>
+      {/* ── Hero header ── */}
+      <div
+        className="w-full relative overflow-hidden"
+        style={{
+          height: data.hero_image_url ? '12rem' : '8rem',
+          background: data.hero_image_url ? undefined : `linear-gradient(135deg, ${brandColor}, ${brandColor}dd)`,
+        }}
+      >
+        {data.hero_image_url && (
+          <>
+            <img src={data.hero_image_url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/60" />
+          </>
+        )}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
+          <div className="max-w-md mx-auto flex items-end gap-3">
+            {data.logo_url && (
+              <div className="w-12 h-12 rounded-xl bg-white/90 backdrop-blur-sm p-1.5 shrink-0 shadow-sm">
+                <img src={data.logo_url} alt="" className="w-full h-full object-contain" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="text-white font-semibold text-lg leading-tight truncate drop-shadow-sm">
+                {data.restaurant_name || 'Restaurant'}
+              </h1>
+              {data.description_short && (
+                <p className="text-white/70 text-xs mt-0.5 truncate drop-shadow-sm">{data.description_short}</p>
+              )}
+            </div>
+          </div>
         </div>
-      )}
+      </div>
 
-      <main className="w-full max-w-md px-4" style={{ marginTop: data.hero_image_url ? '-2rem' : '2.5rem' }}>
-        {/* Main card */}
+      {/* ── Content ── */}
+      <main className="w-full max-w-md mx-auto px-4 -mt-6 relative z-10 flex-1">
+        {/* Reservation card */}
         <div
           className="bg-white rounded-2xl overflow-hidden"
-          style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}
+          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}
         >
-          {/* Restaurant branding */}
-          <div className="pt-6 pb-4 flex flex-col items-center gap-3 border-b border-gray-100">
-            {data.logo_url ? (
-              <img src={data.logo_url} alt={data.restaurant_name ?? ''} className="max-h-14 max-w-[220px] object-contain" />
-            ) : data.restaurant_name ? (
-              <span
-                className="text-lg font-semibold"
-                style={{ fontFamily: 'Georgia, serif', color: '#1a1a1a' }}
-              >
-                {data.restaurant_name}
-              </span>
-            ) : null}
-          </div>
-
-          {/* Guest name + status */}
-          <div className="px-5 pt-5 pb-1 flex items-center justify-between">
+          {/* Guest + status row */}
+          <div className="px-5 pt-5 pb-3 flex items-start justify-between">
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">
+              <p className="text-base font-semibold text-gray-900">
                 {res.customer ? `${res.customer.first_name} ${res.customer.last_name}` : 'Je reservering'}
-              </h1>
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">{res.ticket?.display_title || res.ticket?.name || ''}</p>
             </div>
             <StatusBadge status={res.status} brandColor={brandColor} />
           </div>
 
-          {/* Details */}
-          <div className="px-5 py-4 space-y-3">
-            <DetailRow icon={Calendar}>{formatDate(res.date)}</DetailRow>
-            <DetailRow icon={Clock}>{formatTime(res.start_time)} – {formatTime(res.end_time)}</DetailRow>
-            <DetailRow icon={Users}>{res.party_size} {res.party_size === 1 ? 'gast' : 'gasten'}</DetailRow>
-            {res.ticket && (
-              <DetailRow icon={UtensilsCrossed}>{res.ticket.display_title || res.ticket.name}</DetailRow>
-            )}
-            {res.guest_notes && (
-              <div className="text-sm text-gray-500 bg-gray-50 rounded-xl p-3 ml-7">
-                {res.guest_notes}
-              </div>
-            )}
+          {/* Compact details row */}
+          <div className="px-5 pb-4 flex items-center gap-4 text-sm text-gray-600">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-gray-400" />
+              {formatDate(res.date)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-gray-400" />
+              {formatTime(res.start_time)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-gray-400" />
+              {res.party_size}
+            </span>
           </div>
 
-          {/* Modify mode */}
+          {res.guest_notes && (
+            <div className="px-5 pb-4">
+              <div className="text-xs text-gray-500 bg-gray-50 rounded-xl p-3">{res.guest_notes}</div>
+            </div>
+          )}
+
+          {/* Action links */}
+          {!modifyMode && !showCancelConfirm && isActive && (
+            <div className="px-5 pb-4 flex items-center gap-4">
+              {data.can_modify !== false && (
+                <button
+                  onClick={() => setModifyMode(true)}
+                  className="text-xs font-medium transition-colors hover:opacity-80"
+                  style={{ color: brandColor }}
+                >
+                  Wijzigen
+                </button>
+              )}
+              {data.can_cancel && (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
+                >
+                  Annuleren
+                </button>
+              )}
+              {!data.can_cancel && !data.can_modify && (
+                <p className="text-[10px] text-gray-400">
+                  Deze reservering kan niet meer online gewijzigd worden.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ── Modify mode ── */}
           {modifyMode && (
             <div className="px-5 py-4 border-t border-gray-100 space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">Reservering wijzigen</h3>
-
-              {/* Party size */}
               <div>
                 <label className="text-xs text-gray-500">Aantal gasten</label>
                 <div className="flex items-center gap-3 mt-1">
@@ -301,7 +403,7 @@ export default function ManageReservation() {
                   >
                     <Minus className="h-3 w-3" />
                   </button>
-                  <span className="text-lg font-semibold w-8 text-center">{newPartySize}</span>
+                  <span className="text-lg font-semibold w-8 text-center tabular-nums">{newPartySize}</span>
                   <button
                     onClick={() => setNewPartySize(newPartySize + 1)}
                     className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
@@ -310,8 +412,6 @@ export default function ManageReservation() {
                   </button>
                 </div>
               </div>
-
-              {/* Date */}
               <div>
                 <label className="text-xs text-gray-500">Datum</label>
                 <input
@@ -322,8 +422,6 @@ export default function ManageReservation() {
                   className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                 />
               </div>
-
-              {/* Time selection */}
               {slotsLoading ? (
                 <div className="flex justify-center py-4">
                   <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
@@ -349,25 +447,18 @@ export default function ManageReservation() {
                   </div>
                 </div>
               )}
-
               {modifyError && (
                 <div className="flex items-center gap-2 text-sm text-red-600">
                   <AlertCircle className="h-4 w-4" />
                   {modifyError}
                 </div>
               )}
-
               <div className="flex gap-2 pt-1">
                 <button
-                  onClick={() => {
-                    setModifyMode(false);
-                    setNewPartySize(res.party_size);
-                    setNewDate(res.date);
-                    setNewTime(res.start_time);
-                  }}
+                  onClick={() => { setModifyMode(false); setNewPartySize(res.party_size); setNewDate(res.date); setNewTime(res.start_time); }}
                   className="flex-1 py-2.5 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
                 >
-                  Annuleren
+                  Terug
                 </button>
                 <button
                   onClick={handleModify}
@@ -381,7 +472,7 @@ export default function ManageReservation() {
             </div>
           )}
 
-          {/* Cancel confirm */}
+          {/* ── Cancel confirm ── */}
           {showCancelConfirm && (
             <div className="px-5 py-4 border-t border-gray-100 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700">Weet je het zeker?</h3>
@@ -405,63 +496,75 @@ export default function ManageReservation() {
                   disabled={cancelling}
                   className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
                 >
-                  {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Annuleer reservering'}
+                  {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Annuleer'}
                 </button>
               </div>
             </div>
           )}
-
-          {/* Actions */}
-          {!modifyMode && !showCancelConfirm && isActive && (
-            <div className="px-5 py-4 border-t border-gray-100 flex flex-col gap-2">
-              {data.can_modify !== false && (
-                <button
-                  onClick={() => setModifyMode(true)}
-                  className="w-full py-2.5 rounded-2xl text-sm font-medium border text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
-                  style={{ borderColor: brandColor + '40', color: brandColor }}
-                >
-                  Wijzig reservering
-                </button>
-              )}
-              {data.can_cancel && (
-                <button
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="w-full py-2.5 rounded-2xl text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 active:scale-[0.98] transition-all"
-                >
-                  Annuleer reservering
-                </button>
-              )}
-              {!data.can_cancel && (
-                <p className="text-xs text-gray-400 text-center">
-                  Deze reservering kan niet online geannuleerd worden. Neem contact op met het restaurant.
-                </p>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Preferences section */}
+        {/* ── Interactive cards ── */}
         {manageToken && isActive && (
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            <ActionCard
+              icon={UtensilsCrossed}
+              title="Allergieën"
+              subtitle="& voorkeuren"
+              onClick={() => setActiveSection(activeSection === 'preferences' ? null : 'preferences')}
+              brandColor={brandColor}
+            />
+            <ActionCard
+              icon={MessageCircle}
+              title="Stel een vraag"
+              subtitle="Chat met ons"
+              onClick={() => setActiveSection(activeSection === 'chat' ? null : 'chat')}
+              brandColor={brandColor}
+            />
+            <ActionCard
+              icon={Info}
+              title="Restaurant"
+              subtitle="info"
+              onClick={() => setActiveSection(activeSection === 'info' ? null : 'info')}
+              brandColor={brandColor}
+            />
+          </div>
+        )}
+
+        {/* ── Expandable sections ── */}
+        {manageToken && isActive && activeSection && (
           <div
             className="mt-4 bg-white rounded-2xl p-5"
             style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}
           >
-            <GuestPreferences manageToken={manageToken} brandColor={brandColor} />
-          </div>
-        )}
-
-        {/* Chat section */}
-        {manageToken && isActive && (
-          <div className="mt-4">
-            <GuestChat manageToken={manageToken} brandColor={brandColor} />
+            {activeSection === 'preferences' && (
+              <ExpandableSection isOpen title="Allergieën & voorkeuren" onClose={() => setActiveSection(null)}>
+                <GuestPreferences manageToken={manageToken} brandColor={brandColor} />
+              </ExpandableSection>
+            )}
+            {activeSection === 'chat' && (
+              <ExpandableSection isOpen title="Stel een vraag" onClose={() => setActiveSection(null)}>
+                <GuestChat manageToken={manageToken} brandColor={brandColor} inline />
+              </ExpandableSection>
+            )}
+            {activeSection === 'info' && (
+              <ExpandableSection isOpen title="Restaurant informatie" onClose={() => setActiveSection(null)}>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <p className="font-medium text-gray-800">{data.restaurant_name}</p>
+                  {data.description_short && <p className="text-xs text-gray-500">{data.description_short}</p>}
+                  <p className="text-xs text-gray-400 mt-2">
+                    Neem contact op via de chat voor vragen over openingstijden, bereikbaarheid of het menu.
+                  </p>
+                </div>
+              </ExpandableSection>
+            )}
           </div>
         )}
       </main>
 
-      {/* Powered by Nesto */}
-      <footer className="mt-8 mb-6 flex items-center justify-center gap-1.5">
-        <span className="text-xs text-gray-300">Powered by</span>
-        <NestoLogo size="sm" showWordmark showIcon={false} className="text-gray-400" />
+      {/* ── Footer ── */}
+      <footer className="mt-auto pt-8 pb-6 flex items-center justify-center gap-1.5">
+        <span className="text-[10px] text-gray-300">Powered by</span>
+        <NestoLogo size="sm" showWordmark showIcon={false} className="text-gray-300 scale-90" />
       </footer>
     </div>
   );
