@@ -344,14 +344,26 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
 
   if (existingCustomer) {
     customerId = existingCustomer.id;
+    const updateData: Record<string, unknown> = {};
     // Merge customer tags (deduplicate)
     if (customerTags.length > 0) {
       const existingTags = (existingCustomer.tags as string[]) || [];
-      const mergedTags = [...new Set([...existingTags, ...customerTags])];
-      await admin
-        .from('customers')
-        .update({ tags: mergedTags, phone_number: phone || undefined })
-        .eq('id', customerId);
+      updateData.tags = [...new Set([...existingTags, ...customerTags])];
+    }
+    if (phone) updateData.phone_number = phone;
+    // Merge dietary preferences
+    if (dietary_preferences) {
+      const existing = (existingCustomer as any).dietary_preferences || {};
+      const mergedAllergies = [...new Set([...(existing.allergies || []), ...(dietary_preferences.allergies || [])])];
+      updateData.dietary_preferences = {
+        allergies: mergedAllergies,
+        vegetarian: dietary_preferences.vegetarian ?? existing.vegetarian ?? false,
+        vegan: dietary_preferences.vegan ?? existing.vegan ?? false,
+        other: dietary_preferences.other || existing.other || '',
+      };
+    }
+    if (Object.keys(updateData).length > 0) {
+      await admin.from('customers').update(updateData).eq('id', customerId);
     }
   } else {
     const { data: newCustomer, error: custErr } = await admin
