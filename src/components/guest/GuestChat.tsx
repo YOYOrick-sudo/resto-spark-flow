@@ -163,9 +163,11 @@ export function GuestChat({ manageToken, brandColor, inline = false }: GuestChat
             <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-center text-xs text-gray-400 py-8">
-            Stel gerust een vraag — we reageren zo snel mogelijk.
-          </p>
+          <div className="text-center py-10">
+            <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-200" />
+            <p className="text-sm font-medium text-gray-400">Heb je een vraag?</p>
+            <p className="text-xs text-gray-300 mt-0.5">We helpen je graag!</p>
+          </div>
         ) : (
           messages.map(msg => {
             const isGuest = msg.direction === 'inbound';
