@@ -170,7 +170,7 @@ export function ConfirmationStep() {
       </div>
 
       <div className="text-center space-y-2">
-        <h3 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>Bevestigd</h3>
+        <h3 className="text-2xl font-bold text-gray-800">Bevestigd</h3>
         <p className="text-sm text-gray-500">Je reservering is geplaatst. Je ontvangt een bevestiging per e-mail.</p>
       </div>
 
