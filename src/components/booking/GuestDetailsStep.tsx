@@ -132,6 +132,12 @@ export function GuestDetailsStep() {
           onBlur={e => e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'}
         />
 
+        {/* Dietary preferences */}
+        <DietarySelector
+          value={guestData.dietary_preferences}
+          onChange={prefs => setGuestData({ dietary_preferences: prefs })}
+        />
+
         {/* Marketing opt-in */}
         <label className="flex items-start gap-3 cursor-pointer select-none py-1">
           <div className="relative mt-0.5">
