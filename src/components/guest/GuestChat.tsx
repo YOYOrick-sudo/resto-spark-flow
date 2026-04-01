@@ -13,6 +13,7 @@ interface ChatMessage {
 interface GuestChatProps {
   manageToken: string;
   brandColor: string;
+  inline?: boolean;
 }
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
