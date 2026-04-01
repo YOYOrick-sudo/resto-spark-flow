@@ -619,7 +619,7 @@ async function handleManageGet(url: URL) {
     policySetId
       ? admin.from('policy_sets').select('cancel_policy_type, cancel_window_hours, cancel_cutoff_time, refund_type, refund_percentage').eq('id', policySetId).single()
       : Promise.resolve({ data: null }),
-    admin.from('locations').select('name, logo_url, brand_color_primary, hero_image_url').eq('id', data.location_id).single(),
+    admin.from('locations').select('name, logo_url, brand_color_primary, hero_image_url, description_short').eq('id', data.location_id).single(),
     admin.from('communication_settings').select('logo_url').eq('location_id', data.location_id).maybeSingle(),
   ]);
   cancelPolicy = policyResult?.data ?? null;
