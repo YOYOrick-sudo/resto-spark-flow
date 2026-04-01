@@ -336,7 +336,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
 
   const { data: existingCustomer } = await admin
     .from('customers')
-    .select('id, tags')
+    .select('id, tags, dietary_preferences')
     .eq('location_id', location_id)
     .ilike('email', email.toLowerCase())
     .limit(1)
