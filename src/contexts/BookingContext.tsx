@@ -344,6 +344,12 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
           booking_answers: guestData.booking_answers,
           honeypot: guestData.honeypot,
           marketing_optin: guestData.marketing_optin,
+          dietary_preferences: guestData.dietary_preferences.allergies.length > 0 ||
+            guestData.dietary_preferences.vegetarian ||
+            guestData.dietary_preferences.vegan ||
+            guestData.dietary_preferences.other
+            ? guestData.dietary_preferences
+            : undefined,
         }),
       });
       const result = await res.json();
