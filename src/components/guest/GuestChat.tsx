@@ -31,7 +31,7 @@ function timeAgo(dateStr: string): string {
   return `${days} dagen geleden`;
 }
 
-export function GuestChat({ manageToken, brandColor }: GuestChatProps) {
+export function GuestChat({ manageToken, brandColor, inline = false }: GuestChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState('');
