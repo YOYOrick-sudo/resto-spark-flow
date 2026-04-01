@@ -427,12 +427,16 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
 
   if (resErr) return errorResponse(`Booking failed: ${resErr.message}`, 500);
 
-  // 6. Save reservation tags
-  if (reservationTags.length > 0) {
-    await admin
-      .from('reservations')
-      .update({ tags: reservationTags })
-      .eq('id', reservationId);
+  // 6. Save reservation tags + allergy badges
+  const hasAllergies = dietary_preferences && (
+    (dietary_preferences.allergies && dietary_preferences.allergies.length > 0) ||
+    dietary_preferences.vegetarian || dietary_preferences.vegan
+  );
+  const updatePayload: Record<string, unknown> = {};
+  if (reservationTags.length > 0) updatePayload.tags = reservationTags;
+  if (hasAllergies) updatePayload.badges = { allergies: true };
+  if (Object.keys(updatePayload).length > 0) {
+    await admin.from('reservations').update(updatePayload).eq('id', reservationId);
   }
 
   // 7. Auto-assign table via RPC
