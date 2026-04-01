@@ -279,6 +279,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     first_name, last_name, email, phone,
     guest_notes, language,
     booking_answers, honeypot, marketing_optin,
+    dietary_preferences,
   } = body as {
     location_id?: string; date?: string; start_time?: string; party_size?: number;
     shift_id?: string; ticket_id?: string; is_squeeze?: boolean;
@@ -286,6 +287,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     guest_notes?: string; language?: string;
     booking_answers?: Array<{ question_id: string; values: string[] }>;
     honeypot?: string; marketing_optin?: boolean;
+    dietary_preferences?: { allergies?: string[]; vegetarian?: boolean; vegan?: boolean; other?: string };
   };
 
   // Honeypot check
