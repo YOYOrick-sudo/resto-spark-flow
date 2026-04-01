@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, ChevronDown } from 'lucide-react';
 
 interface GuestPreferencesProps {
   manageToken: string;
@@ -13,15 +13,20 @@ interface DietaryPreferences {
   other: string;
 }
 
-const EU_ALLERGENS = [
-  { key: 'gluten', label: 'Gluten' },
+const COMMON_OPTIONS = [
+  { key: 'gluten', label: 'Glutenvrij' },
+  { key: 'lactose', label: 'Lactosevrij' },
+  { key: 'noten', label: 'Noten' },
+  { key: 'vegetarian', label: 'Vegetarisch', type: 'diet' as const },
+  { key: 'vegan', label: 'Vegan', type: 'diet' as const },
+];
+
+const MORE_ALLERGENS = [
   { key: 'schaaldieren', label: 'Schaaldieren' },
   { key: 'eieren', label: 'Eieren' },
   { key: 'vis', label: 'Vis' },
   { key: 'pinda', label: "Pinda's" },
   { key: 'soja', label: 'Soja' },
-  { key: 'lactose', label: 'Melk (lactose)' },
-  { key: 'noten', label: 'Noten' },
   { key: 'selderij', label: 'Selderij' },
   { key: 'mosterd', label: 'Mosterd' },
   { key: 'sesam', label: 'Sesamzaad' },
@@ -41,6 +46,7 @@ export function GuestPreferences({ manageToken, brandColor }: GuestPreferencesPr
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     fetch(`${BASE_URL}/webchat-preferences?token=${encodeURIComponent(manageToken)}`, {
@@ -55,19 +61,32 @@ export function GuestPreferences({ manageToken, brandColor }: GuestPreferencesPr
             vegan: !!d.preferences.vegan,
             other: d.preferences.other || '',
           });
+          // Auto-show "more" if user has selected any of the extended allergens
+          if ((d.preferences.allergies || []).some((a: string) => MORE_ALLERGENS.some(m => m.key === a))) {
+            setShowMore(true);
+          }
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [manageToken]);
 
-  const toggleAllergy = (key: string) => {
-    setPrefs(p => ({
-      ...p,
-      allergies: p.allergies.includes(key)
-        ? p.allergies.filter(a => a !== key)
-        : [...p.allergies, key],
-    }));
+  const isSelected = (key: string, type?: 'diet') => {
+    if (type === 'diet') return prefs[key as 'vegetarian' | 'vegan'];
+    return prefs.allergies.includes(key);
+  };
+
+  const toggle = (key: string, type?: 'diet') => {
+    if (type === 'diet') {
+      setPrefs(p => ({ ...p, [key]: !p[key as 'vegetarian' | 'vegan'] }));
+    } else {
+      setPrefs(p => ({
+        ...p,
+        allergies: p.allergies.includes(key)
+          ? p.allergies.filter(a => a !== key)
+          : [...p.allergies, key],
+      }));
+    }
     setDirty(true);
     setSaved(false);
   };
@@ -94,79 +113,62 @@ export function GuestPreferences({ manageToken, brandColor }: GuestPreferencesPr
     );
   }
 
+  const Chip = ({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) => (
+    <button
+      onClick={onClick}
+      className="px-4 py-2 rounded-full text-sm font-medium border transition-all duration-150"
+      style={{
+        borderColor: selected ? brandColor : '#e5e7eb',
+        backgroundColor: selected ? brandColor + '15' : 'transparent',
+        color: selected ? brandColor : '#6b7280',
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  const activeCount = prefs.allergies.length + (prefs.vegetarian ? 1 : 0) + (prefs.vegan ? 1 : 0);
+
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-800">Allergieën & voorkeuren</h3>
       <p className="text-xs text-gray-500">
-        Laat ons weten of je allergieën of dieetvoorkeuren hebt, dan houden we daar rekening mee.
+        Laat ons weten of je allergieën of dieetwensen hebt.
       </p>
 
-      {/* Allergens grid */}
-      <div className="grid grid-cols-2 gap-2">
-        {EU_ALLERGENS.map(a => {
-          const selected = prefs.allergies.includes(a.key);
-          return (
-            <button
-              key={a.key}
-              onClick={() => toggleAllergy(a.key)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left"
-              style={{
-                borderColor: selected ? brandColor : '#e5e7eb',
-                backgroundColor: selected ? brandColor + '10' : '#fff',
-                color: selected ? brandColor : '#6b7280',
-              }}
-            >
-              <div
-                className="w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors"
-                style={{
-                  borderColor: selected ? brandColor : '#d1d5db',
-                  backgroundColor: selected ? brandColor : 'transparent',
-                }}
-              >
-                {selected && <Check className="h-3 w-3 text-white" />}
-              </div>
-              {a.label}
-            </button>
-          );
-        })}
+      {/* Common options */}
+      <div className="flex flex-wrap gap-2">
+        {COMMON_OPTIONS.map(opt => (
+          <Chip
+            key={opt.key}
+            label={opt.label}
+            selected={isSelected(opt.key, opt.type)}
+            onClick={() => toggle(opt.key, opt.type)}
+          />
+        ))}
       </div>
 
-      {/* Vegetarian / Vegan */}
-      <div className="flex gap-2">
-        {[
-          { key: 'vegetarian' as const, label: 'Vegetarisch' },
-          { key: 'vegan' as const, label: 'Vegan' },
-        ].map(opt => {
-          const selected = prefs[opt.key];
-          return (
-            <button
-              key={opt.key}
-              onClick={() => {
-                setPrefs(p => ({ ...p, [opt.key]: !p[opt.key] }));
-                setDirty(true);
-                setSaved(false);
-              }}
-              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all justify-center"
-              style={{
-                borderColor: selected ? brandColor : '#e5e7eb',
-                backgroundColor: selected ? brandColor + '10' : '#fff',
-                color: selected ? brandColor : '#6b7280',
-              }}
-            >
-              <div
-                className="w-4 h-4 rounded border flex items-center justify-center shrink-0"
-                style={{
-                  borderColor: selected ? brandColor : '#d1d5db',
-                  backgroundColor: selected ? brandColor : 'transparent',
-                }}
-              >
-                {selected && <Check className="h-3 w-3 text-white" />}
-              </div>
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Show more toggle */}
+      <button
+        onClick={() => setShowMore(!showMore)}
+        className="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <span>Alle allergenen</span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showMore ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Extended allergens */}
+      {showMore && (
+        <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          {MORE_ALLERGENS.map(a => (
+            <Chip
+              key={a.key}
+              label={a.label}
+              selected={prefs.allergies.includes(a.key)}
+              onClick={() => toggle(a.key)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Other */}
       <textarea
@@ -176,10 +178,10 @@ export function GuestPreferences({ manageToken, brandColor }: GuestPreferencesPr
           setDirty(true);
           setSaved(false);
         }}
-        placeholder="Overige voorkeuren of opmerkingen..."
+        placeholder="Overige wensen..."
         maxLength={500}
         rows={2}
-        className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+        className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10"
       />
 
       {/* Save */}
