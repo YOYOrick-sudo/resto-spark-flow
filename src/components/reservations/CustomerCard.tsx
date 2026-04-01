@@ -60,6 +60,32 @@ export function CustomerCard({ customer, reservationId, className }: CustomerCar
         )}
       </div>
 
+      {/* Allergies badges */}
+      {customer.dietary_preferences && (() => {
+        const dp = customer.dietary_preferences as any;
+        const items: string[] = [];
+        if (dp.allergies?.length) items.push(...dp.allergies);
+        if (dp.vegetarian) items.push('Vegetarisch');
+        if (dp.vegan) items.push('Vegan');
+        if (dp.other) items.push(dp.other);
+        if (items.length === 0) return null;
+        return (
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+              <span className="text-xs font-medium text-orange-700">Allergieën & dieet</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {items.map(item => (
+                <span key={item} className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="text-center p-1.5 rounded-lg bg-muted/50">
