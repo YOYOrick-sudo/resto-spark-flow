@@ -376,6 +376,7 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
         phone_number: phone || null,
         language: language || 'nl',
         tags: customerTags,
+        ...(dietary_preferences ? { dietary_preferences } : {}),
       })
       .select('id')
       .single();
