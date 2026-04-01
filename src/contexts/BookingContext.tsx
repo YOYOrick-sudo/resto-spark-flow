@@ -63,6 +63,13 @@ export interface AvailableShift {
   slots: AvailableSlot[];
 }
 
+export interface DietaryPreferences {
+  allergies: string[];
+  vegetarian: boolean;
+  vegan: boolean;
+  other: string;
+}
+
 export interface GuestData {
   first_name: string;
   last_name: string;
@@ -72,6 +79,7 @@ export interface GuestData {
   booking_answers: Array<{ question_id: string; values: string[] }>;
   honeypot: string;
   marketing_optin: boolean;
+  dietary_preferences: DietaryPreferences;
 }
 
 export interface BookingData {
