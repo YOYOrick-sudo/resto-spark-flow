@@ -304,7 +304,7 @@ export default function ManageReservation() {
                 </div>
               )}
               <div className="min-w-0">
-                <h1 className="text-white font-semibold text-lg leading-tight truncate drop-shadow-sm" style={{ fontFamily: 'Georgia, serif' }}>
+                <h1 className="text-white font-semibold text-lg leading-tight truncate drop-shadow-sm">
                   {data.restaurant_name || 'Restaurant'}
                 </h1>
                 {data.description_short && (
