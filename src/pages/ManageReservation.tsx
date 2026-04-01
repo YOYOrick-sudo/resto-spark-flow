@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Loader2, Clock, Users, Calendar, Minus, Plus, AlertCircle, UtensilsCrossed, MessageCircle, ChevronDown, Info } from 'lucide-react';
+import { Loader2, Clock, Users, Calendar, Minus, Plus, AlertCircle, UtensilsCrossed, MessageCircle, Info } from 'lucide-react';
 import { NestoLogo } from '@/components/polar/NestoLogo';
 import { GuestChat } from '@/components/guest/GuestChat';
 import { GuestPreferences } from '@/components/guest/GuestPreferences';
@@ -93,6 +93,7 @@ function ActionCard({
   onClick,
   brandColor,
   badge,
+  isActive,
 }: {
   icon: React.ElementType;
   title: string;
@@ -100,21 +101,27 @@ function ActionCard({
   onClick: () => void;
   brandColor: string;
   badge?: number;
+  isActive?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-100 bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] relative"
-      style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+      className="flex flex-col items-center gap-2.5 p-5 rounded-2xl bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] relative"
+      style={{
+        boxShadow: isActive ? `0 0 0 1.5px ${brandColor}, 0 2px 8px rgba(0,0,0,0.06)` : '0 1px 4px rgba(0,0,0,0.06)',
+        backgroundColor: isActive ? brandColor + '06' : '#fff',
+      }}
     >
       <div
-        className="w-10 h-10 rounded-full flex items-center justify-center"
+        className="w-11 h-11 rounded-full flex items-center justify-center"
         style={{ backgroundColor: brandColor + '12' }}
       >
-        <Icon className="w-5 h-5" style={{ color: brandColor }} />
+        <Icon className="w-[22px] h-[22px]" style={{ color: brandColor }} />
       </div>
-      <span className="text-xs font-semibold text-gray-800 leading-tight">{title}</span>
-      <span className="text-[10px] text-gray-400 leading-tight">{subtitle}</span>
+      <div>
+        <span className="text-xs font-semibold text-gray-800 leading-tight block">{title}</span>
+        <span className="text-[10px] text-gray-400 leading-tight block mt-0.5">{subtitle}</span>
+      </div>
       {badge != null && badge > 0 && (
         <span
           className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
@@ -142,7 +149,7 @@ function ExpandableSection({
   if (!isOpen) return null;
   return (
     <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
         <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
           Sluiten
@@ -160,15 +167,12 @@ export default function ManageReservation() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Active section: null | 'preferences' | 'chat' | 'info'
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
-  // Cancel state
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
-  // Modify state
   const [modifying, setModifying] = useState(false);
   const [modifyMode, setModifyMode] = useState(false);
   const [newPartySize, setNewPartySize] = useState(0);
@@ -178,7 +182,6 @@ export default function ManageReservation() {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [modifyError, setModifyError] = useState<string | null>(null);
 
-  // Load reservation
   useEffect(() => {
     if (!token) return;
     setLoading(true);
@@ -197,7 +200,6 @@ export default function ManageReservation() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  // Load availability when modify mode date changes
   useEffect(() => {
     if (!modifyMode || !data || !newDate) return;
     setSlotsLoading(true);
@@ -289,66 +291,87 @@ export default function ManageReservation() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FAFAFA' }}>
       {/* ── Hero header ── */}
-      <div
-        className="w-full relative overflow-hidden"
-        style={{
-          height: data.hero_image_url ? '12rem' : '8rem',
-          background: data.hero_image_url ? undefined : `linear-gradient(135deg, ${brandColor}, ${brandColor}dd)`,
-        }}
-      >
-        {data.hero_image_url && (
-          <>
-            <img src={data.hero_image_url} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/60" />
-          </>
-        )}
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
-          <div className="max-w-md mx-auto flex items-end gap-3">
-            {data.logo_url && (
-              <div className="w-12 h-12 rounded-xl bg-white/90 backdrop-blur-sm p-1.5 shrink-0 shadow-sm">
-                <img src={data.logo_url} alt="" className="w-full h-full object-contain" />
-              </div>
-            )}
-            <div className="min-w-0">
-              <h1 className="text-white font-semibold text-lg leading-tight truncate drop-shadow-sm">
-                {data.restaurant_name || 'Restaurant'}
-              </h1>
-              {data.description_short && (
-                <p className="text-white/70 text-xs mt-0.5 truncate drop-shadow-sm">{data.description_short}</p>
+      {data.hero_image_url ? (
+        /* With hero image: large photo header */
+        <div className="w-full relative overflow-hidden" style={{ height: '14rem' }}>
+          <img src={data.hero_image_url} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/20 to-black/65" />
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+            <div className="max-w-lg mx-auto flex items-end gap-3">
+              {data.logo_url && (
+                <div className="w-12 h-12 rounded-xl bg-white/90 backdrop-blur-sm p-1.5 shrink-0 shadow-sm">
+                  <img src={data.logo_url} alt="" className="w-full h-full object-contain" />
+                </div>
               )}
+              <div className="min-w-0">
+                <h1 className="text-white font-semibold text-lg leading-tight truncate drop-shadow-sm" style={{ fontFamily: 'Georgia, serif' }}>
+                  {data.restaurant_name || 'Restaurant'}
+                </h1>
+                {data.description_short && (
+                  <p className="text-white/70 text-xs mt-0.5 truncate drop-shadow-sm">{data.description_short}</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Without hero image: clean white header */
+        <div className="w-full bg-white border-b border-gray-100">
+          <div className="max-w-lg mx-auto px-5 py-8 flex flex-col items-center text-center">
+            {data.logo_url ? (
+              <div className="w-16 h-16 rounded-2xl bg-gray-50 p-2 mb-3">
+                <img src={data.logo_url} alt="" className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 text-white text-xl font-bold"
+                style={{ backgroundColor: brandColor }}
+              >
+                {(data.restaurant_name || 'R')[0]}
+              </div>
+            )}
+            <h1 className="text-xl font-semibold text-gray-900" style={{ fontFamily: 'Georgia, serif' }}>
+              {data.restaurant_name || 'Restaurant'}
+            </h1>
+            {data.description_short && (
+              <p className="text-xs text-gray-400 mt-1 max-w-xs">{data.description_short}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Content ── */}
-      <main className="w-full max-w-md mx-auto px-4 -mt-6 relative z-10 flex-1">
+      <main className="w-full max-w-lg mx-auto px-4 relative z-10 flex-1" style={{ marginTop: data.hero_image_url ? '-1.5rem' : '1.5rem' }}>
         {/* Reservation card */}
         <div
           className="bg-white rounded-2xl overflow-hidden"
-          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}
+          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)' }}
         >
           {/* Guest + status row */}
           <div className="px-5 pt-5 pb-3 flex items-start justify-between">
             <div>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-xl font-semibold text-gray-900">
                 {res.customer ? `${res.customer.first_name} ${res.customer.last_name}` : 'Je reservering'}
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">{res.ticket?.display_title || res.ticket?.name || ''}</p>
+              {res.ticket?.display_title && (
+                <p className="text-[11px] text-gray-400 mt-0.5">{res.ticket.display_title}</p>
+              )}
             </div>
             <StatusBadge status={res.status} brandColor={brandColor} />
           </div>
 
-          {/* Compact details row */}
-          <div className="px-5 pb-4 flex items-center gap-4 text-sm text-gray-600">
+          {/* Compact details row with · separators */}
+          <div className="px-5 pb-4 flex items-center text-sm text-gray-600">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-gray-400" />
               {formatDate(res.date)}
             </span>
+            <span className="mx-2 text-gray-300">·</span>
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-gray-400" />
               {formatTime(res.start_time)}
             </span>
+            <span className="mx-2 text-gray-300">·</span>
             <span className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-gray-400" />
               {res.party_size}
@@ -376,7 +399,7 @@ export default function ManageReservation() {
               {data.can_cancel && (
                 <button
                   onClick={() => setShowCancelConfirm(true)}
-                  className="text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
+                  className="text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
                 >
                   Annuleren
                 </button>
@@ -505,13 +528,14 @@ export default function ManageReservation() {
 
         {/* ── Interactive cards ── */}
         {manageToken && isActive && (
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="mt-6 grid grid-cols-3 gap-3">
             <ActionCard
               icon={UtensilsCrossed}
               title="Allergieën"
               subtitle="& voorkeuren"
               onClick={() => setActiveSection(activeSection === 'preferences' ? null : 'preferences')}
               brandColor={brandColor}
+              isActive={activeSection === 'preferences'}
             />
             <ActionCard
               icon={MessageCircle}
@@ -519,6 +543,7 @@ export default function ManageReservation() {
               subtitle="Chat met ons"
               onClick={() => setActiveSection(activeSection === 'chat' ? null : 'chat')}
               brandColor={brandColor}
+              isActive={activeSection === 'chat'}
             />
             <ActionCard
               icon={Info}
@@ -526,6 +551,7 @@ export default function ManageReservation() {
               subtitle="info"
               onClick={() => setActiveSection(activeSection === 'info' ? null : 'info')}
               brandColor={brandColor}
+              isActive={activeSection === 'info'}
             />
           </div>
         )}
@@ -534,7 +560,7 @@ export default function ManageReservation() {
         {manageToken && isActive && activeSection && (
           <div
             className="mt-4 bg-white rounded-2xl p-5"
-            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)' }}
+            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03)' }}
           >
             {activeSection === 'preferences' && (
               <ExpandableSection isOpen title="Allergieën & voorkeuren" onClose={() => setActiveSection(null)}>
@@ -562,9 +588,9 @@ export default function ManageReservation() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="mt-auto pt-8 pb-6 flex items-center justify-center gap-1.5">
-        <span className="text-[10px] text-gray-300">Powered by</span>
-        <NestoLogo size="sm" showWordmark showIcon={false} className="text-gray-300 scale-90" />
+      <footer className="mt-auto pt-10 pb-6 flex items-center justify-center gap-1.5 opacity-40">
+        <span className="text-[10px] text-gray-400">Powered by</span>
+        <NestoLogo size="sm" showWordmark showIcon={false} className="text-gray-400 scale-90" />
       </footer>
     </div>
   );
