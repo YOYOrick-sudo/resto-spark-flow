@@ -12,8 +12,8 @@ import { DateNavigator } from "@/components/reserveringen/DateNavigator";
 import { ReservationListView } from "@/components/reserveringen/ReservationListView";
 import { ReservationGridView } from "@/components/reserveringen/ReservationGridView";
 import { ReservationFooter } from "@/components/reserveringen/ReservationFooter";
-import { WaitlistSection } from "@/components/reserveringen/WaitlistSection";
 import { DayNotePopover } from "@/components/reserveringen/DayNotePopover";
+import { useWaitlistEntries, useCancelWaitlistEntry, useInviteWaitlistEntry } from "@/hooks/useWaitlistEntries";
 import { useUserContext } from "@/contexts/UserContext";
 import {
   ReservationFilters,
@@ -48,6 +48,9 @@ export default function Reserveringen() {
   const dateString = format(selectedDate, "yyyy-MM-dd");
 
   const { data: reservationsForDate = [], isLoading } = useReservations({ date: dateString });
+  const { data: waitlistEntries = [] } = useWaitlistEntries(dateString);
+  const cancelWaitlist = useCancelWaitlistEntry();
+  const inviteWaitlist = useInviteWaitlistEntry();
 
   const filteredReservations = useMemo(() => {
     let result = reservationsForDate;
@@ -192,9 +195,12 @@ export default function Reserveringen() {
             {activeView === "list" && (
               <ReservationListView
                 reservations={filteredReservations}
+                waitlistEntries={waitlistEntries}
                 onReservationClick={handleReservationClick}
                 onStatusChange={handleStatusChange}
                 onAssignTable={handleAssignTable}
+                onInviteWaitlist={(id) => inviteWaitlist.mutate(id)}
+                onCancelWaitlist={(id) => cancelWaitlist.mutate(id)}
                 density={density}
               />
             )}
@@ -208,7 +214,6 @@ export default function Reserveringen() {
               />
             )}
 
-
             {activeView === "calendar" && (
               <div className="flex items-center justify-center py-16">
                 <EmptyState
@@ -218,7 +223,6 @@ export default function Reserveringen() {
                 />
               </div>
             )}
-            <WaitlistSection selectedDate={selectedDate} />
           </div>
         </div>
 
