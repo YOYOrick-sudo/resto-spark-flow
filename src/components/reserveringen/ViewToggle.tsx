@@ -1,8 +1,8 @@
-import { List, LayoutGrid, Calendar, ListOrdered } from "lucide-react";
+import { List, LayoutGrid, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export type ViewType = "list" | "grid" | "waitlist" | "calendar";
+export type ViewType = "list" | "grid" | "calendar";
 
 interface ViewToggleProps {
   activeView: ViewType;
@@ -13,7 +13,6 @@ interface ViewToggleProps {
 const views: { id: ViewType; icon: typeof List; label: string }[] = [
   { id: "grid", icon: LayoutGrid, label: "Grid" },
   { id: "list", icon: List, label: "List" },
-  { id: "waitlist", icon: ListOrdered, label: "Wachtlijst" },
   { id: "calendar", icon: Calendar, label: "Calendar" },
 ];
 

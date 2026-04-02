@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { PenSquare, Rows3, Rows4 } from "lucide-react";
+import { Rows3, Rows4 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DensityType } from "./DensityToggle";
 
@@ -8,7 +8,6 @@ interface ReservationFooterProps {
   waitingCount: number;
   isOpen: boolean;
   className?: string;
-  onNotesClick?: () => void;
   density?: DensityType;
   onDensityChange?: (d: DensityType) => void;
 }
@@ -19,7 +18,6 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
     waitingCount,
     isOpen,
     className,
-    onNotesClick,
     density,
     onDensityChange,
   }, ref) {
@@ -27,23 +25,11 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
       <div
         ref={ref}
         className={cn(
-          "flex items-center justify-between px-4 py-3 border-t border-border bg-card",
+          "flex items-center gap-4 flex-1",
           className
         )}
       >
-        {/* Left side - Notes */}
-        <button
-          onClick={onNotesClick}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <PenSquare className="h-4 w-4" />
-          <span>Notities</span>
-        </button>
-
-        {/* Divider */}
-        <div className="h-4 w-px bg-border" />
-
-        {/* Center - Stats */}
+        {/* Stats */}
         <div className="flex items-center gap-4">
           <div className="text-sm">
             <span className="font-medium text-foreground">{totalGuests}</span>

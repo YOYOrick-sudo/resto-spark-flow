@@ -12,7 +12,9 @@ import { DateNavigator } from "@/components/reserveringen/DateNavigator";
 import { ReservationListView } from "@/components/reserveringen/ReservationListView";
 import { ReservationGridView } from "@/components/reserveringen/ReservationGridView";
 import { ReservationFooter } from "@/components/reserveringen/ReservationFooter";
-import { WaitlistView } from "@/components/reserveringen/WaitlistView";
+import { WaitlistSection } from "@/components/reserveringen/WaitlistSection";
+import { DayNotePopover } from "@/components/reserveringen/DayNotePopover";
+import { useUserContext } from "@/contexts/UserContext";
 import {
   ReservationFilters,
   type ReservationFiltersState,
@@ -27,6 +29,7 @@ import { useAssignTable } from "@/hooks/useAssignTable";
 import { ReservationDetailPanel, CreateReservationSheet, WalkInSheet } from "@/components/reservations";
 
 export default function Reserveringen() {
+  const { currentLocation } = useUserContext();
   const [activeView, setActiveView] = useState<ViewType>("list");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
@@ -205,9 +208,6 @@ export default function Reserveringen() {
               />
             )}
 
-            {activeView === "waitlist" && (
-              <WaitlistView selectedDate={selectedDate} />
-            )}
 
             {activeView === "calendar" && (
               <div className="flex items-center justify-center py-16">
@@ -218,16 +218,21 @@ export default function Reserveringen() {
                 />
               </div>
             )}
+            <WaitlistSection selectedDate={selectedDate} />
           </div>
         </div>
 
-        <ReservationFooter
-          totalGuests={totalGuests}
-          waitingCount={waitingCount}
-          isOpen={isOpen}
-          density={density}
-          onDensityChange={setDensity}
-        />
+        <div className="flex items-center border-t border-border bg-card px-4 py-3">
+          <DayNotePopover date={dateString} locationId={currentLocation?.id} />
+          <div className="h-4 w-px bg-border mx-3" />
+          <ReservationFooter
+            totalGuests={totalGuests}
+            waitingCount={waitingCount}
+            isOpen={isOpen}
+            density={density}
+            onDensityChange={setDensity}
+          />
+        </div>
       </div>
 
       {/* Detail Panel */}
