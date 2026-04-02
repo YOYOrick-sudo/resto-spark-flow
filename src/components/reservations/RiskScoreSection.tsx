@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/lib/queryKeys';
-import { AlertTriangle, ShieldAlert, ShieldCheck, Send } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, ShieldCheck, Send, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Reservation } from '@/types/reservation';
@@ -31,11 +32,62 @@ const FACTOR_LABELS: Record<string, string> = {
   day_of_week: 'Dag',
 };
 
+function RiskFactors({ factors }: { factors: Record<string, RiskFactor> }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="mb-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
+        Factoren
+      </button>
+      {expanded && (
+        <TooltipProvider>
+          <div className="space-y-2 mt-2">
+            {Object.entries(factors).map(([key, factor]) => {
+              if (!factor || typeof factor !== 'object') return null;
+              const f = factor as RiskFactor;
+              return (
+                <div key={key} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground w-28 flex-shrink-0">
+                    {FACTOR_LABELS[key] || key}
+                  </span>
+                  <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-foreground/30 rounded-full"
+                      style={{ width: `${Math.min((f.score / f.weight) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-muted-foreground w-8 text-right font-mono tabular-nums">
+                    {Math.round(f.score)}
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground/60 w-20 truncate cursor-help">
+                        {f.detail}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[200px]">
+                      {f.detail}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              );
+            })}
+          </div>
+        </TooltipProvider>
+      )}
+    </div>
+  );
+}
+
 export function RiskScoreSection({ reservation, className }: RiskScoreSectionProps) {
   const score = reservation.no_show_risk_score;
   const factors = reservation.risk_factors as Record<string, RiskFactor> | null | undefined;
 
-  // Shift average context
   const { data: shiftRisk } = useQuery({
     queryKey: queryKeys.shiftRiskSummary(reservation.location_id, reservation.reservation_date),
     queryFn: async () => {
@@ -68,7 +120,6 @@ export function RiskScoreSection({ reservation, className }: RiskScoreSectionPro
     <div className={cn('p-5', className)}>
       <h3 className="text-sm font-semibold text-foreground mb-3">Risicoscore</h3>
 
-      {/* Score display */}
       <div className="flex items-center gap-3 mb-3">
         <RiskIcon className={cn('h-5 w-5', risk.colorClass)} />
         <div className="flex-1">
@@ -77,7 +128,6 @@ export function RiskScoreSection({ reservation, className }: RiskScoreSectionPro
             <span className="text-sm text-muted-foreground">/ 100</span>
             <span className={cn('text-xs font-medium ml-auto', risk.colorClass)}>{risk.label}</span>
           </div>
-          {/* Progress bar */}
           <div className="h-1.5 w-full bg-muted rounded-full mt-1.5 overflow-hidden">
             <div
               className={cn(
@@ -90,17 +140,14 @@ export function RiskScoreSection({ reservation, className }: RiskScoreSectionPro
         </div>
       </div>
 
-      {/* Factor breakdown — collapsed by default */}
       {factors && <RiskFactors factors={factors} />}
 
-      {/* Shift average */}
       {shiftRisk?.avg_risk_score !== undefined && shiftRisk.avg_risk_score !== null && (
         <p className="text-xs text-muted-foreground border-t border-border/50 pt-2 mt-2">
           Shift gemiddeld: <span className="font-medium text-foreground tabular-nums">{Math.round(shiftRisk.avg_risk_score)}%</span>
         </p>
       )}
 
-      {/* Confirmation placeholder */}
       {score >= 50 && reservation.status === 'confirmed' && (
         <TooltipProvider>
           <Tooltip>
