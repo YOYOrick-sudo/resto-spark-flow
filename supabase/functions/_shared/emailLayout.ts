@@ -78,7 +78,7 @@ export function buildEmailHtml(params: EmailLayoutParams): string {
 <body style="margin:0;padding:0;background:#f8f8f8">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f8f8;padding:40px 16px">
 <tr><td align="center">
-<table width="100%" style="max-width:520px;background:#ffffff;border-radius:8px;overflow:hidden" cellpadding="0" cellspacing="0">
+<table width="100%" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden" cellpadding="0" cellspacing="0">
   ${logoBlock}
   <tr><td style="padding:0 40px 40px">
     <h1 style="margin:0 0 8px;font-size:20px;color:#222;font-family:${fontFamily};font-weight:600;line-height:1.3">${heading}</h1>
