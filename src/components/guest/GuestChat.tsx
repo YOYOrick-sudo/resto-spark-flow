@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, MessageCircle } from 'lucide-react';
+import { Send, Loader2, MessageCircle, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMessage {
@@ -13,6 +13,7 @@ interface ChatMessage {
 interface GuestChatProps {
   manageToken: string;
   brandColor: string;
+  restaurantName?: string;
   inline?: boolean;
 }
 
@@ -31,14 +32,15 @@ function timeAgo(dateStr: string): string {
   return `${days} dagen geleden`;
 }
 
-export function GuestChat({ manageToken, brandColor, inline = false }: GuestChatProps) {
+export function GuestChat({ manageToken, brandColor, restaurantName = 'Restaurant', inline = false }: GuestChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Load messages
   useEffect(() => {
@@ -57,7 +59,6 @@ export function GuestChat({ manageToken, brandColor, inline = false }: GuestChat
   // Realtime subscription
   useEffect(() => {
     if (!conversationId) return;
-
     const channel = supabase
       .channel(`webchat-${conversationId}`)
       .on(
@@ -83,7 +84,6 @@ export function GuestChat({ manageToken, brandColor, inline = false }: GuestChat
         }
       )
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [conversationId]);
 
@@ -98,14 +98,10 @@ export function GuestChat({ manageToken, brandColor, inline = false }: GuestChat
     setInput('');
     setSending(true);
 
-    // Optimistic add
     const tempId = `temp-${Date.now()}`;
     setMessages(prev => [...prev, {
-      id: tempId,
-      direction: 'inbound',
-      content: text,
-      message_type: 'text',
-      created_at: new Date().toISOString(),
+      id: tempId, direction: 'inbound', content: text,
+      message_type: 'text', created_at: new Date().toISOString(),
     }]);
 
     try {
@@ -115,17 +111,11 @@ export function GuestChat({ manageToken, brandColor, inline = false }: GuestChat
         body: JSON.stringify({ manage_token: manageToken, content: text }),
       });
       const data = await res.json();
-      if (data.conversation_id && !conversationId) {
-        setConversationId(data.conversation_id);
-      }
-      // Replace temp message with real one
+      if (data.conversation_id && !conversationId) setConversationId(data.conversation_id);
       if (data.message_id) {
-        setMessages(prev => prev.map(m =>
-          m.id === tempId ? { ...m, id: data.message_id } : m
-        ));
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: data.message_id } : m));
       }
     } catch {
-      // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setInput(text);
     } finally {
@@ -133,169 +123,126 @@ export function GuestChat({ manageToken, brandColor, inline = false }: GuestChat
     }
   };
 
-  if (!isOpen && !inline) {
+  const unreadCount = messages.filter(m => m.direction === 'outbound').length;
+
+  // Inline mode: input-first, expandable
+  if (inline) {
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="w-full py-3 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-      >
-        <MessageCircle className="h-4 w-4" />
-        Stel een vraag
-        {messages.length > 0 && (
-          <span
-            className="ml-1 text-xs px-2 py-0.5 rounded-full text-white"
-            style={{ backgroundColor: brandColor }}
+      <div>
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-medium uppercase tracking-wide" style={{ color: '#6B7280' }}>
+            Heb je een vraag?
+          </p>
+          {isExpanded && (
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4" style={{ color: '#9CA3AF' }} />
+            </button>
+          )}
+        </div>
+
+        {!isExpanded ? (
+          /* Collapsed: just the input */
+          <div
+            className="flex items-center gap-2 cursor-text"
+            onClick={() => { setIsExpanded(true); setTimeout(() => inputRef.current?.focus(), 100); }}
           >
-            {messages.filter(m => m.direction === 'outbound').length}
-          </span>
+            <div
+              className="flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border text-sm transition-all hover:border-gray-300"
+              style={{ borderColor: '#E5E7EB', color: '#9CA3AF' }}
+            >
+              <MessageCircle className="w-4 h-4 shrink-0" />
+              <span>Stel je vraag...</span>
+            </div>
+            {unreadCount > 0 && (
+              <span
+                className="shrink-0 w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                style={{ backgroundColor: brandColor }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </div>
+        ) : (
+          /* Expanded: full chat */
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+            {/* Messages */}
+            <div ref={scrollRef} className="max-h-72 overflow-y-auto py-3 space-y-3">
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin" style={{ color: '#D1D5DB' }} />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-sm" style={{ color: '#9CA3AF' }}>
+                    Heb je een vraag over je reservering? We helpen je graag!
+                  </p>
+                </div>
+              ) : (
+                messages.map(msg => {
+                  const isGuest = msg.direction === 'inbound';
+                  return (
+                    <div key={msg.id} className={`flex ${isGuest ? 'justify-end' : 'justify-start'}`}>
+                      <div className="max-w-[80%]">
+                        <div
+                          className="px-3.5 py-2.5 text-sm"
+                          style={isGuest
+                            ? { backgroundColor: '#F3F4F6', color: '#374151', borderRadius: '16px 16px 6px 16px' }
+                            : { backgroundColor: brandColor + '0D', color: '#1A1A1A', borderRadius: '16px 16px 16px 6px' }
+                          }
+                        >
+                          {msg.content}
+                        </div>
+                        <p className="text-[10px] mt-0.5 px-1" style={{ color: '#9CA3AF' }}>
+                          {timeAgo(msg.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="flex items-center gap-2 pt-3">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSend()}
+                placeholder="Type je bericht..."
+                maxLength={2000}
+                className="flex-1 text-sm px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                style={{ borderColor: '#E5E7EB' }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || sending}
+                className="p-2.5 rounded-xl text-white disabled:opacity-40 transition-colors"
+                style={{ backgroundColor: brandColor }}
+              >
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
         )}
-      </button>
+      </div>
     );
   }
 
-  // Inline mode: skip the header/border wrapper
-  const chatContent = (
-    <>
-      {/* Messages */}
-      <div ref={scrollRef} className="h-64 overflow-y-auto px-1 py-3 space-y-3">
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center py-10">
-            <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-200" />
-            <p className="text-sm font-medium text-gray-400">Heb je een vraag?</p>
-            <p className="text-xs text-gray-300 mt-0.5">We helpen je graag!</p>
-          </div>
-        ) : (
-          messages.map(msg => {
-            const isGuest = msg.direction === 'inbound';
-            return (
-              <div key={msg.id} className={`flex ${isGuest ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[80%]">
-                  <div
-                    className="px-3 py-2 rounded-2xl text-sm"
-                    style={isGuest
-                      ? { backgroundColor: '#f3f4f6', color: '#374151' }
-                      : { backgroundColor: brandColor + '15', color: '#1a1a1a' }
-                    }
-                  >
-                    {msg.content}
-                  </div>
-                  <p className="text-[10px] text-gray-400 mt-0.5 px-1">{timeAgo(msg.created_at)}</p>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSend()}
-          placeholder="Stel je vraag..."
-          maxLength={2000}
-          className="flex-1 text-sm px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim() || sending}
-          className="p-2 rounded-xl text-white disabled:opacity-40 transition-colors"
-          style={{ backgroundColor: brandColor }}
-        >
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </button>
-      </div>
-    </>
-  );
-
-  if (inline) return <div>{chatContent}</div>;
-
+  // Non-inline legacy mode (kept for backwards compat)
   return (
-    <div className="border border-gray-200 rounded-2xl overflow-hidden">
-      {/* Header */}
-      <div
-        className="px-4 py-3 flex items-center justify-between"
-        style={{ backgroundColor: brandColor + '10' }}
-      >
-        <span className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-          <MessageCircle className="h-4 w-4" style={{ color: brandColor }} />
-          Chat
-        </span>
-        <button
-          onClick={() => setIsOpen(false)}
-          className="text-xs text-gray-400 hover:text-gray-600"
-        >
-          Sluiten
-        </button>
-      </div>
-
-      {/* Messages */}
-      <div ref={scrollRef} className="h-64 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50/50">
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center py-10">
-            <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-200" />
-            <p className="text-sm font-medium text-gray-400">Heb je een vraag?</p>
-            <p className="text-xs text-gray-300 mt-0.5">We helpen je graag!</p>
-          </div>
-        ) : (
-          messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.direction === 'inbound' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className="max-w-[80%]">
-                <div
-                  className="px-3 py-2 rounded-2xl text-sm"
-                  style={msg.direction === 'outbound'
-                    ? { backgroundColor: brandColor + '15', color: '#1a1a1a' }
-                    : { backgroundColor: '#f3f4f6', color: '#374151' }
-                  }
-                >
-                  {msg.content}
-                </div>
-                <p className="text-[10px] text-gray-400 mt-0.5 px-1">
-                  {timeAgo(msg.created_at)}
-                </p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-2 bg-white">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSend()}
-          placeholder="Type je bericht..."
-          maxLength={2000}
-          className="flex-1 text-sm px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim() || sending}
-          className="p-2 rounded-xl text-white disabled:opacity-40 transition-colors"
-          style={{ backgroundColor: brandColor }}
-        >
-          {sending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </button>
-      </div>
-    </div>
+    <button
+      onClick={() => setIsExpanded(!isExpanded)}
+      className="w-full py-3 rounded-2xl text-sm font-medium border text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+      style={{ borderColor: '#E5E7EB' }}
+    >
+      <MessageCircle className="h-4 w-4" />
+      Stel een vraag
+    </button>
   );
 }
