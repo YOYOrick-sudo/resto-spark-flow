@@ -18,7 +18,6 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
     waitingCount,
     isOpen,
     className,
-    onNotesClick,
     density,
     onDensityChange,
   }, ref) {
@@ -26,17 +25,11 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
       <div
         ref={ref}
         className={cn(
-          "flex items-center justify-between px-4 py-3 border-t border-border bg-card",
+          "flex items-center gap-4 flex-1",
           className
         )}
       >
-        {/* Left side - Day Note Popover (rendered by parent) */}
-        <div id="day-note-slot" />
-
-        {/* Divider */}
-        <div className="h-4 w-px bg-border" />
-
-        {/* Center - Stats */}
+        {/* Stats */}
         <div className="flex items-center gap-4">
           <div className="text-sm">
             <span className="font-medium text-foreground">{totalGuests}</span>
