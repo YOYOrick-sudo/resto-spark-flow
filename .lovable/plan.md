@@ -1,29 +1,29 @@
 
 
-# Footer Redesign — Notities inline + horizontaal verdeeld
+# Fix: Dieet-kolom leest verkeerde property-namen
 
 ## Probleem
-Alles staat links geplakt. Notities zitten achter een klik verborgen — je ziet niet of er een notitie is tenzij je op de knop klikt.
+
+`getDietaryAbbreviations()` in `ReservationListView.tsx` gebruikt verkeerde keys:
+
+| Code verwacht | Database heeft |
+|---|---|
+| `prefs.is_vegetarian` | `prefs.vegetarian` |
+| `prefs.is_vegan` | `prefs.vegan` |
+| `prefs.allergens` | `prefs.allergies` |
+
+Hierdoor worden allergieën van klanten zoals Yorick (gluten, vis, lactose) niet getoond.
 
 ## Oplossing
 
-Footer wordt `justify-between`: links de notitie, rechts de stats + density toggle.
+Drie regels aanpassen in `getDietaryAbbreviations()`:
+- `prefs.is_vegetarian` → `prefs.vegetarian`
+- `prefs.is_vegan` → `prefs.vegan`
+- `prefs.allergens` → `prefs.allergies`
 
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│  📝 "Vanavond 2 VIP gasten, tafel 8 vrij houden"  [✏️]    4 gasten | 0 wachtend | 🟢 Open | ≡ ☰ │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-**Links**: Dag-notitie tekst inline zichtbaar (truncated op 1 regel, `truncate max-w-md`). Als er geen notitie is: klikbare placeholder "Notitie toevoegen…" in muted tekst. Klik opent nog steeds de popover om te bewerken.
-
-**Rechts**: Stats (gasten, wachtend), status (Open/Gesloten), density toggle — zoals nu maar met `ml-auto`.
-
-## Bestanden
+## Bestand
 
 | Bestand | Wijziging |
 |---|---|
-| `src/pages/Reserveringen.tsx` | Footer container `justify-between`, linker/rechter groep |
-| `src/components/reserveringen/DayNotePopover.tsx` | Toon `note.content` inline als tekst (truncated), klik opent popover. Verwijder knop-stijl, wordt inline tekst element |
-| `src/components/reserveringen/ReservationFooter.tsx` | Geen `flex-1`, wordt rechter blok |
+| `src/components/reserveringen/ReservationListView.tsx` | Fix 3 property-namen in `getDietaryAbbreviations()` |
 
