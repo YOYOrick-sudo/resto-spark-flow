@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles, AlertTriangle, Clock, X, Send } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles, Clock, X, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -89,25 +89,37 @@ function StatusDot({ status }: { status: Reservation["status"] }) {
   );
 }
 
-const ALLERGEN_LABELS: Record<string, string> = {
-  gluten: 'Glutenvrij', lactose: 'Lactosevrij', noten: 'Noten',
-  schaaldieren: 'Schaaldieren', eieren: 'Eieren', vis: 'Vis',
-  pinda: "Pinda's", soja: 'Soja', selderij: 'Selderij',
-  mosterd: 'Mosterd', sesam: 'Sesam', sulfieten: 'Sulfieten',
-  lupine: 'Lupine', weekdieren: 'Weekdieren',
-};
+function DietaryPills({ prefs }: { prefs: Record<string, unknown> | null | undefined }) {
+  const items = getDietaryAbbreviations(prefs);
+  if (items.length === 0) return <span />;
+  const visible = items.slice(0, 3);
+  const overflow = items.length - 3;
+  const fullList = items.map(i => i.label).join(', ');
 
-function getDietarySummary(prefs: Record<string, unknown> | null | undefined): string[] {
-  if (!prefs) return [];
-  const items: string[] = [];
-  if (prefs.is_vegetarian) items.push('Vegetarisch');
-  if (prefs.is_vegan) items.push('Vegan');
-  const allergens = Array.isArray(prefs.allergens) ? prefs.allergens : [];
-  allergens.forEach((a: string) => items.push(ALLERGEN_LABELS[a] || a));
-  if (typeof prefs.custom_notes === 'string' && prefs.custom_notes.trim()) {
-    items.push(prefs.custom_notes.trim());
-  }
-  return items;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-0.5 min-w-0">
+            {visible.map((item) => (
+              <span
+                key={item.abbr}
+                className="inline-flex items-center rounded bg-warning/15 text-warning px-1 py-0.5 text-[9px] font-semibold tracking-wide flex-shrink-0"
+              >
+                {item.abbr}
+              </span>
+            ))}
+            {overflow > 0 && (
+              <span className="text-[9px] text-muted-foreground font-medium">+{overflow}</span>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[200px]">
+          <p className="text-xs">{fullList}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 type TimeSlotItem =
