@@ -114,7 +114,7 @@ export function NestoPanel({ open, onClose, title, footer, children, width = 'w-
         <div
           className={cn(
             'fixed top-0 right-0 bottom-0 z-[70] flex flex-col bg-card overflow-hidden',
-            'border-l border-border/50 shadow-xl rounded-l-2xl',
+            'border-l border-border/50 shadow-xl',
             'animate-in slide-in-from-right-4 duration-200',
             width
           )}
