@@ -161,6 +161,7 @@ function ColumnHeader() {
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Pers</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tafel</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shift / Ticket</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Dieet</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Acties</span>
       <span />
@@ -417,26 +418,6 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         )}
         {reservation.customer?.phone_number && (
           <Phone className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
-        )}
-        {dietaryItems.length > 0 && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning px-1.5 py-0.5 flex-shrink-0">
-                  <AlertTriangle className="h-3 w-3" />
-                  <span className="text-[10px] font-semibold">{dietaryItems.length}</span>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[200px]">
-                <p className="text-xs font-medium">Bijzonderheden:</p>
-                <ul className="text-xs mt-1 space-y-0.5">
-                  {dietaryItems.map((item, i) => (
-                    <li key={i}>• {item}</li>
-                  ))}
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         )}
       </div>
 
