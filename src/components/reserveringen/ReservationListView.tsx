@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles, AlertTriangle, Clock, X, Send } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles, Clock, X, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -18,7 +18,38 @@ import { isAiChannel } from "@/utils/isAiGenerated";
 import type { DensityType } from "./DensityToggle";
 import type { WaitlistEntryWithInvites } from "@/hooks/useWaitlistEntries";
 
-const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_160px_120px_80px_32px] gap-x-3 items-center";
+const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_160px_100px_120px_80px_32px] gap-x-3 items-center";
+
+const ALLERGEN_ABBR: Record<string, { abbr: string; label: string }> = {
+  gluten: { abbr: 'GV', label: 'Glutenvrij' },
+  lactose: { abbr: 'LV', label: 'Lactosevrij' },
+  noten: { abbr: 'NO', label: 'Noten' },
+  schaaldieren: { abbr: 'SD', label: 'Schaaldieren' },
+  eieren: { abbr: 'EI', label: 'Eieren' },
+  vis: { abbr: 'VI', label: 'Vis' },
+  pinda: { abbr: 'PN', label: "Pinda's" },
+  soja: { abbr: 'SO', label: 'Soja' },
+  selderij: { abbr: 'SE', label: 'Selderij' },
+  mosterd: { abbr: 'MO', label: 'Mosterd' },
+  sesam: { abbr: 'SS', label: 'Sesam' },
+  sulfieten: { abbr: 'SU', label: 'Sulfieten' },
+  lupine: { abbr: 'LU', label: 'Lupine' },
+  weekdieren: { abbr: 'WD', label: 'Weekdieren' },
+};
+
+function getDietaryAbbreviations(prefs: Record<string, unknown> | null | undefined): { abbr: string; label: string }[] {
+  if (!prefs) return [];
+  const items: { abbr: string; label: string }[] = [];
+  if (prefs.is_vegetarian) items.push({ abbr: 'VEG', label: 'Vegetarisch' });
+  if (prefs.is_vegan) items.push({ abbr: 'VGN', label: 'Vegan' });
+  const allergens = Array.isArray(prefs.allergens) ? prefs.allergens : [];
+  allergens.forEach((a: string) => {
+    const info = ALLERGEN_ABBR[a];
+    if (info) items.push(info);
+    else items.push({ abbr: a.slice(0, 3).toUpperCase(), label: a });
+  });
+  return items;
+}
 
 const CHANNEL_ICON_MAP: Record<ReservationChannel, React.FC<{ className?: string }>> = {
   widget: Globe,
@@ -58,25 +89,37 @@ function StatusDot({ status }: { status: Reservation["status"] }) {
   );
 }
 
-const ALLERGEN_LABELS: Record<string, string> = {
-  gluten: 'Glutenvrij', lactose: 'Lactosevrij', noten: 'Noten',
-  schaaldieren: 'Schaaldieren', eieren: 'Eieren', vis: 'Vis',
-  pinda: "Pinda's", soja: 'Soja', selderij: 'Selderij',
-  mosterd: 'Mosterd', sesam: 'Sesam', sulfieten: 'Sulfieten',
-  lupine: 'Lupine', weekdieren: 'Weekdieren',
-};
+function DietaryPills({ prefs }: { prefs: Record<string, unknown> | null | undefined }) {
+  const items = getDietaryAbbreviations(prefs);
+  if (items.length === 0) return <span />;
+  const visible = items.slice(0, 3);
+  const overflow = items.length - 3;
+  const fullList = items.map(i => i.label).join(', ');
 
-function getDietarySummary(prefs: Record<string, unknown> | null | undefined): string[] {
-  if (!prefs) return [];
-  const items: string[] = [];
-  if (prefs.is_vegetarian) items.push('Vegetarisch');
-  if (prefs.is_vegan) items.push('Vegan');
-  const allergens = Array.isArray(prefs.allergens) ? prefs.allergens : [];
-  allergens.forEach((a: string) => items.push(ALLERGEN_LABELS[a] || a));
-  if (typeof prefs.custom_notes === 'string' && prefs.custom_notes.trim()) {
-    items.push(prefs.custom_notes.trim());
-  }
-  return items;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-0.5 min-w-0">
+            {visible.map((item) => (
+              <span
+                key={item.abbr}
+                className="inline-flex items-center rounded bg-warning/15 text-warning px-1 py-0.5 text-[9px] font-semibold tracking-wide flex-shrink-0"
+              >
+                {item.abbr}
+              </span>
+            ))}
+            {overflow > 0 && (
+              <span className="text-[9px] text-muted-foreground font-medium">+{overflow}</span>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[200px]">
+          <p className="text-xs">{fullList}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 type TimeSlotItem =
@@ -130,6 +173,7 @@ function ColumnHeader() {
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Pers</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tafel</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shift / Ticket</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Dieet</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</span>
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Acties</span>
       <span />
@@ -299,6 +343,9 @@ function WaitlistInlineRow({
         )}
       </div>
 
+      {/* Dieet — leeg voor wachtlijst */}
+      <span />
+
       {/* Status badge */}
       <div className="flex items-center gap-1.5">
         <NestoBadge variant={statusInfo.variant} size="sm">
@@ -356,7 +403,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
   const walkIn = isWalkIn(reservation);
   const isCompact = density === "compact";
   const allowedNextStatuses = ALLOWED_TRANSITIONS[reservation.status] ?? [];
-  const dietaryItems = getDietarySummary(reservation.customer?.dietary_preferences);
+  
 
   return (
     <div
@@ -386,26 +433,6 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         )}
         {reservation.customer?.phone_number && (
           <Phone className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
-        )}
-        {dietaryItems.length > 0 && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning px-1.5 py-0.5 flex-shrink-0">
-                  <AlertTriangle className="h-3 w-3" />
-                  <span className="text-[10px] font-semibold">{dietaryItems.length}</span>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[200px]">
-                <p className="text-xs font-medium">Bijzonderheden:</p>
-                <ul className="text-xs mt-1 space-y-0.5">
-                  {dietaryItems.map((item, i) => (
-                    <li key={i}>• {item}</li>
-                  ))}
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         )}
       </div>
 
@@ -454,6 +481,9 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
           </TooltipProvider>
         )}
       </div>
+
+      {/* Dieet kolom */}
+      <DietaryPills prefs={reservation.customer?.dietary_preferences} />
 
       {/* Status badge */}
       <div className="flex items-center gap-1.5">
