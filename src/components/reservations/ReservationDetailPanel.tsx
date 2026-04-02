@@ -127,22 +127,39 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
                   <span>{formatTime(reservation.start_time)}–{formatTime(reservation.end_time)}</span>
                 </div>
 
-                {STATUS_CONFIG[reservation.status] && (
-                  <span className={cn(
-                    'inline-flex items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-medium mt-3',
-                    STATUS_CONFIG[reservation.status].textClass,
-                    STATUS_CONFIG[reservation.status].bgClass,
-                    STATUS_CONFIG[reservation.status].borderClass,
-                  )}>
-                    {STATUS_CONFIG[reservation.status].showDot && (
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: STATUS_CONFIG[reservation.status].dotColor }}
-                      />
-                    )}
-                    {STATUS_CONFIG[reservation.status].label}
-                  </span>
-                )}
+                {/* Status + Actions row */}
+                <div className="flex items-center gap-2 mt-3">
+                  {STATUS_CONFIG[reservation.status] && (
+                    <span className={cn(
+                      'inline-flex items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-medium',
+                      STATUS_CONFIG[reservation.status].textClass,
+                      STATUS_CONFIG[reservation.status].bgClass,
+                      STATUS_CONFIG[reservation.status].borderClass,
+                    )}>
+                      {STATUS_CONFIG[reservation.status].showDot && (
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: STATUS_CONFIG[reservation.status].dotColor }}
+                        />
+                      )}
+                      {STATUS_CONFIG[reservation.status].label}
+                    </span>
+                  )}
+
+                  {reservation.status === 'option' && (
+                    <OptionBadge optionExpiresAt={reservation.option_expires_at} />
+                  )}
+
+                  {reservation.is_squeeze && (
+                    <span className="inline-flex items-center rounded-control px-2 py-0.5 text-[10px] font-medium bg-warning/10 text-warning border border-warning/20">
+                      Squeeze
+                    </span>
+                  )}
+
+                  <div className="ml-auto">
+                    <ReservationActions reservation={reservation} />
+                  </div>
+                </div>
 
                 {reservation.status === 'seated' && reservation.checked_in_at && (
                   <p className="text-xs text-muted-foreground mt-1.5">
@@ -150,13 +167,35 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
                   </p>
                 )}
 
-                {reservation.status === 'option' && (
-                  <div className="mt-2">
-                    <OptionBadge optionExpiresAt={reservation.option_expires_at} />
+                {/* Quick info: phone + allergies */}
+                {reservation.customer && (
+                  <div className="flex items-center gap-3 mt-3 flex-wrap">
+                    {reservation.customer.phone_number && (
+                      <a
+                        href={`tel:${reservation.customer.phone_number}`}
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <span>📞</span>
+                        <span>{reservation.customer.phone_number}</span>
+                      </a>
+                    )}
+                    {reservation.customer.dietary_preferences && (() => {
+                      const prefs = reservation.customer.dietary_preferences;
+                      const activeAllergies = Object.entries(prefs).filter(([_, v]) => v === true).map(([k]) => k);
+                      if (activeAllergies.length === 0) return null;
+                      return (
+                        <div className="inline-flex items-center gap-1 flex-wrap">
+                          <span className="text-xs text-warning">⚠️</span>
+                          {activeAllergies.map(a => (
+                            <span key={a} className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-warning/10 text-warning border border-warning/20">
+                              {a}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
-
-                <ReservationActions reservation={reservation} className="mt-4" />
               </div>
 
               {/* Tabs */}
