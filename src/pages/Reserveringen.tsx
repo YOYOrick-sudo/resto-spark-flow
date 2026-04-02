@@ -220,6 +220,7 @@ export default function Reserveringen() {
             )}
             <WaitlistSection selectedDate={selectedDate} />
           </div>
+        </div>
 
         <div className="flex items-center border-t border-border bg-card px-4 py-3">
           <DayNotePopover date={dateString} locationId={currentLocation?.id} />
