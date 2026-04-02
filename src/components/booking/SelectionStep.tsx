@@ -376,7 +376,7 @@ export function SelectionStep() {
                 <div className="flex items-center justify-center py-6">
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                 </div>
-              ) : flatSlots.length === 0 ? (
+              ) : flatSlots.length === 0 || !hasAvailableSlots ? (
                 showWaitlistForm ? (
                   <WaitlistForm onBack={() => setShowWaitlistForm(false)} />
                 ) : (
