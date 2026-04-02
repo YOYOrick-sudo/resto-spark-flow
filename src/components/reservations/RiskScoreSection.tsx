@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/lib/queryKeys';
 import { AlertTriangle, ShieldAlert, ShieldCheck, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -90,43 +90,8 @@ export function RiskScoreSection({ reservation, className }: RiskScoreSectionPro
         </div>
       </div>
 
-      {/* Factor breakdown */}
-      {factors && (
-        <TooltipProvider>
-          <div className="space-y-2 mb-3">
-            {Object.entries(factors).map(([key, factor]) => {
-              if (!factor || typeof factor !== 'object') return null;
-              const f = factor as RiskFactor;
-              return (
-                <div key={key} className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground w-28 flex-shrink-0">
-                    {FACTOR_LABELS[key] || key}
-                  </span>
-                  <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-foreground/30 rounded-full"
-                      style={{ width: `${Math.min((f.score / f.weight) * 100, 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-muted-foreground w-8 text-right font-mono tabular-nums">
-                    {Math.round(f.score)}
-                  </span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="text-muted-foreground/60 w-20 truncate cursor-help">
-                        {f.detail}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[200px]">
-                      {f.detail}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              );
-            })}
-          </div>
-        </TooltipProvider>
-      )}
+      {/* Factor breakdown — collapsed by default */}
+      {factors && <RiskFactors factors={factors} />}
 
       {/* Shift average */}
       {shiftRisk?.avg_risk_score !== undefined && shiftRisk.avg_risk_score !== null && (
