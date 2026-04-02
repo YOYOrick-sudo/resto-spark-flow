@@ -40,9 +40,9 @@ const ALLERGEN_ABBR: Record<string, { abbr: string; label: string }> = {
 function getDietaryAbbreviations(prefs: Record<string, unknown> | null | undefined): { abbr: string; label: string }[] {
   if (!prefs) return [];
   const items: { abbr: string; label: string }[] = [];
-  if (prefs.is_vegetarian) items.push({ abbr: 'VEG', label: 'Vegetarisch' });
-  if (prefs.is_vegan) items.push({ abbr: 'VGN', label: 'Vegan' });
-  const allergens = Array.isArray(prefs.allergens) ? prefs.allergens : [];
+  if (prefs.vegetarian) items.push({ abbr: 'VEG', label: 'Vegetarisch' });
+  if (prefs.vegan) items.push({ abbr: 'VGN', label: 'Vegan' });
+  const allergens = Array.isArray(prefs.allergies) ? prefs.allergies : [];
   allergens.forEach((a: string) => {
     const info = ALLERGEN_ABBR[a];
     if (info) items.push(info);
