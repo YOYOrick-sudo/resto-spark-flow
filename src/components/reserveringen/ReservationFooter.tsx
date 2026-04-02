@@ -31,14 +31,8 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
           className
         )}
       >
-        {/* Left side - Notes */}
-        <button
-          onClick={onNotesClick}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <PenSquare className="h-4 w-4" />
-          <span>Notities</span>
-        </button>
+        {/* Left side - Day Note Popover (rendered by parent) */}
+        <div id="day-note-slot" />
 
         {/* Divider */}
         <div className="h-4 w-px bg-border" />

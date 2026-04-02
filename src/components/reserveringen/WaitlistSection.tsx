@@ -15,12 +15,12 @@ interface WaitlistSectionProps {
   selectedDate: Date;
 }
 
-const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'warning' | 'success' | 'destructive' }> = {
-  pending: { label: 'Wachtend', variant: 'secondary' },
+const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'pending' | 'warning' | 'success' | 'error' }> = {
+  pending: { label: 'Wachtend', variant: 'pending' },
   invited: { label: 'Uitgenodigd', variant: 'warning' },
   booked: { label: 'Geboekt', variant: 'success' },
-  expired: { label: 'Verlopen', variant: 'destructive' },
-  cancelled: { label: 'Geannuleerd', variant: 'destructive' },
+  expired: { label: 'Verlopen', variant: 'error' },
+  cancelled: { label: 'Geannuleerd', variant: 'error' },
 };
 
 export function WaitlistSection({ selectedDate }: WaitlistSectionProps) {
@@ -38,7 +38,7 @@ export function WaitlistSection({ selectedDate }: WaitlistSectionProps) {
         <CollapsibleTrigger className="flex items-center gap-2 w-full px-4 py-2.5 hover:bg-muted/50 transition-colors">
           <Clock className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">Wachtlijst</span>
-          <NestoBadge variant="secondary" className="text-xs px-1.5 py-0">
+          <NestoBadge variant="default" className="text-xs px-1.5 py-0">
             {activeEntries.length}
           </NestoBadge>
           <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform', open && 'rotate-180')} />
