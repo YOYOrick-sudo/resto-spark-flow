@@ -25,7 +25,7 @@ export const ReservationFooter = forwardRef<HTMLDivElement, ReservationFooterPro
       <div
         ref={ref}
         className={cn(
-          "flex items-center gap-4 flex-1",
+          "flex items-center gap-4",
           className
         )}
       >
