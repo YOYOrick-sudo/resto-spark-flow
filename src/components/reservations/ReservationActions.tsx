@@ -39,10 +39,10 @@ interface ActionButton {
 
 function getActionsForStatus(reservation: Reservation): {
   primary: ActionButton | null;
-  secondary: ActionButton[];
   overflow: ActionButton[];
 } {
   const status = reservation.status;
+  const primary: ActionButton | null = null;
   const all: ActionButton[] = [];
 
   switch (status) {
@@ -89,12 +89,10 @@ function getActionsForStatus(reservation: Reservation): {
       break;
   }
 
-  const primary = all.find(a => a.variant === 'primary') || null;
-  const rest = all.filter(a => a !== primary);
-  const secondary = rest.slice(0, 2);
-  const overflow = rest.slice(2);
+  const foundPrimary = all.find(a => a.variant === 'primary') || null;
+  const overflow = all.filter(a => a !== foundPrimary);
 
-  return { primary, secondary, overflow };
+  return { primary: foundPrimary, overflow };
 }
 
 export function ReservationActions({ reservation, className }: ReservationActionsProps) {
@@ -110,7 +108,7 @@ export function ReservationActions({ reservation, className }: ReservationAction
   const [overrideStatus, setOverrideStatus] = useState<ReservationStatus | null>(null);
   const [extendOpen, setExtendOpen] = useState(false);
 
-  const { primary, secondary, overflow } = getActionsForStatus(reservation);
+  const { primary, overflow } = getActionsForStatus(reservation);
   const canOverride = context?.role === 'owner' || context?.role === 'manager' || context?.is_platform_admin;
   const terminalStatuses: ReservationStatus[] = ['completed', 'no_show', 'cancelled'];
   const isTerminal = terminalStatuses.includes(reservation.status);
@@ -158,98 +156,58 @@ export function ReservationActions({ reservation, className }: ReservationAction
   const allStatuses: ReservationStatus[] = ['draft', 'confirmed', 'option', 'pending_payment', 'seated', 'completed', 'no_show', 'cancelled'];
   const overrideTargets = allStatuses.filter(s => s !== reservation.status);
 
-  const renderActionButton = (action: ActionButton, fullWidth = false) => {
-    if (action.disabled) {
-      return (
-        <Tooltip key={action.key}>
-          <TooltipTrigger asChild>
-            <span className={fullWidth ? 'w-full' : ''}>
-              <NestoButton
-                variant="outline"
-                size="sm"
-                disabled
-                className={fullWidth ? 'w-full' : ''}
-                leftIcon={<action.icon className="h-3.5 w-3.5" />}
-              >
-                {action.label}
-              </NestoButton>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>{action.tooltip}</TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    return (
-      <NestoButton
-        key={action.key}
-        variant={
-          action.variant === 'primary' ? 'primary' :
-          action.destructive ? 'danger' : 'outline'
-        }
-        size="sm"
-        className={fullWidth ? 'w-full' : ''}
-        onClick={() => handleAction(action)}
-        disabled={transition.isPending}
-        leftIcon={<action.icon className="h-3.5 w-3.5" />}
-      >
-        {action.label}
-      </NestoButton>
-    );
-  };
-
-  const hasOverflowItems = overflow.length > 0 || (canOverride && !isTerminal);
+  const hasOverflow = overflow.length > 0 || (canOverride && !isTerminal);
 
   return (
     <TooltipProvider>
-      <div className={cn('space-y-2', className)}>
-        {/* Primary action — full width */}
-        {primary && renderActionButton(primary, true)}
+      <div className={cn('flex items-center gap-2', className)}>
+        {/* Primary action — compact, not full-width */}
+        {primary && (
+          <NestoButton
+            variant="primary"
+            size="sm"
+            onClick={() => handleAction(primary)}
+            disabled={transition.isPending}
+            leftIcon={<primary.icon className="h-3.5 w-3.5" />}
+          >
+            {primary.label}
+          </NestoButton>
+        )}
 
-        {/* Secondary actions + overflow dropdown */}
-        {(secondary.length > 0 || hasOverflowItems) && (
-          <div className="flex gap-2">
-            {secondary.map(action => (
-              <div key={action.key} className="flex-1">
-                {renderActionButton(action)}
-              </div>
-            ))}
-
-            {hasOverflowItems && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="h-8 w-8 rounded-control border border-input bg-background flex items-center justify-center hover:bg-secondary transition-colors flex-shrink-0">
-                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-[180px]">
-                  {overflow.map(action => (
-                    <DropdownMenuItem
-                      key={action.key}
-                      disabled={action.disabled}
-                      onClick={() => !action.disabled && handleAction(action)}
-                      className={cn(action.destructive && 'text-destructive focus:text-destructive')}
-                    >
-                      <action.icon className="h-3.5 w-3.5 mr-2" />
-                      {action.label}
-                      {action.disabled && action.tooltip && (
-                        <span className="ml-auto text-[10px] text-muted-foreground">Binnenkort</span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                  {canOverride && !isTerminal && (
-                    <>
-                      {overflow.length > 0 && <DropdownMenuSeparator />}
-                      <DropdownMenuItem onClick={() => setOverrideOpen(true)} className="text-muted-foreground">
-                        <AlertTriangle className="h-3.5 w-3.5 mr-2" />
-                        Operator override
-                      </DropdownMenuItem>
-                    </>
+        {/* Overflow dropdown — all other actions */}
+        {hasOverflow && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="h-8 w-8 rounded-control border border-input bg-background flex items-center justify-center hover:bg-secondary transition-colors flex-shrink-0">
+                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[180px]">
+              {overflow.map(action => (
+                <DropdownMenuItem
+                  key={action.key}
+                  disabled={action.disabled}
+                  onClick={() => !action.disabled && handleAction(action)}
+                  className={cn(action.destructive && 'text-destructive focus:text-destructive')}
+                >
+                  <action.icon className="h-3.5 w-3.5 mr-2" />
+                  {action.label}
+                  {action.disabled && action.tooltip && (
+                    <span className="ml-auto text-[10px] text-muted-foreground">Binnenkort</span>
                   )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
+                </DropdownMenuItem>
+              ))}
+              {canOverride && !isTerminal && (
+                <>
+                  {overflow.length > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuItem onClick={() => setOverrideOpen(true)} className="text-muted-foreground">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-2" />
+                    Operator override
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
@@ -273,7 +231,7 @@ export function ReservationActions({ reservation, className }: ReservationAction
       {/* Override status selector */}
       {overrideOpen && !overrideStatus && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOverrideOpen(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-semibold mb-1">Operator Override</h3>
             <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
               <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
