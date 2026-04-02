@@ -1,29 +1,33 @@
 
 
-# Fix: Dieet-kolom leest verkeerde property-namen
+# Fix: Wachtlijst CTA verschijnt niet bij volgeboekte dag
 
 ## Probleem
 
-`getDietaryAbbreviations()` in `ReservationListView.tsx` gebruikt verkeerde keys:
-
-| Code verwacht | Database heeft |
-|---|---|
-| `prefs.is_vegetarian` | `prefs.vegetarian` |
-| `prefs.is_vegan` | `prefs.vegan` |
-| `prefs.allergens` | `prefs.allergies` |
-
-Hierdoor worden allergieën van klanten zoals Yorick (gluten, vis, lactose) niet getoond.
+`flatSlots` bevat ALLE slots inclusief onbeschikbare (`available: false`). De conditie `flatSlots.length === 0` is alleen `true` als er helemaal geen shifts/slots bestaan — niet als alles volgeboekt is.
 
 ## Oplossing
 
-Drie regels aanpassen in `getDietaryAbbreviations()`:
-- `prefs.is_vegetarian` → `prefs.vegetarian`
-- `prefs.is_vegan` → `prefs.vegan`
-- `prefs.allergens` → `prefs.allergies`
+Voeg een `hasAvailableSlots` check toe naast `flatSlots`:
+
+```tsx
+const hasAvailableSlots = flatSlots.some(({ slot }) => slot.available);
+```
+
+Wijzig de render-conditie van:
+```tsx
+flatSlots.length === 0 ? (waitlist UI) : (slot grid)
+```
+naar:
+```tsx
+flatSlots.length === 0 || !hasAvailableSlots ? (waitlist UI) : (slot grid)
+```
+
+Wanneer `!hasAvailableSlots` maar er wél slots zijn, tonen we de wachtlijst CTA **boven** de gedimde tijdslots zodat de gast ziet welke tijden er normaal zijn én zich op de wachtlijst kan zetten.
 
 ## Bestand
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/reserveringen/ReservationListView.tsx` | Fix 3 property-namen in `getDietaryAbbreviations()` |
+| `src/components/booking/SelectionStep.tsx` | `hasAvailableSlots` memo toevoegen, render-conditie aanpassen |
 
