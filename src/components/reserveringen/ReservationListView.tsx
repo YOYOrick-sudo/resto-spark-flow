@@ -331,6 +331,9 @@ function WaitlistInlineRow({
         )}
       </div>
 
+      {/* Dieet — leeg voor wachtlijst */}
+      <span />
+
       {/* Status badge */}
       <div className="flex items-center gap-1.5">
         <NestoBadge variant={statusInfo.variant} size="sm">
@@ -466,6 +469,9 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
           </TooltipProvider>
         )}
       </div>
+
+      {/* Dieet kolom */}
+      <DietaryPills prefs={reservation.customer?.dietary_preferences} />
 
       {/* Status badge */}
       <div className="flex items-center gap-1.5">
