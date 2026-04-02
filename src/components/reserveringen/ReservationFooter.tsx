@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { PenSquare, Rows3, Rows4 } from "lucide-react";
+import { Rows3, Rows4 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DensityType } from "./DensityToggle";
 
