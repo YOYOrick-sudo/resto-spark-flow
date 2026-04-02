@@ -12,7 +12,6 @@ import { DateNavigator } from "@/components/reserveringen/DateNavigator";
 import { ReservationListView } from "@/components/reserveringen/ReservationListView";
 import { ReservationGridView } from "@/components/reserveringen/ReservationGridView";
 import { ReservationFooter } from "@/components/reserveringen/ReservationFooter";
-import { WaitlistSection } from "@/components/reserveringen/WaitlistSection";
 import { DayNotePopover } from "@/components/reserveringen/DayNotePopover";
 import { useUserContext } from "@/contexts/UserContext";
 import {

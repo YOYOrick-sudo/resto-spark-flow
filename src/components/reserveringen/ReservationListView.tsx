@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles, AlertTriangle } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles, AlertTriangle, Clock, X, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -16,6 +16,7 @@ import { OptionBadge } from "@/components/reservations/OptionBadge";
 import { SparkleIndicator } from "@/components/polar/SparkleIndicator";
 import { isAiChannel } from "@/utils/isAiGenerated";
 import type { DensityType } from "./DensityToggle";
+import type { WaitlistEntryWithInvites } from "@/hooks/useWaitlistEntries";
 
 const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_160px_120px_80px_32px] gap-x-3 items-center";
 
@@ -36,9 +37,12 @@ function ChannelIcon({ channel }: { channel: ReservationChannel }) {
 
 interface ReservationListViewProps {
   reservations: Reservation[];
+  waitlistEntries?: WaitlistEntryWithInvites[];
   onReservationClick?: (reservation: Reservation) => void;
   onStatusChange?: (reservation: Reservation, status: Reservation["status"]) => void;
   onAssignTable?: (reservation: Reservation) => void;
+  onInviteWaitlist?: (entryId: string) => void;
+  onCancelWaitlist?: (entryId: string) => void;
   density?: DensityType;
 }
 
@@ -75,17 +79,47 @@ function getDietarySummary(prefs: Record<string, unknown> | null | undefined): s
   return items;
 }
 
-function groupByTimeSlot(reservations: Reservation[]): Map<string, Reservation[]> {
-  const groups = new Map<string, Reservation[]>();
-  const sorted = [...reservations].sort((a, b) => a.start_time.localeCompare(b.start_time));
-  sorted.forEach((reservation) => {
-    const timeSlot = reservation.start_time;
-    if (!groups.has(timeSlot)) {
-      groups.set(timeSlot, []);
-    }
-    groups.get(timeSlot)!.push(reservation);
+type TimeSlotItem =
+  | { type: 'reservation'; data: Reservation }
+  | { type: 'waitlist'; data: WaitlistEntryWithInvites };
+
+function buildMergedGroups(
+  reservations: Reservation[],
+  waitlistEntries: WaitlistEntryWithInvites[]
+): Map<string, TimeSlotItem[]> {
+  const groups = new Map<string, TimeSlotItem[]>();
+
+  const sortedRes = [...reservations].sort((a, b) => a.start_time.localeCompare(b.start_time));
+  sortedRes.forEach((r) => {
+    const slot = r.start_time;
+    if (!groups.has(slot)) groups.set(slot, []);
+    groups.get(slot)!.push({ type: 'reservation', data: r });
   });
-  return groups;
+
+  const activeWaitlist = waitlistEntries.filter((e) => e.status !== 'cancelled' && e.status !== 'booked');
+  const withTime: WaitlistEntryWithInvites[] = [];
+  const noTime: WaitlistEntryWithInvites[] = [];
+
+  activeWaitlist.forEach((e) => {
+    if (e.preferred_time_from) withTime.push(e);
+    else noTime.push(e);
+  });
+
+  withTime.sort((a, b) => (a.preferred_time_from || '').localeCompare(b.preferred_time_from || ''));
+  withTime.forEach((e) => {
+    const slot = e.preferred_time_from!;
+    if (!groups.has(slot)) groups.set(slot, []);
+    groups.get(slot)!.push({ type: 'waitlist', data: e });
+  });
+
+  if (noTime.length > 0) {
+    const key = 'zzz_no_pref';
+    groups.set(key, noTime.map((e) => ({ type: 'waitlist' as const, data: e })));
+  }
+
+  // Sort groups by key
+  const sorted = new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
+  return sorted;
 }
 
 function ColumnHeader() {
@@ -105,15 +139,21 @@ function ColumnHeader() {
 
 export function ReservationListView({
   reservations,
+  waitlistEntries = [],
   onReservationClick,
   onStatusChange,
   onAssignTable,
+  onInviteWaitlist,
+  onCancelWaitlist,
   density = "compact",
 }: ReservationListViewProps) {
-  const groupedReservations = useMemo(() => groupByTimeSlot(reservations), [reservations]);
+  const mergedGroups = useMemo(
+    () => buildMergedGroups(reservations, waitlistEntries),
+    [reservations, waitlistEntries]
+  );
   const isCompact = density === "compact";
 
-  if (reservations.length === 0) {
+  if (reservations.length === 0 && waitlistEntries.filter(e => e.status !== 'cancelled' && e.status !== 'booked').length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="rounded-full bg-secondary p-4 mb-4">
@@ -129,37 +169,178 @@ export function ReservationListView({
   return (
     <div>
       <ColumnHeader />
-      {Array.from(groupedReservations.entries()).map(([timeSlot, reservationsInSlot]) => (
-        <div key={timeSlot}>
-          <div className={cn(
-            "px-4 border-b border-border bg-muted/30",
-            isCompact ? "py-1.5" : "py-2"
-          )}>
-            <span className={cn("font-semibold text-muted-foreground", isCompact ? "text-xs" : "text-sm")}>
-              {formatTime(timeSlot)}
-            </span>
-            <span className={cn("text-muted-foreground ml-2", isCompact ? "text-xs" : "text-sm")}>
-              ({reservationsInSlot.length})
-            </span>
-          </div>
+      {Array.from(mergedGroups.entries()).map(([timeSlot, items]) => {
+        const isNoPref = timeSlot === 'zzz_no_pref';
+        const resCount = items.filter(i => i.type === 'reservation').length;
+        const wlCount = items.filter(i => i.type === 'waitlist').length;
 
-          <div className={cn("divide-y", isCompact ? "divide-border/50" : "divide-border")}>
-            {reservationsInSlot.map((reservation) => (
-              <ReservationRow
-                key={reservation.id}
-                reservation={reservation}
-                onClick={() => onReservationClick?.(reservation)}
-                onStatusChange={onStatusChange}
-                onAssignTable={onAssignTable}
-                density={density}
-              />
-            ))}
+        return (
+          <div key={timeSlot}>
+            <div className={cn(
+              "px-4 border-b border-border bg-muted/30 flex items-center gap-2",
+              isCompact ? "py-1.5" : "py-2"
+            )}>
+              <span className={cn("font-semibold text-muted-foreground", isCompact ? "text-xs" : "text-sm")}>
+                {isNoPref ? 'Geen tijdvoorkeur' : formatTime(timeSlot)}
+              </span>
+              {resCount > 0 && (
+                <span className={cn("text-muted-foreground", isCompact ? "text-xs" : "text-sm")}>
+                  ({resCount})
+                </span>
+              )}
+              {wlCount > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                  <Clock className="h-3 w-3" />
+                  {wlCount} wachtlijst
+                </span>
+              )}
+            </div>
+
+            <div className={cn("divide-y", isCompact ? "divide-border/50" : "divide-border")}>
+              {items.map((item) => {
+                if (item.type === 'reservation') {
+                  return (
+                    <ReservationRow
+                      key={item.data.id}
+                      reservation={item.data}
+                      onClick={() => onReservationClick?.(item.data)}
+                      onStatusChange={onStatusChange}
+                      onAssignTable={onAssignTable}
+                      density={density}
+                    />
+                  );
+                }
+                return (
+                  <WaitlistInlineRow
+                    key={item.data.id}
+                    entry={item.data}
+                    onInvite={() => onInviteWaitlist?.(item.data.id)}
+                    onCancel={() => onCancelWaitlist?.(item.data.id)}
+                    isCompact={isCompact}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
+
+// ── Waitlist inline row ──
+
+const WAITLIST_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'pending' | 'warning' | 'success' | 'error' }> = {
+  pending: { label: 'Wachtend', variant: 'pending' },
+  invited: { label: 'Uitgenodigd', variant: 'warning' },
+  booked: { label: 'Geboekt', variant: 'success' },
+  expired: { label: 'Verlopen', variant: 'error' },
+  cancelled: { label: 'Geannuleerd', variant: 'error' },
+};
+
+function getCountdown(expiresAt: string): string | null {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return null;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}u ${mins % 60}m`;
+}
+
+function WaitlistInlineRow({
+  entry,
+  onInvite,
+  onCancel,
+  isCompact,
+}: {
+  entry: WaitlistEntryWithInvites;
+  onInvite: () => void;
+  onCancel: () => void;
+  isCompact: boolean;
+}) {
+  const statusInfo = WAITLIST_STATUS_MAP[entry.status] ?? WAITLIST_STATUS_MAP.pending;
+  const activeInvite = entry.invites.find((i) => i.status === 'sent' || i.status === 'pending');
+  const countdown = activeInvite ? getCountdown(activeInvite.expires_at) : null;
+  const timeRange = entry.preferred_time_from
+    ? `${entry.preferred_time_from.slice(0, 5)}${entry.preferred_time_to ? `–${entry.preferred_time_to.slice(0, 5)}` : ''}`
+    : null;
+
+  return (
+    <div
+      className={cn(
+        GRID_COLS,
+        "px-4 transition-colors duration-150 group",
+        "border-l-2 border-dashed border-amber-400 bg-amber-50/5 dark:bg-amber-950/10",
+        isCompact ? "py-2" : "py-3",
+      )}
+    >
+      {/* Status dot — amber */}
+      <span className="inline-block rounded-full flex-shrink-0 h-2.5 w-2.5 bg-amber-400" />
+
+      {/* Naam */}
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-medium text-foreground truncate text-sm">
+          {entry.first_name} {entry.last_name}
+        </span>
+        <NestoBadge variant="outline" size="sm" className="text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+          WACHTLIJST
+        </NestoBadge>
+      </div>
+
+      {/* Personen */}
+      <span className="text-sm tabular-nums font-medium text-foreground">{entry.party_size}p</span>
+
+      {/* Tafel — n.v.t. */}
+      <span className="text-sm text-muted-foreground">—</span>
+
+      {/* Tijdvoorkeur */}
+      <div className="flex items-center gap-1.5 min-w-0">
+        {timeRange && (
+          <span className="text-xs text-muted-foreground">{timeRange}</span>
+        )}
+      </div>
+
+      {/* Status badge */}
+      <div className="flex items-center gap-1.5">
+        <NestoBadge variant={statusInfo.variant} size="sm">
+          {statusInfo.label}
+        </NestoBadge>
+        {countdown && (
+          <span className="text-[10px] text-muted-foreground tabular-nums">{countdown}</span>
+        )}
+      </div>
+
+      {/* Acties */}
+      <div className="flex items-center justify-end gap-1 min-w-0">
+        {entry.status === 'pending' && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onInvite(); }}
+                  className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Uitnodigen</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+
+      {/* Cancel */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onCancel(); }}
+        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md hover:bg-destructive/10 transition-all"
+        title="Annuleren"
+      >
+        <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+      </button>
+    </div>
+  );
+}
+
+// ── Reservation row (unchanged) ──
 
 interface ReservationRowProps {
   reservation: Reservation;

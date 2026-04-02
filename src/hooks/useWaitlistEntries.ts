@@ -94,3 +94,19 @@ export function useCancelWaitlistEntry() {
     },
   });
 }
+
+export function useInviteWaitlistEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (entryId: string) => {
+      const { error } = await supabase.functions.invoke('waitlist-invite-engine', {
+        body: { entry_id: entryId, manual: true },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['waitlist-entries'] });
+    },
+  });
+}
