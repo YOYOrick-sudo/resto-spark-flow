@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { NestoButton } from '@/components/polar/NestoButton';
-import { StickyNote } from 'lucide-react';
+import { StickyNote, Pencil } from 'lucide-react';
 import { useDayNote } from '@/hooks/useDayNote';
 import { cn } from '@/lib/utils';
 
@@ -37,13 +36,23 @@ export function DayNotePopover({ date, locationId }: DayNotePopoverProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <NestoButton variant="ghost" size="sm" className="relative gap-1.5">
-          <StickyNote className="h-4 w-4" />
-          Notities
-          {hasNote && (
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+        <button
+          className={cn(
+            'flex items-center gap-2 text-left min-w-0 max-w-md group',
+            'transition-colors rounded-lg px-2 py-1.5 -mx-2',
+            'hover:bg-muted/50'
           )}
-        </NestoButton>
+        >
+          <StickyNote className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          {hasNote ? (
+            <>
+              <span className="text-sm text-foreground truncate">{note?.content}</span>
+              <Pencil className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground italic">Notitie toevoegen…</span>
+          )}
+        </button>
       </PopoverTrigger>
       <PopoverContent side="top" align="start" className="w-80 p-3">
         <p className="text-xs font-medium text-muted-foreground mb-2">Dagnotitie</p>

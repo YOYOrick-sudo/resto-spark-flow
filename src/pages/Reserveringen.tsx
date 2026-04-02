@@ -226,9 +226,8 @@ export default function Reserveringen() {
           </div>
         </div>
 
-        <div className="flex items-center border-t border-border bg-card px-4 py-3">
+        <div className="flex items-center justify-between border-t border-border bg-card px-4 py-3">
           <DayNotePopover date={dateString} locationId={currentLocation?.id} />
-          <div className="h-4 w-px bg-border mx-3" />
           <ReservationFooter
             totalGuests={totalGuests}
             waitingCount={waitingCount}
