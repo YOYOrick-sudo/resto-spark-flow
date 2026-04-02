@@ -1,84 +1,28 @@
 
 
-# ReservationDetailPanel — Intuitiviteitsanalyse + Redesign
+# Email Template Styling Upgrade
 
-## Wat niet intuïtief is
+## Probleem
 
-**1. Te veel in één scroll — geen structuur**
-Het paneel dumpt 6 secties onder elkaar: header → acties (5+ knoppen) → tafel → betaling → klantgegevens (met stats, bezoekhistorie, allergieën, notities) → risicoscore (met factoren, bar, shift gemiddelde) → audit log. Een gebruiker die snel een klant wil checken of een tafel wil wijzigen moet door alles scrollen.
+De emailLayout.ts gebruikt nog steeds `Georgia, 'Times New Roman', Times, serif` als font-family op alle plekken (labels, waarden, heading, intro, CTA-knop, footer, notities). Dit was eerder al uit de frontend verwijderd maar nooit in de email layout aangepast.
 
-**2. Acties zijn overweldigend**
-`ReservationActions` toont tot 5-6 knoppen naast elkaar in `flex-wrap`, plus een "Andere actie..." link. Sommige zijn disabled met tooltips. Voor een druk restaurant wil je: één duidelijke volgende stap, niet een knoppenbalk.
+De CTA-knop heeft `border-radius: 6px` wat te klein en hoekig aanvoelt vergeleken met de rest van het Nesto design (16px radii).
 
-**3. Dubbele tafel-secties**
-Er zit een "Tafel wijzigen" knop in de acties EN een apart tafel-blok met auto-assign/handmatig kiezen. Verwarrend.
+## Wijzigingen in `supabase/functions/_shared/emailLayout.ts`
 
-**4. Klantkaart is te lang**
-ContactInfo + allergieën + 3 stats + bezoekhistorie (tot 5+ items) + notities — allemaal in één sectie. Dit is 40% van het paneel.
+1. **Font-family** wijzigen van `Georgia, serif` naar `Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` — consistent met het Nesto design system. Inter wordt door de meeste emailclients als webfont niet geladen, maar de fallback-stack (`-apple-system`, `Segoe UI`) geeft een moderne sans-serif look op alle platforms.
 
-**5. Risicoscore neemt veel ruimte in**
-Score + progress bar + 5 factor-bars + shift gemiddelde + disabled "Bevestiging sturen" knop. Belangrijk voor managers, maar niet voor dagelijks gebruik.
+2. **CTA-knop** radius van `6px` naar `12px` — ronder, moderner, consistent met Nesto buttons. Padding iets ruimer: `16px 36px`.
 
-## Oplossing: Tabs + compactere acties
+3. **Secondary link** iets groter: `14px` in plaats van `13px`.
 
-### Layout
+Dit raakt alle emails (bevestiging, annulering, herinnering, wachtlijst, herbevestiging) omdat ze allemaal `buildEmailHtml` gebruiken.
 
-```text
-┌──────────────────────────────────┐
-│ Reservering                   ✕  │
-│ Yorick Mulder                    │
-│ 2p · Early dinner · T4 · 17:15  │
-│ ● Bevestigd                      │
-│                                  │
-│ [██ Inchecken ██]                │
-│ [No-show]  [Annuleren]  [···]   │
-├──────────────────────────────────┤
-│  Details  │  Gast  │  Activiteit │
-├──────────────────────────────────┤
-│ (tab content)                    │
-└──────────────────────────────────┘
-```
+Na de code-wijziging: redeploy van `send-reservation-email` edge function.
 
-### Wat verandert
-
-**Header (altijd zichtbaar, boven tabs):**
-- Naam, metadata, status badge — blijft
-- Acties vereenvoudigd: 1 primaire full-width knop + max 2 secundaire + overflow `···` dropdown voor de rest
-- "Tafel wijzigen" verhuist ALLEEN naar de Details tab (weg uit acties)
-
-**Tab "Details":**
-- Tafel toewijzing (auto-assign / handmatig / wijzigen)
-- Notities (gast + intern) — compacter, inline
-- Badges (squeeze, kanaal, betaling)
-- Betaling/refund sectie
-
-**Tab "Gast":**
-- Contactgegevens (naam, email, telefoon)
-- Allergieën & dieet badges
-- Bezoekstats (3-grid)
-- Bezoekhistorie
-- Klantnotities
-
-**Tab "Activiteit":**
-- Risicoscore (compacter: score + level, factoren collapsed by default)
-- Audit log timeline
-
-### NestoPanel: ronde hoeken verwijderen
-`rounded-l-2xl` weg van desktop container — strak zijpaneel, edge-to-edge.
-
-## Technische details
+## Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/polar/NestoPanel.tsx` | Verwijder `rounded-l-2xl` |
-| `src/components/reservations/ReservationDetailPanel.tsx` | Herstructureer met NestoTabs: Details/Gast/Activiteit. Header + acties boven tabs. |
-| `src/components/reservations/ReservationActions.tsx` | Refactor: 1 primaire knop full-width, 2 secundaire, rest in DropdownMenu. Verwijder "Tafel wijzigen" uit acties. |
-| `src/components/reservations/CustomerCard.tsx` | Verwijder `<h3>Klantgegevens</h3>` wrapper (tab is al "Gast") |
-| `src/components/reservations/RiskScoreSection.tsx` | Factoren default collapsed, compactere layout |
-
-## Volgorde
-1. NestoPanel — ronde hoeken weg
-2. ReservationActions — compactere actie-layout met dropdown
-3. ReservationDetailPanel — tabs + herstructurering
-4. Minor polish op CustomerCard en RiskScoreSection
+| `supabase/functions/_shared/emailLayout.ts` | Font-family → sans-serif, CTA radius → 12px |
 
