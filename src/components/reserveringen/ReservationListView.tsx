@@ -54,6 +54,27 @@ function StatusDot({ status }: { status: Reservation["status"] }) {
   );
 }
 
+const ALLERGEN_LABELS: Record<string, string> = {
+  gluten: 'Glutenvrij', lactose: 'Lactosevrij', noten: 'Noten',
+  schaaldieren: 'Schaaldieren', eieren: 'Eieren', vis: 'Vis',
+  pinda: "Pinda's", soja: 'Soja', selderij: 'Selderij',
+  mosterd: 'Mosterd', sesam: 'Sesam', sulfieten: 'Sulfieten',
+  lupine: 'Lupine', weekdieren: 'Weekdieren',
+};
+
+function getDietarySummary(prefs: Record<string, unknown> | null | undefined): string[] {
+  if (!prefs) return [];
+  const items: string[] = [];
+  if (prefs.is_vegetarian) items.push('Vegetarisch');
+  if (prefs.is_vegan) items.push('Vegan');
+  const allergens = Array.isArray(prefs.allergens) ? prefs.allergens : [];
+  allergens.forEach((a: string) => items.push(ALLERGEN_LABELS[a] || a));
+  if (typeof prefs.custom_notes === 'string' && prefs.custom_notes.trim()) {
+    items.push(prefs.custom_notes.trim());
+  }
+  return items;
+}
+
 function groupByTimeSlot(reservations: Reservation[]): Map<string, Reservation[]> {
   const groups = new Map<string, Reservation[]>();
   const sorted = [...reservations].sort((a, b) => a.start_time.localeCompare(b.start_time));
