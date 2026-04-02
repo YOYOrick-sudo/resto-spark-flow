@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles } from "lucide-react";
+import { MoreHorizontal, MessageSquare, Phone, Globe, User, Search, MessageCircle, Footprints as FootprintsIcon, LogIn, LogOut, RotateCcw, Sparkles, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import {
@@ -52,6 +52,27 @@ function StatusDot({ status }: { status: Reservation["status"] }) {
       title={config.label}
     />
   );
+}
+
+const ALLERGEN_LABELS: Record<string, string> = {
+  gluten: 'Glutenvrij', lactose: 'Lactosevrij', noten: 'Noten',
+  schaaldieren: 'Schaaldieren', eieren: 'Eieren', vis: 'Vis',
+  pinda: "Pinda's", soja: 'Soja', selderij: 'Selderij',
+  mosterd: 'Mosterd', sesam: 'Sesam', sulfieten: 'Sulfieten',
+  lupine: 'Lupine', weekdieren: 'Weekdieren',
+};
+
+function getDietarySummary(prefs: Record<string, unknown> | null | undefined): string[] {
+  if (!prefs) return [];
+  const items: string[] = [];
+  if (prefs.is_vegetarian) items.push('Vegetarisch');
+  if (prefs.is_vegan) items.push('Vegan');
+  const allergens = Array.isArray(prefs.allergens) ? prefs.allergens : [];
+  allergens.forEach((a: string) => items.push(ALLERGEN_LABELS[a] || a));
+  if (typeof prefs.custom_notes === 'string' && prefs.custom_notes.trim()) {
+    items.push(prefs.custom_notes.trim());
+  }
+  return items;
 }
 
 function groupByTimeSlot(reservations: Reservation[]): Map<string, Reservation[]> {
@@ -154,6 +175,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
   const walkIn = isWalkIn(reservation);
   const isCompact = density === "compact";
   const allowedNextStatuses = ALLOWED_TRANSITIONS[reservation.status] ?? [];
+  const dietaryItems = getDietarySummary(reservation.customer?.dietary_preferences);
 
   return (
     <div
@@ -183,6 +205,26 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         )}
         {reservation.customer?.phone_number && (
           <Phone className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
+        )}
+        {dietaryItems.length > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning px-1.5 py-0.5 flex-shrink-0">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span className="text-[10px] font-semibold">{dietaryItems.length}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[200px]">
+                <p className="text-xs font-medium">Bijzonderheden:</p>
+                <ul className="text-xs mt-1 space-y-0.5">
+                  {dietaryItems.map((item, i) => (
+                    <li key={i}>• {item}</li>
+                  ))}
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
 
