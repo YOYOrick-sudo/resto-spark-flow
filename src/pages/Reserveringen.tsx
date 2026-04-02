@@ -48,6 +48,9 @@ export default function Reserveringen() {
   const dateString = format(selectedDate, "yyyy-MM-dd");
 
   const { data: reservationsForDate = [], isLoading } = useReservations({ date: dateString });
+  const { data: waitlistEntries = [] } = useWaitlistEntries(dateString);
+  const cancelWaitlist = useCancelWaitlistEntry();
+  const inviteWaitlist = useInviteWaitlistEntry();
 
   const filteredReservations = useMemo(() => {
     let result = reservationsForDate;
