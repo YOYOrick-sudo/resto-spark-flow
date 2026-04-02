@@ -57,6 +57,8 @@ export function SelectionStep() {
     return Array.from(seen.values()).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
   }, [availableShifts, data.selectedTicket]);
 
+  const hasAvailableSlots = useMemo(() => flatSlots.some(({ slot }) => slot.available), [flatSlots]);
+
   // Convert selected date string to day index
   const selectedDayIndex = useMemo(() => {
     if (!data.date) return null;
