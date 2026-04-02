@@ -403,7 +403,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
   const walkIn = isWalkIn(reservation);
   const isCompact = density === "compact";
   const allowedNextStatuses = ALLOWED_TRANSITIONS[reservation.status] ?? [];
-  const dietaryItems = getDietarySummary(reservation.customer?.dietary_preferences);
+  
 
   return (
     <div
