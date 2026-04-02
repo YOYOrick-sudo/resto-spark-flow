@@ -23,7 +23,7 @@ export function buildEmailHtml(params: EmailLayoutParams): string {
     heading, intro, details, ctaUrl, ctaLabel, secondaryLink, note,
   } = params;
 
-  const fontFamily = "Georgia, 'Times New Roman', Times, serif";
+  const fontFamily = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
   const logoBlock = logoUrl
     ? `<tr><td style="padding:40px 40px 0;text-align:center"><img src="${logoUrl}" alt="${restaurantName}" style="max-height:72px;max-width:240px"></td></tr>
@@ -53,7 +53,7 @@ export function buildEmailHtml(params: EmailLayoutParams): string {
   const ctaBlock = ctaUrl
     ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 16px">
         <tr><td align="center">
-          <a href="${ctaUrl}" style="display:inline-block;background:${brandColor};color:#fff;padding:14px 32px;border-radius:6px;font-size:15px;font-weight:600;text-decoration:none;font-family:${fontFamily}">${ctaLabel || 'Bekijken'}</a>
+          <a href="${ctaUrl}" style="display:inline-block;background:${brandColor};color:#fff;padding:16px 36px;border-radius:12px;font-size:15px;font-weight:600;text-decoration:none;font-family:${fontFamily}">${ctaLabel || 'Bekijken'}</a>
         </td></tr>
       </table>`
     : '';
@@ -61,7 +61,7 @@ export function buildEmailHtml(params: EmailLayoutParams): string {
   const secondaryBlock = secondaryLink
     ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0">
         <tr><td align="center">
-          <a href="${secondaryLink.url}" style="font-size:13px;color:${brandColor};text-decoration:none;font-family:${fontFamily}">${secondaryLink.label}</a>
+          <a href="${secondaryLink.url}" style="font-size:14px;color:${brandColor};text-decoration:none;font-family:${fontFamily}">${secondaryLink.label}</a>
         </td></tr>
       </table>`
     : '';
