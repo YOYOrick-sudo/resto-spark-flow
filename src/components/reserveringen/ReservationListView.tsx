@@ -18,7 +18,38 @@ import { isAiChannel } from "@/utils/isAiGenerated";
 import type { DensityType } from "./DensityToggle";
 import type { WaitlistEntryWithInvites } from "@/hooks/useWaitlistEntries";
 
-const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_160px_120px_80px_32px] gap-x-3 items-center";
+const GRID_COLS = "grid grid-cols-[12px_1fr_56px_72px_160px_100px_120px_80px_32px] gap-x-3 items-center";
+
+const ALLERGEN_ABBR: Record<string, { abbr: string; label: string }> = {
+  gluten: { abbr: 'GV', label: 'Glutenvrij' },
+  lactose: { abbr: 'LV', label: 'Lactosevrij' },
+  noten: { abbr: 'NO', label: 'Noten' },
+  schaaldieren: { abbr: 'SD', label: 'Schaaldieren' },
+  eieren: { abbr: 'EI', label: 'Eieren' },
+  vis: { abbr: 'VI', label: 'Vis' },
+  pinda: { abbr: 'PN', label: "Pinda's" },
+  soja: { abbr: 'SO', label: 'Soja' },
+  selderij: { abbr: 'SE', label: 'Selderij' },
+  mosterd: { abbr: 'MO', label: 'Mosterd' },
+  sesam: { abbr: 'SS', label: 'Sesam' },
+  sulfieten: { abbr: 'SU', label: 'Sulfieten' },
+  lupine: { abbr: 'LU', label: 'Lupine' },
+  weekdieren: { abbr: 'WD', label: 'Weekdieren' },
+};
+
+function getDietaryAbbreviations(prefs: Record<string, unknown> | null | undefined): { abbr: string; label: string }[] {
+  if (!prefs) return [];
+  const items: { abbr: string; label: string }[] = [];
+  if (prefs.is_vegetarian) items.push({ abbr: 'VEG', label: 'Vegetarisch' });
+  if (prefs.is_vegan) items.push({ abbr: 'VGN', label: 'Vegan' });
+  const allergens = Array.isArray(prefs.allergens) ? prefs.allergens : [];
+  allergens.forEach((a: string) => {
+    const info = ALLERGEN_ABBR[a];
+    if (info) items.push(info);
+    else items.push({ abbr: a.slice(0, 3).toUpperCase(), label: a });
+  });
+  return items;
+}
 
 const CHANNEL_ICON_MAP: Record<ReservationChannel, React.FC<{ className?: string }>> = {
   widget: Globe,
