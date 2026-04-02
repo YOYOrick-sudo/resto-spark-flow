@@ -57,6 +57,8 @@ export function SelectionStep() {
     return Array.from(seen.values()).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
   }, [availableShifts, data.selectedTicket]);
 
+  const hasAvailableSlots = useMemo(() => flatSlots.some(({ slot }) => slot.available), [flatSlots]);
+
   // Convert selected date string to day index
   const selectedDayIndex = useMemo(() => {
     if (!data.date) return null;
@@ -374,7 +376,7 @@ export function SelectionStep() {
                 <div className="flex items-center justify-center py-6">
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                 </div>
-              ) : flatSlots.length === 0 ? (
+              ) : flatSlots.length === 0 || !hasAvailableSlots ? (
                 showWaitlistForm ? (
                   <WaitlistForm onBack={() => setShowWaitlistForm(false)} />
                 ) : (
