@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Check, X, LogIn, LogOut, AlertOctagon, Clock, CreditCard,
-  Send, ArrowRightLeft, RefreshCw, Ban, MoreHorizontal, AlertTriangle,
+  Send, RefreshCw, Ban, MoreHorizontal, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NestoButton } from '@/components/polar/NestoButton';
@@ -9,10 +9,16 @@ import { useTransitionStatus } from '@/hooks/useTransitionStatus';
 import { useUserContext } from '@/contexts/UserContext';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { nestoToast } from '@/lib/nestoToast';
 import type { Reservation, ReservationStatus } from '@/types/reservation';
 import { STATUS_LABELS, ALLOWED_TRANSITIONS } from '@/types/reservation';
-import { TableMoveDialog } from './TableMoveDialog';
 import { ExtendOptionDialog } from './ExtendOptionDialog';
 
 interface ReservationActionsProps {
@@ -31,66 +37,64 @@ interface ActionButton {
   destructive?: boolean;
 }
 
-function getActionsForStatus(reservation: Reservation): ActionButton[] {
+function getActionsForStatus(reservation: Reservation): {
+  primary: ActionButton | null;
+  secondary: ActionButton[];
+  overflow: ActionButton[];
+} {
   const status = reservation.status;
-  const actions: ActionButton[] = [];
-  const riskScore = reservation.no_show_risk_score;
+  const all: ActionButton[] = [];
 
   switch (status) {
     case 'draft':
-      actions.push(
+      all.push(
         { key: 'confirm', label: 'Bevestigen', icon: Check, targetStatus: 'confirmed', variant: 'primary' },
         { key: 'option', label: 'Optie', icon: Clock, targetStatus: 'option' },
-        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'payment_ph', label: 'Betaling aanvragen', icon: CreditCard, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },
       );
       break;
     case 'pending_payment':
-      actions.push(
-        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
+      all.push(
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'resend_ph', label: 'Betaallink opnieuw', icon: RefreshCw, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },
       );
       break;
     case 'option':
-      actions.push(
+      all.push(
         { key: 'confirm', label: 'Bevestigen', icon: Check, targetStatus: 'confirmed', variant: 'primary' },
-        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
-        { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'extend', label: 'Optie verlengen', icon: Clock },
+        { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
       );
       break;
     case 'confirmed':
-      actions.push(
+      all.push(
         { key: 'checkin', label: 'Inchecken', icon: LogIn, targetStatus: 'seated', variant: 'primary' },
-        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
         { key: 'noshow', label: 'No-show', icon: AlertOctagon, targetStatus: 'no_show', destructive: true },
         { key: 'cancel', label: 'Annuleren', icon: X, targetStatus: 'cancelled', destructive: true },
         { key: 'payment_ph', label: 'Betaling aanvragen', icon: CreditCard, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },
       );
-      if (riskScore !== null && riskScore >= 50) {
-        actions.push(
-          { key: 'confirm_send_ph', label: 'Bevestiging sturen', icon: Send, disabled: true, tooltip: 'Beschikbaar na messaging (4.14)' },
-        );
-      }
       break;
     case 'seated':
-      actions.push(
+      all.push(
         { key: 'complete', label: 'Uitchecken', icon: LogOut, targetStatus: 'completed', variant: 'primary' },
-        { key: 'move_table', label: 'Tafel wijzigen', icon: ArrowRightLeft },
       );
       break;
     case 'no_show':
     case 'cancelled':
-      actions.push(
+      all.push(
         { key: 'refund_ph', label: 'Terugbetalen', icon: CreditCard, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },
         { key: 'waive_ph', label: 'Kwijtschelden', icon: Ban, disabled: true, tooltip: 'Beschikbaar na Stripe (4.13)' },
       );
       break;
   }
 
-  return actions;
+  const primary = all.find(a => a.variant === 'primary') || null;
+  const rest = all.filter(a => a !== primary);
+  const secondary = rest.slice(0, 2);
+  const overflow = rest.slice(2);
+
+  return { primary, secondary, overflow };
 }
 
 export function ReservationActions({ reservation, className }: ReservationActionsProps) {
@@ -104,18 +108,14 @@ export function ReservationActions({ reservation, className }: ReservationAction
   } | null>(null);
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideStatus, setOverrideStatus] = useState<ReservationStatus | null>(null);
-  const [tableMoveOpen, setTableMoveOpen] = useState(false);
   const [extendOpen, setExtendOpen] = useState(false);
-  const actions = getActionsForStatus(reservation);
+
+  const { primary, secondary, overflow } = getActionsForStatus(reservation);
   const canOverride = context?.role === 'owner' || context?.role === 'manager' || context?.is_platform_admin;
   const terminalStatuses: ReservationStatus[] = ['completed', 'no_show', 'cancelled'];
   const isTerminal = terminalStatuses.includes(reservation.status);
 
   const handleAction = (action: ActionButton) => {
-    if (action.key === 'move_table') {
-      setTableMoveOpen(true);
-      return;
-    }
     if (action.key === 'extend') {
       setExtendOpen(true);
       return;
@@ -155,65 +155,105 @@ export function ReservationActions({ reservation, className }: ReservationAction
     });
   };
 
-  // Override: available non-current, non-terminal-as-source statuses
   const allStatuses: ReservationStatus[] = ['draft', 'confirmed', 'option', 'pending_payment', 'seated', 'completed', 'no_show', 'cancelled'];
   const overrideTargets = allStatuses.filter(s => s !== reservation.status);
 
+  const renderActionButton = (action: ActionButton, fullWidth = false) => {
+    if (action.disabled) {
+      return (
+        <Tooltip key={action.key}>
+          <TooltipTrigger asChild>
+            <span className={fullWidth ? 'w-full' : ''}>
+              <NestoButton
+                variant="outline"
+                size="sm"
+                disabled
+                className={fullWidth ? 'w-full' : ''}
+                leftIcon={<action.icon className="h-3.5 w-3.5" />}
+              >
+                {action.label}
+              </NestoButton>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{action.tooltip}</TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return (
+      <NestoButton
+        key={action.key}
+        variant={
+          action.variant === 'primary' ? 'primary' :
+          action.destructive ? 'danger' : 'outline'
+        }
+        size="sm"
+        className={fullWidth ? 'w-full' : ''}
+        onClick={() => handleAction(action)}
+        disabled={transition.isPending}
+        leftIcon={<action.icon className="h-3.5 w-3.5" />}
+      >
+        {action.label}
+      </NestoButton>
+    );
+  };
+
+  const hasOverflowItems = overflow.length > 0 || (canOverride && !isTerminal);
+
   return (
     <TooltipProvider>
-      <div className={cn('flex flex-wrap gap-2', className)}>
-        {actions.map((action) => {
-          if (action.disabled) {
-            return (
-              <Tooltip key={action.key}>
-                <TooltipTrigger asChild>
-                  <span>
-                    <NestoButton
-                      variant="outline"
-                      size="sm"
-                      disabled
-                      leftIcon={<action.icon className="h-3.5 w-3.5" />}
+      <div className={cn('space-y-2', className)}>
+        {/* Primary action — full width */}
+        {primary && renderActionButton(primary, true)}
+
+        {/* Secondary actions + overflow dropdown */}
+        {(secondary.length > 0 || hasOverflowItems) && (
+          <div className="flex gap-2">
+            {secondary.map(action => (
+              <div key={action.key} className="flex-1">
+                {renderActionButton(action)}
+              </div>
+            ))}
+
+            {hasOverflowItems && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="h-8 w-8 rounded-control border border-input bg-background flex items-center justify-center hover:bg-secondary transition-colors flex-shrink-0">
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[180px]">
+                  {overflow.map(action => (
+                    <DropdownMenuItem
+                      key={action.key}
+                      disabled={action.disabled}
+                      onClick={() => !action.disabled && handleAction(action)}
+                      className={cn(action.destructive && 'text-destructive focus:text-destructive')}
                     >
+                      <action.icon className="h-3.5 w-3.5 mr-2" />
                       {action.label}
-                    </NestoButton>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>{action.tooltip}</TooltipContent>
-              </Tooltip>
-            );
-          }
-
-          const Icon = action.icon;
-          return (
-            <NestoButton
-              key={action.key}
-              variant={
-                action.variant === 'primary' ? 'primary' :
-                action.destructive ? 'danger' : 'outline'
-              }
-              size="sm"
-              onClick={() => handleAction(action)}
-              disabled={transition.isPending}
-              leftIcon={<Icon className="h-3.5 w-3.5" />}
-            >
-              {action.label}
-            </NestoButton>
-          );
-        })}
-
-        {/* Override link — only for manager/owner, not for terminal statuses */}
-        {canOverride && !isTerminal && (
-          <button
-            onClick={() => setOverrideOpen(true)}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-            Andere actie...
-          </button>
+                      {action.disabled && action.tooltip && (
+                        <span className="ml-auto text-[10px] text-muted-foreground">Binnenkort</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                  {canOverride && !isTerminal && (
+                    <>
+                      {overflow.length > 0 && <DropdownMenuSeparator />}
+                      <DropdownMenuItem onClick={() => setOverrideOpen(true)} className="text-muted-foreground">
+                        <AlertTriangle className="h-3.5 w-3.5 mr-2" />
+                        Operator override
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Destructive confirm dialog with reason field */}
+      {/* Destructive confirm dialog */}
       {confirmDialog && (
         <ConfirmDialog
           open={confirmDialog.open}
@@ -230,33 +270,7 @@ export function ReservationActions({ reservation, className }: ReservationAction
         />
       )}
 
-      {/* Override dialog */}
-      {overrideOpen && (
-        <ConfirmDialog
-          open={overrideOpen}
-          onOpenChange={(open) => { if (!open) { setOverrideOpen(false); setOverrideStatus(null); } }}
-          title="Operator Override"
-          description={overrideStatus
-            ? `Je staat op het punt de status te wijzigen naar "${STATUS_LABELS[overrideStatus] || overrideStatus}". Dit wijkt af van de standaard workflow en wordt gelogd.`
-            : 'Selecteer een status hieronder en geef een verplichte reden op.'}
-          confirmLabel={overrideStatus ? `Wijzig naar ${STATUS_LABELS[overrideStatus] || overrideStatus}` : 'Selecteer status'}
-          variant="destructive"
-          isLoading={transition.isPending}
-          showReasonField
-          reasonPlaceholder="Reden (verplicht)"
-          reasonRequired
-          onConfirm={() => {}}
-          onConfirmWithReason={(reason) => {
-            if (overrideStatus) {
-              executeTransition(overrideStatus, reason, true);
-            }
-          }}
-        >
-          {/* Extra content: status selector - rendered via description for now */}
-        </ConfirmDialog>
-      )}
-
-      {/* Simple override status selector when override is open but no status selected */}
+      {/* Override status selector */}
       {overrideOpen && !overrideStatus && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOverrideOpen(false)}>
           <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
@@ -286,14 +300,27 @@ export function ReservationActions({ reservation, className }: ReservationAction
         </div>
       )}
 
-      {/* Table move dialog */}
-      <TableMoveDialog
-        open={tableMoveOpen}
-        onOpenChange={setTableMoveOpen}
-        reservationId={reservation.id}
-        currentTableId={reservation.table_id}
-        locationId={reservation.location_id}
-      />
+      {/* Override confirm dialog */}
+      {overrideOpen && overrideStatus && (
+        <ConfirmDialog
+          open={true}
+          onOpenChange={(open) => { if (!open) { setOverrideOpen(false); setOverrideStatus(null); } }}
+          title="Operator Override"
+          description={`Je staat op het punt de status te wijzigen naar "${STATUS_LABELS[overrideStatus] || overrideStatus}". Dit wijkt af van de standaard workflow en wordt gelogd.`}
+          confirmLabel={`Wijzig naar ${STATUS_LABELS[overrideStatus] || overrideStatus}`}
+          variant="destructive"
+          isLoading={transition.isPending}
+          showReasonField
+          reasonPlaceholder="Reden (verplicht)"
+          reasonRequired
+          onConfirm={() => {}}
+          onConfirmWithReason={(reason) => {
+            if (overrideStatus) {
+              executeTransition(overrideStatus, reason, true);
+            }
+          }}
+        />
+      )}
 
       {/* Extend option dialog */}
       <ExtendOptionDialog

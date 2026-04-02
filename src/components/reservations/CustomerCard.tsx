@@ -17,7 +17,6 @@ export function CustomerCard({ customer, reservationId, className }: CustomerCar
   if (!customer) {
     return (
       <div className={cn('p-5', className)}>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Klantgegevens</h3>
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <div className="rounded-full bg-muted p-3 mb-3">
             <UserPlus className="h-5 w-5 text-muted-foreground" />
@@ -39,7 +38,7 @@ export function CustomerCard({ customer, reservationId, className }: CustomerCar
 
   return (
     <div className={cn('p-5', className)}>
-      <h3 className="text-sm font-semibold text-foreground mb-3">Klantgegevens</h3>
+      
 
       {/* Contact info */}
       <div className="space-y-2 mb-4">

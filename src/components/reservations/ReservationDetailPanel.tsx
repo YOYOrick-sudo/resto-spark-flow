@@ -5,6 +5,7 @@ import { isAiChannel } from '@/utils/isAiGenerated';
 import { NestoPanel } from '@/components/polar/NestoPanel';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { InfoAlert } from '@/components/polar/InfoAlert';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useReservation } from '@/hooks/useReservation';
 import { useAssignTable } from '@/hooks/useAssignTable';
 import { useMoveTable } from '@/hooks/useMoveTable';
@@ -101,9 +102,9 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
           )}
 
           {reservation && (
-            <div className="divide-y divide-border/50">
-              {/* Section 1: Header + Summary */}
-              <div className="p-5">
+            <div className="flex flex-col">
+              {/* Fixed Header: Summary + Actions */}
+              <div className="p-5 border-b border-border/50">
                 <p className="text-xs text-muted-foreground mb-1">Reservering</p>
                 <h2 ref={titleRef} className="text-lg font-semibold text-foreground flex items-center gap-1.5">
                   {getDisplayName(reservation)}
@@ -155,134 +156,174 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
                   </div>
                 )}
 
-                <ReservationBadges reservation={reservation} className="mt-3" />
-
-                {reservation.guest_notes && (
-                  <div className="mt-3 p-2.5 rounded-lg bg-muted/30 border border-border/50">
-                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Gast notitie</p>
-                    <p className="text-sm text-foreground">{reservation.guest_notes}</p>
-                  </div>
-                )}
-                {reservation.internal_notes && (
-                  <div className="mt-2 p-2.5 rounded-lg bg-muted/30 border border-border/50">
-                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Interne notitie</p>
-                    <p className="text-sm text-foreground">{reservation.internal_notes}</p>
-                  </div>
-                )}
-
                 <ReservationActions reservation={reservation} className="mt-4" />
               </div>
 
-              {/* Section 2: Table Assignment */}
-              {!isTerminal && (
-                <div className="p-5">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Tafel</p>
-                  {reservation.table_id ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="font-medium text-foreground">{reservation.table_label || '—'}</span>
-                        {reservation.table_group_id && (
-                          <span className="text-xs text-muted-foreground">(Groep)</span>
+              {/* Tabs */}
+              <Tabs defaultValue="details" className="flex-1">
+                <TabsList className="w-full justify-start rounded-none border-b border-border/50 bg-transparent h-auto p-0">
+                  <TabsTrigger
+                    value="details"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs font-medium"
+                  >
+                    Details
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="guest"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs font-medium"
+                  >
+                    Gast
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="activity"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-xs font-medium"
+                  >
+                    Activiteit
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Tab: Details */}
+                <TabsContent value="details" className="mt-0">
+                  <div className="divide-y divide-border/50">
+                    {/* Table Assignment */}
+                    {!isTerminal && (
+                      <div className="p-5">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Tafel</p>
+                        {reservation.table_id ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="font-medium text-foreground">{reservation.table_label || '—'}</span>
+                              {reservation.table_group_id && (
+                                <span className="text-xs text-muted-foreground">(Groep)</span>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <NestoButton
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setTableMoveOpen(true)}
+                                leftIcon={<ArrowRightLeft className="h-3.5 w-3.5" />}
+                              >
+                                Wijzig tafel
+                              </NestoButton>
+                              <NestoButton
+                                variant="outline"
+                                size="sm"
+                                onClick={handleUnassign}
+                                disabled={moveTable.isPending}
+                                leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+                              >
+                                Verwijder
+                              </NestoButton>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <InfoAlert variant="warning" title="Geen tafel toegewezen" />
+                            <div className="flex gap-2">
+                              <NestoButton
+                                variant="primary"
+                                size="sm"
+                                onClick={handleAutoAssign}
+                                disabled={assignTable.isPending}
+                                isLoading={assignTable.isPending}
+                                leftIcon={<Sparkles className="h-3.5 w-3.5" />}
+                              >
+                                Automatisch
+                              </NestoButton>
+                              <NestoButton
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowManualSelect(!showManualSelect)}
+                              >
+                                Handmatig
+                              </NestoButton>
+                            </div>
+                            {showManualSelect && (
+                              <TableSelector
+                                value={null}
+                                onChange={handleManualAssign}
+                                areas={areasWithTables}
+                                partySize={reservation.party_size}
+                                date={reservation.reservation_date}
+                                startTime={reservation.start_time}
+                                effectiveDuration={reservation.duration_minutes}
+                                reservationsForDate={reservationsForDate}
+                                showAutoOption={false}
+                                showNoneOption={false}
+                                placeholder="Selecteer tafel..."
+                              />
+                            )}
+                          </div>
                         )}
                       </div>
-                      <div className="flex gap-2">
-                        <NestoButton
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTableMoveOpen(true)}
-                          leftIcon={<ArrowRightLeft className="h-3.5 w-3.5" />}
-                        >
-                          Wijzig tafel
-                        </NestoButton>
-                        <NestoButton
-                          variant="outline"
-                          size="sm"
-                          onClick={handleUnassign}
-                          disabled={moveTable.isPending}
-                          leftIcon={<Trash2 className="h-3.5 w-3.5" />}
-                        >
-                          Verwijder toewijzing
-                        </NestoButton>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <InfoAlert variant="warning" title="Geen tafel toegewezen" />
-                      <div className="flex gap-2">
-                        <NestoButton
-                          variant="primary"
-                          size="sm"
-                          onClick={handleAutoAssign}
-                          disabled={assignTable.isPending}
-                          isLoading={assignTable.isPending}
-                          leftIcon={<Sparkles className="h-3.5 w-3.5" />}
-                        >
-                          Automatisch toewijzen
-                        </NestoButton>
-                        <NestoButton
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowManualSelect(!showManualSelect)}
-                        >
-                          Handmatig kiezen
-                        </NestoButton>
-                      </div>
-                      {showManualSelect && (
-                        <TableSelector
-                          value={null}
-                          onChange={handleManualAssign}
-                          areas={areasWithTables}
-                          partySize={reservation.party_size}
-                          date={reservation.reservation_date}
-                          startTime={reservation.start_time}
-                          effectiveDuration={reservation.duration_minutes}
-                          reservationsForDate={reservationsForDate}
-                          showAutoOption={false}
-                          showNoneOption={false}
-                          placeholder="Selecteer tafel..."
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
 
-              {/* Payment / Refund section */}
-              {reservation.payment_status && reservation.payment_status !== 'none' && (
-                <div className="rounded-card border border-border bg-card p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Betaling</span>
+                    {/* Notes */}
+                    {(reservation.guest_notes || reservation.internal_notes) && (
+                      <div className="p-5 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Notities</p>
+                        {reservation.guest_notes && (
+                          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50">
+                            <p className="text-xs font-medium text-muted-foreground mb-0.5">Gast</p>
+                            <p className="text-sm text-foreground">{reservation.guest_notes}</p>
+                          </div>
+                        )}
+                        {reservation.internal_notes && (
+                          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50">
+                            <p className="text-xs font-medium text-muted-foreground mb-0.5">Intern</p>
+                            <p className="text-sm text-foreground">{reservation.internal_notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Badges */}
+                    <div className="p-5">
+                      <ReservationBadges reservation={reservation} />
                     </div>
-                    <span className="text-sm text-muted-foreground">
-                      €{((reservation.payment_amount ?? 0) / 100).toFixed(2)}
-                    </span>
+
+                    {/* Payment */}
+                    {reservation.payment_status && reservation.payment_status !== 'none' && (
+                      <div className="p-5">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">Betaling</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground tabular-nums">
+                            €{((reservation.payment_amount ?? 0) / 100).toFixed(2)}
+                          </span>
+                        </div>
+                        {reservation.payment_status === 'paid' && (
+                          <NestoButton
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRefundDialogOpen(true)}
+                            className="w-full"
+                          >
+                            Terugbetalen
+                          </NestoButton>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {reservation.payment_status === 'paid' && (
-                    <NestoButton
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRefundDialogOpen(true)}
-                      className="w-full"
-                    >
-                      Terugbetalen
-                    </NestoButton>
-                  )}
-                </div>
-              )}
+                </TabsContent>
 
-              {/* Section 3: Customer Card */}
-              <CustomerCard
-                customer={reservation.customer}
-                reservationId={reservation.id}
-              />
+                {/* Tab: Guest */}
+                <TabsContent value="guest" className="mt-0">
+                  <CustomerCard
+                    customer={reservation.customer}
+                    reservationId={reservation.id}
+                  />
+                </TabsContent>
 
-              {/* Section 4: Risk Score */}
-              <RiskScoreSection reservation={reservation} />
-
-              {/* Section 5: Audit Log */}
-              <AuditLogTimeline reservationId={reservation.id} />
+                {/* Tab: Activity */}
+                <TabsContent value="activity" className="mt-0">
+                  <RiskScoreSection reservation={reservation} />
+                  <AuditLogTimeline reservationId={reservation.id} />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
 
