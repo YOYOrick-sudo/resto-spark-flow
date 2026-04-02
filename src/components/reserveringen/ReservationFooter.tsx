@@ -8,7 +8,6 @@ interface ReservationFooterProps {
   waitingCount: number;
   isOpen: boolean;
   className?: string;
-  onNotesClick?: () => void;
   density?: DensityType;
   onDensityChange?: (d: DensityType) => void;
 }
