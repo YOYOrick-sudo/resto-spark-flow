@@ -1,44 +1,29 @@
 
 
-# Allergenen als afkortingen in reserveringslijst
+# Footer Redesign — Notities inline + horizontaal verdeeld
 
-## Wat verandert
+## Probleem
+Alles staat links geplakt. Notities zitten achter een klik verborgen — je ziet niet of er een notitie is tenzij je op de knop klikt.
 
-Een nieuwe kolom **Dieet** toevoegen tussen Shift/Ticket en Status. Toont compacte afkortingen van allergenen en dieetvoorkeuren.
+## Oplossing
 
-### Afkortingen
+Footer wordt `justify-between`: links de notitie, rechts de stats + density toggle.
 
-| Allergen | Afkorting |
-|---|---|
-| Glutenvrij | GV |
-| Lactosevrij | LV |
-| Noten | NO |
-| Schaaldieren | SD |
-| Eieren | EI |
-| Vis | VI |
-| Pinda's | PN |
-| Soja | SO |
-| Selderij | SE |
-| Mosterd | MO |
-| Sesam | SS |
-| Sulfieten | SU |
-| Lupine | LU |
-| Weekdieren | WD |
-| Vegetarisch | VEG |
-| Vegan | VGN |
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│  📝 "Vanavond 2 VIP gasten, tafel 8 vrij houden"  [✏️]    4 gasten | 0 wachtend | 🟢 Open | ≡ ☰ │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-### Grid aanpassing
+**Links**: Dag-notitie tekst inline zichtbaar (truncated op 1 regel, `truncate max-w-md`). Als er geen notitie is: klikbare placeholder "Notitie toevoegen…" in muted tekst. Klik opent nog steeds de popover om te bewerken.
 
-Huidige: `[12px_1fr_56px_72px_160px_120px_80px_32px]` (8 kolommen)
-Nieuw: `[12px_1fr_56px_72px_160px_100px_120px_80px_32px]` (9 kolommen)
+**Rechts**: Stats (gasten, wachtend), status (Open/Gesloten), density toggle — zoals nu maar met `ml-auto`.
 
-De nieuwe kolom (100px) komt na Shift/Ticket. Toont kleine oranje pills met afkortingen, max 3 zichtbaar + "+N" overflow. Tooltip toont volledige namen.
-
-De huidige inline allergie-indicator (⚠️ badge naast naam) wordt verwijderd — de aparte kolom vervangt die.
-
-### Bestanden
+## Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/reserveringen/ReservationListView.tsx` | Nieuwe ALLERGEN_ABBR map, extra kolom in GRID_COLS, ColumnHeader, ReservationRow en WaitlistInlineRow |
+| `src/pages/Reserveringen.tsx` | Footer container `justify-between`, linker/rechter groep |
+| `src/components/reserveringen/DayNotePopover.tsx` | Toon `note.content` inline als tekst (truncated), klik opent popover. Verwijder knop-stijl, wordt inline tekst element |
+| `src/components/reserveringen/ReservationFooter.tsx` | Geen `flex-1`, wordt rechter blok |
 
