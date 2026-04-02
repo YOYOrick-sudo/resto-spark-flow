@@ -1,76 +1,55 @@
 
-# 1. Dag-notities + 2. Wachtlijst integratie
 
-## 1. Dag-notities
+# Optie B: Wachtlijst Inline Merge in Reserveringslijst
 
-### Huidige staat
-De "Notities" knop in de footer (`ReservationFooter.tsx`) doet niets — `onNotesClick` wordt niet doorgegeven vanuit `Reserveringen.tsx`. Er bestaat geen `day_notes` tabel of functionaliteit.
+## Concept
 
-### Oplossing
+Wachtlijst-entries verschijnen **tussen** de reserveringen, gesorteerd op hun tijdvoorkeur. Visueel onderscheidbaar met een dashed amber rand. Directe "Uitnodigen" actie in de rij. De AI-agent kan straks dezelfde `waitlist_entries.status` en `waitlist_invites` tabel gebruiken — de inline weergave toont real-time de status die de agent zet (pending → invited → booked).
 
-**Database**: Nieuwe tabel `day_notes` met `id`, `location_id`, `date`, `content` (text), `created_by`, `created_at`, `updated_at`. RLS: authenticated users, location_id match.
+## Agent-compatibiliteit
 
-**UI**: Klik op "Notities" in de footer opent een compact popover (niet een sheet/modal) direct erboven. Bevat een textarea met de dag-notitie, auto-save on blur. Als er al een notitie is, toont de footer-knop een kleine indicator dot.
+De agent werkt al via `waitlist-invite-engine` Edge Function die `waitlist_invites` aanmaakt en `waitlist_entries.status` naar `invited` zet. De inline merge **leest** dezelfde data — geen schema-wijzigingen nodig. Wanneer de agent automatisch uitnodigt:
+- De rij wisselt real-time van "Wachtend" (amber dashed) naar "Uitgenodigd" (amber badge met countdown)
+- Wanneer gast accepteert: entry verdwijnt uit wachtlijst-stijl en verschijnt als normale reservering (via de bestaande `waitlist-accept` flow die een reservering aanmaakt)
 
-**Hook**: `useDayNote(date, locationId)` — query + upsert mutatie.
+## Wijzigingen
 
-### Bestanden
+### 1. `ReservationListView.tsx` — Gemengde tijdlijn
 
-| Bestand | Wijziging |
-|---|---|
-| Database migratie | `day_notes` tabel + RLS |
-| `src/hooks/useDayNote.ts` | Nieuw — fetch + upsert |
-| `src/components/reserveringen/DayNotePopover.tsx` | Nieuw — popover met textarea, auto-save |
-| `src/components/reserveringen/ReservationFooter.tsx` | Indicator dot als notitie bestaat |
-| `src/pages/Reserveringen.tsx` | DayNotePopover integreren, state doorgeven |
+- Accepteer een nieuwe prop `waitlistEntries: WaitlistEntryWithInvites[]`
+- In `groupByTimeSlot`: merge wachtlijst-entries erbij op basis van `preferred_time_from`. Entries zonder tijdvoorkeur komen in een "Geen voorkeur" groep onderaan
+- Wachtlijst-rijen krijgen een aparte `WaitlistInlineRow` component:
+  - `border-l-2 border-dashed border-amber-400 bg-amber-50/5`
+  - Kolommen: status dot (amber) | naam | party size | — (geen tafel) | tijdvoorkeur | status badge | "Uitnodigen" knop
+  - Als status `invited`: badge toont "Uitgenodigd" + countdown tot `expires_at`
+  - Cancel via hover `X` knop
 
----
+### 2. `Reserveringen.tsx` — Data doorvoeren
 
-## 2. Wachtlijst integratie in hoofdview
+- `useWaitlistEntries(dateString)` data doorgeven als prop aan `ReservationListView`
+- `WaitlistSection` component verwijderen uit de render (niet meer nodig als aparte sectie)
+- Optioneel: ook aan `ReservationGridView` doorgeven (later)
 
-### Huidige staat
-Wachtlijst is een apart tab in de ViewToggle (`waitlist` view type). Gebruiker moet switchen van list/grid naar wachtlijst — extra handeling, context verlies.
+### 3. `useWaitlistEntries.ts` — Invite mutatie toevoegen
 
-### Oplossing
+- Nieuwe `useInviteWaitlistEntry()` mutatie die de `waitlist-invite-engine` Edge Function aanroept voor een specifieke entry (handmatige invite door operator)
+- Invalidate queries na succes
 
-Verwijder de wachtlijst als apart tab. Integreer als een compacte sectie **onder** de reserveringslijst/grid, binnen dezelfde kaart.
+### 4. `WaitlistSection.tsx` — Kan verwijderd worden
 
-**Layout**:
-```text
-┌─────────────────────────────────────────┐
-│  [Grid] [List] [Calendar]               │  ← waitlist tab weg
-│  DateNavigator   ...   Walk-in  + Res   │
-│  Filters                                │
-├─────────────────────────────────────────┤
-│  Reserveringen lijst/grid               │
-│  ...                                    │
-├─────────────────────────────────────────┤
-│  🕐 Wachtlijst (3)            ▾        │  ← collapsible sectie
-│  ┌───────────────────────────────────┐  │
-│  │ Jan de Vries · 4p · Wachtend     │  │
-│  │ Lisa Bakker · 2p · Uitgenodigd   │  │
-│  └───────────────────────────────────┘  │
-└─────────────────────────────────────────┘
-```
+De collapsible sectie onderaan is niet meer nodig.
 
-- Collapsible header met count badge
-- Compact rijen (naam, party size, tijdvoorkeur, status badge, cancel actie)
-- Alleen tonen als er entries zijn (count > 0)
-- Default ingeklapt als er >0 entries zijn, volledig verborgen als count = 0
-
-### Bestanden
+## Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/reserveringen/ViewToggle.tsx` | Verwijder `waitlist` uit views array |
-| `src/pages/Reserveringen.tsx` | Verwijder `activeView === "waitlist"` blok. Voeg `WaitlistSection` toe onder de lijst/grid. |
-| `src/components/reserveringen/WaitlistSection.tsx` | Nieuw — collapsible wachtlijst sectie (hergebruikt `useWaitlistEntries`) |
-| `src/components/reserveringen/WaitlistView.tsx` | Kan verwijderd of intern hergebruikt worden |
+| `src/components/reserveringen/ReservationListView.tsx` | `waitlistEntries` prop, `WaitlistInlineRow`, merge in tijdgroepen |
+| `src/pages/Reserveringen.tsx` | Waitlist data doorgeven, `WaitlistSection` verwijderen |
+| `src/hooks/useWaitlistEntries.ts` | `useInviteWaitlistEntry()` mutatie toevoegen |
+| `src/components/reserveringen/WaitlistSection.tsx` | Verwijderen |
 
 ## Volgorde
-1. Database migratie (day_notes)
-2. useDayNote hook + DayNotePopover
-3. Footer integratie
-4. ViewToggle — waitlist tab verwijderen
-5. WaitlistSection — inline collapsible component
-6. Reserveringen.tsx — alles samenvoegen
+1. Hook: invite mutatie toevoegen
+2. ReservationListView: WaitlistInlineRow + merge logic
+3. Reserveringen.tsx: data doorvoeren, WaitlistSection verwijderen
+
