@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Loader2, Clock, Users, Calendar, Minus, Plus, AlertCircle, UtensilsCrossed, MessageCircle, Info } from 'lucide-react';
+import { Loader2, Check, Minus, Plus, AlertCircle, MapPin, ExternalLink } from 'lucide-react';
 import { NestoLogo } from '@/components/polar/NestoLogo';
 import { GuestChat } from '@/components/guest/GuestChat';
 import { GuestPreferences } from '@/components/guest/GuestPreferences';
@@ -28,6 +28,7 @@ interface ManageData {
   brand_color: string;
   hero_image_url: string | null;
   description_short: string | null;
+  google_place_id: string | null;
   customer_id: string | null;
   manage_token: string;
   reservation: ReservationData;
@@ -62,103 +63,14 @@ const formatDate = (dateStr: string) => {
   return d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
 };
 
-const statusLabel: Record<string, string> = {
-  confirmed: 'Bevestigd',
-  cancelled: 'Geannuleerd',
-  option: 'Optie',
-  seated: 'Gezeten',
-  completed: 'Afgerond',
-  no_show: 'No-show',
+const statusConfig: Record<string, { label: string; icon: boolean; color: string }> = {
+  confirmed: { label: 'Bevestigd', icon: true, color: '' },
+  option: { label: 'Optie', icon: false, color: '' },
+  cancelled: { label: 'Geannuleerd', icon: false, color: '#991B1B' },
+  seated: { label: 'Gezeten', icon: true, color: '' },
+  completed: { label: 'Afgerond', icon: true, color: '' },
+  no_show: { label: 'No-show', icon: false, color: '#991B1B' },
 };
-
-// ── Sub-components ─────────────────────────────────────
-function StatusBadge({ status, brandColor }: { status: string; brandColor: string }) {
-  const isPositive = status === 'confirmed' || status === 'seated';
-  const bg = isPositive ? brandColor + '18' : status === 'cancelled' || status === 'no_show' ? '#FEF2F2' : '#F3F4F6';
-  const text = isPositive ? brandColor : status === 'cancelled' || status === 'no_show' ? '#991B1B' : '#374151';
-  return (
-    <span
-      className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold"
-      style={{ backgroundColor: bg, color: text }}
-    >
-      {statusLabel[status] ?? status}
-    </span>
-  );
-}
-
-function ActionCard({
-  icon: Icon,
-  title,
-  subtitle,
-  onClick,
-  brandColor,
-  badge,
-  isActive,
-}: {
-  icon: React.ElementType;
-  title: string;
-  subtitle: string;
-  onClick: () => void;
-  brandColor: string;
-  badge?: number;
-  isActive?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center gap-2.5 p-5 rounded-2xl bg-white text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] relative"
-      style={{
-        boxShadow: isActive ? `0 0 0 1.5px ${brandColor}, 0 2px 8px rgba(0,0,0,0.06)` : '0 1px 4px rgba(0,0,0,0.06)',
-        backgroundColor: isActive ? brandColor + '06' : '#fff',
-      }}
-    >
-      <div
-        className="w-11 h-11 rounded-full flex items-center justify-center"
-        style={{ backgroundColor: brandColor + '12' }}
-      >
-        <Icon className="w-[22px] h-[22px]" style={{ color: brandColor }} />
-      </div>
-      <div>
-        <span className="text-xs font-semibold text-gray-800 leading-tight block">{title}</span>
-        <span className="text-[10px] text-gray-400 leading-tight block mt-0.5">{subtitle}</span>
-      </div>
-      {badge != null && badge > 0 && (
-        <span
-          className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
-          style={{ backgroundColor: brandColor }}
-        >
-          {badge}
-        </span>
-      )}
-    </button>
-  );
-}
-
-// ── Expandable section wrapper ─────────────────────────
-function ExpandableSection({
-  isOpen,
-  onClose,
-  title,
-  children,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}) {
-  if (!isOpen) return null;
-  return (
-    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-        <button onClick={onClose} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
-          Sluiten
-        </button>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 // ── Main ───────────────────────────────────────────────
 export default function ManageReservation() {
@@ -166,8 +78,6 @@ export default function ManageReservation() {
   const [data, setData] = useState<ManageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -258,7 +168,7 @@ export default function ManageReservation() {
   if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAFA' }}>
-        <p className="text-sm text-gray-400">Ongeldige link.</p>
+        <p className="text-sm" style={{ color: '#6B7280' }}>Ongeldige link.</p>
       </div>
     );
   }
@@ -266,7 +176,7 @@ export default function ManageReservation() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAFA' }}>
-        <Loader2 className="h-6 w-6 animate-spin text-gray-300" />
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#D1D5DB' }} />
       </div>
     );
   }
@@ -275,8 +185,8 @@ export default function ManageReservation() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#FAFAFA' }}>
         <div className="text-center">
-          <h1 className="text-base font-semibold text-gray-800">Niet gevonden</h1>
-          <p className="text-sm text-gray-400 mt-1">{error}</p>
+          <h1 className="text-base font-semibold" style={{ color: '#1A1A1A' }}>Niet gevonden</h1>
+          <p className="text-sm mt-1" style={{ color: '#6B7280' }}>{error}</p>
         </div>
       </div>
     );
@@ -287,309 +197,285 @@ export default function ManageReservation() {
   const brandColor = data.brand_color || '#0F766E';
   const isActive = res.status === 'confirmed' || res.status === 'option';
   const manageToken = data.manage_token || token;
+  const status = statusConfig[res.status] ?? { label: res.status, icon: false, color: '#6B7280' };
+  const isNegative = res.status === 'cancelled' || res.status === 'no_show';
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FAFAFA' }}>
-      {/* ── Hero header ── */}
+      {/* ── Hero ── */}
       {data.hero_image_url ? (
-        /* With hero image: large photo header */
         <div className="w-full relative overflow-hidden" style={{ height: '14rem' }}>
           <img src={data.hero_image_url} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/20 to-black/65" />
-          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-            <div className="max-w-lg mx-auto flex items-end gap-3">
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.2) 50%, transparent)' }} />
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-6">
+            <div className="max-w-md mx-auto flex items-end gap-3">
               {data.logo_url && (
-                <div className="w-12 h-12 rounded-xl bg-white/90 backdrop-blur-sm p-1.5 shrink-0 shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-white/90 backdrop-blur-sm p-1.5 shrink-0">
                   <img src={data.logo_url} alt="" className="w-full h-full object-contain" />
                 </div>
               )}
-              <div className="min-w-0">
-                <h1 className="text-white font-semibold text-lg leading-tight truncate drop-shadow-sm">
-                  {data.restaurant_name || 'Restaurant'}
-                </h1>
-                {data.description_short && (
-                  <p className="text-white/70 text-xs mt-0.5 truncate drop-shadow-sm">{data.description_short}</p>
-                )}
-              </div>
+              <h1 className="text-white font-semibold text-lg leading-tight truncate drop-shadow-sm">
+                {data.restaurant_name || 'Restaurant'}
+              </h1>
             </div>
           </div>
         </div>
       ) : (
-        /* Without hero image: clean white header */
-        <div className="w-full bg-white border-b border-gray-100">
-          <div className="max-w-lg mx-auto px-5 py-8 flex flex-col items-center text-center">
+        <div
+          className="w-full"
+          style={{ background: `linear-gradient(to bottom, ${brandColor}14, #FAFAFA)` }}
+        >
+          <div className="max-w-md mx-auto px-6 py-10 flex flex-col items-center text-center">
             {data.logo_url ? (
-              <div className="w-16 h-16 rounded-2xl bg-gray-50 p-2 mb-3">
-                <img src={data.logo_url} alt="" className="w-full h-full object-contain" />
-              </div>
+              <img src={data.logo_url} alt="" className="h-14 w-auto object-contain mb-3" />
             ) : (
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 text-white text-xl font-bold"
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 text-white text-xl font-bold"
                 style={{ backgroundColor: brandColor }}
               >
                 {(data.restaurant_name || 'R')[0]}
               </div>
             )}
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 className="text-lg font-semibold" style={{ color: '#1A1A1A' }}>
               {data.restaurant_name || 'Restaurant'}
             </h1>
-            {data.description_short && (
-              <p className="text-xs text-gray-400 mt-1 max-w-xs">{data.description_short}</p>
-            )}
           </div>
         </div>
       )}
 
-      {/* ── Content ── */}
-      <main className="w-full max-w-lg mx-auto px-4 relative z-10 flex-1" style={{ marginTop: data.hero_image_url ? '-1.5rem' : '1.5rem' }}>
-        {/* Reservation card */}
-        <div
-          className="bg-white rounded-2xl overflow-hidden"
-          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)' }}
-        >
-          {/* Guest + status row */}
-          <div className="px-5 pt-5 pb-3 flex items-start justify-between">
-            <div>
-              <p className="text-xl font-semibold text-gray-900">
-                {res.customer ? `${res.customer.first_name} ${res.customer.last_name}` : 'Je reservering'}
-              </p>
-              {res.ticket?.display_title && (
-                <p className="text-[11px] text-gray-400 mt-0.5">{res.ticket.display_title}</p>
-              )}
-            </div>
-            <StatusBadge status={res.status} brandColor={brandColor} />
-          </div>
-
-          {/* Compact details row with · separators */}
-          <div className="px-5 pb-4 flex items-center text-sm text-gray-600">
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-gray-400" />
-              {formatDate(res.date)}
-            </span>
-            <span className="mx-2 text-gray-300">·</span>
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-gray-400" />
-              {formatTime(res.start_time)}
-            </span>
-            <span className="mx-2 text-gray-300">·</span>
-            <span className="flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-gray-400" />
-              {res.party_size}
+      {/* ── Confirmation ── */}
+      <main className="w-full max-w-md mx-auto px-6 flex-1" style={{ marginTop: data.hero_image_url ? '-0.5rem' : '0' }}>
+        <div className="text-center py-8">
+          {/* Status */}
+          <div className="flex items-center justify-center gap-2 mb-3">
+            {status.icon && !isNegative && (
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: brandColor + '18' }}
+              >
+                <Check className="w-4 h-4" style={{ color: brandColor }} />
+              </div>
+            )}
+            <span
+              className="text-xl font-semibold"
+              style={{ color: isNegative ? status.color : '#1A1A1A' }}
+            >
+              {status.label}
             </span>
           </div>
 
-          {res.guest_notes && (
-            <div className="px-5 pb-4">
-              <div className="text-xs text-gray-500 bg-gray-50 rounded-xl p-3">{res.guest_notes}</div>
-            </div>
-          )}
+          {/* Date & time */}
+          <p className="text-lg" style={{ color: '#1A1A1A' }}>
+            {formatDate(res.date)} · {formatTime(res.start_time)}
+          </p>
+          <p className="text-base mt-1" style={{ color: '#6B7280' }}>
+            {res.party_size} {res.party_size === 1 ? 'persoon' : 'personen'}
+          </p>
 
           {/* Action links */}
           {!modifyMode && !showCancelConfirm && isActive && (
-            <div className="px-5 pb-4 flex items-center gap-4">
+            <div className="mt-4 flex items-center justify-center gap-1">
               {data.can_modify !== false && (
                 <button
                   onClick={() => setModifyMode(true)}
-                  className="text-xs font-medium transition-colors hover:opacity-80"
+                  className="text-sm font-medium px-2 py-1 transition-opacity hover:opacity-70"
                   style={{ color: brandColor }}
                 >
                   Wijzigen
                 </button>
               )}
+              {data.can_modify !== false && data.can_cancel && (
+                <span style={{ color: '#D1D5DB' }}>·</span>
+              )}
               {data.can_cancel && (
                 <button
                   onClick={() => setShowCancelConfirm(true)}
-                  className="text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
+                  className="text-sm font-medium px-2 py-1 transition-opacity hover:opacity-70"
+                  style={{ color: '#EF4444' }}
                 >
                   Annuleren
                 </button>
               )}
-              {!data.can_cancel && !data.can_modify && (
-                <p className="text-[10px] text-gray-400">
-                  Deze reservering kan niet meer online gewijzigd worden.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* ── Modify mode ── */}
-          {modifyMode && (
-            <div className="px-5 py-4 border-t border-gray-100 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700">Reservering wijzigen</h3>
-              <div>
-                <label className="text-xs text-gray-500">Aantal gasten</label>
-                <div className="flex items-center gap-3 mt-1">
-                  <button
-                    onClick={() => setNewPartySize(Math.max(1, newPartySize - 1))}
-                    className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                    disabled={newPartySize <= 1}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <span className="text-lg font-semibold w-8 text-center tabular-nums">{newPartySize}</span>
-                  <button
-                    onClick={() => setNewPartySize(newPartySize + 1)}
-                    className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Datum</label>
-                <input
-                  type="date"
-                  value={newDate}
-                  onChange={e => setNewDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-                />
-              </div>
-              {slotsLoading ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
-                </div>
-              ) : (
-                <div>
-                  <label className="text-xs text-gray-500">Tijd</label>
-                  <div className="mt-1 grid grid-cols-4 gap-1.5">
-                    {availableShifts.flatMap(s => s.slots.filter(sl => sl.available)).map(slot => (
-                      <button
-                        key={`${slot.time}-${slot.ticket_id}`}
-                        onClick={() => setNewTime(slot.time)}
-                        className="py-2 rounded-xl text-xs font-medium border transition-all"
-                        style={{
-                          borderColor: newTime === slot.time ? brandColor : '#e5e7eb',
-                          backgroundColor: newTime === slot.time ? brandColor : '#fff',
-                          color: newTime === slot.time ? '#fff' : '#374151',
-                        }}
-                      >
-                        {formatTime(slot.time)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {modifyError && (
-                <div className="flex items-center gap-2 text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  {modifyError}
-                </div>
-              )}
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => { setModifyMode(false); setNewPartySize(res.party_size); setNewDate(res.date); setNewTime(res.start_time); }}
-                  className="flex-1 py-2.5 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
-                >
-                  Terug
-                </button>
-                <button
-                  onClick={handleModify}
-                  disabled={modifying || !newTime}
-                  className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
-                  style={{ backgroundColor: brandColor }}
-                >
-                  {modifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Opslaan'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Cancel confirm ── */}
-          {showCancelConfirm && (
-            <div className="px-5 py-4 border-t border-gray-100 space-y-3">
-              <h3 className="text-sm font-semibold text-gray-700">Weet je het zeker?</h3>
-              <p className="text-xs text-gray-500">Je reservering wordt geannuleerd. Dit kan niet ongedaan gemaakt worden.</p>
-              <textarea
-                value={cancelReason}
-                onChange={e => setCancelReason(e.target.value)}
-                placeholder="Reden (optioneel)"
-                rows={2}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowCancelConfirm(false)}
-                  className="flex-1 py-2.5 rounded-2xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
-                >
-                  Terug
-                </button>
-                <button
-                  onClick={handleCancel}
-                  disabled={cancelling}
-                  className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
-                >
-                  {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Annuleer'}
-                </button>
-              </div>
             </div>
           )}
         </div>
 
-        {/* ── Interactive cards ── */}
-        {manageToken && isActive && (
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <ActionCard
-              icon={UtensilsCrossed}
-              title="Allergieën"
-              subtitle="& voorkeuren"
-              onClick={() => setActiveSection(activeSection === 'preferences' ? null : 'preferences')}
-              brandColor={brandColor}
-              isActive={activeSection === 'preferences'}
-            />
-            <ActionCard
-              icon={MessageCircle}
-              title="Stel een vraag"
-              subtitle="Chat met ons"
-              onClick={() => setActiveSection(activeSection === 'chat' ? null : 'chat')}
-              brandColor={brandColor}
-              isActive={activeSection === 'chat'}
-            />
-            <ActionCard
-              icon={Info}
-              title="Restaurant"
-              subtitle="info"
-              onClick={() => setActiveSection(activeSection === 'info' ? null : 'info')}
-              brandColor={brandColor}
-              isActive={activeSection === 'info'}
-            />
+        {/* ── Modify mode ── */}
+        {modifyMode && (
+          <div className="bg-white rounded-2xl p-6 mb-6 space-y-4" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <h3 className="text-sm font-semibold" style={{ color: '#1A1A1A' }}>Reservering wijzigen</h3>
+            <div>
+              <label className="text-xs" style={{ color: '#6B7280' }}>Aantal gasten</label>
+              <div className="flex items-center gap-3 mt-1">
+                <button
+                  onClick={() => setNewPartySize(Math.max(1, newPartySize - 1))}
+                  className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  style={{ borderColor: '#E5E7EB' }}
+                  disabled={newPartySize <= 1}
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="text-lg font-semibold w-8 text-center tabular-nums">{newPartySize}</span>
+                <button
+                  onClick={() => setNewPartySize(newPartySize + 1)}
+                  className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  style={{ borderColor: '#E5E7EB' }}
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs" style={{ color: '#6B7280' }}>Datum</label>
+              <input
+                type="date"
+                value={newDate}
+                onChange={e => setNewDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                style={{ borderColor: '#E5E7EB' }}
+              />
+            </div>
+            {slotsLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin" style={{ color: '#D1D5DB' }} />
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs" style={{ color: '#6B7280' }}>Tijd</label>
+                <div className="mt-1 grid grid-cols-4 gap-1.5">
+                  {availableShifts.flatMap(s => s.slots.filter(sl => sl.available)).map(slot => (
+                    <button
+                      key={`${slot.time}-${slot.ticket_id}`}
+                      onClick={() => setNewTime(slot.time)}
+                      className="py-2 rounded-xl text-xs font-medium border transition-all"
+                      style={{
+                        borderColor: newTime === slot.time ? brandColor : '#E5E7EB',
+                        backgroundColor: newTime === slot.time ? brandColor : '#fff',
+                        color: newTime === slot.time ? '#fff' : '#374151',
+                      }}
+                    >
+                      {formatTime(slot.time)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {modifyError && (
+              <div className="flex items-center gap-2 text-sm" style={{ color: '#DC2626' }}>
+                <AlertCircle className="h-4 w-4" />
+                {modifyError}
+              </div>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => { setModifyMode(false); setNewPartySize(res.party_size); setNewDate(res.date); setNewTime(res.start_time); }}
+                className="flex-1 py-2.5 rounded-2xl text-sm font-medium border hover:bg-gray-50 active:scale-[0.98] transition-all"
+                style={{ borderColor: '#E5E7EB', color: '#374151' }}
+              >
+                Terug
+              </button>
+              <button
+                onClick={handleModify}
+                disabled={modifying || !newTime}
+                className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
+                style={{ backgroundColor: brandColor }}
+              >
+                {modifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Opslaan'}
+              </button>
+            </div>
           </div>
         )}
 
-        {/* ── Expandable sections ── */}
-        {manageToken && isActive && activeSection && (
-          <div
-            className="mt-4 bg-white rounded-2xl p-5"
-            style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03)' }}
-          >
-            {activeSection === 'preferences' && (
-              <ExpandableSection isOpen title="Allergieën & voorkeuren" onClose={() => setActiveSection(null)}>
-                <GuestPreferences manageToken={manageToken} brandColor={brandColor} />
-              </ExpandableSection>
-            )}
-            {activeSection === 'chat' && (
-              <ExpandableSection isOpen title="Stel een vraag" onClose={() => setActiveSection(null)}>
-                <GuestChat manageToken={manageToken} brandColor={brandColor} inline />
-              </ExpandableSection>
-            )}
-            {activeSection === 'info' && (
-              <ExpandableSection isOpen title="Restaurant informatie" onClose={() => setActiveSection(null)}>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p className="font-medium text-gray-800">{data.restaurant_name}</p>
-                  {data.description_short && <p className="text-xs text-gray-500">{data.description_short}</p>}
-                  <p className="text-xs text-gray-400 mt-2">
-                    Neem contact op via de chat voor vragen over openingstijden, bereikbaarheid of het menu.
+        {/* ── Cancel confirm ── */}
+        {showCancelConfirm && (
+          <div className="bg-white rounded-2xl p-6 mb-6 space-y-3" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <h3 className="text-sm font-semibold" style={{ color: '#1A1A1A' }}>Weet je het zeker?</h3>
+            <p className="text-xs" style={{ color: '#6B7280' }}>Je reservering wordt geannuleerd. Dit kan niet ongedaan gemaakt worden.</p>
+            <textarea
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              placeholder="Reden (optioneel)"
+              rows={2}
+              className="w-full rounded-xl border px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              style={{ borderColor: '#E5E7EB' }}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 py-2.5 rounded-2xl text-sm font-medium border hover:bg-gray-50 active:scale-[0.98] transition-all"
+                style={{ borderColor: '#E5E7EB', color: '#374151' }}
+              >
+                Terug
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-1 transition-all"
+                style={{ backgroundColor: '#EF4444' }}
+              >
+                {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Annuleer'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Below the fold sections ── */}
+        {manageToken && (
+          <div className="space-y-0">
+            {/* Divider */}
+            <div className="border-t border-dashed" style={{ borderColor: '#E5E7EB' }} />
+
+            {/* Chat section */}
+            <div className="py-8">
+              <GuestChat
+                manageToken={manageToken}
+                brandColor={brandColor}
+                restaurantName={data.restaurant_name || 'Restaurant'}
+                inline
+              />
+            </div>
+
+            <div className="border-t border-dashed" style={{ borderColor: '#E5E7EB' }} />
+
+            {/* Allergies section */}
+            <div className="py-8">
+              <GuestPreferences
+                manageToken={manageToken}
+                brandColor={brandColor}
+                summaryMode
+              />
+            </div>
+
+            {/* Location section */}
+            {data.google_place_id && (
+              <>
+                <div className="border-t border-dashed" style={{ borderColor: '#E5E7EB' }} />
+                <div className="py-8">
+                  <p className="text-sm font-medium uppercase tracking-wide mb-3" style={{ color: '#6B7280' }}>
+                    Locatie
                   </p>
+                  <a
+                    href={`https://www.google.com/maps/place/?q=place_id:${data.google_place_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium transition-opacity hover:opacity-70"
+                    style={{ color: brandColor }}
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    Route
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
-              </ExpandableSection>
+              </>
             )}
           </div>
         )}
       </main>
 
       {/* ── Footer ── */}
-      <footer className="mt-auto pt-10 pb-6 flex items-center justify-center gap-1.5 opacity-40">
-        <span className="text-[10px] text-gray-400">Powered by</span>
+      <footer className="mt-auto pt-10 pb-8 flex items-center justify-center gap-1.5" style={{ opacity: 0.3 }}>
+        <span className="text-[10px]" style={{ color: '#9CA3AF' }}>Powered by</span>
         <NestoLogo size="sm" showWordmark showIcon={false} className="text-gray-400 scale-90" />
       </footer>
     </div>
