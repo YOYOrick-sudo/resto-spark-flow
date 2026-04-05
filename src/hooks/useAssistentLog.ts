@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { format, isToday, isYesterday } from 'date-fns';
+import { format, isToday, isYesterday, isTomorrow, differenceInCalendarDays } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
 export interface LogEntry {
@@ -15,6 +15,7 @@ export interface LogEntry {
   clickPath?: string;
   entityType?: string;
   entityId?: string;
+  channelIcon?: string;
 }
 
 function formatLogTime(dateStr: string): string {
@@ -28,6 +29,38 @@ function truncate(str: string, max: number): string {
   if (str.length <= max) return str;
   return str.slice(0, max) + '…';
 }
+
+function formatSmartDate(dateStr: string): string {
+  const target = new Date(dateStr + 'T12:00:00');
+  const now = new Date();
+  const diff = differenceInCalendarDays(target, now);
+
+  if (diff === 0) {
+    return now.getHours() >= 12 ? 'vanavond' : 'vanmiddag';
+  }
+  if (diff === 1) return 'morgen';
+  if (diff === 2) return 'overmorgen';
+  if (diff > 2 && diff <= 7) {
+    return target.toLocaleDateString('nl-NL', { weekday: 'long' });
+  }
+  return target.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });
+}
+
+function getChannelIcon(channel: string | undefined): string {
+  if (!channel) return '📋';
+  const icons: Record<string, string> = {
+    widget: '🌐',
+    whatsapp: '💬',
+    phone: '📞',
+    operator: '✏️',
+    walk_in: '🚶',
+    webchat: '🌐',
+  };
+  return icons[channel] || '📋';
+}
+
+// Actions to skip — technical/internal events
+const SKIP_ACTIONS = new Set(['field_update', 'auto_assign', 'status_change', 'trigger']);
 
 interface RawAuditEntry {
   id: string;
@@ -43,33 +76,28 @@ interface RawAuditEntry {
 function humanizeAudit(entry: RawAuditEntry): string {
   const name = entry.metadata?.customer_name || 'Gast';
   const changes = typeof entry.changes === 'object' ? entry.changes : {};
+  const channel = changes?.channel?.new || changes?.channel || entry.metadata?.channel;
+  const resDate = changes?.date?.new || changes?.date || entry.metadata?.reservation_date;
+  const time = changes?.time?.new || changes?.time || entry.metadata?.start_time || '';
+  const ps = changes?.party_size?.new || changes?.party_size || '';
 
   if (entry.action === 'created' && entry.entity_type === 'reservation') {
-    const ps = changes.party_size?.new || changes.party_size || '';
-    const time = changes.time?.new || changes.time || '';
-    return `Reservering geboekt voor ${name}${time ? ` om ${time}` : ''}${ps ? ` (${ps}p)` : ''}. ✓`;
+    const smartDate = resDate ? formatSmartDate(resDate) : '';
+    return `${name} heeft gereserveerd${smartDate ? ` voor ${smartDate}` : ''}${time ? ` ${time}` : ''}${ps ? ` (${ps}p)` : ''}. ✓`;
   }
 
   if (entry.action === 'updated' && entry.entity_type === 'reservation') {
-    const parts: string[] = [];
-    if (changes.party_size) {
-      parts.push(`${name} wilde met ${changes.party_size.new} ipv ${changes.party_size.old} komen. Plek gevonden, aangepast.`);
+    if (changes.party_size?.old && changes.party_size?.new) {
+      return `${name} wilde met ${changes.party_size.new} ipv ${changes.party_size.old} komen. Aangepast. ✓`;
     }
     if (changes.status) {
-      if (changes.status.new === 'cancelled') {
-        return `${name} heeft geannuleerd. ✓`;
-      }
-      if (changes.status.new === 'confirmed') {
-        return `Reservering van ${name} bevestigd. ✓`;
-      }
-      if (changes.status.new === 'checked_in') {
-        return `${name} is ingecheckt. ✓`;
-      }
+      if (changes.status.new === 'cancelled') return `${name} heeft geannuleerd. ✓`;
+      if (changes.status.new === 'confirmed') return `Reservering van ${name} bevestigd. ✓`;
+      if (changes.status.new === 'checked_in' || changes.status.new === 'seated') return `${name} is ingecheckt. ✓`;
     }
-    if (changes.time) {
-      parts.push(`Reservering van ${name} verplaatst naar ${changes.time.new}. ✓`);
+    if (changes.time?.old && changes.time?.new) {
+      return `Reservering van ${name} verplaatst naar ${changes.time.new}. ✓`;
     }
-    if (parts.length > 0) return parts.join(' ');
     return `Reservering van ${name} bijgewerkt. ✓`;
   }
 
@@ -78,6 +106,61 @@ function humanizeAudit(entry: RawAuditEntry): string {
   }
 
   return `${entry.entity_type} ${entry.action}. ✓`;
+}
+
+function getAuditClickPath(entry: RawAuditEntry): string | undefined {
+  if (entry.entity_type === 'reservation') {
+    const changes = typeof entry.changes === 'object' ? entry.changes : {};
+    const resDate = changes?.date?.new || changes?.date || entry.metadata?.reservation_date;
+    if (resDate) {
+      return `/reserveringen?date=${resDate}&highlight=${entry.entity_id}`;
+    }
+    return `/reserveringen?highlight=${entry.entity_id}`;
+  }
+  return undefined;
+}
+
+function deduplicateEntries(entries: { entityId: string; timestamp: string; action: string; index: number }[]): Set<number> {
+  const skipIndices = new Set<number>();
+  const grouped = new Map<string, typeof entries>();
+
+  for (const e of entries) {
+    const key = e.entityId;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(e);
+  }
+
+  const actionPriority: Record<string, number> = { created: 3, updated: 2, deleted: 1 };
+
+  for (const [, group] of grouped) {
+    if (group.length <= 1) continue;
+    // Sort by time, group within 5s windows
+    group.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    let windowStart = new Date(group[0].timestamp).getTime();
+    let windowItems = [group[0]];
+
+    for (let i = 1; i < group.length; i++) {
+      const t = new Date(group[i].timestamp).getTime();
+      if (t - windowStart <= 5000) {
+        windowItems.push(group[i]);
+      } else {
+        // Close window, keep best
+        if (windowItems.length > 1) {
+          windowItems.sort((a, b) => (actionPriority[b.action] || 0) - (actionPriority[a.action] || 0));
+          for (let j = 1; j < windowItems.length; j++) skipIndices.add(windowItems[j].index);
+        }
+        windowStart = t;
+        windowItems = [group[i]];
+      }
+    }
+    if (windowItems.length > 1) {
+      windowItems.sort((a, b) => (actionPriority[b.action] || 0) - (actionPriority[a.action] || 0));
+      for (let j = 1; j < windowItems.length; j++) skipIndices.add(windowItems[j].index);
+    }
+  }
+
+  return skipIndices;
 }
 
 export function useAssistentLog() {
@@ -89,7 +172,6 @@ export function useAssistentLog() {
     queryFn: async () => {
       if (!locationId) return { logEntries: [], hasActivityToday: false };
 
-      // Last 24 hours — use yesterday midnight
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
@@ -121,7 +203,25 @@ export function useAssistentLog() {
 
       const entries: LogEntry[] = [];
 
-      for (const audit of (auditRes.data || []) as RawAuditEntry[]) {
+      // Filter & process audit entries
+      const rawAudits = ((auditRes.data || []) as RawAuditEntry[])
+        .filter(a => !SKIP_ACTIONS.has(a.action));
+
+      // Deduplication
+      const dedupInput = rawAudits.map((a, i) => ({
+        entityId: a.entity_id,
+        timestamp: a.created_at,
+        action: a.action,
+        index: i,
+      }));
+      const skipIndices = deduplicateEntries(dedupInput);
+
+      for (let i = 0; i < rawAudits.length; i++) {
+        if (skipIndices.has(i)) continue;
+        const audit = rawAudits[i];
+        const changes = typeof audit.changes === 'object' ? audit.changes : {};
+        const channel = changes?.channel?.new || changes?.channel || audit.metadata?.channel;
+
         entries.push({
           id: `audit-${audit.id}`,
           type: `${audit.entity_type}_${audit.action}`,
@@ -132,10 +232,12 @@ export function useAssistentLog() {
           isToday: isToday(new Date(audit.created_at)),
           entityType: audit.entity_type,
           entityId: audit.entity_id,
-          clickPath: audit.entity_type === 'reservation' ? `/reserveringen` : undefined,
+          channelIcon: getChannelIcon(channel),
+          clickPath: getAuditClickPath(audit),
         });
       }
 
+      // Messages
       const reminderMessages = (messagesRes.data || []).filter((m: any) => m.template_name);
       const chatMessages = (messagesRes.data || []).filter((m: any) => !m.template_name);
 
@@ -148,16 +250,17 @@ export function useAssistentLog() {
         }, {});
 
         for (const [template, msgs] of Object.entries(grouped)) {
-          const label = template.includes('reminder') ? 'herinneringen' :
+          const label = template.includes('reminder') ? 'reminders' :
                        template.includes('confirmation') ? 'bevestigingen' : 'berichten';
           entries.push({
             id: `bulk-${template}-${(msgs as any[])[0].id}`,
             type: 'bulk_messages',
-            description: `${(msgs as any[]).length} ${label} verstuurd. ✓`,
+            description: `📨 ${(msgs as any[]).length} ${label} verstuurd. ✓`,
             timestamp: (msgs as any[])[0].created_at,
             formattedTime: formatLogTime((msgs as any[])[0].created_at),
             isAi: true,
             isToday: isToday(new Date((msgs as any[])[0].created_at)),
+            channelIcon: undefined, // bulk has icon in text
           });
         }
       }
@@ -173,7 +276,8 @@ export function useAssistentLog() {
           formattedTime: formatLogTime(msg.created_at),
           isAi: !!msg.is_ai_generated,
           isToday: isToday(new Date(msg.created_at)),
-          clickPath: `/assistent?tab=berichten`,
+          clickPath: msg.conversation_id ? `/assistent?tab=berichten&conversation=${msg.conversation_id}` : `/assistent?tab=berichten`,
+          channelIcon: '💬',
         });
       }
 

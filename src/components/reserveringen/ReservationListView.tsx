@@ -75,6 +75,7 @@ interface ReservationListViewProps {
   onInviteWaitlist?: (entryId: string) => void;
   onCancelWaitlist?: (entryId: string) => void;
   density?: DensityType;
+  highlightId?: string | null;
 }
 
 function StatusDot({ status }: { status: Reservation["status"] }) {
@@ -190,6 +191,7 @@ export function ReservationListView({
   onInviteWaitlist,
   onCancelWaitlist,
   density = "compact",
+  highlightId,
 }: ReservationListViewProps) {
   const mergedGroups = useMemo(
     () => buildMergedGroups(reservations, waitlistEntries),
@@ -251,6 +253,7 @@ export function ReservationListView({
                       onStatusChange={onStatusChange}
                       onAssignTable={onAssignTable}
                       density={density}
+                      isHighlighted={highlightId === item.data.id}
                     />
                   );
                 }
@@ -395,9 +398,10 @@ interface ReservationRowProps {
   onStatusChange?: (reservation: Reservation, status: Reservation["status"]) => void;
   onAssignTable?: (reservation: Reservation) => void;
   density: DensityType;
+  isHighlighted?: boolean;
 }
 
-function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, density }: ReservationRowProps) {
+function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, density, isHighlighted }: ReservationRowProps) {
   const statusConfig = STATUS_CONFIG[reservation.status];
   const guestName = getDisplayName(reservation);
   const walkIn = isWalkIn(reservation);
@@ -413,7 +417,8 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         isCompact ? "py-2" : "py-3",
         reservation.status === "cancelled" && "opacity-50",
         reservation.status === "no_show" && "opacity-60",
-        !reservation.table_id && "bg-warning/5"
+        !reservation.table_id && "bg-warning/5",
+        isHighlighted && "animate-pulse bg-primary/10"
       )}
       onClick={onClick}
     >
