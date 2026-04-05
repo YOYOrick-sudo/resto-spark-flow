@@ -156,6 +156,26 @@ export function GuestDetailsStep() {
           </span>
         </label>
 
+        {/* WhatsApp opt-in - only show for mobile numbers */}
+        {/^(\+31\s?6|06|\+316)/.test(guestData.phone.replace(/\s/g, '')) && (
+          <label className="flex items-start gap-3 cursor-pointer select-none py-1">
+            <div className="relative mt-0.5">
+              <input
+                type="checkbox"
+                checked={guestData.whatsapp_optin || false}
+                onChange={e => setGuestData({ whatsapp_optin: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-5 h-5 rounded-lg border-2 border-gray-300 peer-checked:border-transparent transition-all flex items-center justify-center peer-checked:bg-[var(--widget-primary)]">
+                {guestData.whatsapp_optin && <Check className="w-3 h-3 text-white" />}
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 leading-relaxed">
+              Ontvang boekingsupdates via WhatsApp
+            </span>
+          </label>
+        )}
+
         {/* Honeypot */}
         <input
           type="text"
