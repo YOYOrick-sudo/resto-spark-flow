@@ -34,7 +34,6 @@ export default function Assistent() {
     <div className="space-y-6">
       <PageHeader
         title="Assistent"
-        subtitle="Regelt het, zodat jij kunt koken"
         actions={<AssistentIcon size={24} className="text-primary" />}
       />
 
