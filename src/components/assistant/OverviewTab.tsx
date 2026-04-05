@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, MessageSquare, Calendar, Send, CheckCircle } from 'lucide-react';
+import { AlertTriangle, MessageSquare, Calendar, Send, CheckCircle, Check, X, ClipboardList } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
