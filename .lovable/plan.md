@@ -1,25 +1,60 @@
 
 
-# Fix: Highlight animatie stopt niet
+# Fix: Reserveringen laden in AI context
 
 ## Probleem
 
-`animate-pulse` in Tailwind is een **oneindige** animatie. De reserveringsrij knippert continu blauw zolang `isHighlighted` true is. Hoewel `highlightId` na 2.5 seconden op `null` wordt gezet, voelt de animatie flashy en agressief aan.
+`loadContext` in `ai-respond/index.ts` laadt geen reserveringen. De AI heeft daarom geen idee welke reservering een gast bedoelt bij een wijzigings- of annuleringsverzoek.
 
 ## Oplossing
 
-Vervang `animate-pulse` door een zachte eenmalige fade-out animatie:
+### 1. `supabase/functions/ai-respond/index.ts` — `loadContext`
 
-1. **Tailwind config**: Voeg een `highlight-fade` keyframe toe die één keer speelt — begint met `bg-primary/10` en faded naar transparant over 2 seconden.
+Na het ophalen van de customer (regel 94-98), ook aankomende reserveringen laden:
 
-2. **ReservationListView.tsx** (regel 421): Vervang `animate-pulse bg-primary/10` door `animate-highlight-fade` — een eenmalige, subtiele achtergrondkleur die vanzelf verdwijnt.
+```typescript
+let upcomingReservations: any[] = [];
+if (customer?.id) {
+  const { data } = await supabase.from('reservations')
+    .select('id, date, time, party_size, status, notes')
+    .eq('customer_id', customer.id)
+    .eq('location_id', input.location_id)
+    .gte('date', new Date().toISOString().split('T')[0])
+    .order('date', { ascending: true })
+    .limit(5);
+  upcomingReservations = data || [];
+}
+```
 
-3. **Reserveringen.tsx**: De `setTimeout` voor `setHighlightId(null)` kan op 2.5s blijven als cleanup, maar de animatie zelf stopt visueel na één cyclus.
+Voeg `upcomingReservations` toe aan het Context interface en return object.
+
+### 2. `ai-respond/index.ts` — `buildSystemPrompt`
+
+Reserveringen toevoegen aan de system prompt:
+
+```
+RESERVERINGEN VAN DEZE GAST:
+- Vrijdag 4 april om 19:00, 2 personen (bevestigd)
+```
+
+### 3. `ai-respond/index.ts` — booking branches (regels 630-668)
+
+Bij `modify` en `cancel`: specifieke reserveringscontext meegeven aan `generateResponse`:
+
+```typescript
+const resInfo = ctx.upcomingReservations.map(r => 
+  `${r.date} om ${r.time}, ${r.party_size}p (${r.status})`
+).join('; ');
+
+responseText = await generateResponse(ctx, intent, 
+  `De gast heeft deze reserveringen: ${resInfo}. Help met wijzigen.`);
+```
+
+Bij `recommend` mode: ook de reserveringsinfo opnemen in de `agent_actions` beschrijving zodat de operator context heeft.
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `tailwind.config.ts` | Voeg `highlight-fade` keyframe + animatie toe (eenmalig, 2s) |
-| `src/components/reserveringen/ReservationListView.tsx` | Regel 421: `animate-pulse bg-primary/10` → `animate-highlight-fade` |
+| `supabase/functions/ai-respond/index.ts` | `loadContext`: laad upcoming reservations. `buildSystemPrompt`: toon reserveringen. Booking branches: geef reserveringscontext mee. |
 
