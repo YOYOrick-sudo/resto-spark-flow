@@ -434,6 +434,12 @@ ${ctx.customer.total_visits > 5 ? 'Dit is een vaste gast.' : ''}` : '';
 
   const langInstruction = language === 'en' ? 'Antwoord in het Engels.' : 'Antwoord in het Nederlands.';
 
+  const reservationSection = ctx.upcomingReservations.length > 0
+    ? `\nRESERVERINGEN VAN DEZE GAST:\n${ctx.upcomingReservations.map(r =>
+        `- ${r.date} om ${r.time}, ${r.party_size} personen (${r.status})${r.notes ? ` — ${r.notes}` : ''}`
+      ).join('\n')}`
+    : '';
+
   return `Je bent een medewerker van ${ctx.branding.name || 'het restaurant'}.
 ${ctx.branding.description_short ? `Over het restaurant: ${ctx.branding.description_short}` : ''}
 
@@ -447,9 +453,11 @@ REGELS:
 - Bij maatwerk/complexe verzoeken: "Leuk idee! Ik laat een collega contact opnemen."
 - Stel geen onnodige vragen — als je genoeg info hebt, handel direct.
 - Als de gast expliciet vraagt of je een mens bent: "Ik ben de digitale assistent van ${ctx.branding.name || 'het restaurant'}. Wil je liever met een collega spreken?"
+- Als de gast een reservering wil wijzigen/annuleren, benoem welke reservering je gevonden hebt en bevestig.
 - ${langInstruction}
 
 ${customerInfo}
+${reservationSection}
 
 KENNISBANK:
 ${kbSection}`;
