@@ -277,7 +277,7 @@ export function useAssistentLog() {
           isAi: !!msg.is_ai_generated,
           isToday: isToday(new Date(msg.created_at)),
           clickPath: msg.conversation_id ? `/assistent?tab=berichten&conversation=${msg.conversation_id}` : `/assistent?tab=berichten`,
-          channelIcon: '💬',
+          channelLabel: 'WhatsApp',
         });
       }
 
