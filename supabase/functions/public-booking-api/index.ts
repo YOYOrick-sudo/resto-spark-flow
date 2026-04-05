@@ -331,29 +331,40 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
     }
   }
 
-  // 3. Find or create customer
+  // 3. Find or create customer via upsert (ON CONFLICT location_id, phone_number)
   let customerId: string | null = null;
 
-  const { data: existingCustomer } = await admin
-    .from('customers')
-    .select('id, tags, dietary_preferences')
-    .eq('location_id', location_id)
-    .ilike('email', email.toLowerCase())
-    .limit(1)
-    .single();
+  if (phone) {
+    // Upsert on phone_number — the unique constraint key
+    const { data: upsertedCustomer, error: custErr } = await admin
+      .from('customers')
+      .upsert({
+        location_id,
+        first_name,
+        last_name,
+        email: email.toLowerCase(),
+        phone_number: phone,
+        language: language || 'nl',
+        tags: customerTags.length > 0 ? customerTags : [],
+        ...(dietary_preferences ? { dietary_preferences } : {}),
+      }, { onConflict: 'location_id,phone_number' })
+      .select('id, tags, dietary_preferences')
+      .single();
 
-  if (existingCustomer) {
-    customerId = existingCustomer.id;
+    if (custErr) return errorResponse(`Failed to create customer: ${custErr.message}`, 500);
+    customerId = upsertedCustomer!.id;
+
+    // Merge tags and dietary_preferences (upsert overwrites, so we merge post-hoc)
     const updateData: Record<string, unknown> = {};
-    // Merge customer tags (deduplicate)
     if (customerTags.length > 0) {
-      const existingTags = (existingCustomer.tags as string[]) || [];
-      updateData.tags = [...new Set([...existingTags, ...customerTags])];
+      const existingTags = (upsertedCustomer.tags as string[]) || [];
+      const merged = [...new Set([...existingTags, ...customerTags])];
+      if (JSON.stringify(merged) !== JSON.stringify(existingTags)) {
+        updateData.tags = merged;
+      }
     }
-    if (phone) updateData.phone_number = phone;
-    // Merge dietary preferences
     if (dietary_preferences) {
-      const existing = (existingCustomer as any).dietary_preferences || {};
+      const existing = (upsertedCustomer as any).dietary_preferences || {};
       const mergedAllergies = [...new Set([...(existing.allergies || []), ...(dietary_preferences.allergies || [])])];
       updateData.dietary_preferences = {
         allergies: mergedAllergies,
@@ -366,23 +377,53 @@ async function handleBook(body: Record<string, unknown>, clientIp: string, req: 
       await admin.from('customers').update(updateData).eq('id', customerId);
     }
   } else {
-    const { data: newCustomer, error: custErr } = await admin
+    // No phone — fall back to email lookup, then insert
+    const { data: existingCustomer } = await admin
       .from('customers')
-      .insert({
-        location_id,
-        first_name,
-        last_name,
-        email: email.toLowerCase(),
-        phone_number: phone || null,
-        language: language || 'nl',
-        tags: customerTags,
-        ...(dietary_preferences ? { dietary_preferences } : {}),
-      })
-      .select('id')
-      .single();
+      .select('id, tags, dietary_preferences')
+      .eq('location_id', location_id)
+      .ilike('email', email.toLowerCase())
+      .limit(1)
+      .maybeSingle();
 
-    if (custErr) return errorResponse(`Failed to create customer: ${custErr.message}`, 500);
-    customerId = newCustomer!.id;
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+      const updateData: Record<string, unknown> = {};
+      if (customerTags.length > 0) {
+        const existingTags = (existingCustomer.tags as string[]) || [];
+        updateData.tags = [...new Set([...existingTags, ...customerTags])];
+      }
+      if (dietary_preferences) {
+        const existing = (existingCustomer as any).dietary_preferences || {};
+        updateData.dietary_preferences = {
+          allergies: [...new Set([...(existing.allergies || []), ...(dietary_preferences.allergies || [])])],
+          vegetarian: dietary_preferences.vegetarian ?? existing.vegetarian ?? false,
+          vegan: dietary_preferences.vegan ?? existing.vegan ?? false,
+          other: dietary_preferences.other || existing.other || '',
+        };
+      }
+      if (Object.keys(updateData).length > 0) {
+        await admin.from('customers').update(updateData).eq('id', customerId);
+      }
+    } else {
+      const { data: newCustomer, error: custErr } = await admin
+        .from('customers')
+        .insert({
+          location_id,
+          first_name,
+          last_name,
+          email: email.toLowerCase(),
+          phone_number: null,
+          language: language || 'nl',
+          tags: customerTags,
+          ...(dietary_preferences ? { dietary_preferences } : {}),
+        })
+        .select('id')
+        .single();
+
+      if (custErr) return errorResponse(`Failed to create customer: ${custErr.message}`, 500);
+      customerId = newCustomer!.id;
+    }
   }
 
   // 4. Check if payment is required (before creating reservation)
