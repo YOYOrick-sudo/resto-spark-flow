@@ -132,20 +132,37 @@ export function OverviewTab() {
           ))}
 
           {pendingActions.map((action) => (
-            <NestoCard
-              key={action.id}
-              className="p-4 cursor-pointer hover:bg-accent/30 transition-colors"
-              onClick={() => navigate('/assistent?tab=takenbox')}
-            >
+            <NestoCard key={action.id} className="p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                <ClipboardList className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{action.title}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-medium text-foreground">{action.title}</p>
+                    <span className="text-primary text-xs" title="AI-voorstel">✦</span>
+                  </div>
                   {action.beschrijving && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{action.beschrijving}</p>
+                    <p className="text-xs text-muted-foreground">{action.beschrijving}</p>
                   )}
+                  <div className="flex items-center gap-2 mt-3">
+                    <NestoButton
+                      size="sm"
+                      onClick={() => approve.mutate(action.id)}
+                      disabled={approve.isPending}
+                    >
+                      <Check className="h-3.5 w-3.5 mr-1" />
+                      Goedkeuren
+                    </NestoButton>
+                    <NestoButton
+                      size="sm"
+                      variant="outline"
+                      onClick={() => reject.mutate(action.id)}
+                      disabled={reject.isPending}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Afwijzen
+                    </NestoButton>
+                  </div>
                 </div>
-                <span className="text-xs text-primary font-medium">Bekijk →</span>
               </div>
             </NestoCard>
           ))}
