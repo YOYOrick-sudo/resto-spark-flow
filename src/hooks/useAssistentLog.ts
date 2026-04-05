@@ -15,7 +15,7 @@ export interface LogEntry {
   clickPath?: string;
   entityType?: string;
   entityId?: string;
-  channelIcon?: string;
+  channelLabel?: string;
 }
 
 function formatLogTime(dateStr: string): string {
