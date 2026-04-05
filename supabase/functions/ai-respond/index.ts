@@ -36,6 +36,7 @@ interface Context {
   config: any;
   branding: any;
   knowledgeBase: any[];
+  upcomingReservations: any[];
   locationId: string;
 }
 
@@ -91,10 +92,20 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
 
   const conversation = convRes.data;
   let customer = null;
+  let upcomingReservations: any[] = [];
   if (conversation?.customer_id) {
-    const { data } = await supabase.from('customers').select('*')
-      .eq('id', conversation.customer_id).single();
-    customer = data;
+    const [custRes, resRes] = await Promise.all([
+      supabase.from('customers').select('*')
+        .eq('id', conversation.customer_id).single(),
+      supabase.from('reservations').select('id, date, time, party_size, status, notes')
+        .eq('customer_id', conversation.customer_id)
+        .eq('location_id', input.location_id)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .order('date', { ascending: true })
+        .limit(5),
+    ]);
+    customer = custRes.data;
+    upcomingReservations = resRes.data || [];
   }
 
   return {
@@ -104,6 +115,7 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
     config: configRes.data || {},
     branding: brandRes.data || {},
     knowledgeBase: kbRes.data || [],
+    upcomingReservations,
     locationId: input.location_id,
   };
 }
@@ -422,6 +434,12 @@ ${ctx.customer.total_visits > 5 ? 'Dit is een vaste gast.' : ''}` : '';
 
   const langInstruction = language === 'en' ? 'Antwoord in het Engels.' : 'Antwoord in het Nederlands.';
 
+  const reservationSection = ctx.upcomingReservations.length > 0
+    ? `\nRESERVERINGEN VAN DEZE GAST:\n${ctx.upcomingReservations.map(r =>
+        `- ${r.date} om ${r.time}, ${r.party_size} personen (${r.status})${r.notes ? ` — ${r.notes}` : ''}`
+      ).join('\n')}`
+    : '';
+
   return `Je bent een medewerker van ${ctx.branding.name || 'het restaurant'}.
 ${ctx.branding.description_short ? `Over het restaurant: ${ctx.branding.description_short}` : ''}
 
@@ -435,9 +453,11 @@ REGELS:
 - Bij maatwerk/complexe verzoeken: "Leuk idee! Ik laat een collega contact opnemen."
 - Stel geen onnodige vragen — als je genoeg info hebt, handel direct.
 - Als de gast expliciet vraagt of je een mens bent: "Ik ben de digitale assistent van ${ctx.branding.name || 'het restaurant'}. Wil je liever met een collega spreken?"
+- Als de gast een reservering wil wijzigen/annuleren, benoem welke reservering je gevonden hebt en bevestig.
 - ${langInstruction}
 
 ${customerInfo}
+${reservationSection}
 
 KENNISBANK:
 ${kbSection}`;
@@ -633,34 +653,48 @@ Deno.serve(async (req: Request) => {
           // Use AI to generate a helpful response about checking availability
           responseText = await generateResponse(ctx, intent, 'De gast wil een reservering maken of checken. Help ze met beschikbaarheid.');
         } else if (intent.subtype === 'modify') {
+          const resInfo = ctx.upcomingReservations.map(r =>
+            `${r.date} om ${r.time}, ${r.party_size}p (${r.status})`
+          ).join('; ');
+          const resContext = resInfo
+            ? `De gast heeft deze reserveringen: ${resInfo}. Help met wijzigen. Benoem de gevonden reservering.`
+            : 'Er zijn geen aankomende reserveringen gevonden voor deze gast. Vraag om meer details.';
+
           const autonomy = await checkAutonomy(ctx.locationId, 'whatsapp_modify_reservation');
           if (autonomy.autonomy_level === 'recommend') {
             await supabase.from('agent_actions').insert({
               location_id: ctx.locationId,
               action_type: 'modify_reservation',
               title: `${ctx.customer?.first_name || 'Gast'} wil reservering wijzigen`,
-              beschrijving: content.slice(0, 200),
+              beschrijving: resInfo ? `Huidige reservering: ${resInfo}. Verzoek: ${content.slice(0, 150)}` : content.slice(0, 200),
               status: 'concept',
-              action_data: { conversation_id: ctx.conversation.id, customer_id: ctx.customer?.id, original_message: content },
+              action_data: { conversation_id: ctx.conversation.id, customer_id: ctx.customer?.id, original_message: content, current_reservations: ctx.upcomingReservations },
             });
-            responseText = 'Ik geef dat even door aan een collega. Je hoort zo snel mogelijk van ons!';
+            responseText = await generateResponse(ctx, intent, resContext + ' De wijziging moet eerst goedgekeurd worden door een collega. Laat de gast weten dat je het doorgeeft.');
           } else {
-            responseText = await generateResponse(ctx, intent, 'Help de gast met het wijzigen van hun reservering. Vraag naar de gewenste aanpassingen als die nog niet duidelijk zijn.');
+            responseText = await generateResponse(ctx, intent, resContext);
           }
         } else if (intent.subtype === 'cancel') {
+          const resInfo = ctx.upcomingReservations.map(r =>
+            `${r.date} om ${r.time}, ${r.party_size}p (${r.status})`
+          ).join('; ');
+          const resContext = resInfo
+            ? `De gast heeft deze reserveringen: ${resInfo}. Help met annuleren. Benoem de gevonden reservering.`
+            : 'Er zijn geen aankomende reserveringen gevonden voor deze gast. Vraag om meer details.';
+
           const autonomy = await checkAutonomy(ctx.locationId, 'whatsapp_cancel_reservation');
           if (autonomy.autonomy_level === 'recommend') {
             await supabase.from('agent_actions').insert({
               location_id: ctx.locationId,
               action_type: 'cancel_reservation',
               title: `${ctx.customer?.first_name || 'Gast'} wil annuleren`,
-              beschrijving: content.slice(0, 200),
+              beschrijving: resInfo ? `Huidige reservering: ${resInfo}. Verzoek: ${content.slice(0, 150)}` : content.slice(0, 200),
               status: 'concept',
-              action_data: { conversation_id: ctx.conversation.id, customer_id: ctx.customer?.id, original_message: content },
+              action_data: { conversation_id: ctx.conversation.id, customer_id: ctx.customer?.id, original_message: content, current_reservations: ctx.upcomingReservations },
             });
-            responseText = 'Ik geef dat even door aan een collega. Je hoort zo snel mogelijk van ons!';
+            responseText = await generateResponse(ctx, intent, resContext + ' De annulering moet eerst goedgekeurd worden door een collega. Laat de gast weten dat je het doorgeeft.');
           } else {
-            responseText = await generateResponse(ctx, intent, 'Help de gast met het annuleren van hun reservering.');
+            responseText = await generateResponse(ctx, intent, resContext);
           }
         } else {
           responseText = await generateResponse(ctx, intent);
