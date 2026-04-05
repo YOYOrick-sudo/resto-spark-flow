@@ -32,7 +32,7 @@ export function OverviewTab() {
   const { context } = useUserContext();
   const { signals } = useSignals();
   const { conversations } = useConversations('active');
-  const { pendingActions } = useAgentActions();
+  const { pendingActions, approve, reject } = useAgentActions();
   const { logEntries, stats, isLoading } = useAssistentLog();
 
   // Get first name from profiles table
