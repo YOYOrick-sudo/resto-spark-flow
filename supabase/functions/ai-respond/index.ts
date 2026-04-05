@@ -92,10 +92,20 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
 
   const conversation = convRes.data;
   let customer = null;
+  let upcomingReservations: any[] = [];
   if (conversation?.customer_id) {
-    const { data } = await supabase.from('customers').select('*')
-      .eq('id', conversation.customer_id).single();
-    customer = data;
+    const [custRes, resRes] = await Promise.all([
+      supabase.from('customers').select('*')
+        .eq('id', conversation.customer_id).single(),
+      supabase.from('reservations').select('id, date, time, party_size, status, notes')
+        .eq('customer_id', conversation.customer_id)
+        .eq('location_id', input.location_id)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .order('date', { ascending: true })
+        .limit(5),
+    ]);
+    customer = custRes.data;
+    upcomingReservations = resRes.data || [];
   }
 
   return {
@@ -105,6 +115,7 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
     config: configRes.data || {},
     branding: brandRes.data || {},
     knowledgeBase: kbRes.data || [],
+    upcomingReservations,
     locationId: input.location_id,
   };
 }
