@@ -316,12 +316,7 @@ export default function SettingsCommunicatie() {
       </NestoTabContent>
 
       <NestoTabContent value="whatsapp" activeValue={activeTab}>
-        <EmptyState
-          icon={MessageSquare}
-          title="WhatsApp"
-          description="Koppel WhatsApp Business en beheer templates. Beschikbaar in een toekomstige update."
-          size="md"
-        />
+        <WhatsAppTab />
       </NestoTabContent>
     </SettingsDetailLayout>
   );
