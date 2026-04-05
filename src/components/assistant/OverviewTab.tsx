@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X, Plus, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { NestoButton } from '@/components/polar/NestoButton';
+import { NestoBadge } from '@/components/polar/NestoBadge';
 import { Spinner } from '@/components/polar/LoadingStates';
 import { SparkleIndicator } from '@/components/polar/SparkleIndicator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
