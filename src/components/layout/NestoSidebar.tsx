@@ -125,16 +125,6 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
-                aria-label="Notificaties"
-              >
-                <Zap size={18} strokeWidth={0} className="fill-foreground" />
-                {unreadNotifications > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-                )}
-              </button>
-              <button
-                type="button"
                 onClick={onToggleCollapse}
                 className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 aria-label="Sidebar inklappen"
