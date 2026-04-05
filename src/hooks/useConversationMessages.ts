@@ -5,13 +5,15 @@ import { supabase } from '@/integrations/supabase/client';
 export interface Message {
   id: string;
   conversation_id: string;
+  location_id: string;
   direction: string;
   content: string | null;
-  content_type: string | null;
+  message_type: string;
+  channel: string;
   is_ai_generated: boolean | null;
   sent_by: string | null;
   wa_message_id: string | null;
-  delivery_status: string | null;
+  wa_status: string | null;
   template_name: string | null;
   created_at: string | null;
 }
@@ -36,13 +38,15 @@ export function useConversationMessages(conversationId: string | null) {
   });
 
   const sendMessage = useMutation({
-    mutationFn: async ({ content, currentUserId }: { content: string; currentUserId: string }) => {
+    mutationFn: async ({ content, currentUserId, locationId }: { content: string; currentUserId: string; locationId: string }) => {
       if (!conversationId) throw new Error('No conversation');
       const { error } = await supabase.from('messages').insert({
         conversation_id: conversationId,
+        location_id: locationId,
         direction: 'outbound',
         content,
-        content_type: 'text',
+        message_type: 'text',
+        channel: 'webchat',
         is_ai_generated: false,
         sent_by: currentUserId,
       });
