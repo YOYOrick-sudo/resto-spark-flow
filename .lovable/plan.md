@@ -1,60 +1,137 @@
 
 
-# OverviewTab — Definitief ontwerp
+# Sprint E.3: AI Agent — Implementation Plan
 
-## Wat verandert
+## Overview
 
-De huidige OverviewTab heeft headers ("Vandaag geregeld"), een compact stats blok (iconen + tellingen), en NestoCard wrappers rond urgente items. Dit wordt vervangen door een minimalistisch design: alleen kaarten (als er iets is) en een kale log.
+Build the AI agent that automatically handles guest conversations across WhatsApp and webchat. Uses Lovable AI (not external OpenAI/Anthropic keys) for intent classification, tool calling, and response generation.
 
-## Wijzigingen per bestand
+## Key Architecture Decision: Lovable AI Gateway
 
-### 1. `src/hooks/useAssistentLog.ts`
+The sprint spec references OpenAI and Anthropic keys, but we use **Lovable AI** (already configured via `LOVABLE_API_KEY`):
+- **Intent classification**: `google/gemini-2.5-flash-lite` (fast, cheap)
+- **Tool calling + response generation**: `google/gemini-3-flash-preview` (balanced speed/capability)
 
-**Tijdvenster uitbreiden**: Query niet alleen vandaag maar laatste 24 uur (yesterday midnight). Voeg `isToday` boolean toe aan LogEntry zodat de component dag-scheiders kan renderen.
+No additional API keys needed.
 
-**Begroeting zonder activiteit**: Hook retourneert ook `hasActivityToday` flag zodat OverviewTab kan kiezen tussen "Alles loopt" en "De dag begint net".
+---
 
-**Stats blok verwijderen**: De `stats` return value wordt verwijderd — niet meer nodig.
+## Implementation Blocks
 
-### 2. `src/components/assistant/OverviewTab.tsx` — volledig herschrijven
+### Block 1: Database — `increment_knowledge_hit` RPC function
 
-**Weg:**
-- `<h3>Vandaag geregeld</h3>` header
-- Compact stats blok (berichten/reserveringen/reminders iconen)
-- NestoCard wrapper rond urgente items
-- EmptyState component
-- Alle lucide iconen behalve Check/X
+Migration to add:
+- `increment_knowledge_hit(question_text, loc_id)` — upserts hit_count for gap detection
+- No new tables needed; all existing tables (`agent_configurations`, `agent_actions`, `knowledge_base`, `ai_logs`, `messaging_config`) are sufficient
 
-**Nieuw:**
+### Block 2: Edge Function — `ai-respond/index.ts` (the core)
 
-**Begroeting** — zelfde logica maar aangepaste teksten:
-- 0 urgent + activiteit: "Alles loopt. Lekker zo!"
-- 0 urgent + geen activiteit: "De dag begint net. Ik hou het in de gaten."
-- 1 urgent: "1 dingetje voor je:"
-- 2-3: "X dingetjes voor je:"
-- 4+: "X zaken die aandacht nodig hebben:"
+Single edge function (~400 lines) with this flow:
 
-**Actie-kaarten** — geen NestoCard, eigen styling:
-- Escalaties: `bg-warning/5 border border-warning/20 rounded-xl p-4`
-- Goedkeuringsverzoeken: `bg-muted border border-border rounded-xl p-4`
-- Signals: `bg-warning/5 border border-warning/20 rounded-xl p-4`
-- Menselijke taal in de beschrijving (emoji prefix: 💬 escalatie, 📋 goedkeuring, ⚠️ systeem)
-- Knoppen: `NestoButton size="sm"`, Goedkeuren = default, Afwijzen = outline
-- Fade-out animatie bij approve/reject (CSS transition op opacity)
+```text
+inbound message → load context (parallel) → check active window
+  → classify intent (Lovable AI, flash-lite)
+  → route by type:
+    booking → tool calling (check-availability, create/modify/cancel via public-booking-api)
+    faq → knowledge base lookup → respond or gap-detect
+    custom_request/complaint/escalate → escalate
+    greeting/unclear → respond directly
+  → check autonomy (check-autonomy function)
+  → generate response (Lovable AI, flash-preview, with system prompt from branding/tone)
+  → send via send-message or direct insert
+  → log to ai_logs
+```
 
-**Log** — kale lijst, geen wrapper:
-- Per regel: `[timestamp w-12] [beschrijving] [✓] [✦]`
-- `hover:bg-muted/50 rounded-lg` op hele regel
-- Klikbaar → navigeert
-- Dag-scheider tussen vandaag en gisteren: `text-xs text-muted-foreground` met "Gisteren"
-- "Toon meer..." na 10 items (state toggle, laadt volgende 10)
+Key sub-functions:
+- `loadContext()` — parallel fetch of conversation, messages (last 10), customer, config, branding, knowledge_base
+- `checkActiveWindow()` — reservation keywords bypass window check
+- `classifyIntent()` — Lovable AI call with structured output via tool calling
+- `executeTool()` — calls check-availability/public-booking-api, checks autonomy first, respects large_party_threshold
+- `buildSystemPrompt()` — uses `getSystemPromptTone()`, customer context, knowledge base
+- `detectLanguage()` — simple keyword-based NL/EN detection
+- `shouldEscalate()` — person keywords, complaint, 3x fallback detection
+- `handleUnknownFaq()` — inserts gap_detection entry + agent_action card
+- Rate limiting: max 1 response per 2s per conversation, max 50/day → auto-escalate
 
-**Geen activiteit vandaag**: Toon gisteren-items direct (geen EmptyState component)
+### Block 3: Trigger ai-respond from webhooks
 
-### Bestanden
+**`whatsapp-webhook/index.ts`**: After `processInboundMessage()`, check `messaging_config.ai_agent_enabled` + `conversation.handled_by === 'ai'`, then call `ai-respond` via fetch.
 
-| Bestand | Actie |
+**`webchat-message/index.ts`**: Same trigger logic after message insert. Also add webchat email notification (throttled, max 1 per 10 min).
+
+### Block 4: Approval execution flow
+
+When manager clicks "Goedkeuren" on an agent_action (already wired in `useAgentActions.approve`), the agent needs to execute the pending action. Add a new edge function **`execute-agent-action/index.ts`** that:
+1. Reads the action's `action_type` and `action_data`
+2. Executes the tool (e.g., cancel reservation via public-booking-api)
+3. Sends confirmation to the guest via `send-message`
+4. Updates action status
+5. Checks for autonomy suggestion (20+ approvals, 90%+ rate → suggest upgrading to autonomous)
+
+Update `useAgentActions.approve` to call this edge function instead of just updating status.
+
+### Block 5: Bevoegdheden UI — New tab in Settings > Assistent
+
+New tab **"Bevoegdheden"** in `SettingsAssistent.tsx` showing per-task autonomy dropdowns:
+
+| Task | Dropdown |
 |---|---|
-| `src/components/assistant/OverviewTab.tsx` | Herschrijven: kaarten met eigen styling, kale log, dag-scheiders, "toon meer", geen headers/stats |
-| `src/hooks/useAssistentLog.ts` | Tijdvenster → 24 uur, `isToday` per entry, `hasActivityToday` flag, verwijder `stats` return |
+| FAQ beantwoorden | Zelfstandig / Vraag eerst / Uit |
+| Reserveringen boeken | Zelfstandig / Vraag eerst / Uit |
+| Reserveringen wijzigen | ... |
+| Reserveringen annuleren | ... |
+| Reminders versturen | ... |
+| Bevestigingen versturen | ... |
+
+Reads/writes `agent_configurations` table. Only visible for owner/manager roles.
+
+New component: `src/components/settings/assistant/PermissionsTab.tsx`
+
+### Block 6: OverviewTab — New card types
+
+Extend `OverviewTab.tsx` to render:
+- **Knowledge gap cards**: "Gast vroeg: '...'. Wil je een antwoord toevoegen?" with [Toevoegen] button → opens knowledge base editor
+- **Autonomy suggestion cards**: "Je hebt X van Y keer goedgekeurd. Zal ik dit voortaan zelf doen?" with [Ja] / [Nee, liever niet]
+- **New capability cards**: For `agent_configurations` with `is_enabled = false` → "Nieuw: je Assistent kan nu [label]. Hoe wil je dit instellen?" with [Zelfstandig] / [Vraag eerst] / [Uit]
+
+All only visible for owner/manager.
+
+### Block 7: Template restyling — `generate-styled-templates/index.ts`
+
+Edge function that:
+1. Loads branding (tone_of_voice, name, description)
+2. Loads `message_templates` with `is_default = true`
+3. Calls Lovable AI to restyle templates in the restaurant's tone
+4. Returns preview (old vs new)
+
+UI: Button in Settings > Communicatie branding tab. Preview modal with side-by-side comparison and Save/Cancel.
+
+---
+
+## Files Summary
+
+| File | Action |
+|---|---|
+| `supabase/functions/ai-respond/index.ts` | New — core AI agent |
+| `supabase/functions/execute-agent-action/index.ts` | New — approval execution |
+| `supabase/functions/generate-styled-templates/index.ts` | New — template restyling |
+| `supabase/functions/whatsapp-webhook/index.ts` | Edit — add ai-respond trigger |
+| `supabase/functions/webchat-message/index.ts` | Edit — add ai-respond trigger + email notification |
+| `supabase/config.toml` | Edit — add new function entries |
+| `src/pages/settings/SettingsAssistent.tsx` | Edit — add Bevoegdheden tab |
+| `src/components/settings/assistant/PermissionsTab.tsx` | New — autonomy level management UI |
+| `src/components/assistant/OverviewTab.tsx` | Edit — knowledge gap, autonomy suggestion, capability cards |
+| `src/hooks/useAgentActions.ts` | Edit — approve calls execute-agent-action |
+| Migration | `increment_knowledge_hit` RPC function |
+
+## Order
+
+1. Migration (increment_knowledge_hit RPC)
+2. `ai-respond` edge function
+3. `execute-agent-action` edge function
+4. Webhook triggers (whatsapp-webhook + webchat-message)
+5. PermissionsTab + SettingsAssistent update
+6. OverviewTab card types (gap, suggestion, capability)
+7. `generate-styled-templates` + UI button
+8. Deploy + config.toml
 
