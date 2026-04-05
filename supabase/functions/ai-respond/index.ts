@@ -97,11 +97,12 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
     const [custRes, resRes] = await Promise.all([
       supabase.from('customers').select('*')
         .eq('id', conversation.customer_id).single(),
-      supabase.from('reservations').select('id, date, time, party_size, status, notes')
+      supabase.from('reservations')
+        .select('id, reservation_date, start_time, party_size, status, guest_notes, manage_token')
         .eq('customer_id', conversation.customer_id)
         .eq('location_id', input.location_id)
-        .gte('date', new Date().toISOString().split('T')[0])
-        .order('date', { ascending: true })
+        .gte('reservation_date', new Date().toISOString().split('T')[0])
+        .order('reservation_date', { ascending: true })
         .limit(5),
     ]);
     customer = custRes.data;
@@ -333,16 +334,94 @@ async function executeBookingTool(toolName: string, toolInput: any, ctx: Context
     }
   }
 
-  // For create/modify/cancel we call public-booking-api
-  // These require a reservation context; for now we provide a helpful message
+  // Create reservation via public-booking-api
   if (toolName === 'create_reservation') {
-    return { response: `Ik maak een reservering voor je: ${toolInput.party_size} personen op ${toolInput.date} om ${toolInput.time}. Een moment...` };
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/public-booking-api`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE_KEY}` },
+        body: JSON.stringify({
+          route: 'book',
+          location_id: ctx.locationId,
+          date: toolInput.date,
+          start_time: toolInput.time,
+          party_size: toolInput.party_size,
+          first_name: ctx.customer?.first_name || toolInput.first_name || 'Gast',
+          last_name: ctx.customer?.last_name || toolInput.last_name || '',
+          email: ctx.customer?.email || toolInput.email || '',
+          phone: ctx.customer?.phone_number || toolInput.phone || '',
+          ticket_id: toolInput.ticket_id,
+          channel: ctx.conversation.channel === 'whatsapp' ? 'whatsapp' : 'webchat',
+          guest_notes: toolInput.notes || '',
+        }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        return { response: `Je reservering is bevestigd! ${toolInput.party_size} personen op ${toolInput.date} om ${toolInput.time}. Tot dan! 🎉` };
+      }
+      return { response: data.error || 'Er ging iets mis bij het aanmaken van de reservering. Probeer het opnieuw.' };
+    } catch (err) {
+      console.error('[AI-RESPOND] create_reservation error:', err);
+      return { response: 'Er ging iets mis. Probeer het zo opnieuw.' };
+    }
   }
+
+  // Modify reservation via public-booking-api (uses manage_token)
   if (toolName === 'modify_reservation') {
-    return { response: `Ik pas je reservering aan. Even geduld...` };
+    const reservation = ctx.upcomingReservations.find((r: any) => r.id === toolInput.reservation_id);
+    if (!reservation?.manage_token) {
+      return { response: 'Ik kan de reservering niet vinden om te wijzigen. Kun je meer details geven?' };
+    }
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/public-booking-api`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE_KEY}` },
+        body: JSON.stringify({
+          route: 'manage',
+          token: reservation.manage_token,
+          action: 'modify',
+          new_date: toolInput.new_date || reservation.reservation_date,
+          new_start_time: toolInput.new_time || reservation.start_time,
+          new_party_size: toolInput.new_party_size || reservation.party_size,
+        }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        return { response: `Je reservering is aangepast! De nieuwe details: ${toolInput.new_party_size || reservation.party_size} personen op ${toolInput.new_date || reservation.reservation_date} om ${toolInput.new_time || reservation.start_time}. ✅` };
+      }
+      return { response: data.error || 'Het wijzigen is helaas niet gelukt. Wil je dat ik een collega inschakel?' };
+    } catch (err) {
+      console.error('[AI-RESPOND] modify_reservation error:', err);
+      return { response: 'Er ging iets mis bij het wijzigen. Ik schakel een collega in.' };
+    }
   }
+
+  // Cancel reservation via public-booking-api (uses manage_token)
   if (toolName === 'cancel_reservation') {
-    return { response: `Ik annuleer je reservering. Even geduld...` };
+    const reservation = ctx.upcomingReservations.find((r: any) => r.id === toolInput.reservation_id);
+    if (!reservation?.manage_token) {
+      return { response: 'Ik kan de reservering niet vinden om te annuleren. Kun je meer details geven?' };
+    }
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/public-booking-api`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE_KEY}` },
+        body: JSON.stringify({
+          route: 'manage',
+          token: reservation.manage_token,
+          action: 'cancel',
+          cancellation_reason: toolInput.reason || 'Geannuleerd via chat',
+        }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        return { response: 'Je reservering is geannuleerd. Mocht je toch weer willen komen, boek gerust opnieuw!' };
+      }
+      return { response: data.error || 'Het annuleren is helaas niet gelukt. Ik schakel een collega in.' };
+    } catch (err) {
+      console.error('[AI-RESPOND] cancel_reservation error:', err);
+      return { response: 'Er ging iets mis bij het annuleren. Ik schakel een collega in.' };
+    }
   }
 
   return { response: 'Ik ga dit voor je regelen.' };
@@ -419,13 +498,27 @@ function getSystemPromptTone(tone: string | null): string {
   }
 }
 
+function buildDietInfo(customer: any): string {
+  if (!customer?.dietary_preferences) return '';
+  const prefs = customer.dietary_preferences;
+  const parts: string[] = [];
+  if (prefs.vegetarian) parts.push('Vegetarisch');
+  if (prefs.vegan) parts.push('Veganistisch');
+  if (prefs.allergies?.length) parts.push(`allergieën: ${prefs.allergies.join(', ')}`);
+  if (prefs.other) parts.push(prefs.other);
+  return parts.length > 0 ? `Dieet: ${parts.join(', ')}` : '';
+}
+
 function buildSystemPrompt(ctx: Context, language: 'nl' | 'en'): string {
   const tone = getSystemPromptTone(ctx.branding.tone_of_voice);
-  const allergies = ctx.customer?.dietary_preferences?.allergies;
+  const dietInfo = buildDietInfo(ctx.customer);
   const customerInfo = ctx.customer ? `
-GAST: ${ctx.customer.first_name || 'Onbekende gast'}
+GAST: ${ctx.customer.first_name || 'Onbekende gast'}${ctx.customer.last_name ? ` ${ctx.customer.last_name}` : ''}
+${ctx.customer.phone_number ? `Tel: ${ctx.customer.phone_number}` : ''}
+${ctx.customer.email ? `Email: ${ctx.customer.email}` : ''}
 Bezoeken: ${ctx.customer.total_visits || 0}
-${allergies?.length ? `Allergieën: ${allergies.join(', ')}` : ''}
+${dietInfo}
+${ctx.customer.notes ? `Notities: ${ctx.customer.notes}` : ''}
 ${ctx.customer.total_visits > 5 ? 'Dit is een vaste gast.' : ''}` : '';
 
   const kbSection = ctx.knowledgeBase.length > 0
@@ -436,8 +529,8 @@ ${ctx.customer.total_visits > 5 ? 'Dit is een vaste gast.' : ''}` : '';
 
   const reservationSection = ctx.upcomingReservations.length > 0
     ? `\nRESERVERINGEN VAN DEZE GAST:\n${ctx.upcomingReservations.map(r =>
-        `- ${r.date} om ${r.time}, ${r.party_size} personen (${r.status})${r.notes ? ` — ${r.notes}` : ''}`
-      ).join('\n')}`
+        `- ${r.reservation_date} om ${r.start_time?.slice(0, 5)}, ${r.party_size} personen (${r.status})${r.guest_notes ? ` — ${r.guest_notes}` : ''}`
+      ).join('\n')}\nGebruik deze info als de gast vraagt over een bestaande reservering. Benoem de specifieke reservering bij wijzigings- of annuleringsverzoeken.`
     : '';
 
   return `Je bent een medewerker van ${ctx.branding.name || 'het restaurant'}.
@@ -505,6 +598,178 @@ async function generateResponse(ctx: Context, intent: Intent, extraContext?: str
     return data.choices?.[0]?.message?.content || 'Even geduld, ik kom zo bij je terug.';
   } catch (err) {
     console.error('[AI-RESPOND] Generation failed:', err);
+    return 'Even geduld, ik kom zo bij je terug.';
+  }
+}
+
+// ─── RESPONSE WITH TOOL CALLING ───
+
+const bookingTools = [
+  {
+    type: 'function' as const,
+    function: {
+      name: 'check_availability',
+      description: 'Check beschikbaarheid voor een datum en groepsgrootte.',
+      parameters: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', description: 'Datum in YYYY-MM-DD formaat' },
+          party_size: { type: 'number', description: 'Aantal personen' },
+        },
+        required: ['date', 'party_size'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'create_reservation',
+      description: 'Maak een nieuwe reservering aan.',
+      parameters: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', description: 'Datum in YYYY-MM-DD formaat' },
+          time: { type: 'string', description: 'Tijdstip in HH:MM formaat' },
+          party_size: { type: 'number', description: 'Aantal personen' },
+          first_name: { type: 'string', description: 'Voornaam van de gast' },
+          last_name: { type: 'string', description: 'Achternaam van de gast' },
+          notes: { type: 'string', description: 'Opmerkingen van de gast' },
+        },
+        required: ['date', 'time', 'party_size'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'modify_reservation',
+      description: 'Wijzig een bestaande reservering.',
+      parameters: {
+        type: 'object',
+        properties: {
+          reservation_id: { type: 'string', description: 'ID van de reservering' },
+          new_date: { type: 'string', description: 'Nieuwe datum (YYYY-MM-DD)' },
+          new_time: { type: 'string', description: 'Nieuw tijdstip (HH:MM)' },
+          new_party_size: { type: 'number', description: 'Nieuw aantal personen' },
+        },
+        required: ['reservation_id'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'cancel_reservation',
+      description: 'Annuleer een bestaande reservering.',
+      parameters: {
+        type: 'object',
+        properties: {
+          reservation_id: { type: 'string', description: 'ID van de reservering' },
+          reason: { type: 'string', description: 'Reden voor annulering' },
+        },
+        required: ['reservation_id'],
+      },
+    },
+  },
+];
+
+async function generateResponseWithTools(ctx: Context, intent: Intent, extraContext?: string): Promise<string> {
+  const lastMessage = ctx.messages[ctx.messages.length - 1];
+  const language = detectLanguage(lastMessage?.content || '');
+  const systemPrompt = buildSystemPrompt(ctx, language);
+
+  const conversationMessages = ctx.messages.map(m => ({
+    role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
+    content: m.content || '',
+  }));
+
+  const messages: any[] = [
+    { role: 'system', content: systemPrompt + (extraContext ? `\n\nADDITIONELE CONTEXT:\n${extraContext}` : '') },
+    ...conversationMessages,
+  ];
+
+  try {
+    // Step 1: Ask AI what tool to call
+    const resp = await fetch(AI_GATEWAY, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages,
+        tools: bookingTools,
+        temperature: 0.3,
+        max_tokens: 500,
+      }),
+    });
+
+    if (!resp.ok) {
+      console.error('[AI-RESPOND] Tool-calling generation error:', resp.status);
+      return 'Even geduld, ik kom zo bij je terug.';
+    }
+
+    const data = await resp.json();
+    const choice = data.choices?.[0]?.message;
+
+    // If AI responds with text (no tool call), return that
+    if (!choice?.tool_calls?.length) {
+      return choice?.content || 'Even geduld, ik kom zo bij je terug.';
+    }
+
+    // Step 2: Execute the tool
+    const toolCall = choice.tool_calls[0];
+    const toolName = toolCall.function.name;
+    const toolInput = JSON.parse(toolCall.function.arguments || '{}');
+    console.log(`[AI-RESPOND] Tool call: ${toolName}`, toolInput);
+
+    const toolResult = await executeBookingTool(toolName, toolInput, ctx);
+
+    if (toolResult.escalate) {
+      return toolResult.reason || 'Ik schakel een collega in om je verder te helpen.';
+    }
+
+    if (toolResult.pending) {
+      // Generate a friendly "I'll pass this along" message
+      return await generateResponse(ctx, intent, 'De actie moet eerst goedgekeurd worden door een collega. Laat de gast vriendelijk weten dat je het doorgeeft en dat er snel een reactie volgt.');
+    }
+
+    // Step 3: Feed tool result back to AI for a natural response
+    messages.push({
+      role: 'assistant',
+      content: null,
+      tool_calls: [toolCall],
+    });
+    messages.push({
+      role: 'tool',
+      tool_call_id: toolCall.id,
+      content: toolResult.response || 'Actie uitgevoerd.',
+    });
+
+    const resp2 = await fetch(AI_GATEWAY, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages,
+        temperature: 0.7,
+        max_tokens: 500,
+      }),
+    });
+
+    if (!resp2.ok) {
+      // Fallback to direct tool response
+      return toolResult.response || 'Even geduld, ik kom zo bij je terug.';
+    }
+
+    const data2 = await resp2.json();
+    return data2.choices?.[0]?.message?.content || toolResult.response || 'Even geduld, ik kom zo bij je terug.';
+  } catch (err) {
+    console.error('[AI-RESPOND] Tool-calling failed:', err);
     return 'Even geduld, ik kom zo bij je terug.';
   }
 }
@@ -648,14 +913,21 @@ Deno.serve(async (req: Request) => {
 
     switch (intent.type) {
       case 'booking': {
-        // Determine the booking sub-action
-        if (intent.subtype === 'new' || intent.subtype === 'status') {
-          // Use AI to generate a helpful response about checking availability
-          responseText = await generateResponse(ctx, intent, 'De gast wil een reservering maken of checken. Help ze met beschikbaarheid.');
+        // Build reservation context string for all booking intents
+        const resInfo = ctx.upcomingReservations.map(r =>
+          `${r.reservation_date} om ${r.start_time?.slice(0, 5)}, ${r.party_size}p (${r.status})`
+        ).join('; ');
+
+        if (intent.subtype === 'new') {
+          // Use tool-calling flow for new bookings
+          responseText = await generateResponseWithTools(ctx, intent,
+            'De gast wil een reservering maken. Gebruik check_availability om beschikbaarheid te checken en create_reservation om de boeking te maken. Vraag naar datum, tijd en aantal personen als die info ontbreekt.');
+        } else if (intent.subtype === 'status') {
+          const resContext = resInfo
+            ? `De gast heeft deze reserveringen: ${resInfo}. Geef de status.`
+            : 'Er zijn geen aankomende reserveringen gevonden voor deze gast. Vraag om meer details.';
+          responseText = await generateResponse(ctx, intent, resContext);
         } else if (intent.subtype === 'modify') {
-          const resInfo = ctx.upcomingReservations.map(r =>
-            `${r.date} om ${r.time}, ${r.party_size}p (${r.status})`
-          ).join('; ');
           const resContext = resInfo
             ? `De gast heeft deze reserveringen: ${resInfo}. Help met wijzigen. Benoem de gevonden reservering.`
             : 'Er zijn geen aankomende reserveringen gevonden voor deze gast. Vraag om meer details.';
@@ -672,12 +944,11 @@ Deno.serve(async (req: Request) => {
             });
             responseText = await generateResponse(ctx, intent, resContext + ' De wijziging moet eerst goedgekeurd worden door een collega. Laat de gast weten dat je het doorgeeft.');
           } else {
-            responseText = await generateResponse(ctx, intent, resContext);
+            // Use tool-calling flow for autonomous modify
+            responseText = await generateResponseWithTools(ctx, intent,
+              resContext + ' Gebruik modify_reservation om de wijziging door te voeren. Benoem welke reservering je gaat wijzigen.');
           }
         } else if (intent.subtype === 'cancel') {
-          const resInfo = ctx.upcomingReservations.map(r =>
-            `${r.date} om ${r.time}, ${r.party_size}p (${r.status})`
-          ).join('; ');
           const resContext = resInfo
             ? `De gast heeft deze reserveringen: ${resInfo}. Help met annuleren. Benoem de gevonden reservering.`
             : 'Er zijn geen aankomende reserveringen gevonden voor deze gast. Vraag om meer details.';
@@ -694,7 +965,9 @@ Deno.serve(async (req: Request) => {
             });
             responseText = await generateResponse(ctx, intent, resContext + ' De annulering moet eerst goedgekeurd worden door een collega. Laat de gast weten dat je het doorgeeft.');
           } else {
-            responseText = await generateResponse(ctx, intent, resContext);
+            // Use tool-calling flow for autonomous cancel
+            responseText = await generateResponseWithTools(ctx, intent,
+              resContext + ' Gebruik cancel_reservation om te annuleren. Benoem welke reservering je gaat annuleren.');
           }
         } else {
           responseText = await generateResponse(ctx, intent);
