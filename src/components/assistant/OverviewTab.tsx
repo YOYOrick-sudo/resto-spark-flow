@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X, Plus, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { NestoButton } from '@/components/polar/NestoButton';
+import { NestoBadge } from '@/components/polar/NestoBadge';
 import { Spinner } from '@/components/polar/LoadingStates';
 import { SparkleIndicator } from '@/components/polar/SparkleIndicator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -327,7 +328,11 @@ export function OverviewTab() {
                   {entry.formattedTime}
                 </span>
                 <p className="text-sm text-foreground flex-1">
-                  {entry.channelIcon && <span className="mr-1.5">{entry.channelIcon}</span>}
+                  {entry.channelLabel && (
+                    <NestoBadge variant="outline" size="sm" className="text-muted-foreground flex-shrink-0 mr-1.5">
+                      {entry.channelLabel}
+                    </NestoBadge>
+                  )}
                   {entry.description}
                   {entry.isAi && <SparkleIndicator size="sm" variant="muted" className="ml-1" />}
                 </p>

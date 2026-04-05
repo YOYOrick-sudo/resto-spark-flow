@@ -15,7 +15,7 @@ export interface LogEntry {
   clickPath?: string;
   entityType?: string;
   entityId?: string;
-  channelIcon?: string;
+  channelLabel?: string;
 }
 
 function formatLogTime(dateStr: string): string {
@@ -46,17 +46,17 @@ function formatSmartDate(dateStr: string): string {
   return target.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });
 }
 
-function getChannelIcon(channel: string | undefined): string {
-  if (!channel) return '📋';
-  const icons: Record<string, string> = {
-    widget: '🌐',
-    whatsapp: '💬',
-    phone: '📞',
-    operator: '✏️',
-    walk_in: '🚶',
-    webchat: '🌐',
+function getChannelLabel(channel: string | undefined): string | undefined {
+  if (!channel) return undefined;
+  const labels: Record<string, string> = {
+    widget: 'Web',
+    whatsapp: 'WhatsApp',
+    phone: 'Telefoon',
+    operator: 'Handmatig',
+    walk_in: 'Inloop',
+    webchat: 'Web',
   };
-  return icons[channel] || '📋';
+  return labels[channel];
 }
 
 // Actions to skip — technical/internal events
@@ -232,7 +232,7 @@ export function useAssistentLog() {
           isToday: isToday(new Date(audit.created_at)),
           entityType: audit.entity_type,
           entityId: audit.entity_id,
-          channelIcon: getChannelIcon(channel),
+          channelLabel: getChannelLabel(channel),
           clickPath: getAuditClickPath(audit),
         });
       }
@@ -260,7 +260,7 @@ export function useAssistentLog() {
             formattedTime: formatLogTime((msgs as any[])[0].created_at),
             isAi: true,
             isToday: isToday(new Date((msgs as any[])[0].created_at)),
-            channelIcon: undefined, // bulk has icon in text
+            channelLabel: undefined,
           });
         }
       }
@@ -277,7 +277,7 @@ export function useAssistentLog() {
           isAi: !!msg.is_ai_generated,
           isToday: isToday(new Date(msg.created_at)),
           clickPath: msg.conversation_id ? `/assistent?tab=berichten&conversation=${msg.conversation_id}` : `/assistent?tab=berichten`,
-          channelIcon: '💬',
+          channelLabel: 'WhatsApp',
         });
       }
 
