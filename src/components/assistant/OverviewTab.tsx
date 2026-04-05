@@ -65,6 +65,10 @@ export function OverviewTab() {
 
   const summaryText = totalUrgent === 0
     ? 'Alles is afgehandeld. Lekker zo! ✓'
+    : totalUrgent >= 4
+    ? `${totalUrgent} zaken die aandacht nodig hebben:`
+    : escalatedConversations.length > 0 && totalUrgent === 1
+    ? 'Een gast wil je spreken:'
     : `${totalUrgent} ${totalUrgent === 1 ? 'dingetje' : 'dingetjes'} voor je:`;
 
   if (isLoading) {
