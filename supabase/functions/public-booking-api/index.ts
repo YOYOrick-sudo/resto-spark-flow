@@ -1098,32 +1098,49 @@ async function handleWaitlistPost(body: Record<string, unknown>, clientIp: strin
     return errorResponse('Waitlist is not enabled for this location', 403);
   }
 
-  // Find or create customer
+  // Find or create customer via upsert
   let customerId: string | null = null;
-  const { data: existingCustomer } = await admin
-    .from('customers')
-    .select('id')
-    .eq('location_id', location_id)
-    .ilike('email', email.toLowerCase())
-    .limit(1)
-    .single();
-
-  if (existingCustomer) {
-    customerId = existingCustomer.id;
-  } else {
-    const { data: newCustomer } = await admin
+  if (phone) {
+    const { data: upsertedCustomer } = await admin
       .from('customers')
-      .insert({
+      .upsert({
         location_id,
         first_name,
         last_name,
         email: email.toLowerCase(),
-        phone_number: phone || null,
+        phone_number: phone,
         language: 'nl',
-      })
+      }, { onConflict: 'location_id,phone_number' })
       .select('id')
       .single();
-    customerId = newCustomer?.id || null;
+    customerId = upsertedCustomer?.id || null;
+  } else {
+    // No phone — fall back to email lookup
+    const { data: existingCustomer } = await admin
+      .from('customers')
+      .select('id')
+      .eq('location_id', location_id)
+      .ilike('email', email.toLowerCase())
+      .limit(1)
+      .maybeSingle();
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+    } else {
+      const { data: newCustomer } = await admin
+        .from('customers')
+        .insert({
+          location_id,
+          first_name,
+          last_name,
+          email: email.toLowerCase(),
+          phone_number: null,
+          language: 'nl',
+        })
+        .select('id')
+        .single();
+      customerId = newCustomer?.id || null;
+    }
   }
 
   // Create waitlist entry

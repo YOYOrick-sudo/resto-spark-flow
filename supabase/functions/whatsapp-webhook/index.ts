@@ -277,32 +277,22 @@ async function processInboundMessage(location: any, value: any, message: any) {
 
 async function findOrCreateCustomer(locationId: string, phone: string, name: string) {
   const phoneE164 = phone.startsWith('+') ? phone : `+${phone}`;
-
-  // Zoek bestaande customer op telefoonnummer
-  const { data: existing } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('location_id', locationId)
-    .eq('phone_number', phoneE164)
-    .maybeSingle();
-
-  if (existing) return existing;
-
-  // Maak nieuwe customer aan
   const nameParts = name.split(' ');
-  const { data: newCustomer } = await supabase
+
+  // Upsert: insert or update on conflict (location_id, phone_number)
+  const { data: customer } = await supabase
     .from('customers')
-    .insert({
+    .upsert({
       location_id: locationId,
       first_name: nameParts[0] || name,
       last_name: nameParts.slice(1).join(' ') || '',
       phone_number: phoneE164,
       whatsapp_opt_in: true,
-    })
+    }, { onConflict: 'location_id,phone_number' })
     .select('id')
     .single();
 
-  return newCustomer;
+  return customer;
 }
 
 // ─── CONVERSATION ZOEKEN OF AANMAKEN ───
