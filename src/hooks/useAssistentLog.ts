@@ -46,17 +46,17 @@ function formatSmartDate(dateStr: string): string {
   return target.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });
 }
 
-function getChannelIcon(channel: string | undefined): string {
-  if (!channel) return '📋';
-  const icons: Record<string, string> = {
-    widget: '🌐',
-    whatsapp: '💬',
-    phone: '📞',
-    operator: '✏️',
-    walk_in: '🚶',
-    webchat: '🌐',
+function getChannelLabel(channel: string | undefined): string | undefined {
+  if (!channel) return undefined;
+  const labels: Record<string, string> = {
+    widget: 'Web',
+    whatsapp: 'WhatsApp',
+    phone: 'Telefoon',
+    operator: 'Handmatig',
+    walk_in: 'Inloop',
+    webchat: 'Web',
   };
-  return icons[channel] || '📋';
+  return labels[channel];
 }
 
 // Actions to skip — technical/internal events
