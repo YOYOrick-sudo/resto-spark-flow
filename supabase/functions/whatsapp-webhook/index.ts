@@ -244,6 +244,32 @@ async function processInboundMessage(location: any, value: any, message: any) {
     console.error('[WA-WEBHOOK] Error inserting message:', error);
   } else {
     console.log(`[WA-WEBHOOK] Inbound from +${senderPhone} for ${location.name}`);
+
+    // Trigger AI agent if enabled
+    try {
+      const { data: msgConfig } = await supabase
+        .from('messaging_config')
+        .select('ai_agent_enabled')
+        .eq('location_id', location.id)
+        .maybeSingle();
+
+      if (msgConfig?.ai_agent_enabled && conversation.handled_by === 'ai') {
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/ai-respond`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            conversation_id: conversation.id,
+            message_id: 'wa_inbound',
+            location_id: location.id,
+          }),
+        });
+      }
+    } catch (aiErr) {
+      console.error('[WA-WEBHOOK] AI trigger error:', aiErr);
+    }
   }
 }
 

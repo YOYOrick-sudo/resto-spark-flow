@@ -117,6 +117,38 @@ Deno.serve(async (req: Request) => {
       })
       .eq('id', conversation.id);
 
+    // Trigger AI agent if enabled
+    try {
+      const { data: msgConfig } = await supabase
+        .from('messaging_config')
+        .select('ai_agent_enabled')
+        .eq('location_id', reservation.location_id)
+        .maybeSingle();
+
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('handled_by')
+        .eq('id', conversation.id)
+        .single();
+
+      if (msgConfig?.ai_agent_enabled && conv?.handled_by === 'ai') {
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/ai-respond`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            conversation_id: conversation.id,
+            message_id: message?.id,
+            location_id: reservation.location_id,
+          }),
+        });
+      }
+    } catch (aiErr) {
+      console.error('[WEBCHAT] AI trigger error:', aiErr);
+    }
+
     return json({
       success: true,
       message_id: message?.id,

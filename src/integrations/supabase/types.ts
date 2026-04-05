@@ -4602,6 +4602,10 @@ export type Database = {
         Args: { _location_id: string; _user_id: string }
         Returns: string[]
       }
+      increment_knowledge_hit: {
+        Args: { loc_id: string; question_text: string }
+        Returns: undefined
+      }
       increment_marketing_analytics: {
         Args: { p_campaign_id: string; p_field: string; p_location_id: string }
         Returns: undefined
