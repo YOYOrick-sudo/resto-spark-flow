@@ -260,7 +260,7 @@ export function useAssistentLog() {
             formattedTime: formatLogTime((msgs as any[])[0].created_at),
             isAi: true,
             isToday: isToday(new Date((msgs as any[])[0].created_at)),
-            channelIcon: undefined, // bulk has icon in text
+            channelLabel: undefined,
           });
         }
       }
