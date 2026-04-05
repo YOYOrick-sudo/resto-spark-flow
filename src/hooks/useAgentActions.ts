@@ -45,23 +45,33 @@ export function useAgentActions() {
   const approve = useMutation({
     mutationFn: async (actionId: string) => {
       const userId = context?.user_id;
-      const { error } = await supabase
-        .from('agent_actions')
-        .update({
-          status: 'goedgekeurd',
-          goedgekeurd_door: userId,
-          goedgekeurd_op: new Date().toISOString(),
-        })
-        .eq('id', actionId);
-      if (error) throw error;
 
-      if (locationId && userId) {
-        await supabase.from('agent_feedback').insert({
-          location_id: locationId,
-          action_id: actionId,
-          feedback_type: 'approved',
-          given_by: userId,
-        });
+      // Call execute-agent-action edge function
+      const { error: fnError } = await supabase.functions.invoke('execute-agent-action', {
+        body: { action_id: actionId, user_id: userId },
+      });
+
+      if (fnError) {
+        // Fallback: just update status directly
+        console.error('[APPROVE] Edge function error, falling back:', fnError);
+        const { error } = await supabase
+          .from('agent_actions')
+          .update({
+            status: 'goedgekeurd',
+            goedgekeurd_door: userId,
+            goedgekeurd_op: new Date().toISOString(),
+          })
+          .eq('id', actionId);
+        if (error) throw error;
+
+        if (locationId && userId) {
+          await supabase.from('agent_feedback').insert({
+            location_id: locationId,
+            action_id: actionId,
+            feedback_type: 'approved',
+            given_by: userId,
+          });
+        }
       }
     },
     onSuccess: () => {
