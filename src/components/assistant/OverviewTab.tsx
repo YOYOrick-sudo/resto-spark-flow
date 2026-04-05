@@ -1,13 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, MessageSquare, Calendar, Send, CheckCircle, Check, X, ClipboardList } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { NestoCard } from '@/components/polar/NestoCard';
-import { NestoBadge } from '@/components/polar/NestoBadge';
 import { NestoButton } from '@/components/polar/NestoButton';
-import { EmptyState } from '@/components/polar/EmptyState';
 import { Spinner } from '@/components/polar/LoadingStates';
+import { SparkleIndicator } from '@/components/polar/SparkleIndicator';
 import { useSignals } from '@/hooks/useSignals';
 import { useConversations } from '@/hooks/useConversations';
 import { useAgentActions } from '@/hooks/useAgentActions';
@@ -21,11 +19,7 @@ function getGreeting(): string {
   return 'Goedenavond';
 }
 
-function SparkleIndicator() {
-  return (
-    <span className="text-primary text-xs ml-1" title="Automatisch door AI">✦</span>
-  );
-}
+const LOG_PAGE_SIZE = 10;
 
 export function OverviewTab() {
   const navigate = useNavigate();
@@ -33,9 +27,10 @@ export function OverviewTab() {
   const { signals } = useSignals();
   const { conversations } = useConversations('active');
   const { pendingActions, approve, reject } = useAgentActions();
-  const { logEntries, stats, isLoading } = useAssistentLog();
+  const { logEntries, hasActivityToday, isLoading } = useAssistentLog();
+  const [visibleCount, setVisibleCount] = useState(LOG_PAGE_SIZE);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
-  // Get first name from profiles table
   const { data: profile } = useQuery({
     queryKey: ['profile-name', context?.user_id],
     queryFn: async () => {
@@ -64,12 +59,32 @@ export function OverviewTab() {
   const totalUrgent = urgentSignals.length + escalatedConversations.length + pendingActions.length;
 
   const summaryText = totalUrgent === 0
-    ? 'Alles is afgehandeld. Lekker zo! ✓'
+    ? (hasActivityToday ? 'Alles loopt. Lekker zo!' : 'De dag begint net. Ik hou het in de gaten.')
     : totalUrgent >= 4
     ? `${totalUrgent} zaken die aandacht nodig hebben:`
     : escalatedConversations.length > 0 && totalUrgent === 1
     ? 'Een gast wil je spreken:'
     : `${totalUrgent} ${totalUrgent === 1 ? 'dingetje' : 'dingetjes'} voor je:`;
+
+  const handleApprove = (id: string) => {
+    setDismissedIds((prev) => new Set(prev).add(id));
+    approve.mutate(id);
+  };
+
+  const handleReject = (id: string) => {
+    setDismissedIds((prev) => new Set(prev).add(id));
+    reject.mutate(id);
+  };
+
+  // Split log into today and yesterday groups
+  const todayEntries = logEntries.filter((e) => e.isToday);
+  const yesterdayEntries = logEntries.filter((e) => !e.isToday);
+  const allLogItems = [...todayEntries, ...yesterdayEntries];
+  const visibleItems = allLogItems.slice(0, visibleCount);
+  const hasMore = allLogItems.length > visibleCount;
+
+  // Determine where yesterday starts in visible items
+  const yesterdayStartIdx = visibleItems.findIndex((e) => !e.isToday);
 
   if (isLoading) {
     return (
@@ -80,7 +95,7 @@ export function OverviewTab() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Greeting */}
       <div>
         <h2 className="text-xl font-semibold text-foreground">
@@ -89,132 +104,103 @@ export function OverviewTab() {
         <p className="text-sm text-muted-foreground mt-1">{summaryText}</p>
       </div>
 
-      {/* Urgent items */}
+      {/* Action cards */}
       {totalUrgent > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          {escalatedConversations.map((conv) => (
+            <div
+              key={conv.id}
+              className="bg-warning/5 border border-warning/20 rounded-xl p-4 transition-opacity duration-300"
+            >
+              <p className="text-sm text-foreground">
+                💬{' '}
+                {conv.customer
+                  ? `${conv.customer.first_name} ${conv.customer.last_name} wil even met iemand spreken.`
+                  : 'Een gast wil iemand spreken.'}
+              </p>
+              <div className="mt-3">
+                <NestoButton
+                  size="sm"
+                  onClick={() => navigate('/assistent?tab=berichten')}
+                >
+                  Open gesprek
+                </NestoButton>
+              </div>
+            </div>
+          ))}
+
+          {pendingActions
+            .filter((a) => !dismissedIds.has(a.id))
+            .map((action) => (
+              <div
+                key={action.id}
+                className="bg-muted border border-border rounded-xl p-4 transition-opacity duration-300"
+                style={{ opacity: dismissedIds.has(action.id) ? 0 : 1 }}
+              >
+                <p className="text-sm text-foreground">
+                  📋 {action.beschrijving || action.title}
+                  <SparkleIndicator size="sm" variant="muted" className="ml-1" />
+                </p>
+                <div className="flex items-center gap-2 mt-3">
+                  <NestoButton
+                    size="sm"
+                    onClick={() => handleApprove(action.id)}
+                    disabled={approve.isPending}
+                  >
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Goedkeuren
+                  </NestoButton>
+                  <NestoButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleReject(action.id)}
+                    disabled={reject.isPending}
+                  >
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    Afwijzen
+                  </NestoButton>
+                </div>
+              </div>
+            ))}
+
           {urgentSignals.map((signal) => (
-            <NestoCard
+            <div
               key={signal.id}
-              className="p-4 cursor-pointer hover:bg-accent/30 transition-colors"
+              className="bg-warning/5 border border-warning/20 rounded-xl p-4 cursor-pointer transition-colors hover:bg-warning/10"
               onClick={() => signal.action_path && navigate(signal.action_path)}
             >
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{signal.title}</p>
-                  {signal.message && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{signal.message}</p>
-                  )}
+              <p className="text-sm text-foreground">
+                ⚠️ {signal.title}
+                {signal.message && (
+                  <span className="text-muted-foreground"> — {signal.message}</span>
+                )}
+              </p>
+              {signal.action_path && (
+                <div className="mt-3">
+                  <NestoButton size="sm" variant="outline">
+                    Bekijk →
+                  </NestoButton>
                 </div>
-                <span className="text-xs text-primary font-medium">Bekijk →</span>
-              </div>
-            </NestoCard>
+              )}
+            </div>
           ))}
-
-          {escalatedConversations.map((conv) => (
-            <NestoCard
-              key={conv.id}
-              className="p-4 cursor-pointer hover:bg-accent/30 transition-colors"
-              onClick={() => navigate('/assistent?tab=berichten')}
-            >
-              <div className="flex items-start gap-3">
-                <MessageSquare className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">
-                    {conv.customer
-                      ? `${conv.customer.first_name} ${conv.customer.last_name} wil even met iemand spreken`
-                      : 'Geëscaleerd gesprek'}
-                  </p>
-                </div>
-                <span className="text-xs text-primary font-medium">Open gesprek →</span>
-              </div>
-            </NestoCard>
-          ))}
-
-          {pendingActions.map((action) => (
-            <NestoCard key={action.id} className="p-4">
-              <div className="flex items-start gap-3">
-                <ClipboardList className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-medium text-foreground">{action.title}</p>
-                    <span className="text-primary text-xs" title="AI-voorstel">✦</span>
-                  </div>
-                  {action.beschrijving && (
-                    <p className="text-xs text-muted-foreground">{action.beschrijving}</p>
-                  )}
-                  <div className="flex items-center gap-2 mt-3">
-                    <NestoButton
-                      size="sm"
-                      onClick={() => approve.mutate(action.id)}
-                      disabled={approve.isPending}
-                    >
-                      <Check className="h-3.5 w-3.5 mr-1" />
-                      Goedkeuren
-                    </NestoButton>
-                    <NestoButton
-                      size="sm"
-                      variant="outline"
-                      onClick={() => reject.mutate(action.id)}
-                      disabled={reject.isPending}
-                    >
-                      <X className="h-3.5 w-3.5 mr-1" />
-                      Afwijzen
-                    </NestoButton>
-                  </div>
-                </div>
-              </div>
-            </NestoCard>
-          ))}
-        </div>
-      )}
-
-      {/* Compact stats */}
-      {(stats.messagesAnswered > 0 || stats.reservationsBooked > 0 || stats.reservationsModified > 0 || stats.remindersSent > 0) && (
-        <div className="flex flex-wrap gap-4">
-          {stats.messagesAnswered > 0 && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MessageSquare className="h-4 w-4" />
-              <span>{stats.messagesAnswered} berichten beantwoord</span>
-            </div>
-          )}
-          {stats.reservationsBooked > 0 && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span>{stats.reservationsBooked} reserveringen geboekt</span>
-            </div>
-          )}
-          {stats.reservationsModified > 0 && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span>{stats.reservationsModified} reserveringen gewijzigd</span>
-            </div>
-          )}
-          {stats.remindersSent > 0 && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Send className="h-4 w-4" />
-              <span>{stats.remindersSent} reminders verstuurd</span>
-            </div>
-          )}
         </div>
       )}
 
       {/* Activity log */}
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Vandaag geregeld</h3>
-        {logEntries.length === 0 ? (
-          <EmptyState
-            icon={CheckCircle}
-            title="Nog geen activiteit vandaag"
-            description="De assistent registreert hier wat er vandaag is gedaan."
-            size="sm"
-          />
-        ) : (
-          <div className="space-y-1">
-            {logEntries.slice(0, 20).map((entry) => (
+      {allLogItems.length > 0 ? (
+        <div className="space-y-0">
+          {visibleItems.map((entry, idx) => (
+            <div key={entry.id}>
+              {/* Day separator */}
+              {idx === yesterdayStartIdx && yesterdayStartIdx > 0 && (
+                <div className="flex items-center gap-3 py-3">
+                  <span className="text-xs text-muted-foreground font-medium">Gisteren</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              )}
               <div
-                key={entry.id}
-                className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-accent/20 transition-colors cursor-pointer group"
+                className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                 onClick={() => entry.clickPath && navigate(entry.clickPath)}
               >
                 <span className="text-xs text-muted-foreground w-12 flex-shrink-0 pt-0.5 tabular-nums">
@@ -222,18 +208,21 @@ export function OverviewTab() {
                 </span>
                 <p className="text-sm text-foreground flex-1">
                   {entry.description}
-                  {entry.isAi && <SparkleIndicator />}
+                  {entry.isAi && <SparkleIndicator size="sm" variant="muted" className="ml-1" />}
                 </p>
               </div>
-            ))}
-            {logEntries.length > 20 && (
-              <p className="text-xs text-muted-foreground pl-[60px] py-2">
-                + {logEntries.length - 20} meer...
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+          {hasMore && (
+            <button
+              className="text-xs text-primary hover:underline px-3 py-2"
+              onClick={() => setVisibleCount((v) => v + LOG_PAGE_SIZE)}
+            >
+              Toon meer…
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
