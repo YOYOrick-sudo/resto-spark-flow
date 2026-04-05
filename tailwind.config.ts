@@ -138,6 +138,10 @@ export default {
           "0%": { opacity: "0", transform: "translateX(-30px)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
+        "highlight-fade": {
+          "0%": { backgroundColor: "hsl(var(--primary) / 0.1)" },
+          "100%": { backgroundColor: "transparent" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -147,6 +151,7 @@ export default {
         "fade-in-fast": "fade-in-fast 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
         "step-forward": "step-forward 250ms ease-out",
         "step-back": "step-back 250ms ease-out",
+        "highlight-fade": "highlight-fade 2s ease-out forwards",
       },
     },
   },
