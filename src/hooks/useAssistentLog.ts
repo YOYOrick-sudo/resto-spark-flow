@@ -232,7 +232,7 @@ export function useAssistentLog() {
           isToday: isToday(new Date(audit.created_at)),
           entityType: audit.entity_type,
           entityId: audit.entity_id,
-          channelIcon: getChannelIcon(channel),
+          channelLabel: getChannelLabel(channel),
           clickPath: getAuditClickPath(audit),
         });
       }
