@@ -31,9 +31,9 @@ export function GuestProfile({ customerId }: GuestProfileProps) {
       if (!customerId) return [];
       const { data, error } = await supabase
         .from('reservations')
-        .select('id, date, time, party_size, status')
+        .select('id, reservation_date, start_time, party_size, status')
         .eq('customer_id', customerId)
-        .order('date', { ascending: false })
+        .order('reservation_date', { ascending: false })
         .limit(5);
       if (error) return [];
       return data || [];
