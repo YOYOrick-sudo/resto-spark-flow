@@ -9,28 +9,32 @@ export function useSignalCount() {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
 
-  const signalCount = useMemo(() => {
+  // Only count error signals (not warnings)
+  const criticalSignals = useMemo(() => {
     return signals.filter(
-      (s) => s.actionable && (s.severity === 'error' || s.severity === 'warning')
+      (s) => s.actionable && s.severity === 'error'
     ).length;
   }, [signals]);
 
-  const { data: unreadMessages = 0 } = useQuery({
-    queryKey: ['unread-messages', locationId],
+  // Escalated conversations (guest wants a human)
+  const { data: escalations = 0 } = useQuery({
+    queryKey: ['escalated-conversations', locationId],
     queryFn: async () => {
       if (!locationId) return 0;
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('conversations')
-        .select('unread_count')
+        .select('id', { count: 'exact', head: true })
         .eq('location_id', locationId)
-        .neq('status', 'closed');
+        .eq('handled_by', 'operator')
+        .gt('unread_count', 0);
       if (error) return 0;
-      return (data || []).reduce((sum, c) => sum + (c.unread_count || 0), 0);
+      return count || 0;
     },
     enabled: !!locationId,
     refetchInterval: 30000,
   });
 
+  // Pending agent actions awaiting approval
   const { data: pendingActions = 0 } = useQuery({
     queryKey: ['pending-actions', locationId],
     queryFn: async () => {
@@ -47,5 +51,5 @@ export function useSignalCount() {
     refetchInterval: 30000,
   });
 
-  return signalCount + unreadMessages + pendingActions;
+  return escalations + pendingActions + criticalSignals;
 }
