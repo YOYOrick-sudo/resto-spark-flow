@@ -253,6 +253,7 @@ export function ReservationListView({
                       onStatusChange={onStatusChange}
                       onAssignTable={onAssignTable}
                       density={density}
+                      isHighlighted={highlightId === item.data.id}
                     />
                   );
                 }
