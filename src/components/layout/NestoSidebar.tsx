@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, Zap, PanelLeft, Search, Building2 } from 'lucide-react';
+import { ChevronDown, PanelLeft, Search, Building2 } from 'lucide-react';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -123,16 +123,6 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
           <div className="flex items-center justify-between">
             <NestoLogo size="md" />
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 relative"
-                aria-label="Notificaties"
-              >
-                <Zap size={18} strokeWidth={0} className="fill-foreground" />
-                {unreadNotifications > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-                )}
-              </button>
               <button
                 type="button"
                 onClick={onToggleCollapse}
