@@ -16,10 +16,12 @@ import { Switch } from '@/components/ui/switch';
 import { useKnowledgeBase, type KnowledgeBaseEntry, type KnowledgeBaseInput } from '@/hooks/useKnowledgeBase';
 import { KnowledgeBaseTab } from '@/components/settings/assistant/KnowledgeBaseTab';
 import { AgentConfigTab } from '@/components/settings/assistant/AgentConfigTab';
+import { PermissionsTab } from '@/components/settings/assistant/PermissionsTab';
 
 const TABS = [
   { id: 'knowledge', label: 'Knowledge Base' },
   { id: 'agent', label: 'AI Assistent' },
+  { id: 'permissions', label: 'Bevoegdheden' },
 ];
 
 export default function SettingsAssistent() {
@@ -42,6 +44,10 @@ export default function SettingsAssistent() {
 
       <NestoTabContent value="agent" activeValue={activeTab}>
         <AgentConfigTab />
+      </NestoTabContent>
+
+      <NestoTabContent value="permissions" activeValue={activeTab}>
+        <PermissionsTab />
       </NestoTabContent>
     </SettingsDetailLayout>
   );
