@@ -27,7 +27,7 @@ const TABS = [
   { id: 'huisstijl', label: 'E-mail opmaak' },
   { id: 'branding', label: 'Branding' },
   { id: 'gastberichten', label: 'Gastberichten' },
-  { id: 'whatsapp', label: 'WhatsApp', disabled: true },
+  { id: 'whatsapp', label: 'WhatsApp' },
 ];
 
 interface LocalSettings {
