@@ -192,7 +192,7 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
   // Guest data
   const [guestData, setGuestDataState] = useState<GuestData>({
     first_name: '', last_name: '', email: '', phone: '', guest_notes: '',
-    booking_answers: [], honeypot: '', marketing_optin: false,
+    booking_answers: [], honeypot: '', marketing_optin: false, whatsapp_optin: false,
     dietary_preferences: { allergies: [], vegetarian: false, vegan: false, other: '' },
   });
 
