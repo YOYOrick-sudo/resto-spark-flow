@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, MessageSquare, Calendar, Send, CheckCircle } from 'lucide-react';
+import { AlertTriangle, MessageSquare, Calendar, Send, CheckCircle, Check, X, ClipboardList } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
+import { NestoButton } from '@/components/polar/NestoButton';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { Spinner } from '@/components/polar/LoadingStates';
 import { useSignals } from '@/hooks/useSignals';
@@ -31,7 +32,7 @@ export function OverviewTab() {
   const { context } = useUserContext();
   const { signals } = useSignals();
   const { conversations } = useConversations('active');
-  const { pendingActions } = useAgentActions();
+  const { pendingActions, approve, reject } = useAgentActions();
   const { logEntries, stats, isLoading } = useAssistentLog();
 
   // Get first name from profiles table
@@ -64,6 +65,10 @@ export function OverviewTab() {
 
   const summaryText = totalUrgent === 0
     ? 'Alles is afgehandeld. Lekker zo! ✓'
+    : totalUrgent >= 4
+    ? `${totalUrgent} zaken die aandacht nodig hebben:`
+    : escalatedConversations.length > 0 && totalUrgent === 1
+    ? 'Een gast wil je spreken:'
     : `${totalUrgent} ${totalUrgent === 1 ? 'dingetje' : 'dingetjes'} voor je:`;
 
   if (isLoading) {
@@ -127,20 +132,37 @@ export function OverviewTab() {
           ))}
 
           {pendingActions.map((action) => (
-            <NestoCard
-              key={action.id}
-              className="p-4 cursor-pointer hover:bg-accent/30 transition-colors"
-              onClick={() => navigate('/assistent?tab=takenbox')}
-            >
+            <NestoCard key={action.id} className="p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                <ClipboardList className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{action.title}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-medium text-foreground">{action.title}</p>
+                    <span className="text-primary text-xs" title="AI-voorstel">✦</span>
+                  </div>
                   {action.beschrijving && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{action.beschrijving}</p>
+                    <p className="text-xs text-muted-foreground">{action.beschrijving}</p>
                   )}
+                  <div className="flex items-center gap-2 mt-3">
+                    <NestoButton
+                      size="sm"
+                      onClick={() => approve.mutate(action.id)}
+                      disabled={approve.isPending}
+                    >
+                      <Check className="h-3.5 w-3.5 mr-1" />
+                      Goedkeuren
+                    </NestoButton>
+                    <NestoButton
+                      size="sm"
+                      variant="outline"
+                      onClick={() => reject.mutate(action.id)}
+                      disabled={reject.isPending}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Afwijzen
+                    </NestoButton>
+                  </div>
                 </div>
-                <span className="text-xs text-primary font-medium">Bekijk →</span>
               </div>
             </NestoCard>
           ))}

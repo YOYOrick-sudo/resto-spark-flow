@@ -6,7 +6,6 @@ import { NestoTabs, NestoTabContent } from '@/components/polar/NestoTabs';
 import { Spinner } from '@/components/polar/LoadingStates';
 import { OverviewTab } from '@/components/assistant/OverviewTab';
 import { MessagesTab } from '@/components/assistant/MessagesTab';
-import { TaskboxTab } from '@/components/assistant/TaskboxTab';
 import { useConversations } from '@/hooks/useConversations';
 import { useAgentActions } from '@/hooks/useAgentActions';
 
@@ -23,9 +22,8 @@ export default function Assistent() {
   );
 
   const tabs = useMemo(() => [
-    { id: 'overzicht', label: 'Overzicht' },
+    { id: 'overzicht', label: 'Overzicht', count: pendingActions.length || undefined },
     { id: 'berichten', label: 'Berichten', count: unreadCount || undefined },
-    { id: 'takenbox', label: 'Takenbox', count: pendingActions.length || undefined },
   ], [unreadCount, pendingActions.length]);
 
   const handleTabChange = (tabId: string) => {
@@ -48,10 +46,6 @@ export default function Assistent() {
 
       <NestoTabContent value="berichten" activeValue={activeTab}>
         <MessagesTab />
-      </NestoTabContent>
-
-      <NestoTabContent value="takenbox" activeValue={activeTab}>
-        <TaskboxTab />
       </NestoTabContent>
     </div>
   );
