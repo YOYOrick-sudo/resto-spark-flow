@@ -18,6 +18,7 @@ import { LogoUploadField } from '@/components/settings/communication/LogoUploadF
 import { Check, Mail, MessageSquare, MessagesSquare } from 'lucide-react';
 import { GastberichtenTab } from '@/components/settings/communication/GastberichtenTab';
 import { BrandingTab } from '@/components/settings/communication/BrandingTab';
+import { WhatsAppTab } from '@/components/settings/communication/WhatsAppTab';
 
 const isValidEmail = (email: string) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
@@ -26,7 +27,7 @@ const TABS = [
   { id: 'huisstijl', label: 'E-mail opmaak' },
   { id: 'branding', label: 'Branding' },
   { id: 'gastberichten', label: 'Gastberichten' },
-  { id: 'whatsapp', label: 'WhatsApp', disabled: true },
+  { id: 'whatsapp', label: 'WhatsApp' },
 ];
 
 interface LocalSettings {
@@ -315,12 +316,7 @@ export default function SettingsCommunicatie() {
       </NestoTabContent>
 
       <NestoTabContent value="whatsapp" activeValue={activeTab}>
-        <EmptyState
-          icon={MessageSquare}
-          title="WhatsApp"
-          description="Koppel WhatsApp Business en beheer templates. Beschikbaar in een toekomstige update."
-          size="md"
-        />
+        <WhatsAppTab />
       </NestoTabContent>
     </SettingsDetailLayout>
   );
