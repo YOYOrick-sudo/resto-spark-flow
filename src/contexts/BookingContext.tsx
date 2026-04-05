@@ -79,6 +79,7 @@ export interface GuestData {
   booking_answers: Array<{ question_id: string; values: string[] }>;
   honeypot: string;
   marketing_optin: boolean;
+  whatsapp_optin: boolean;
   dietary_preferences: DietaryPreferences;
 }
 
