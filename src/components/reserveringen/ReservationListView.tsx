@@ -191,6 +191,7 @@ export function ReservationListView({
   onInviteWaitlist,
   onCancelWaitlist,
   density = "compact",
+  highlightId,
 }: ReservationListViewProps) {
   const mergedGroups = useMemo(
     () => buildMergedGroups(reservations, waitlistEntries),
