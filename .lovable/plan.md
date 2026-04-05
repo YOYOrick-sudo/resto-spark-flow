@@ -1,60 +1,98 @@
 
 
-# Fix: Reserveringen laden in AI context
+# AI Agent Context & Autonomie — Volledige Fix
 
-## Probleem
+## Overzicht
 
-`loadContext` in `ai-respond/index.ts` laadt geen reserveringen. De AI heeft daarom geen idee welke reservering een gast bedoelt bij een wijzigings- of annuleringsverzoek.
+De AI-agent mist cruciale data en kan niet daadwerkelijk handelen. Dit plan fixt alle gaten zodat de agent autonoom kan functioneren.
 
-## Oplossing
+## Wijzigingen
 
-### 1. `supabase/functions/ai-respond/index.ts` — `loadContext`
+### 1. Kolomnamen fixen in `loadContext`
 
-Na het ophalen van de customer (regel 94-98), ook aankomende reserveringen laden:
+De reservering-query gebruikt verkeerde kolomnamen:
+- `date` → `reservation_date`
+- `time` → `start_time`  
+- `notes` → `guest_notes`
 
 ```typescript
-let upcomingReservations: any[] = [];
-if (customer?.id) {
-  const { data } = await supabase.from('reservations')
-    .select('id, date, time, party_size, status, notes')
-    .eq('customer_id', customer.id)
-    .eq('location_id', input.location_id)
-    .gte('date', new Date().toISOString().split('T')[0])
-    .order('date', { ascending: true })
-    .limit(5);
-  upcomingReservations = data || [];
+.select('id, reservation_date, start_time, party_size, status, guest_notes')
+.gte('reservation_date', new Date().toISOString().split('T')[0])
+```
+
+Alle referenties naar `r.date`, `r.time`, `r.notes` updaten naar de juiste namen.
+
+### 2. Dieetinfo compleet in system prompt
+
+Naast allergieën ook vegetarisch/veganistisch tonen:
+
+```
+Dieet: Vegetarisch, allergieën: gluten, lactose
+```
+
+### 3. Tool-calling aansluiten op booking intents
+
+**booking/new**: Na intent classificatie, de AI laten tool-callen met `check_availability` en daarna `create_reservation`:
+
+```typescript
+case 'new': {
+  // Gebruik generateResponse MET tools
+  responseText = await generateResponseWithTools(ctx, intent, bookingTools);
+  break;
 }
 ```
 
-Voeg `upcomingReservations` toe aan het Context interface en return object.
+Een nieuwe `generateResponseWithTools` functie die de Gemini tool-calling flow gebruikt:
+1. AI krijgt tools (`check_availability`, `create_reservation`)
+2. AI besluit welke tool te callen
+3. Tool wordt uitgevoerd via `executeBookingTool`
+4. Resultaat gaat terug naar AI voor een menselijk antwoord
 
-### 2. `ai-respond/index.ts` — `buildSystemPrompt`
+**booking/modify en booking/cancel**: Zelfde patroon met `modify_reservation` en `cancel_reservation` tools.
 
-Reserveringen toevoegen aan de system prompt:
+### 4. Echte executie voor modify/cancel
 
-```
-RESERVERINGEN VAN DEZE GAST:
-- Vrijdag 4 april om 19:00, 2 personen (bevestigd)
-```
+De `executeBookingTool` daadwerkelijk laten werken:
 
-### 3. `ai-respond/index.ts` — booking branches (regels 630-668)
-
-Bij `modify` en `cancel`: specifieke reserveringscontext meegeven aan `generateResponse`:
-
+**modify_reservation**: Call `public-booking-api` met de update:
 ```typescript
-const resInfo = ctx.upcomingReservations.map(r => 
-  `${r.date} om ${r.time}, ${r.party_size}p (${r.status})`
-).join('; ');
-
-responseText = await generateResponse(ctx, intent, 
-  `De gast heeft deze reserveringen: ${resInfo}. Help met wijzigen.`);
+await fetch(`${SUPABASE_URL}/functions/v1/public-booking-api`, {
+  method: 'PUT',
+  body: JSON.stringify({
+    action: 'modify',
+    reservation_id: toolInput.reservation_id,
+    updates: { reservation_date, start_time, party_size }
+  })
+});
 ```
 
-Bij `recommend` mode: ook de reserveringsinfo opnemen in de `agent_actions` beschrijving zodat de operator context heeft.
+**cancel_reservation**: Zelfde met cancel actie.
+
+> **Noot**: De `public-booking-api` moet modify/cancel endpoints ondersteunen. Als die er niet zijn, valt de agent terug op `recommend` mode (actiekaart voor operator).
+
+### 5. Klantcontext uitbreiden in prompt
+
+Telefoon en email toevoegen aan de GAST sectie:
+```
+GAST: Jan de Vries
+Tel: +31612345678
+Bezoeken: 12
+Dieet: Veganistisch, allergieën: noten
+Dit is een vaste gast.
+```
+
+## Volgorde
+
+1. Fix kolomnamen (zonder dit werkt niets)
+2. Dieetinfo + klantcontact in prompt
+3. `generateResponseWithTools` functie bouwen
+4. Tool-calling aansluiten op booking/new
+5. Echte executie voor modify/cancel (of recommend fallback)
+6. Deploy + test
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/functions/ai-respond/index.ts` | `loadContext`: laad upcoming reservations. `buildSystemPrompt`: toon reserveringen. Booking branches: geef reserveringscontext mee. |
+| `supabase/functions/ai-respond/index.ts` | Fix kolomnamen, dieetinfo, klantcontact, tool-calling flow, echte modify/cancel executie |
 
