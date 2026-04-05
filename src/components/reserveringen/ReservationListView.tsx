@@ -418,7 +418,7 @@ function ReservationRow({ reservation, onClick, onStatusChange, onAssignTable, d
         reservation.status === "cancelled" && "opacity-50",
         reservation.status === "no_show" && "opacity-60",
         !reservation.table_id && "bg-warning/5",
-        isHighlighted && "animate-pulse bg-primary/10"
+        isHighlighted && "animate-highlight-fade"
       )}
       onClick={onClick}
     >

@@ -151,6 +151,7 @@ export default {
         "fade-in-fast": "fade-in-fast 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
         "step-forward": "step-forward 250ms ease-out",
         "step-back": "step-back 250ms ease-out",
+        "highlight-fade": "highlight-fade 2s ease-out forwards",
       },
     },
   },
