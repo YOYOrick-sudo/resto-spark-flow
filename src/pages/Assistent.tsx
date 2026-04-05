@@ -47,10 +47,6 @@ export default function Assistent() {
       <NestoTabContent value="berichten" activeValue={activeTab}>
         <MessagesTab />
       </NestoTabContent>
-
-      <NestoTabContent value="takenbox" activeValue={activeTab}>
-        <TaskboxTab />
-      </NestoTabContent>
     </div>
   );
 }
