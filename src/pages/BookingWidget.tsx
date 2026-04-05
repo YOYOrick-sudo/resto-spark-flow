@@ -297,7 +297,7 @@ export default function BookingWidget() {
 
   return (
     <BookingProvider slug={slug}>
-      <div className={isEmbed ? 'h-screen' : 'min-h-screen bg-gray-50 flex justify-center'}>
+      <div className={`light ${isEmbed ? 'h-screen' : 'min-h-screen bg-gray-50 flex justify-center'}`} style={{ colorScheme: 'light' }}>
         <div className={isEmbed ? 'h-full' : 'w-full max-w-md'}>
           <BookingWidgetInner isEmbed={isEmbed} />
         </div>
