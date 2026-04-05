@@ -138,6 +138,10 @@ export default {
           "0%": { opacity: "0", transform: "translateX(-30px)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
+        "highlight-fade": {
+          "0%": { backgroundColor: "hsl(var(--primary) / 0.1)" },
+          "100%": { backgroundColor: "transparent" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
