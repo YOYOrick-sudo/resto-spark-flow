@@ -31,8 +31,12 @@ import { ReservationDetailPanel, CreateReservationSheet, WalkInSheet } from "@/c
 
 export default function Reserveringen() {
   const { currentLocation } = useUserContext();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeView, setActiveView] = useState<ViewType>("list");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const dateParam = searchParams.get('date');
+    return dateParam ? new Date(dateParam + 'T12:00:00') : new Date();
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [density, setDensity] = useDensity();
   const [filters, setFilters] = useState<ReservationFiltersState>({
@@ -45,6 +49,24 @@ export default function Reserveringen() {
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [walkInSheetOpen, setWalkInSheetOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  // Handle highlight param from URL (e.g. from assistent log click)
+  useEffect(() => {
+    const highlight = searchParams.get('highlight');
+    if (highlight) {
+      setSelectedReservationId(highlight);
+      setHighlightId(highlight);
+      // Clean URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('highlight');
+      newParams.delete('date');
+      setSearchParams(newParams, { replace: true });
+      // Remove highlight after animation
+      const timer = setTimeout(() => setHighlightId(null), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, setSearchParams]);
 
   const dateString = format(selectedDate, "yyyy-MM-dd");
 
