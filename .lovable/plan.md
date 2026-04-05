@@ -1,77 +1,56 @@
 
 
-# Activiteitenlog — Persoonlijk + kanaal-iconen + slimme datums + klikbare navigatie
+# Kanaal-indicator: van emoji naar NestoBadge
 
 ## Wat verandert
 
-De `useAssistentLog` hook en `OverviewTab` worden aangepast met vier verbeteringen:
+De emoji-iconen (🌐 💬 📞 etc.) in de activiteitenlog worden vervangen door subtiele `NestoBadge` componenten in `sm` size met `outline` variant. Dit past in het design system en oogt professioneler.
 
-1. **Filter technische events** — alleen menselijk relevante acties tonen
-2. **Kanaal-icoon per logregel** — emoji op basis van reservation.channel
-3. **Persoonlijke tekst met slimme datums** — "vanavond", "morgen", "vrijdag", "12 april"
-4. **Klikbare logregels met navigatie + highlight** — reserveringen openen in het juiste scherm
+## Visueel resultaat
 
-## Wijzigingen per bestand
+```text
+23:52  [Web]  Jan de Vries heeft gereserveerd voor vrijdag 19:00 (2p). ✓  ✦
+14:32  [WhatsApp]  Jan wilde met 6 ipv 4 komen. Aangepast. ✓  ✦
+11:15  [Telefoon]  Piet Jansen heeft gereserveerd voor zaterdag 19:30 (6p). ✓  ✦
+09:00  📨 8 reminders verstuurd voor vanavond. ✓  ✦
+```
+
+De badges zijn klein (`sm`), `outline` variant (border only, geen achtergrond), en met `text-muted-foreground` zodat ze niet afleiden van de beschrijving.
+
+## Kanaal-mapping
+
+| Kanaal | Label | 
+|---|---|
+| `widget` / `webchat` | Web |
+| `whatsapp` | WhatsApp |
+| `phone` | Telefoon |
+| `operator` | Handmatig |
+| `walk_in` | Inloop |
+
+## Wijzigingen
 
 ### 1. `src/hooks/useAssistentLog.ts`
 
-**LogEntry interface uitbreiden:**
-- `channelIcon?: string` — emoji per kanaal
-- `clickPath` wordt slimmer: bevat datum + highlight parameter
-
-**Technische events filteren:** Skip `field_update`, `auto_assign`, `status_change`, `trigger` acties. Alleen `created`, `updated`, `deleted` op reservations doorlaten.
-
-**Deduplicatie:** Groepeer audit entries op `entity_id` + tijdstip binnen 5 seconden. Houd meest informatieve entry.
-
-**`formatSmartDate(date)`:** Vandaag → "vanavond"/"vanmiddag", morgen → "morgen", ≤7d → weekdag, >7d → "12 april".
-
-**`getChannelIcon(channel)`:** `widget`/`webchat` → 🌐, `whatsapp` → 💬, `phone` → 📞, `operator` → ✏️, `walk_in` → 🚶.
-
-**`humanizeAudit` herschrijven:** Persoonlijke tekst met gastnaam + slimme datum + kanaal-icoon.
-
-**Klikbare navigatie — `clickPath` logica:**
-- Reservering-entries: `/reserveringen?date={reserveringsdatum}&highlight={reservation_id}`
-  - De datum is de datum van de reservering (uit `changes.date` of `metadata.reservation_date`)
-- Bericht-entries: `/assistent?tab=berichten&conversation={conversation_id}`
-- Bulk reminders: geen clickPath (geen individueel gesprek)
+- `channelIcon` property hernoemen naar `channelLabel` (string, bijv. "Web", "WhatsApp")
+- `getChannelIcon()` wordt `getChannelLabel()` — retourneert korte Nederlandse tekst ipv emoji
 
 ### 2. `src/components/assistant/OverviewTab.tsx`
 
-**Kanaal-icoon renderen:** Vóór de description tekst, na de timestamp:
+- Vervang de `<span>{entry.channelIcon}</span>` door:
 ```tsx
-<span className="mr-1.5">{entry.channelIcon}</span>
-```
-
-**Klikgedrag behoudt huidige structuur** — `onClick={() => entry.clickPath && navigate(entry.clickPath)}` werkt al. Geen wijziging nodig behalve dat clickPath nu slimmere URLs bevat.
-
-### 3. `src/pages/Reserveringen.tsx` (of equivalent reserveringenpagina)
-
-**Highlight parameter uitlezen:**
-- Lees `highlight` uit `searchParams`
-- Bij mount: als `highlight` aanwezig is:
-  1. Zoek de reservering in de lijst
-  2. Scroll naar die rij (via `scrollIntoView`)
-  3. Voeg tijdelijke `animate-pulse` class toe met `bg-primary/10` achtergrond (2 seconden)
-  4. Open het detail panel voor die reservering
-  5. Verwijder `highlight` uit URL na animatie (clean URL)
-
-### 4. Reserveringentabel/kaart component
-
-**Highlight styling:** Conditie op basis van `highlightId === reservation.id`:
-```tsx
-className={cn(
-  'transition-colors',
-  isHighlighted && 'animate-pulse bg-primary/10'
+{entry.channelLabel && (
+  <NestoBadge variant="outline" size="sm" className="text-muted-foreground flex-shrink-0">
+    {entry.channelLabel}
+  </NestoBadge>
 )}
 ```
-Na 2 seconden wordt `isHighlighted` op `false` gezet via `setTimeout`.
 
-## Bestanden
+Bulk berichten (📨) behouden hun emoji in de description tekst — die hebben geen apart kanaal-badge.
+
+### Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useAssistentLog.ts` | Filter, dedupliceer, `formatSmartDate`, `getChannelIcon`, persoonlijke tekst, slimme `clickPath` met datum + highlight |
-| `src/components/assistant/OverviewTab.tsx` | Render `channelIcon` emoji vóór description |
-| `src/pages/Reserveringen.tsx` | Lees `highlight` param, scroll + pulse + open detail panel |
-| Reservering rij/kaart component | Conditionele highlight styling |
+| `src/hooks/useAssistentLog.ts` | `channelIcon` → `channelLabel`, emoji → tekst |
+| `src/components/assistant/OverviewTab.tsx` | Render `NestoBadge` outline sm ipv emoji span |
 
