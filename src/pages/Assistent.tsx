@@ -22,9 +22,8 @@ export default function Assistent() {
   );
 
   const tabs = useMemo(() => [
-    { id: 'overzicht', label: 'Overzicht' },
+    { id: 'overzicht', label: 'Overzicht', count: pendingActions.length || undefined },
     { id: 'berichten', label: 'Berichten', count: unreadCount || undefined },
-    { id: 'takenbox', label: 'Takenbox', count: pendingActions.length || undefined },
   ], [unreadCount, pendingActions.length]);
 
   const handleTabChange = (tabId: string) => {
