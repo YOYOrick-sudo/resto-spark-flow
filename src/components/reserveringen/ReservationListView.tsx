@@ -75,6 +75,7 @@ interface ReservationListViewProps {
   onInviteWaitlist?: (entryId: string) => void;
   onCancelWaitlist?: (entryId: string) => void;
   density?: DensityType;
+  highlightId?: string | null;
 }
 
 function StatusDot({ status }: { status: Reservation["status"] }) {
