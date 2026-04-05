@@ -36,6 +36,7 @@ interface Context {
   config: any;
   branding: any;
   knowledgeBase: any[];
+  upcomingReservations: any[];
   locationId: string;
 }
 
