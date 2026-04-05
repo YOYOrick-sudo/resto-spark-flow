@@ -1,56 +1,25 @@
 
 
-# Kanaal-indicator: van emoji naar NestoBadge
+# Fix: Highlight animatie stopt niet
 
-## Wat verandert
+## Probleem
 
-De emoji-iconen (🌐 💬 📞 etc.) in de activiteitenlog worden vervangen door subtiele `NestoBadge` componenten in `sm` size met `outline` variant. Dit past in het design system en oogt professioneler.
+`animate-pulse` in Tailwind is een **oneindige** animatie. De reserveringsrij knippert continu blauw zolang `isHighlighted` true is. Hoewel `highlightId` na 2.5 seconden op `null` wordt gezet, voelt de animatie flashy en agressief aan.
 
-## Visueel resultaat
+## Oplossing
 
-```text
-23:52  [Web]  Jan de Vries heeft gereserveerd voor vrijdag 19:00 (2p). ✓  ✦
-14:32  [WhatsApp]  Jan wilde met 6 ipv 4 komen. Aangepast. ✓  ✦
-11:15  [Telefoon]  Piet Jansen heeft gereserveerd voor zaterdag 19:30 (6p). ✓  ✦
-09:00  📨 8 reminders verstuurd voor vanavond. ✓  ✦
-```
+Vervang `animate-pulse` door een zachte eenmalige fade-out animatie:
 
-De badges zijn klein (`sm`), `outline` variant (border only, geen achtergrond), en met `text-muted-foreground` zodat ze niet afleiden van de beschrijving.
+1. **Tailwind config**: Voeg een `highlight-fade` keyframe toe die één keer speelt — begint met `bg-primary/10` en faded naar transparant over 2 seconden.
 
-## Kanaal-mapping
+2. **ReservationListView.tsx** (regel 421): Vervang `animate-pulse bg-primary/10` door `animate-highlight-fade` — een eenmalige, subtiele achtergrondkleur die vanzelf verdwijnt.
 
-| Kanaal | Label | 
-|---|---|
-| `widget` / `webchat` | Web |
-| `whatsapp` | WhatsApp |
-| `phone` | Telefoon |
-| `operator` | Handmatig |
-| `walk_in` | Inloop |
+3. **Reserveringen.tsx**: De `setTimeout` voor `setHighlightId(null)` kan op 2.5s blijven als cleanup, maar de animatie zelf stopt visueel na één cyclus.
 
-## Wijzigingen
-
-### 1. `src/hooks/useAssistentLog.ts`
-
-- `channelIcon` property hernoemen naar `channelLabel` (string, bijv. "Web", "WhatsApp")
-- `getChannelIcon()` wordt `getChannelLabel()` — retourneert korte Nederlandse tekst ipv emoji
-
-### 2. `src/components/assistant/OverviewTab.tsx`
-
-- Vervang de `<span>{entry.channelIcon}</span>` door:
-```tsx
-{entry.channelLabel && (
-  <NestoBadge variant="outline" size="sm" className="text-muted-foreground flex-shrink-0">
-    {entry.channelLabel}
-  </NestoBadge>
-)}
-```
-
-Bulk berichten (📨) behouden hun emoji in de description tekst — die hebben geen apart kanaal-badge.
-
-### Bestanden
+## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useAssistentLog.ts` | `channelIcon` → `channelLabel`, emoji → tekst |
-| `src/components/assistant/OverviewTab.tsx` | Render `NestoBadge` outline sm ipv emoji span |
+| `tailwind.config.ts` | Voeg `highlight-fade` keyframe + animatie toe (eenmalig, 2s) |
+| `src/components/reserveringen/ReservationListView.tsx` | Regel 421: `animate-pulse bg-primary/10` → `animate-highlight-fade` |
 
