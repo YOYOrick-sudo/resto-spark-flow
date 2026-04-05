@@ -11,6 +11,7 @@ export interface LogEntry {
   timestamp: string;
   formattedTime: string;
   isAi: boolean;
+  isToday: boolean;
   clickPath?: string;
   entityType?: string;
   entityId?: string;
@@ -83,43 +84,43 @@ export function useAssistentLog() {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
 
-  const { data: logEntries = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['assistent-log', locationId],
     queryFn: async () => {
-      if (!locationId) return [];
+      if (!locationId) return { logEntries: [], hasActivityToday: false };
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayISO = today.toISOString();
+      // Last 24 hours — use yesterday midnight
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      yesterday.setHours(0, 0, 0, 0);
+      const sinceISO = yesterday.toISOString();
 
-      // Fetch audit_log entries for today
       const [auditRes, messagesRes, actionsRes] = await Promise.all([
         supabase
           .from('audit_log')
           .select('*')
           .eq('location_id', locationId)
-          .gte('created_at', todayISO)
+          .gte('created_at', sinceISO)
           .order('created_at', { ascending: false })
-          .limit(30),
+          .limit(50),
         supabase
           .from('messages')
           .select('id, conversation_id, direction, content, is_ai_generated, template_name, created_at, sent_by')
           .eq('direction', 'outbound')
-          .gte('created_at', todayISO)
+          .gte('created_at', sinceISO)
           .order('created_at', { ascending: false })
-          .limit(30),
+          .limit(50),
         supabase
           .from('agent_actions')
           .select('*')
           .eq('location_id', locationId)
-          .gte('created_at', todayISO)
+          .gte('created_at', sinceISO)
           .order('created_at', { ascending: false })
-          .limit(20),
+          .limit(30),
       ]);
 
       const entries: LogEntry[] = [];
 
-      // Process audit entries
       for (const audit of (auditRes.data || []) as RawAuditEntry[]) {
         entries.push({
           id: `audit-${audit.id}`,
@@ -128,13 +129,13 @@ export function useAssistentLog() {
           timestamp: audit.created_at,
           formattedTime: formatLogTime(audit.created_at),
           isAi: audit.actor_type === 'ai' || audit.actor_type === 'system',
+          isToday: isToday(new Date(audit.created_at)),
           entityType: audit.entity_type,
           entityId: audit.entity_id,
           clickPath: audit.entity_type === 'reservation' ? `/reserveringen` : undefined,
         });
       }
 
-      // Process outbound messages (group reminders)
       const reminderMessages = (messagesRes.data || []).filter((m: any) => m.template_name);
       const chatMessages = (messagesRes.data || []).filter((m: any) => !m.template_name);
 
@@ -156,6 +157,7 @@ export function useAssistentLog() {
             timestamp: (msgs as any[])[0].created_at,
             formattedTime: formatLogTime((msgs as any[])[0].created_at),
             isAi: true,
+            isToday: isToday(new Date((msgs as any[])[0].created_at)),
           });
         }
       }
@@ -170,13 +172,13 @@ export function useAssistentLog() {
           timestamp: msg.created_at,
           formattedTime: formatLogTime(msg.created_at),
           isAi: !!msg.is_ai_generated,
+          isToday: isToday(new Date(msg.created_at)),
           clickPath: `/assistent?tab=berichten`,
         });
       }
 
-      // Process agent actions
       for (const action of (actionsRes.data || []) as any[]) {
-        if (action.status === 'concept') continue; // skip pending
+        if (action.status === 'concept') continue;
         entries.push({
           id: `action-${action.id}`,
           type: `action_${action.status}`,
@@ -184,28 +186,23 @@ export function useAssistentLog() {
           timestamp: action.created_at,
           formattedTime: formatLogTime(action.created_at),
           isAi: true,
+          isToday: isToday(new Date(action.created_at)),
         });
       }
 
-      // Sort by timestamp descending
       entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-      return entries;
+      const hasActivityToday = entries.some((e) => e.isToday);
+
+      return { logEntries: entries, hasActivityToday };
     },
     enabled: !!locationId,
     refetchInterval: 60000,
   });
 
-  // Compute summary stats
-  const stats = {
-    messagesAnswered: logEntries.filter((e) => e.type === 'message_answered' || e.type === 'bulk_messages').length,
-    reservationsBooked: logEntries.filter((e) => e.type === 'reservation_created').length,
-    reservationsModified: logEntries.filter((e) => e.type === 'reservation_updated').length,
-    remindersSent: logEntries.filter((e) => e.type === 'bulk_messages').reduce((sum, e) => {
-      const match = e.description.match(/^(\d+)/);
-      return sum + (match ? parseInt(match[1]) : 1);
-    }, 0),
+  return {
+    logEntries: data?.logEntries ?? [],
+    hasActivityToday: data?.hasActivityToday ?? false,
+    isLoading,
   };
-
-  return { logEntries, stats, isLoading };
 }
