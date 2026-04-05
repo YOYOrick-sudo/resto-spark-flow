@@ -32,7 +32,21 @@ export function OverviewTab() {
   const { pendingActions } = useAgentActions();
   const { logEntries, stats, isLoading } = useAssistentLog();
 
-  const firstName = context?.first_name || 'daar';
+  // Get first name from profiles table
+  const { data: profile } = useQuery({
+    queryKey: ['profile-name', context?.user_id],
+    queryFn: async () => {
+      if (!context) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', context.user_id)
+        .single();
+      return data;
+    },
+    enabled: !!context,
+  });
+  const firstName = profile?.name?.split(' ')[0] || 'daar';
 
   const urgentSignals = useMemo(
     () => signals.filter((s) => s.actionable && (s.severity === 'error' || s.severity === 'warning')),
