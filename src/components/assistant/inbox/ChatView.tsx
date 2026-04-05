@@ -96,7 +96,7 @@ export function ChatView({ conversationId }: ChatViewProps) {
             <UserIcon className="h-4 w-4 text-foreground" />
           )}
           <span className="text-sm font-medium text-foreground">
-            {isAiHandled ? 'Assistent actief' : context?.first_name || 'Operator'}
+            {isAiHandled ? 'Assistent actief' : 'Operator'}
           </span>
         </div>
         <NestoButton

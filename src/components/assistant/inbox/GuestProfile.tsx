@@ -114,11 +114,11 @@ export function GuestProfile({ customerId }: GuestProfileProps) {
         <div>
           <h4 className="text-xs font-medium text-foreground mb-2">Reserveringen</h4>
           <div className="space-y-1.5">
-            {reservations.map((res) => (
+            {reservations.map((res: any) => (
               <div key={res.id} className="flex items-center gap-2 text-xs">
                 <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                 <span className="text-muted-foreground">
-                  {format(new Date(res.date), 'd MMM', { locale: nl })} {res.time?.slice(0, 5)} ({res.party_size}p)
+                  {format(new Date(res.reservation_date), 'd MMM', { locale: nl })} {res.start_time?.slice(0, 5)} ({res.party_size}p)
                 </span>
                 <NestoBadge
                   variant={res.status === 'confirmed' ? 'primary' : 'default'}
