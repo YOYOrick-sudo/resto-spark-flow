@@ -225,6 +225,7 @@ export default function Reserveringen() {
                 onInviteWaitlist={(id) => inviteWaitlist.mutate(id)}
                 onCancelWaitlist={(id) => cancelWaitlist.mutate(id)}
                 density={density}
+                highlightId={highlightId}
               />
             )}
 
