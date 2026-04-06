@@ -1,30 +1,73 @@
 
 
-# Fix: Onleesbare invoervelden in booking widget
+# Berichten tab — Simpele inbox zonder filters
 
-## Probleem
+## Wat verandert
 
-De globale CSS in `index.css` (regels 246-261) past `border: 1.5px solid hsl(var(--border))` toe op ALLE `input`, `textarea` en `select` elementen. In dark mode wordt `--border` donker (230 6% 20%), en andere CSS-variabelen (`--foreground`, `--background`) worden ook donker. De widget-inputs erven deze waarden, waardoor tekst en borders onzichtbaar worden tegen de witte achtergrond.
+De gesprekkenlijst wordt vereenvoudigd: geen filters, geen zoekbalk. Twee automatisch gesorteerde secties vervangen alles. De badge-logica wordt aangepast zodat alleen "Aandacht"-gesprekken meetellen.
 
-## Oplossing
+## Nieuwe structuur
 
-Wrap de `BookingWidget` output in een `<div className="light">` container. Dit forceert alle CSS-variabelen terug naar hun light-mode waarden binnen de widget, ongeacht het dashboard-thema.
-
-### Wijziging in `src/pages/BookingWidget.tsx`
-
-De outer wrapper div (die met `backgroundColor: '#FAFAFA'`) krijgt een extra `light` class:
-
-```tsx
-<div className="light" style={{ colorScheme: 'light' }}>
-  {/* bestaande widget content */}
-</div>
+```text
+┌──────────────────────┐
+│  AANDACHT (2)        │  ← oranje/warning tint, alleen als items > 0
+│  ⚠️ Piet Jansen  3m  │
+│  ⚠️ Maria Schmidt 1u │
+├──────────────────────┤
+│  RECENT              │
+│  💬 Jan de Vries  2m ✦│
+│  🌐 Lisa v Dijk  3u ✦│
+│  ...max 20           │
+│  [Toon meer]         │
+├──────────────────────┤
+│  (lege staat)        │
+│  ✦                   │
+│  Geen actieve         │
+│  gesprekken.          │
+│  De assistent houdt   │
+│  het in de gaten.     │
+└──────────────────────┘
 ```
 
-Dit isoleert de widget volledig: alle `hsl(var(--border))`, `hsl(var(--foreground))` etc. resolven naar de `:root` (light) waarden.
+## Wijzigingen per bestand
+
+### 1. `src/hooks/useConversations.ts`
+
+Hook herschrijven met een nieuwe signature: `useInboxConversations()` die twee lijsten retourneert:
+
+- **`attention`**: conversations waar `status = 'escalated'` OF (`handled_by = 'operator'` AND `unread_count > 0`). Gesorteerd op `last_message_at ASC` (langst wachtend bovenaan).
+- **`recent`**: conversations waar `handled_by = 'ai'` AND `status IN ('active', 'waiting')`. Gesorteerd op `last_message_at DESC`. Limit 20.
+
+Bestaande `useConversations` hook blijft intact (wordt elders gebruikt). Nieuwe hook ernaast.
+
+Realtime subscription invalideert beide queries.
+
+### 2. `src/components/assistant/inbox/ConversationList.tsx`
+
+Volledig herschrijven:
+- Verwijder zoekbalk, filters, filter-state
+- Gebruik `useInboxConversations()` 
+- Render twee secties:
+  - **"Aandacht"** header met subtiele `bg-warning/5` achtergrond en count — alleen als `attention.length > 0`
+  - **"Recent"** header — altijd zichtbaar
+- ConversationRow aanpassen:
+  - Aandacht-rij: ⚠️ icoon, wachttijd als duration ("3 min", "1 uur"), geen unread-stip
+  - Recent-rij: kanaal-icoon (💬/🌐), ✦ sparkle bij "Assistent" label, muted styling
+- Lege staat: gecentreerd ✦ met tekst "Geen actieve gesprekken. De assistent houdt het in de gaten."
+
+### 3. `src/pages/Assistent.tsx`
+
+Badge voor "Berichten" tab: tel alleen `attention.length` in plaats van totale `unread_count`. Gebruik de nieuwe `useInboxConversations` hook.
+
+### 4. `src/hooks/useSignalCount.ts`
+
+Geen wijziging — sidebar badge telt al escalaties + pending actions + errors, wat correct is.
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/BookingWidget.tsx` | Wrap output in `<div className="light">` |
+| `src/hooks/useConversations.ts` | Nieuwe `useInboxConversations()` hook toevoegen (bestaande hook behouden) |
+| `src/components/assistant/inbox/ConversationList.tsx` | Herschrijven: twee secties, geen filters/zoek |
+| `src/pages/Assistent.tsx` | Badge = `attention.length` ipv totale unread |
 
