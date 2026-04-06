@@ -31,6 +31,15 @@ export function useInboxConversations() {
     queryKey: ['conversations-attention', locationId],
     queryFn: async () => {
       if (!locationId) return [];
+      // Use RPC that checks last message direction to filter false positives
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_attention_conversations', { p_location_id: locationId });
+      if (rpcError) throw rpcError;
+
+      // RPC returns raw conversation rows — fetch customer info separately
+      const ids = (rpcData || []).map((c: any) => c.id);
+      if (ids.length === 0) return [];
+
       const { data, error } = await supabase
         .from('conversations')
         .select(`
@@ -38,10 +47,8 @@ export function useInboxConversations() {
           unread_count, last_message_at, created_at, customer_id,
           customer:customers(first_name, last_name, phone_number)
         `)
-        .eq('location_id', locationId)
-        .or('status.eq.escalated,and(handled_by.eq.operator,unread_count.gt.0)')
-        .order('last_message_at', { ascending: true })
-        .limit(50);
+        .in('id', ids)
+        .order('last_message_at', { ascending: true });
       if (error) throw error;
       return fetchLastMessages(mapConversations(data));
     },
