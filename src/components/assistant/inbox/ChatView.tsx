@@ -5,6 +5,7 @@ import { NestoButton } from '@/components/polar/NestoButton';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useUserContext } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
@@ -19,19 +20,33 @@ function SparkleIndicator() {
 export function ChatView({ conversationId }: ChatViewProps) {
   const { messages, isLoading, sendMessage } = useConversationMessages(conversationId);
   const { context, currentLocation } = useUserContext();
+  const queryClient = useQueryClient();
   const [input, setInput] = useState('');
   const [handledBy, setHandledBy] = useState<string | null>(null);
+  const [operatorName, setOperatorName] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Fetch conversation handled_by
+  // Fetch conversation handled_by + claimed_by profile name
   useEffect(() => {
     if (!conversationId) return;
     supabase
       .from('conversations')
-      .select('handled_by')
+      .select('handled_by, claimed_by')
       .eq('id', conversationId)
       .single()
-      .then(({ data }) => setHandledBy(data?.handled_by || null));
+      .then(async ({ data }) => {
+        setHandledBy(data?.handled_by || null);
+        if (data?.claimed_by) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', data.claimed_by)
+            .single();
+          setOperatorName(profile?.name?.split(' ')[0] || 'Operator');
+        } else {
+          setOperatorName(null);
+        }
+      });
   }, [conversationId]);
 
   // Scroll to bottom on new messages
@@ -39,8 +54,33 @@ export function ChatView({ conversationId }: ChatViewProps) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const getCurrentOperatorName = async (): Promise<string> => {
+    if (!context) return 'Operator';
+    const { data } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', context.user_id)
+      .single();
+    return data?.name?.split(' ')[0] || 'Operator';
+  };
+
+  const insertSystemMessage = async (content: string) => {
+    if (!conversationId || !currentLocation) return;
+    await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      location_id: currentLocation.id,
+      direction: 'system',
+      content,
+      message_type: 'system',
+      channel: 'webchat',
+      is_ai_generated: false,
+      sent_by: context?.user_id || null,
+    });
+  };
+
   const handleTakeOver = async () => {
     if (!conversationId || !context) return;
+    const name = await getCurrentOperatorName();
     await supabase
       .from('conversations')
       .update({
@@ -49,7 +89,11 @@ export function ChatView({ conversationId }: ChatViewProps) {
         claimed_at: new Date().toISOString(),
       })
       .eq('id', conversationId);
+    await insertSystemMessage(`Overgenomen door ${name}`);
     setHandledBy('operator');
+    setOperatorName(name);
+    queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+    queryClient.invalidateQueries({ queryKey: ['inbox-conversations'] });
   };
 
   const handleReturnToAi = async () => {
@@ -60,9 +104,34 @@ export function ChatView({ conversationId }: ChatViewProps) {
         handled_by: 'ai',
         claimed_by: null,
         claimed_at: null,
+        status: 'active',
       })
       .eq('id', conversationId);
+    await insertSystemMessage('Overgedragen aan de Assistent');
     setHandledBy('ai');
+    setOperatorName(null);
+    queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
+    queryClient.invalidateQueries({ queryKey: ['inbox-conversations'] });
+
+    // Check if last message was inbound → trigger AI response
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.direction === 'inbound') {
+      try {
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        if (projectId) {
+          await fetch(`https://${projectId}.supabase.co/functions/v1/ai-respond`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ conversation_id: conversationId }),
+          });
+        }
+      } catch {
+        // Non-critical — AI will pick up on next message
+      }
+    }
   };
 
   const handleSend = () => {
@@ -96,7 +165,7 @@ export function ChatView({ conversationId }: ChatViewProps) {
             <UserIcon className="h-4 w-4 text-foreground" />
           )}
           <span className="text-sm font-medium text-foreground">
-            {isAiHandled ? 'Assistent actief' : 'Operator'}
+            {isAiHandled ? 'Assistent actief' : (operatorName || 'Operator')}
           </span>
         </div>
         <NestoButton
@@ -116,6 +185,20 @@ export function ChatView({ conversationId }: ChatViewProps) {
           </div>
         ) : (
           messages.map((msg) => {
+            // System messages — render as timeline event
+            if (msg.direction === 'system' || msg.message_type === 'system') {
+              return (
+                <div key={msg.id} className="flex items-center gap-2 py-1">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {msg.content}
+                    {msg.created_at && ` · ${format(new Date(msg.created_at), 'HH:mm', { locale: nl })}`}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              );
+            }
+
             const isOutbound = msg.direction === 'outbound';
             return (
               <div

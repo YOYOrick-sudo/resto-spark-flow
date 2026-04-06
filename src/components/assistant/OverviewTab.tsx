@@ -321,7 +321,7 @@ export function OverviewTab() {
                 </div>
               )}
               <div
-                className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                className={`flex items-start gap-3 py-2 px-3 rounded-lg transition-colors ${entry.clickPath ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                 onClick={() => entry.clickPath && navigate(entry.clickPath)}
               >
                 <span className="text-xs text-muted-foreground w-12 flex-shrink-0 pt-0.5 tabular-nums">

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/contexts/UserContext';
-import { format, isToday, isYesterday, isTomorrow, differenceInCalendarDays } from 'date-fns';
+import { format, isToday, isYesterday, differenceInCalendarDays } from 'date-fns';
 import { nl } from 'date-fns/locale';
 
 export interface LogEntry {
@@ -59,6 +59,29 @@ function getChannelLabel(channel: string | undefined): string | undefined {
   return labels[channel];
 }
 
+function getChannelEmoji(channel: string | undefined): string {
+  if (!channel) return '';
+  const icons: Record<string, string> = {
+    widget: '🌐',
+    whatsapp: '💬',
+    phone: '📞',
+    operator: '✏️',
+    walk_in: '🚶',
+    webchat: '🌐',
+  };
+  return icons[channel] || '';
+}
+
+function getCustomerName(metadata: any, changes: any): string {
+  const name = metadata?.customer_name;
+  if (name && name !== 'Gast') return name;
+  // Try first_name + last_name from metadata
+  const first = metadata?.first_name || changes?.first_name;
+  const last = metadata?.last_name || changes?.last_name;
+  if (first) return last ? `${first} ${last}` : first;
+  return metadata?.phone || 'Onbekend';
+}
+
 // Actions to skip — technical/internal events
 const SKIP_ACTIONS = new Set(['field_update', 'auto_assign', 'status_change', 'trigger']);
 
@@ -74,35 +97,37 @@ interface RawAuditEntry {
 }
 
 function humanizeAudit(entry: RawAuditEntry): string {
-  const name = entry.metadata?.customer_name || 'Gast';
+  const name = getCustomerName(entry.metadata, entry.changes);
   const changes = typeof entry.changes === 'object' ? entry.changes : {};
   const channel = changes?.channel?.new || changes?.channel || entry.metadata?.channel;
   const resDate = changes?.date?.new || changes?.date || entry.metadata?.reservation_date;
   const time = changes?.time?.new || changes?.time || entry.metadata?.start_time || '';
   const ps = changes?.party_size?.new || changes?.party_size || '';
+  const emoji = getChannelEmoji(channel);
+  const prefix = emoji ? `${emoji} ` : '';
 
   if (entry.action === 'created' && entry.entity_type === 'reservation') {
     const smartDate = resDate ? formatSmartDate(resDate) : '';
-    return `${name} heeft gereserveerd${smartDate ? ` voor ${smartDate}` : ''}${time ? ` ${time}` : ''}${ps ? ` (${ps}p)` : ''}. ✓`;
+    return `${prefix}${name} heeft gereserveerd${smartDate ? ` voor ${smartDate}` : ''}${time ? ` ${time}` : ''}${ps ? ` (${ps}p)` : ''}. ✓`;
   }
 
   if (entry.action === 'updated' && entry.entity_type === 'reservation') {
     if (changes.party_size?.old && changes.party_size?.new) {
-      return `${name} wilde met ${changes.party_size.new} ipv ${changes.party_size.old} komen. Aangepast. ✓`;
+      return `${prefix}${name} wilde met ${changes.party_size.new} ipv ${changes.party_size.old} komen. Aangepast. ✓`;
     }
     if (changes.status) {
-      if (changes.status.new === 'cancelled') return `${name} heeft geannuleerd. ✓`;
-      if (changes.status.new === 'confirmed') return `Reservering van ${name} bevestigd. ✓`;
-      if (changes.status.new === 'checked_in' || changes.status.new === 'seated') return `${name} is ingecheckt. ✓`;
+      if (changes.status.new === 'cancelled') return `${prefix}${name} heeft geannuleerd${resDate ? ` voor ${formatSmartDate(resDate)}` : ''}${time ? ` ${time}` : ''}. ✓`;
+      if (changes.status.new === 'confirmed') return `${prefix}Reservering van ${name} bevestigd. ✓`;
+      if (changes.status.new === 'checked_in' || changes.status.new === 'seated') return `${prefix}${name} is ingecheckt. ✓`;
     }
     if (changes.time?.old && changes.time?.new) {
-      return `Reservering van ${name} verplaatst naar ${changes.time.new}. ✓`;
+      return `${prefix}Reservering van ${name} verplaatst naar ${changes.time.new}. ✓`;
     }
-    return `Reservering van ${name} bijgewerkt. ✓`;
+    return `${prefix}Reservering van ${name} bijgewerkt. ✓`;
   }
 
   if (entry.action === 'deleted' && entry.entity_type === 'reservation') {
-    return `Reservering van ${name} verwijderd.`;
+    return `${prefix}Reservering van ${name} verwijderd.`;
   }
 
   return `${entry.entity_type} ${entry.action}. ✓`;
@@ -134,7 +159,6 @@ function deduplicateEntries(entries: { entityId: string; timestamp: string; acti
 
   for (const [, group] of grouped) {
     if (group.length <= 1) continue;
-    // Sort by time, group within 5s windows
     group.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     let windowStart = new Date(group[0].timestamp).getTime();
@@ -145,7 +169,6 @@ function deduplicateEntries(entries: { entityId: string; timestamp: string; acti
       if (t - windowStart <= 5000) {
         windowItems.push(group[i]);
       } else {
-        // Close window, keep best
         if (windowItems.length > 1) {
           windowItems.sort((a, b) => (actionPriority[b.action] || 0) - (actionPriority[a.action] || 0));
           for (let j = 1; j < windowItems.length; j++) skipIndices.add(windowItems[j].index);
@@ -161,6 +184,120 @@ function deduplicateEntries(entries: { entityId: string; timestamp: string; acti
   }
 
   return skipIndices;
+}
+
+interface EnrichedMessage {
+  id: string;
+  conversation_id: string;
+  direction: string;
+  content: string | null;
+  is_ai_generated: boolean | null;
+  template_name: string | null;
+  created_at: string;
+  sent_by: string | null;
+  conversation: {
+    channel: string;
+    customer: { first_name: string; last_name: string } | null;
+  } | null;
+}
+
+function groupMessagesByConversation(messages: EnrichedMessage[]): LogEntry[] {
+  const entries: LogEntry[] = [];
+
+  // Separate templates vs chat messages
+  const templateMsgs = messages.filter(m => m.template_name);
+  const chatMsgs = messages.filter(m => !m.template_name);
+
+  // Group template messages (reminders/confirmations)
+  if (templateMsgs.length > 0) {
+    const grouped = templateMsgs.reduce((acc: Record<string, EnrichedMessage[]>, m) => {
+      const key = m.template_name || 'other';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(m);
+      return acc;
+    }, {});
+
+    for (const [template, msgs] of Object.entries(grouped)) {
+      const label = template.includes('reminder') ? 'reminders' :
+                   template.includes('confirmation') ? 'bevestigingen' : 'berichten';
+      entries.push({
+        id: `bulk-${template}-${msgs[0].id}`,
+        type: 'bulk_messages',
+        description: `📨 ${msgs.length} ${label} verstuurd. ✓`,
+        timestamp: msgs[0].created_at,
+        formattedTime: formatLogTime(msgs[0].created_at),
+        isAi: true,
+        isToday: isToday(new Date(msgs[0].created_at)),
+        channelLabel: undefined,
+      });
+    }
+  }
+
+  // Group chat messages by conversation_id within 10-minute windows
+  const byConversation = new Map<string, EnrichedMessage[]>();
+  for (const msg of chatMsgs) {
+    const key = msg.conversation_id;
+    if (!byConversation.has(key)) byConversation.set(key, []);
+    byConversation.get(key)!.push(msg);
+  }
+
+  for (const [convId, msgs] of byConversation) {
+    // Sort by time ascending
+    msgs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    // Group into 10-minute windows
+    const windows: EnrichedMessage[][] = [];
+    let currentWindow: EnrichedMessage[] = [msgs[0]];
+    let windowStart = new Date(msgs[0].created_at).getTime();
+
+    for (let i = 1; i < msgs.length; i++) {
+      const t = new Date(msgs[i].created_at).getTime();
+      if (t - windowStart <= 600000) { // 10 minutes
+        currentWindow.push(msgs[i]);
+      } else {
+        windows.push(currentWindow);
+        currentWindow = [msgs[i]];
+        windowStart = t;
+      }
+    }
+    windows.push(currentWindow);
+
+    for (const window of windows) {
+      const first = window[0];
+      const customer = first.conversation?.customer;
+      const channel = first.conversation?.channel;
+      const name = customer
+        ? (customer.last_name ? `${customer.first_name} ${customer.last_name}` : customer.first_name)
+        : 'Onbekend';
+      const emoji = getChannelEmoji(channel);
+      const prefix = emoji ? `${emoji} ` : '';
+      const allAi = window.every(m => m.is_ai_generated);
+
+      let description: string;
+      if (window.length === 1) {
+        const summary = first.content ? truncate(first.content, 50) : '';
+        description = summary
+          ? `${prefix}${name}: "${summary}". Beantwoord. ✓`
+          : `${prefix}Bericht van ${name} beantwoord. ✓`;
+      } else {
+        description = `${prefix}${name} had meerdere vragen. ${window.length} berichten beantwoord. ✓`;
+      }
+
+      entries.push({
+        id: `msg-group-${convId}-${first.id}`,
+        type: 'messages_grouped',
+        description,
+        timestamp: window[window.length - 1].created_at, // Use last message time
+        formattedTime: formatLogTime(first.created_at),
+        isAi: allAi,
+        isToday: isToday(new Date(first.created_at)),
+        clickPath: `/assistent?tab=berichten&conversation=${convId}`,
+        channelLabel: getChannelLabel(channel),
+      });
+    }
+  }
+
+  return entries;
 }
 
 export function useAssistentLog() {
@@ -187,7 +324,7 @@ export function useAssistentLog() {
           .limit(50),
         supabase
           .from('messages')
-          .select('id, conversation_id, direction, content, is_ai_generated, template_name, created_at, sent_by')
+          .select('id, conversation_id, direction, content, is_ai_generated, template_name, created_at, sent_by, conversation:conversations(channel, customer:customers(first_name, last_name))')
           .eq('direction', 'outbound')
           .gte('created_at', sinceISO)
           .order('created_at', { ascending: false })
@@ -237,50 +374,26 @@ export function useAssistentLog() {
         });
       }
 
-      // Messages
-      const reminderMessages = (messagesRes.data || []).filter((m: any) => m.template_name);
-      const chatMessages = (messagesRes.data || []).filter((m: any) => !m.template_name);
+      // Messages — enriched with customer names and grouped
+      const enrichedMessages = (messagesRes.data || []).map((m: any) => ({
+        id: m.id,
+        conversation_id: m.conversation_id,
+        direction: m.direction,
+        content: m.content,
+        is_ai_generated: m.is_ai_generated,
+        template_name: m.template_name,
+        created_at: m.created_at,
+        sent_by: m.sent_by,
+        conversation: m.conversation ? {
+          channel: m.conversation.channel,
+          customer: m.conversation.customer || null,
+        } : null,
+      })) as EnrichedMessage[];
 
-      if (reminderMessages.length > 0) {
-        const grouped = reminderMessages.reduce((acc: Record<string, any[]>, m: any) => {
-          const key = m.template_name || 'other';
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(m);
-          return acc;
-        }, {});
+      const messageEntries = groupMessagesByConversation(enrichedMessages);
+      entries.push(...messageEntries);
 
-        for (const [template, msgs] of Object.entries(grouped)) {
-          const label = template.includes('reminder') ? 'reminders' :
-                       template.includes('confirmation') ? 'bevestigingen' : 'berichten';
-          entries.push({
-            id: `bulk-${template}-${(msgs as any[])[0].id}`,
-            type: 'bulk_messages',
-            description: `📨 ${(msgs as any[]).length} ${label} verstuurd. ✓`,
-            timestamp: (msgs as any[])[0].created_at,
-            formattedTime: formatLogTime((msgs as any[])[0].created_at),
-            isAi: true,
-            isToday: isToday(new Date((msgs as any[])[0].created_at)),
-            channelLabel: undefined,
-          });
-        }
-      }
-
-      for (const msg of chatMessages) {
-        entries.push({
-          id: `msg-${msg.id}`,
-          type: 'message_answered',
-          description: msg.content
-            ? `Bericht beantwoord: "${truncate(msg.content, 50)}". ✓`
-            : 'Bericht beantwoord. ✓',
-          timestamp: msg.created_at,
-          formattedTime: formatLogTime(msg.created_at),
-          isAi: !!msg.is_ai_generated,
-          isToday: isToday(new Date(msg.created_at)),
-          clickPath: msg.conversation_id ? `/assistent?tab=berichten&conversation=${msg.conversation_id}` : `/assistent?tab=berichten`,
-          channelLabel: 'WhatsApp',
-        });
-      }
-
+      // Agent actions
       for (const action of (actionsRes.data || []) as any[]) {
         if (action.status === 'concept') continue;
         entries.push({
