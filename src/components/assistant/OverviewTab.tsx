@@ -22,7 +22,7 @@ function getGreeting(): string {
   return 'Goedenavond';
 }
 
-const LOG_PAGE_SIZE = 10;
+const LOG_PAGE_SIZE = 7;
 
 const TASK_LABELS: Record<string, string> = {
   whatsapp_answer_faq: 'FAQ beantwoorden',
