@@ -103,6 +103,28 @@ function mapConversations(data: any[]): ConversationItem[] {
   }));
 }
 
+async function fetchLastMessages(items: ConversationItem[]): Promise<ConversationItem[]> {
+  if (items.length === 0) return items;
+  const ids = items.map((c) => c.id);
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('conversation_id, content')
+    .in('conversation_id', ids)
+    .order('created_at', { ascending: false });
+  if (messages) {
+    const lastMsgMap = new Map<string, string>();
+    for (const m of messages) {
+      if (!lastMsgMap.has(m.conversation_id)) {
+        lastMsgMap.set(m.conversation_id, m.content || '');
+      }
+    }
+    for (const item of items) {
+      item.lastMessage = lastMsgMap.get(item.id) || null;
+    }
+  }
+  return items;
+}
+
 export function useConversations(filter: 'all' | 'active' | 'escalated' | 'closed' = 'all') {
   const { currentLocation } = useUserContext();
   const queryClient = useQueryClient();
