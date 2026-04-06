@@ -68,7 +68,7 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
             key={conv.id}
             conversation={conv}
             isSelected={conv.id === selectedId}
-            onClick={() => onSelect(conv.id, null)}
+            onClick={() => onSelect(conv.id, conv.customer_id)}
           />
         ))
       )}
