@@ -5,6 +5,7 @@ import { useUserContext } from '@/contexts/UserContext';
 
 export interface ConversationItem {
   id: string;
+  customer_id: string | null;
   channel: string;
   status: string | null;
   handled_by: string | null;
