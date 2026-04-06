@@ -56,7 +56,7 @@ export function useInboxConversations() {
         .from('conversations')
         .select(`
           id, channel, status, handled_by, claimed_by, claimed_at,
-          unread_count, last_message_at, created_at,
+          unread_count, last_message_at, created_at, customer_id,
           customer:customers(first_name, last_name, phone_number)
         `)
         .eq('location_id', locationId)
@@ -65,7 +65,7 @@ export function useInboxConversations() {
         .order('last_message_at', { ascending: false })
         .limit(20);
       if (error) throw error;
-      return mapConversations(data);
+      return fetchLastMessages(mapConversations(data));
     },
     enabled: !!locationId,
   });
