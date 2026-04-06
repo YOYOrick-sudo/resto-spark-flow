@@ -1,40 +1,81 @@
 
 
-# Fix: Berichtpreview + Gastprofiel laden bij selectie
+# Fix: Gesprekken onterecht in "Aandacht"
 
-## Probleem 1: "Geen berichten" preview
-`useInboxConversations()` zet `lastMessage: null` hardcoded in `mapConversations` (regel 101). Er worden geen berichten opgehaald — in tegenstelling tot `useConversations()` die wél een batch fetch doet.
+## Probleem
 
-## Probleem 2: Gastprofiel toont "Selecteer een gesprek"
-`ConversationList.onSelect()` geeft altijd `null` als customerId mee (regels 51, 71). De `conversations` tabel heeft een `customer_id` kolom, maar die wordt niet opgehaald in de query.
+Yorick Mulder's gesprek (`status = 'escalated'`, `unread_count = 0`) staat in "Aandacht", maar het laatste bericht is een uitgaand AI-antwoord — de escalatie was al opgelost. De status werd nooit teruggezet.
+
+De huidige query `status.eq.escalated` pakt **alle** geëscaleerde gesprekken, ook als ze al afgehandeld zijn. Er ontbreekt een check of er daadwerkelijk een onbeantwoorde inbound vraag is.
 
 ## Oplossing
 
-### 1. `src/hooks/useConversations.ts` — `useInboxConversations`
+Verfijn de "Aandacht" query met een extra voorwaarde: een gesprek hoort alleen in Aandacht als er een **recente inbound** boodschap is die nog niet beantwoord is.
 
-**customer_id toevoegen aan beide queries:**
+### Aanpak
+
+**Stap 1: Database functie** — Maak een SQL-functie `has_unanswered_inbound(conversation_id)` die checkt of het laatste bericht in een gesprek `direction = 'inbound'` is (= gast wacht op antwoord).
+
 ```sql
-id, channel, status, handled_by, claimed_by, claimed_at,
-unread_count, last_message_at, created_at, customer_id,
-customer:customers(first_name, last_name, phone_number)
+CREATE OR REPLACE FUNCTION public.has_unanswered_inbound(_conversation_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    (SELECT direction = 'inbound' 
+     FROM messages 
+     WHERE conversation_id = _conversation_id 
+     ORDER BY created_at DESC 
+     LIMIT 1),
+    false
+  )
+$$;
 ```
 
-**Batch fetch last messages** (zelfde patroon als `useConversations`):
-Na `mapConversations`, haal voor alle conversation IDs het laatste bericht op uit `messages` en vul `lastMessage` in.
+**Stap 2: Database view of RPC** — Maak een RPC-functie `get_attention_conversations(p_location_id)` die alleen gesprekken retourneert waar:
+- `status = 'escalated'` **EN** het laatste bericht inbound is (gast wacht), OF
+- `handled_by = 'operator'` EN `unread_count > 0` (operator heeft overgenomen, gast heeft geschreven)
 
-**`ConversationItem` interface**: voeg `customer_id` toe.
-
-### 2. `src/components/assistant/inbox/ConversationList.tsx`
-
-Beide `onSelect` calls: geef `conv.customer_id` mee in plaats van `null`:
-```tsx
-onClick={() => onSelect(conv.id, conv.customer_id)}
+```sql
+CREATE OR REPLACE FUNCTION public.get_attention_conversations(p_location_id uuid)
+RETURNS SETOF conversations
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT c.* FROM conversations c
+  WHERE c.location_id = p_location_id
+  AND (
+    (c.status = 'escalated' AND public.has_unanswered_inbound(c.id))
+    OR
+    (c.handled_by = 'operator' AND c.unread_count > 0)
+  )
+  ORDER BY c.last_message_at ASC
+  LIMIT 50
+$$;
 ```
+
+**Stap 3: `src/hooks/useConversations.ts`** — Vervang de directe `.or()` query door een `.rpc('get_attention_conversations', { p_location_id: locationId })` call. Daarna alsnog de customer relatie en last messages ophalen via de bestaande helper functies.
+
+Alternatief (simpeler, geen RPC nodig): voeg in de client-side query een **post-fetch filter** toe. Na het ophalen van escalated conversations, filter die waar het laatste bericht outbound is:
+
+```typescript
+// In useInboxConversations, na fetchLastMessages:
+const filtered = items.filter(item => {
+  if (item.status === 'escalated') {
+    // Check of laatste bericht inbound was (= gast wacht)
+    // We hebben lastMessage maar niet direction...
+  }
+  return true;
+});
+```
+
+**Gekozen aanpak: RPC-functie** — dit is betrouwbaarder omdat we `direction` van het laatste bericht nodig hebben, wat we niet in de huidige data hebben.
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useConversations.ts` | Voeg `customer_id` toe aan select + interface. Batch fetch last messages in `useInboxConversations`. |
-| `src/components/assistant/inbox/ConversationList.tsx` | Geef `conv.customer_id` mee aan `onSelect` |
+| Migratie | `has_unanswered_inbound()` + `get_attention_conversations()` functies |
+| `src/hooks/useConversations.ts` | Attention query: gebruik RPC ipv directe `.or()` query, voeg customer join toe als aparte stap |
 
