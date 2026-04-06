@@ -21,6 +21,87 @@ export interface ConversationItem {
   lastMessage?: string | null;
 }
 
+export function useInboxConversations() {
+  const { currentLocation } = useUserContext();
+  const queryClient = useQueryClient();
+  const locationId = currentLocation?.id;
+
+  const { data: attention = [], isLoading: isLoadingAttention } = useQuery({
+    queryKey: ['conversations-attention', locationId],
+    queryFn: async () => {
+      if (!locationId) return [];
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          id, channel, status, handled_by, claimed_by, claimed_at,
+          unread_count, last_message_at, created_at,
+          customer:customers(first_name, last_name, phone_number)
+        `)
+        .eq('location_id', locationId)
+        .or('status.eq.escalated,and(handled_by.eq.operator,unread_count.gt.0)')
+        .order('last_message_at', { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return mapConversations(data);
+    },
+    enabled: !!locationId,
+  });
+
+  const { data: recent = [], isLoading: isLoadingRecent } = useQuery({
+    queryKey: ['conversations-recent', locationId],
+    queryFn: async () => {
+      if (!locationId) return [];
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          id, channel, status, handled_by, claimed_by, claimed_at,
+          unread_count, last_message_at, created_at,
+          customer:customers(first_name, last_name, phone_number)
+        `)
+        .eq('location_id', locationId)
+        .eq('handled_by', 'ai')
+        .in('status', ['active', 'waiting'])
+        .order('last_message_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return mapConversations(data);
+    },
+    enabled: !!locationId,
+  });
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!locationId) return;
+    const channel = supabase
+      .channel(`inbox-conversations:${locationId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'conversations',
+        filter: `location_id=eq.${locationId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['conversations-attention', locationId] });
+        queryClient.invalidateQueries({ queryKey: ['conversations-recent', locationId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [locationId, queryClient]);
+
+  return {
+    attention,
+    recent,
+    isLoading: isLoadingAttention || isLoadingRecent,
+  };
+}
+
+function mapConversations(data: any[]): ConversationItem[] {
+  return (data || []).map((c: any) => ({
+    ...c,
+    customer: c.customer?.[0] || c.customer || null,
+    lastMessage: null,
+  }));
+}
+
 export function useConversations(filter: 'all' | 'active' | 'escalated' | 'closed' = 'all') {
   const { currentLocation } = useUserContext();
   const queryClient = useQueryClient();
