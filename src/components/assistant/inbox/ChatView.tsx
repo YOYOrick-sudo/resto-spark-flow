@@ -115,7 +115,7 @@ export function ChatView({ conversationId }: ChatViewProps) {
 
     // Check if last message was inbound → trigger AI response
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg && lastMsg.direction === 'inbound') {
+    if (lastMsg && lastMsg.direction === 'inbound' && currentLocation) {
       try {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         if (projectId) {
@@ -125,7 +125,7 @@ export function ChatView({ conversationId }: ChatViewProps) {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
-            body: JSON.stringify({ conversation_id: conversationId }),
+            body: JSON.stringify({ conversation_id: conversationId, location_id: currentLocation.id }),
           });
         }
       } catch {
