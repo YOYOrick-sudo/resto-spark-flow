@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, X, Plus, Sparkles } from 'lucide-react';
+import { Check, X, Plus, Sparkles, Globe, MessageSquare, Phone, Pencil, Footprints, type LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoBadge } from '@/components/polar/NestoBadge';
@@ -23,6 +23,15 @@ function getGreeting(): string {
 }
 
 const LOG_PAGE_SIZE = 7;
+
+const CHANNEL_ICON_MAP: Record<string, LucideIcon> = {
+  widget: Globe,
+  whatsapp: MessageSquare,
+  phone: Phone,
+  operator: Pencil,
+  walk_in: Footprints,
+  webchat: Globe,
+};
 
 const TASK_LABELS: Record<string, string> = {
   whatsapp_answer_faq: 'FAQ beantwoorden',
@@ -327,15 +336,16 @@ export function OverviewTab() {
                 <span className="text-xs text-muted-foreground w-12 flex-shrink-0 pt-0.5 tabular-nums">
                   {entry.formattedTime}
                 </span>
-                <p className="text-sm text-foreground flex-1">
-                  {entry.channelLabel && (
-                    <NestoBadge variant="outline" size="sm" className="text-muted-foreground flex-shrink-0 mr-1.5">
-                      {entry.channelLabel}
-                    </NestoBadge>
-                  )}
-                  {entry.description}
-                  {entry.isAi && <SparkleIndicator size="sm" variant="muted" className="ml-1" />}
-                </p>
+                 <p className="text-sm text-foreground flex-1 flex items-start gap-1.5">
+                   {entry.channelIcon && CHANNEL_ICON_MAP[entry.channelIcon] && (() => {
+                     const ChannelIcon = CHANNEL_ICON_MAP[entry.channelIcon!];
+                     return <ChannelIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />;
+                   })()}
+                   <span>
+                   {entry.description}
+                   {entry.isAi && <SparkleIndicator size="sm" variant="muted" className="ml-1" />}
+                   </span>
+                 </p>
               </div>
             </div>
           ))}
