@@ -170,7 +170,7 @@ export function OverviewTab() {
                   : 'Een gast wil iemand spreken.'}
               </p>
               <div className="mt-3">
-                <NestoButton size="sm" onClick={() => navigate('/assistent?tab=berichten')}>
+                <NestoButton size="sm" onClick={() => navigate(`/assistent?tab=berichten&conversation=${conv.id}`)}>
                   Open gesprek
                 </NestoButton>
               </div>
