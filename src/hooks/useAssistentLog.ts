@@ -213,7 +213,7 @@ function groupMessagesByConversation(messages: EnrichedMessage[]): LogEntry[] {
         id: `bulk-${template}-${msgs[0].id}`,
         type: 'bulk_messages',
         description: `${msgs.length} ${label} verstuurd. ✓`,
-        channelIcon: msgs[0]?.channel || 'whatsapp',
+        channelIcon: msgs[0]?.conversation?.channel || 'whatsapp',
         timestamp: msgs[0].created_at,
         formattedTime: formatLogTime(msgs[0].created_at),
         isAi: true,
