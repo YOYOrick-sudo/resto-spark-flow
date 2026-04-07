@@ -1,47 +1,44 @@
 
 
-# Fix: Emoji's vervangen door Lucide iconen in activiteitenlog
+# Fix: Emoji verwijderen bij bulk reminders/bevestigingen
 
 ## Probleem
 
-De activiteitenlog gebruikt emoji's (🌐, 💬, 📞, ✏️, 🚶) als kanaal-iconen. Dit ziet er onprofessioneel uit en is inconsistent met de rest van de app die Lucide iconen gebruikt.
+De bulk_messages entries (reminders, bevestigingen) op regel 215 in `useAssistentLog.ts` bevatten nog een hardcoded `📨` emoji. Deze entries hebben ook geen `channelIcon` gezet, waardoor er geen Lucide icoon wordt getoond.
 
-## Aanpak
+## Fix
 
-De emoji's zitten nu als tekst in de `description` string (via `getChannelEmoji()`). Dat moet veranderen naar een apart `channelIcon` veld dat een Lucide icon-component bevat, zodat de `OverviewTab` een echte SVG icon kan renderen.
+### `src/hooks/useAssistentLog.ts` — regel 215
 
-### Wijzigingen
+Verwijder de `📨` emoji uit de description en voeg een `channelIcon` toe:
 
-**`src/hooks/useAssistentLog.ts`**
+```typescript
+// Was:
+description: `📨 ${msgs.length} ${label} verstuurd. ✓`,
+channelLabel: undefined,
 
-1. Verwijder `getChannelEmoji()` functie
-2. Voeg `channelIcon` veld toe aan het `LogEntry` type (string key ipv React component, omdat hooks geen JSX returnen)
-3. Alle plekken waar `emoji` in de `prefix` werd gezet: verwijder de emoji uit de description, sla het kanaal op als `channelIcon: channel` (bijv. `'whatsapp'`, `'widget'`)
+// Wordt:
+description: `${msgs.length} ${label} verstuurd. ✓`,
+channelIcon: 'whatsapp',  // reminders gaan via WhatsApp
+channelLabel: undefined,
+```
 
-**`src/components/assistant/OverviewTab.tsx`**
+### `src/components/assistant/OverviewTab.tsx` — CHANNEL_ICON_MAP
 
-1. Maak een `CHANNEL_ICON_MAP` (hergebruik patroon uit `ReservationListView.tsx`):
-   - `widget` → `Globe`
-   - `whatsapp` → `MessageSquare`
-   - `phone` → `Phone`
-   - `operator` → `Pencil`
-   - `walk_in` → `Footprints`
-   - `webchat` → `Globe`
-2. Render het icoon links van de description (naast of in plaats van de channelLabel badge):
-   ```tsx
-   {entry.channelIcon && ChannelIconMap[entry.channelIcon] && (
-     <ChannelIcon className="h-3.5 w-3.5 text-muted-foreground inline mr-1.5" />
-   )}
-   ```
+Voeg een `mail` entry toe voor het geval bulk berichten via andere kanalen gaan:
 
-## Resultaat
+```typescript
+import { Mail } from 'lucide-react';
 
-Elke logregel toont een subtiel Lucide icoon (consistent met de rest van de UI) in plaats van een kleurrijke emoji.
+// Voeg toe aan CHANNEL_ICON_MAP:
+mail: Mail,
+```
+
+Eigenlijk: de reminders gaan via WhatsApp, dus `channelIcon: 'whatsapp'` geeft automatisch het `MessageSquare` icoon. Als het template-kanaal varieert, pak het kanaal uit het eerste bericht (`msgs[0].channel`). Dat is robuuster.
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useAssistentLog.ts` | Verwijder `getChannelEmoji`, voeg `channelIcon` string veld toe, verwijder emoji uit descriptions |
-| `src/components/assistant/OverviewTab.tsx` | `CHANNEL_ICON_MAP` + render Lucide icoon per logregel |
+| `src/hooks/useAssistentLog.ts` | Verwijder `📨` emoji, voeg `channelIcon` toe op basis van `msgs[0]` kanaal |
 
