@@ -341,6 +341,25 @@ export function useAssistentLog() {
       const rawAudits = ((auditRes.data || []) as RawAuditEntry[])
         .filter(a => !SKIP_ACTIONS.has(a.action));
 
+      // Batch-fetch customer names for reservation audits
+      const reservationIds = rawAudits
+        .filter(a => a.entity_type === 'reservation')
+        .map(a => a.entity_id);
+
+      const customerNameMap = new Map<string, string>();
+      if (reservationIds.length > 0) {
+        const { data: resData } = await supabase
+          .from('reservations')
+          .select('id, customer_id, customers(first_name, last_name)')
+          .in('id', reservationIds);
+        for (const r of (resData || []) as any[]) {
+          const c = r.customers;
+          if (c?.first_name) {
+            customerNameMap.set(r.id, c.last_name ? `${c.first_name} ${c.last_name}` : c.first_name);
+          }
+        }
+      }
+
       // Deduplication
       const dedupInput = rawAudits.map((a, i) => ({
         entityId: a.entity_id,
@@ -359,7 +378,7 @@ export function useAssistentLog() {
         entries.push({
           id: `audit-${audit.id}`,
           type: `${audit.entity_type}_${audit.action}`,
-          description: humanizeAudit(audit),
+          description: humanizeAudit(audit, customerNameMap),
           timestamp: audit.created_at,
           formattedTime: formatLogTime(audit.created_at),
           isAi: audit.actor_type === 'ai' || audit.actor_type === 'system',
