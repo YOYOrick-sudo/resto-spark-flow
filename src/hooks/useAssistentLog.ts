@@ -96,8 +96,8 @@ interface RawAuditEntry {
   metadata: any;
 }
 
-function humanizeAudit(entry: RawAuditEntry): string {
-  const name = getCustomerName(entry.metadata, entry.changes);
+function humanizeAudit(entry: RawAuditEntry, customerNameMap?: Map<string, string>): string {
+  const name = customerNameMap?.get(entry.entity_id) || getCustomerName(entry.metadata, entry.changes);
   const changes = typeof entry.changes === 'object' ? entry.changes : {};
   const channel = changes?.channel?.new || changes?.channel || entry.metadata?.channel;
   const resDate = changes?.date?.new || changes?.date || entry.metadata?.reservation_date;
@@ -275,10 +275,7 @@ function groupMessagesByConversation(messages: EnrichedMessage[]): LogEntry[] {
 
       let description: string;
       if (window.length === 1) {
-        const summary = first.content ? truncate(first.content, 50) : '';
-        description = summary
-          ? `${prefix}${name}: "${summary}". Beantwoord. ✓`
-          : `${prefix}Bericht van ${name} beantwoord. ✓`;
+        description = `${prefix}Bericht van ${name} beantwoord. ✓`;
       } else {
         description = `${prefix}${name} had meerdere vragen. ${window.length} berichten beantwoord. ✓`;
       }
@@ -344,6 +341,25 @@ export function useAssistentLog() {
       const rawAudits = ((auditRes.data || []) as RawAuditEntry[])
         .filter(a => !SKIP_ACTIONS.has(a.action));
 
+      // Batch-fetch customer names for reservation audits
+      const reservationIds = rawAudits
+        .filter(a => a.entity_type === 'reservation')
+        .map(a => a.entity_id);
+
+      const customerNameMap = new Map<string, string>();
+      if (reservationIds.length > 0) {
+        const { data: resData } = await supabase
+          .from('reservations')
+          .select('id, customer_id, customers(first_name, last_name)')
+          .in('id', reservationIds);
+        for (const r of (resData || []) as any[]) {
+          const c = r.customers;
+          if (c?.first_name) {
+            customerNameMap.set(r.id, c.last_name ? `${c.first_name} ${c.last_name}` : c.first_name);
+          }
+        }
+      }
+
       // Deduplication
       const dedupInput = rawAudits.map((a, i) => ({
         entityId: a.entity_id,
@@ -362,7 +378,7 @@ export function useAssistentLog() {
         entries.push({
           id: `audit-${audit.id}`,
           type: `${audit.entity_type}_${audit.action}`,
-          description: humanizeAudit(audit),
+          description: humanizeAudit(audit, customerNameMap),
           timestamp: audit.created_at,
           formattedTime: formatLogTime(audit.created_at),
           isAi: audit.actor_type === 'ai' || audit.actor_type === 'system',
@@ -399,7 +415,7 @@ export function useAssistentLog() {
         entries.push({
           id: `action-${action.id}`,
           type: `action_${action.status}`,
-          description: action.beschrijving || `${action.title}. ✓`,
+          description: action.title ? `${action.title}. Afgehandeld. ✓` : `Actie uitgevoerd. ✓`,
           timestamp: action.created_at,
           formattedTime: formatLogTime(action.created_at),
           isAi: true,
