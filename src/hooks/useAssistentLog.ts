@@ -101,14 +101,15 @@ function humanizeAudit(entry: RawAuditEntry, customerNameMap?: Map<string, strin
   const changes = typeof entry.changes === 'object' ? entry.changes : {};
   const channel = changes?.channel?.new || changes?.channel || entry.metadata?.channel;
   const resDate = changes?.date?.new || changes?.date || entry.metadata?.reservation_date;
-  const time = changes?.time?.new || changes?.time || entry.metadata?.start_time || '';
+  const rawTime = changes?.start_time?.new || changes?.start_time || changes?.time?.new || changes?.time || entry.metadata?.start_time || '';
+  const formattedTime = rawTime ? rawTime.toString().slice(0, 5) : '';
   const ps = changes?.party_size?.new || changes?.party_size || '';
   const emoji = getChannelEmoji(channel);
   const prefix = emoji ? `${emoji} ` : '';
 
   if (entry.action === 'created' && entry.entity_type === 'reservation') {
     const smartDate = resDate ? formatSmartDate(resDate) : '';
-    return `${prefix}${name} heeft gereserveerd${smartDate ? ` voor ${smartDate}` : ''}${time ? ` ${time}` : ''}${ps ? ` (${ps}p)` : ''}. ✓`;
+    return `${prefix}${name} heeft gereserveerd${smartDate ? ` voor ${smartDate}` : ''}${formattedTime ? ` ${formattedTime}` : ''}${ps ? ` (${ps}p)` : ''}. ✓`;
   }
 
   if (entry.action === 'updated' && entry.entity_type === 'reservation') {
@@ -116,12 +117,13 @@ function humanizeAudit(entry: RawAuditEntry, customerNameMap?: Map<string, strin
       return `${prefix}${name} wilde met ${changes.party_size.new} ipv ${changes.party_size.old} komen. Aangepast. ✓`;
     }
     if (changes.status) {
-      if (changes.status.new === 'cancelled') return `${prefix}${name} heeft geannuleerd${resDate ? ` voor ${formatSmartDate(resDate)}` : ''}${time ? ` ${time}` : ''}. ✓`;
+      if (changes.status.new === 'cancelled') return `${prefix}${name} heeft geannuleerd${resDate ? ` voor ${formatSmartDate(resDate)}` : ''}${formattedTime ? ` ${formattedTime}` : ''}. ✓`;
       if (changes.status.new === 'confirmed') return `${prefix}Reservering van ${name} bevestigd. ✓`;
       if (changes.status.new === 'checked_in' || changes.status.new === 'seated') return `${prefix}${name} is ingecheckt. ✓`;
     }
-    if (changes.time?.old && changes.time?.new) {
-      return `${prefix}Reservering van ${name} verplaatst naar ${changes.time.new}. ✓`;
+    if (changes.time?.old && changes.time?.new || changes.start_time?.old && changes.start_time?.new) {
+      const newTime = (changes.start_time?.new || changes.time?.new || '').toString().slice(0, 5);
+      return `${prefix}Reservering van ${name} verplaatst naar ${newTime}. ✓`;
     }
     return `${prefix}Reservering van ${name} bijgewerkt. ✓`;
   }
@@ -284,8 +286,8 @@ function groupMessagesByConversation(messages: EnrichedMessage[]): LogEntry[] {
         id: `msg-group-${convId}-${first.id}`,
         type: 'messages_grouped',
         description,
-        timestamp: window[window.length - 1].created_at, // Use last message time
-        formattedTime: formatLogTime(first.created_at),
+        timestamp: window[window.length - 1].created_at,
+        formattedTime: formatLogTime(window[window.length - 1].created_at),
         isAi: allAi,
         isToday: isToday(new Date(first.created_at)),
         clickPath: `/assistent?tab=berichten&conversation=${convId}`,
@@ -409,17 +411,39 @@ export function useAssistentLog() {
       const messageEntries = groupMessagesByConversation(enrichedMessages);
       entries.push(...messageEntries);
 
-      // Agent actions
+      // Agent actions — batch-fetch conversation channels
+      const actionConvIds = (actionsRes.data || [])
+        .map((a: any) => a.action_data?.conversation_id)
+        .filter(Boolean);
+
+      const convChannelMap = new Map<string, string>();
+      if (actionConvIds.length > 0) {
+        const { data: convData } = await supabase
+          .from('conversations')
+          .select('id, channel')
+          .in('id', actionConvIds);
+        for (const c of (convData || []) as any[]) {
+          convChannelMap.set(c.id, c.channel);
+        }
+      }
+
       for (const action of (actionsRes.data || []) as any[]) {
         if (action.status === 'concept') continue;
+        const convId = action.action_data?.conversation_id;
+        const channel = convChannelMap.get(convId);
+        const emoji = getChannelEmoji(channel);
+        const prefix = emoji ? `${emoji} ` : '';
+
         entries.push({
           id: `action-${action.id}`,
           type: `action_${action.status}`,
-          description: action.title ? `${action.title}. Afgehandeld. ✓` : `Actie uitgevoerd. ✓`,
+          description: action.title ? `${prefix}${action.title}. Afgehandeld. ✓` : `Actie uitgevoerd. ✓`,
           timestamp: action.created_at,
           formattedTime: formatLogTime(action.created_at),
           isAi: true,
           isToday: isToday(new Date(action.created_at)),
+          channelLabel: getChannelLabel(channel),
+          clickPath: convId ? `/assistent?tab=berichten&conversation=${convId}` : undefined,
         });
       }
 
