@@ -16,6 +16,7 @@ export interface LogEntry {
   entityType?: string;
   entityId?: string;
   channelLabel?: string;
+  channelIcon?: string;
 }
 
 function formatLogTime(dateStr: string): string {
@@ -59,18 +60,7 @@ function getChannelLabel(channel: string | undefined): string | undefined {
   return labels[channel];
 }
 
-function getChannelEmoji(channel: string | undefined): string {
-  if (!channel) return '';
-  const icons: Record<string, string> = {
-    widget: '🌐',
-    whatsapp: '💬',
-    phone: '📞',
-    operator: '✏️',
-    walk_in: '🚶',
-    webchat: '🌐',
-  };
-  return icons[channel] || '';
-}
+// getChannelEmoji removed — replaced by channelIcon field + Lucide icons in OverviewTab
 
 function getCustomerName(metadata: any, changes: any): string {
   const name = metadata?.customer_name;
@@ -104,32 +94,29 @@ function humanizeAudit(entry: RawAuditEntry, customerNameMap?: Map<string, strin
   const rawTime = changes?.start_time?.new || changes?.start_time || changes?.time?.new || changes?.time || entry.metadata?.start_time || '';
   const formattedTime = rawTime ? rawTime.toString().slice(0, 5) : '';
   const ps = changes?.party_size?.new || changes?.party_size || '';
-  const emoji = getChannelEmoji(channel);
-  const prefix = emoji ? `${emoji} ` : '';
-
   if (entry.action === 'created' && entry.entity_type === 'reservation') {
     const smartDate = resDate ? formatSmartDate(resDate) : '';
-    return `${prefix}${name} heeft gereserveerd${smartDate ? ` voor ${smartDate}` : ''}${formattedTime ? ` ${formattedTime}` : ''}${ps ? ` (${ps}p)` : ''}. ✓`;
+    return `${name} heeft gereserveerd${smartDate ? ` voor ${smartDate}` : ''}${formattedTime ? ` ${formattedTime}` : ''}${ps ? ` (${ps}p)` : ''}. ✓`;
   }
 
   if (entry.action === 'updated' && entry.entity_type === 'reservation') {
     if (changes.party_size?.old && changes.party_size?.new) {
-      return `${prefix}${name} wilde met ${changes.party_size.new} ipv ${changes.party_size.old} komen. Aangepast. ✓`;
+      return `${name} wilde met ${changes.party_size.new} ipv ${changes.party_size.old} komen. Aangepast. ✓`;
     }
     if (changes.status) {
-      if (changes.status.new === 'cancelled') return `${prefix}${name} heeft geannuleerd${resDate ? ` voor ${formatSmartDate(resDate)}` : ''}${formattedTime ? ` ${formattedTime}` : ''}. ✓`;
-      if (changes.status.new === 'confirmed') return `${prefix}Reservering van ${name} bevestigd. ✓`;
-      if (changes.status.new === 'checked_in' || changes.status.new === 'seated') return `${prefix}${name} is ingecheckt. ✓`;
+      if (changes.status.new === 'cancelled') return `${name} heeft geannuleerd${resDate ? ` voor ${formatSmartDate(resDate)}` : ''}${formattedTime ? ` ${formattedTime}` : ''}. ✓`;
+      if (changes.status.new === 'confirmed') return `Reservering van ${name} bevestigd. ✓`;
+      if (changes.status.new === 'checked_in' || changes.status.new === 'seated') return `${name} is ingecheckt. ✓`;
     }
     if (changes.time?.old && changes.time?.new || changes.start_time?.old && changes.start_time?.new) {
       const newTime = (changes.start_time?.new || changes.time?.new || '').toString().slice(0, 5);
-      return `${prefix}Reservering van ${name} verplaatst naar ${newTime}. ✓`;
+      return `Reservering van ${name} verplaatst naar ${newTime}. ✓`;
     }
-    return `${prefix}Reservering van ${name} bijgewerkt. ✓`;
+    return `Reservering van ${name} bijgewerkt. ✓`;
   }
 
   if (entry.action === 'deleted' && entry.entity_type === 'reservation') {
-    return `${prefix}Reservering van ${name} verwijderd.`;
+    return `Reservering van ${name} verwijderd.`;
   }
 
   return `${entry.entity_type} ${entry.action}. ✓`;
@@ -271,15 +258,13 @@ function groupMessagesByConversation(messages: EnrichedMessage[]): LogEntry[] {
       const name = customer
         ? (customer.last_name ? `${customer.first_name} ${customer.last_name}` : customer.first_name)
         : 'Onbekend';
-      const emoji = getChannelEmoji(channel);
-      const prefix = emoji ? `${emoji} ` : '';
       const allAi = window.every(m => m.is_ai_generated);
 
       let description: string;
       if (window.length === 1) {
-        description = `${prefix}Bericht van ${name} beantwoord. ✓`;
+        description = `Bericht van ${name} beantwoord. ✓`;
       } else {
-        description = `${prefix}${name} had meerdere vragen. ${window.length} berichten beantwoord. ✓`;
+        description = `${name} had meerdere vragen. ${window.length} berichten beantwoord. ✓`;
       }
 
       entries.push({
@@ -292,6 +277,7 @@ function groupMessagesByConversation(messages: EnrichedMessage[]): LogEntry[] {
         isToday: isToday(new Date(first.created_at)),
         clickPath: `/assistent?tab=berichten&conversation=${convId}`,
         channelLabel: getChannelLabel(channel),
+        channelIcon: channel,
       });
     }
   }
@@ -388,6 +374,7 @@ export function useAssistentLog() {
           entityType: audit.entity_type,
           entityId: audit.entity_id,
           channelLabel: getChannelLabel(channel),
+          channelIcon: channel,
           clickPath: getAuditClickPath(audit),
         });
       }
@@ -431,18 +418,17 @@ export function useAssistentLog() {
         if (action.status === 'concept') continue;
         const convId = action.action_data?.conversation_id;
         const channel = convChannelMap.get(convId);
-        const emoji = getChannelEmoji(channel);
-        const prefix = emoji ? `${emoji} ` : '';
 
         entries.push({
           id: `action-${action.id}`,
           type: `action_${action.status}`,
-          description: action.title ? `${prefix}${action.title}. Afgehandeld. ✓` : `Actie uitgevoerd. ✓`,
+          description: action.title ? `${action.title}. Afgehandeld. ✓` : `Actie uitgevoerd. ✓`,
           timestamp: action.created_at,
           formattedTime: formatLogTime(action.created_at),
           isAi: true,
           isToday: isToday(new Date(action.created_at)),
           channelLabel: getChannelLabel(channel),
+          channelIcon: channel,
           clickPath: convId ? `/assistent?tab=berichten&conversation=${convId}` : undefined,
         });
       }
