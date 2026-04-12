@@ -47,7 +47,7 @@ export function useVoorraadBewegingen(ingredientId: string | null) {
         .from("voorraad_bewegingen")
         .select(`
           *,
-          profiles:created_by(full_name)
+          profiles:medewerker_id(full_name)
         `)
         .eq("ingredient_id", ingredientId!)
         .order("created_at", { ascending: false })

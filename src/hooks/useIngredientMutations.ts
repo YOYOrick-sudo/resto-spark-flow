@@ -179,31 +179,16 @@ export function useIngredientMutations() {
 
   const upsertAllergeenStatus = useMutation({
     mutationFn: async (input: UpsertAllergeenInput) => {
-      // Check if record exists
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from("ingredient_allergenen")
-        .select("id")
-        .eq("ingredient_id", input.ingredientId)
-        .eq("allergeen_id", input.allergeenId)
-        .maybeSingle();
-
-      if (existing) {
-        const { error } = await supabase
-          .from("ingredient_allergenen")
-          .update({ status: input.status, bron: "handmatig", laatst_bijgewerkt: new Date().toISOString() })
-          .eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("ingredient_allergenen")
-          .insert({
-            ingredient_id: input.ingredientId,
-            allergeen_id: input.allergeenId,
-            status: input.status,
-            bron: "handmatig",
-          });
-        if (error) throw error;
-      }
+        .upsert({
+          ingredient_id: input.ingredientId,
+          allergeen_id: input.allergeenId,
+          status: input.status,
+          bron: "handmatig",
+          laatst_bijgewerkt: new Date().toISOString(),
+        }, { onConflict: "ingredient_id,allergeen_id" });
+      if (error) throw error;
     },
     onSuccess: () => {
       invalidate();

@@ -71,6 +71,7 @@ export function useIngredienten(filters: IngredientenFilters) {
             allergenen(id, code, naam_nl, naam_en, sort_order)
           )
         `)
+        .eq("location_id", locationId)
         .order("naam", { ascending: true });
 
       if (!filters.showArchived) {
