@@ -814,6 +814,69 @@ export type Database = {
           },
         ]
       }
+      halffabricaat_methodes: {
+        Row: {
+          batch_nummer_template: string | null
+          created_at: string | null
+          houdbaarheid: number | null
+          id: string
+          instructie: string | null
+          output_eenheid: string
+          output_hoeveelheid: number
+          recept_id: string
+          sort_order: number | null
+          standaard_duur: number
+          sub_recept_id: string | null
+          type: string
+          visuele_eenheid: string
+        }
+        Insert: {
+          batch_nummer_template?: string | null
+          created_at?: string | null
+          houdbaarheid?: number | null
+          id?: string
+          instructie?: string | null
+          output_eenheid: string
+          output_hoeveelheid: number
+          recept_id: string
+          sort_order?: number | null
+          standaard_duur: number
+          sub_recept_id?: string | null
+          type: string
+          visuele_eenheid: string
+        }
+        Update: {
+          batch_nummer_template?: string | null
+          created_at?: string | null
+          houdbaarheid?: number | null
+          id?: string
+          instructie?: string | null
+          output_eenheid?: string
+          output_hoeveelheid?: number
+          recept_id?: string
+          sort_order?: number | null
+          standaard_duur?: number
+          sub_recept_id?: string | null
+          type?: string
+          visuele_eenheid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "halffabricaat_methodes_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "halffabricaat_methodes_sub_recept_id_fkey"
+            columns: ["sub_recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_allergenen: {
         Row: {
           allergeen_id: string
@@ -3298,6 +3361,170 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      recept_allergenen: {
+        Row: {
+          allergeen_id: string
+          berekend_op: string | null
+          id: string
+          recept_id: string
+          status: string
+        }
+        Insert: {
+          allergeen_id: string
+          berekend_op?: string | null
+          id?: string
+          recept_id: string
+          status?: string
+        }
+        Update: {
+          allergeen_id?: string
+          berekend_op?: string | null
+          id?: string
+          recept_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recept_allergenen_allergeen_id_fkey"
+            columns: ["allergeen_id"]
+            isOneToOne: false
+            referencedRelation: "allergenen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recept_allergenen_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recept_ingredienten: {
+        Row: {
+          created_at: string | null
+          eenheid: string | null
+          hoeveelheid: number
+          id: string
+          ingredient_id: string
+          kostprijs_snapshot: number | null
+          recept_id: string
+          sort_order: number | null
+          yield_snapshot: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          eenheid?: string | null
+          hoeveelheid: number
+          id?: string
+          ingredient_id: string
+          kostprijs_snapshot?: number | null
+          recept_id: string
+          sort_order?: number | null
+          yield_snapshot?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          eenheid?: string | null
+          hoeveelheid?: number
+          id?: string
+          ingredient_id?: string
+          kostprijs_snapshot?: number | null
+          recept_id?: string
+          sort_order?: number | null
+          yield_snapshot?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recept_ingredienten_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recept_ingredienten_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recepten: {
+        Row: {
+          actieve_bereidingstijd: number | null
+          arbeidskostprijs: number | null
+          archived_at: string | null
+          bereiding: string | null
+          categorie: string
+          created_at: string | null
+          id: string
+          is_archived: boolean | null
+          kostprijs_berekend_op: string | null
+          kostprijs_per_portie: number | null
+          location_id: string
+          naam: string
+          passieve_bereidingstijd: number | null
+          porties: number
+          totale_ingredientkostprijs: number | null
+          totale_kostprijs: number | null
+          type: string
+          updated_at: string | null
+          versie: number | null
+        }
+        Insert: {
+          actieve_bereidingstijd?: number | null
+          arbeidskostprijs?: number | null
+          archived_at?: string | null
+          bereiding?: string | null
+          categorie: string
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          kostprijs_berekend_op?: string | null
+          kostprijs_per_portie?: number | null
+          location_id: string
+          naam: string
+          passieve_bereidingstijd?: number | null
+          porties?: number
+          totale_ingredientkostprijs?: number | null
+          totale_kostprijs?: number | null
+          type?: string
+          updated_at?: string | null
+          versie?: number | null
+        }
+        Update: {
+          actieve_bereidingstijd?: number | null
+          arbeidskostprijs?: number | null
+          archived_at?: string | null
+          bereiding?: string | null
+          categorie?: string
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          kostprijs_berekend_op?: string | null
+          kostprijs_per_portie?: number | null
+          location_id?: string
+          naam?: string
+          passieve_bereidingstijd?: number | null
+          porties?: number
+          totale_ingredientkostprijs?: number | null
+          totale_kostprijs?: number | null
+          type?: string
+          updated_at?: string | null
+          versie?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recepten_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reservation_email_templates: {
         Row: {
