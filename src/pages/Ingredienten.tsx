@@ -1,424 +1,249 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, Upload, Package, AlertCircle } from "lucide-react";
+import { Plus, Package } from "lucide-react";
 import {
   PageHeader,
   SearchBar,
-  FilterSidebar,
-  DataTable,
-  StatusDot,
+  NestoSelect,
   NestoBadge,
+  DataTable,
   EmptyState,
   TableSkeleton,
   type DataTableColumn,
-  type FilterDefinition,
 } from "@/components/polar";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { nestoToast } from "@/lib/nestoToast";
+import {
+  useIngredienten,
+  filterIngredienten,
+  getVoorraadStatus,
+  type IngredientRow,
+  type IngredientenFilters,
+} from "@/hooks/useIngredienten";
+import { IngredientDetailPanel } from "@/components/ingredienten/IngredientDetailPanel";
+import { NieuwIngredientModal } from "@/components/ingredienten/NieuwIngredientModal";
 
 // ============================================================================
-// Types
+// Constants
 // ============================================================================
 
-interface Ingredient {
-  id: string;
-  naam: string;
-  categorie: string;
-  voorraad: number;
-  voorraadEenheid: string;
-  minVoorraad: number;
-  kostprijs: number;
-  laatstAangevuld: string;
-  allergenen: string[];
-}
-
-// ============================================================================
-// Mock Data
-// ============================================================================
-
-// TODO: Replace with Supabase query via useIngredienten hook
-const mockIngredienten: Ingredient[] = [
-  {
-    id: "1",
-    naam: "Kipfilet",
-    categorie: "Vlees & Vis",
-    voorraad: 5,
-    voorraadEenheid: "kg",
-    minVoorraad: 2,
-    kostprijs: 12.5,
-    laatstAangevuld: "31 dec 2025",
-    allergenen: [],
-  },
-  {
-    id: "2",
-    naam: "Basilicum",
-    categorie: "Kruiden",
-    voorraad: 150,
-    voorraadEenheid: "g",
-    minVoorraad: 200,
-    kostprijs: 1.97,
-    laatstAangevuld: "24 nov 2025",
-    allergenen: [],
-  },
-  {
-    id: "3",
-    naam: "Tomaten",
-    categorie: "Groenten",
-    voorraad: 8,
-    voorraadEenheid: "kg",
-    minVoorraad: 5,
-    kostprijs: 3.25,
-    laatstAangevuld: "30 dec 2025",
-    allergenen: [],
-  },
-  {
-    id: "4",
-    naam: "Parmezaanse kaas",
-    categorie: "Zuivel",
-    voorraad: 0.5,
-    voorraadEenheid: "kg",
-    minVoorraad: 1,
-    kostprijs: 28.0,
-    laatstAangevuld: "15 dec 2025",
-    allergenen: ["Melk"],
-  },
-  {
-    id: "5",
-    naam: "Olijfolie Extra Vergine",
-    categorie: "Oliën & Vetten",
-    voorraad: 5,
-    voorraadEenheid: "liter",
-    minVoorraad: 3,
-    kostprijs: 8.95,
-    laatstAangevuld: "20 dec 2025",
-    allergenen: [],
-  },
-  {
-    id: "6",
-    naam: "Spaghetti",
-    categorie: "Droog & Pasta",
-    voorraad: 10,
-    voorraadEenheid: "kg",
-    minVoorraad: 5,
-    kostprijs: 2.15,
-    laatstAangevuld: "28 dec 2025",
-    allergenen: ["Gluten"],
-  },
-  {
-    id: "7",
-    naam: "Knoflook",
-    categorie: "Groenten",
-    voorraad: 0,
-    voorraadEenheid: "stuks",
-    minVoorraad: 20,
-    kostprijs: 0.15,
-    laatstAangevuld: "10 dec 2025",
-    allergenen: [],
-  },
-  {
-    id: "8",
-    naam: "Zalm",
-    categorie: "Vlees & Vis",
-    voorraad: 3,
-    voorraadEenheid: "kg",
-    minVoorraad: 2,
-    kostprijs: 24.0,
-    laatstAangevuld: "29 dec 2025",
-    allergenen: ["Vis"],
-  },
+const CATEGORIE_OPTIONS = [
+  { value: "", label: "Alle categorieën" },
+  { value: "groenten", label: "Groenten" },
+  { value: "vlees", label: "Vlees" },
+  { value: "vis", label: "Vis" },
+  { value: "zuivel", label: "Zuivel" },
+  { value: "kruiden", label: "Kruiden" },
+  { value: "olie", label: "Olie" },
+  { value: "droog", label: "Droog" },
+  { value: "overig", label: "Overig" },
 ];
 
-// ============================================================================
-// Filter Definitions
-// ============================================================================
-
-const filterDefinitions: FilterDefinition[] = [
-  {
-    id: "categorie",
-    label: "Categorie",
-    placeholder: "Alle categorieën",
-    options: [
-      { value: "all", label: "Alle categorieën" },
-      { value: "groenten", label: "Groenten" },
-      { value: "vlees-vis", label: "Vlees & Vis" },
-      { value: "zuivel", label: "Zuivel" },
-      { value: "kruiden", label: "Kruiden" },
-      { value: "olien", label: "Oliën & Vetten" },
-      { value: "droog", label: "Droog & Pasta" },
-    ],
-  },
-  {
-    id: "locatie",
-    label: "Locatie",
-    placeholder: "Alle locaties",
-    options: [
-      { value: "all", label: "Alle locaties" },
-      { value: "koelcel", label: "Koelcel" },
-      { value: "vriezer", label: "Vriezer" },
-      { value: "droog", label: "Droge opslag" },
-      { value: "keuken", label: "Keuken" },
-    ],
-  },
-  {
-    id: "voorraad-status",
-    label: "Voorraad status",
-    placeholder: "Alle statussen",
-    options: [
-      { value: "all", label: "Alle statussen" },
-      { value: "op-voorraad", label: "Op voorraad" },
-      { value: "bijna-op", label: "Bijna op" },
-      { value: "op", label: "Op" },
-    ],
-  },
+const STATUS_OPTIONS = [
+  { value: "", label: "Alle statussen" },
+  { value: "laag", label: "Laag" },
+  { value: "op-voorraad", label: "Op voorraad" },
+  { value: "overschot", label: "Overschot" },
 ];
+
+const STATUS_CONFIG: Record<string, { variant: "error" | "success" | "primary"; label: string }> = {
+  laag: { variant: "error", label: "Laag" },
+  "op-voorraad": { variant: "success", label: "Op voorraad" },
+  overschot: { variant: "primary", label: "Overschot" },
+};
+
+const BRON_BADGE: Record<string, { variant: "primary" | "default" | "warning" | "success"; label: string }> = {
+  api: { variant: "primary", label: "API" },
+  handmatig: { variant: "default", label: "Handmatig" },
+  email: { variant: "warning", label: "Email" },
+  upload: { variant: "success", label: "Upload" },
+};
 
 // ============================================================================
 // Component
 // ============================================================================
 
 export default function Ingredienten() {
-  const navigate = useNavigate();
-  const [isLoading] = React.useState(false);
-  const [searchValue, setSearchValue] = React.useState("");
-  const [filterValues, setFilterValues] = React.useState<Record<string, string>>({});
-  const [sortColumn, setSortColumn] = React.useState<string>("naam");
-  const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const pageSize = 10;
+  const [filters, setFilters] = React.useState<IngredientenFilters>({
+    search: "",
+    categorie: "",
+    voorraadStatus: "",
+    showArchived: false,
+  });
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [showNieuw, setShowNieuw] = React.useState(false);
 
-  // Filter and search logic
-  const filteredData = React.useMemo(() => {
-    let result = [...mockIngredienten];
-
-    // Search
-    if (searchValue) {
-      const search = searchValue.toLowerCase();
-      result = result.filter(
-        (item) =>
-          item.naam.toLowerCase().includes(search) ||
-          item.categorie.toLowerCase().includes(search)
-      );
-    }
-
-    // Filter by category
-    if (filterValues.categorie && filterValues.categorie !== "all") {
-      const categoryMap: Record<string, string> = {
-        groenten: "Groenten",
-        "vlees-vis": "Vlees & Vis",
-        zuivel: "Zuivel",
-        kruiden: "Kruiden",
-        olien: "Oliën & Vetten",
-        droog: "Droog & Pasta",
-      };
-      result = result.filter(
-        (item) => item.categorie === categoryMap[filterValues.categorie]
-      );
-    }
-
-    // Filter by stock status
-    if (filterValues["voorraad-status"] && filterValues["voorraad-status"] !== "all") {
-      result = result.filter((item) => {
-        const ratio = item.voorraad / item.minVoorraad;
-        switch (filterValues["voorraad-status"]) {
-          case "op-voorraad":
-            return ratio >= 1;
-          case "bijna-op":
-            return ratio > 0 && ratio < 1;
-          case "op":
-            return item.voorraad === 0;
-          default:
-            return true;
-        }
-      });
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      const aVal = a[sortColumn as keyof Ingredient];
-      const bVal = b[sortColumn as keyof Ingredient];
-      if (typeof aVal === "string" && typeof bVal === "string") {
-        return sortDirection === "asc"
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
-      }
-      if (typeof aVal === "number" && typeof bVal === "number") {
-        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
-      }
-      return 0;
-    });
-
-    return result;
-  }, [searchValue, filterValues, sortColumn, sortDirection]);
-
-  // Get status for stock level
-  const getStockStatus = (item: Ingredient): "success" | "warning" | "error" => {
-    if (item.voorraad === 0) return "error";
-    if (item.voorraad < item.minVoorraad) return "warning";
-    return "success";
-  };
+  const { data, isLoading } = useIngredienten(filters);
+  const filtered = React.useMemo(() => filterIngredienten(data, filters), [data, filters]);
 
   // Table columns
-  const columns: DataTableColumn<Ingredient>[] = [
-    {
-      key: "naam",
-      header: "Naam",
-      sortable: true,
-      render: (item) => (
-        <div>
-          <p className="font-medium text-foreground">{item.naam}</p>
-          <p className="text-xs text-muted-foreground">{item.categorie}</p>
-        </div>
-      ),
-    },
-    {
-      key: "voorraad",
-      header: "Voorraad",
-      sortable: true,
-      render: (item) => (
-        <div className="flex items-center gap-2">
-          <StatusDot status={getStockStatus(item)} />
-          <span>
-            {item.voorraad} {item.voorraadEenheid}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: "minVoorraad",
-      header: "Minimum",
-      sortable: true,
-      render: (item) => (
-        <span className="text-muted-foreground">
-          {item.minVoorraad} {item.voorraadEenheid}
-        </span>
-      ),
-    },
-    {
-      key: "kostprijs",
-      header: "Kostprijs",
-      sortable: true,
-      render: (item) => (
-        <span className="text-primary font-medium">
-          €{item.kostprijs.toFixed(2)}
-        </span>
-      ),
-    },
-    {
-      key: "laatstAangevuld",
-      header: "Laatst aangevuld",
-      sortable: true,
-    },
-    {
-      key: "allergenen",
-      header: "Allergenen",
-      render: (item) =>
-        item.allergenen.length > 0 ? (
-          <div className="flex gap-1 flex-wrap">
-            {item.allergenen.map((allergen) => (
-              <NestoBadge key={allergen} variant="warning" size="sm">
-                {allergen}
-              </NestoBadge>
-            ))}
+  const columns: DataTableColumn<IngredientRow>[] = React.useMemo(
+    () => [
+      {
+        key: "naam",
+        header: "Naam",
+        render: (item) => (
+          <div>
+            <p className="font-medium text-foreground">{item.naam}</p>
+            <p className="text-xs text-muted-foreground">{item.categorie}</p>
           </div>
-        ) : null,
-    },
-  ];
-
-  const handleFilterChange = (id: string, value: string) => {
-    setFilterValues((prev) => ({ ...prev, [id]: value }));
-    setCurrentPage(1);
-  };
-
-  const handleClearFilters = () => {
-    setFilterValues({});
-    setSearchValue("");
-    setCurrentPage(1);
-  };
-
-  const handleSort = (column: string, direction: "asc" | "desc") => {
-    setSortColumn(column);
-    setSortDirection(direction);
-  };
+        ),
+      },
+      {
+        key: "eenheid",
+        header: "Eenheid",
+        render: (item) => <span className="text-muted-foreground">{item.eenheid}</span>,
+      },
+      {
+        key: "kostprijs",
+        header: "Kostprijs",
+        render: (item) => {
+          const bron = BRON_BADGE[(item.kostprijs_bron || "").toLowerCase()];
+          return (
+            <div className="flex items-center gap-1.5">
+              <span className="tabular-nums font-medium text-foreground">
+                {item.kostprijs != null ? `€${item.kostprijs.toFixed(2)}` : "—"}
+              </span>
+              {bron && <NestoBadge variant={bron.variant} size="sm">{bron.label}</NestoBadge>}
+            </div>
+          );
+        },
+      },
+      {
+        key: "voorraad",
+        header: "Voorraad",
+        render: (item) => {
+          const status = getVoorraadStatus(item.voorraad, item.min_voorraad);
+          const cfg = STATUS_CONFIG[status];
+          return (
+            <div className="flex items-center gap-2">
+              <span className="tabular-nums text-foreground">
+                {item.voorraad} {item.eenheid}
+              </span>
+              <NestoBadge variant={cfg.variant} size="sm">{cfg.label}</NestoBadge>
+            </div>
+          );
+        },
+      },
+      {
+        key: "allergenen",
+        header: "Allergenen",
+        render: (item) => {
+          const visible = item.ingredient_allergenen.filter(
+            (ia) => ia.status === "bevat" || ia.status === "kan_bevatten"
+          );
+          if (visible.length === 0) return null;
+          return (
+            <div className="flex gap-1 flex-wrap">
+              {visible.map((ia) => (
+                <NestoBadge
+                  key={ia.id}
+                  variant={ia.status === "bevat" ? "error" : "warning"}
+                  size="sm"
+                >
+                  {ia.allergenen.naam_nl}
+                </NestoBadge>
+              ))}
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Ingrediënten"
-        subtitle={`${filteredData.length} ingrediënten`}
+        subtitle={`${filtered.length} ingrediënt${filtered.length !== 1 ? "en" : ""}`}
         actions={[
           {
-            label: "Importeren",
-            onClick: () => nestoToast.info("Import functie komt binnenkort"),
-            variant: "outline",
-            icon: Upload,
-          },
-          {
             label: "Nieuw ingrediënt",
-            onClick: () => nestoToast.info("Nieuw ingrediënt komt binnenkort"),
+            onClick: () => setShowNieuw(true),
             icon: Plus,
           },
         ]}
       />
 
-      {/* Search bar */}
-      <SearchBar
-        value={searchValue}
-        onChange={(value) => {
-          setSearchValue(value);
-          setCurrentPage(1);
-        }}
-        placeholder="Zoek ingrediënt..."
-      />
-
-      {/* Content area with filters and table */}
-      <div className="flex gap-6">
-        {/* Filter sidebar */}
-        <div className="w-64 flex-shrink-0 hidden lg:block">
-          <FilterSidebar
-            title="FILTERS"
-            filters={filterDefinitions}
-            values={filterValues}
-            onChange={handleFilterChange}
-            onClear={handleClearFilters}
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[200px] max-w-sm">
+          <SearchBar
+            value={filters.search}
+            onChange={(v) => setFilters((f) => ({ ...f, search: v }))}
+            placeholder="Zoek ingrediënt..."
+            size="sm"
           />
         </div>
-
-        {/* Table */}
-        <div className="flex-1 min-w-0">
-          {isLoading ? (
-            <TableSkeleton rows={6} columns={6} />
-          ) : filteredData.length === 0 && (searchValue || Object.keys(filterValues).length > 0) ? (
-            <div className="rounded-card border border-border bg-card p-12">
-              <EmptyState
-                icon={AlertCircle}
-                title="Geen resultaten gevonden"
-                description="Probeer andere zoektermen of filters."
-                action={{
-                  label: "Filters wissen",
-                  onClick: handleClearFilters,
-                }}
-              />
-            </div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={filteredData}
-              keyExtractor={(item: Ingredient) => item.id}
-              onRowClick={(item) => navigate(`/ingredienten/${item.id}`)}
-              sortColumn={sortColumn}
-              sortDirection={sortDirection}
-              onSort={handleSort}
-              emptyMessage="Geen ingrediënten gevonden"
-              emptyIcon={Package}
-              pagination={{
-                currentPage,
-                pageSize,
-                totalItems: filteredData.length,
-                onPageChange: setCurrentPage,
-              }}
-            />
-          )}
+        <div className="w-[180px]">
+          <NestoSelect
+            value={filters.categorie}
+            onValueChange={(v) => setFilters((f) => ({ ...f, categorie: v }))}
+            options={CATEGORIE_OPTIONS}
+            size="sm"
+            placeholder="Alle categorieën"
+          />
+        </div>
+        <div className="w-[160px]">
+          <NestoSelect
+            value={filters.voorraadStatus}
+            onValueChange={(v) => setFilters((f) => ({ ...f, voorraadStatus: v }))}
+            options={STATUS_OPTIONS}
+            size="sm"
+            placeholder="Alle statussen"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="show-archived"
+            checked={filters.showArchived}
+            onCheckedChange={(v) => setFilters((f) => ({ ...f, showArchived: v }))}
+          />
+          <Label htmlFor="show-archived" className="text-sm text-muted-foreground cursor-pointer">
+            Gearchiveerd
+          </Label>
         </div>
       </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <TableSkeleton rows={6} columns={5} />
+      ) : filtered.length === 0 ? (
+        <div className="rounded-card border border-border bg-card p-12">
+          <EmptyState
+            icon={Package}
+            title={data?.length === 0 ? "Voeg je eerste ingrediënt toe" : "Geen resultaten gevonden"}
+            description={data?.length === 0 ? "Begin met het toevoegen van ingrediënten aan je keuken." : "Probeer andere zoektermen of filters."}
+            action={
+              data?.length === 0
+                ? { label: "Nieuw ingrediënt", onClick: () => setShowNieuw(true) }
+                : { label: "Filters wissen", onClick: () => setFilters({ search: "", categorie: "", voorraadStatus: "", showArchived: false }) }
+            }
+          />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          keyExtractor={(item: IngredientRow) => item.id}
+          onRowClick={(item: IngredientRow) => setSelectedId(item.id)}
+        />
+      )}
+
+      {/* Detail panel */}
+      <IngredientDetailPanel
+        ingredientId={selectedId}
+        open={!!selectedId}
+        onClose={() => setSelectedId(null)}
+      />
+
+      {/* New ingredient modal */}
+      <NieuwIngredientModal
+        open={showNieuw}
+        onOpenChange={setShowNieuw}
+        onCreated={(id) => setSelectedId(id)}
+      />
     </div>
   );
 }
