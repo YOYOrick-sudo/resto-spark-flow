@@ -264,6 +264,33 @@ export type Database = {
           },
         ]
       }
+      allergenen: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          naam_en: string
+          naam_nl: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          naam_en: string
+          naam_nl: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          naam_en?: string
+          naam_nl?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       areas: {
         Row: {
           created_at: string
@@ -676,6 +703,38 @@ export type Database = {
           },
         ]
       }
+      eenheid_conversies: {
+        Row: {
+          factor: number
+          id: string
+          ingredient_id: string
+          naar_eenheid: string
+          van_eenheid: string
+        }
+        Insert: {
+          factor: number
+          id?: string
+          ingredient_id: string
+          naar_eenheid: string
+          van_eenheid: string
+        }
+        Update: {
+          factor?: number
+          id?: string
+          ingredient_id?: string
+          naar_eenheid?: string
+          van_eenheid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eenheid_conversies_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_invites: {
         Row: {
           accepted_at: string | null
@@ -748,6 +807,119 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "employees_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_allergenen: {
+        Row: {
+          allergeen_id: string
+          bron: string | null
+          id: string
+          ingredient_id: string
+          laatst_bijgewerkt: string
+          status: string
+        }
+        Insert: {
+          allergeen_id: string
+          bron?: string | null
+          id?: string
+          ingredient_id: string
+          laatst_bijgewerkt?: string
+          status: string
+        }
+        Update: {
+          allergeen_id?: string
+          bron?: string | null
+          id?: string
+          ingredient_id?: string
+          laatst_bijgewerkt?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_allergenen_allergeen_id_fkey"
+            columns: ["allergeen_id"]
+            isOneToOne: false
+            referencedRelation: "allergenen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_allergenen_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredienten: {
+        Row: {
+          archived_at: string | null
+          categorie: string
+          created_at: string
+          eenheid: string
+          id: string
+          is_archived: boolean
+          kostprijs: number | null
+          kostprijs_bron: string | null
+          kostprijs_laatst_bijgewerkt: string | null
+          location_id: string
+          max_voorraad: number | null
+          min_voorraad: number
+          naam: string
+          opslag_locatie: string | null
+          opslag_type: string | null
+          updated_at: string
+          voorraad: number
+          yield_percentage: number
+        }
+        Insert: {
+          archived_at?: string | null
+          categorie: string
+          created_at?: string
+          eenheid: string
+          id?: string
+          is_archived?: boolean
+          kostprijs?: number | null
+          kostprijs_bron?: string | null
+          kostprijs_laatst_bijgewerkt?: string | null
+          location_id: string
+          max_voorraad?: number | null
+          min_voorraad?: number
+          naam: string
+          opslag_locatie?: string | null
+          opslag_type?: string | null
+          updated_at?: string
+          voorraad?: number
+          yield_percentage?: number
+        }
+        Update: {
+          archived_at?: string | null
+          categorie?: string
+          created_at?: string
+          eenheid?: string
+          id?: string
+          is_archived?: boolean
+          kostprijs?: number | null
+          kostprijs_bron?: string | null
+          kostprijs_laatst_bijgewerkt?: string | null
+          location_id?: string
+          max_voorraad?: number | null
+          min_voorraad?: number
+          naam?: string
+          opslag_locatie?: string | null
+          opslag_type?: string | null
+          updated_at?: string
+          voorraad?: number
+          yield_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredienten_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
@@ -4113,6 +4285,60 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voorraad_bewegingen: {
+        Row: {
+          bron: string | null
+          created_at: string
+          hoeveelheid: number
+          id: string
+          ingredient_id: string
+          medewerker_id: string | null
+          opmerking: string | null
+          referentie_id: string | null
+          referentie_type: string | null
+          type: string
+        }
+        Insert: {
+          bron?: string | null
+          created_at?: string
+          hoeveelheid: number
+          id?: string
+          ingredient_id: string
+          medewerker_id?: string | null
+          opmerking?: string | null
+          referentie_id?: string | null
+          referentie_type?: string | null
+          type: string
+        }
+        Update: {
+          bron?: string | null
+          created_at?: string
+          hoeveelheid?: number
+          id?: string
+          ingredient_id?: string
+          medewerker_id?: string | null
+          opmerking?: string | null
+          referentie_id?: string | null
+          referentie_type?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voorraad_bewegingen_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voorraad_bewegingen_medewerker_id_fkey"
+            columns: ["medewerker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
