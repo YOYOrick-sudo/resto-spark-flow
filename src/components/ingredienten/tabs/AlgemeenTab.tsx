@@ -148,7 +148,7 @@ export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
       {hasChanges && (
         <NestoButton
           onClick={handleSave}
-          loading={updateIngredient.isPending}
+          isLoading={updateIngredient.isPending}
           className="w-full"
         >
           Opslaan

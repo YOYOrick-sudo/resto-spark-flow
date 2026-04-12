@@ -93,7 +93,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
           <NestoButton
             onClick={handleSave}
             disabled={!canSave}
-            loading={createIngredient.isPending}
+            isLoading={createIngredient.isPending}
           >
             Aanmaken
           </NestoButton>

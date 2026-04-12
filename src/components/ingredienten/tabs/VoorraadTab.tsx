@@ -106,7 +106,7 @@ export function VoorraadTab({ ingredient }: VoorraadTabProps) {
         </div>
       </div>
       {minMaxChanged && (
-        <NestoButton size="sm" onClick={handleSaveMinMax} loading={updateIngredient.isPending}>
+        <NestoButton size="sm" onClick={handleSaveMinMax} isLoading={updateIngredient.isPending}>
           Opslaan
         </NestoButton>
       )}
@@ -130,7 +130,7 @@ export function VoorraadTab({ ingredient }: VoorraadTabProps) {
             <NestoButton variant="outline" onClick={() => setShowCorrectieModal(false)}>
               Annuleren
             </NestoButton>
-            <NestoButton onClick={handleCorrectie} loading={correctVoorraad.isPending}>
+            <NestoButton onClick={handleCorrectie} isLoading={correctVoorraad.isPending}>
               Opslaan
             </NestoButton>
           </div>

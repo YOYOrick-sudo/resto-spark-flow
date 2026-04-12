@@ -80,7 +80,7 @@ export function KostprijsTab({ ingredient }: KostprijsTabProps) {
             />
           </div>
           <div className="flex gap-2">
-            <NestoButton size="sm" onClick={handleSave} loading={updateKostprijs.isPending}>
+            <NestoButton size="sm" onClick={handleSave} isLoading={updateKostprijs.isPending}>
               Opslaan
             </NestoButton>
             <NestoButton variant="outline" size="sm" onClick={() => setEditing(false)}>
