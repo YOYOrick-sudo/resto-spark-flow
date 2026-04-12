@@ -121,7 +121,7 @@ export function ReceptDetailPanel({ receptId, open, onClose }: ReceptDetailPanel
         title="Recept archiveren"
         description={`Weet je zeker dat je "${recept?.naam}" wilt archiveren?`}
         confirmLabel="Archiveren"
-        variant="danger"
+        variant="destructive"
         onConfirm={handleArchive}
       />
     </>
