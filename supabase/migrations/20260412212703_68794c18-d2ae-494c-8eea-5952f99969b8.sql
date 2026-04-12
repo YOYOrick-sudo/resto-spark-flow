@@ -1,0 +1,1 @@
+ALTER TABLE public.recepten ADD COLUMN IF NOT EXISTS verkoopprijs DECIMAL(10,2);
