@@ -220,13 +220,23 @@ export function useReceptMutations() {
       totaleIngredientkostprijs: number;
       arbeidskostprijs: number;
     }) => {
+      const { data: recept } = await supabase
+        .from("recepten")
+        .select("porties")
+        .eq("id", receptId)
+        .single();
+
+      const porties = recept?.porties || 1;
       const totaleKostprijs = totaleIngredientkostprijs + arbeidskostprijs;
+      const kostprijsPerPortie = totaleKostprijs / porties;
+
       const { error } = await supabase
         .from("recepten")
         .update({
           totale_ingredientkostprijs: totaleIngredientkostprijs,
           arbeidskostprijs,
           totale_kostprijs: totaleKostprijs,
+          kostprijs_per_portie: kostprijsPerPortie,
           kostprijs_berekend_op: new Date().toISOString(),
         })
         .eq("id", receptId);

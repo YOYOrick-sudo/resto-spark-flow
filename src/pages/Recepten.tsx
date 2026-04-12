@@ -98,7 +98,7 @@ export default function Recepten() {
                 variant={a.status === "bevat" ? "error" : "warning"}
                 size="sm"
               >
-                {a.allergenen?.code ?? "?"}
+                {a.allergenen?.naam_nl ?? "?"}
               </NestoBadge>
             ))}
             {actief.length > 4 && (
