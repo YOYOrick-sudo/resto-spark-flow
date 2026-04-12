@@ -1,44 +1,57 @@
 
 
-# Fix: Emoji verwijderen bij bulk reminders/bevestigingen
+# Plan: Ingrediënten fundament — Database Ronde 1
 
-## Probleem
+Eén database migratie die alle 5 tabellen, seed data, RLS policies, triggers en indexes aanmaakt.
 
-De bulk_messages entries (reminders, bevestigingen) op regel 215 in `useAssistentLog.ts` bevatten nog een hardcoded `📨` emoji. Deze entries hebben ook geen `channelIcon` gezet, waardoor er geen Lucide icoon wordt getoond.
+## Wat er wordt gebouwd
 
-## Fix
+### 1. `allergenen` reference tabel + seed
+- 14 EU allergenen met `code`, `naam_nl`, `naam_en`, `sort_order`
+- Geen `location_id` — globale reference tabel
+- RLS: SELECT voor alle authenticated users, geen INSERT/UPDATE/DELETE
 
-### `src/hooks/useAssistentLog.ts` — regel 215
+### 2. `ingredienten` tabel
+- Alle kolommen zoals gespecificeerd (naam, categorie, eenheid, kostprijs, yield, voorraad, opslag, archivering)
+- `UNIQUE(location_id, naam)`
+- `updated_at` trigger
 
-Verwijder de `📨` emoji uit de description en voeg een `channelIcon` toe:
+### 3. `ingredient_allergenen` koppeltabel
+- Status: `bevat`, `kan_bevatten`, `geen`, `onbekend` (geen "sporen")
+- `UNIQUE(ingredient_id, allergeen_id)`
 
-```typescript
-// Was:
-description: `📨 ${msgs.length} ${label} verstuurd. ✓`,
-channelLabel: undefined,
+### 4. `eenheid_conversies` tabel
+- Per ingredient custom conversies (kg→g, L→ml, etc.)
+- `UNIQUE(ingredient_id, van_eenheid, naar_eenheid)`
 
-// Wordt:
-description: `${msgs.length} ${label} verstuurd. ✓`,
-channelIcon: 'whatsapp',  // reminders gaan via WhatsApp
-channelLabel: undefined,
-```
+### 5. `voorraad_bewegingen` tabel
+- Types: `IN`, `OUT`, `CORRECTIE`, `WASTE`, `TRANSFER`
+- `medewerker_id` references `profiles(id)`
 
-### `src/components/assistant/OverviewTab.tsx` — CHANNEL_ICON_MAP
+### 6. RLS policies
+Patroon per tabel:
 
-Voeg een `mail` entry toe voor het geval bulk berichten via andere kanalen gaan:
+| Tabel | SELECT | INSERT/UPDATE/DELETE |
+|---|---|---|
+| `allergenen` | Alle authenticated users | Geen (seed only) |
+| `ingredienten` | Via `(SELECT auth.uid())` subquery op `user_location_roles` | owner/manager via `user_has_role_in_location` |
+| `ingredient_allergenen` | JOIN op `ingredienten.location_id` | idem |
+| `eenheid_conversies` | JOIN op `ingredienten.location_id` | idem |
+| `voorraad_bewegingen` | JOIN op `ingredienten.location_id` | idem |
 
-```typescript
-import { Mail } from 'lucide-react';
+### 7. Indexes
+- `ingredienten(location_id)`
+- `ingredienten(location_id, categorie)`
+- `voorraad_bewegingen(ingredient_id)`
+- `voorraad_bewegingen(created_at DESC)`
 
-// Voeg toe aan CHANNEL_ICON_MAP:
-mail: Mail,
-```
+## Technische details
 
-Eigenlijk: de reminders gaan via WhatsApp, dus `channelIcon: 'whatsapp'` geeft automatisch het `MessageSquare` icoon. Als het template-kanaal varieert, pak het kanaal uit het eerste bericht (`msgs[0].channel`). Dat is robuuster.
+Eén SQL migratie via de database migration tool. Geen code-wijzigingen in deze ronde — puur schema.
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/hooks/useAssistentLog.ts` | Verwijder `📨` emoji, voeg `channelIcon` toe op basis van `msgs[0]` kanaal |
+| `supabase/migrations/[timestamp].sql` | Nieuwe migratie met alle 5 tabellen, seed, RLS, triggers, indexes |
 
