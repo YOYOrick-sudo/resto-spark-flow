@@ -1,14 +1,191 @@
-import { PageHeader, EmptyState } from "@/components/polar";
-import { BookOpen } from "lucide-react";
+import * as React from "react";
+import {
+  PageHeader,
+  SearchBar,
+  NestoOutlineButtonGroup,
+  NestoSelect,
+  NestoButton,
+  NestoBadge,
+  DataTable,
+  Spinner,
+} from "@/components/polar";
+import { Switch } from "@/components/ui/switch";
+import { BookOpen, Plus } from "lucide-react";
+import { useRecepten, filterRecepten, ReceptRow, ReceptenFilters } from "@/hooks/useRecepten";
+import { NieuwReceptModal } from "@/components/recepten/NieuwReceptModal";
+import { ReceptDetailPanel } from "@/components/recepten/ReceptDetailPanel";
+import type { DataTableColumn } from "@/components/polar";
+
+const TYPE_OPTIONS = [
+  { value: "", label: "Alle" },
+  { value: "halffabricaat", label: "Halffabricaten" },
+  { value: "gerecht", label: "Gerechten" },
+];
+
+const CATEGORIE_FILTER_OPTIONS = [
+  { value: "", label: "Alle categorieën" },
+  { value: "sauzen", label: "Sauzen" },
+  { value: "bijgerechten", label: "Bijgerechten" },
+  { value: "hoofdgerechten", label: "Hoofdgerechten" },
+  { value: "desserts", label: "Desserts" },
+  { value: "bases", label: "Bases" },
+  { value: "marinades", label: "Marinades" },
+  { value: "overig", label: "Overig" },
+];
 
 export default function Recepten() {
+  const [filters, setFilters] = React.useState<ReceptenFilters>({
+    search: "",
+    type: "",
+    categorie: "",
+    showArchived: false,
+  });
+  const [showNewModal, setShowNewModal] = React.useState(false);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+
+  const { data, isLoading } = useRecepten(filters);
+  const filtered = filterRecepten(data, filters);
+
+  const columns: DataTableColumn<ReceptRow>[] = [
+    {
+      key: "naam",
+      header: "Naam",
+      sortable: true,
+      render: (r) => <span className="font-medium text-foreground">{r.naam}</span>,
+    },
+    {
+      key: "categorie",
+      header: "Categorie",
+      render: (r) => (
+        <span className="text-muted-foreground capitalize">{r.categorie}</span>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      render: (r) => (
+        <NestoBadge variant={r.type === "halffabricaat" ? "primary" : "success"} size="sm">
+          {r.type === "halffabricaat" ? "Halffabricaat" : "Gerecht"}
+        </NestoBadge>
+      ),
+    },
+    {
+      key: "porties",
+      header: "Porties",
+      render: (r) => <span className="text-muted-foreground">{r.porties}</span>,
+    },
+    {
+      key: "kostprijs",
+      header: "Kostprijs/portie",
+      render: (r) => {
+        const kpp = r.porties > 0 ? r.totale_kostprijs / r.porties : 0;
+        return <span className="font-medium text-foreground">€{kpp.toFixed(2)}</span>;
+      },
+    },
+    {
+      key: "allergenen",
+      header: "Allergenen",
+      render: (r) => {
+        const actief = (r.recept_allergenen || []).filter(
+          (a) => a.status === "bevat" || a.status === "kan_bevatten"
+        );
+        if (actief.length === 0) return <span className="text-muted-foreground">—</span>;
+        return (
+          <div className="flex gap-1 flex-wrap">
+            {actief.slice(0, 4).map((a) => (
+              <NestoBadge
+                key={a.id}
+                variant={a.status === "bevat" ? "error" : "warning"}
+                size="sm"
+              >
+                {a.allergenen?.code ?? "?"}
+              </NestoBadge>
+            ))}
+            {actief.length > 4 && (
+              <NestoBadge variant="default" size="sm">
+                +{actief.length - 4}
+              </NestoBadge>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Recepten" subtitle="Beheer alle recepten voor je restaurant." />
-      <EmptyState
-        icon={BookOpen}
-        title="Nog geen recepten toegevoegd"
-        description="Voeg je eerste recept toe om te beginnen."
+      <PageHeader
+        title="Recepten"
+        subtitle="Beheer alle recepten en halffabricaten."
+        actions={
+          <NestoButton
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() => setShowNewModal(true)}
+            className="min-h-[48px]"
+          >
+            Nieuw recept
+          </NestoButton>
+        }
+      />
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <SearchBar
+          value={filters.search}
+          onChange={(v) => setFilters((f) => ({ ...f, search: v }))}
+          placeholder="Zoek op naam..."
+          className="w-full sm:w-64"
+        />
+        <NestoOutlineButtonGroup
+          options={TYPE_OPTIONS}
+          value={filters.type}
+          onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
+        />
+        <NestoSelect
+          value={filters.categorie}
+          onValueChange={(v) => setFilters((f) => ({ ...f, categorie: v }))}
+          options={CATEGORIE_FILTER_OPTIONS}
+          size="sm"
+        />
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={filters.showArchived}
+            onCheckedChange={(v) =>
+              setFilters((f) => ({ ...f, showArchived: v }))
+            }
+          />
+          <span className="text-xs text-muted-foreground">Gearchiveerd</span>
+        </div>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Spinner />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          keyExtractor={(r) => r.id}
+          onRowClick={(r) => setSelectedId(r.id)}
+          emptyMessage="Nog geen recepten toegevoegd"
+          emptyIcon={BookOpen}
+        />
+      )}
+
+      {/* New recipe modal */}
+      <NieuwReceptModal
+        open={showNewModal}
+        onOpenChange={setShowNewModal}
+        onCreated={(id) => setSelectedId(id)}
+      />
+
+      {/* Detail panel */}
+      <ReceptDetailPanel
+        receptId={selectedId}
+        open={!!selectedId}
+        onClose={() => setSelectedId(null)}
       />
     </div>
   );
