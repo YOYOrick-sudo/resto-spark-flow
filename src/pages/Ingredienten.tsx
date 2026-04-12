@@ -5,10 +5,10 @@ import {
   SearchBar,
   NestoSelect,
   NestoBadge,
-  NestoTable,
+  DataTable,
   EmptyState,
   TableSkeleton,
-  type Column,
+  type DataTableColumn,
 } from "@/components/polar";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
