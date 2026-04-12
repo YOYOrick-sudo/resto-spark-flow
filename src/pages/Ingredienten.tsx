@@ -77,7 +77,7 @@ export default function Ingredienten() {
   const filtered = React.useMemo(() => filterIngredienten(data, filters), [data, filters]);
 
   // Table columns
-  const columns: Column<IngredientRow>[] = React.useMemo(
+  const columns: DataTableColumn<IngredientRow>[] = React.useMemo(
     () => [
       {
         key: "naam",
