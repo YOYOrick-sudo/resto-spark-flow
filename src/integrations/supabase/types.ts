@@ -3472,6 +3472,7 @@ export type Database = {
           totale_kostprijs: number | null
           type: string
           updated_at: string | null
+          verkoopprijs: number | null
           versie: number | null
         }
         Insert: {
@@ -3493,6 +3494,7 @@ export type Database = {
           totale_kostprijs?: number | null
           type?: string
           updated_at?: string | null
+          verkoopprijs?: number | null
           versie?: number | null
         }
         Update: {
@@ -3514,6 +3516,7 @@ export type Database = {
           totale_kostprijs?: number | null
           type?: string
           updated_at?: string | null
+          verkoopprijs?: number | null
           versie?: number | null
         }
         Relationships: [
