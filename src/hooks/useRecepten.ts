@@ -1,0 +1,105 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserContext } from "@/contexts/UserContext";
+
+export interface ReceptAllergeenRow {
+  id: string;
+  allergeen_id: string;
+  status: string;
+  allergenen: {
+    id: string;
+    code: string;
+    naam_nl: string;
+    naam_en: string;
+    sort_order: number;
+  };
+}
+
+export interface ReceptRow {
+  id: string;
+  naam: string;
+  categorie: string;
+  type: string;
+  porties: number;
+  actieve_bereidingstijd: number | null;
+  passieve_bereidingstijd: number | null;
+  bereiding: string | null;
+  arbeidskostprijs: number;
+  totale_ingredientkostprijs: number;
+  totale_kostprijs: number;
+  kostprijs_berekend_op: string | null;
+  verkoopprijs: number | null;
+  is_archived: boolean;
+  archived_at: string | null;
+  location_id: string;
+  created_at: string;
+  updated_at: string;
+  recept_allergenen: ReceptAllergeenRow[];
+}
+
+export interface ReceptenFilters {
+  search: string;
+  type: string; // "" | "halffabricaat" | "gerecht"
+  categorie: string;
+  showArchived: boolean;
+}
+
+export function useRecepten(filters: ReceptenFilters) {
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+
+  return useQuery({
+    queryKey: ["recepten", locationId, filters.showArchived],
+    queryFn: async () => {
+      let query = supabase
+        .from("recepten")
+        .select(`
+          *,
+          recept_allergenen(
+            id,
+            allergeen_id,
+            status,
+            allergenen(id, code, naam_nl, naam_en, sort_order)
+          )
+        `)
+        .eq("location_id", locationId!)
+        .order("naam", { ascending: true });
+
+      if (!filters.showArchived) {
+        query = query.eq("is_archived", false);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as unknown as ReceptRow[];
+    },
+    enabled: !!locationId,
+  });
+}
+
+export function filterRecepten(
+  data: ReceptRow[] | undefined,
+  filters: ReceptenFilters
+): ReceptRow[] {
+  if (!data) return [];
+  let result = [...data];
+
+  if (filters.search) {
+    const s = filters.search.toLowerCase();
+    result = result.filter(
+      (r) =>
+        r.naam.toLowerCase().includes(s) ||
+        r.categorie.toLowerCase().includes(s)
+    );
+  }
+
+  if (filters.type) {
+    result = result.filter((r) => r.type === filters.type);
+  }
+
+  if (filters.categorie) {
+    result = result.filter((r) => r.categorie === filters.categorie);
+  }
+
+  return result;
+}
