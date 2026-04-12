@@ -223,11 +223,11 @@ export default function Ingredienten() {
           />
         </div>
       ) : (
-        <NestoTable
+        <DataTable
           columns={columns}
           data={filtered}
-          keyExtractor={(item) => item.id}
-          onRowClick={(item) => setSelectedId(item.id)}
+          keyExtractor={(item: IngredientRow) => item.id}
+          onRowClick={(item: IngredientRow) => setSelectedId(item.id)}
         />
       )}
 
