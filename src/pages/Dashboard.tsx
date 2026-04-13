@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/polar/PageHeader';
 import { ReservationsTile } from '@/components/dashboard/ReservationsTile';
 import { KeukenTile } from '@/components/dashboard/KeukenTile';
 import { ReceptenTile } from '@/components/dashboard/ReceptenTile';
+import { WasteTile } from '@/components/dashboard/WasteTile';
 import { useSignals } from '@/hooks/useSignals';
 import { useReservations } from '@/hooks/useReservations';
 import { useWeeklyGuestCounts } from '@/hooks/useWeeklyGuestCounts';
@@ -54,10 +55,11 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch mt-8">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 items-stretch mt-8">
         <ReservationsTile todayGuests={todayGuests} weeklyData={weeklyData ?? []} />
         <KeukenTile />
         <ReceptenTile />
+        <WasteTile />
       </div>
     </div>
   );

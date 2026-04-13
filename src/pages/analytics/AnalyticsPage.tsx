@@ -5,17 +5,20 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import MarketingAnalyticsTab from './tabs/MarketingAnalyticsTab';
 import SocialAnalyticsTab from './tabs/SocialAnalyticsTab';
 import ReviewsAnalyticsTab from './tabs/ReviewsAnalyticsTab';
+import { WasteOverzicht } from '@/components/inkoop/WasteOverzicht';
 
 const TABS = [
   { id: 'marketing', label: 'Marketing' },
   { id: 'social', label: 'Social' },
   { id: 'reviews', label: 'Reviews' },
+  { id: 'waste', label: 'Waste' },
   { id: 'reservations', label: 'Reserveringen', disabled: true },
   { id: 'kitchen', label: 'Keuken', disabled: true },
 ];
 
 export default function AnalyticsPage() {
-  const [activeTab, setActiveTab] = useState('marketing');
+  const params = new URLSearchParams(window.location.search);
+  const [activeTab, setActiveTab] = useState(params.get('tab') || 'marketing');
 
   return (
     <div className="space-y-6">
@@ -66,6 +69,7 @@ export default function AnalyticsPage() {
       {activeTab === 'marketing' && <MarketingAnalyticsTab />}
       {activeTab === 'social' && <SocialAnalyticsTab />}
       {activeTab === 'reviews' && <ReviewsAnalyticsTab />}
+      {activeTab === 'waste' && <WasteOverzicht />}
     </div>
   );
 }
