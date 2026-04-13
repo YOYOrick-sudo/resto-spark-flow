@@ -129,7 +129,7 @@ export function WasteRegistreerForm() {
         <NestoSelect
           options={categorieOptions}
           value={categorie}
-          onChange={setCategorie}
+          onValueChange={setCategorie}
           placeholder="Selecteer categorie"
         />
       </div>

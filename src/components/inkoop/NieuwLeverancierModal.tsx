@@ -79,7 +79,7 @@ export function NieuwLeverancierModal({ open, onOpenChange }: Props) {
         </div>
         <div>
           <label className="text-sm text-muted-foreground mb-1 block">Type</label>
-          <NestoSelect options={typeOptions} value={type} onChange={setType} placeholder="Selecteer type" />
+          <NestoSelect options={typeOptions} value={type} onValueChange={setType} placeholder="Selecteer type" />
         </div>
 
         <div className="border-t border-border/50 pt-4 mt-4" />

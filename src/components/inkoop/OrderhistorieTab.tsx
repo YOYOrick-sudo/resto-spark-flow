@@ -82,14 +82,14 @@ export function OrderhistorieTab() {
         <NestoSelect
           options={leverancierOptions}
           value={filters.leverancierId ?? ""}
-          onChange={(v) => setFilters((f) => ({ ...f, leverancierId: v || undefined }))}
+          onValueChange={(v) => setFilters((f) => ({ ...f, leverancierId: v || undefined }))}
           placeholder="Leverancier"
           className="w-48"
         />
         <NestoSelect
           options={statusOptions}
           value={filters.status ?? ""}
-          onChange={(v) => setFilters((f) => ({ ...f, status: v || undefined }))}
+          onValueChange={(v) => setFilters((f) => ({ ...f, status: v || undefined }))}
           placeholder="Status"
           className="w-40"
         />
