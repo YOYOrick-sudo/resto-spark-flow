@@ -1,57 +1,42 @@
 
 
-# BTW Percentage toevoegen aan Ingrediënten
+# Waste Dashboard Tile + Waste Overzicht naar Analytics
 
-## Overzicht
+## 1. Waste Dashboard Tile
 
-BTW-veld toevoegen aan de database en drie UI-locaties: aanmaak modal, algemeen tab, en kostprijs tab met prijsberekening.
+Nieuwe component `src/components/dashboard/WasteTile.tsx` in dezelfde stijl als de bestaande tiles (ReservationsTile, KeukenTile, ReceptenTile).
 
-## Wijzigingen
+**Design:**
+- NestoCard met `overflow-hidden !p-0` (zoals ReservationsTile) voor edge-to-edge chart
+- Header: "Waste" label + ArrowUpRight hover icon
+- Hero metric: totale waste kosten deze week (`€XX.XX`) met label "deze week"
+- Visualisatie: kleine BarChart (hoogte ~120px) met dagelijkse waste kosten, edge-to-edge
+  - Bar fill: `hsl(var(--error))` met opacity gradient
+  - Geen XAxis/YAxis labels, alleen Tooltip
+- Footer onder `border-t`: top waste categorie als signaal (bijv. "Bederf is 40% van waste")
+- Klik navigeert naar `/analytics` (waste tab)
 
-### 1. Database migratie
-```sql
-ALTER TABLE public.ingredienten ADD COLUMN IF NOT EXISTS btw_percentage DECIMAL(4,2) DEFAULT 9.00;
-```
+**Data:** Gebruikt `useWasteRegistraties` hook met huidige week range.
 
-### 2. TypeScript type updaten
-`src/hooks/useIngredienten.ts` — `IngredientRow` interface:
-- Toevoegen: `btw_percentage: number;`
+**Dashboard integratie:** Toevoegen in `src/pages/Dashboard.tsx` grid (4e tile). Grid wordt `lg:grid-cols-4` bij 4 tiles, of we houden `lg:grid-cols-3` en laten de 4e tile wrappen — afhankelijk van hoe het eruitziet. Ik ga voor `lg:grid-cols-2 xl:grid-cols-4` zodat het altijd mooi past.
 
-### 3. NieuwIngredientModal
-`src/components/ingredienten/NieuwIngredientModal.tsx`:
-- State `btwPercentage` met default `"9"` toevoegen
-- Na het kostprijs veld: NestoSelect met opties `9%`, `21%`, `0%`
-- Bij opslaan: `btw_percentage: Number(btwPercentage)` meesturen
-- Reset functie updaten
+## 2. Waste Tab opsplitsen
 
-### 4. CreateIngredientInput updaten
-`src/hooks/useIngredientMutations.ts`:
-- `btw_percentage?: number` aan interface toevoegen
-- In insert: `btw_percentage: input.btw_percentage ?? 9` meesturen
+**WasteTab (`src/components/inkoop/WasteTab.tsx`):**
+- Verwijder WasteOverzicht import en sectie
+- Houd alleen WasteRegistreerForm
 
-### 5. AlgemeenTab — BTW dropdown
-`src/components/ingredienten/tabs/AlgemeenTab.tsx`:
-- State `btwPercentage` toevoegen, sync met ingredient
-- NestoSelect na yield percentage met opties `9%`, `21%`, `0%`
-- `hasChanges` check updaten
-- `handleSave` updaten met `btw_percentage`
-
-### 6. KostprijsTab — BTW berekening
-`src/components/ingredienten/tabs/KostprijsTab.tsx`:
-- Na de hoofdprijs sectie, nieuw info-block toevoegen:
-  - Prijs excl. BTW: `€{kostprijs}`
-  - BTW ({btw_percentage}%): `€{kostprijs * btw_percentage / 100}`
-  - Prijs incl. BTW: `€{kostprijs * (1 + btw_percentage / 100)}`
-- Alleen tonen als kostprijs niet null is
+**Analytics pagina (`src/pages/analytics/AnalyticsPage.tsx`):**
+- Voeg "Waste" tab toe aan TABS array (enabled, niet disabled)
+- Render `WasteOverzicht` component wanneer waste tab actief is
+- WasteOverzicht component blijft ongewijzigd — wordt gewoon vanuit Analytics gerenderd
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| Database migratie | Nieuw |
-| `src/hooks/useIngredienten.ts` | Wijzigen — type |
-| `src/hooks/useIngredientMutations.ts` | Wijzigen — interface + insert |
-| `src/components/ingredienten/NieuwIngredientModal.tsx` | Wijzigen — BTW dropdown |
-| `src/components/ingredienten/tabs/AlgemeenTab.tsx` | Wijzigen — BTW dropdown |
-| `src/components/ingredienten/tabs/KostprijsTab.tsx` | Wijzigen — BTW berekening |
+| `src/components/dashboard/WasteTile.tsx` | Nieuw |
+| `src/pages/Dashboard.tsx` | Wijzigen — WasteTile toevoegen aan grid |
+| `src/components/inkoop/WasteTab.tsx` | Wijzigen — alleen registratieformulier |
+| `src/pages/analytics/AnalyticsPage.tsx` | Wijzigen — Waste tab toevoegen |
 
