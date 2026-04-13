@@ -1,42 +1,70 @@
 
 
-# Waste Dashboard Tile + Waste Overzicht naar Analytics
+# Analytics Pagina Herindelen
 
-## 1. Waste Dashboard Tile
+## Probleem
 
-Nieuwe component `src/components/dashboard/WasteTile.tsx` in dezelfde stijl als de bestaande tiles (ReservationsTile, KeukenTile, ReceptenTile).
+De huidige tabs (Marketing, Social, Reviews, Waste, Reserveringen, Keuken) zijn een vlakke lijst zonder logische groepering. Een restauranteigenaar denkt niet in "marketing vs social" maar in domeinen: "Hoe zit het met mijn online zichtbaarheid?" of "Hoe efficiënt is mijn keuken?"
 
-**Design:**
-- NestoCard met `overflow-hidden !p-0` (zoals ReservationsTile) voor edge-to-edge chart
-- Header: "Waste" label + ArrowUpRight hover icon
-- Hero metric: totale waste kosten deze week (`€XX.XX`) met label "deze week"
-- Visualisatie: kleine BarChart (hoogte ~120px) met dagelijkse waste kosten, edge-to-edge
-  - Bar fill: `hsl(var(--error))` met opacity gradient
-  - Geen XAxis/YAxis labels, alleen Tooltip
-- Footer onder `border-t`: top waste categorie als signaal (bijv. "Bederf is 40% van waste")
-- Klik navigeert naar `/analytics` (waste tab)
+## Nieuwe structuur
 
-**Data:** Gebruikt `useWasteRegistraties` hook met huidige week range.
+Groepeer de tabs in **drie logische categorieën** met visuele scheiding:
 
-**Dashboard integratie:** Toevoegen in `src/pages/Dashboard.tsx` grid (4e tile). Grid wordt `lg:grid-cols-4` bij 4 tiles, of we houden `lg:grid-cols-3` en laten de 4e tile wrappen — afhankelijk van hoe het eruitziet. Ik ga voor `lg:grid-cols-2 xl:grid-cols-4` zodat het altijd mooi past.
+```text
+┌─────────────────────────────────────────────────────────┐
+│  Online & Gasten          │  Keuken & Inkoop            │
+│  ┌──────┐ ┌──────┐ ┌───┐ │  ┌─────┐ ┌──────────────┐   │
+│  │Bereik│ │Review│ │Res│ │  │Waste│ │Keuken (soon)│   │
+│  └──────┘ └──────┘ └───┘ │  └─────┘ └──────────────┘   │
+└─────────────────────────────────────────────────────────┘
+```
 
-## 2. Waste Tab opsplitsen
+**Categorie 1: Online & Gasten** — alles wat met je zichtbaarheid en gasten te maken heeft
+- **Bereik** (was: Marketing + Social samengevoegd) — campagnes, social media, engagement
+- **Reviews** — beoordelingen, sentiment, respons
+- **Reserveringen** (binnenkort)
 
-**WasteTab (`src/components/inkoop/WasteTab.tsx`):**
-- Verwijder WasteOverzicht import en sectie
-- Houd alleen WasteRegistreerForm
+**Categorie 2: Keuken & Inkoop** — operationele efficiëntie
+- **Waste** — verspilling en kosten
+- **Keuken** (binnenkort)
 
-**Analytics pagina (`src/pages/analytics/AnalyticsPage.tsx`):**
-- Voeg "Waste" tab toe aan TABS array (enabled, niet disabled)
-- Render `WasteOverzicht` component wanneer waste tab actief is
-- WasteOverzicht component blijft ongewijzigd — wordt gewoon vanuit Analytics gerenderd
+### Wat verandert er inhoudelijk?
 
-## Bestanden
+**Marketing + Social worden samengevoegd tot "Bereik"**: beide gaan over online zichtbaarheid. De tab toont eerst de Marketing sectie (campagnes, email stats), dan de Social sectie (platforms, bereik, posts) — als twee secties onder elkaar in dezelfde tab. Geen data gaat verloren, het wordt alleen logischer gepresenteerd.
+
+## UI Design
+
+In plaats van een platte tab-bar, gebruik **gegroepeerde tabs met subtiele categorie-labels**:
+
+```text
+Analytics — Strategisch inzicht over al je modules
+
+ONLINE & GASTEN                    KEUKEN & INKOOP
+[Bereik]  [Reviews]  Reserveringen  │  [Waste]  Keuken
+                     (binnenkort)   │          (binnenkort)
+```
+
+- Kleine uppercase labels boven elke groep (`text-[11px] uppercase tracking-wider text-muted-foreground`)
+- Verticale divider (`border-l`) tussen de groepen
+- Tabs zelf blijven dezelfde stijl als nu
+
+## Wijzigingen
 
 | Bestand | Actie |
 |---|---|
-| `src/components/dashboard/WasteTile.tsx` | Nieuw |
-| `src/pages/Dashboard.tsx` | Wijzigen — WasteTile toevoegen aan grid |
-| `src/components/inkoop/WasteTab.tsx` | Wijzigen — alleen registratieformulier |
-| `src/pages/analytics/AnalyticsPage.tsx` | Wijzigen — Waste tab toevoegen |
+| `src/pages/analytics/AnalyticsPage.tsx` | Herschrijven — gegroepeerde tab-bar, "Bereik" tab |
+| `src/pages/analytics/tabs/BereikTab.tsx` | Nieuw — combineert Marketing + Social als twee secties |
+| `src/pages/analytics/tabs/MarketingAnalyticsTab.tsx` | Behouden (wordt als sectie geïmporteerd door BereikTab) |
+| `src/pages/analytics/tabs/SocialAnalyticsTab.tsx` | Behouden (wordt als sectie geïmporteerd door BereikTab) |
+
+### AnalyticsPage.tsx details
+- Tab groepen als data-structuur met `group` label
+- Render twee groepen naast elkaar met divider
+- Tabs: `bereik`, `reviews`, `waste` (enabled) + `reservations`, `kitchen` (disabled)
+- URL param `?tab=bereik` wordt de default
+
+### BereikTab.tsx details
+- Rendert `<MarketingAnalyticsTab />` en `<SocialAnalyticsTab />` onder elkaar
+- Met een visuele scheiding (heading of divider) ertussen
+- Eigen periode-selector die naar beide doorgeeft (of elke sectie behoudt zijn eigen)
 
