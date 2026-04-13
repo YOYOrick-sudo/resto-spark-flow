@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export function useVoorraadInkoopMutations() {
   const qc = useQueryClient();
-  const { currentLocation, user } = useUserContext();
+  const { currentLocation } = useUserContext();
+  const { user } = useAuth();
   const locId = currentLocation?.id;
 
   // ── Leveranciers ─────────────────────────────────────────────
