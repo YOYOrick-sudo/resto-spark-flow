@@ -133,6 +133,17 @@ export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
       </div>
 
       <NestoSelect
+        label="BTW percentage"
+        value={btwPercentage}
+        onValueChange={setBtwPercentage}
+        options={[
+          { value: "9", label: "9%" },
+          { value: "21", label: "21%" },
+          { value: "0", label: "0%" },
+        ]}
+      />
+
+      <NestoSelect
         label="Opslag type"
         value={opslagType}
         onValueChange={setOpslagType}
