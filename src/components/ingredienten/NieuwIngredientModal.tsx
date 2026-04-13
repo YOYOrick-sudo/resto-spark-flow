@@ -1,5 +1,6 @@
 import * as React from "react";
-import { NestoModal, NestoButton, NestoInput, NestoSelect } from "@/components/polar";
+import { NestoPanel } from "@/components/polar/NestoPanel";
+import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
 import { useIngredientMutations } from "@/hooks/useIngredientMutations";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
@@ -88,18 +89,19 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
     );
   };
 
+  const handleClose = () => {
+    resetForm();
+    onOpenChange(false);
+  };
+
   return (
-    <NestoModal
+    <NestoPanel
       open={open}
-      onOpenChange={(v) => {
-        if (!v) resetForm();
-        onOpenChange(v);
-      }}
-      title="Nieuw ingrediënt"
-      size="md"
+      onClose={handleClose}
+      title="Ingrediënt · Nieuw"
       footer={
-        <div className="flex justify-end gap-2 w-full">
-          <NestoButton variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex justify-end gap-3 w-full">
+          <NestoButton variant="outline" onClick={handleClose}>
             Annuleren
           </NestoButton>
           <NestoButton
@@ -112,108 +114,129 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
         </div>
       }
     >
-      <div className="space-y-4">
-        <div>
-          <label className="mb-2 block text-label text-muted-foreground">Naam *</label>
-          <NestoInput
-            value={naam}
-            onChange={(e) => setNaam(e.target.value)}
-            placeholder="bijv. Kipfilet"
-            autoFocus
-          />
-        </div>
+      {(titleRef) => (
+        <div className="px-5 py-6">
+          <h2 ref={titleRef} className="text-h2 text-foreground mb-6">
+            Nieuw ingrediënt
+          </h2>
 
-        <NestoSelect
-          label="Categorie *"
-          value={categorie}
-          onValueChange={setCategorie}
-          options={CATEGORIE_OPTIONS}
-          placeholder="Selecteer categorie"
-        />
+          {/* Sectie: Basis */}
+          <div className="space-y-4">
+            <div>
+              <label className="mb-2 block text-label text-muted-foreground">Naam *</label>
+              <NestoInput
+                value={naam}
+                onChange={(e) => setNaam(e.target.value)}
+                placeholder="bijv. Kipfilet"
+                autoFocus
+              />
+            </div>
 
-        <NestoSelect
-          label="Eenheid *"
-          value={eenheid}
-          onValueChange={setEenheid}
-          options={EENHEID_OPTIONS}
-          placeholder="Selecteer eenheid"
-        />
+            <NestoSelect
+              label="Categorie *"
+              value={categorie}
+              onValueChange={setCategorie}
+              options={CATEGORIE_OPTIONS}
+              placeholder="Selecteer categorie"
+            />
 
-        <div>
-          <label className="mb-2 block text-label text-muted-foreground">Kostprijs per eenheid</label>
-          <div className="flex">
-            <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-l-[var(--radius-button)] border-[1.5px] border-r-0 border-border">
-              €
-            </span>
-            <NestoInput
-              type="number"
-              step="0.01"
-              min={0}
-              value={kostprijs}
-              onChange={(e) => setKostprijs(e.target.value)}
-              placeholder="bijv. 8.50"
-              className="rounded-l-none border-l-0"
+            <NestoSelect
+              label="Eenheid *"
+              value={eenheid}
+              onValueChange={setEenheid}
+              options={EENHEID_OPTIONS}
+              placeholder="Selecteer eenheid"
             />
           </div>
-        </div>
 
-        <NestoSelect
-          label="BTW percentage"
-          value={btwPercentage}
-          onValueChange={setBtwPercentage}
-          options={[
-            { value: "9", label: "9%" },
-            { value: "21", label: "21%" },
-            { value: "0", label: "0%" },
-          ]}
-        />
+          {/* Sectie: Prijs & BTW */}
+          <div className="border-t border-border/50 pt-4 mt-6">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-4">Prijs & BTW</p>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-label text-muted-foreground">Kostprijs per eenheid</label>
+                <div className="flex">
+                  <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-l-[var(--radius-button)] border-[1.5px] border-r-0 border-border">
+                    €
+                  </span>
+                  <NestoInput
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={kostprijs}
+                    onChange={(e) => setKostprijs(e.target.value)}
+                    placeholder="bijv. 8.50"
+                    className="rounded-l-none border-l-0"
+                  />
+                </div>
+              </div>
 
-        <div>
-          <div className="flex items-center gap-1.5 mb-2">
-            <label className="text-label text-muted-foreground">Yield percentage</label>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-[220px] text-xs">
-                  Hoeveel % van het ingekochte product is bruikbaar na schoonmaken/snijden
-                </p>
-              </TooltipContent>
-            </Tooltip>
+              <NestoSelect
+                label="BTW percentage"
+                value={btwPercentage}
+                onValueChange={setBtwPercentage}
+                options={[
+                  { value: "9", label: "9%" },
+                  { value: "21", label: "21%" },
+                  { value: "0", label: "0%" },
+                ]}
+              />
+            </div>
           </div>
-          <div className="flex">
-            <NestoInput
-              type="number"
-              min={1}
-              max={100}
-              value={yieldPct}
-              onChange={(e) => setYieldPct(Number(e.target.value))}
-              className="rounded-r-none border-r-0"
-            />
-            <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-r-[var(--radius-button)] border-[1.5px] border-l-0 border-border">
-              %
-            </span>
+
+          {/* Sectie: Verwerking & Opslag */}
+          <div className="border-t border-border/50 pt-4 mt-6">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-4">Verwerking & Opslag</p>
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <label className="text-label text-muted-foreground">Yield percentage</label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-[220px] text-xs">
+                        Hoeveel % van het ingekochte product is bruikbaar na schoonmaken/snijden
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex">
+                  <NestoInput
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={yieldPct}
+                    onChange={(e) => setYieldPct(Number(e.target.value))}
+                    className="rounded-r-none border-r-0"
+                  />
+                  <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-r-[var(--radius-button)] border-[1.5px] border-l-0 border-border">
+                    %
+                  </span>
+                </div>
+              </div>
+
+              <NestoSelect
+                label="Opslag type"
+                value={opslagType}
+                onValueChange={setOpslagType}
+                options={OPSLAG_OPTIONS}
+                placeholder="Selecteer..."
+              />
+
+              <div>
+                <label className="mb-2 block text-label text-muted-foreground">Opslag locatie</label>
+                <NestoInput
+                  value={opslagLocatie}
+                  onChange={(e) => setOpslagLocatie(e.target.value)}
+                  placeholder="bijv. Koeling 2, Schap 3"
+                />
+              </div>
+            </div>
           </div>
         </div>
-
-        <NestoSelect
-          label="Opslag type"
-          value={opslagType}
-          onValueChange={setOpslagType}
-          options={OPSLAG_OPTIONS}
-          placeholder="Selecteer..."
-        />
-
-        <div>
-          <label className="mb-2 block text-label text-muted-foreground">Opslag locatie</label>
-          <NestoInput
-            value={opslagLocatie}
-            onChange={(e) => setOpslagLocatie(e.target.value)}
-            placeholder="bijv. Koeling 2, Schap 3"
-          />
-        </div>
-      </div>
-    </NestoModal>
+      )}
+    </NestoPanel>
   );
 }
