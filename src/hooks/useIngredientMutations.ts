@@ -63,6 +63,13 @@ export function useIngredientMutations() {
           yield_percentage: input.yield_percentage,
           opslag_type: input.opslag_type,
           opslag_locatie: input.opslag_locatie,
+          ...(input.kostprijs != null
+            ? {
+                kostprijs: input.kostprijs,
+                kostprijs_bron: input.kostprijs_bron ?? "handmatig",
+                kostprijs_laatst_bijgewerkt: input.kostprijs_laatst_bijgewerkt ?? new Date().toISOString(),
+              }
+            : {}),
         })
         .select("id")
         .single();
