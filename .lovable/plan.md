@@ -1,26 +1,44 @@
 
 
-# Fix recalculateKostprijs + twee verbeterpunten
+# Fix migratie: validate_mep_tasks + auto_deplete_ingredients
 
-## 1. Fix: kostprijs_per_portie toevoegen (blokkerend)
+## Wat wijzigt
 
-In `src/hooks/useReceptMutations.ts`, de `recalculateKostprijs` mutation aanpassen:
+Eén database migratie die twee trigger functies corrigeert:
 
-- Eerst `porties` ophalen uit de recepten tabel
-- `kostprijs_per_portie` berekenen en meesturen in de `.update()` call
+### 1. `validate_mep_tasks()` — status 'skipped' → 'cancelled'
+De valid statuses worden: `pending`, `in_progress`, `completed`, `cancelled`.
 
-## 2. Verbetering: allergenen pills tonen naam_nl (cosmetisch)
+### 2. `auto_deplete_ingredients()` — correcte voorraad_bewegingen kolommen
+De huidige trigger gebruikt kolomnamen die niet bestaan in `voorraad_bewegingen`. Bevestigd via schema-check:
 
-In `src/pages/Recepten.tsx`, in de allergenen kolom render: `a.allergenen?.code` vervangen door `a.allergenen?.naam_nl`.
-
-## 3. Notitie: hoeveelheidswijziging triggert geen herberekening
-
-Bekend punt — de `useEffect` in IngredintenTab luistert alleen op `recept_ingredienten.length`, niet op individuele hoeveelheidswijzigingen. Wordt niet in deze wijziging meegenomen (zoals aangegeven: later oppakken).
-
-## Bestanden die wijzigen
-
-| Bestand | Wijziging |
+| Huidig (fout) | Correct |
 |---|---|
-| `src/hooks/useReceptMutations.ts` | `recalculateKostprijs` mutation: porties ophalen + kostprijs_per_portie meesturen |
-| `src/pages/Recepten.tsx` | Allergenen badge: `code` → `naam_nl` |
+| `reden` | `bron` |
+| `referentie_id::text` | `referentie_type` + `referentie_id` (UUID) |
+| `uitgevoerd_door` | `medewerker_id` |
+| `eenheid` kolom | bestaat niet, verwijderen |
+
+De gecorrigeerde INSERT:
+```sql
+INSERT INTO public.voorraad_bewegingen (
+  ingredient_id, type, hoeveelheid, bron, referentie_type, referentie_id, medewerker_id
+) VALUES (
+  r.ingredient_id, 'OUT',
+  -(r.hoeveelheid * NEW.units_gemaakt / v_porties),
+  'Productie', 'mep_task', NEW.task_id, NEW.medewerker_id
+);
+```
+
+De `UPDATE ingredienten SET voorraad = ...` regel blijft ongewijzigd.
+
+## Technische details
+
+Eén SQL migratie met twee `CREATE OR REPLACE FUNCTION` statements. Geen tabel-wijzigingen nodig — alleen de trigger functies worden vervangen.
+
+## Bestanden
+
+| Bestand | Actie |
+|---|---|
+| `supabase/migrations/xxx.sql` | Nieuw — replace beide trigger functies |
 
