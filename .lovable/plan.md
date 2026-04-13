@@ -1,44 +1,21 @@
 
 
-# Fix migratie: validate_mep_tasks + auto_deplete_ingredients
+# Twee fixes MEP Taken
 
-## Wat wijzigt
+## Wijziging 1: MepQuickAdd.tsx — handmatig invoer verwijderen
 
-Eén database migratie die twee trigger functies corrigeert:
+Verwijder de hele "Of voeg handmatig toe..." sectie (regels met `manualTitle`, `manualCategory`, `handleAddManual`, de flex container met NestoInput + NestoSelect + NestoButton). Alleen het zoek-invoerveld met dropdown resultaten blijft over.
 
-### 1. `validate_mep_tasks()` — status 'skipped' → 'cancelled'
-De valid statuses worden: `pending`, `in_progress`, `completed`, `cancelled`.
+State variabelen `manualTitle`, `manualCategory` en de `handleAddManual` functie worden ook verwijderd.
 
-### 2. `auto_deplete_ingredients()` — correcte voorraad_bewegingen kolommen
-De huidige trigger gebruikt kolomnamen die niet bestaan in `voorraad_bewegingen`. Bevestigd via schema-check:
+## Wijziging 2: useHalffabricaatSearch.ts — type filter
 
-| Huidig (fout) | Correct |
-|---|---|
-| `reden` | `bron` |
-| `referentie_id::text` | `referentie_type` + `referentie_id` (UUID) |
-| `uitgevoerd_door` | `medewerker_id` |
-| `eenheid` kolom | bestaat niet, verwijderen |
-
-De gecorrigeerde INSERT:
-```sql
-INSERT INTO public.voorraad_bewegingen (
-  ingredient_id, type, hoeveelheid, bron, referentie_type, referentie_id, medewerker_id
-) VALUES (
-  r.ingredient_id, 'OUT',
-  -(r.hoeveelheid * NEW.units_gemaakt / v_porties),
-  'Productie', 'mep_task', NEW.task_id, NEW.medewerker_id
-);
-```
-
-De `UPDATE ingredienten SET voorraad = ...` regel blijft ongewijzigd.
-
-## Technische details
-
-Eén SQL migratie met twee `CREATE OR REPLACE FUNCTION` statements. Geen tabel-wijzigingen nodig — alleen de trigger functies worden vervangen.
+Voeg `.eq("type", "halffabricaat")` toe aan de query, na de `.eq("is_archived", false)` regel.
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `supabase/migrations/xxx.sql` | Nieuw — replace beide trigger functies |
+| `src/components/mep/MepQuickAdd.tsx` | Verwijder handmatige invoer sectie + ongebruikte imports |
+| `src/hooks/useHalffabricaatSearch.ts` | Voeg `.eq("type", "halffabricaat")` toe |
 
