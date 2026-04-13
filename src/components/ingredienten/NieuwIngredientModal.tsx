@@ -137,6 +137,23 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
         />
 
         <div>
+          <label className="mb-2 block text-label text-muted-foreground">Kostprijs per eenheid</label>
+          <div className="flex">
+            <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-l-[var(--radius-button)] border-[1.5px] border-r-0 border-border">
+              €
+            </span>
+            <NestoInput
+              type="number"
+              step="0.01"
+              min={0}
+              value={kostprijs}
+              onChange={(e) => setKostprijs(e.target.value)}
+              placeholder="bijv. 8.50"
+              className="rounded-l-none border-l-0"
+            />
+          </div>
+        </div>
+
           <div className="flex items-center gap-1.5 mb-2">
             <label className="text-label text-muted-foreground">Yield percentage</label>
             <Tooltip>
