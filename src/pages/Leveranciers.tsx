@@ -122,7 +122,6 @@ export default function Leveranciers() {
         onRowClick={handleRowClick}
         emptyMessage="Nog geen leveranciers"
         emptyIcon={Truck}
-        isLoading={isLoading}
       />
 
       <LeverancierDetailPanel
