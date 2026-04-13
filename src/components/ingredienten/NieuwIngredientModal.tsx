@@ -41,6 +41,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
   const [naam, setNaam] = React.useState("");
   const [categorie, setCategorie] = React.useState("");
   const [eenheid, setEenheid] = React.useState("");
+  const [kostprijs, setKostprijs] = React.useState("");
   const [yieldPct, setYieldPct] = React.useState(100);
   const [opslagType, setOpslagType] = React.useState("");
   const [opslagLocatie, setOpslagLocatie] = React.useState("");
