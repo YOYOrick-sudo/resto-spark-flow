@@ -221,9 +221,6 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
   ) {
     return 'kitchen';
   }
-  if (false) {
-    return 'kitchen';
-  }
   if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
   if (path.startsWith('/marketing')) return 'marketing';
   if (path.startsWith('/taken')) return 'service';
