@@ -42,6 +42,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
   const [categorie, setCategorie] = React.useState("");
   const [eenheid, setEenheid] = React.useState("");
   const [kostprijs, setKostprijs] = React.useState("");
+  const [btwPercentage, setBtwPercentage] = React.useState("9");
   const [yieldPct, setYieldPct] = React.useState(100);
   const [opslagType, setOpslagType] = React.useState("");
   const [opslagLocatie, setOpslagLocatie] = React.useState("");
@@ -51,6 +52,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
     setCategorie("");
     setEenheid("");
     setKostprijs("");
+    setBtwPercentage("9");
     setYieldPct(100);
     setOpslagType("");
     setOpslagLocatie("");
@@ -65,6 +67,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
         categorie,
         eenheid,
         yield_percentage: yieldPct,
+        btw_percentage: Number(btwPercentage),
         opslag_type: opslagType || null,
         opslag_locatie: opslagLocatie || null,
         ...(kostprijs

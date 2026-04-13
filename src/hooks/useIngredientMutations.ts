@@ -8,6 +8,7 @@ interface CreateIngredientInput {
   categorie: string;
   eenheid: string;
   yield_percentage: number;
+  btw_percentage?: number;
   opslag_type: string | null;
   opslag_locatie: string | null;
   kostprijs?: number;
@@ -61,6 +62,7 @@ export function useIngredientMutations() {
           categorie: input.categorie,
           eenheid: input.eenheid,
           yield_percentage: input.yield_percentage,
+          btw_percentage: input.btw_percentage ?? 9,
           opslag_type: input.opslag_type,
           opslag_locatie: input.opslag_locatie,
           ...(input.kostprijs != null
