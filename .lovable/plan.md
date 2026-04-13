@@ -1,70 +1,57 @@
 
 
-# Leveranciers UX Verbetering
+# BTW Percentage toevoegen aan Ingrediënten
 
 ## Overzicht
 
-5 wijzigingen: leveranciers naar eigen pagina, nieuwe leverancier via sidebar, inline artikelen, horizontale filters, waste kosten check.
+BTW-veld toevoegen aan de database en drie UI-locaties: aanmaak modal, algemeen tab, en kostprijs tab met prijsberekening.
 
 ## Wijzigingen
 
-### 1. Leveranciers eigen pagina (`/inkoop/leveranciers`)
+### 1. Database migratie
+```sql
+ALTER TABLE public.ingredienten ADD COLUMN IF NOT EXISTS btw_percentage DECIMAL(4,2) DEFAULT 9.00;
+```
 
-Nieuwe pagina `src/pages/Leveranciers.tsx`:
-- PageHeader "Leveranciers" met "+ Nieuwe leverancier" knop
-- Zoekbalk + actief/inactief filter (horizontaal)
-- DataTable met kolommen: naam, type badge, contact, email, artikelen count, actief toggle
-- Klik op rij → `LeverancierDetailPanel` opent als NestoPanel sidebar
+### 2. TypeScript type updaten
+`src/hooks/useIngredienten.ts` — `IngredientRow` interface:
+- Toevoegen: `btw_percentage: number;`
 
-Route toevoegen in `App.tsx`: `<Route path="/inkoop/leveranciers" element={<Leveranciers />} />`
+### 3. NieuwIngredientModal
+`src/components/ingredienten/NieuwIngredientModal.tsx`:
+- State `btwPercentage` met default `"9"` toevoegen
+- Na het kostprijs veld: NestoSelect met opties `9%`, `21%`, `0%`
+- Bij opslaan: `btw_percentage: Number(btwPercentage)` meesturen
+- Reset functie updaten
 
-Navigation update in `navigation.ts`: route map entry + `getExpandedGroupFromPath` match.
+### 4. CreateIngredientInput updaten
+`src/hooks/useIngredientMutations.ts`:
+- `btw_percentage?: number` aan interface toevoegen
+- In insert: `btw_percentage: input.btw_percentage ?? 9` meesturen
 
-### 2. Inkoop pagina: knop navigeert i.p.v. modal
+### 5. AlgemeenTab — BTW dropdown
+`src/components/ingredienten/tabs/AlgemeenTab.tsx`:
+- State `btwPercentage` toevoegen, sync met ingredient
+- NestoSelect na yield percentage met opties `9%`, `21%`, `0%`
+- `hasChanges` check updaten
+- `handleSave` updaten met `btw_percentage`
 
-`src/pages/Inkoop.tsx`:
-- "Leveranciers beheren" knop → `useNavigate('/inkoop/leveranciers')` i.p.v. modal state
-- Verwijder `LeveranciersModal` import en state
-- Verwijder `src/components/inkoop/LeveranciersModal.tsx` (niet meer nodig)
-
-### 3. Nieuwe leverancier via NestoPanel
-
-`src/pages/Leveranciers.tsx`:
-- "+ Nieuwe leverancier" knop → opent NestoPanel met formulier (stap 1: basisgegevens)
-- Na opslaan: panel blijft open, schakelt naar detail view met lege artikelen lijst
-- State: `mode: 'nieuw' | 'detail'` + `selectedId`
-
-Verwijder `src/components/inkoop/NieuwLeverancierModal.tsx` (niet meer nodig).
-
-### 4. LeverancierDetailPanel herschrijven
-
-`src/components/inkoop/LeverancierDetailPanel.tsx`:
-- Twee modes: `create` (formulier) en `detail` (bestaande leverancier)
-- Detail mode: basisgegevens (read-only of inline edit) + artikelen lijst
-- Artikelen toevoegen: inline uitklapbaar formulier (accordion) binnen de sidebar
-- Geen aparte modal — alles in dezelfde NestoPanel context
-- Props uitbreiden: `mode: 'create' | 'detail'`, `onCreated: (id) => void`
-
-### 5. OrderhistorieTab: horizontale filters
-
-`src/components/inkoop/OrderhistorieTab.tsx`:
-- Filters staan al horizontaal via `flex flex-wrap gap-3` — dit is correct ✅
-- Geen wijziging nodig
-
-### 6. WasteRegistreerForm: geschatte kosten
-
-- Al geïmplementeerd en zichtbaar ✅ (regels 149-154)
-- Geen wijziging nodig
+### 6. KostprijsTab — BTW berekening
+`src/components/ingredienten/tabs/KostprijsTab.tsx`:
+- Na de hoofdprijs sectie, nieuw info-block toevoegen:
+  - Prijs excl. BTW: `€{kostprijs}`
+  - BTW ({btw_percentage}%): `€{kostprijs * btw_percentage / 100}`
+  - Prijs incl. BTW: `€{kostprijs * (1 + btw_percentage / 100)}`
+- Alleen tonen als kostprijs niet null is
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| `src/pages/Leveranciers.tsx` | Nieuw — volledige leveranciers pagina |
-| `src/components/inkoop/LeverancierDetailPanel.tsx` | Herschrijven — create + detail mode, inline artikelen |
-| `src/pages/Inkoop.tsx` | Wijzigen — navigatie i.p.v. modal |
-| `src/App.tsx` | Wijzigen — route toevoegen |
-| `src/lib/navigation.ts` | Wijzigen — route map + expanded group |
-| `src/components/inkoop/LeveranciersModal.tsx` | Verwijderen |
-| `src/components/inkoop/NieuwLeverancierModal.tsx` | Verwijderen |
+| Database migratie | Nieuw |
+| `src/hooks/useIngredienten.ts` | Wijzigen — type |
+| `src/hooks/useIngredientMutations.ts` | Wijzigen — interface + insert |
+| `src/components/ingredienten/NieuwIngredientModal.tsx` | Wijzigen — BTW dropdown |
+| `src/components/ingredienten/tabs/AlgemeenTab.tsx` | Wijzigen — BTW dropdown |
+| `src/components/ingredienten/tabs/KostprijsTab.tsx` | Wijzigen — BTW berekening |
 
