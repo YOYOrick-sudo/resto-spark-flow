@@ -10,6 +10,9 @@ interface CreateIngredientInput {
   yield_percentage: number;
   opslag_type: string | null;
   opslag_locatie: string | null;
+  kostprijs?: number;
+  kostprijs_bron?: string;
+  kostprijs_laatst_bijgewerkt?: string;
 }
 
 interface UpdateIngredientInput {
