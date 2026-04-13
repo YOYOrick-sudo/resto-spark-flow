@@ -25,6 +25,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'kitchen-voorraad': '/voorraad',
   'kitchen-kostprijzen': '/kostprijzen',
   'kitchen-orders': '/inkoop',
+  'kitchen-leveranciers': '/inkoop/leveranciers',
   'kaartbeheer-gerechten': '/kaartbeheer',
   'service-tasks': '/taken',
   'marketing-dashboard': '/marketing',

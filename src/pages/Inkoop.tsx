@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader, NestoTabs, NestoTabContent, NestoButton } from "@/components/polar";
 import { BesteladviesTab } from "@/components/inkoop/BesteladviesTab";
 import { BestellijstenTab } from "@/components/inkoop/BestellijstenTab";
 import { OrderhistorieTab } from "@/components/inkoop/OrderhistorieTab";
 import { WasteTab } from "@/components/inkoop/WasteTab";
-import { LeveranciersModal } from "@/components/inkoop/LeveranciersModal";
 import { Truck } from "lucide-react";
 
 const tabs = [
@@ -16,7 +16,7 @@ const tabs = [
 
 export default function Inkoop() {
   const [activeTab, setActiveTab] = useState("advies");
-  const [leveranciersOpen, setLeveranciersOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
@@ -27,7 +27,7 @@ export default function Inkoop() {
           <NestoButton
             variant="outline"
             leftIcon={<Truck className="h-4 w-4" />}
-            onClick={() => setLeveranciersOpen(true)}
+            onClick={() => navigate("/inkoop/leveranciers")}
           >
             Leveranciers beheren
           </NestoButton>
@@ -51,8 +51,6 @@ export default function Inkoop() {
       <NestoTabContent value="waste" activeValue={activeTab}>
         <WasteTab />
       </NestoTabContent>
-
-      <LeveranciersModal open={leveranciersOpen} onOpenChange={setLeveranciersOpen} />
     </div>
   );
 }

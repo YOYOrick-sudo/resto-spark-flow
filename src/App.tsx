@@ -21,6 +21,7 @@ import ReceptenDetail from "./pages/ReceptenDetail";
 import Ingredienten from "./pages/Ingredienten";
 import Kostprijzen from "./pages/Kostprijzen";
 import Inkoop from "./pages/Inkoop";
+import Leveranciers from "./pages/Leveranciers";
 import Kaartbeheer from "./pages/Kaartbeheer";
 import KaartbeheerDetail from "./pages/KaartbeheerDetail";
 import Taken from "./pages/Taken";
@@ -124,6 +125,7 @@ const App = () => (
                   <Route path="/voorraad" element={<Ingredienten />} />
                   <Route path="/kostprijzen" element={<Kostprijzen />} />
                   <Route path="/inkoop" element={<Inkoop />} />
+                  <Route path="/inkoop/leveranciers" element={<Leveranciers />} />
                   
                   {/* Kaartbeheer */}
                   <Route path="/kaartbeheer" element={<Kaartbeheer />} />
