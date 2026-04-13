@@ -157,6 +157,17 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
           </div>
         </div>
 
+        <NestoSelect
+          label="BTW percentage"
+          value={btwPercentage}
+          onValueChange={setBtwPercentage}
+          options={[
+            { value: "9", label: "9%" },
+            { value: "21", label: "21%" },
+            { value: "0", label: "0%" },
+          ]}
+        />
+
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <label className="text-label text-muted-foreground">Yield percentage</label>
