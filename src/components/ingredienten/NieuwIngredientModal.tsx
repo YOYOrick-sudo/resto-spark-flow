@@ -50,6 +50,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
     setNaam("");
     setCategorie("");
     setEenheid("");
+    setKostprijs("");
     setYieldPct(100);
     setOpslagType("");
     setOpslagLocatie("");
