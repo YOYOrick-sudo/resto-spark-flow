@@ -12,8 +12,6 @@ interface MepQuickAddProps {
 
 export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
   const [search, setSearch] = useState("");
-  const [manualTitle, setManualTitle] = useState("");
-  const [manualCategory, setManualCategory] = useState("overig");
 
   const { data: results = [], isLoading } = useHalffabricaatSearch(search);
   const createTask = useCreateMepTask();
@@ -32,17 +30,7 @@ export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
     setSearch("");
   };
 
-  const handleAddManual = () => {
-    if (!manualTitle.trim()) return;
-    createTask.mutate({
-      title: manualTitle.trim(),
-      category: manualCategory,
-      task_date: taskDate,
-      units: 1,
-      prioriteit: "Normaal",
-    });
-    setManualTitle("");
-  };
+
 
   return (
     <div className="space-y-4">

@@ -33,6 +33,7 @@ export function useHalffabricaatSearch(search: string) {
         `)
         .eq("location_id", locationId)
         .eq("is_archived", false)
+        .eq("type", "halffabricaat")
         .order("naam", { ascending: true })
         .limit(20);
 
