@@ -379,6 +379,137 @@ export type Database = {
           },
         ]
       }
+      bestellingen: {
+        Row: {
+          aangemaakt_door: string | null
+          besteldatum: string | null
+          bestelnummer: string | null
+          created_at: string
+          id: string
+          leverancier_id: string
+          location_id: string
+          notities: string | null
+          ontvangstdatum: string | null
+          status: string
+          totaal_bedrag: number | null
+          updated_at: string
+          verwachte_leverdatum: string | null
+        }
+        Insert: {
+          aangemaakt_door?: string | null
+          besteldatum?: string | null
+          bestelnummer?: string | null
+          created_at?: string
+          id?: string
+          leverancier_id: string
+          location_id: string
+          notities?: string | null
+          ontvangstdatum?: string | null
+          status?: string
+          totaal_bedrag?: number | null
+          updated_at?: string
+          verwachte_leverdatum?: string | null
+        }
+        Update: {
+          aangemaakt_door?: string | null
+          besteldatum?: string | null
+          bestelnummer?: string | null
+          created_at?: string
+          id?: string
+          leverancier_id?: string
+          location_id?: string
+          notities?: string | null
+          ontvangstdatum?: string | null
+          status?: string
+          totaal_bedrag?: number | null
+          updated_at?: string
+          verwachte_leverdatum?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bestellingen_aangemaakt_door_fkey"
+            columns: ["aangemaakt_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bestellingen_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bestellingen_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bestelregels: {
+        Row: {
+          bestelde_hoeveelheid: number
+          bestelling_id: string
+          created_at: string
+          eenheid: string
+          id: string
+          ingredient_id: string
+          leveranciers_artikel_id: string | null
+          ontvangen_hoeveelheid: number | null
+          prijs_per_eenheid: number | null
+          totaal: number | null
+        }
+        Insert: {
+          bestelde_hoeveelheid: number
+          bestelling_id: string
+          created_at?: string
+          eenheid: string
+          id?: string
+          ingredient_id: string
+          leveranciers_artikel_id?: string | null
+          ontvangen_hoeveelheid?: number | null
+          prijs_per_eenheid?: number | null
+          totaal?: number | null
+        }
+        Update: {
+          bestelde_hoeveelheid?: number
+          bestelling_id?: string
+          created_at?: string
+          eenheid?: string
+          id?: string
+          ingredient_id?: string
+          leveranciers_artikel_id?: string | null
+          ontvangen_hoeveelheid?: number | null
+          prijs_per_eenheid?: number | null
+          totaal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bestelregels_bestelling_id_fkey"
+            columns: ["bestelling_id"]
+            isOneToOne: false
+            referencedRelation: "bestellingen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bestelregels_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bestelregels_leveranciers_artikel_id_fkey"
+            columns: ["leveranciers_artikel_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers_artikelen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_settings: {
         Row: {
           brand_color: string | null
@@ -1033,6 +1164,131 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leveranciers: {
+        Row: {
+          api_type: string | null
+          contactpersoon: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_actief: boolean
+          klantnummer: string | null
+          location_id: string
+          naam: string
+          notities: string | null
+          telefoon: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_type?: string | null
+          contactpersoon?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_actief?: boolean
+          klantnummer?: string | null
+          location_id: string
+          naam: string
+          notities?: string | null
+          telefoon?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_type?: string | null
+          contactpersoon?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_actief?: boolean
+          klantnummer?: string | null
+          location_id?: string
+          naam?: string
+          notities?: string | null
+          telefoon?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leveranciers_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leveranciers_artikelen: {
+        Row: {
+          artikel_naam: string
+          artikel_nummer: string | null
+          created_at: string
+          ean_code: string | null
+          id: string
+          ingredient_id: string
+          is_actief: boolean
+          laatst_gesynchroniseerd: string | null
+          leverancier_id: string
+          prijs_per_eenheid: number | null
+          prijs_per_verpakking: number | null
+          type: string | null
+          updated_at: string
+          verpakking_eenheid: string | null
+          verpakking_hoeveelheid: number | null
+        }
+        Insert: {
+          artikel_naam: string
+          artikel_nummer?: string | null
+          created_at?: string
+          ean_code?: string | null
+          id?: string
+          ingredient_id: string
+          is_actief?: boolean
+          laatst_gesynchroniseerd?: string | null
+          leverancier_id: string
+          prijs_per_eenheid?: number | null
+          prijs_per_verpakking?: number | null
+          type?: string | null
+          updated_at?: string
+          verpakking_eenheid?: string | null
+          verpakking_hoeveelheid?: number | null
+        }
+        Update: {
+          artikel_naam?: string
+          artikel_nummer?: string | null
+          created_at?: string
+          ean_code?: string | null
+          id?: string
+          ingredient_id?: string
+          is_actief?: boolean
+          laatst_gesynchroniseerd?: string | null
+          leverancier_id?: string
+          prijs_per_eenheid?: number | null
+          prijs_per_verpakking?: number | null
+          type?: string | null
+          updated_at?: string
+          verpakking_eenheid?: string | null
+          verpakking_hoeveelheid?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leveranciers_artikelen_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leveranciers_artikelen_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
             referencedColumns: ["id"]
           },
         ]
@@ -4995,6 +5251,83 @@ export type Database = {
           },
         ]
       }
+      waste_registraties: {
+        Row: {
+          categorie: string
+          created_at: string
+          eenheid: string
+          geregistreerd_door: string | null
+          geschatte_kosten: number | null
+          hoeveelheid: number
+          id: string
+          ingredient_id: string | null
+          location_id: string
+          omschrijving: string | null
+          recept_id: string | null
+          reden: string | null
+          waste_datum: string
+        }
+        Insert: {
+          categorie: string
+          created_at?: string
+          eenheid: string
+          geregistreerd_door?: string | null
+          geschatte_kosten?: number | null
+          hoeveelheid: number
+          id?: string
+          ingredient_id?: string | null
+          location_id: string
+          omschrijving?: string | null
+          recept_id?: string | null
+          reden?: string | null
+          waste_datum?: string
+        }
+        Update: {
+          categorie?: string
+          created_at?: string
+          eenheid?: string
+          geregistreerd_door?: string | null
+          geschatte_kosten?: number | null
+          hoeveelheid?: number
+          id?: string
+          ingredient_id?: string | null
+          location_id?: string
+          omschrijving?: string | null
+          recept_id?: string | null
+          reden?: string | null
+          waste_datum?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_registraties_geregistreerd_door_fkey"
+            columns: ["geregistreerd_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_registraties_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_registraties_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_registraties_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_settings: {
         Row: {
           booking_questions: Json
@@ -5190,6 +5523,10 @@ export type Database = {
       fn_auto_mark_no_shows: { Args: never; Returns: number }
       fn_auto_release_options: { Args: never; Returns: number }
       generate_batch_nummer: {
+        Args: { p_location_id: string }
+        Returns: string
+      }
+      generate_bestelnummer: {
         Args: { p_location_id: string }
         Returns: string
       }
