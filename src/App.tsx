@@ -55,6 +55,9 @@ import SocialPostCreatorPage from "./pages/marketing/SocialPostCreatorPage";
 import ReviewsPage from "./pages/marketing/ReviewsPage";
 import PopupPage from "./pages/marketing/PopupPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
+import WasteDetailPage from "./pages/analytics/detail/WasteDetailPage";
+import ReviewsDetailPage from "./pages/analytics/detail/ReviewsDetailPage";
+import BereikDetailPage from "./pages/analytics/detail/BereikDetailPage";
 import WaitlistAccept from "./pages/WaitlistAccept";
 import ReconfirmReservation from "./pages/ReconfirmReservation";
 
@@ -161,6 +164,9 @@ const App = () => (
                   <Route path="/marketing/reviews" element={<ReviewsPage />} />
                   <Route path="/marketing/popup" element={<PopupPage />} />
                   <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/analytics/waste" element={<WasteDetailPage />} />
+                  <Route path="/analytics/reviews" element={<ReviewsDetailPage />} />
+                  <Route path="/analytics/bereik" element={<BereikDetailPage />} />
                   
                   {/* Marketing Settings */}
                   <Route path="/instellingen/marketing" element={<MarketingSettings />} />

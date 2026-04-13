@@ -55,7 +55,7 @@ export function WasteTile() {
   return (
     <NestoCard
       className="overflow-hidden !p-0 cursor-pointer group transition-shadow duration-200 hover:shadow-md"
-      onClick={() => navigate('/analytics?tab=waste')}
+      onClick={() => navigate('/analytics/waste')}
     >
       <div className="px-6 pt-6 flex items-center justify-between">
         <span className="text-sm text-muted-foreground">Waste</span>
