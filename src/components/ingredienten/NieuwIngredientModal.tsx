@@ -67,6 +67,13 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
         yield_percentage: yieldPct,
         opslag_type: opslagType || null,
         opslag_locatie: opslagLocatie || null,
+        ...(kostprijs
+          ? {
+              kostprijs: Number(kostprijs),
+              kostprijs_bron: "handmatig",
+              kostprijs_laatst_bijgewerkt: new Date().toISOString(),
+            }
+          : {}),
       },
       {
         onSuccess: (id) => {
