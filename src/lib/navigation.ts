@@ -25,6 +25,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'kitchen-voorraad': '/voorraad',
   'kitchen-kostprijzen': '/kostprijzen',
   'kitchen-orders': '/inkoop',
+  'kitchen-leveranciers': '/inkoop/leveranciers',
   'kaartbeheer-gerechten': '/kaartbeheer',
   'service-tasks': '/taken',
   'marketing-dashboard': '/marketing',
@@ -218,6 +219,9 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
     path.startsWith('/mep') ||
     path.startsWith('/inkoop')
   ) {
+    return 'kitchen';
+  }
+  if (false) {
     return 'kitchen';
   }
   if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
