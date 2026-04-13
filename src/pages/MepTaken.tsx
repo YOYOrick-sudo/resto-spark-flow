@@ -6,10 +6,11 @@ import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 
 import { ChevronLeft, ChevronRight, CalendarDays, List } from "lucide-react";
-import { useMepTasks, useMepTasksWeek } from "@/hooks/useMepTasks";
+import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
 import { MepQuickAdd } from "@/components/mep/MepQuickAdd";
 import { MepTaskList } from "@/components/mep/MepTaskList";
 import { MepWeekView } from "@/components/mep/MepWeekView";
+import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
 
 export default function MepTaken() {
   const today = format(new Date(), "yyyy-MM-dd");
@@ -45,6 +46,15 @@ export default function MepTaken() {
     const completed = dayTasks.filter((t) => t.status === "completed").length;
     return { pending, completed, total: dayTasks.length };
   }, [dayTasks]);
+
+  // Completion modal state for week view
+  const [completionTask, setCompletionTask] = useState<MepTask | null>(null);
+
+  const handleWeekTaskClick = (task: MepTask) => {
+    if (task.status === "pending" || task.status === "in_progress") {
+      setCompletionTask(task);
+    }
+  };
 
   const isToday = selectedDate === today;
   const dateLabel = format(new Date(selectedDate), "EEEE d MMMM", {
@@ -116,6 +126,7 @@ export default function MepTaken() {
             setSelectedDate(d);
             setView("dag");
           }}
+          onTaskClick={handleWeekTaskClick}
           isLoading={weekLoading}
         />
       ) : (
@@ -126,6 +137,17 @@ export default function MepTaken() {
           {/* Task list */}
           <MepTaskList tasks={dayTasks} isLoading={dayLoading} />
         </>
+      )}
+
+      {/* Completion modal for week view inline clicks */}
+      {completionTask && (
+        <MepCompletionModal
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => {
+            if (!open) setCompletionTask(null);
+          }}
+        />
       )}
     </div>
   );
