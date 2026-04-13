@@ -1,0 +1,1 @@
+ALTER TABLE public.ingredienten ADD COLUMN IF NOT EXISTS btw_percentage DECIMAL(4,2) DEFAULT 9.00;
