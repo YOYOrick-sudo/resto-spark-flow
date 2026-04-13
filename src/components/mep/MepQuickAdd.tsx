@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { NestoInput } from "@/components/polar/NestoInput";
-import { NestoButton } from "@/components/polar/NestoButton";
-import { NestoSelect } from "@/components/polar/NestoSelect";
 import { Search, Plus, Loader2 } from "lucide-react";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useCreateMepTask } from "@/hooks/useMepMutations";
@@ -12,8 +10,6 @@ interface MepQuickAddProps {
 
 export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
   const [search, setSearch] = useState("");
-  const [manualTitle, setManualTitle] = useState("");
-  const [manualCategory, setManualCategory] = useState("overig");
 
   const { data: results = [], isLoading } = useHalffabricaatSearch(search);
   const createTask = useCreateMepTask();
@@ -32,21 +28,8 @@ export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
     setSearch("");
   };
 
-  const handleAddManual = () => {
-    if (!manualTitle.trim()) return;
-    createTask.mutate({
-      title: manualTitle.trim(),
-      category: manualCategory,
-      task_date: taskDate,
-      units: 1,
-      prioriteit: "Normaal",
-    });
-    setManualTitle("");
-  };
-
   return (
-    <div className="space-y-4">
-      {/* Search existing recipes */}
+    <div>
       <div className="relative">
         <NestoInput
           placeholder="Zoek recept of halffabricaat..."
@@ -83,36 +66,6 @@ export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
             )}
           </div>
         )}
-      </div>
-
-      {/* Manual add */}
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <NestoInput
-            placeholder="Of voeg handmatig toe..."
-            value={manualTitle}
-            onChange={(e) => setManualTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAddManual()}
-          />
-        </div>
-        <NestoSelect
-          value={manualCategory}
-          onValueChange={setManualCategory}
-          options={[
-            { value: "halffabricaat", label: "Halffabricaat" },
-            { value: "mise_en_place", label: "Mise en place" },
-            { value: "schoonmaak", label: "Schoonmaak" },
-            { value: "overig", label: "Overig" },
-          ]}
-        />
-        <NestoButton
-          variant="primary"
-          onClick={handleAddManual}
-          disabled={!manualTitle.trim() || createTask.isPending}
-          className="min-w-[44px]"
-        >
-          <Plus className="h-4 w-4" />
-        </NestoButton>
       </div>
     </div>
   );
