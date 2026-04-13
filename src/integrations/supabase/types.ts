@@ -2370,46 +2370,45 @@ export type Database = {
       }
       mep_task_completions: {
         Row: {
-          batch_id: string | null
+          batch_nummer: string | null
           completed_at: string
-          completed_by: string
           id: string
+          medewerker_id: string
           notitie: string | null
           task_id: string
           temperatuur: number | null
           units_gemaakt: number
+          verwachte_output_gram: number | null
+          werkelijke_output_gram: number | null
           yield_percentage: number | null
         }
         Insert: {
-          batch_id?: string | null
+          batch_nummer?: string | null
           completed_at?: string
-          completed_by: string
           id?: string
+          medewerker_id: string
           notitie?: string | null
           task_id: string
           temperatuur?: number | null
           units_gemaakt?: number
+          verwachte_output_gram?: number | null
+          werkelijke_output_gram?: number | null
           yield_percentage?: number | null
         }
         Update: {
-          batch_id?: string | null
+          batch_nummer?: string | null
           completed_at?: string
-          completed_by?: string
           id?: string
+          medewerker_id?: string
           notitie?: string | null
           task_id?: string
           temperatuur?: number | null
           units_gemaakt?: number
+          verwachte_output_gram?: number | null
+          werkelijke_output_gram?: number | null
           yield_percentage?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "mep_task_completions_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "productie_batches"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "mep_task_completions_task_id_fkey"
             columns: ["task_id"]
@@ -2429,13 +2428,13 @@ export type Database = {
           location_id: string
           methode_id: string | null
           notes: string | null
-          priority: number
+          prioriteit: string
           recept_id: string | null
           status: string
           target_eenheid: string | null
-          target_units: number | null
           task_date: string
           title: string
+          units: number | null
           updated_at: string
         }
         Insert: {
@@ -2447,13 +2446,13 @@ export type Database = {
           location_id: string
           methode_id?: string | null
           notes?: string | null
-          priority?: number
+          prioriteit?: string
           recept_id?: string | null
           status?: string
           target_eenheid?: string | null
-          target_units?: number | null
           task_date: string
           title: string
+          units?: number | null
           updated_at?: string
         }
         Update: {
@@ -2465,13 +2464,13 @@ export type Database = {
           location_id?: string
           methode_id?: string | null
           notes?: string | null
-          priority?: number
+          prioriteit?: string
           recept_id?: string | null
           status?: string
           target_eenheid?: string | null
-          target_units?: number | null
           task_date?: string
           title?: string
+          units?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -3470,46 +3469,49 @@ export type Database = {
           batch_nummer: string
           created_at: string
           eenheid: string
-          geproduceerd_door: string | null
           hoeveelheid: number
           houdbaar_tot: string | null
           id: string
           location_id: string
+          medewerker_id: string | null
           methode_id: string | null
           notitie: string | null
           productie_datum: string
           recept_id: string
           status: string
+          task_completion_id: string | null
         }
         Insert: {
           batch_nummer: string
           created_at?: string
           eenheid: string
-          geproduceerd_door?: string | null
           hoeveelheid: number
           houdbaar_tot?: string | null
           id?: string
           location_id: string
+          medewerker_id?: string | null
           methode_id?: string | null
           notitie?: string | null
           productie_datum?: string
           recept_id: string
           status?: string
+          task_completion_id?: string | null
         }
         Update: {
           batch_nummer?: string
           created_at?: string
           eenheid?: string
-          geproduceerd_door?: string | null
           hoeveelheid?: number
           houdbaar_tot?: string | null
           id?: string
           location_id?: string
+          medewerker_id?: string | null
           methode_id?: string | null
           notitie?: string | null
           productie_datum?: string
           recept_id?: string
           status?: string
+          task_completion_id?: string | null
         }
         Relationships: [
           {
@@ -3531,6 +3533,13 @@ export type Database = {
             columns: ["recept_id"]
             isOneToOne: false
             referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productie_batches_task_completion_id_fkey"
+            columns: ["task_completion_id"]
+            isOneToOne: false
+            referencedRelation: "mep_task_completions"
             referencedColumns: ["id"]
           },
         ]
