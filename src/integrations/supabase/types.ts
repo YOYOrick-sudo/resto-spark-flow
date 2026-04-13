@@ -1053,6 +1053,7 @@ export type Database = {
       ingredienten: {
         Row: {
           archived_at: string | null
+          btw_percentage: number | null
           categorie: string
           created_at: string
           eenheid: string
@@ -1073,6 +1074,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          btw_percentage?: number | null
           categorie: string
           created_at?: string
           eenheid: string
@@ -1093,6 +1095,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          btw_percentage?: number | null
           categorie?: string
           created_at?: string
           eenheid?: string

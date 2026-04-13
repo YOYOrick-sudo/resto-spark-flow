@@ -61,6 +61,24 @@ export function KostprijsTab({ ingredient }: KostprijsTabProps) {
         )}
       </div>
 
+      {ingredient.kostprijs != null && (
+        <div className="p-4 rounded-card bg-secondary/50 border border-border/50 space-y-1">
+          <p className="text-label text-muted-foreground mb-2">BTW berekening</p>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Prijs excl. BTW</span>
+            <span className="tabular-nums font-medium">€{ingredient.kostprijs.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">BTW ({ingredient.btw_percentage ?? 9}%)</span>
+            <span className="tabular-nums font-medium">€{(ingredient.kostprijs * (ingredient.btw_percentage ?? 9) / 100).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm pt-1 border-t border-border/50">
+            <span className="text-foreground font-medium">Prijs incl. BTW</span>
+            <span className="tabular-nums font-semibold">€{(ingredient.kostprijs * (1 + (ingredient.btw_percentage ?? 9) / 100)).toFixed(2)}</span>
+          </div>
+        </div>
+      )}
+
       {!editing ? (
         <NestoButton variant="outline" size="sm" onClick={() => setEditing(true)}>
           <Pencil className="h-3.5 w-3.5 mr-1.5" />

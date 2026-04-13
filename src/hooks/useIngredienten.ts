@@ -28,6 +28,7 @@ export interface IngredientRow {
   kostprijs_bron: string | null;
   kostprijs_laatst_bijgewerkt: string | null;
   yield_percentage: number;
+  btw_percentage: number;
   opslag_type: string | null;
   opslag_locatie: string | null;
   is_archived: boolean;

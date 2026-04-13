@@ -45,6 +45,7 @@ export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
   const [categorie, setCategorie] = React.useState(ingredient.categorie);
   const [eenheid, setEenheid] = React.useState(ingredient.eenheid);
   const [yieldPct, setYieldPct] = React.useState(ingredient.yield_percentage);
+  const [btwPercentage, setBtwPercentage] = React.useState(String(ingredient.btw_percentage ?? 9));
   const [opslagType, setOpslagType] = React.useState(ingredient.opslag_type || "");
   const [opslagLocatie, setOpslagLocatie] = React.useState(ingredient.opslag_locatie || "");
   const [showArchiveConfirm, setShowArchiveConfirm] = React.useState(false);
@@ -54,6 +55,7 @@ export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
     setCategorie(ingredient.categorie);
     setEenheid(ingredient.eenheid);
     setYieldPct(ingredient.yield_percentage);
+    setBtwPercentage(String(ingredient.btw_percentage ?? 9));
     setOpslagType(ingredient.opslag_type || "");
     setOpslagLocatie(ingredient.opslag_locatie || "");
   }, [ingredient]);
@@ -63,6 +65,7 @@ export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
     categorie !== ingredient.categorie ||
     eenheid !== ingredient.eenheid ||
     yieldPct !== ingredient.yield_percentage ||
+    btwPercentage !== String(ingredient.btw_percentage ?? 9) ||
     opslagType !== (ingredient.opslag_type || "") ||
     opslagLocatie !== (ingredient.opslag_locatie || "");
 
@@ -73,6 +76,7 @@ export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
       categorie,
       eenheid,
       yield_percentage: yieldPct,
+      btw_percentage: Number(btwPercentage),
       opslag_type: opslagType || null,
       opslag_locatie: opslagLocatie || null,
     });
@@ -127,6 +131,17 @@ export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
           </span>
         </div>
       </div>
+
+      <NestoSelect
+        label="BTW percentage"
+        value={btwPercentage}
+        onValueChange={setBtwPercentage}
+        options={[
+          { value: "9", label: "9%" },
+          { value: "21", label: "21%" },
+          { value: "0", label: "0%" },
+        ]}
+      />
 
       <NestoSelect
         label="Opslag type"
