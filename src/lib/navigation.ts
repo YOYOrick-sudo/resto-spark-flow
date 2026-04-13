@@ -98,7 +98,7 @@ export const menuItems: MenuItem[] = [
       { id: 'kitchen-recipes', label: 'Recepten', path: '/recepten' },
       { id: 'kitchen-voorraad', label: 'Ingrediënten', path: '/voorraad' },
       { id: 'kitchen-kostprijzen', label: 'Kostprijzen', path: '/kostprijzen' },
-      { id: 'kitchen-orders', label: 'Interne Bestellingen', path: '/inkoop' },
+      { id: 'kitchen-orders', label: 'Voorraad & Inkoop', path: '/inkoop' },
     ],
   },
   {
