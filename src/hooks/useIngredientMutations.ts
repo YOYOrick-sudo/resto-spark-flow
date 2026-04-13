@@ -10,6 +10,9 @@ interface CreateIngredientInput {
   yield_percentage: number;
   opslag_type: string | null;
   opslag_locatie: string | null;
+  kostprijs?: number;
+  kostprijs_bron?: string;
+  kostprijs_laatst_bijgewerkt?: string;
 }
 
 interface UpdateIngredientInput {
@@ -60,6 +63,13 @@ export function useIngredientMutations() {
           yield_percentage: input.yield_percentage,
           opslag_type: input.opslag_type,
           opslag_locatie: input.opslag_locatie,
+          ...(input.kostprijs != null
+            ? {
+                kostprijs: input.kostprijs,
+                kostprijs_bron: input.kostprijs_bron ?? "handmatig",
+                kostprijs_laatst_bijgewerkt: input.kostprijs_laatst_bijgewerkt ?? new Date().toISOString(),
+              }
+            : {}),
         })
         .select("id")
         .single();

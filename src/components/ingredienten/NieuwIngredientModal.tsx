@@ -41,6 +41,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
   const [naam, setNaam] = React.useState("");
   const [categorie, setCategorie] = React.useState("");
   const [eenheid, setEenheid] = React.useState("");
+  const [kostprijs, setKostprijs] = React.useState("");
   const [yieldPct, setYieldPct] = React.useState(100);
   const [opslagType, setOpslagType] = React.useState("");
   const [opslagLocatie, setOpslagLocatie] = React.useState("");
@@ -49,6 +50,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
     setNaam("");
     setCategorie("");
     setEenheid("");
+    setKostprijs("");
     setYieldPct(100);
     setOpslagType("");
     setOpslagLocatie("");
@@ -65,6 +67,13 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
         yield_percentage: yieldPct,
         opslag_type: opslagType || null,
         opslag_locatie: opslagLocatie || null,
+        ...(kostprijs
+          ? {
+              kostprijs: Number(kostprijs),
+              kostprijs_bron: "handmatig",
+              kostprijs_laatst_bijgewerkt: new Date().toISOString(),
+            }
+          : {}),
       },
       {
         onSuccess: (id) => {
@@ -126,6 +135,24 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
           options={EENHEID_OPTIONS}
           placeholder="Selecteer eenheid"
         />
+
+        <div>
+          <label className="mb-2 block text-label text-muted-foreground">Kostprijs per eenheid</label>
+          <div className="flex">
+            <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-l-[var(--radius-button)] border-[1.5px] border-r-0 border-border">
+              €
+            </span>
+            <NestoInput
+              type="number"
+              step="0.01"
+              min={0}
+              value={kostprijs}
+              onChange={(e) => setKostprijs(e.target.value)}
+              placeholder="bijv. 8.50"
+              className="rounded-l-none border-l-0"
+            />
+          </div>
+        </div>
 
         <div>
           <div className="flex items-center gap-1.5 mb-2">
