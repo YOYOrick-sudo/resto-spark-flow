@@ -2368,6 +2368,136 @@ export type Database = {
           },
         ]
       }
+      mep_task_completions: {
+        Row: {
+          batch_id: string | null
+          completed_at: string
+          completed_by: string
+          id: string
+          notitie: string | null
+          task_id: string
+          temperatuur: number | null
+          units_gemaakt: number
+          yield_percentage: number | null
+        }
+        Insert: {
+          batch_id?: string | null
+          completed_at?: string
+          completed_by: string
+          id?: string
+          notitie?: string | null
+          task_id: string
+          temperatuur?: number | null
+          units_gemaakt?: number
+          yield_percentage?: number | null
+        }
+        Update: {
+          batch_id?: string | null
+          completed_at?: string
+          completed_by?: string
+          id?: string
+          notitie?: string | null
+          task_id?: string
+          temperatuur?: number | null
+          units_gemaakt?: number
+          yield_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_task_completions_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "productie_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_task_completions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "mep_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mep_tasks: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          deadline: string | null
+          id: string
+          location_id: string
+          methode_id: string | null
+          notes: string | null
+          priority: number
+          recept_id: string | null
+          status: string
+          target_eenheid: string | null
+          target_units: number | null
+          task_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          location_id: string
+          methode_id?: string | null
+          notes?: string | null
+          priority?: number
+          recept_id?: string | null
+          status?: string
+          target_eenheid?: string | null
+          target_units?: number | null
+          task_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          location_id?: string
+          methode_id?: string | null
+          notes?: string | null
+          priority?: number
+          recept_id?: string | null
+          status?: string
+          target_eenheid?: string | null
+          target_units?: number | null
+          task_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_tasks_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_tasks_methode_id_fkey"
+            columns: ["methode_id"]
+            isOneToOne: false
+            referencedRelation: "halffabricaat_methodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_tasks_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_templates: {
         Row: {
           body: string
@@ -3331,6 +3461,76 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      productie_batches: {
+        Row: {
+          batch_nummer: string
+          created_at: string
+          eenheid: string
+          geproduceerd_door: string | null
+          hoeveelheid: number
+          houdbaar_tot: string | null
+          id: string
+          location_id: string
+          methode_id: string | null
+          notitie: string | null
+          productie_datum: string
+          recept_id: string
+          status: string
+        }
+        Insert: {
+          batch_nummer: string
+          created_at?: string
+          eenheid: string
+          geproduceerd_door?: string | null
+          hoeveelheid: number
+          houdbaar_tot?: string | null
+          id?: string
+          location_id: string
+          methode_id?: string | null
+          notitie?: string | null
+          productie_datum?: string
+          recept_id: string
+          status?: string
+        }
+        Update: {
+          batch_nummer?: string
+          created_at?: string
+          eenheid?: string
+          geproduceerd_door?: string | null
+          hoeveelheid?: number
+          houdbaar_tot?: string | null
+          id?: string
+          location_id?: string
+          methode_id?: string | null
+          notitie?: string | null
+          productie_datum?: string
+          recept_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productie_batches_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productie_batches_methode_id_fkey"
+            columns: ["methode_id"]
+            isOneToOne: false
+            referencedRelation: "halffabricaat_methodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productie_batches_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
             referencedColumns: ["id"]
           },
         ]
@@ -4980,6 +5180,10 @@ export type Database = {
       }
       fn_auto_mark_no_shows: { Args: never; Returns: number }
       fn_auto_release_options: { Args: never; Returns: number }
+      generate_batch_nummer: {
+        Args: { p_location_id: string }
+        Returns: string
+      }
       get_attention_conversations: {
         Args: { p_location_id: string }
         Returns: {
