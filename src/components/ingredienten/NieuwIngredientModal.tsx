@@ -154,6 +154,7 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
           </div>
         </div>
 
+        <div>
           <div className="flex items-center gap-1.5 mb-2">
             <label className="text-label text-muted-foreground">Yield percentage</label>
             <Tooltip>
