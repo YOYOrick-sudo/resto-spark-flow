@@ -103,6 +103,10 @@ export default function KaartbeheerDetail() {
       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link to="/kaartbeheer" className="hover:text-foreground transition-colors flex items-center gap-1.5 min-h-[44px]">
           <ArrowLeft className="h-4 w-4" />
+          Kaartbeheer
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link to="/kaartbeheer" className="hover:text-foreground transition-colors">
           Gerechten
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
