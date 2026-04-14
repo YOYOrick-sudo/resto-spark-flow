@@ -35,7 +35,7 @@ export function GerechtOverzicht() {
         title="Gerechten"
         subtitle="Beheer je menukaart en food cost."
         actions={
-          <NestoButton leftIcon={<Plus className="h-4 w-4" />} onClick={() => setNieuwOpen(true)}>
+          <NestoButton leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigate("/kaartbeheer/nieuw")}>
             Nieuw gerecht
           </NestoButton>
         }
@@ -79,7 +79,7 @@ export function GerechtOverzicht() {
             gerechten?.length === 0 ? "Voeg je eerste gerecht toe om te beginnen." : "Pas je filters aan."
           }
           action={
-            gerechten?.length === 0 ? { label: "Nieuw gerecht", onClick: () => setNieuwOpen(true), icon: Plus } : undefined
+            gerechten?.length === 0 ? { label: "Nieuw gerecht", onClick: () => navigate("/kaartbeheer/nieuw"), icon: Plus } : undefined
           }
         />
       ) : (
@@ -106,7 +106,7 @@ export function GerechtOverzicht() {
                     <NestoBadge variant="default" size="sm">
                       {g.categorie}
                     </NestoBadge>
-                    <AllergeenPills gerechtId={g.id} />
+                    <AllergeenPillsRow gerechtId={g.id} />
                   </div>
                 </div>
 
@@ -135,7 +135,7 @@ export function GerechtOverzicht() {
         </div>
       )}
 
-      <NieuwGerechtPanel open={nieuwOpen} onClose={() => setNieuwOpen(false)} onCreated={handleCreated} />
+      
     </div>
   );
 }
