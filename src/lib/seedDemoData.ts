@@ -1,5 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// ── Known seed names for cleanup ───────────────────────────────
+const SEED_LEVERANCIER_NAMES = ["Kooyman Grootverbruik", "Bidfood"];
+const SEED_INGREDIENT_NAMES = [
+  "Kipfilet", "Zalm vers", "Tomaten", "Uien", "Knoflook",
+  "Olijfolie extra vierge", "Slagroom", "Boter", "Pasta penne",
+  "Bloem patent", "Eieren (doos 30st)", "Parmezaanse kaas",
+  "Basilicum vers", "Citroenen", "Rundvlees entrecote",
+];
+const SEED_RECEPT_NAMES = [
+  "Tomatenrelish", "Zalmgravad", "Pasta aglio e olio basis",
+  "Kruidenboter", "Kippensoep",
+];
+const SEED_GERECHT_NAMES = [
+  "Pasta Aglio e Olio", "Gegrilde Entrecote", "Zalmgravad voorgerecht",
+];
+
 // ── Types ──────────────────────────────────────────────────────
 interface SeedResult {
   success: boolean;
@@ -14,18 +30,86 @@ interface SeedResult {
   };
 }
 
+// ── Delete demo data ───────────────────────────────────────────
+export async function deleteDemoData(locationId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    // 1. Get IDs for cascading deletes
+    const { data: ingredienten } = await supabase
+      .from("ingredienten").select("id").eq("location_id", locationId)
+      .in("naam", SEED_INGREDIENT_NAMES);
+    const ingIds = (ingredienten ?? []).map(i => i.id);
+
+    const { data: recepten } = await supabase
+      .from("recepten").select("id").eq("location_id", locationId)
+      .in("naam", SEED_RECEPT_NAMES);
+    const recIds = (recepten ?? []).map(r => r.id);
+
+    const { data: gerechten } = await supabase
+      .from("gerechten").select("id").eq("location_id", locationId)
+      .in("naam", SEED_GERECHT_NAMES);
+    const gerIds = (gerechten ?? []).map(g => g.id);
+
+    // 2. Delete in reverse dependency order
+    if (ingIds.length > 0) {
+      await supabase.from("voorraad_bewegingen").delete().in("ingredient_id", ingIds);
+    }
+
+    if (recIds.length > 0) {
+      // mep_task_completions via mep_tasks
+      const { data: mepTasks } = await supabase
+        .from("mep_tasks").select("id").eq("location_id", locationId)
+        .in("recept_id", recIds);
+      const mepIds = (mepTasks ?? []).map(m => m.id);
+      if (mepIds.length > 0) {
+        await supabase.from("mep_task_completions").delete().in("task_id", mepIds);
+      }
+      await supabase.from("mep_tasks").delete().eq("location_id", locationId).in("recept_id", recIds);
+    }
+
+    if (gerIds.length > 0) {
+      await supabase.from("gerecht_componenten").delete().in("gerecht_id", gerIds);
+      await supabase.from("gerechten").delete().in("id", gerIds);
+    }
+
+    if (recIds.length > 0) {
+      await supabase.from("recept_ingredienten").delete().in("recept_id", recIds);
+      await supabase.from("halffabricaat_methodes").delete().in("recept_id", recIds);
+      await supabase.from("recepten").delete().in("id", recIds);
+    }
+
+    if (ingIds.length > 0) {
+      await supabase.from("ingredient_allergenen").delete().in("ingredient_id", ingIds);
+      await supabase.from("ingredienten").delete().in("id", ingIds);
+    }
+
+    await supabase.from("leveranciers").delete().eq("location_id", locationId)
+      .in("naam", SEED_LEVERANCIER_NAMES);
+
+    return { success: true, message: "Demo data verwijderd." };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Fout bij verwijderen demo data." };
+  }
+}
+
+// ── Check if seed data exists ──────────────────────────────────
+export async function checkSeedDataExists(locationId: string): Promise<boolean> {
+  const { data: lev } = await supabase.from("leveranciers").select("id")
+    .eq("location_id", locationId).eq("naam", "Kooyman Grootverbruik").maybeSingle();
+  if (lev) return true;
+  const { data: rec } = await supabase.from("recepten").select("id")
+    .eq("location_id", locationId).eq("naam", "Tomatenrelish").maybeSingle();
+  if (rec) return true;
+  const { data: ing } = await supabase.from("ingredienten").select("id")
+    .eq("location_id", locationId).eq("naam", "Kipfilet").maybeSingle();
+  return !!ing;
+}
+
 // ── Main seed function ─────────────────────────────────────────
 export async function seedDemoData(locationId: string): Promise<SeedResult> {
-  // Idempotency: check if seed data already exists
-  const { data: existing } = await supabase
-    .from("leveranciers")
-    .select("id")
-    .eq("location_id", locationId)
-    .eq("naam", "Kooyman Grootverbruik")
-    .maybeSingle();
-
-  if (existing) {
-    return { success: false, message: "Demo data bestaat al voor deze locatie." };
+  // Idempotency: check if any seed data already exists
+  const exists = await checkSeedDataExists(locationId);
+  if (exists) {
+    return { success: false, message: "Demo data bestaat al. Verwijder eerst de bestaande data." };
   }
 
   try {
