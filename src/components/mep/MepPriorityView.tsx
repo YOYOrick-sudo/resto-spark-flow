@@ -93,7 +93,7 @@ export function MepPriorityView({
               onComplete={onComplete}
               onCancel={onCancel}
               onPriorityChange={onPriorityChange}
-              hint={getAssistantHint(task, ingredientStock)}
+              hint={getAssistantHint(task)}
             />
           ))}
         </div>
