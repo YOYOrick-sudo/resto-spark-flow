@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   PageHeader,
   SearchBar,
@@ -12,8 +12,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { BookOpen, Plus } from "lucide-react";
 import { useRecepten, filterRecepten, ReceptRow, ReceptenFilters } from "@/hooks/useRecepten";
-import { NieuwReceptModal } from "@/components/recepten/NieuwReceptModal";
-import { ReceptDetailPanel } from "@/components/recepten/ReceptDetailPanel";
 import type { DataTableColumn } from "@/components/polar";
 
 const CATEGORIE_FILTER_OPTIONS = [
@@ -28,25 +26,12 @@ const CATEGORIE_FILTER_OPTIONS = [
 ];
 
 export default function Recepten() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [filters, setFilters] = React.useState<ReceptenFilters>({
     search: "",
     categorie: "",
     showArchived: false,
   });
-  const [showNewModal, setShowNewModal] = React.useState(false);
-  const [selectedId, setSelectedId] = React.useState<string | null>(
-    searchParams.get("open")
-  );
-
-  React.useEffect(() => {
-    const openId = searchParams.get("open");
-    if (openId) {
-      setSelectedId(openId);
-      searchParams.delete("open");
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
 
   const { data, isLoading } = useRecepten(filters);
   const filtered = filterRecepten(data, filters);
@@ -116,7 +101,7 @@ export default function Recepten() {
         actions={
           <NestoButton
             leftIcon={<Plus className="h-4 w-4" />}
-            onClick={() => setShowNewModal(true)}
+            onClick={() => navigate("/recepten/nieuw")}
             className="min-h-[48px]"
           >
             Nieuw recept
@@ -159,23 +144,11 @@ export default function Recepten() {
           columns={columns}
           data={filtered}
           keyExtractor={(r) => r.id}
-          onRowClick={(r) => setSelectedId(r.id)}
+          onRowClick={(r) => navigate(`/recepten/${r.id}`)}
           emptyMessage="Nog geen recepten toegevoegd"
           emptyIcon={BookOpen}
         />
       )}
-
-      <NieuwReceptModal
-        open={showNewModal}
-        onOpenChange={setShowNewModal}
-        onCreated={(id) => setSelectedId(id)}
-      />
-
-      <ReceptDetailPanel
-        receptId={selectedId}
-        open={!!selectedId}
-        onClose={() => setSelectedId(null)}
-      />
     </div>
   );
 }
