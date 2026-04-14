@@ -9,7 +9,7 @@ import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { GerechtComponentenTab } from "@/components/kaartbeheer/GerechtComponentenTab";
 import { GerechtAllergenenTab } from "@/components/kaartbeheer/GerechtAllergenenTab";
-import { ChevronRight, ArrowLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 const DEFAULT_CATS = ["Voorgerechten", "Hoofdgerechten", "Desserts", "Bijgerechten", "Dranken", "Overig"];
 
@@ -99,19 +99,13 @@ export default function KaartbeheerDetail() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Link to="/kaartbeheer" className="hover:text-foreground transition-colors flex items-center gap-1.5 min-h-[44px]">
-          <ArrowLeft className="h-4 w-4" />
-          Kaartbeheer
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <Link to="/kaartbeheer" className="hover:text-foreground transition-colors">
-          Gerechten
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground font-medium truncate">{gerecht.naam}</span>
-      </div>
+      <Link
+        to="/kaartbeheer"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] w-fit"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        <span>Kaartbeheer</span>
+      </Link>
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
