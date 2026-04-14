@@ -27,9 +27,9 @@ export function ReceptStapBasis() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">Naam *</label>
+        <label className="mb-2 block text-label text-muted-foreground">Naam *</label>
         <NestoInput
           value={data.naam}
           onChange={(e) => update("naam", e.target.value)}
@@ -47,7 +47,7 @@ export function ReceptStapBasis() {
       />
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">Porties</label>
+        <label className="mb-2 block text-label text-muted-foreground">Porties</label>
         <NestoInput
           type="number"
           min={1}
@@ -58,7 +58,7 @@ export function ReceptStapBasis() {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-2 block text-sm font-medium text-foreground">Actieve bereidingstijd (min)</label>
+          <label className="mb-2 block text-label text-muted-foreground">Actieve bereidingstijd (min)</label>
           <NestoInput
             type="number"
             min={0}
@@ -68,7 +68,7 @@ export function ReceptStapBasis() {
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium text-foreground">Passieve bereidingstijd (min)</label>
+          <label className="mb-2 block text-label text-muted-foreground">Passieve bereidingstijd (min)</label>
           <NestoInput
             type="number"
             min={0}

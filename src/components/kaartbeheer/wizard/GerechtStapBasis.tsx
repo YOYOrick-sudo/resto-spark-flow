@@ -1,7 +1,6 @@
 import { useStepWizard } from "@/components/polar/StepWizard";
-import { Input } from "@/components/ui/input";
+import { NestoInput, NestoSelect } from "@/components/polar";
 import { Textarea } from "@/components/ui/textarea";
-import { NestoSelect } from "@/components/polar";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 
 const DEFAULT_CATS = ["Voorgerechten", "Hoofdgerechten", "Desserts", "Bijgerechten", "Dranken", "Overig"];
@@ -20,14 +19,13 @@ export function GerechtStapBasis() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium mb-1.5 block">Naam *</label>
-        <Input
+        <label className="text-label text-muted-foreground mb-1.5 block">Naam *</label>
+        <NestoInput
           value={data.naam}
           onChange={(e) => update({ naam: e.target.value })}
           placeholder="Bijv. Clubsandwich"
-          className="h-12"
           autoFocus
         />
       </div>
@@ -40,8 +38,8 @@ export function GerechtStapBasis() {
       />
 
       <div>
-        <label className="text-sm font-medium mb-1.5 block">
-          Omschrijving <span className="text-muted-foreground font-normal">(optioneel)</span>
+        <label className="text-label text-muted-foreground mb-1.5 block">
+          Omschrijving <span className="font-normal">(optioneel)</span>
         </label>
         <Textarea
           value={data.omschrijving}
