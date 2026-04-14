@@ -218,7 +218,7 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
   }
   if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
   if (path.startsWith('/marketing')) return 'marketing';
-  if (path.startsWith('/taken')) return 'service';
+  
   if (path.startsWith('/instellingen')) return 'settings';
   if (path.startsWith('/onboarding')) return null;
   return null;
