@@ -9,16 +9,18 @@
 | 1 niveau (detail pages) | `← Parent label` | `← Kaartbeheer` |
 | 2+ niveaus (settings) | Breadcrumbs | `Instellingen > Reserveringen > Tafels` (al geïmplementeerd) |
 
-## Wijzigingen
+## Wijzigingen ✅ AFGEROND
 
 | Pagina | Huidig | Wordt |
 |---|---|---|
-| `KaartbeheerDetail.tsx` | `← Kaartbeheer > Gerechten > [naam]` (3 links) | `← Kaartbeheer` |
-| `BereikDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
-| `ReviewsDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
-| `WasteDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
-| `CampaignBuilderPage.tsx` | Indien `← Terug` knop | `← Marketing` |
-| `SocialPostCreatorPage.tsx` | Indien `← Terug` knop | `← Marketing` |
+| `KaartbeheerDetail.tsx` | `← Kaartbeheer > Gerechten > [naam]` (3 links) | `← Kaartbeheer` ✅ |
+| `BereikDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` ✅ |
+| `ReviewsDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` ✅ |
+| `WasteDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` ✅ |
+| `CampaignBuilderPage.tsx` | `← Terug` knop | `← Marketing` ✅ |
+| `SocialPostCreatorPage.tsx` | `← Terug` knop | `← Marketing` ✅ |
+| `OnboardingDetail.tsx` | `Terug naar pipeline` | `← Onboarding` ✅ |
+| `DetailPageLayout.tsx` | Geen min-h | `min-h-[44px]` touch target ✅ |
 
 ## Implementatie
 
@@ -39,4 +41,3 @@ Consistent patroon per pagina:
 - Paginatitel blijft als `<h1>` eronder (bestaande PageHeader of handmatig)
 
 Settings-pagina's (`SettingsDetailLayout`) worden **niet** aangepast — die gebruiken al correct breadcrumbs.
-
