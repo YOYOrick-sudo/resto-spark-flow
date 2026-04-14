@@ -2,18 +2,22 @@ import { useState } from "react";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { Search, Plus, Loader2 } from "lucide-react";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
-import { useCreateMepTask } from "@/hooks/useMepMutations";
+import { useCreateMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { addDays, format } from "date-fns";
+import { nestoToast } from "@/lib/nestoToast";
+import type { MepTask } from "@/hooks/useMepTasks";
 
 interface MepQuickAddProps {
   taskDate: string;
+  dayTasks: MepTask[];
 }
 
-export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
+export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
   const [search, setSearch] = useState("");
 
   const { data: results = [], isLoading } = useHalffabricaatSearch(search);
   const createTask = useCreateMepTask();
+  const updateTask = useUpdateMepTask();
 
   const handleAddFromRecept = (item: (typeof results)[0]) => {
     const methode = item.methodes?.[0];
@@ -22,17 +26,34 @@ export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
     const smartDate = isToday && now.getHours() >= 17
       ? format(addDays(now, 1), "yyyy-MM-dd")
       : taskDate;
-    createTask.mutate({
-      title: item.naam,
-      category: item.categorie || "halffabricaat",
-      task_date: smartDate,
-      recept_id: item.id,
-      methode_id: methode?.id,
-      units: 1,
-      prioriteit: "Normaal",
-    });
+
+    const existing = dayTasks.find(
+      (t) =>
+        t.recept_id === item.id &&
+        t.task_date === smartDate &&
+        t.status !== "completed" &&
+        t.status !== "cancelled"
+    );
+
+    if (existing) {
+      const newUnits = (existing.units ?? 1) + 1;
+      updateTask.mutate({ id: existing.id, units: newUnits });
+      nestoToast.success(`${item.naam} — verhoogd naar ${newUnits}×`);
+    } else {
+      createTask.mutate({
+        title: item.naam,
+        category: item.categorie || "halffabricaat",
+        task_date: smartDate,
+        recept_id: item.id,
+        methode_id: methode?.id,
+        units: 1,
+        prioriteit: "Normaal",
+      });
+    }
     setSearch("");
   };
+
+  const isPending = createTask.isPending || updateTask.isPending;
 
   return (
     <div>
@@ -57,7 +78,7 @@ export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
                   key={item.id}
                   className="w-full text-left px-4 py-3 hover:bg-accent transition-colors flex items-center justify-between min-h-[44px]"
                   onClick={() => handleAddFromRecept(item)}
-                  disabled={createTask.isPending}
+                  disabled={isPending}
                 >
                   <div>
                     <p className="text-sm font-medium text-foreground">{item.naam}</p>

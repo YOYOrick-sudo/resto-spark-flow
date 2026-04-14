@@ -152,7 +152,7 @@ export default function MepTaken() {
         />
       ) : (
         <>
-          <MepQuickAdd taskDate={selectedDate} />
+          <MepQuickAdd taskDate={selectedDate} dayTasks={dayTasks} />
 
           {view === "prioriteit" ? (
             <MepPriorityView
