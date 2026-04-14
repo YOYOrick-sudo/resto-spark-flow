@@ -1,66 +1,33 @@
 
 
-# SPRINT UX-1c: Ingrediënten Wizard — Definitief Plan
+# FIX: Recepten zijn ALTIJD halffabricaten
 
-## Issues verwerkt
+Simpele cleanup — verwijder het type-concept uit de recepten module op 4 plekken.
 
-| Issue | Oplossing |
-|---|---|
-| 1 — Route conflict | Geen conflict: `/voorraad` is een exacte route (regel 155 App.tsx), geen `:id` catch-all. `/voorraad/nieuw` wordt ervoor geplaatst voor de zekerheid. |
-| 2 — Na opslaan | Simpele redirect naar `/voorraad` + success toast. Geen auto-open detail panel. |
-| 3 — Allergenen update | Gebruik `upsertAllergeenStatus` (die al bestaat en werkt). Een aparte `updateAllergeenStatus` maken is overbodig — upsert op bestaande records doet effectief een update. |
-| 4 — Quick-create documentatie | Comment toevoegen bovenaan `NieuwIngredientModal.tsx`. |
+## Wijzigingen
 
-## Nieuwe bestanden
+### 1. `src/components/recepten/wizard/ReceptStapBasis.tsx`
+- Verwijder de `onTypeChange` prop en interface
+- Verwijder het type toggle UI blok (regels 55-73)
+- Verwijder de `if (field === "type")` logica in `update()` (regels 34-40)
+- Hardcode `type: "halffabricaat"` in de default data
 
-| Bestand | Doel |
-|---|---|
-| `src/pages/IngredientenNieuw.tsx` | Wizard wrapper, 4 stappen, try/catch onComplete, redirect naar `/voorraad` |
-| `src/components/ingredienten/wizard/IngredientStapBasis.tsx` | Naam, categorie, eenheid, opslag type |
-| `src/components/ingredienten/wizard/IngredientStapVoorraadPrijs.tsx` | Kostprijs, min voorraad, yield %, leverancier — alle optioneel |
-| `src/components/ingredienten/wizard/IngredientStapAllergenen.tsx` | 14 EU allergenen grid, dropdown per allergeen (bevat/kan_bevatten/geen/onbekend), default onbekend |
-| `src/components/ingredienten/wizard/IngredientStapBevestigen.tsx` | Samenvatting + allergenen pills + oranje waarschuwing als alle "onbekend" |
+### 2. `src/pages/ReceptenNieuw.tsx`
+- Verwijder `useReceptTypeState` hook en `useState` import
+- Verwijder `useReceptSteps` — vervang door een simpele `steps` constante (geen dynamische filtering meer)
+- Methodes stap is ALTIJD in de array
+- Verwijder `key={type}` van StepWizard
+- Verwijder `onTypeChange={setType}` prop van ReceptStapBasis
+- Hardcode `type: 'halffabricaat'` in handleComplete (regel 43)
+- Verwijder `ReceptenNieuwInner` (dode code)
 
-## Gewijzigde bestanden
+### 3. `src/pages/ReceptenDetail.tsx`
+- Verwijder type badge uit basisinfo card (regels 155-157)
+- Methodes tab ALTIJD in tabs array — verwijder de conditional spread (regel 60)
+- Methodes tab content ALTIJD renderen — verwijder `recept.type === "halffabricaat"` check (regel 138)
 
-| Bestand | Wijziging |
-|---|---|
-| `src/App.tsx` | Route `/voorraad/nieuw` toevoegen vóór `/voorraad` |
-| `src/pages/Ingredienten.tsx` | "+ Nieuw ingrediënt" → `navigate("/voorraad/nieuw")`, verwijder `NieuwIngredientModal` import/state. Allergenen kolom: oranje "Onbekend" pill als alle statuses onbekend, "—" als alle geen. |
-| `src/components/ingredienten/NieuwIngredientModal.tsx` | Quick-create comment toevoegen bovenaan |
+### 4. `src/pages/Recepten.tsx`
+- Geen type filter of type kolom aanwezig — geen wijziging nodig
 
-## Wizard onComplete
-
-```tsx
-async function onComplete(formData) {
-  try {
-    // createIngredient adds location_id + creates 14 allergen records (status "onbekend")
-    const id = await createIngredient.mutateAsync({
-      naam, categorie, eenheid, yield_percentage,
-      opslag_type, kostprijs, btw_percentage,
-    });
-
-    // Update alleen allergenen die afwijken van "onbekend"
-    const changed = (formData.allergenen?.items ?? []).filter(a => a.status !== "onbekend");
-    if (changed.length > 0) {
-      await Promise.all(changed.map(a =>
-        upsertAllergeenStatus.mutateAsync({
-          ingredientId: id, allergeenId: a.allergeenId, status: a.status,
-        })
-      ));
-    }
-
-    nestoToast.success(`Ingrediënt "${formData.basis.naam}" aangemaakt!`);
-    navigate("/voorraad");
-  } catch (error) {
-    nestoToast.error("Er ging iets mis. Probeer het opnieuw.");
-  }
-}
-```
-
-## Geen migratie nodig
-
-Alle velden en tabellen bestaan al.
-
-**Totaal: 5 nieuwe bestanden, 3 gewijzigde bestanden, 0 verwijderd, 0 migraties.**
+**Totaal: 3 bestanden gewijzigd, 0 nieuw, 0 verwijderd, 0 migraties.**
 
