@@ -11,6 +11,7 @@ export interface KeukenSettings {
   haccp_warmhouden_min: number | null;
   ingredient_categorieen: string[];
   recept_categorieen: string[];
+  gerecht_categorieen: string[];
   ai_bevoegdheden_keuken: AiBevoegdheden;
 }
 
@@ -30,6 +31,7 @@ const DEFAULTS: KeukenSettings = {
   haccp_warmhouden_min: 60,
   ingredient_categorieen: ["Groenten", "Fruit", "Vlees", "Vis", "Zuivel", "Droge waren", "Kruiden", "Dranken", "Overig"],
   recept_categorieen: ["Sauzen", "Soepen", "Salades", "Garnituren", "Desserts", "Brood", "Overig"],
+  gerecht_categorieen: ["Voorgerechten", "Hoofdgerechten", "Desserts", "Bijgerechten", "Dranken", "Overig"],
   ai_bevoegdheden_keuken: {
     prep_lijsten: "vraag_eerst",
     besteladvies: "vraag_eerst",
@@ -48,7 +50,7 @@ export function useKeukenSettings() {
     queryFn: async (): Promise<KeukenSettings> => {
       const { data, error } = await supabase
         .from("locations")
-        .select("besteladvies_buffer_percentage, haccp_koeling_max, haccp_vriezer_max, haccp_kern_min, haccp_warmhouden_min, ingredient_categorieen, recept_categorieen, ai_bevoegdheden_keuken")
+        .select("besteladvies_buffer_percentage, haccp_koeling_max, haccp_vriezer_max, haccp_kern_min, haccp_warmhouden_min, ingredient_categorieen, recept_categorieen, gerecht_categorieen, ai_bevoegdheden_keuken")
         .eq("id", locationId!)
         .single();
       if (error) throw error;
@@ -60,6 +62,7 @@ export function useKeukenSettings() {
         haccp_warmhouden_min: (data as any).haccp_warmhouden_min ?? DEFAULTS.haccp_warmhouden_min,
         ingredient_categorieen: ((data as any).ingredient_categorieen ?? DEFAULTS.ingredient_categorieen) as string[],
         recept_categorieen: ((data as any).recept_categorieen ?? DEFAULTS.recept_categorieen) as string[],
+        gerecht_categorieen: ((data as any).gerecht_categorieen ?? DEFAULTS.gerecht_categorieen) as string[],
         ai_bevoegdheden_keuken: ((data as any).ai_bevoegdheden_keuken ?? DEFAULTS.ai_bevoegdheden_keuken) as AiBevoegdheden,
       };
     },

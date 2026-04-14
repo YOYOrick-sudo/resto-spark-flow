@@ -28,7 +28,7 @@ export function useHalffabricaatSearch(search: string) {
       let query = supabase
         .from("recepten")
         .select(`
-          id, naam, categorie, type,
+          id, naam, categorie, type, porties, totale_kostprijs,
           methodes:halffabricaat_methodes(id, type, output_hoeveelheid, output_eenheid, visuele_eenheid, houdbaarheid)
         `)
         .eq("location_id", locationId)
