@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Package } from "lucide-react";
 import {
   PageHeader,
@@ -12,7 +13,6 @@ import {
 } from "@/components/polar";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { nestoToast } from "@/lib/nestoToast";
 import {
   useIngredienten,
   filterIngredienten,
@@ -21,7 +21,6 @@ import {
   type IngredientenFilters,
 } from "@/hooks/useIngredienten";
 import { IngredientDetailPanel } from "@/components/ingredienten/IngredientDetailPanel";
-import { NieuwIngredientModal } from "@/components/ingredienten/NieuwIngredientModal";
 
 // ============================================================================
 // Constants
@@ -64,6 +63,7 @@ const BRON_BADGE: Record<string, { variant: "primary" | "default" | "warning" | 
 // ============================================================================
 
 export default function Ingredienten() {
+  const navigate = useNavigate();
   const [filters, setFilters] = React.useState<IngredientenFilters>({
     search: "",
     categorie: "",
@@ -71,7 +71,6 @@ export default function Ingredienten() {
     showArchived: false,
   });
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [showNieuw, setShowNieuw] = React.useState(false);
 
   const { data, isLoading } = useIngredienten(filters);
   const filtered = React.useMemo(() => filterIngredienten(data, filters), [data, filters]);
