@@ -153,7 +153,7 @@ export function MepTaskList({ tasks, isLoading }: MepTaskListProps) {
                           <div className="flex items-center gap-2 mt-0.5">
                             {task.methode?.visuele_eenheid && (
                               <span className="text-xs text-muted-foreground tabular-nums">
-                                {(task.units ?? 1) > 1 ? `${task.units}× ${task.methode.visuele_eenheid}` : task.methode.visuele_eenheid}
+                                {task.units ?? 1}× {task.methode.visuele_eenheid}
                               </span>
                             )}
                             {task.deadline && (
