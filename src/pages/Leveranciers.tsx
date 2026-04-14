@@ -16,12 +16,13 @@ const filterOptions = [
 ];
 
 export default function Leveranciers() {
+  const navigate = useNavigate();
   const { data: leveranciers, isLoading } = useLeveranciers();
   const mutations = useVoorraadInkoopMutations();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [panelMode, setPanelMode] = useState<"create" | "detail" | null>(null);
+  const [panelMode, setPanelMode] = useState<"detail" | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = (leveranciers ?? []).filter((l) => {
@@ -73,18 +74,12 @@ export default function Leveranciers() {
   };
 
   const handleCreateClick = () => {
-    setSelectedId(null);
-    setPanelMode("create");
+    navigate("/inkoop/leveranciers/nieuw");
   };
 
   const handlePanelClose = () => {
     setPanelMode(null);
     setSelectedId(null);
-  };
-
-  const handleCreated = (id: string) => {
-    setSelectedId(id);
-    setPanelMode("detail");
   };
 
   return (
