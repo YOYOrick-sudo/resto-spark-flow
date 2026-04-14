@@ -302,6 +302,12 @@ export default function SettingsKeuken() {
               onAdd={(item) => setReceptCats((prev) => [...prev, item])}
               onRemove={(idx) => setReceptCats((prev) => prev.filter((_, i) => i !== idx))}
             />
+            <CategoryManager
+              label="Gerecht categorieën"
+              items={gerechtCats}
+              onAdd={(item) => setGerechtCats((prev) => [...prev, item])}
+              onRemove={(idx) => setGerechtCats((prev) => prev.filter((_, i) => i !== idx))}
+            />
           </div>
         </div>
 
