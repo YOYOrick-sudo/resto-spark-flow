@@ -1,56 +1,42 @@
 
 
-# Gerechten Module — Bouwen met Fixes Inbegrepen
+# NestoDatePicker — Systeem-eigen datumpicker
 
-De Gerechten module is nog niet geïmplementeerd. De 4 fixes worden direct meegenomen in de bouw.
+## Probleem
 
-## Wat wordt gebouwd
+De app gebruikt op ~8 plekken `<Input type="date" />` (native browser datepicker). Dit geeft een inconsistente, lelijke UI die per browser verschilt (zie screenshot). Er bestaat wel een ShadCN `Calendar` component en die wordt al op 2 plekken correct gebruikt (ShiftExceptionModal, ScheduleStep) met Popover + Nederlandse locale. Maar er is geen herbruikbare wrapper — elke plek implementeert het zelf.
 
-**Database**: `gerechten` + `gerecht_componenten` tabellen, triggers voor kostprijs/marge herberekening, RLS, `gerecht_categorieen` JSONB op locations.
+## Oplossing
 
-**Hooks** (4 nieuw):
-- `useGerechten` — lijst met filtering
-- `useGerechtDetail` — single met componenten join
-- `useGerechtMutations` — CRUD + **Fix 4**: `kostprijs_snapshot` vullen bij addComponent
-- `useGerechtAllergenen` — aggregatie uit componenten
+Maak een `NestoDatePicker` component in het Polar design system die overal herbruikt kan worden, en vervang alle `type="date"` inputs.
 
-**Bestaande hooks** (useHalffabricaatSearch, useIngredientSearch) bestaan al en worden hergebruikt. useHalffabricaatSearch mist `porties` en `totale_kostprijs` in de select — dit wordt toegevoegd (**Fix 1**).
+## Component: `src/components/polar/NestoDatePicker.tsx`
 
-**UI** (5 nieuw):
-- `GerechtOverzicht` — overzicht + **Fix 3**: allergenen badges per rij (max 4, "+X")
-- `GerechtDetailPanel` — 3 tabs (Algemeen, Componenten, Allergenen)
-- `GerechtComponentenTab` — halffabricaten + ingrediënten beheer
-- `GerechtAllergenenTab` — read-only allergenen grid
-- `NieuwGerechtPanel` — aanmaak panel
+- Popover + Calendar (ShadCN) wrapper
+- Props: `value: Date | undefined`, `onChange: (date: Date | undefined) => void`, `label?: string`, `placeholder?: string`, `disabled?: boolean`, `className?: string`, `minDate?: Date`, `maxDate?: Date`
+- Nederlandse locale (`date-fns/locale/nl`)
+- Trigger: NestoButton outline met CalendarIcon + geformatteerde datum ("d MMMM yyyy")
+- Minimale hoogte 44px (touch-first)
+- Export toevoegen aan `src/components/polar/index.ts`
 
-**Wijzigingen bestaand**:
-- `useHalffabricaatSearch.ts` — `porties, totale_kostprijs` toevoegen aan select
-- `Kaartbeheer.tsx` — placeholder vervangen door GerechtOverzicht
-- `useKeukenSettings.ts` + `SettingsKeuken.tsx` — gerecht_categorieen
+## Vervangingen (8 plekken)
 
-## Fixes inbegrepen
+| Bestand | Huidige code |
+|---|---|
+| `src/components/inkoop/OrderhistorieTab.tsx` | 2x `<Input type="date">` (dateFrom, dateTo) |
+| `src/components/inkoop/FactuurDetailPanel.tsx` | 1x `<Input type="date">` (factuurdatum) |
+| `src/components/inkoop/WasteOverzicht.tsx` | 2x `<Input type="date">` (date range) |
+| `src/pages/ManageReservation.tsx` | 1x `<input type="date">` |
+| `src/pages/marketing/SocialPostCreatorPage.tsx` | 1x `<input type="date">` |
+| `src/components/interne-bestellingen/NieuweAanvraagPanel.tsx` | 1x `<Input type="date">` |
 
-1. **useHalffabricaatSearch**: select uitbreiden met `porties, totale_kostprijs` (nodig voor kostprijs berekening in componenten)
-2. **useIngredientSearch**: bestaat al, geen wijziging nodig
-3. **Allergenen in overzicht**: `useGerechtAllergenen` hook per rij, toon max 4 pills + "+X"
-4. **kostprijs_snapshot**: in addComponent eerst kostprijs ophalen voor insert
+Elke vervanging converteert van string (`yyyy-MM-dd`) naar `Date` object en vice versa, met `onBlur` bewaard waar nodig.
 
 ## Bestanden
 
 | Bestand | Actie |
 |---|---|
-| Database migratie | Nieuw |
-| `src/hooks/useHalffabricaatSearch.ts` | Select uitbreiden |
-| `src/hooks/useGerechten.ts` | Nieuw |
-| `src/hooks/useGerechtDetail.ts` | Nieuw |
-| `src/hooks/useGerechtMutations.ts` | Nieuw (met Fix 4) |
-| `src/hooks/useGerechtAllergenen.ts` | Nieuw |
-| `src/components/kaartbeheer/GerechtOverzicht.tsx` | Nieuw (met Fix 3) |
-| `src/components/kaartbeheer/GerechtDetailPanel.tsx` | Nieuw |
-| `src/components/kaartbeheer/GerechtComponentenTab.tsx` | Nieuw |
-| `src/components/kaartbeheer/GerechtAllergenenTab.tsx` | Nieuw |
-| `src/components/kaartbeheer/NieuwGerechtPanel.tsx` | Nieuw |
-| `src/pages/Kaartbeheer.tsx` | Herschrijven |
-| `src/hooks/useKeukenSettings.ts` | gerecht_categorieen |
-| `src/pages/SettingsKeuken.tsx` | CategoryManager |
+| `src/components/polar/NestoDatePicker.tsx` | Nieuw |
+| `src/components/polar/index.ts` | Export toevoegen |
+| 6 bestanden hierboven | `type="date"` → `NestoDatePicker` |
 
