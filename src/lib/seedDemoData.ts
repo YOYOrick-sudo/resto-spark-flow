@@ -41,7 +41,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
           contactpersoon: "Mark Kooyman",
           email: "info@kooymangv.nl",
           telefoon: "0517-123456",
-          type: "groothandel",
+          type: "wholesaler",
           koppeling_type: "handmatig",
         },
         {
@@ -50,7 +50,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
           contactpersoon: "Klantenservice",
           email: "orders@bidfood.nl",
           telefoon: "088-2707000",
-          type: "groothandel",
+          type: "wholesaler",
           koppeling_type: "handmatig",
         },
       ])
