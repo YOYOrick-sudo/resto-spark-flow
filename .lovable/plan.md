@@ -1,57 +1,42 @@
 
 
-# Fix: Recepten loading + visueel probleem
+# Standaard Back-navigatie: `← [Parent]` Patroon
 
-## Analyse
+## Regel
 
-**Bug 1 — Blijvend loading scherm**: Vanuit de Gerechten detail pagina navigeert de inline-create naar `/recepten?open={id}`. Maar `Recepten.tsx` leest **geen query parameters** — er is geen `useSearchParams` logica. Het `selectedId` wordt dus nooit gezet, en het detail panel opent niet. Wat de gebruiker ziet is waarschijnlijk het NestoPanel dat wél opent (door de navigatie) maar met `receptId=null`, waardoor `useRecept(null)` disabled is en de Spinner eeuwig draait.
+| Diepte | Patroon | Voorbeeld |
+|---|---|---|
+| 1 niveau (detail pages) | `← Parent label` | `← Kaartbeheer` |
+| 2+ niveaus (settings) | Breadcrumbs | `Instellingen > Reserveringen > Tafels` (al geïmplementeerd) |
 
-**Bug 2 — Visuele glitch bovenin**: Het NestoPanel overlay (z-[70]) overlapt met de pagina-layout. Het panel opent op `/recepten` terwijl de vorige pagina's panel mogelijk nog actief is, of de overlay wordt niet goed afgesloten bij navigatie.
+## Wijzigingen
 
-## Oplossing
+| Pagina | Huidig | Wordt |
+|---|---|---|
+| `KaartbeheerDetail.tsx` | `← Kaartbeheer > Gerechten > [naam]` (3 links) | `← Kaartbeheer` |
+| `BereikDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
+| `ReviewsDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
+| `WasteDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
+| `CampaignBuilderPage.tsx` | Indien `← Terug` knop | `← Marketing` |
+| `SocialPostCreatorPage.tsx` | Indien `← Terug` knop | `← Marketing` |
 
-### 1. `Recepten.tsx` — lees `?open=` query param
+## Implementatie
 
-```tsx
-import { useSearchParams } from "react-router-dom";
-
-// In component:
-const [searchParams, setSearchParams] = useSearchParams();
-
-// Init selectedId from query param
-const [selectedId, setSelectedId] = React.useState<string | null>(
-  searchParams.get("open")
-);
-
-// Sync query param on mount/change
-React.useEffect(() => {
-  const openId = searchParams.get("open");
-  if (openId) {
-    setSelectedId(openId);
-    // Clean up the URL
-    searchParams.delete("open");
-    setSearchParams(searchParams, { replace: true });
-  }
-}, [searchParams]);
-```
-
-### 2. `NieuwReceptModal.tsx` — verwijder type selector
-
-Volgens de architectuur-regels mag de Recepten pagina alleen halffabricaten tonen. Het type-selector veld ("Halffabricaat" / "Gerecht") moet weg. Type wordt hardcoded op `"halffabricaat"`.
+Consistent patroon per pagina:
 
 ```tsx
-// Verwijder TYPE_OPTIONS en de NestoSelect voor type
-// Hardcode: const type = "halffabricaat";
+<Link
+  to="/kaartbeheer"
+  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] w-fit"
+>
+  <ChevronLeft className="h-4 w-4" />
+  <span>Kaartbeheer</span>
+</Link>
 ```
 
-### 3. NestoPanel overlay cleanup
+- `ChevronLeft` (niet `ArrowLeft` — consistenter met ShadCN breadcrumb separator)
+- `min-h-[44px]` voor touch target
+- Paginatitel blijft als `<h1>` eronder (bestaande PageHeader of handmatig)
 
-De visuele glitch bovenin (zichtbaar in screenshot: het panel-overlay dat over de tabel heen gaat) komt doordat het panel vanuit de vorige pagina (KaartbeheerDetail) nog open is terwijl er genavigeerd wordt. Bij navigatie moet het panel sluiten. Dit wordt al automatisch opgelost door punt 1: het panel opent pas correct op de recepten pagina met het juiste ID.
-
-## Bestanden
-
-| Bestand | Wijziging |
-|---|---|
-| `src/pages/Recepten.tsx` | `useSearchParams` toevoegen, `?open=` param lezen en opschonen |
-| `src/components/recepten/NieuwReceptModal.tsx` | Type selector verwijderen, hardcode `halffabricaat` |
+Settings-pagina's (`SettingsDetailLayout`) worden **niet** aangepast — die gebruiken al correct breadcrumbs.
 
