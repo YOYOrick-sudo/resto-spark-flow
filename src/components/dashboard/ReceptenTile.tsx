@@ -18,12 +18,12 @@ export function ReceptenTile() {
       onClick={() => navigate('/recepten')}
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Recepten</span>
+        <span className="text-sm text-muted-foreground">Halffabricaten</span>
         <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
       <div className="mt-1 flex items-baseline gap-2">
         <span className="text-4xl font-bold tracking-tight text-foreground">{total}</span>
-        <span className="text-sm text-muted-foreground">recepten</span>
+        <span className="text-sm text-muted-foreground">halffabricaten</span>
       </div>
       <div className="mt-4 space-y-2.5">
         {mockCategories.map((cat) => (
