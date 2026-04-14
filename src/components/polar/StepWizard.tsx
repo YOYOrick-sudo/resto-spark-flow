@@ -241,7 +241,7 @@ export function StepWizard({
             <NestoButton
               onClick={handleComplete}
               isLoading={isSaving}
-              size="lg"
+              
               className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
             >
               Opslaan
