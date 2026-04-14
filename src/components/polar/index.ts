@@ -98,6 +98,8 @@ export type { TitleHelpProps, TitleHelpTipProps } from "./TitleHelp";
 export { FieldHelp, FieldHelpExample } from "./FieldHelp";
 export type { FieldHelpProps, FieldHelpExampleProps } from "./FieldHelp";
 
+export { NestoSelectWithCustom } from "./NestoSelectWithCustom";
+
 export { NestoLogo } from "./NestoLogo";
 export type { NestoLogoProps } from "./NestoLogo";
 

@@ -18,6 +18,8 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
     ? methode.output_hoeveelheid * defaultUnits
     : undefined;
 
+  const displayEenheid = methode?.visuele_eenheid || methode?.output_eenheid;
+
   const [unitsGemaakt, setUnitsGemaakt] = useState(defaultUnits);
   const [werkelijkeGram, setWerkelijkeGram] = useState<string>(
     verwachteGram?.toString() ?? ""
@@ -54,7 +56,7 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
       title={`Afronden: ${task.title}`}
       description={
         methode
-          ? `${methode.type} · ${methode.output_hoeveelheid} ${methode.output_eenheid}`
+          ? `${methode.type} · ${methode.output_hoeveelheid} ${displayEenheid}`
           : undefined
       }
       footer={
@@ -72,7 +74,6 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
       }
     >
       <div className="space-y-4">
-        {/* Units gemaakt */}
         <NestoInput
           label="Aantal gemaakt"
           type="number"
@@ -82,21 +83,19 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
           className="text-lg h-14"
         />
 
-        {/* Verwachte output (read-only) */}
         {verwachteGram !== undefined && (
           <div className="bg-muted/30 rounded-lg p-3">
             <p className="text-xs text-muted-foreground mb-1">Verwachte output</p>
             <p className="text-sm font-medium">
               {(methode!.output_hoeveelheid * unitsGemaakt).toFixed(0)}{" "}
-              {methode!.output_eenheid}
+              {displayEenheid}
             </p>
           </div>
         )}
 
-        {/* Werkelijke output */}
         {methode && (
           <NestoInput
-            label={`Werkelijke output (${methode.output_eenheid})`}
+            label={`Werkelijke output (${displayEenheid})`}
             type="number"
             step="0.1"
             value={werkelijkeGram}
@@ -105,7 +104,6 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
           />
         )}
 
-        {/* Yield percentage (calculated) */}
         {calculatedYield !== undefined && (
           <div className="bg-muted/30 rounded-lg p-3">
             <p className="text-xs text-muted-foreground mb-1">Yield</p>
@@ -123,7 +121,6 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
           </div>
         )}
 
-        {/* Temperatuur */}
         <NestoInput
           label="Temperatuur (°C, optioneel)"
           type="number"
