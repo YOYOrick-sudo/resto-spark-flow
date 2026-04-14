@@ -146,7 +146,7 @@ export default function OnboardingDetail() {
     <div>
       <DetailPageLayout
         title={`${candidate.first_name} ${candidate.last_name}`}
-        backLabel="Terug naar pipeline"
+        backLabel="Onboarding"
         backHref="/onboarding"
         tabs={TABS}
         activeTab={activeTab}

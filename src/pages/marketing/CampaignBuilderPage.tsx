@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { BuilderSidebar } from '@/components/marketing/campaigns/BuilderSidebar';
 import { TemplateStep } from '@/components/marketing/campaigns/TemplateStep';
