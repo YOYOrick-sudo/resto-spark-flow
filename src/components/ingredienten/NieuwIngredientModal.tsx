@@ -1,3 +1,8 @@
+/**
+ * Quick-create modal voor ingrediënten.
+ * Gebruikt vanuit recepten/gerechten wizards voor inline creation.
+ * Voor het volledige aanmaakproces: zie IngredientenNieuw wizard.
+ */
 import * as React from "react";
 import { NestoPanel } from "@/components/polar/NestoPanel";
 import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";

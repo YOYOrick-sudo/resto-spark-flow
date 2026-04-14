@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Package } from "lucide-react";
 import {
   PageHeader,
@@ -12,7 +13,6 @@ import {
 } from "@/components/polar";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { nestoToast } from "@/lib/nestoToast";
 import {
   useIngredienten,
   filterIngredienten,
@@ -21,7 +21,6 @@ import {
   type IngredientenFilters,
 } from "@/hooks/useIngredienten";
 import { IngredientDetailPanel } from "@/components/ingredienten/IngredientDetailPanel";
-import { NieuwIngredientModal } from "@/components/ingredienten/NieuwIngredientModal";
 
 // ============================================================================
 // Constants
@@ -64,6 +63,7 @@ const BRON_BADGE: Record<string, { variant: "primary" | "default" | "warning" | 
 // ============================================================================
 
 export default function Ingredienten() {
+  const navigate = useNavigate();
   const [filters, setFilters] = React.useState<IngredientenFilters>({
     search: "",
     categorie: "",
@@ -71,7 +71,6 @@ export default function Ingredienten() {
     showArchived: false,
   });
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [showNieuw, setShowNieuw] = React.useState(false);
 
   const { data, isLoading } = useIngredienten(filters);
   const filtered = React.useMemo(() => filterIngredienten(data, filters), [data, filters]);
@@ -129,10 +128,23 @@ export default function Ingredienten() {
         key: "allergenen",
         header: "Allergenen",
         render: (item) => {
+          const allStatuses = item.ingredient_allergenen.map((ia) => ia.status);
+          const allOnbekend = allStatuses.length > 0 && allStatuses.every((s) => s === "onbekend");
+          const allGeen = allStatuses.length > 0 && allStatuses.every((s) => s === "geen");
+
+          if (allOnbekend) {
+            return <NestoBadge variant="warning" size="sm">Onbekend</NestoBadge>;
+          }
+          if (allGeen || allStatuses.length === 0) {
+            return <span className="text-sm text-muted-foreground">—</span>;
+          }
+
           const visible = item.ingredient_allergenen.filter(
             (ia) => ia.status === "bevat" || ia.status === "kan_bevatten"
           );
-          if (visible.length === 0) return null;
+          if (visible.length === 0) {
+            return <span className="text-sm text-muted-foreground">—</span>;
+          }
           return (
             <div className="flex gap-1 flex-wrap">
               {visible.map((ia) => (
@@ -160,7 +172,7 @@ export default function Ingredienten() {
         actions={[
           {
             label: "Nieuw ingrediënt",
-            onClick: () => setShowNieuw(true),
+            onClick: () => navigate("/voorraad/nieuw"),
             icon: Plus,
           },
         ]}
@@ -217,7 +229,7 @@ export default function Ingredienten() {
             description={data?.length === 0 ? "Begin met het toevoegen van ingrediënten aan je keuken." : "Probeer andere zoektermen of filters."}
             action={
               data?.length === 0
-                ? { label: "Nieuw ingrediënt", onClick: () => setShowNieuw(true) }
+                ? { label: "Nieuw ingrediënt", onClick: () => navigate("/voorraad/nieuw") }
                 : { label: "Filters wissen", onClick: () => setFilters({ search: "", categorie: "", voorraadStatus: "", showArchived: false }) }
             }
           />
@@ -238,12 +250,6 @@ export default function Ingredienten() {
         onClose={() => setSelectedId(null)}
       />
 
-      {/* New ingredient modal */}
-      <NieuwIngredientModal
-        open={showNieuw}
-        onOpenChange={setShowNieuw}
-        onCreated={(id) => setSelectedId(id)}
-      />
     </div>
   );
 }
