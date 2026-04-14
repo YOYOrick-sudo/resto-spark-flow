@@ -32,7 +32,7 @@ export function DetailPageLayout({
       {/* Back button */}
       <Link
         to={backHref}
-        className="inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground transition-colors mb-4 w-fit"
+        className="inline-flex items-center gap-1.5 text-body text-muted-foreground hover:text-foreground transition-colors mb-4 min-h-[44px] w-fit"
       >
         <ChevronLeft className="h-4 w-4" />
         <span>{backLabel}</span>

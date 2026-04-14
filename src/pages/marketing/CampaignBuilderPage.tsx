@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { BuilderSidebar } from '@/components/marketing/campaigns/BuilderSidebar';
 import { TemplateStep } from '@/components/marketing/campaigns/TemplateStep';
@@ -143,14 +144,13 @@ export default function CampaignBuilderPage() {
   if (isMobile) {
     return (
       <div className="p-6 space-y-6">
-        <NestoButton
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/marketing/campagnes')}
-          leftIcon={<ArrowLeft className="h-4 w-4" />}
+        <Link
+          to="/marketing/campagnes"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] w-fit"
         >
-          Terug
-        </NestoButton>
+          <ChevronLeft className="h-4 w-4" />
+          <span>Marketing</span>
+        </Link>
         <InfoAlert
           title="Desktop vereist"
           variant="warning"
@@ -174,16 +174,17 @@ export default function CampaignBuilderPage() {
         </InfoAlert>
       )}
 
-      {/* Top bar */}
+      {/* Back link */}
+      <Link
+        to="/marketing/campagnes"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] w-fit"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        <span>Marketing</span>
+      </Link>
+
+      {/* Campaign name */}
       <div className="flex items-center gap-4">
-        <NestoButton
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/marketing/campagnes')}
-          leftIcon={<ArrowLeft className="h-4 w-4" />}
-        >
-          Terug
-        </NestoButton>
         <div className="flex-1">
           <input
             type="text"

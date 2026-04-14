@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ChevronLeft, Sparkles } from 'lucide-react';
 import { format, setHours, setMinutes, addHours } from 'date-fns';
 import { NestoDatePicker, dateFromString, dateToString } from '@/components/polar/NestoDatePicker';
 import { PageHeader } from '@/components/polar/PageHeader';
@@ -340,14 +340,17 @@ export default function SocialPostCreatorPage() {
 
   return (
     <div className="space-y-6">
+      <Link
+        to="/marketing/social"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] w-fit"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        <span>Marketing</span>
+      </Link>
       <PageHeader
         title="Nieuw bericht"
         actions={
           <div className="flex flex-col sm:flex-row gap-2">
-            <NestoButton variant="ghost" onClick={() => navigate('/marketing/social')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Terug
-            </NestoButton>
             <NestoButton variant="outline" onClick={() => handleSubmit('draft')} disabled={submitting}>
               Opslaan als concept
             </NestoButton>
