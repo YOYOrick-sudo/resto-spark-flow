@@ -19,6 +19,7 @@ import ReceptenDetail from "./pages/ReceptenDetail";
 import ReceptenNieuw from "./pages/ReceptenNieuw";
 import Ingredienten from "./pages/Ingredienten";
 import IngredientenNieuw from "./pages/IngredientenNieuw";
+import IngredientenDetail from "./pages/IngredientenDetail";
 import Inkoop from "./pages/Inkoop";
 import Leveranciers from "./pages/Leveranciers";
 import Kaartbeheer from "./pages/Kaartbeheer";
@@ -154,6 +155,7 @@ const App = () => (
                   <Route path="/recepten/nieuw" element={<ReceptenNieuw />} />
                   <Route path="/recepten/:id" element={<ReceptenDetail />} />
                   <Route path="/voorraad/nieuw" element={<IngredientenNieuw />} />
+                  <Route path="/voorraad/:id" element={<IngredientenDetail />} />
                   <Route path="/voorraad" element={<Ingredienten />} />
                   <Route path="/kostprijzen" element={<Navigate to="/voorraad" replace />} />
                   <Route path="/inkoop" element={<Inkoop />} />

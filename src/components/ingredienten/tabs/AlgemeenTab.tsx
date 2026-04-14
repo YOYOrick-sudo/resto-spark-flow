@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { NestoInput } from "@/components/polar";
 import { NestoSelect } from "@/components/polar";
 import { NestoButton } from "@/components/polar";
@@ -39,10 +40,10 @@ const OPSLAG_OPTIONS = [
 
 interface AlgemeenTabProps {
   ingredient: IngredientRow;
-  onClose: () => void;
 }
 
-export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
+export function AlgemeenTab({ ingredient }: AlgemeenTabProps) {
+  const navigate = useNavigate();
   const { updateIngredient, archiveIngredient } = useIngredientMutations();
   const { data: customEenheden } = useCustomEenheden();
   const { data: conversies } = useEenheidConversies(ingredient.id);
@@ -287,7 +288,7 @@ export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
         variant="destructive"
         onConfirm={() => {
           archiveIngredient.mutate(ingredient.id, {
-            onSuccess: () => onClose(),
+            onSuccess: () => navigate("/voorraad"),
           });
         }}
       />

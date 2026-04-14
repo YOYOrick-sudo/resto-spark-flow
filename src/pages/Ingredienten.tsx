@@ -20,7 +20,7 @@ import {
   type IngredientRow,
   type IngredientenFilters,
 } from "@/hooks/useIngredienten";
-import { IngredientDetailPanel } from "@/components/ingredienten/IngredientDetailPanel";
+
 
 // ============================================================================
 // Constants
@@ -70,7 +70,7 @@ export default function Ingredienten() {
     voorraadStatus: "",
     showArchived: false,
   });
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+
 
   const { data, isLoading } = useIngredienten(filters);
   const filtered = React.useMemo(() => filterIngredienten(data, filters), [data, filters]);
@@ -239,16 +239,9 @@ export default function Ingredienten() {
           columns={columns}
           data={filtered}
           keyExtractor={(item: IngredientRow) => item.id}
-          onRowClick={(item: IngredientRow) => setSelectedId(item.id)}
+          onRowClick={(item: IngredientRow) => navigate(`/voorraad/${item.id}`)}
         />
       )}
-
-      {/* Detail panel */}
-      <IngredientDetailPanel
-        ingredientId={selectedId}
-        open={!!selectedId}
-        onClose={() => setSelectedId(null)}
-      />
 
     </div>
   );
