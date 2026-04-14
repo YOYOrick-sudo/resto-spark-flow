@@ -1,42 +1,54 @@
 
 
-# Standaard Back-navigatie: `← [Parent]` Patroon
+# Back-navigatie audit: alle pagina's
 
-## Regel
+## Status quo
 
-| Diepte | Patroon | Voorbeeld |
+Pagina's die al het `← Parent` patroon gebruiken (correct):
+- `KaartbeheerDetail.tsx` — `← Kaartbeheer` ✅
+- `BereikDetailPage.tsx` — `← Analytics` ✅
+- `ReviewsDetailPage.tsx` — `← Analytics` ✅
+- `WasteDetailPage.tsx` — `← Analytics` ✅
+
+## Nog aan te passen (3 pagina's + 1 component)
+
+| Bestand | Huidig | Wordt |
 |---|---|---|
-| 1 niveau (detail pages) | `← Parent label` | `← Kaartbeheer` |
-| 2+ niveaus (settings) | Breadcrumbs | `Instellingen > Reserveringen > Tafels` (al geïmplementeerd) |
+| `CampaignBuilderPage.tsx` | `ArrowLeft` + "Terug" ghost button (2x) | `← Marketing` link bovenaan |
+| `SocialPostCreatorPage.tsx` | `ArrowLeft` + "Terug" in PageHeader actions | `← Marketing` link boven PageHeader |
+| `OnboardingDetail.tsx` | Via `DetailPageLayout` → "Terug naar pipeline" | `← Onboarding` (label update) |
+| `DetailPageLayout.tsx` | `backLabel` default "Terug naar overzicht" | Default wijzigen naar korte parent-naam, `min-h-[44px]` toevoegen |
+
+## Niet aanpassen (correct uitgezonderd)
+
+- **Settings pagina's** (`SettingsDetailLayout`, `SettingsPageLayout`): gebruiken breadcrumbs — dat is correct voor 2+ niveaus diep
+- **BookingWidget**: eigen widget-context, geen app-navigatie
+- **WaitlistForm**: booking flow, eigen context
+- **MepTaken / ContentCalendar**: `ChevronLeft` wordt daar als kalender-pijl gebruikt (vorige maand/dag), niet als navigatie
+- **Carousel**: UI control, geen navigatie
 
 ## Wijzigingen
 
-| Pagina | Huidig | Wordt |
-|---|---|---|
-| `KaartbeheerDetail.tsx` | `← Kaartbeheer > Gerechten > [naam]` (3 links) | `← Kaartbeheer` |
-| `BereikDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
-| `ReviewsDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
-| `WasteDetailPage.tsx` | `← ghost button + PageHeader` | `← Analytics` |
-| `CampaignBuilderPage.tsx` | Indien `← Terug` knop | `← Marketing` |
-| `SocialPostCreatorPage.tsx` | Indien `← Terug` knop | `← Marketing` |
+### 1. `DetailPageLayout.tsx`
+- `min-h-[44px]` toevoegen aan de back-link
+- Default `backLabel` blijft configurable (wordt per pagina gezet)
 
-## Implementatie
+### 2. `OnboardingDetail.tsx`  
+- `backLabel` wijzigen van `"Terug naar pipeline"` naar `"Onboarding"`
 
-Consistent patroon per pagina:
+### 3. `CampaignBuilderPage.tsx`
+- Beide `ArrowLeft` + "Terug" buttons vervangen door `← Marketing` link (zelfde styling als andere pagina's)
+- Import `ArrowLeft` → `ChevronLeft`, `Link` toevoegen
 
-```tsx
-<Link
-  to="/kaartbeheer"
-  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] w-fit"
->
-  <ChevronLeft className="h-4 w-4" />
-  <span>Kaartbeheer</span>
-</Link>
+### 4. `SocialPostCreatorPage.tsx`
+- "Terug" button uit PageHeader actions verwijderen
+- `← Marketing` link toevoegen boven de PageHeader
+
+## Ontwerpbeslissing (bevestiging)
+
+```text
+Detail pages (1 niveau diep):  ← [Parent label]     ChevronLeft + Link
+Settings pages (2+ niveaus):   Breadcrumbs           Instellingen > Module > Sectie
+Widget/booking flows:           Eigen navigatie        Niet aanpassen
 ```
-
-- `ChevronLeft` (niet `ArrowLeft` — consistenter met ShadCN breadcrumb separator)
-- `min-h-[44px]` voor touch target
-- Paginatitel blijft als `<h1>` eronder (bestaande PageHeader of handmatig)
-
-Settings-pagina's (`SettingsDetailLayout`) worden **niet** aangepast — die gebruiken al correct breadcrumbs.
 
