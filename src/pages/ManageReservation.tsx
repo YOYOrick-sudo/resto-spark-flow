@@ -332,7 +332,7 @@ export default function ManageReservation() {
                 value={newDate}
                 onChange={e => setNewDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-gray-900/10"
                 style={{ borderColor: '#E5E7EB' }}
               />
             </div>

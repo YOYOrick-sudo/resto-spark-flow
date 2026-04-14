@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NestoPanel } from "@/components/polar/NestoPanel";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoSelect } from "@/components/polar/NestoSelect";
+import { NestoDatePicker, dateFromString, dateToString } from "@/components/polar/NestoDatePicker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -137,10 +138,10 @@ export function NieuweAanvraagPanel({ open, onClose }: Props) {
 
             <div>
               <Label className="mb-1.5">Gewenste datum</Label>
-              <Input
-                type="date"
-                value={gewensteDatum}
-                onChange={(e) => setGewensteDatum(e.target.value)}
+              <NestoDatePicker
+                value={dateFromString(gewensteDatum)}
+                onChange={(d) => setGewensteDatum(dateToString(d))}
+                minDate={new Date()}
               />
             </div>
           </div>

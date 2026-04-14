@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
-import { DataTable, NestoBadge } from "@/components/polar";
+import { DataTable, NestoBadge, NestoDatePicker, dateFromString, dateToString } from "@/components/polar";
 import { useWasteRegistraties, WasteDateRange } from "@/hooks/useWasteRegistraties";
-import { Input } from "@/components/ui/input";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import type { DataTableColumn } from "@/components/polar";
@@ -71,19 +70,18 @@ export function WasteOverzicht() {
     <div className="space-y-4">
       {/* Filters + totaal */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          <Input
-            type="date"
+        <div className="flex gap-2 items-end">
+          <NestoDatePicker
+            label="Van"
+            value={dateFromString(dateRange.from)}
+            onChange={(d) => setDateRange((r) => ({ ...r, from: dateToString(d) }))}
             className="w-40"
-            value={dateRange.from}
-            onChange={(e) => setDateRange((r) => ({ ...r, from: e.target.value }))}
           />
-          <span className="flex items-center text-sm text-muted-foreground">t/m</span>
-          <Input
-            type="date"
+          <NestoDatePicker
+            label="t/m"
+            value={dateFromString(dateRange.to)}
+            onChange={(d) => setDateRange((r) => ({ ...r, to: dateToString(d) }))}
             className="w-40"
-            value={dateRange.to}
-            onChange={(e) => setDateRange((r) => ({ ...r, to: e.target.value }))}
           />
         </div>
         <div className="text-sm">
