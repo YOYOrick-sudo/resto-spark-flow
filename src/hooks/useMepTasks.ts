@@ -29,7 +29,6 @@ export interface MepTask {
     visuele_eenheid: string;
     houdbaarheid: number | null;
   } | null;
-  assigned_profile?: { name: string | null } | null;
 }
 
 export function useMepTasks(date: string) {
@@ -45,8 +44,7 @@ export function useMepTasks(date: string) {
         .select(`
           *,
           recept:recepten(id, naam, porties),
-          methode:halffabricaat_methodes(id, type, output_hoeveelheid, output_eenheid, visuele_eenheid, houdbaarheid),
-          assigned_profile:profiles!mep_tasks_assigned_to_fkey(name)
+          methode:halffabricaat_methodes(id, type, output_hoeveelheid, output_eenheid, visuele_eenheid, houdbaarheid)
         `)
         .eq("location_id", locationId)
         .eq("task_date", date)
