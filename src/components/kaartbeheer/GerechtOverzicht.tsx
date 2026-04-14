@@ -1,11 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader, SearchBar, NestoSelect, NestoBadge, Spinner, EmptyState, NestoButton } from "@/components/polar";
 import { Switch } from "@/components/ui/switch";
 import { useGerechten, filterGerechten, type GerechtenFilters } from "@/hooks/useGerechten";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useGerechtAllergenen } from "@/hooks/useGerechtAllergenen";
-import { GerechtDetailPanel } from "./GerechtDetailPanel";
 import { NieuwGerechtPanel } from "./NieuwGerechtPanel";
 import { Plus, UtensilsCrossed } from "lucide-react";
 
@@ -34,12 +34,11 @@ function AllergeenPills({ gerechtId }: { gerechtId: string }) {
 }
 
 export function GerechtOverzicht() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<GerechtenFilters>({ search: "", categorie: "", showArchived: false });
   const { data: gerechten, isLoading } = useGerechten(filters);
   const { data: settings } = useKeukenSettings();
   const { toggleActief } = useGerechtMutations();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detailTab, setDetailTab] = useState<string | undefined>(undefined);
   const [nieuwOpen, setNieuwOpen] = useState(false);
 
   const filtered = filterGerechten(gerechten, filters);
@@ -48,8 +47,7 @@ export function GerechtOverzicht() {
   const catOptions = [{ value: "", label: "Alle categorieën" }, ...cats.map((c) => ({ value: c, label: c }))];
 
   const handleCreated = (id: string) => {
-    setSelectedId(id);
-    setDetailTab("componenten");
+    navigate(`/kaartbeheer/${id}`);
   };
 
   return (
@@ -120,10 +118,7 @@ export function GerechtOverzicht() {
             return (
               <div
                 key={g.id}
-                onClick={() => {
-                  setSelectedId(g.id);
-                  setDetailTab(undefined);
-                }}
+                onClick={() => navigate(`/kaartbeheer/${g.id}`)}
                 className="flex items-center gap-4 py-3 px-4 rounded-xl border border-border/30 bg-card hover:bg-muted/30 cursor-pointer transition-colors min-h-[44px]"
               >
                 <div className="flex-1 min-w-0">
@@ -161,7 +156,6 @@ export function GerechtOverzicht() {
         </div>
       )}
 
-      <GerechtDetailPanel gerechtId={selectedId} onClose={() => setSelectedId(null)} initialTab={detailTab} />
       <NieuwGerechtPanel open={nieuwOpen} onClose={() => setNieuwOpen(false)} onCreated={handleCreated} />
     </div>
   );

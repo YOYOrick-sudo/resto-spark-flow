@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NestoButton, NestoBadge } from "@/components/polar";
+import { NestoButton } from "@/components/polar";
 import { Input } from "@/components/ui/input";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
@@ -231,22 +231,6 @@ export function GerechtComponentenTab({ gerecht }: Props) {
   const halffabricaten = gerecht.componenten.filter((c) => c.type === "halffabricaat");
   const ingredienten = gerecht.componenten.filter((c) => c.type === "ingredient");
 
-  const totaalHf = halffabricaten.reduce((s, c) => {
-    return s + c.hoeveelheid * ((c.recept_totale_kostprijs ?? 0) / Math.max(c.recept_porties ?? 1, 1));
-  }, 0);
-  const totaalIng = ingredienten.reduce((s, c) => {
-    return s + c.hoeveelheid * (c.ingredient_kostprijs ?? 0);
-  }, 0);
-  const totaalKostprijs = totaalHf + totaalIng;
-  const vkp = gerecht.verkoopprijs ?? 0;
-  const marge = vkp > 0 ? ((vkp - totaalKostprijs) / vkp) * 100 : null;
-  const foodCost = vkp > 0 ? (totaalKostprijs / vkp) * 100 : null;
-
-  const foodCostVariant =
-    foodCost !== null ? (foodCost < 30 ? "success" : foodCost <= 35 ? "warning" : "error") : "default";
-  const margeVariant =
-    marge !== null ? (marge > 65 ? "success" : marge >= 55 ? "warning" : "error") : "default";
-
   return (
     <div className="space-y-6">
       {/* Halffabricaten */}
@@ -275,42 +259,6 @@ export function GerechtComponentenTab({ gerecht }: Props) {
         <AddIngredient gerechtId={gerecht.id} />
       </div>
 
-      {/* Kostprijs samenvatting */}
-      <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-2">
-        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-          Kostprijs samenvatting
-        </h3>
-        <div className="grid grid-cols-2 gap-y-1.5 text-sm">
-          <span className="text-muted-foreground">Halffabricaten</span>
-          <span className="text-right">€{totaalHf.toFixed(2)}</span>
-          <span className="text-muted-foreground">Ingrediënten</span>
-          <span className="text-right">€{totaalIng.toFixed(2)}</span>
-          <span className="font-semibold pt-1 border-t border-border/50">Totale kostprijs</span>
-          <span className="font-semibold text-right pt-1 border-t border-border/50">€{totaalKostprijs.toFixed(2)}</span>
-          <span className="text-muted-foreground">Verkoopprijs</span>
-          <span className="text-right">{vkp > 0 ? `€${vkp.toFixed(2)}` : "—"}</span>
-          <span className="text-muted-foreground">Marge</span>
-          <span className="text-right">
-            {marge !== null ? (
-              <NestoBadge variant={margeVariant} size="sm">
-                {marge.toFixed(1)}%
-              </NestoBadge>
-            ) : (
-              "—"
-            )}
-          </span>
-          <span className="text-muted-foreground">Food cost</span>
-          <span className="text-right">
-            {foodCost !== null ? (
-              <NestoBadge variant={foodCostVariant} size="sm">
-                {foodCost.toFixed(1)}%
-              </NestoBadge>
-            ) : (
-              "—"
-            )}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
