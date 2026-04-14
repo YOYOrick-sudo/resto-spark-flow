@@ -1,34 +1,67 @@
 
 
-# Fix: Seed script robuuster maken tegen partial runs
+# Plan: Seed script uitbreiden met ontbrekende stappen
 
-## Probleem
-De eerste seed-run faalde halverwege (na leveranciers + ingrediënten + recepten). Nu bestaat "Kooyman Grootverbruik" al, dus de idempotency-check slaat over, maar "Tomatenrelish" bestaat ook al → duplicate key error.
+## Wat er al is
+Het huidige `src/lib/seedDemoData.ts` bevat stappen 1-7 (leveranciers, ingrediënten, allergenen, recepten, gerechten, MEP taken, voorraad bewegingen). Het mist:
 
-## Oplossing
-**Twee aanpassingen in `src/lib/seedDemoData.ts`:**
+- **Stap 4: Leveranciers-artikelen** (`leveranciers_artikelen` tabel bestaat al)
+- **Stap 9: HACCP checklists** (geen tabel in DB — vereist migratie)
+- **Stap 10: Waste registraties** (`waste_registraties` tabel bestaat al)
 
-1. **Bredere idempotency-check** — Controleer niet alleen leveranciers, maar ook recepten. Als één van beide al bestaat, meld "data bestaat al".
+Daarnaast een paar correcties op bestaande data.
 
-2. **"Opnieuw laden" optie** — Voeg een `force`-parameter toe die eerst alle demo data verwijdert (leveranciers, ingrediënten, recepten, gerechten, mep_tasks, voorraad_bewegingen met bekende namen) en dan opnieuw seed. De knop in Instellingen krijgt twee opties: "Demo data laden" en als data al bestaat "Demo data opnieuw laden" (met force=true).
+## Wat verandert
 
-### Alternatief (simpeler, aanbevolen)
-Voeg aan de knop in Instellingen een extra actie toe: **"Demo data verwijderen"** die alle bekende seed-records verwijdert op basis van naam. Daarna kan de gebruiker opnieuw op "Demo data laden" klikken.
+### 1. Data-correcties in bestaande seed (seedDemoData.ts)
 
-### Bestanden
+| Item | Huidig | Nieuw |
+|------|--------|-------|
+| `Eieren (doos 30st)` | naam in alle arrays | → `Eieren` (conform spec) |
+| Basilicum voorraad | 0.3 | → 0.15 (zodat LAAG badge verschijnt) |
+| `max_voorraad` | niet meegegeven | → toevoegen per ingrediënt (kolom bestaat) |
+| Leveranciers | geen `levert_op`, `bestel_cutoff`, `min_bestelbedrag` | kolommen bestaan niet in DB → **overslaan** |
+
+### 2. Nieuwe stap: Leveranciers-artikelen (na ingrediënten)
+
+Insert 15 rijen in `leveranciers_artikelen` met:
+- `leverancier_id`, `ingredient_id`, `artikel_naam` (= ingrediënt naam)
+- `artikel_nummer`, `verpakking_hoeveelheid`, `verpakking_eenheid`, `prijs_per_verpakking`
+- `prijs_per_eenheid` (berekend: prijs / verpakking)
+
+Geen `is_preferent` kolom in de tabel, dus dat slaan we over.
+
+### 3. Nieuwe stap: Waste registraties (na voorraad bewegingen)
+
+Insert 2 rijen in `waste_registraties`:
+- Slagroom 0.5L bederf (gisteren), kosten €2.10
+- Basilicum 0.05kg bederf (2 dagen geleden), kosten €1.25
+
+### 4. HACCP checklists — overslaan
+
+Er is geen `haccp_checklists` tabel in de database. Dit vereist eerst een migratie om de tabel aan te maken. Dat is een apart traject — niet meenemen in deze seed-uitbreiding.
+
+### 5. Delete-functie uitbreiden
+
+`deleteDemoData` moet ook `leveranciers_artikelen` en `waste_registraties` opruimen.
+
+### 6. SeedResult type uitbreiden
+
+Toevoegen: `leveranciersArtikelen` en `wasteRegistraties` counts.
+
+## Bestanden
+
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/lib/seedDemoData.ts` | Voeg `deleteDemoData(locationId)` functie toe die alle seed-records verwijdert (leveranciers, ingrediënten, recepten, gerechten, mep_tasks, voorraad_bewegingen). Breid idempotency-check uit naar meerdere tabellen. |
-| `src/pages/SettingsVoorkeuren.tsx` | Voeg "Demo data verwijderen" knop toe naast de bestaande "Demo data laden" knop. |
+| `src/lib/seedDemoData.ts` | Alle bovenstaande aanpassingen |
 
-### Aanpak delete-functie
-Delete in omgekeerde volgorde van aanmaak (foreign keys):
-1. `voorraad_bewegingen` (by ingredient name match)
-2. `mep_tasks` / `mep_task_completions` (by recept link)
-3. `gerecht_componenten` → `gerechten` (by naam)
-4. `recept_ingredienten` → `recepten` (by naam)
-5. `ingredient_allergenen` → `ingredienten` (by naam)
-6. `leveranciers` (by naam)
+Geen migraties, geen nieuwe bestanden.
 
-Geen migraties nodig — alleen frontend code.
+## Technische details
+
+**Leveranciers-artikelen insert** komt na de ingrediënten-insert (we hebben `ingMap` en `levMap` nodig). De `prijs_per_eenheid` wordt berekend als `prijs_per_verpakking / verpakking_hoeveelheid`.
+
+**Waste registraties** worden na voorraad bewegingen ingevoegd. Velden: `location_id`, `ingredient_id`, `hoeveelheid`, `eenheid`, `categorie: "bederf"`, `reden`, `geschatte_kosten`, `waste_datum`, `geregistreerd_door` (huidige user).
+
+**Delete-volgorde update**: waste_registraties en leveranciers_artikelen worden vóór ingrediënten verwijderd (FK dependency).
 
