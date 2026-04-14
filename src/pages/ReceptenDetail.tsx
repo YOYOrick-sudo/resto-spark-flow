@@ -135,11 +135,9 @@ export default function ReceptenDetail() {
             <BereidingTab recept={recept} />
           </NestoTabContent>
 
-          {recept.type === "halffabricaat" && (
-            <NestoTabContent value="methodes" activeValue={activeTab}>
-              <MethodesTab recept={recept} />
-            </NestoTabContent>
-          )}
+          <NestoTabContent value="methodes" activeValue={activeTab}>
+            <MethodesTab recept={recept} />
+          </NestoTabContent>
 
           <NestoTabContent value="allergenen" activeValue={activeTab}>
             <AllergenenTab recept={recept} />
@@ -150,11 +148,8 @@ export default function ReceptenDetail() {
         <div className="lg:col-span-2 lg:sticky lg:top-6 lg:self-start space-y-4">
           {/* Card 1: Basisinfo */}
           <div className="rounded-2xl border border-border/30 bg-card p-5 space-y-4">
-            <div className="flex items-center justify-between">
+            <div>
               <h2 className="text-lg font-semibold text-foreground truncate">{recept.naam}</h2>
-              <NestoBadge variant={recept.type === "halffabricaat" ? "primary" : "success"}>
-                {recept.type === "halffabricaat" ? "Halffabricaat" : "Gerecht"}
-              </NestoBadge>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Naam</label>
