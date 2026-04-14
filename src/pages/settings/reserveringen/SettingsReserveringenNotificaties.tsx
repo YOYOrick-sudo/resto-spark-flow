@@ -33,7 +33,7 @@ export default function SettingsReserveringenNotificaties() {
           description="Bevestigingen, reminders en review-verzoeken worden geconfigureerd onder Instellingen > Communicatie > Gastberichten."
           action={{
             label: 'Ga naar Communicatie',
-            onClick: () => navigate('/instellingen/communicatie'),
+            onClick: () => navigate('/instellingen/communicatie/gastberichten'),
             icon: ArrowRight,
           }}
         />
