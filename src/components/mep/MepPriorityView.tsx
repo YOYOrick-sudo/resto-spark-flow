@@ -15,6 +15,7 @@ interface MepPriorityViewProps {
   onCancel: (taskId: string) => void;
   onPriorityChange: (taskId: string, prioriteit: string) => void;
   isLoading?: boolean;
+  hasPlanOrder?: boolean;
 }
 
 export function MepPriorityView({
@@ -24,6 +25,7 @@ export function MepPriorityView({
   onCancel,
   onPriorityChange,
   isLoading,
+  hasPlanOrder,
 }: MepPriorityViewProps) {
   const { overtijd, openstaand, voltooid } = useMemo(() => {
     const overtijd: MepTask[] = [];
@@ -42,7 +44,12 @@ export function MepPriorityView({
       }
     }
 
-    // Sort open by priority score descending
+    // When plan order is active, respect the provided order
+    if (hasPlanOrder) {
+      return { overtijd, openstaand: open, voltooid };
+    }
+
+    // Otherwise sort by priority score descending
     const scored = open
       .map((t) => ({ task: t, score: calculatePriorityScore(t, ingredientStock) }))
       .sort((a, b) => b.score - a.score);
@@ -52,7 +59,7 @@ export function MepPriorityView({
       openstaand: scored.map((s) => s.task),
       voltooid,
     };
-  }, [dayTasks, ingredientStock]);
+  }, [dayTasks, ingredientStock, hasPlanOrder]);
 
   if (isLoading) {
     return (
