@@ -1702,6 +1702,7 @@ export type Database = {
       }
       locations: {
         Row: {
+          ai_bevoegdheden_keuken: Json | null
           besteladvies_buffer_percentage: number | null
           brand_color_accent: string | null
           brand_color_primary: string | null
@@ -1710,12 +1711,18 @@ export type Database = {
           description_short: string | null
           google_place_id: string | null
           guest_greeting: string | null
+          haccp_kern_min: number | null
+          haccp_koeling_max: number | null
+          haccp_vriezer_max: number | null
+          haccp_warmhouden_min: number | null
           hero_image_url: string | null
           id: string
+          ingredient_categorieen: Json | null
           is_active: boolean
           logo_url: string | null
           name: string
           organization_id: string
+          recept_categorieen: Json | null
           slug: string
           timezone: string
           tone_of_voice: string | null
@@ -1726,6 +1733,7 @@ export type Database = {
           whatsapp_phone_number_id: string | null
         }
         Insert: {
+          ai_bevoegdheden_keuken?: Json | null
           besteladvies_buffer_percentage?: number | null
           brand_color_accent?: string | null
           brand_color_primary?: string | null
@@ -1734,12 +1742,18 @@ export type Database = {
           description_short?: string | null
           google_place_id?: string | null
           guest_greeting?: string | null
+          haccp_kern_min?: number | null
+          haccp_koeling_max?: number | null
+          haccp_vriezer_max?: number | null
+          haccp_warmhouden_min?: number | null
           hero_image_url?: string | null
           id?: string
+          ingredient_categorieen?: Json | null
           is_active?: boolean
           logo_url?: string | null
           name: string
           organization_id: string
+          recept_categorieen?: Json | null
           slug: string
           timezone?: string
           tone_of_voice?: string | null
@@ -1750,6 +1764,7 @@ export type Database = {
           whatsapp_phone_number_id?: string | null
         }
         Update: {
+          ai_bevoegdheden_keuken?: Json | null
           besteladvies_buffer_percentage?: number | null
           brand_color_accent?: string | null
           brand_color_primary?: string | null
@@ -1758,12 +1773,18 @@ export type Database = {
           description_short?: string | null
           google_place_id?: string | null
           guest_greeting?: string | null
+          haccp_kern_min?: number | null
+          haccp_koeling_max?: number | null
+          haccp_vriezer_max?: number | null
+          haccp_warmhouden_min?: number | null
           hero_image_url?: string | null
           id?: string
+          ingredient_categorieen?: Json | null
           is_active?: boolean
           logo_url?: string | null
           name?: string
           organization_id?: string
+          recept_categorieen?: Json | null
           slug?: string
           timezone?: string
           tone_of_voice?: string | null
