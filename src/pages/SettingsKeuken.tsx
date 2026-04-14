@@ -154,6 +154,7 @@ export default function SettingsKeuken() {
   const [warmhoudenMin, setWarmhoudenMin] = useState("");
   const [ingredientCats, setIngredientCats] = useState<string[]>([]);
   const [receptCats, setReceptCats] = useState<string[]>([]);
+  const [gerechtCats, setGerechtCats] = useState<string[]>([]);
   const [aiBevoegdheden, setAiBevoegdheden] = useState<AiBevoegdheden | null>(null);
 
   // Sync from DB
@@ -166,6 +167,7 @@ export default function SettingsKeuken() {
       setWarmhoudenMin(String(settings.haccp_warmhouden_min ?? 60));
       setIngredientCats([...settings.ingredient_categorieen]);
       setReceptCats([...settings.recept_categorieen]);
+      setGerechtCats([...settings.gerecht_categorieen]);
       setAiBevoegdheden({ ...settings.ai_bevoegdheden_keuken });
     }
   }, [settings]);
@@ -180,9 +182,10 @@ export default function SettingsKeuken() {
       String(settings.haccp_kern_min ?? 75) !== kernMin ||
       String(settings.haccp_warmhouden_min ?? 60) !== warmhoudenMin ||
       JSON.stringify(settings.ingredient_categorieen) !== JSON.stringify(ingredientCats) ||
-      JSON.stringify(settings.recept_categorieen) !== JSON.stringify(receptCats)
+      JSON.stringify(settings.recept_categorieen) !== JSON.stringify(receptCats) ||
+      JSON.stringify(settings.gerecht_categorieen) !== JSON.stringify(gerechtCats)
     );
-  }, [settings, buffer, koelingMax, vriezerMax, kernMin, warmhoudenMin, ingredientCats, receptCats]);
+  }, [settings, buffer, koelingMax, vriezerMax, kernMin, warmhoudenMin, ingredientCats, receptCats, gerechtCats]);
 
   const handleSave = async () => {
     await updateSettings.mutateAsync({
@@ -193,6 +196,7 @@ export default function SettingsKeuken() {
       haccp_warmhouden_min: parseFloat(warmhoudenMin) || 60,
       ingredient_categorieen: ingredientCats,
       recept_categorieen: receptCats,
+      gerecht_categorieen: gerechtCats,
     });
   };
 
