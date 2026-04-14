@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { NestoButton } from "@/components/polar";
 import { Input } from "@/components/ui/input";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
+import { useUserContext } from "@/contexts/UserContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { GerechtDetail, GerechtComponent } from "@/hooks/useGerechtDetail";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -37,8 +41,11 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
   const [search, setSearch] = useState("");
   const [hoeveelheid, setHoeveelheid] = useState("1");
   const [selected, setSelected] = useState<{ id: string; naam: string; eenheid: string } | null>(null);
+  const [creating, setCreating] = useState(false);
   const { data: results } = useHalffabricaatSearch(search);
   const { addComponent } = useGerechtMutations();
+  const { currentLocation } = useUserContext();
+  const navigate = useNavigate();
 
   if (!open) {
     return (
@@ -69,6 +76,36 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
     );
   };
 
+  const handleCreate = async () => {
+    if (!currentLocation?.id || !search.trim()) return;
+    setCreating(true);
+    try {
+      const { data, error } = await supabase
+        .from("recepten")
+        .insert({
+          naam: search.trim(),
+          type: "halffabricaat",
+          categorie: "Overig",
+          location_id: currentLocation.id,
+        } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      toast.success("Halffabricaat aangemaakt", {
+        description: "Vul het recept verder in op de recepten pagina.",
+      });
+      navigate(`/recepten?open=${(data as any).id}`);
+    } catch {
+      toast.error("Fout bij aanmaken");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const showDropdown = results !== undefined && search.trim().length >= 2;
+  const hasResults = results && results.length > 0;
+  const noResults = results && results.length === 0 && search.trim().length >= 2;
+
   return (
     <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
       {!selected ? (
@@ -80,9 +117,9 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
             className="h-11"
             autoFocus
           />
-          {results && results.length > 0 && (
+          {showDropdown && (
             <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-36 overflow-y-auto">
-              {results.map((r: any) => (
+              {hasResults && results.map((r: any) => (
                 <button
                   key={r.id}
                   type="button"
@@ -99,6 +136,17 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
                   {r.naam} <span className="text-muted-foreground">· {r.categorie}</span>
                 </button>
               ))}
+              {noResults && (
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-muted/50 min-h-[44px] flex items-center gap-2"
+                  onClick={handleCreate}
+                  disabled={creating}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  "{search.trim()}" aanmaken als nieuw halffabricaat
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -132,8 +180,10 @@ function AddIngredient({ gerechtId, emptyState }: { gerechtId: string; emptyStat
   const [hoeveelheid, setHoeveelheid] = useState("1");
   const [eenheid, setEenheid] = useState("");
   const [selected, setSelected] = useState<{ id: string; naam: string; eenheid: string } | null>(null);
+  const [creating, setCreating] = useState(false);
   const { data: results } = useIngredientSearch(search);
   const { addComponent } = useGerechtMutations();
+  const { currentLocation } = useUserContext();
 
   if (!open) {
     return (
@@ -165,6 +215,35 @@ function AddIngredient({ gerechtId, emptyState }: { gerechtId: string; emptyStat
     );
   };
 
+  const handleCreate = async () => {
+    if (!currentLocation?.id || !search.trim()) return;
+    setCreating(true);
+    try {
+      const { data, error } = await supabase
+        .from("ingredienten")
+        .insert({
+          naam: search.trim(),
+          eenheid: "kg",
+          kostprijs: 0,
+          location_id: currentLocation.id,
+        } as any)
+        .select("id, naam, eenheid")
+        .single();
+      if (error) throw error;
+      toast.success("Ingrediënt aangemaakt");
+      setSelected({ id: (data as any).id, naam: (data as any).naam, eenheid: (data as any).eenheid });
+      setEenheid((data as any).eenheid);
+    } catch {
+      toast.error("Fout bij aanmaken");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const showDropdown = results !== undefined && search.trim().length >= 2;
+  const hasResults = results && results.length > 0;
+  const noResults = results && results.length === 0 && search.trim().length >= 2;
+
   return (
     <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
       {!selected ? (
@@ -176,9 +255,9 @@ function AddIngredient({ gerechtId, emptyState }: { gerechtId: string; emptyStat
             className="h-11"
             autoFocus
           />
-          {results && results.length > 0 && (
+          {showDropdown && (
             <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-36 overflow-y-auto">
-              {results.map((r) => (
+              {hasResults && results.map((r) => (
                 <button
                   key={r.id}
                   type="button"
@@ -191,6 +270,17 @@ function AddIngredient({ gerechtId, emptyState }: { gerechtId: string; emptyStat
                   {r.naam} <span className="text-muted-foreground">· {r.eenheid}</span>
                 </button>
               ))}
+              {noResults && (
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-muted/50 min-h-[44px] flex items-center gap-2"
+                  onClick={handleCreate}
+                  disabled={creating}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Nieuw ingrediënt "{search.trim()}" aanmaken
+                </button>
+              )}
             </div>
           )}
         </div>
