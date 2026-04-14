@@ -35,7 +35,6 @@ export function MethodesTab({ recept }: MethodesTabProps) {
   const { addMethode, updateMethode, removeMethode } = useReceptMutations();
   const { data: alleRecepten } = useRecepten({
     search: "",
-    type: "",
     categorie: "",
     showArchived: false,
   });
