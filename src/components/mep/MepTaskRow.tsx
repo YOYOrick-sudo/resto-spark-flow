@@ -61,7 +61,7 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityCh
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={cn("text-sm font-medium truncate", isDone && "line-through")}>
-              {task.title}
+              {(task.units ?? 1) > 1 ? `${task.units}× ` : ""}{task.title}
             </span>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
