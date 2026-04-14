@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export function useGerechtMutations() {
   const qc = useQueryClient();
@@ -35,9 +35,9 @@ export function useGerechtMutations() {
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Gerecht aangemaakt");
+      nestoToast.success("Gerecht aangemaakt");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const updateGerecht = useMutation({
@@ -46,7 +46,7 @@ export function useGerechtMutations() {
       if (error) throw error;
     },
     onSuccess: () => invalidate(),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const addComponent = useMutation({
@@ -86,9 +86,9 @@ export function useGerechtMutations() {
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Component toegevoegd");
+      nestoToast.success("Component toegevoegd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const updateComponent = useMutation({
@@ -97,7 +97,7 @@ export function useGerechtMutations() {
       if (error) throw error;
     },
     onSuccess: () => invalidate(),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const removeComponent = useMutation({
@@ -107,9 +107,9 @@ export function useGerechtMutations() {
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Component verwijderd");
+      nestoToast.success("Component verwijderd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const toggleActief = useMutation({
@@ -118,7 +118,7 @@ export function useGerechtMutations() {
       if (error) throw error;
     },
     onSuccess: () => invalidate(),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const archiveerGerecht = useMutation({
@@ -131,9 +131,9 @@ export function useGerechtMutations() {
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Gerecht gearchiveerd");
+      nestoToast.success("Gerecht gearchiveerd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   return { createGerecht, updateGerecht, addComponent, updateComponent, removeComponent, toggleActief, archiveerGerecht };

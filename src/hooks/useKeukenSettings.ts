@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export interface KeukenSettings {
   besteladvies_buffer_percentage: number | null;
@@ -85,10 +85,10 @@ export function useUpdateKeukenSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["keuken-settings", locationId] });
-      toast.success("Keuken instellingen opgeslagen");
+      nestoToast.success("Keuken instellingen opgeslagen");
     },
     onError: () => {
-      toast.error("Fout bij opslaan instellingen");
+      nestoToast.error("Fout bij opslaan instellingen");
     },
   });
 }
@@ -110,7 +110,7 @@ export function useUpdateAiBevoegdheden() {
       queryClient.invalidateQueries({ queryKey: ["keuken-settings", locationId] });
     },
     onError: () => {
-      toast.error("Fout bij opslaan bevoegdheden");
+      nestoToast.error("Fout bij opslaan bevoegdheden");
     },
   });
 }
