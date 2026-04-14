@@ -41,6 +41,27 @@ import SettingsCommunicatie from "./pages/settings/SettingsCommunicatie";
 import SettingsAssistent from "./pages/settings/SettingsAssistent";
 import SettingsBetalingen from "./pages/settings/SettingsBetalingen";
 import MarketingSettings from "./pages/marketing/MarketingSettings";
+
+// Marketing settings detail pages
+import SettingsMarketingAlgemeen from "./pages/settings/marketing/SettingsMarketingAlgemeen";
+import SettingsMarketingBrandKit from "./pages/settings/marketing/SettingsMarketingBrandKit";
+import SettingsMarketingEmail from "./pages/settings/marketing/SettingsMarketingEmail";
+import SettingsMarketingFlows from "./pages/settings/marketing/SettingsMarketingFlows";
+import SettingsMarketingGDPR from "./pages/settings/marketing/SettingsMarketingGDPR";
+import SettingsMarketingSocial from "./pages/settings/marketing/SettingsMarketingSocial";
+import SettingsMarketingPopup from "./pages/settings/marketing/SettingsMarketingPopup";
+import SettingsMarketingReviews from "./pages/settings/marketing/SettingsMarketingReviews";
+
+// Onboarding settings detail pages
+import SettingsOnboardingFasen from "./pages/settings/onboarding/SettingsOnboardingFasen";
+import SettingsOnboardingTeam from "./pages/settings/onboarding/SettingsOnboardingTeam";
+import SettingsOnboardingTemplates from "./pages/settings/onboarding/SettingsOnboardingTemplates";
+import SettingsOnboardingReminders from "./pages/settings/onboarding/SettingsOnboardingReminders";
+
+// Assistent settings detail pages
+import SettingsAssistentKnowledge from "./pages/settings/assistent/SettingsAssistentKnowledge";
+import SettingsAssistentAgent from "./pages/settings/assistent/SettingsAssistentAgent";
+import SettingsAssistentPermissions from "./pages/settings/assistent/SettingsAssistentPermissions";
 import SegmentsPage from "./pages/marketing/SegmentsPage";
 import ContactsPage from "./pages/marketing/ContactsPage";
 import CampaignesPage from "./pages/marketing/CampaignesPage";
