@@ -275,42 +275,6 @@ export function GerechtComponentenTab({ gerecht }: Props) {
         <AddIngredient gerechtId={gerecht.id} />
       </div>
 
-      {/* Kostprijs samenvatting */}
-      <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-2">
-        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-          Kostprijs samenvatting
-        </h3>
-        <div className="grid grid-cols-2 gap-y-1.5 text-sm">
-          <span className="text-muted-foreground">Halffabricaten</span>
-          <span className="text-right">€{totaalHf.toFixed(2)}</span>
-          <span className="text-muted-foreground">Ingrediënten</span>
-          <span className="text-right">€{totaalIng.toFixed(2)}</span>
-          <span className="font-semibold pt-1 border-t border-border/50">Totale kostprijs</span>
-          <span className="font-semibold text-right pt-1 border-t border-border/50">€{totaalKostprijs.toFixed(2)}</span>
-          <span className="text-muted-foreground">Verkoopprijs</span>
-          <span className="text-right">{vkp > 0 ? `€${vkp.toFixed(2)}` : "—"}</span>
-          <span className="text-muted-foreground">Marge</span>
-          <span className="text-right">
-            {marge !== null ? (
-              <NestoBadge variant={margeVariant} size="sm">
-                {marge.toFixed(1)}%
-              </NestoBadge>
-            ) : (
-              "—"
-            )}
-          </span>
-          <span className="text-muted-foreground">Food cost</span>
-          <span className="text-right">
-            {foodCost !== null ? (
-              <NestoBadge variant={foodCostVariant} size="sm">
-                {foodCost.toFixed(1)}%
-              </NestoBadge>
-            ) : (
-              "—"
-            )}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
