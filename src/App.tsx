@@ -41,6 +41,27 @@ import SettingsCommunicatie from "./pages/settings/SettingsCommunicatie";
 import SettingsAssistent from "./pages/settings/SettingsAssistent";
 import SettingsBetalingen from "./pages/settings/SettingsBetalingen";
 import MarketingSettings from "./pages/marketing/MarketingSettings";
+
+// Marketing settings detail pages
+import SettingsMarketingAlgemeen from "./pages/settings/marketing/SettingsMarketingAlgemeen";
+import SettingsMarketingBrandKit from "./pages/settings/marketing/SettingsMarketingBrandKit";
+import SettingsMarketingEmail from "./pages/settings/marketing/SettingsMarketingEmail";
+import SettingsMarketingFlows from "./pages/settings/marketing/SettingsMarketingFlows";
+import SettingsMarketingGDPR from "./pages/settings/marketing/SettingsMarketingGDPR";
+import SettingsMarketingSocial from "./pages/settings/marketing/SettingsMarketingSocial";
+import SettingsMarketingPopup from "./pages/settings/marketing/SettingsMarketingPopup";
+import SettingsMarketingReviews from "./pages/settings/marketing/SettingsMarketingReviews";
+
+// Onboarding settings detail pages
+import SettingsOnboardingFasen from "./pages/settings/onboarding/SettingsOnboardingFasen";
+import SettingsOnboardingTeam from "./pages/settings/onboarding/SettingsOnboardingTeam";
+import SettingsOnboardingTemplates from "./pages/settings/onboarding/SettingsOnboardingTemplates";
+import SettingsOnboardingReminders from "./pages/settings/onboarding/SettingsOnboardingReminders";
+
+// Assistent settings detail pages
+import SettingsAssistentKnowledge from "./pages/settings/assistent/SettingsAssistentKnowledge";
+import SettingsAssistentAgent from "./pages/settings/assistent/SettingsAssistentAgent";
+import SettingsAssistentPermissions from "./pages/settings/assistent/SettingsAssistentPermissions";
 import SegmentsPage from "./pages/marketing/SegmentsPage";
 import ContactsPage from "./pages/marketing/ContactsPage";
 import CampaignesPage from "./pages/marketing/CampaignesPage";
@@ -143,10 +164,25 @@ const App = () => (
                   <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
                   <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
                   <Route path="/instellingen/onboarding" element={<SettingsOnboarding />} />
+                  <Route path="/instellingen/onboarding/fasen" element={<SettingsOnboardingFasen />} />
+                  <Route path="/instellingen/onboarding/team" element={<SettingsOnboardingTeam />} />
+                  <Route path="/instellingen/onboarding/templates" element={<SettingsOnboardingTemplates />} />
+                  <Route path="/instellingen/onboarding/reminders" element={<SettingsOnboardingReminders />} />
                   <Route path="/instellingen/communicatie" element={<SettingsCommunicatie />} />
                   <Route path="/instellingen/assistent" element={<SettingsAssistent />} />
+                  <Route path="/instellingen/assistent/knowledge" element={<SettingsAssistentKnowledge />} />
+                  <Route path="/instellingen/assistent/agent" element={<SettingsAssistentAgent />} />
+                  <Route path="/instellingen/assistent/permissions" element={<SettingsAssistentPermissions />} />
                   <Route path="/instellingen/betalingen" element={<SettingsBetalingen />} />
                   <Route path="/instellingen/marketing" element={<MarketingSettings />} />
+                  <Route path="/instellingen/marketing/algemeen" element={<SettingsMarketingAlgemeen />} />
+                  <Route path="/instellingen/marketing/brand-kit" element={<SettingsMarketingBrandKit />} />
+                  <Route path="/instellingen/marketing/email" element={<SettingsMarketingEmail />} />
+                  <Route path="/instellingen/marketing/flows" element={<SettingsMarketingFlows />} />
+                  <Route path="/instellingen/marketing/gdpr" element={<SettingsMarketingGDPR />} />
+                  <Route path="/instellingen/marketing/social" element={<SettingsMarketingSocial />} />
+                  <Route path="/instellingen/marketing/popup" element={<SettingsMarketingPopup />} />
+                  <Route path="/instellingen/marketing/reviews" element={<SettingsMarketingReviews />} />
                   <Route path="/instellingen/inkoop" element={<Navigate to="/inkoop" replace />} />
                   <Route path="/instellingen/leveranciers" element={<Navigate to="/inkoop/leveranciers" replace />} />
                   

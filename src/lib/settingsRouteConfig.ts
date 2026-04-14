@@ -11,6 +11,18 @@ import {
   Globe,
   ListOrdered,
   CreditCard,
+  Settings2,
+  Palette,
+  Mail,
+  Workflow,
+  ShieldCheck,
+  Share2,
+  Star,
+  Users,
+  FileText,
+  BellRing,
+  BookOpen,
+  Bot,
   type LucideIcon,
 } from "lucide-react";
 
@@ -141,9 +153,53 @@ export const reserveringenConfig: SettingsModuleConfig = {
 // All Module Configs
 // ============================================
 
+export const marketingConfig: SettingsModuleConfig = {
+  id: "marketing",
+  label: "Marketing",
+  basePath: "/instellingen/marketing",
+  description: "Branding, email, automation en social media",
+  sections: [
+    { id: "algemeen", label: "Algemeen", path: "/instellingen/marketing/algemeen", description: "Module status, email frequentie en verzendtijd", icon: Settings2 },
+    { id: "brand-kit", label: "Brand Kit", path: "/instellingen/marketing/brand-kit", description: "Huisstijl, logo en branding", icon: Palette },
+    { id: "email", label: "Email", path: "/instellingen/marketing/email", description: "E-mail configuratie en templates", icon: Mail },
+    { id: "flows", label: "Automation Flows", path: "/instellingen/marketing/flows", description: "Geautomatiseerde marketing flows", icon: Workflow },
+    { id: "gdpr", label: "GDPR", path: "/instellingen/marketing/gdpr", description: "Privacy, consent en dataverwerking", icon: ShieldCheck },
+    { id: "social", label: "Social Accounts", path: "/instellingen/marketing/social", description: "Social media koppelingen", icon: Share2 },
+    { id: "popup", label: "Website Popup", path: "/instellingen/marketing/popup", description: "Pop-up widget configuratie", icon: Globe },
+    { id: "reviews", label: "Review Platforms", path: "/instellingen/marketing/reviews", description: "Review platformen en monitoring", icon: Star },
+  ],
+};
+
+export const onboardingConfig: SettingsModuleConfig = {
+  id: "onboarding",
+  label: "Onboarding",
+  basePath: "/instellingen/onboarding",
+  description: "Pipeline, team, templates en herinneringen",
+  sections: [
+    { id: "fasen", label: "Fasen", path: "/instellingen/onboarding/fasen", description: "Onboarding pipeline en stappen", icon: ListOrdered },
+    { id: "team", label: "Team", path: "/instellingen/onboarding/team", description: "Team beheer en rollen", icon: Users },
+    { id: "templates", label: "E-mailtemplates", path: "/instellingen/onboarding/templates", description: "E-mail templates voor kandidaten", icon: FileText },
+    { id: "reminders", label: "Reminders", path: "/instellingen/onboarding/reminders", description: "Automatische herinneringen", icon: BellRing },
+  ],
+};
+
+export const assistentConfig: SettingsModuleConfig = {
+  id: "assistent",
+  label: "Assistent",
+  basePath: "/instellingen/assistent",
+  description: "AI-kennis, persoonlijkheid en autonomie",
+  sections: [
+    { id: "knowledge", label: "Knowledge Base", path: "/instellingen/assistent/knowledge", description: "Veelgestelde vragen en restaurant kennis", icon: BookOpen },
+    { id: "agent", label: "AI Assistent", path: "/instellingen/assistent/agent", description: "Persoonlijkheid, toon en gedrag", icon: Bot },
+    { id: "permissions", label: "Bevoegdheden", path: "/instellingen/assistent/permissions", description: "Autonomie per taak instellen", icon: Shield },
+  ],
+};
+
 export const settingsModules: SettingsModuleConfig[] = [
   reserveringenConfig,
-  // TODO: Add more modules as they are migrated
+  marketingConfig,
+  onboardingConfig,
+  assistentConfig,
 ];
 
 // ============================================
