@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useStepWizard } from "@/components/polar/StepWizard";
-import { Input } from "@/components/ui/input";
-import { NestoButton } from "@/components/polar";
+import { NestoInput, NestoButton } from "@/components/polar";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -62,7 +61,7 @@ export function GerechtStapRecepten() {
   const hasResults = results && results.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Linked recipes list */}
       {items.length > 0 && (
         <div className="space-y-2">
@@ -91,11 +90,10 @@ export function GerechtStapRecepten() {
       {/* Search & add */}
       {!selected ? (
         <div className="relative">
-          <Input
+          <NestoInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Zoek halffabricaat of recept..."
-            className="h-12"
           />
           {showDropdown && (
             <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
@@ -108,7 +106,7 @@ export function GerechtStapRecepten() {
                       key={r.id}
                       type="button"
                       disabled={alreadyAdded}
-                      className="w-full text-left px-4 py-3 text-sm hover:bg-muted/50 min-h-[44px] disabled:opacity-50"
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-muted/50 disabled:opacity-50"
                       onClick={() => {
                         setSelected({
                           id: r.id,
@@ -142,21 +140,20 @@ export function GerechtStapRecepten() {
           <div className="flex gap-3 items-end">
             <div className="flex-1">
               <label className="text-xs text-muted-foreground mb-1 block">Hoeveelheid</label>
-              <Input
+              <NestoInput
                 type="number"
                 step="0.1"
                 value={hoeveelheid}
                 onChange={(e) => setHoeveelheid(e.target.value)}
-                className="h-12"
               />
             </div>
-            <span className="text-sm text-muted-foreground pb-3.5">{selected.eenheid}</span>
+            <span className="text-sm text-muted-foreground pb-2.5">{selected.eenheid}</span>
           </div>
           <div className="flex justify-end gap-2">
-            <NestoButton variant="ghost" onClick={() => setSelected(null)} className="min-h-[44px]">
+            <NestoButton variant="ghost" onClick={() => setSelected(null)}>
               Annuleren
             </NestoButton>
-            <NestoButton onClick={handleAdd} className="min-h-[44px]">
+            <NestoButton onClick={handleAdd}>
               <Plus className="h-4 w-4 mr-1" /> Toevoegen
             </NestoButton>
           </div>

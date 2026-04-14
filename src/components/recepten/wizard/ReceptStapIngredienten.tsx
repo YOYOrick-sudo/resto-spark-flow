@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useStepWizard } from "@/components/polar/StepWizard";
 import { useIngredienten, IngredientRow } from "@/hooks/useIngredienten";
-import { NestoBadge } from "@/components/polar";
+import { NestoBadge, NestoInput } from "@/components/polar";
 import { NieuwIngredientModal } from "@/components/ingredienten/NieuwIngredientModal";
 import { Search, Trash2 } from "lucide-react";
 
@@ -90,7 +90,7 @@ export function ReceptStapIngredienten() {
       <div ref={searchRef} className="relative">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
+          <NestoInput
             value={searchVal}
             onChange={(e) => {
               setSearchVal(e.target.value);
@@ -98,7 +98,7 @@ export function ReceptStapIngredienten() {
             }}
             onFocus={() => setShowDropdown(true)}
             placeholder="Zoek ingrediënt..."
-            className="w-full h-12 pl-10 pr-4 rounded-button border-[1.5px] border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:!border-primary focus:outline-none"
+            className="pl-10"
           />
         </div>
         {showDropdown && searchVal && (

@@ -1,10 +1,9 @@
 import * as React from "react";
 import { useStepWizard } from "@/components/polar/StepWizard";
-import { Input } from "@/components/ui/input";
-import { NestoBadge } from "@/components/polar";
+import { NestoInput, NestoBadge } from "@/components/polar";
 import { useUserContext } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, ImageIcon } from "lucide-react";
+import { X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export function GerechtStapPrijs() {
@@ -62,16 +61,15 @@ export function GerechtStapPrijs() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium mb-1.5 block">Verkoopprijs (€)</label>
-        <Input
+        <label className="text-label text-muted-foreground mb-1.5 block">Verkoopprijs (€)</label>
+        <NestoInput
           type="number"
           step="0.01"
           value={data.verkoopprijs}
           onChange={(e) => update({ verkoopprijs: e.target.value })}
           placeholder="0.00"
-          className="h-12"
         />
       </div>
 
@@ -99,8 +97,8 @@ export function GerechtStapPrijs() {
 
       {/* Photo upload */}
       <div>
-        <label className="text-sm font-medium mb-1.5 block">
-          Foto <span className="text-muted-foreground font-normal">(optioneel)</span>
+        <label className="text-label text-muted-foreground mb-1.5 block">
+          Foto <span className="font-normal">(optioneel)</span>
         </label>
         {data.foto_url ? (
           <div className="relative rounded-xl overflow-hidden border border-border/30">
