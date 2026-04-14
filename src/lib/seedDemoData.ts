@@ -286,7 +286,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
           { naam: "Olijfolie extra vierge", hoeveelheid: 0.1, eenheid: "L" },
           { naam: "Basilicum vers", hoeveelheid: 0.05, eenheid: "kg" },
         ],
-        methode: { type: "Bereiden", output_hoeveelheid: 1.5, output_eenheid: "kg", visuele_eenheid: "1 GN 1/3", standaard_duur: 25, houdbaarheid: 3 },
+        methode: { type: "Bereiden", output_hoeveelheid: 1.5, output_eenheid: "kg", visuele_eenheid: "GN 1/3", standaard_duur: 25, houdbaarheid: 3 },
       },
       {
         naam: "Zalmgravad",
@@ -300,7 +300,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
           { naam: "Zalm vers", hoeveelheid: 1, eenheid: "kg" },
           { naam: "Citroenen", hoeveelheid: 0.2, eenheid: "kg" },
         ],
-        methode: { type: "Bereiden", output_hoeveelheid: 0.9, output_eenheid: "kg", visuele_eenheid: "1 vershoudfolie-pakket", standaard_duur: 15, houdbaarheid: 5 },
+        methode: { type: "Bereiden", output_hoeveelheid: 0.9, output_eenheid: "kg", visuele_eenheid: "pakket", standaard_duur: 15, houdbaarheid: 5 },
       },
       {
         naam: "Pasta aglio e olio basis",
@@ -316,7 +316,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
           { naam: "Olijfolie extra vierge", hoeveelheid: 0.08, eenheid: "L" },
           { naam: "Parmezaanse kaas", hoeveelheid: 0.1, eenheid: "kg" },
         ],
-        methode: { type: "Bereiden", output_hoeveelheid: 0.7, output_eenheid: "kg", visuele_eenheid: "1 pan", standaard_duur: 15, houdbaarheid: 1 },
+        methode: { type: "Bereiden", output_hoeveelheid: 0.7, output_eenheid: "kg", visuele_eenheid: "pan", standaard_duur: 15, houdbaarheid: 1 },
       },
       {
         naam: "Kruidenboter",
@@ -332,7 +332,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
           { naam: "Basilicum vers", hoeveelheid: 0.02, eenheid: "kg" },
           { naam: "Citroenen", hoeveelheid: 0.05, eenheid: "kg" },
         ],
-        methode: { type: "Bereiden", output_hoeveelheid: 0.5, output_eenheid: "kg", visuele_eenheid: "1 rol", standaard_duur: 10, houdbaarheid: 7 },
+        methode: { type: "Bereiden", output_hoeveelheid: 0.5, output_eenheid: "kg", visuele_eenheid: "rol", standaard_duur: 10, houdbaarheid: 7 },
       },
       {
         naam: "Kippensoep",
@@ -348,7 +348,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
           { naam: "Boter", hoeveelheid: 0.05, eenheid: "kg" },
           { naam: "Slagroom", hoeveelheid: 0.2, eenheid: "L" },
         ],
-        methode: { type: "Bereiden", output_hoeveelheid: 1.8, output_eenheid: "L", visuele_eenheid: "1 soeppan", standaard_duur: 65, houdbaarheid: 2 },
+        methode: { type: "Bereiden", output_hoeveelheid: 1.8, output_eenheid: "L", visuele_eenheid: "soeppan", standaard_duur: 65, houdbaarheid: 2 },
       },
     ];
 
@@ -512,7 +512,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
       { title: "Kippensoep koken", recept: "Kippensoep", status: "pending", prioriteit: "Hoog", units: 1, deadline: "10:30:00", category: "Soepen" },
       { title: "Kruidenboter rollen", recept: "Kruidenboter", status: "completed", prioriteit: "Normaal", units: 1, deadline: null, category: "Sauzen" },
       { title: "Pasta basis voorbereiden", recept: "Pasta aglio e olio basis", status: "in_progress", prioriteit: "Normaal", units: 3, deadline: "16:00:00", category: "Pasta" },
-      { title: "Zalmgravad controleren", recept: "Zalmgravad", status: "pending", prioriteit: "Normaal", units: 1, deadline: "12:00:00", category: "Vis" },
+      { title: "Zalmgravad controleren", recept: "Zalmgravad", status: "pending", prioriteit: "Laag", units: 1, deadline: "12:00:00", category: "Vis" },
     ];
 
     const mepInserts = mepDefs.map((t) => ({
