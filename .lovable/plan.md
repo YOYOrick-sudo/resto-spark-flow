@@ -1,24 +1,28 @@
 
 
-# Fix NestoDatePicker — minimalistisch inline gedrag
+# Fix Gerecht Detail — Breadcrumb + Empty States
 
-## Probleem
-De NestoDatePicker wrapper div heeft `w-full` waardoor het altijd de volle breedte pakt en filters onder elkaar staan in plaats van naast elkaar (zie screenshot).
+De cards en sticky sidebar zijn al correct geïmplementeerd. Twee wijzigingen blijven over:
 
-## Oplossing
+## 1. Breadcrumb fix (`KaartbeheerDetail.tsx`)
 
-### 1. `NestoDatePicker.tsx` — wrapper fix
-- Verwijder `w-full` van de buitenste `<div>` (regel 61)
-- Verplaats `className` prop naar de buitenste div in plaats van de button, zodat `w-40` etc. op de container werkt
-- Button krijgt gewoon `w-full` om binnen de container te vullen
+Huidig: `← Gerechten > [naam]`
+Wordt: `← Kaartbeheer > Gerechten > [naam]`
 
-### 2. `ScheduleStep.tsx` — migreren naar NestoDatePicker
-- Vervang de handmatige Popover+Calendar implementatie door `<NestoDatePicker>`, consistent met de rest van het systeem
+Beide links wijzen naar `/kaartbeheer`.
 
-### Bestanden
+## 2. Empty states (`GerechtComponentenTab.tsx`)
+
+**Geen items**: Dashed-border box met beschrijvende tekst + outline knop:
+- Halffabricaten: "Nog geen halffabricaten. Voeg een halffabricaat toe om de kostprijs te berekenen."
+- Ingrediënten: "Nog geen losse ingrediënten."
+
+**Wel items**: Lijst + kleinere ghost "+ Toevoegen" knop onderaan.
+
+## Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/polar/NestoDatePicker.tsx` | `w-full` verwijderen van wrapper, className naar wrapper |
-| `src/components/marketing/campaigns/ScheduleStep.tsx` | Raw Calendar → NestoDatePicker |
+| `src/pages/KaartbeheerDetail.tsx` | Breadcrumb uitbreiden |
+| `src/components/kaartbeheer/GerechtComponentenTab.tsx` | Empty states toevoegen |
 
