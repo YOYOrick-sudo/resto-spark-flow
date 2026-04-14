@@ -61,6 +61,44 @@ export default function KaartbeheerDetail() {
     return { hf, ing, totaal, marge, foodCost };
   }, [gerecht]);
 
+  // TipTap editor for bereidingswijze
+  const bereidingDebounce = useRef<ReturnType<typeof setTimeout>>();
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder: "Beschrijf hoe dit gerecht wordt opgemaakt..." }),
+    ],
+    content: gerecht?.bereidingswijze || "",
+    editorProps: {
+      attributes: {
+        class: "prose prose-sm max-w-none min-h-[200px] p-4 focus:outline-none text-foreground",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      if (!gerecht) return;
+      if (bereidingDebounce.current) clearTimeout(bereidingDebounce.current);
+      bereidingDebounce.current = setTimeout(() => {
+        updateGerecht.mutate({ id: gerecht.id, bereidingswijze: editor.getHTML() });
+      }, 2000);
+    },
+    onBlur: ({ editor }) => {
+      if (!gerecht) return;
+      if (bereidingDebounce.current) clearTimeout(bereidingDebounce.current);
+      updateGerecht.mutate({ id: gerecht.id, bereidingswijze: editor.getHTML() });
+    },
+  });
+
+  // Sync editor content when gerecht changes
+  useEffect(() => {
+    if (editor && gerecht?.bereidingswijze !== undefined) {
+      const currentHtml = editor.getHTML();
+      if (gerecht.bereidingswijze !== currentHtml) {
+        editor.commands.setContent(gerecht.bereidingswijze || "");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gerecht?.id]);
+
   const handleSave = () => {
     if (!gerecht) return;
     updateGerecht.mutate({
@@ -119,6 +157,24 @@ export default function KaartbeheerDetail() {
 
           <NestoTabContent value="componenten" activeValue={activeTab}>
             <GerechtComponentenTab gerecht={gerecht} />
+          </NestoTabContent>
+
+          <NestoTabContent value="bereiding" activeValue={activeTab}>
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              {editor && (
+                <div className="flex gap-1 p-2 border-b border-border/50">
+                  <button type="button" onClick={() => editor.chain().focus().toggleBold().run()}
+                    className={`min-w-[32px] min-h-[32px] rounded-md text-sm font-bold transition-colors ${editor.isActive("bold") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"}`}>B</button>
+                  <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()}
+                    className={`min-w-[32px] min-h-[32px] rounded-md text-sm italic transition-colors ${editor.isActive("italic") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"}`}>I</button>
+                  <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                    className={`min-w-[32px] min-h-[32px] rounded-md text-sm transition-colors ${editor.isActive("orderedList") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"}`}>1.</button>
+                  <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()}
+                    className={`min-w-[32px] min-h-[32px] rounded-md text-sm transition-colors ${editor.isActive("bulletList") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"}`}>•</button>
+                </div>
+              )}
+              <EditorContent editor={editor} />
+            </div>
           </NestoTabContent>
 
           <NestoTabContent value="allergenen" activeValue={activeTab}>
