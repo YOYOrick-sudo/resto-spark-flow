@@ -66,6 +66,8 @@ interface NestoSidebarProps {
 export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 0, collapsed, onToggleCollapse }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { availableLocations } = useUserContext();
+  const isMultiLocation = availableLocations.length > 1;
   
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
     const group = getExpandedGroupFromPath(location.pathname);
