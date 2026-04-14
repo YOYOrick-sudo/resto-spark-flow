@@ -25,6 +25,8 @@ export interface GerechtDetail {
   naam: string;
   categorie: string;
   beschrijving: string | null;
+  omschrijving: string | null;
+  bereidingswijze: string | null;
   verkoopprijs: number | null;
   kostprijs: number;
   marge_percentage: number | null;
