@@ -1124,6 +1124,150 @@ export type Database = {
           },
         ]
       }
+      interne_bestellingen: {
+        Row: {
+          aangevraagd_door: string | null
+          aangevraagd_op: string
+          created_at: string
+          geaccepteerd_op: string | null
+          gewenste_datum: string | null
+          id: string
+          naar_location_id: string
+          notities: string | null
+          ontvangen_op: string | null
+          organization_id: string
+          status: string
+          updated_at: string
+          van_location_id: string
+          verzonden_op: string | null
+        }
+        Insert: {
+          aangevraagd_door?: string | null
+          aangevraagd_op?: string
+          created_at?: string
+          geaccepteerd_op?: string | null
+          gewenste_datum?: string | null
+          id?: string
+          naar_location_id: string
+          notities?: string | null
+          ontvangen_op?: string | null
+          organization_id: string
+          status?: string
+          updated_at?: string
+          van_location_id: string
+          verzonden_op?: string | null
+        }
+        Update: {
+          aangevraagd_door?: string | null
+          aangevraagd_op?: string
+          created_at?: string
+          geaccepteerd_op?: string | null
+          gewenste_datum?: string | null
+          id?: string
+          naar_location_id?: string
+          notities?: string | null
+          ontvangen_op?: string | null
+          organization_id?: string
+          status?: string
+          updated_at?: string
+          van_location_id?: string
+          verzonden_op?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interne_bestellingen_aangevraagd_door_fkey"
+            columns: ["aangevraagd_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interne_bestellingen_naar_location_id_fkey"
+            columns: ["naar_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interne_bestellingen_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interne_bestellingen_van_location_id_fkey"
+            columns: ["van_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interne_bestelregels: {
+        Row: {
+          bestelling_id: string
+          created_at: string
+          eenheid: string
+          geaccepteerde_hoeveelheid: number | null
+          gevraagde_hoeveelheid: number
+          id: string
+          ingredient_id: string | null
+          omschrijving: string
+          ontvangen_hoeveelheid: number | null
+          recept_id: string | null
+          verzonden_hoeveelheid: number | null
+        }
+        Insert: {
+          bestelling_id: string
+          created_at?: string
+          eenheid: string
+          geaccepteerde_hoeveelheid?: number | null
+          gevraagde_hoeveelheid: number
+          id?: string
+          ingredient_id?: string | null
+          omschrijving: string
+          ontvangen_hoeveelheid?: number | null
+          recept_id?: string | null
+          verzonden_hoeveelheid?: number | null
+        }
+        Update: {
+          bestelling_id?: string
+          created_at?: string
+          eenheid?: string
+          geaccepteerde_hoeveelheid?: number | null
+          gevraagde_hoeveelheid?: number
+          id?: string
+          ingredient_id?: string | null
+          omschrijving?: string
+          ontvangen_hoeveelheid?: number | null
+          recept_id?: string | null
+          verzonden_hoeveelheid?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interne_bestelregels_bestelling_id_fkey"
+            columns: ["bestelling_id"]
+            isOneToOne: false
+            referencedRelation: "interne_bestellingen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interne_bestelregels_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interne_bestelregels_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_base: {
         Row: {
           answer: string
@@ -1374,6 +1518,7 @@ export type Database = {
       }
       locations: {
         Row: {
+          besteladvies_buffer_percentage: number | null
           brand_color_accent: string | null
           brand_color_primary: string | null
           brand_color_secondary: string | null
@@ -1397,6 +1542,7 @@ export type Database = {
           whatsapp_phone_number_id: string | null
         }
         Insert: {
+          besteladvies_buffer_percentage?: number | null
           brand_color_accent?: string | null
           brand_color_primary?: string | null
           brand_color_secondary?: string | null
@@ -1420,6 +1566,7 @@ export type Database = {
           whatsapp_phone_number_id?: string | null
         }
         Update: {
+          besteladvies_buffer_percentage?: number | null
           brand_color_accent?: string | null
           brand_color_primary?: string | null
           brand_color_secondary?: string | null
@@ -2680,6 +2827,7 @@ export type Database = {
       mep_tasks: {
         Row: {
           assigned_to: string | null
+          bron: string | null
           category: string
           created_at: string
           deadline: string | null
@@ -2698,6 +2846,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          bron?: string | null
           category: string
           created_at?: string
           deadline?: string | null
@@ -2716,6 +2865,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          bron?: string | null
           category?: string
           created_at?: string
           deadline?: string | null
