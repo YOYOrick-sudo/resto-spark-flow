@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   PageHeader,
   SearchBar,
@@ -27,13 +28,25 @@ const CATEGORIE_FILTER_OPTIONS = [
 ];
 
 export default function Recepten() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = React.useState<ReceptenFilters>({
     search: "",
     categorie: "",
     showArchived: false,
   });
   const [showNewModal, setShowNewModal] = React.useState(false);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(
+    searchParams.get("open")
+  );
+
+  React.useEffect(() => {
+    const openId = searchParams.get("open");
+    if (openId) {
+      setSelectedId(openId);
+      searchParams.delete("open");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data, isLoading } = useRecepten(filters);
   const filtered = filterRecepten(data, filters);

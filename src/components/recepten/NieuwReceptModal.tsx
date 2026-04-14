@@ -12,10 +12,6 @@ const CATEGORIE_OPTIONS = [
   { value: "overig", label: "Overig" },
 ];
 
-const TYPE_OPTIONS = [
-  { value: "halffabricaat", label: "Halffabricaat" },
-  { value: "gerecht", label: "Gerecht" },
-];
 
 interface NieuwReceptModalProps {
   open: boolean;
@@ -27,13 +23,12 @@ export function NieuwReceptModal({ open, onOpenChange, onCreated }: NieuwReceptM
   const { createRecept } = useReceptMutations();
   const [naam, setNaam] = React.useState("");
   const [categorie, setCategorie] = React.useState("");
-  const [type, setType] = React.useState("halffabricaat");
   const [porties, setPorties] = React.useState(4);
+  const type = "halffabricaat";
 
   const resetForm = () => {
     setNaam("");
     setCategorie("");
-    setType("halffabricaat");
     setPorties(4);
   };
 
@@ -92,13 +87,6 @@ export function NieuwReceptModal({ open, onOpenChange, onCreated }: NieuwReceptM
           onValueChange={setCategorie}
           options={CATEGORIE_OPTIONS}
           placeholder="Selecteer categorie"
-        />
-        <NestoSelect
-          label="Type *"
-          value={type}
-          onValueChange={setType}
-          options={TYPE_OPTIONS}
-          placeholder="Selecteer type"
         />
         <div>
           <label className="mb-2 block text-label text-muted-foreground">Porties</label>
