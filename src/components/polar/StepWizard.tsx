@@ -169,7 +169,7 @@ export function StepWizard({
                   onClick={() => isClickable && goToStep(i)}
                   disabled={!isClickable}
                   className={cn(
-                    "flex items-center gap-2 transition-colors",
+                    "transition-colors",
                     isClickable && !isActive && "cursor-pointer",
                     !isClickable && "cursor-default"
                   )}
@@ -184,29 +184,16 @@ export function StepWizard({
                   >
                     {isCompleted ? <Check className="h-4 w-4" /> : i + 1}
                   </div>
-                  {/* Label: hidden on mobile */}
-                  <span
-                    className={cn(
-                      "hidden md:inline text-sm whitespace-nowrap",
-                      isActive && "font-medium text-foreground",
-                      isCompleted && "text-primary",
-                      !isActive && !isCompleted && "text-muted-foreground"
-                    )}
-                  >
-                    {s.title}
-                    {s.isOptional && (
-                      <span className="text-xs text-muted-foreground ml-1">(optioneel)</span>
-                    )}
-                  </span>
                 </button>
               </React.Fragment>
             );
           })}
         </div>
 
-        {/* Mobile: step label */}
-        <p className="text-center text-sm text-muted-foreground md:hidden">
+        {/* Current step label */}
+        <p className="text-center text-sm text-muted-foreground">
           Stap {currentStep + 1} van {steps.length}
+          {step.isOptional && " (optioneel)"}
         </p>
 
         {/* Content */}
