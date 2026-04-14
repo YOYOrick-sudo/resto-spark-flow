@@ -1,19 +1,26 @@
 
 
-# Fix: MEP taken deadline format
+# Hernoem "Recepten" → "Halffabricaten" (user-facing labels)
 
-## Probleem
-De `deadline` kolom in `mep_tasks` is van type `time`, maar het seed script stuurt een volledige datetime string (`"2026-04-14T11:00:00"`). Postgres verwacht alleen een tijdstring zoals `"11:00:00"`.
+Alle user-facing tekst wordt hernoemd. Routes, DB-tabellen en interne code (hooks, types, variabelen) blijven ongewijzigd.
 
-## Oplossing
-In `src/lib/seedDemoData.ts` (regels 511-515): verander de `deadline` waarden van `${today}T11:00:00` naar alleen het tijdsdeel (`"11:00:00"`, `"10:30:00"`, `"16:00:00"`, `"12:00:00"`).
+## Wijzigingen per bestand
 
-| Regel | Huidig | Nieuw |
-|-------|--------|-------|
-| 511 | `deadline: \`${today}T11:00:00\`` | `deadline: "11:00:00"` |
-| 512 | `deadline: \`${today}T10:30:00\`` | `deadline: "10:30:00"` |
-| 514 | `deadline: \`${today}T16:00:00\`` | `deadline: "16:00:00"` |
-| 515 | `deadline: \`${today}T12:00:00\`` | `deadline: "12:00:00"` |
+| Bestand | Wat verandert |
+|---------|--------------|
+| **src/lib/navigation.ts** | Sidebar label `'Recepten'` → `'Halffabricaten'` (regel ~89) |
+| **src/pages/Recepten.tsx** | Titel `"Recepten"` → `"Halffabricaten"`, subtekst → `"Je sauzen, bouillons, marinades en andere bereidingen."`, knop `"Nieuw recept"` → `"Nieuw halffabricaat"`, emptyMessage → `"Nog geen halffabricaten toegevoegd"` |
+| **src/pages/ReceptenDetail.tsx** | Back-link tekst `"Recepten"` → `"Halffabricaten"` (regel 121), not-found tekst `"Recept niet gevonden"` → `"Halffabricaat niet gevonden"`, archiveer-dialog `"Recept archiveren"` → `"Halffabricaat archiveren"` |
+| **src/pages/ReceptenNieuw.tsx** | Success toast `'Recept "..." aangemaakt!'` → `'Halffabricaat "..." aangemaakt!'` |
+| **src/hooks/useReceptMutations.ts** | Toast `"Recept aangemaakt"` → `"Halffabricaat aangemaakt"`, `"Recept gearchiveerd"` → `"Halffabricaat gearchiveerd"` |
+| **src/components/dashboard/ReceptenTile.tsx** | Label `"Recepten"` → `"Halffabricaten"`, count-tekst `"recepten"` → `"halffabricaten"` |
+| **src/components/kaartbeheer/GerechtComponentenTab.tsx** | Toast subtitle `"Vul het recept verder in op de recepten pagina."` → `"Vul het halffabricaat verder in op de halffabricaten pagina."` |
 
-Eén bestand, vier kleine tekst-fixes.
+## Wat NIET verandert
+- Routes (`/recepten`, `/recepten/:id`, `/recepten/nieuw`) — bookmarks blijven werken
+- Database tabel `recepten`
+- Interne code: hook-namen, type-namen, variabelen
+- Wizard titel "Wat ga je bereiden?"
+- Zoekbalk placeholder
+- Tab "Bereiding" binnen detail pagina
 
