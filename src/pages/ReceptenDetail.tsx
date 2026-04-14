@@ -102,7 +102,7 @@ export default function ReceptenDetail() {
   if (error || !recept) {
     return (
       <div className="space-y-4 py-12 text-center">
-        <p className="text-muted-foreground">Recept niet gevonden.</p>
+        <p className="text-muted-foreground">Halffabricaat niet gevonden.</p>
         <NestoButton variant="outline" onClick={() => navigate("/recepten")} className="min-h-[44px]">
           Terug naar overzicht
         </NestoButton>
@@ -118,7 +118,7 @@ export default function ReceptenDetail() {
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] w-fit"
       >
         <ChevronLeft className="h-4 w-4" />
-        <span>Recepten</span>
+        <span>Halffabricaten</span>
       </Link>
 
       {/* Two-column layout */}
@@ -267,7 +267,7 @@ export default function ReceptenDetail() {
       <ConfirmDialog
         open={showArchiveConfirm}
         onOpenChange={setShowArchiveConfirm}
-        title="Recept archiveren"
+        title="Halffabricaat archiveren"
         description={`Weet je zeker dat je "${recept.naam}" wilt archiveren?`}
         confirmLabel="Archiveren"
         variant="destructive"

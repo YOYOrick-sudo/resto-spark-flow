@@ -96,15 +96,15 @@ export default function Recepten() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Recepten"
-        subtitle="Beheer je halffabricaten en bereidingen."
+        title="Halffabricaten"
+        subtitle="Je sauzen, bouillons, marinades en andere bereidingen."
         actions={
           <NestoButton
             leftIcon={<Plus className="h-4 w-4" />}
             onClick={() => navigate("/recepten/nieuw")}
             className="min-h-[48px]"
           >
-            Nieuw recept
+            Nieuw halffabricaat
           </NestoButton>
         }
       />
@@ -145,7 +145,7 @@ export default function Recepten() {
           data={filtered}
           keyExtractor={(r) => r.id}
           onRowClick={(r) => navigate(`/recepten/${r.id}`)}
-          emptyMessage="Nog geen recepten toegevoegd"
+          emptyMessage="Nog geen halffabricaten toegevoegd"
           emptyIcon={BookOpen}
         />
       )}

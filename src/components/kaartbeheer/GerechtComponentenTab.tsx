@@ -91,7 +91,7 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
         .select("id")
         .single();
       if (error) throw error;
-      nestoToast.success("Halffabricaat aangemaakt", "Vul het recept verder in op de recepten pagina.");
+      nestoToast.success("Halffabricaat aangemaakt", "Vul het halffabricaat verder in op de halffabricaten pagina.");
       navigate(`/recepten?open=${(data as any).id}`);
     } catch {
       nestoToast.error("Fout bij aanmaken");

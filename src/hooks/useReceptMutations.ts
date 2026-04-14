@@ -83,7 +83,7 @@ export function useReceptMutations() {
     },
     onSuccess: () => {
       invalidate();
-      nestoToast.success("Recept aangemaakt");
+      nestoToast.success("Halffabricaat aangemaakt");
     },
     onError: (err: Error) => nestoToast.error(`Fout: ${err.message}`),
   });
@@ -112,7 +112,7 @@ export function useReceptMutations() {
     },
     onSuccess: () => {
       invalidate();
-      nestoToast.success("Recept gearchiveerd");
+      nestoToast.success("Halffabricaat gearchiveerd");
     },
     onError: (err: Error) => nestoToast.error(`Fout: ${err.message}`),
   });

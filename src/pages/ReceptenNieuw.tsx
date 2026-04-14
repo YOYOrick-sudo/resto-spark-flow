@@ -101,7 +101,7 @@ export default function ReceptenNieuw() {
         await Promise.all(promises);
       }
 
-      nestoToast.success(`Recept "${formData.basis.naam}" aangemaakt!`);
+      nestoToast.success(`Halffabricaat "${formData.basis.naam}" aangemaakt!`);
       navigate(`/recepten/${id}`);
     } catch (error) {
       nestoToast.error("Er ging iets mis bij het opslaan. Probeer het opnieuw.");
