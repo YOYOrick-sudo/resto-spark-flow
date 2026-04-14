@@ -1,45 +1,73 @@
 
 
-# Fix: Consistente styling — design system alignment
+# Fix: Kostprijs null-safety in ReceptenDetail
 
-## Gevonden afwijkingen
+## Probleem
+`.toFixed(2)` crasht wanneer kostprijs-velden `null` zijn. En `€0.00` tonen bij ontbrekende data is misleidend.
 
-| Afwijking | Waar | Systeem-standaard |
-|---|---|---|
-| `Input` (ShadCN) met `h-12` override | GerechtStapBasis, GerechtStapPrijs, GerechtStapRecepten | `NestoInput` (h-10) |
-| Raw `<input>` met `h-12` | ReceptStapIngredienten (zoekbalk) | `NestoInput` (h-10) |
-| StepWizard footer buttons `size="lg"` (h-12) | StepWizard.tsx | `NestoButton` default (h-10) |
-| Label styling inconsistent (`text-sm font-medium` vs `text-label text-muted-foreground`) | GerechtStapBasis, GerechtStapPrijs, ReceptStapBasis | `text-label text-muted-foreground` |
-| `space-y-6` in wizard stappen | GerechtStapBasis, GerechtStapPrijs, GerechtStapRecepten | `space-y-4` (zoals IngredientStapBasis) |
+## Wijzigingen — `src/pages/ReceptenDetail.tsx`
 
-## Wijzigingen
+### 1. Berekening (regel 64-66)
 
-### 1. `src/components/polar/StepWizard.tsx`
-- Footer buttons: verwijder `size="lg"`, gebruik default size (h-10)
-- 3 regels: regels 233, 244, 250
+**Was:**
+```ts
+const kostprijsPerPortie = recept && recept.porties > 0
+  ? recept.totale_kostprijs / recept.porties
+  : 0;
+```
 
-### 2. `src/components/kaartbeheer/wizard/GerechtStapBasis.tsx`
-- Vervang `Input` import door `NestoInput`, verwijder `className="h-12"`
-- Vervang `Textarea` import door standaard — geen NestoTextarea, dus `Textarea` is ok
-- Labels: `text-sm font-medium` → `text-label text-muted-foreground`
-- `space-y-6` → `space-y-4`
+**Wordt:**
+```ts
+const kostprijsPerPortie = recept && recept.porties > 0 && recept.totale_kostprijs != null
+  ? recept.totale_kostprijs / recept.porties
+  : null;
+```
 
-### 3. `src/components/kaartbeheer/wizard/GerechtStapPrijs.tsx`
-- Vervang `Input` met `h-12` door `NestoInput`
-- Labels: `text-sm font-medium` → `text-label text-muted-foreground`
-- `space-y-6` → `space-y-4` (top-level)
+### 2. Kostprijs card (regels 214-223)
 
-### 4. `src/components/kaartbeheer/wizard/GerechtStapRecepten.tsx`
-- Vervang `Input` met `h-12` door `NestoInput` (2 plekken: zoekbalk + hoeveelheid)
-- Verwijder `min-h-[44px]` van de twee NestoButton's (regels 156, 159) — NestoButton heeft al h-10 standaard
-- `space-y-6` → `space-y-4`
+**Was:**
+```tsx
+<div className="grid grid-cols-2 gap-y-1.5 text-sm">
+  <span className="text-muted-foreground">Ingrediënten</span>
+  <span className="text-right">€{recept.totale_ingredientkostprijs.toFixed(2)}</span>
+  <span className="text-muted-foreground">Arbeid</span>
+  <span className="text-right">€{recept.arbeidskostprijs.toFixed(2)}</span>
+  <span className="font-semibold pt-1 border-t border-border/50">Totaal</span>
+  <span className="font-semibold text-right pt-1 border-t border-border/50">€{recept.totale_kostprijs.toFixed(2)}</span>
+  <span className="text-muted-foreground">Per portie</span>
+  <span className="text-right font-medium text-primary">€{kostprijsPerPortie.toFixed(2)}</span>
+</div>
+```
 
-### 5. `src/components/recepten/wizard/ReceptStapIngredienten.tsx`
-- Vervang raw `<input className="...h-12...">` zoekbalk door `NestoInput` met `leftIcon={<Search />}`
-- `space-y-5` → `space-y-4` (indien afwijkend)
+**Wordt:**
+```tsx
+<div className="grid grid-cols-2 gap-y-1.5 text-sm">
+  <span className="text-muted-foreground">Ingrediënten</span>
+  <span className="text-right">
+    {recept.totale_ingredientkostprijs != null
+      ? `€${recept.totale_ingredientkostprijs.toFixed(2)}`
+      : "—"}
+  </span>
+  <span className="text-muted-foreground">Arbeid</span>
+  <span className="text-right">
+    {recept.arbeidskostprijs != null
+      ? `€${recept.arbeidskostprijs.toFixed(2)}`
+      : "—"}
+  </span>
+  <span className="font-semibold pt-1 border-t border-border/50">Totaal</span>
+  <span className="font-semibold text-right pt-1 border-t border-border/50">
+    {recept.totale_kostprijs != null
+      ? `€${recept.totale_kostprijs.toFixed(2)}`
+      : "—"}
+  </span>
+  <span className="text-muted-foreground">Per portie</span>
+  <span className="text-right font-medium text-primary">
+    {kostprijsPerPortie != null
+      ? `€${kostprijsPerPortie.toFixed(2)}`
+      : "Nog niet berekend"}
+  </span>
+</div>
+```
 
-### 6. `src/components/recepten/wizard/ReceptStapBasis.tsx`
-- Labels: `text-sm font-medium text-foreground` → `text-label text-muted-foreground` (4 plekken)
-
-**Totaal: 6 bestanden, 0 nieuw, 0 verwijderd, 0 migraties.**
+**Totaal: 1 bestand, 0 migraties.**
 
