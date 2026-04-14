@@ -1,163 +1,57 @@
 
 
-# Inline Aanmaken van Halffabricaten & Ingrediënten
+# Fix: Recepten loading + visueel probleem
 
-## Wat verandert
+## Analyse
 
-In `src/components/kaartbeheer/GerechtComponentenTab.tsx`: wanneer een zoekopdracht geen resultaten oplevert, verschijnt er een "aanmaken" optie onderaan de dropdown.
+**Bug 1 — Blijvend loading scherm**: Vanuit de Gerechten detail pagina navigeert de inline-create naar `/recepten?open={id}`. Maar `Recepten.tsx` leest **geen query parameters** — er is geen `useSearchParams` logica. Het `selectedId` wordt dus nooit gezet, en het detail panel opent niet. Wat de gebruiker ziet is waarschijnlijk het NestoPanel dat wél opent (door de navigatie) maar met `receptId=null`, waardoor `useRecept(null)` disabled is en de Spinner eeuwig draait.
 
-- **Halffabricaat**: maakt nieuw recept aan (type=halffabricaat), navigeert naar `/recepten?open={id}`, toont toast
-- **Ingrediënt**: maakt nieuw ingrediënt aan, selecteert het direct in het formulier (geen navigatie), toont toast
+**Bug 2 — Visuele glitch bovenin**: Het NestoPanel overlay (z-[70]) overlapt met de pagina-layout. Het panel opent op `/recepten` terwijl de vorige pagina's panel mogelijk nog actief is, of de overlay wordt niet goed afgesloten bij navigatie.
 
-## Code
+## Oplossing
 
-Nieuw bestand: **geen** -- alles in `GerechtComponentenTab.tsx`.
-
-### Volledige vervanging van `GerechtComponentenTab.tsx`:
+### 1. `Recepten.tsx` — lees `?open=` query param
 
 ```tsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { NestoButton } from "@/components/polar";
-import { Input } from "@/components/ui/input";
-import { useGerechtMutations } from "@/hooks/useGerechtMutations";
-import { useIngredientSearch } from "@/hooks/useIngredientSearch";
-import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
-import { useUserContext } from "@/contexts/UserContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import type { GerechtDetail, GerechtComponent } from "@/hooks/useGerechtDetail";
-import { Plus, Trash2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
-function ComponentRow({ comp, onRemove }: { comp: GerechtComponent; onRemove: () => void }) {
-  // ... unchanged
-}
+// In component:
+const [searchParams, setSearchParams] = useSearchParams();
 
-function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyState?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [hoeveelheid, setHoeveelheid] = useState("1");
-  const [selected, setSelected] = useState<{ id: string; naam: string; eenheid: string } | null>(null);
-  const [creating, setCreating] = useState(false);
-  const { data: results } = useHalffabricaatSearch(search);
-  const { addComponent } = useGerechtMutations();
-  const { currentLocation } = useUserContext();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+// Init selectedId from query param
+const [selectedId, setSelectedId] = React.useState<string | null>(
+  searchParams.get("open")
+);
 
-  // ... if (!open) return button -- unchanged
-
-  const handleCreate = async () => {
-    if (!currentLocation?.id || !search.trim()) return;
-    setCreating(true);
-    try {
-      const { data, error } = await supabase
-        .from("recepten")
-        .insert({
-          naam: search.trim(),
-          type: "halffabricaat",
-          categorie: "Overig",
-          location_id: currentLocation.id,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      toast({
-        title: "Halffabricaat aangemaakt",
-        description: "Vul het recept verder in op de recepten pagina.",
-      });
-      navigate(`/recepten?open=${data.id}`);
-    } catch (err) {
-      toast({ title: "Fout bij aanmaken", variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  // In the dropdown, after mapping results:
-  // Add this block after the results.map() and before closing </div>:
-  {search.trim().length >= 2 && results && results.length === 0 && (
-    <button
-      type="button"
-      className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-muted/50 min-h-[44px] flex items-center gap-2 border-t border-border/30"
-      onClick={handleCreate}
-      disabled={creating}
-    >
-      <Plus className="h-3.5 w-3.5" />
-      "{search.trim()}" aanmaken als nieuw halffabricaat
-    </button>
-  )}
-
-  // Also: show dropdown when results is empty too (currently only shows when results.length > 0)
-  // Change condition from: {results && results.length > 0 && (
-  // To: {results !== undefined && search.trim().length >= 2 && (
-  // Then inside, conditionally render results OR the create option
-
-  // ... rest unchanged
-}
-
-function AddIngredient({ gerechtId, emptyState }: { gerechtId: string; emptyState?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [hoeveelheid, setHoeveelheid] = useState("1");
-  const [eenheid, setEenheid] = useState("");
-  const [selected, setSelected] = useState<{ id: string; naam: string; eenheid: string } | null>(null);
-  const [creating, setCreating] = useState(false);
-  const { data: results } = useIngredientSearch(search);
-  const { addComponent } = useGerechtMutations();
-  const { currentLocation } = useUserContext();
-  const { toast } = useToast();
-
-  // ... if (!open) return button -- unchanged
-
-  const handleCreate = async () => {
-    if (!currentLocation?.id || !search.trim()) return;
-    setCreating(true);
-    try {
-      const { data, error } = await supabase
-        .from("ingredienten")
-        .insert({
-          naam: search.trim(),
-          eenheid: "kg",
-          kostprijs: 0,
-          location_id: currentLocation.id,
-        })
-        .select("id, naam, eenheid")
-        .single();
-      if (error) throw error;
-      toast({ title: "Ingrediënt aangemaakt" });
-      // Select it directly in the form
-      setSelected({ id: data.id, naam: data.naam, eenheid: data.eenheid });
-      setEenheid(data.eenheid);
-    } catch (err) {
-      toast({ title: "Fout bij aanmaken", variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  // Same dropdown pattern: show create option when no results
-  {search.trim().length >= 2 && results && results.length === 0 && (
-    <button
-      type="button"
-      className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-muted/50 min-h-[44px] flex items-center gap-2 border-t border-border/30"
-      onClick={handleCreate}
-      disabled={creating}
-    >
-      <Plus className="h-3.5 w-3.5" />
-      Nieuw ingrediënt "{search.trim()}" aanmaken
-    </button>
-  )}
-
-  // ... rest unchanged
-}
-
-// GerechtComponentenTab -- unchanged
+// Sync query param on mount/change
+React.useEffect(() => {
+  const openId = searchParams.get("open");
+  if (openId) {
+    setSelectedId(openId);
+    // Clean up the URL
+    searchParams.delete("open");
+    setSearchParams(searchParams, { replace: true });
+  }
+}, [searchParams]);
 ```
 
-### Samenvatting van wijzigingen in het bestand
+### 2. `NieuwReceptModal.tsx` — verwijder type selector
 
-1. **Nieuwe imports**: `useNavigate`, `useUserContext`, `supabase`, `useToast`
-2. **AddHalffabricaat**: `handleCreate` functie + dropdown toont "aanmaken" optie bij lege resultaten. Dropdown conditie wijzigt van `results.length > 0` naar `results !== undefined && search.trim().length >= 2`
-3. **AddIngredient**: `handleCreate` functie + dropdown toont "aanmaken" optie bij lege resultaten. Na aanmaken wordt het ingrediënt direct geselecteerd in het formulier (geen navigatie)
+Volgens de architectuur-regels mag de Recepten pagina alleen halffabricaten tonen. Het type-selector veld ("Halffabricaat" / "Gerecht") moet weg. Type wordt hardcoded op `"halffabricaat"`.
+
+```tsx
+// Verwijder TYPE_OPTIONS en de NestoSelect voor type
+// Hardcode: const type = "halffabricaat";
+```
+
+### 3. NestoPanel overlay cleanup
+
+De visuele glitch bovenin (zichtbaar in screenshot: het panel-overlay dat over de tabel heen gaat) komt doordat het panel vanuit de vorige pagina (KaartbeheerDetail) nog open is terwijl er genavigeerd wordt. Bij navigatie moet het panel sluiten. Dit wordt al automatisch opgelost door punt 1: het panel opent pas correct op de recepten pagina met het juiste ID.
+
+## Bestanden
+
+| Bestand | Wijziging |
+|---|---|
+| `src/pages/Recepten.tsx` | `useSearchParams` toevoegen, `?open=` param lezen en opschonen |
+| `src/components/recepten/NieuwReceptModal.tsx` | Type selector verwijderen, hardcode `halffabricaat` |
 
