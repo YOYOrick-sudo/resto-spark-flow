@@ -44,7 +44,7 @@ export function calculatePriorityScore(task: MepTask, stock: IngredientStockMap)
   if (task.prioriteit === "Hoog") score += 5000;
   if (task.prioriteit === "Laag") score -= 5000;
 
-  // Low stock
+  // Low stock — affects sorting only, no visible hint
   if (hasLowStock(task, stock)) score += 2000;
 
   // Prep time — longer = start earlier
@@ -61,25 +61,22 @@ export function calculatePriorityScore(task: MepTask, stock: IngredientStockMap)
   return score;
 }
 
-export function getAssistantHint(task: MepTask, stock: IngredientStockMap): string | null {
-  // Prep time hint
-  const totalTime = getTotalPrepTime(task);
+export function getAssistantHint(task: MepTask): string | null {
+  const activePrepTime = task.recept?.actieve_bereidingstijd ?? 0;
+  const passivePrepTime = task.recept?.passieve_bereidingstijd ?? 0;
+  const totalTime = activePrepTime + passivePrepTime;
+
+  // Timing hint: long prep + deadline approaching
   if (totalTime > 30 && task.deadline) {
     const minutesUntil = differenceInMinutes(parseDeadlineToday(task.deadline), new Date());
-    if (minutesUntil < totalTime + 15 && minutesUntil > 0) {
+    if (minutesUntil > 0 && minutesUntil < totalTime + 15) {
       return `Duurt ${totalTime} min — begin nu om op tijd klaar te zijn`;
     }
   }
 
-  // Stock hint
-  if (task.recept_id) {
-    const items = stock.get(task.recept_id);
-    if (items) {
-      const low = items.find((i) => i.voorraad < i.min_voorraad);
-      if (low) {
-        return `${low.naam} is bijna op (${low.voorraad} ${low.eenheid} over)`;
-      }
-    }
+  // Passive time hint: has waiting time that can be combined
+  if (passivePrepTime > 0) {
+    return `Inclusief ${passivePrepTime} min wachttijd — combineer met andere taken`;
   }
 
   return null;
