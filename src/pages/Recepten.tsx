@@ -2,7 +2,6 @@ import * as React from "react";
 import {
   PageHeader,
   SearchBar,
-  NestoOutlineButtonGroup,
   NestoSelect,
   NestoButton,
   NestoBadge,
@@ -15,12 +14,6 @@ import { useRecepten, filterRecepten, ReceptRow, ReceptenFilters } from "@/hooks
 import { NieuwReceptModal } from "@/components/recepten/NieuwReceptModal";
 import { ReceptDetailPanel } from "@/components/recepten/ReceptDetailPanel";
 import type { DataTableColumn } from "@/components/polar";
-
-const TYPE_OPTIONS = [
-  { value: "", label: "Alle" },
-  { value: "halffabricaat", label: "Halffabricaten" },
-  { value: "gerecht", label: "Gerechten" },
-];
 
 const CATEGORIE_FILTER_OPTIONS = [
   { value: "", label: "Alle categorieën" },
@@ -36,7 +29,6 @@ const CATEGORIE_FILTER_OPTIONS = [
 export default function Recepten() {
   const [filters, setFilters] = React.useState<ReceptenFilters>({
     search: "",
-    type: "",
     categorie: "",
     showArchived: false,
   });
@@ -58,15 +50,6 @@ export default function Recepten() {
       header: "Categorie",
       render: (r) => (
         <span className="text-muted-foreground capitalize">{r.categorie}</span>
-      ),
-    },
-    {
-      key: "type",
-      header: "Type",
-      render: (r) => (
-        <NestoBadge variant={r.type === "halffabricaat" ? "primary" : "success"} size="sm">
-          {r.type === "halffabricaat" ? "Halffabricaat" : "Gerecht"}
-        </NestoBadge>
       ),
     },
     {
@@ -116,7 +99,7 @@ export default function Recepten() {
     <div className="space-y-6">
       <PageHeader
         title="Recepten"
-        subtitle="Beheer alle recepten en halffabricaten."
+        subtitle="Beheer je halffabricaten en bereidingen."
         actions={
           <NestoButton
             leftIcon={<Plus className="h-4 w-4" />}
@@ -135,11 +118,6 @@ export default function Recepten() {
           onChange={(v) => setFilters((f) => ({ ...f, search: v }))}
           placeholder="Zoek op naam..."
           className="w-full sm:w-64"
-        />
-        <NestoOutlineButtonGroup
-          options={TYPE_OPTIONS}
-          value={filters.type}
-          onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
         />
         <NestoSelect
           value={filters.categorie}
@@ -174,14 +152,12 @@ export default function Recepten() {
         />
       )}
 
-      {/* New recipe modal */}
       <NieuwReceptModal
         open={showNewModal}
         onOpenChange={setShowNewModal}
         onCreated={(id) => setSelectedId(id)}
       />
 
-      {/* Detail panel */}
       <ReceptDetailPanel
         receptId={selectedId}
         open={!!selectedId}
