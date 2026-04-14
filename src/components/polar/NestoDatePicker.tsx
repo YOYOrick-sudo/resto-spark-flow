@@ -58,7 +58,7 @@ const NestoDatePicker = React.forwardRef<HTMLButtonElement, NestoDatePickerProps
     const [open, setOpen] = React.useState(false);
 
     return (
-      <div className="w-full">
+      <div className={cn(className)}>
         {label && (
           <label className="mb-2 block text-label text-muted-foreground">
             {label}
@@ -74,8 +74,7 @@ const NestoDatePicker = React.forwardRef<HTMLButtonElement, NestoDatePickerProps
                 "flex h-10 min-h-[44px] w-full items-center gap-2 rounded-button border-[1.5px] border-border bg-card px-3 py-2.5 text-body text-foreground transition-colors",
                 "hover:border-primary/50 focus:!border-primary focus:outline-none focus:ring-0",
                 "disabled:cursor-not-allowed disabled:opacity-50",
-                !value && "text-muted-foreground",
-                className
+                !value && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
