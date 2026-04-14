@@ -1,568 +1,550 @@
 
 
-# Navigatie & Structuur Opschoning — Volledig Plan met Code
+# Eenheid Selectie Verbeteren — Plan met Code
 
 ## Overzicht
-Sidebar opschonen (Keuken, Kaartbeheer, Instellingen), Recepten pagina aanpassen voor alleen halffabricaten, placeholder pagina's voor Menu's en Menu Engineering, en Service/Finance/Takeaway groepen verwijderen.
+1. Custom eenheid selectie bij ingredienten (NestoSelectWithCustom component)
+2. Visuele eenheid in MEP completion modal
+3. Eenheid conversies beheer in AlgemeenTab
 
 ---
 
-## Stap 1: `src/lib/navigation.ts`
-
-Volledige herschrijving van ROUTE_MAP, menuItems en getExpandedGroupFromPath.
-
-```typescript
-import { ReactNode } from 'react';
-import {
-  Home,
-  Calendar,
-  ChefHat,
-  UtensilsCrossed,
-  ShoppingBag,
-  ClipboardList,
-  Banknote,
-  Settings,
-  UserPlus,
-  Megaphone,
-  BarChart3,
-} from 'lucide-react';
-import { AssistentIcon } from '@/components/icons/AssistentIcon';
-
-// Route mapping: sidebar ID → route
-export const ROUTE_MAP: Record<string, string> = {
-  'dashboard': '/',
-  'assistent': '/assistent',
-  'reservations': '/reserveringen',
-  'kitchen-mep': '/mep',
-  'kitchen-recipes': '/recepten',
-  'kitchen-voorraad': '/voorraad',
-  'kitchen-orders': '/inkoop',
-  'kitchen-transfers': '/interne-bestellingen',
-  'kitchen-taken': '/taken',
-  'kaartbeheer-gerechten': '/kaartbeheer',
-  'kaartbeheer-menus': '/kaartbeheer/menus',
-  'kaartbeheer-menu-engineering': '/kaartbeheer/menu-engineering',
-  'marketing-dashboard': '/marketing',
-  'marketing-campagnes': '/marketing/campagnes',
-  'marketing-segmenten': '/marketing/segmenten',
-  'marketing-contacten': '/marketing/contacten',
-  'marketing-kalender': '/marketing/kalender',
-  'marketing-social': '/marketing/social',
-  'marketing-reviews': '/marketing/reviews',
-  'marketing-popup': '/marketing/popup',
-  'analytics': '/analytics',
-  'settings-voorkeuren': '/instellingen/voorkeuren',
-  'settings-keuken': '/instellingen/keuken',
-  'settings-reserveringen': '/instellingen/reserveringen',
-  'settings-assistent': '/instellingen/assistent',
-  'settings-communicatie': '/instellingen/communicatie',
-  'settings-marketing': '/instellingen/marketing',
-  'settings-onboarding': '/instellingen/onboarding',
-  'onboarding': '/onboarding',
-};
-
-export interface SubMenuItem {
-  id: string;
-  label: string;
-  path?: string;
-  disabled?: boolean;
-}
-
-export interface MenuItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ size?: number | string; className?: string }>;
-  path?: string;
-  disabled?: boolean;
-  expandable?: boolean;
-  subItems?: SubMenuItem[];
-  section?: string;
-}
-
-export const menuItems: MenuItem[] = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: Home,
-    path: '/',
-  },
-  {
-    id: 'assistent',
-    label: 'Assistent',
-    icon: AssistentIcon,
-    path: '/assistent',
-  },
-  {
-    id: 'reservations',
-    label: 'Reserveringen',
-    icon: Calendar,
-    path: '/reserveringen',
-    section: 'OPERATIE',
-  },
-  {
-    id: 'kitchen',
-    label: 'Keuken',
-    icon: ChefHat,
-    expandable: true,
-    section: 'OPERATIE',
-    subItems: [
-      { id: 'kitchen-mep', label: 'MEP Taken', path: '/mep' },
-      { id: 'kitchen-recipes', label: 'Recepten', path: '/recepten' },
-      { id: 'kitchen-voorraad', label: 'Ingrediënten', path: '/voorraad' },
-      { id: 'kitchen-orders', label: 'Voorraad & Inkoop', path: '/inkoop' },
-      { id: 'kitchen-transfers', label: 'Interne Bestellingen', path: '/interne-bestellingen' },
-      { id: 'kitchen-taken', label: 'Taken & HACCP', path: '/taken' },
-    ],
-  },
-  {
-    id: 'kaartbeheer',
-    label: 'Kaartbeheer',
-    icon: UtensilsCrossed,
-    expandable: true,
-    section: 'OPERATIE',
-    subItems: [
-      { id: 'kaartbeheer-gerechten', label: 'Gerechten', path: '/kaartbeheer' },
-      { id: 'kaartbeheer-menus', label: "Menu's", path: '/kaartbeheer/menus' },
-      { id: 'kaartbeheer-menu-engineering', label: 'Menu Engineering', path: '/kaartbeheer/menu-engineering' },
-    ],
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    icon: Megaphone,
-    expandable: true,
-    section: 'OPERATIE',
-    subItems: [
-      { id: 'marketing-dashboard', label: 'Dashboard', path: '/marketing' },
-      { id: 'marketing-campagnes', label: 'Campagnes', path: '/marketing/campagnes' },
-      { id: 'marketing-segmenten', label: 'Doelgroepen', path: '/marketing/segmenten' },
-      { id: 'marketing-contacten', label: 'Gasten', path: '/marketing/contacten' },
-      { id: 'marketing-kalender', label: 'Content Kalender', path: '/marketing/kalender' },
-      { id: 'marketing-social', label: 'Social Posts', path: '/marketing/social' },
-      { id: 'marketing-reviews', label: 'Reviews', path: '/marketing/reviews' },
-      { id: 'marketing-popup', label: 'Website Popup', path: '/marketing/popup' },
-    ],
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    icon: BarChart3,
-    path: '/analytics',
-    section: 'OPERATIE',
-  },
-  {
-    id: 'onboarding',
-    label: 'Onboarding',
-    icon: UserPlus,
-    path: '/onboarding',
-    section: 'BEHEER',
-  },
-  {
-    id: 'settings',
-    label: 'Instellingen',
-    icon: Settings,
-    expandable: true,
-    section: 'BEHEER',
-    subItems: [
-      { id: 'settings-voorkeuren', label: 'Voorkeuren', path: '/instellingen/voorkeuren' },
-      { id: 'settings-keuken', label: 'Keuken', path: '/instellingen/keuken' },
-      { id: 'settings-reserveringen', label: 'Reserveringen', path: '/instellingen/reserveringen' },
-      { id: 'settings-assistent', label: 'Assistent', path: '/instellingen/assistent' },
-      { id: 'settings-communicatie', label: 'Communicatie', path: '/instellingen/communicatie' },
-      { id: 'settings-marketing', label: 'Marketing', path: '/instellingen/marketing' },
-      { id: 'settings-onboarding', label: 'Onboarding', path: '/instellingen/onboarding' },
-    ],
-  },
-];
-
-export const getRouteForSidebarId = (id: string): string => ROUTE_MAP[id] || '/';
-
-export const getActiveItemFromPath = (path: string): string | null => {
-  for (const [id, route] of Object.entries(ROUTE_MAP)) {
-    if (path === route) return id;
-  }
-  for (const [id, route] of Object.entries(ROUTE_MAP)) {
-    if (route !== '/' && path.startsWith(route + '/')) return id;
-  }
-  return path === '/' ? 'dashboard' : null;
-};
-
-export const getExpandedGroupFromPath = (path: string): string | null => {
-  if (
-    path.startsWith('/recepten') ||
-    path.startsWith('/voorraad') ||
-    path.startsWith('/mep') ||
-    path.startsWith('/inkoop') ||
-    path.startsWith('/interne-bestellingen') ||
-    path.startsWith('/taken')
-  ) {
-    return 'kitchen';
-  }
-  if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
-  if (path.startsWith('/marketing')) return 'marketing';
-  if (path.startsWith('/instellingen')) return 'settings';
-  if (path.startsWith('/onboarding')) return null;
-  return null;
-};
-```
-
----
-
-## Stap 2: `src/lib/navigationBuilder.ts`
-
-Opschonen van verwijderde items.
-
-```typescript
-import type { UserContext, ModuleKey } from '@/types/auth';
-import { menuItems, type MenuItem, type SubMenuItem } from './navigation';
-
-const MENU_MODULE_MAP: Record<string, ModuleKey> = {
-  'reservations': 'reservations',
-  'kitchen': 'kitchen',
-  'kitchen-mep': 'kitchen',
-  'kitchen-recipes': 'kitchen',
-  'kitchen-voorraad': 'kitchen',
-  'kitchen-orders': 'kitchen',
-  'kitchen-transfers': 'kitchen',
-  'kitchen-taken': 'kitchen',
-  'kaartbeheer': 'kitchen',
-  'kaartbeheer-gerechten': 'kitchen',
-  'kaartbeheer-menus': 'kitchen',
-  'kaartbeheer-menu-engineering': 'kitchen',
-  'settings': 'settings',
-  'settings-voorkeuren': 'settings',
-  'settings-keuken': 'settings',
-  'settings-reserveringen': 'settings',
-  'settings-assistent': 'settings',
-  'settings-communicatie': 'settings',
-  'settings-marketing': 'settings',
-  'settings-onboarding': 'settings',
-};
-
-const MENU_PERMISSION_MAP: Record<string, string> = {
-  'reservations': 'reservations.view',
-  'kitchen': 'kitchen.view',
-  'kitchen-mep': 'kitchen.mep.view',
-  'kitchen-recipes': 'kitchen.recipes.view',
-  'kitchen-voorraad': 'kitchen.ingredients.view',
-  'kitchen-orders': 'kitchen.orders.view',
-  'kitchen-transfers': 'kitchen.orders.view',
-  'kitchen-taken': 'kitchen.view',
-  'kaartbeheer': 'kitchen.view',
-  'kaartbeheer-gerechten': 'kitchen.recipes.view',
-  'kaartbeheer-menus': 'kitchen.view',
-  'kaartbeheer-menu-engineering': 'kitchen.view',
-  'settings': 'settings.view',
-  'settings-voorkeuren': 'settings.general.view',
-  'settings-keuken': 'settings.general.view',
-  'settings-reserveringen': 'reservations.settings',
-  'settings-assistent': 'settings.general.view',
-  'settings-communicatie': 'settings.general.view',
-  'settings-marketing': 'settings.general.view',
-  'settings-onboarding': 'settings.general.view',
-};
-
-// ... rest of the file stays identical (isModuleEnabled, hasPermission, filterSubItems, buildNavigation, getDefaultRoute)
-```
-
----
-
-## Stap 3: `src/components/layout/NestoSidebar.tsx`
-
-Verwijder de `isMultiLocation` filter op regel 277. Wijzig:
-
-```typescript
-// Oud (regel 276-277):
-{item.subItems
-  .filter((sub) => sub.id !== 'kitchen-transfers' || isMultiLocation)
-  .map((subItem) => {
-
-// Nieuw:
-{item.subItems
-  .map((subItem) => {
-```
-
----
-
-## Stap 4: `src/hooks/useRecepten.ts`
-
-Voeg `.eq("type", "halffabricaat")` toe aan de query. Verwijder type uit client-side filters.
+## Stap 1: `src/hooks/useCustomEenheden.ts` (nieuw)
 
 ```typescript
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 
-export interface ReceptAllergeenRow {
-  id: string;
-  allergeen_id: string;
-  status: string;
-  allergenen: {
-    id: string;
-    code: string;
-    naam_nl: string;
-    naam_en: string;
-    sort_order: number;
-  };
-}
+const STANDAARD_EENHEDEN = ["kg", "g", "L", "ml", "st"];
 
-export interface ReceptRow {
-  id: string;
-  naam: string;
-  categorie: string;
-  type: string;
-  porties: number;
-  actieve_bereidingstijd: number | null;
-  passieve_bereidingstijd: number | null;
-  bereiding: string | null;
-  arbeidskostprijs: number;
-  totale_ingredientkostprijs: number;
-  totale_kostprijs: number;
-  kostprijs_berekend_op: string | null;
-  verkoopprijs: number | null;
-  is_archived: boolean;
-  archived_at: string | null;
-  location_id: string;
-  created_at: string;
-  updated_at: string;
-  recept_allergenen: ReceptAllergeenRow[];
-}
-
-export interface ReceptenFilters {
-  search: string;
-  categorie: string;
-  showArchived: boolean;
-}
-
-export function useRecepten(filters: ReceptenFilters) {
+export function useCustomEenheden() {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
 
   return useQuery({
-    queryKey: ["recepten", locationId, filters.showArchived],
+    queryKey: ["custom-eenheden", locationId],
     queryFn: async () => {
-      let query = supabase
-        .from("recepten")
-        .select(`
-          *,
-          recept_allergenen(
-            id,
-            allergeen_id,
-            status,
-            allergenen(id, code, naam_nl, naam_en, sort_order)
-          )
-        `)
+      const { data, error } = await supabase
+        .from("ingredienten")
+        .select("eenheid")
         .eq("location_id", locationId!)
-        .eq("type", "halffabricaat")
-        .order("naam", { ascending: true });
+        .not("eenheid", "in", `(${STANDAARD_EENHEDEN.join(",")})`)
+        .order("eenheid");
 
-      if (!filters.showArchived) {
-        query = query.eq("is_archived", false);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
-      return data as unknown as ReceptRow[];
+
+      const unique = [...new Set((data || []).map((d) => d.eenheid))];
+      return unique;
     },
     enabled: !!locationId,
   });
 }
 
-export function filterRecepten(
-  data: ReceptRow[] | undefined,
-  filters: ReceptenFilters
-): ReceptRow[] {
-  if (!data) return [];
-  let result = [...data];
-
-  if (filters.search) {
-    const s = filters.search.toLowerCase();
-    result = result.filter(
-      (r) =>
-        r.naam.toLowerCase().includes(s) ||
-        r.categorie.toLowerCase().includes(s)
-    );
-  }
-
-  if (filters.categorie) {
-    result = result.filter((r) => r.categorie === filters.categorie);
-  }
-
-  return result;
-}
+export { STANDAARD_EENHEDEN };
 ```
 
 ---
 
-## Stap 5: `src/pages/Recepten.tsx`
-
-Verwijder type toggle, type kolom, en pas subtitle aan.
+## Stap 2: `src/components/polar/NestoSelectWithCustom.tsx` (nieuw)
 
 ```tsx
 import * as React from "react";
-import {
-  PageHeader,
-  SearchBar,
-  NestoSelect,
-  NestoButton,
-  NestoBadge,
-  DataTable,
-  Spinner,
-} from "@/components/polar";
-import { Switch } from "@/components/ui/switch";
-import { BookOpen, Plus } from "lucide-react";
-import { useRecepten, filterRecepten, ReceptRow, ReceptenFilters } from "@/hooks/useRecepten";
-import { NieuwReceptModal } from "@/components/recepten/NieuwReceptModal";
-import { ReceptDetailPanel } from "@/components/recepten/ReceptDetailPanel";
-import type { DataTableColumn } from "@/components/polar";
+import { NestoSelect } from "./NestoSelect";
+import { NestoInput } from "./NestoInput";
+import type { SelectOption } from "./NestoSelect";
 
-const CATEGORIE_FILTER_OPTIONS = [
-  { value: "", label: "Alle categorieën" },
-  { value: "sauzen", label: "Sauzen" },
-  { value: "bijgerechten", label: "Bijgerechten" },
-  { value: "hoofdgerechten", label: "Hoofdgerechten" },
-  { value: "desserts", label: "Desserts" },
-  { value: "bases", label: "Bases" },
-  { value: "marinades", label: "Marinades" },
+const CUSTOM_SENTINEL = "__custom__";
+
+interface NestoSelectWithCustomProps {
+  label?: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: SelectOption[];
+  suggestions?: string[];
+  placeholder?: string;
+  error?: string;
+  disabled?: boolean;
+  className?: string;
+}
+
+export function NestoSelectWithCustom({
+  label,
+  value,
+  onValueChange,
+  options,
+  suggestions = [],
+  placeholder,
+  error,
+  disabled,
+  className,
+}: NestoSelectWithCustomProps) {
+  const isStandard = options.some((o) => o.value === value);
+  const [showCustom, setShowCustom] = React.useState(!isStandard && value !== "");
+  const [customValue, setCustomValue] = React.useState(!isStandard ? value : "");
+
+  React.useEffect(() => {
+    const std = options.some((o) => o.value === value);
+    if (std) {
+      setShowCustom(false);
+      setCustomValue("");
+    } else if (value) {
+      setShowCustom(true);
+      setCustomValue(value);
+    }
+  }, [value, options]);
+
+  const allOptions: SelectOption[] = [
+    ...options,
+    { value: CUSTOM_SENTINEL, label: "Anders..." },
+  ];
+
+  const selectValue = showCustom ? CUSTOM_SENTINEL : value;
+
+  const handleSelectChange = (v: string) => {
+    if (v === CUSTOM_SENTINEL) {
+      setShowCustom(true);
+      setCustomValue("");
+    } else {
+      setShowCustom(false);
+      setCustomValue("");
+      onValueChange(v);
+    }
+  };
+
+  const handleCustomChange = (v: string) => {
+    setCustomValue(v);
+    onValueChange(v);
+  };
+
+  // Filter suggestions that aren't already in standard options
+  const filteredSuggestions = suggestions.filter(
+    (s) => !options.some((o) => o.value === s)
+  );
+
+  return (
+    <div className="space-y-2">
+      <NestoSelect
+        label={label}
+        value={selectValue}
+        onValueChange={handleSelectChange}
+        options={allOptions}
+        placeholder={placeholder}
+        error={!showCustom ? error : undefined}
+        disabled={disabled}
+        className={className}
+      />
+
+      {showCustom && (
+        <div className="space-y-1.5">
+          <NestoInput
+            value={customValue}
+            onChange={(e) => handleCustomChange(e.target.value)}
+            placeholder="bijv. zwarte bak, emmer..."
+            autoFocus
+            className="h-10"
+            list="custom-eenheid-suggestions"
+          />
+          {filteredSuggestions.length > 0 && (
+            <datalist id="custom-eenheid-suggestions">
+              {filteredSuggestions.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          )}
+          {filteredSuggestions.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {filteredSuggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => handleCustomChange(s)}
+                  className="text-xs px-2 py-1 rounded-full bg-secondary text-muted-foreground hover:bg-accent transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+          {error && <p className="text-small text-destructive">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+Voeg toe aan `src/components/polar/index.ts`:
+```typescript
+export { NestoSelectWithCustom } from "./NestoSelectWithCustom";
+```
+
+---
+
+## Stap 3: `src/hooks/useEenheidConversies.ts` (nieuw)
+
+```typescript
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+export interface EenheidConversie {
+  id: string;
+  ingredient_id: string;
+  van_eenheid: string;
+  naar_eenheid: string;
+  factor: number;
+}
+
+export function useEenheidConversies(ingredientId: string | undefined) {
+  return useQuery({
+    queryKey: ["eenheid-conversies", ingredientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("eenheid_conversies")
+        .select("*")
+        .eq("ingredient_id", ingredientId!);
+      if (error) throw error;
+      return data as EenheidConversie[];
+    },
+    enabled: !!ingredientId,
+  });
+}
+
+export function useEenheidConversieMutations(ingredientId: string) {
+  const qc = useQueryClient();
+  const key = ["eenheid-conversies", ingredientId];
+
+  const addConversie = useMutation({
+    mutationFn: async (input: { van_eenheid: string; naar_eenheid: string; factor: number }) => {
+      const { error } = await supabase
+        .from("eenheid_conversies")
+        .insert({ ingredient_id: ingredientId, ...input });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      toast.success("Conversie toegevoegd");
+    },
+    onError: () => toast.error("Kon conversie niet opslaan"),
+  });
+
+  const deleteConversie = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("eenheid_conversies")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      toast.success("Conversie verwijderd");
+    },
+    onError: () => toast.error("Kon conversie niet verwijderen"),
+  });
+
+  return { addConversie, deleteConversie };
+}
+```
+
+---
+
+## Stap 4: `src/components/ingredienten/tabs/AlgemeenTab.tsx` (herschrijven)
+
+```tsx
+import * as React from "react";
+import { NestoInput } from "@/components/polar";
+import { NestoSelect } from "@/components/polar";
+import { NestoButton } from "@/components/polar";
+import { ConfirmDialog } from "@/components/polar";
+import { NestoSelectWithCustom } from "@/components/polar/NestoSelectWithCustom";
+import { useIngredientMutations } from "@/hooks/useIngredientMutations";
+import { useCustomEenheden, STANDAARD_EENHEDEN } from "@/hooks/useCustomEenheden";
+import { useEenheidConversies, useEenheidConversieMutations } from "@/hooks/useEenheidConversies";
+import type { IngredientRow } from "@/hooks/useIngredienten";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info, Archive, Trash2, Plus } from "lucide-react";
+
+const CATEGORIE_OPTIONS = [
+  { value: "groenten", label: "Groenten" },
+  { value: "vlees", label: "Vlees" },
+  { value: "vis", label: "Vis" },
+  { value: "zuivel", label: "Zuivel" },
+  { value: "kruiden", label: "Kruiden" },
+  { value: "olie", label: "Olie" },
+  { value: "droog", label: "Droog" },
   { value: "overig", label: "Overig" },
 ];
 
-export default function Recepten() {
-  const [filters, setFilters] = React.useState<ReceptenFilters>({
-    search: "",
-    categorie: "",
-    showArchived: false,
-  });
-  const [showNewModal, setShowNewModal] = React.useState(false);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+const EENHEID_OPTIONS = [
+  { value: "kg", label: "kg" },
+  { value: "g", label: "g" },
+  { value: "L", label: "L" },
+  { value: "ml", label: "ml" },
+  { value: "st", label: "st" },
+];
 
-  const { data, isLoading } = useRecepten(filters);
-  const filtered = filterRecepten(data, filters);
+const OPSLAG_OPTIONS = [
+  { value: "koeling", label: "Koeling" },
+  { value: "vriezer", label: "Vriezer" },
+  { value: "droog", label: "Droog" },
+  { value: "overig", label: "Overig" },
+];
 
-  const columns: DataTableColumn<ReceptRow>[] = [
-    {
-      key: "naam",
-      header: "Naam",
-      sortable: true,
-      render: (r) => <span className="font-medium text-foreground">{r.naam}</span>,
-    },
-    {
-      key: "categorie",
-      header: "Categorie",
-      render: (r) => (
-        <span className="text-muted-foreground capitalize">{r.categorie}</span>
-      ),
-    },
-    {
-      key: "porties",
-      header: "Porties",
-      render: (r) => <span className="text-muted-foreground">{r.porties}</span>,
-    },
-    {
-      key: "kostprijs",
-      header: "Kostprijs/portie",
-      render: (r) => {
-        const kpp = r.porties > 0 ? r.totale_kostprijs / r.porties : 0;
-        return <span className="font-medium text-foreground">€{kpp.toFixed(2)}</span>;
-      },
-    },
-    {
-      key: "allergenen",
-      header: "Allergenen",
-      render: (r) => {
-        const actief = (r.recept_allergenen || []).filter(
-          (a) => a.status === "bevat" || a.status === "kan_bevatten"
-        );
-        if (actief.length === 0) return <span className="text-muted-foreground">—</span>;
-        return (
-          <div className="flex gap-1 flex-wrap">
-            {actief.slice(0, 4).map((a) => (
-              <NestoBadge
-                key={a.id}
-                variant={a.status === "bevat" ? "error" : "warning"}
-                size="sm"
-              >
-                {a.allergenen?.naam_nl ?? "?"}
-              </NestoBadge>
-            ))}
-            {actief.length > 4 && (
-              <NestoBadge variant="default" size="sm">
-                +{actief.length - 4}
-              </NestoBadge>
-            )}
-          </div>
-        );
-      },
-    },
-  ];
+interface AlgemeenTabProps {
+  ingredient: IngredientRow;
+  onClose: () => void;
+}
+
+export function AlgemeenTab({ ingredient, onClose }: AlgemeenTabProps) {
+  const { updateIngredient, archiveIngredient } = useIngredientMutations();
+  const { data: customEenheden } = useCustomEenheden();
+  const { data: conversies } = useEenheidConversies(ingredient.id);
+  const { addConversie, deleteConversie } = useEenheidConversieMutations(ingredient.id);
+
+  const [naam, setNaam] = React.useState(ingredient.naam);
+  const [categorie, setCategorie] = React.useState(ingredient.categorie);
+  const [eenheid, setEenheid] = React.useState(ingredient.eenheid);
+  const [yieldPct, setYieldPct] = React.useState(ingredient.yield_percentage);
+  const [btwPercentage, setBtwPercentage] = React.useState(String(ingredient.btw_percentage ?? 9));
+  const [opslagType, setOpslagType] = React.useState(ingredient.opslag_type || "");
+  const [opslagLocatie, setOpslagLocatie] = React.useState(ingredient.opslag_locatie || "");
+  const [showArchiveConfirm, setShowArchiveConfirm] = React.useState(false);
+
+  // Conversie form state
+  const [convNaam, setConvNaam] = React.useState("");
+  const [convFactor, setConvFactor] = React.useState("");
+  const [convEenheid, setConvEenheid] = React.useState(ingredient.eenheid);
+
+  React.useEffect(() => {
+    setNaam(ingredient.naam);
+    setCategorie(ingredient.categorie);
+    setEenheid(ingredient.eenheid);
+    setYieldPct(ingredient.yield_percentage);
+    setBtwPercentage(String(ingredient.btw_percentage ?? 9));
+    setOpslagType(ingredient.opslag_type || "");
+    setOpslagLocatie(ingredient.opslag_locatie || "");
+    setConvEenheid(ingredient.eenheid);
+  }, [ingredient]);
+
+  const hasChanges =
+    naam !== ingredient.naam ||
+    categorie !== ingredient.categorie ||
+    eenheid !== ingredient.eenheid ||
+    yieldPct !== ingredient.yield_percentage ||
+    btwPercentage !== String(ingredient.btw_percentage ?? 9) ||
+    opslagType !== (ingredient.opslag_type || "") ||
+    opslagLocatie !== (ingredient.opslag_locatie || "");
+
+  const handleSave = () => {
+    updateIngredient.mutate({
+      id: ingredient.id,
+      naam,
+      categorie,
+      eenheid,
+      yield_percentage: yieldPct,
+      btw_percentage: Number(btwPercentage),
+      opslag_type: opslagType || null,
+      opslag_locatie: opslagLocatie || null,
+    });
+  };
+
+  const handleAddConversie = () => {
+    if (!convNaam.trim() || !convFactor || !convEenheid) return;
+    addConversie.mutate(
+      { van_eenheid: convNaam.trim(), naar_eenheid: convEenheid, factor: parseFloat(convFactor) },
+      { onSuccess: () => { setConvNaam(""); setConvFactor(""); } }
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Recepten"
-        subtitle="Beheer je halffabricaten en bereidingen."
-        actions={
-          <NestoButton
-            leftIcon={<Plus className="h-4 w-4" />}
-            onClick={() => setShowNewModal(true)}
-            className="min-h-[48px]"
-          >
-            Nieuw recept
-          </NestoButton>
-        }
+    <div className="space-y-5">
+      <div>
+        <label className="mb-2 block text-label text-muted-foreground">Naam</label>
+        <NestoInput value={naam} onChange={(e) => setNaam(e.target.value)} />
+      </div>
+
+      <NestoSelect
+        label="Categorie"
+        value={categorie}
+        onValueChange={setCategorie}
+        options={CATEGORIE_OPTIONS}
       />
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <SearchBar
-          value={filters.search}
-          onChange={(v) => setFilters((f) => ({ ...f, search: v }))}
-          placeholder="Zoek op naam..."
-          className="w-full sm:w-64"
-        />
-        <NestoSelect
-          value={filters.categorie}
-          onValueChange={(v) => setFilters((f) => ({ ...f, categorie: v }))}
-          options={CATEGORIE_FILTER_OPTIONS}
-          size="sm"
-        />
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={filters.showArchived}
-            onCheckedChange={(v) =>
-              setFilters((f) => ({ ...f, showArchived: v }))
-            }
+      <NestoSelectWithCustom
+        label="Eenheid"
+        value={eenheid}
+        onValueChange={setEenheid}
+        options={EENHEID_OPTIONS}
+        suggestions={customEenheden || []}
+      />
+
+      <div>
+        <div className="flex items-center gap-1.5 mb-2">
+          <label className="text-label text-muted-foreground">Yield percentage</label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-[220px] text-xs">
+                Hoeveel % van het ingekochte product is bruikbaar na schoonmaken/snijden
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="flex">
+          <NestoInput
+            type="number"
+            min={1}
+            max={100}
+            value={yieldPct}
+            onChange={(e) => setYieldPct(Number(e.target.value))}
+            className="rounded-r-none border-r-0"
           />
-          <span className="text-xs text-muted-foreground">Gearchiveerd</span>
+          <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-r-[var(--radius-button)] border-[1.5px] border-l-0 border-border">
+            %
+          </span>
         </div>
       </div>
 
-      {/* Table */}
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          keyExtractor={(r) => r.id}
-          onRowClick={(r) => setSelectedId(r.id)}
-          emptyMessage="Nog geen recepten toegevoegd"
-          emptyIcon={BookOpen}
+      <NestoSelect
+        label="BTW percentage"
+        value={btwPercentage}
+        onValueChange={setBtwPercentage}
+        options={[
+          { value: "9", label: "9%" },
+          { value: "21", label: "21%" },
+          { value: "0", label: "0%" },
+        ]}
+      />
+
+      <NestoSelect
+        label="Opslag type"
+        value={opslagType}
+        onValueChange={setOpslagType}
+        options={OPSLAG_OPTIONS}
+        placeholder="Selecteer..."
+      />
+
+      <div>
+        <label className="mb-2 block text-label text-muted-foreground">Opslag locatie</label>
+        <NestoInput
+          value={opslagLocatie}
+          onChange={(e) => setOpslagLocatie(e.target.value)}
+          placeholder="bijv. Koeling 2, Schap 3"
         />
+      </div>
+
+      {hasChanges && (
+        <NestoButton
+          onClick={handleSave}
+          isLoading={updateIngredient.isPending}
+          className="w-full"
+        >
+          Opslaan
+        </NestoButton>
       )}
 
-      <NieuwReceptModal
-        open={showNewModal}
-        onOpenChange={setShowNewModal}
-        onCreated={(id) => setSelectedId(id)}
-      />
+      {/* Eigen eenheid koppelen */}
+      <div className="pt-4 border-t border-border/50">
+        <div className="flex items-center gap-1.5 mb-3">
+          <label className="text-label text-muted-foreground font-medium">Eigen eenheid koppelen</label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-[240px] text-xs">
+                Definieer eigen eenheden zoals "zwarte bak" en koppel ze aan standaard eenheden voor omrekening.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
-      <ReceptDetailPanel
-        receptId={selectedId}
-        open={!!selectedId}
-        onClose={() => setSelectedId(null)}
+        {/* Bestaande conversies */}
+        {conversies && conversies.length > 0 && (
+          <div className="space-y-2 mb-3">
+            {conversies.map((c) => (
+              <div key={c.id} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+                <span className="text-sm">
+                  1 <span className="font-medium">{c.van_eenheid}</span> = {c.factor} {c.naar_eenheid}
+                </span>
+                <button
+                  onClick={() => deleteConversie.mutate(c.id)}
+                  className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Nieuwe conversie toevoegen */}
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <NestoInput
+              value={convNaam}
+              onChange={(e) => setConvNaam(e.target.value)}
+              placeholder="bijv. zwarte bak"
+              className="h-10"
+            />
+          </div>
+          <span className="text-sm text-muted-foreground pb-2.5">=</span>
+          <div className="w-20">
+            <NestoInput
+              type="number"
+              step="0.1"
+              value={convFactor}
+              onChange={(e) => setConvFactor(e.target.value)}
+              placeholder="2.5"
+              className="h-10"
+            />
+          </div>
+          <div className="w-20">
+            <NestoSelect
+              value={convEenheid}
+              onValueChange={setConvEenheid}
+              options={EENHEID_OPTIONS}
+              size="sm"
+            />
+          </div>
+          <NestoButton
+            variant="outline"
+            onClick={handleAddConversie}
+            disabled={!convNaam.trim() || !convFactor || addConversie.isPending}
+            className="h-10 px-3"
+          >
+            <Plus className="h-4 w-4" />
+          </NestoButton>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-border/50">
+        <NestoButton
+          variant="outline"
+          onClick={() => setShowArchiveConfirm(true)}
+          className="w-full text-muted-foreground"
+        >
+          <Archive className="h-4 w-4 mr-2" />
+          Archiveren
+        </NestoButton>
+      </div>
+
+      <ConfirmDialog
+        open={showArchiveConfirm}
+        onOpenChange={setShowArchiveConfirm}
+        title="Ingrediënt archiveren?"
+        description="Het ingrediënt wordt verborgen uit het overzicht maar niet verwijderd."
+        confirmLabel="Archiveren"
+        variant="destructive"
+        onConfirm={() => {
+          archiveIngredient.mutate(ingredient.id, {
+            onSuccess: () => onClose(),
+          });
+        }}
       />
     </div>
   );
@@ -571,88 +553,148 @@ export default function Recepten() {
 
 ---
 
-## Stap 6: Placeholder pagina's
+## Stap 5: `src/components/mep/MepCompletionModal.tsx` (herschrijven)
 
-### `src/pages/KaartbeheerMenus.tsx`
+Toon `visuele_eenheid` waar beschikbaar in plaats van `output_eenheid`:
 
 ```tsx
-import { PageHeader, EmptyState } from "@/components/polar";
-import { BookOpen } from "lucide-react";
+import { useState } from "react";
+import { NestoModal } from "@/components/polar/NestoModal";
+import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoButton } from "@/components/polar/NestoButton";
+import { useCompleteMepTask } from "@/hooks/useMepMutations";
+import type { MepTask } from "@/hooks/useMepTasks";
 
-export default function KaartbeheerMenus() {
+interface MepCompletionModalProps {
+  task: MepTask;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionModalProps) {
+  const methode = task.methode;
+  const defaultUnits = task.units ?? 1;
+  const verwachteGram = methode
+    ? methode.output_hoeveelheid * defaultUnits
+    : undefined;
+
+  // Use visuele_eenheid if available, otherwise fall back to output_eenheid
+  const displayEenheid = methode?.visuele_eenheid || methode?.output_eenheid;
+
+  const [unitsGemaakt, setUnitsGemaakt] = useState(defaultUnits);
+  const [werkelijkeGram, setWerkelijkeGram] = useState<string>(
+    verwachteGram?.toString() ?? ""
+  );
+  const [temperatuur, setTemperatuur] = useState<string>("");
+
+  const completeTask = useCompleteMepTask();
+
+  const calculatedYield =
+    verwachteGram && werkelijkeGram
+      ? Math.round((parseFloat(werkelijkeGram) / verwachteGram) * 100)
+      : undefined;
+
+  const handleSubmit = () => {
+    completeTask.mutate(
+      {
+        taskId: task.id,
+        task,
+        unitsGemaakt,
+        werkelijkeGram: werkelijkeGram ? parseFloat(werkelijkeGram) : undefined,
+        yieldPercentage: calculatedYield,
+        temperatuur: temperatuur ? parseFloat(temperatuur) : undefined,
+      },
+      {
+        onSuccess: () => onOpenChange(false),
+      }
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      <PageHeader title="Menu's" subtitle="Stel menu's samen voor je restaurant." />
-      <EmptyState
-        icon={BookOpen}
-        title="Menu's"
-        description="Hier kun je binnenkort menu's samenstellen en beheren."
-      />
-    </div>
+    <NestoModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Afronden: ${task.title}`}
+      description={
+        methode
+          ? `${methode.type} · ${methode.output_hoeveelheid} ${displayEenheid}`
+          : undefined
+      }
+      footer={
+        <div className="flex justify-end gap-3 w-full">
+          <NestoButton variant="outline" onClick={() => onOpenChange(false)}>
+            Annuleren
+          </NestoButton>
+          <NestoButton
+            onClick={handleSubmit}
+            disabled={completeTask.isPending || unitsGemaakt <= 0}
+          >
+            {completeTask.isPending ? "Bezig..." : "Afronden"}
+          </NestoButton>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <NestoInput
+          label="Aantal gemaakt"
+          type="number"
+          min={1}
+          value={unitsGemaakt}
+          onChange={(e) => setUnitsGemaakt(Number(e.target.value))}
+          className="text-lg h-14"
+        />
+
+        {verwachteGram !== undefined && (
+          <div className="bg-muted/30 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground mb-1">Verwachte output</p>
+            <p className="text-sm font-medium">
+              {(methode!.output_hoeveelheid * unitsGemaakt).toFixed(0)}{" "}
+              {displayEenheid}
+            </p>
+          </div>
+        )}
+
+        {methode && (
+          <NestoInput
+            label={`Werkelijke output (${displayEenheid})`}
+            type="number"
+            step="0.1"
+            value={werkelijkeGram}
+            onChange={(e) => setWerkelijkeGram(e.target.value)}
+            className="text-lg h-14"
+          />
+        )}
+
+        {calculatedYield !== undefined && (
+          <div className="bg-muted/30 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground mb-1">Yield</p>
+            <p
+              className={`text-sm font-medium ${
+                calculatedYield >= 90
+                  ? "text-success"
+                  : calculatedYield >= 70
+                  ? "text-warning"
+                  : "text-destructive"
+              }`}
+            >
+              {calculatedYield}%
+            </p>
+          </div>
+        )}
+
+        <NestoInput
+          label="Temperatuur (°C, optioneel)"
+          type="number"
+          step="0.1"
+          value={temperatuur}
+          onChange={(e) => setTemperatuur(e.target.value)}
+          className="h-14"
+        />
+      </div>
+    </NestoModal>
   );
 }
 ```
-
-### `src/pages/KaartbeheerMenuEngineering.tsx`
-
-```tsx
-import { PageHeader, EmptyState } from "@/components/polar";
-import { BarChart3 } from "lucide-react";
-
-export default function KaartbeheerMenuEngineering() {
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Menu Engineering" subtitle="Analyseer de prestaties van je menukaart." />
-      <EmptyState
-        icon={BarChart3}
-        title="Menu Engineering"
-        description="Hier kun je binnenkort de populariteit en winstgevendheid van je gerechten analyseren."
-      />
-    </div>
-  );
-}
-```
-
----
-
-## Stap 7: `src/App.tsx`
-
-Wijzigingen:
-1. Voeg imports toe voor `KaartbeheerMenus` en `KaartbeheerMenuEngineering`
-2. Voeg 2 routes toe na de kaartbeheer routes
-3. Verwijder `/halffabricaten` routes (redirect naar `/recepten`)
-4. Verwijder `/kostprijzen` route
-5. Verplaats `/taken` comment van "Service" naar "Keuken"
-
-Concrete wijzigingen in routes sectie:
-
-```tsx
-// Imports toevoegen:
-import KaartbeheerMenus from "./pages/KaartbeheerMenus";
-import KaartbeheerMenuEngineering from "./pages/KaartbeheerMenuEngineering";
-
-// Routes sectie wordt:
-
-{/* Keuken */}
-<Route path="/mep" element={<MepTaken />} />
-<Route path="/halffabricaten" element={<Navigate to="/recepten" replace />} />
-<Route path="/halffabricaten/:id" element={<Navigate to="/recepten" replace />} />
-<Route path="/recepten" element={<Recepten />} />
-<Route path="/recepten/:id" element={<ReceptenDetail />} />
-<Route path="/voorraad" element={<Ingredienten />} />
-<Route path="/inkoop" element={<Inkoop />} />
-<Route path="/inkoop/leveranciers" element={<Leveranciers />} />
-<Route path="/interne-bestellingen" element={<InterneBestellingen />} />
-<Route path="/taken" element={<Taken />} />
-
-{/* Kaartbeheer */}
-<Route path="/kaartbeheer" element={<Kaartbeheer />} />
-<Route path="/kaartbeheer/:id" element={<KaartbeheerDetail />} />
-<Route path="/kaartbeheer/menus" element={<KaartbeheerMenus />} />
-<Route path="/kaartbeheer/menu-engineering" element={<KaartbeheerMenuEngineering />} />
-```
-
-Verwijder de `/kostprijzen` route. De `Kostprijzen` import kan ook verwijderd worden.
 
 ---
 
@@ -660,12 +702,10 @@ Verwijder de `/kostprijzen` route. De `Kostprijzen` import kan ook verwijderd wo
 
 | Bestand | Actie |
 |---|---|
-| `src/lib/navigation.ts` | Volledig herschrijven |
-| `src/lib/navigationBuilder.ts` | Maps opschonen |
-| `src/components/layout/NestoSidebar.tsx` | isMultiLocation filter verwijderen |
-| `src/hooks/useRecepten.ts` | Filter op halffabricaat, type uit filters |
-| `src/pages/Recepten.tsx` | Type toggle + kolom verwijderen, subtitle |
-| `src/pages/KaartbeheerMenus.tsx` | Nieuw — placeholder |
-| `src/pages/KaartbeheerMenuEngineering.tsx` | Nieuw — placeholder |
-| `src/App.tsx` | Routes + imports aanpassen |
+| `src/hooks/useCustomEenheden.ts` | Nieuw |
+| `src/hooks/useEenheidConversies.ts` | Nieuw |
+| `src/components/polar/NestoSelectWithCustom.tsx` | Nieuw |
+| `src/components/polar/index.ts` | Export toevoegen |
+| `src/components/ingredienten/tabs/AlgemeenTab.tsx` | Herschrijven — custom eenheid + conversies sectie |
+| `src/components/mep/MepCompletionModal.tsx` | Herschrijven — visuele_eenheid doorvoeren |
 
