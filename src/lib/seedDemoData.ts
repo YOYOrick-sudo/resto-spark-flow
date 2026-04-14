@@ -5,7 +5,7 @@ const SEED_LEVERANCIER_NAMES = ["Kooyman Grootverbruik", "Bidfood"];
 const SEED_INGREDIENT_NAMES = [
   "Kipfilet", "Zalm vers", "Tomaten", "Uien", "Knoflook",
   "Olijfolie extra vierge", "Slagroom", "Boter", "Pasta penne",
-  "Bloem patent", "Eieren (doos 30st)", "Parmezaanse kaas",
+  "Bloem patent", "Eieren", "Parmezaanse kaas",
   "Basilicum vers", "Citroenen", "Rundvlees entrecote",
 ];
 const SEED_RECEPT_NAMES = [
@@ -27,6 +27,8 @@ interface SeedResult {
     gerechten: number;
     mepTaken: number;
     voorraadBewegingen: number;
+    leveranciersArtikelen: number;
+    wasteRegistraties: number;
   };
 }
 
@@ -49,13 +51,20 @@ export async function deleteDemoData(locationId: string): Promise<{ success: boo
       .in("naam", SEED_GERECHT_NAMES);
     const gerIds = (gerechten ?? []).map(g => g.id);
 
+    // Get leverancier IDs
+    const { data: leveranciers } = await supabase
+      .from("leveranciers").select("id").eq("location_id", locationId)
+      .in("naam", SEED_LEVERANCIER_NAMES);
+    const levIds = (leveranciers ?? []).map(l => l.id);
+
     // 2. Delete in reverse dependency order
+    // Waste registraties
     if (ingIds.length > 0) {
+      await supabase.from("waste_registraties").delete().eq("location_id", locationId).in("ingredient_id", ingIds);
       await supabase.from("voorraad_bewegingen").delete().in("ingredient_id", ingIds);
     }
 
     if (recIds.length > 0) {
-      // mep_task_completions via mep_tasks
       const { data: mepTasks } = await supabase
         .from("mep_tasks").select("id").eq("location_id", locationId)
         .in("recept_id", recIds);
@@ -75,6 +84,11 @@ export async function deleteDemoData(locationId: string): Promise<{ success: boo
       await supabase.from("recept_ingredienten").delete().in("recept_id", recIds);
       await supabase.from("halffabricaat_methodes").delete().in("recept_id", recIds);
       await supabase.from("recepten").delete().in("id", recIds);
+    }
+
+    // Leveranciers-artikelen
+    if (levIds.length > 0) {
+      await supabase.from("leveranciers_artikelen").delete().in("leverancier_id", levIds);
     }
 
     if (ingIds.length > 0) {
@@ -149,21 +163,21 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
     // 2. INGREDIËNTEN
     // ═══════════════════════════════════════════════════════════
     const ingredientData = [
-      { naam: "Kipfilet", categorie: "Vlees", eenheid: "kg", kostprijs: 8.5, yield_percentage: 95, voorraad: 4.5, min_voorraad: 3, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
-      { naam: "Zalm vers", categorie: "Vis", eenheid: "kg", kostprijs: 22, yield_percentage: 85, voorraad: 2, min_voorraad: 1.5, opslag_type: "koeling", lev: "Bidfood" },
-      { naam: "Tomaten", categorie: "Groenten", eenheid: "kg", kostprijs: 2.8, yield_percentage: 90, voorraad: 8, min_voorraad: 5, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
-      { naam: "Uien", categorie: "Groenten", eenheid: "kg", kostprijs: 1.2, yield_percentage: 88, voorraad: 10, min_voorraad: 5, opslag_type: "droog", lev: "Kooyman Grootverbruik" },
-      { naam: "Knoflook", categorie: "Groenten", eenheid: "kg", kostprijs: 6.5, yield_percentage: 85, voorraad: 1.5, min_voorraad: 1, opslag_type: "droog", lev: "Bidfood" },
-      { naam: "Olijfolie extra vierge", categorie: "Olie & Vetten", eenheid: "L", kostprijs: 8.9, yield_percentage: 100, voorraad: 5, min_voorraad: 3, opslag_type: "droog", lev: "Bidfood" },
-      { naam: "Slagroom", categorie: "Zuivel", eenheid: "L", kostprijs: 4.2, yield_percentage: 100, voorraad: 3, min_voorraad: 2, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
-      { naam: "Boter", categorie: "Zuivel", eenheid: "kg", kostprijs: 7.5, yield_percentage: 100, voorraad: 2, min_voorraad: 1.5, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
-      { naam: "Pasta penne", categorie: "Droog & Conserven", eenheid: "kg", kostprijs: 1.9, yield_percentage: 100, voorraad: 8, min_voorraad: 5, opslag_type: "droog", lev: "Bidfood" },
-      { naam: "Bloem patent", categorie: "Droog & Conserven", eenheid: "kg", kostprijs: 0.85, yield_percentage: 100, voorraad: 10, min_voorraad: 5, opslag_type: "droog", lev: "Bidfood" },
-      { naam: "Eieren (doos 30st)", categorie: "Zuivel", eenheid: "st", kostprijs: 0.18, yield_percentage: 100, voorraad: 60, min_voorraad: 30, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
-      { naam: "Parmezaanse kaas", categorie: "Zuivel", eenheid: "kg", kostprijs: 18.5, yield_percentage: 95, voorraad: 1, min_voorraad: 0.5, opslag_type: "koeling", lev: "Bidfood" },
-      { naam: "Basilicum vers", categorie: "Kruiden & Specerijen", eenheid: "kg", kostprijs: 25, yield_percentage: 70, voorraad: 0.3, min_voorraad: 0.2, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
-      { naam: "Citroenen", categorie: "Groenten", eenheid: "kg", kostprijs: 3.2, yield_percentage: 75, voorraad: 2, min_voorraad: 1, opslag_type: "koeling", lev: "Bidfood" },
-      { naam: "Rundvlees entrecote", categorie: "Vlees", eenheid: "kg", kostprijs: 28, yield_percentage: 92, voorraad: 3, min_voorraad: 2, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
+      { naam: "Kipfilet", categorie: "Vlees", eenheid: "kg", kostprijs: 8.5, yield_percentage: 95, voorraad: 4.5, min_voorraad: 3, max_voorraad: 15, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
+      { naam: "Zalm vers", categorie: "Vis", eenheid: "kg", kostprijs: 22, yield_percentage: 85, voorraad: 2, min_voorraad: 1.5, max_voorraad: 8, opslag_type: "koeling", lev: "Bidfood" },
+      { naam: "Tomaten", categorie: "Groenten", eenheid: "kg", kostprijs: 2.8, yield_percentage: 90, voorraad: 8, min_voorraad: 5, max_voorraad: 20, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
+      { naam: "Uien", categorie: "Groenten", eenheid: "kg", kostprijs: 1.2, yield_percentage: 88, voorraad: 10, min_voorraad: 5, max_voorraad: 25, opslag_type: "droog", lev: "Kooyman Grootverbruik" },
+      { naam: "Knoflook", categorie: "Groenten", eenheid: "kg", kostprijs: 6.5, yield_percentage: 85, voorraad: 1.5, min_voorraad: 1, max_voorraad: 5, opslag_type: "droog", lev: "Bidfood" },
+      { naam: "Olijfolie extra vierge", categorie: "Olie & Vetten", eenheid: "L", kostprijs: 8.9, yield_percentage: 100, voorraad: 5, min_voorraad: 3, max_voorraad: 10, opslag_type: "droog", lev: "Bidfood" },
+      { naam: "Slagroom", categorie: "Zuivel", eenheid: "L", kostprijs: 4.2, yield_percentage: 100, voorraad: 3, min_voorraad: 2, max_voorraad: 8, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
+      { naam: "Boter", categorie: "Zuivel", eenheid: "kg", kostprijs: 7.5, yield_percentage: 100, voorraad: 2, min_voorraad: 1.5, max_voorraad: 6, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
+      { naam: "Pasta penne", categorie: "Droog & Conserven", eenheid: "kg", kostprijs: 1.9, yield_percentage: 100, voorraad: 8, min_voorraad: 5, max_voorraad: 20, opslag_type: "droog", lev: "Bidfood" },
+      { naam: "Bloem patent", categorie: "Droog & Conserven", eenheid: "kg", kostprijs: 0.85, yield_percentage: 100, voorraad: 10, min_voorraad: 5, max_voorraad: 25, opslag_type: "droog", lev: "Bidfood" },
+      { naam: "Eieren", categorie: "Zuivel", eenheid: "st", kostprijs: 0.18, yield_percentage: 100, voorraad: 60, min_voorraad: 30, max_voorraad: 120, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
+      { naam: "Parmezaanse kaas", categorie: "Zuivel", eenheid: "kg", kostprijs: 18.5, yield_percentage: 95, voorraad: 1, min_voorraad: 0.5, max_voorraad: 3, opslag_type: "koeling", lev: "Bidfood" },
+      { naam: "Basilicum vers", categorie: "Kruiden & Specerijen", eenheid: "kg", kostprijs: 25, yield_percentage: 70, voorraad: 0.15, min_voorraad: 0.2, max_voorraad: 1, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
+      { naam: "Citroenen", categorie: "Groenten", eenheid: "kg", kostprijs: 3.2, yield_percentage: 75, voorraad: 2, min_voorraad: 1, max_voorraad: 5, opslag_type: "koeling", lev: "Bidfood" },
+      { naam: "Rundvlees entrecote", categorie: "Vlees", eenheid: "kg", kostprijs: 28, yield_percentage: 92, voorraad: 3, min_voorraad: 2, max_voorraad: 8, opslag_type: "koeling", lev: "Kooyman Grootverbruik" },
     ];
 
     const { data: ingredienten, error: ingErr } = await supabase
@@ -180,6 +194,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
           yield_percentage: i.yield_percentage,
           voorraad: i.voorraad,
           min_voorraad: i.min_voorraad,
+          max_voorraad: i.max_voorraad,
           opslag_type: i.opslag_type,
         }))
       )
@@ -209,7 +224,7 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
         "Zalm vers": { bevat: ["VIS"] },
         "Pasta penne": { bevat: ["GLU", "EI"], kan_bevatten: ["SOJ"] },
         "Bloem patent": { bevat: ["GLU"] },
-        "Eieren (doos 30st)": { bevat: ["EI"] },
+        "Eieren": { bevat: ["EI"] },
         "Slagroom": { bevat: ["MEL"] },
         "Boter": { bevat: ["MEL"] },
         "Parmezaanse kaas": { bevat: ["MEL"] },
@@ -561,6 +576,78 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
       .insert(bewegingenInserts);
     if (bewErr) throw new Error(`Voorraad bewegingen: ${bewErr.message}`);
 
+    // ═══════════════════════════════════════════════════════════
+    // 8. LEVERANCIERS-ARTIKELEN
+    // ═══════════════════════════════════════════════════════════
+    const artikelDefs = [
+      { lev: "Kooyman Grootverbruik", ing: "Kipfilet", artNr: "KG-2041", verpH: 2.5, verpE: "kg", prijs: 21.25 },
+      { lev: "Kooyman Grootverbruik", ing: "Tomaten", artNr: "KG-3012", verpH: 5, verpE: "kg", prijs: 14.00 },
+      { lev: "Kooyman Grootverbruik", ing: "Uien", artNr: "KG-3044", verpH: 10, verpE: "kg", prijs: 12.00 },
+      { lev: "Kooyman Grootverbruik", ing: "Slagroom", artNr: "KG-1022", verpH: 1, verpE: "L", prijs: 4.20 },
+      { lev: "Kooyman Grootverbruik", ing: "Boter", artNr: "KG-1055", verpH: 1, verpE: "kg", prijs: 7.50 },
+      { lev: "Kooyman Grootverbruik", ing: "Eieren", artNr: "KG-1090", verpH: 30, verpE: "st", prijs: 5.40 },
+      { lev: "Kooyman Grootverbruik", ing: "Basilicum vers", artNr: "KG-3099", verpH: 0.1, verpE: "kg", prijs: 2.50 },
+      { lev: "Kooyman Grootverbruik", ing: "Rundvlees entrecote", artNr: "KG-2088", verpH: 2, verpE: "kg", prijs: 56.00 },
+      { lev: "Bidfood", ing: "Zalm vers", artNr: "BF-50221", verpH: 1, verpE: "kg", prijs: 22.00 },
+      { lev: "Bidfood", ing: "Knoflook", artNr: "BF-30108", verpH: 0.5, verpE: "kg", prijs: 3.25 },
+      { lev: "Bidfood", ing: "Olijfolie extra vierge", artNr: "BF-40055", verpH: 5, verpE: "L", prijs: 44.50 },
+      { lev: "Bidfood", ing: "Pasta penne", artNr: "BF-60012", verpH: 5, verpE: "kg", prijs: 9.50 },
+      { lev: "Bidfood", ing: "Bloem patent", artNr: "BF-60033", verpH: 10, verpE: "kg", prijs: 8.50 },
+      { lev: "Bidfood", ing: "Parmezaanse kaas", artNr: "BF-10344", verpH: 1, verpE: "kg", prijs: 18.50 },
+      { lev: "Bidfood", ing: "Citroenen", artNr: "BF-30201", verpH: 2, verpE: "kg", prijs: 6.40 },
+    ];
+
+    const artikelInserts = artikelDefs.map((a) => ({
+      leverancier_id: levMap[a.lev],
+      ingredient_id: ingMap[a.ing],
+      artikel_naam: a.ing,
+      artikel_nummer: a.artNr,
+      verpakking_hoeveelheid: a.verpH,
+      verpakking_eenheid: a.verpE,
+      prijs_per_verpakking: a.prijs,
+      prijs_per_eenheid: Math.round((a.prijs / a.verpH) * 100) / 100,
+    }));
+
+    const { error: artErr } = await supabase
+      .from("leveranciers_artikelen")
+      .insert(artikelInserts);
+    if (artErr) throw new Error(`Leveranciers-artikelen: ${artErr.message}`);
+
+    // ═══════════════════════════════════════════════════════════
+    // 9. WASTE REGISTRATIES
+    // ═══════════════════════════════════════════════════════════
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    const wasteInserts = [
+      {
+        location_id: locationId,
+        ingredient_id: ingMap["Slagroom"],
+        hoeveelheid: 0.5,
+        eenheid: "L",
+        categorie: "bederf",
+        reden: "Over THT datum",
+        geschatte_kosten: 2.10,
+        waste_datum: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+        geregistreerd_door: currentUser?.id ?? null,
+      },
+      {
+        location_id: locationId,
+        ingredient_id: ingMap["Basilicum vers"],
+        hoeveelheid: 0.05,
+        eenheid: "kg",
+        categorie: "bederf",
+        reden: "Verwelkt",
+        geschatte_kosten: 1.25,
+        waste_datum: new Date(Date.now() - 172800000).toISOString().split("T")[0],
+        geregistreerd_door: currentUser?.id ?? null,
+      },
+    ];
+
+    const { error: wasteErr } = await supabase
+      .from("waste_registraties")
+      .insert(wasteInserts);
+    if (wasteErr) throw new Error(`Waste registraties: ${wasteErr.message}`);
+
     return {
       success: true,
       message: "Demo data succesvol aangemaakt!",
@@ -571,6 +658,8 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
         gerechten: gerechtenCount,
         mepTaken: mepDefs.length,
         voorraadBewegingen: bewegingen.length,
+        leveranciersArtikelen: artikelDefs.length,
+        wasteRegistraties: wasteInserts.length,
       },
     };
   } catch (error: any) {
