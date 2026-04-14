@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader, NestoButton, NestoBadge, DataTable, NestoInput } from "@/components/polar";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
@@ -15,12 +16,13 @@ const filterOptions = [
 ];
 
 export default function Leveranciers() {
+  const navigate = useNavigate();
   const { data: leveranciers, isLoading } = useLeveranciers();
   const mutations = useVoorraadInkoopMutations();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [panelMode, setPanelMode] = useState<"create" | "detail" | null>(null);
+  const [panelMode, setPanelMode] = useState<"detail" | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = (leveranciers ?? []).filter((l) => {
@@ -72,18 +74,12 @@ export default function Leveranciers() {
   };
 
   const handleCreateClick = () => {
-    setSelectedId(null);
-    setPanelMode("create");
+    navigate("/inkoop/leveranciers/nieuw");
   };
 
   const handlePanelClose = () => {
     setPanelMode(null);
     setSelectedId(null);
-  };
-
-  const handleCreated = (id: string) => {
-    setSelectedId(id);
-    setPanelMode("detail");
   };
 
   return (
@@ -128,7 +124,7 @@ export default function Leveranciers() {
         mode={panelMode}
         leverancierId={selectedId}
         onClose={handlePanelClose}
-        onCreated={handleCreated}
+        onCreated={() => {}}
       />
     </div>
   );
