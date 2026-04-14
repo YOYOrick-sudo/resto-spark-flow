@@ -32,9 +32,9 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
-      toast.success("Leverancier aangemaakt");
+      nestoToast.success("Leverancier aangemaakt");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const updateLeverancier = useMutation({
@@ -45,9 +45,9 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
       qc.invalidateQueries({ queryKey: ["leverancier-detail"] });
-      toast.success("Leverancier bijgewerkt");
+      nestoToast.success("Leverancier bijgewerkt");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const deleteLeverancier = useMutation({
@@ -57,9 +57,9 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
-      toast.success("Leverancier verwijderd");
+      nestoToast.success("Leverancier verwijderd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   // ── Artikelen ────────────────────────────────────────────────
@@ -81,9 +81,9 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leverancier-detail"] });
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
-      toast.success("Artikel toegevoegd");
+      nestoToast.success("Artikel toegevoegd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const deleteArtikel = useMutation({
@@ -94,9 +94,9 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leverancier-detail"] });
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
-      toast.success("Artikel verwijderd");
+      nestoToast.success("Artikel verwijderd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   // ── Bestellingen ─────────────────────────────────────────────
@@ -148,9 +148,9 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestellingen"] });
       qc.invalidateQueries({ queryKey: ["besteladvies"] });
-      toast.success("Bestellijst aangemaakt");
+      nestoToast.success("Bestellijst aangemaakt");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const updateBestelling = useMutation({
@@ -161,9 +161,9 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestellingen"] });
       qc.invalidateQueries({ queryKey: ["bestelling"] });
-      toast.success("Bestelling bijgewerkt");
+      nestoToast.success("Bestelling bijgewerkt");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const deleteBestelling = useMutation({
@@ -173,9 +173,9 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestellingen"] });
-      toast.success("Bestelling verwijderd");
+      nestoToast.success("Bestelling verwijderd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   // ── Bestelregels ─────────────────────────────────────────────
@@ -187,7 +187,7 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestelling"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const deleteBestelregel = useMutation({
@@ -197,9 +197,9 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestelling"] });
-      toast.success("Regel verwijderd");
+      nestoToast.success("Regel verwijderd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const addBestelregel = useMutation({
@@ -216,9 +216,9 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestelling"] });
-      toast.success("Regel toegevoegd");
+      nestoToast.success("Regel toegevoegd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   // ── Waste ────────────────────────────────────────────────────
@@ -243,9 +243,9 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["waste-registraties"] });
-      toast.success("Waste geregistreerd");
+      nestoToast.success("Waste geregistreerd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   // ── Herbestelling ────────────────────────────────────────────
@@ -273,7 +273,7 @@ export function useVoorraadInkoopMutations() {
         })),
       });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   return {

@@ -39,9 +39,9 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
-      toast.success("Factuur geüpload — vul de regels in");
+      nestoToast.success("Factuur geüpload — vul de regels in");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const updateFactuur = useMutation({
@@ -53,7 +53,7 @@ export function useFactuurMutations() {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const addRegel = useMutation({
@@ -72,9 +72,9 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
-      toast.success("Regel toegevoegd");
+      nestoToast.success("Regel toegevoegd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const updateRegel = useMutation({
@@ -85,7 +85,7 @@ export function useFactuurMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const deleteRegel = useMutation({
@@ -95,9 +95,9 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
-      toast.success("Regel verwijderd");
+      nestoToast.success("Regel verwijderd");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const matchRegel = useMutation({
@@ -110,9 +110,9 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
-      toast.success("Ingrediënt gekoppeld");
+      nestoToast.success("Ingrediënt gekoppeld");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const goedkeuren = useMutation({
@@ -160,9 +160,9 @@ export function useFactuurMutations() {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
       qc.invalidateQueries({ queryKey: ["ingredienten"] });
-      toast.success(`Prijzen bijgewerkt voor ${result.updated} ingrediënten`);
+      nestoToast.success(`Prijzen bijgewerkt voor ${result.updated} ingrediënten`);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   const afwijzen = useMutation({
@@ -176,9 +176,9 @@ export function useFactuurMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
-      toast.success("Factuur afgewezen");
+      nestoToast.success("Factuur afgewezen");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => nestoToast.error(e.message),
   });
 
   return { uploadFactuur, updateFactuur, addRegel, updateRegel, deleteRegel, matchRegel, goedkeuren, afwijzen };

@@ -85,10 +85,10 @@ export function useUpdateKeukenSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["keuken-settings", locationId] });
-      toast.success("Keuken instellingen opgeslagen");
+      nestoToast.success("Keuken instellingen opgeslagen");
     },
     onError: () => {
-      toast.error("Fout bij opslaan instellingen");
+      nestoToast.error("Fout bij opslaan instellingen");
     },
   });
 }
@@ -110,7 +110,7 @@ export function useUpdateAiBevoegdheden() {
       queryClient.invalidateQueries({ queryKey: ["keuken-settings", locationId] });
     },
     onError: () => {
-      toast.error("Fout bij opslaan bevoegdheden");
+      nestoToast.error("Fout bij opslaan bevoegdheden");
     },
   });
 }
