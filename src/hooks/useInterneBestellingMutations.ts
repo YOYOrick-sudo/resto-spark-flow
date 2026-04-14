@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 interface NieuweRegel {
   ingredient_id?: string | null;
@@ -74,11 +74,11 @@ export function useInterneBestellingMutations() {
       return bestelling;
     },
     onSuccess: async () => {
-      toast.success("Aanvraag verstuurd");
+      nestoToast.success("Aanvraag verstuurd");
       invalidate();
       await broadcast();
     },
-    onError: (e) => toast.error(`Fout: ${e.message}`),
+    onError: (e) => nestoToast.error(`Fout: ${e.message}`),
   });
 
   const updateStatus = useMutation({
@@ -96,11 +96,11 @@ export function useInterneBestellingMutations() {
         ontvangen: "Bestelling ontvangen",
         geannuleerd: "Bestelling geannuleerd",
       };
-      toast.success(messages[status] ?? "Status bijgewerkt");
+      nestoToast.success(messages[status] ?? "Status bijgewerkt");
       invalidate();
       await broadcast();
     },
-    onError: (e) => toast.error(`Fout: ${e.message}`),
+    onError: (e) => nestoToast.error(`Fout: ${e.message}`),
   });
 
   const updateRegelHoeveelheden = useMutation({
@@ -119,7 +119,7 @@ export function useInterneBestellingMutations() {
       invalidate();
       await broadcast();
     },
-    onError: (e) => toast.error(`Fout: ${e.message}`),
+    onError: (e) => nestoToast.error(`Fout: ${e.message}`),
   });
 
   return { createBestelling, updateStatus, updateRegelHoeveelheden };

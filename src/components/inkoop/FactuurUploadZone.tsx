@@ -3,7 +3,7 @@ import { Upload, FileText } from "lucide-react";
 import { NestoButton, NestoSelect } from "@/components/polar";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 const MAX_SIZE = 10 * 1024 * 1024;
@@ -28,11 +28,11 @@ export function FactuurUploadZone() {
     if (!files || files.length === 0) return;
     const f = files[0];
     if (!ACCEPTED_TYPES.includes(f.type)) {
-      toast.error("Alleen PDF, JPG of PNG bestanden zijn toegestaan");
+      nestoToast.error("Alleen PDF, JPG of PNG bestanden zijn toegestaan");
       return;
     }
     if (f.size > MAX_SIZE) {
-      toast.error("Bestand is te groot (max 10MB)");
+      nestoToast.error("Bestand is te groot (max 10MB)");
       return;
     }
     setFile(f);

@@ -4,7 +4,7 @@ import { NestoInput, NestoBadge } from "@/components/polar";
 import { useUserContext } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { X, ImageIcon } from "lucide-react";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export function GerechtStapPrijs() {
   const { formData, setStepData } = useStepWizard();
@@ -43,7 +43,7 @@ export function GerechtStapPrijs() {
       update({ foto_url: urlData.publicUrl });
     } catch (err) {
       console.error("Upload failed:", err);
-      toast.error("Foto uploaden mislukt");
+      nestoToast.error("Foto uploaden mislukt");
     } finally {
       setUploading(false);
     }

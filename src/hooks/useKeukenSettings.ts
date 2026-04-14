@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export interface KeukenSettings {
   besteladvies_buffer_percentage: number | null;

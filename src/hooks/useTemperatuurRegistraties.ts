@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export interface TempRegistratie {
   id: string;
@@ -98,9 +98,9 @@ export function useTemperatuurRegistraties() {
       queryClient.invalidateQueries({ queryKey: ["temp-registraties-vandaag", locationId, today] });
       queryClient.invalidateQueries({ queryKey: ["temp-registraties-week", locationId] });
       queryClient.invalidateQueries({ queryKey: ["temp-locatie-namen", locationId] });
-      toast.success("Temperatuur geregistreerd");
+      nestoToast.success("Temperatuur geregistreerd");
     },
-    onError: () => toast.error("Fout bij registreren"),
+    onError: () => nestoToast.error("Fout bij registreren"),
   });
 
   return { vandaag, week, locatieNamen, registreer };
