@@ -102,6 +102,7 @@ export const menuItems: MenuItem[] = [
       { id: 'kitchen-kostprijzen', label: 'Kostprijzen', path: '/kostprijzen' },
       { id: 'kitchen-orders', label: 'Voorraad & Inkoop', path: '/inkoop' },
       { id: 'kitchen-transfers', label: 'Interne Bestellingen', path: '/interne-bestellingen' },
+      { id: 'kitchen-taken', label: 'Taken & HACCP', path: '/taken' },
     ],
   },
   {
@@ -145,16 +146,6 @@ export const menuItems: MenuItem[] = [
     icon: ShoppingBag,
     disabled: true,
     section: 'SERVICE',
-  },
-  {
-    id: 'service',
-    label: 'Service',
-    icon: ClipboardList,
-    expandable: true,
-    section: 'SERVICE',
-    subItems: [
-      { id: 'service-tasks', label: 'Taken & Checklists', path: '/taken' },
-    ],
   },
   {
     id: 'onboarding',
@@ -220,7 +211,8 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
     path.startsWith('/kostprijzen') ||
     path.startsWith('/mep') ||
     path.startsWith('/inkoop') ||
-    path.startsWith('/interne-bestellingen')
+    path.startsWith('/interne-bestellingen') ||
+    path.startsWith('/taken')
   ) {
     return 'kitchen';
   }

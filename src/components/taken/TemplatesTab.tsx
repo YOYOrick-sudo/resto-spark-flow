@@ -202,7 +202,7 @@ function TemplateEditorPanel({ template, isNew, open, onClose, onSave }: EditorP
         <NestoButton
           onClick={handleSave}
           disabled={!naam.trim() || items.length === 0}
-          loading={onSave.isPending}
+          isLoading={onSave.isPending}
           className="w-full min-h-[48px]"
         >
           Opslaan

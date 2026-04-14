@@ -37,11 +37,11 @@ export function DagelijksTab() {
         icon={CheckSquare}
         title="Geen checklist templates"
         description="Maak standaard templates aan om te beginnen."
-      >
-        <NestoButton onClick={() => seedTemplates.mutate()} loading={seedTemplates.isPending}>
-          Standaard templates aanmaken
-        </NestoButton>
-      </EmptyState>
+        action={{
+          label: "Standaard templates aanmaken",
+          onClick: () => seedTemplates.mutate(),
+        }}
+      />
     );
   }
 
@@ -63,7 +63,7 @@ export function DagelijksTab() {
             </div>
             <NestoButton
               onClick={() => startDag.mutate(activeTemplates.map((t) => t.id))}
-              loading={startDag.isPending}
+              isLoading={startDag.isPending}
               className="min-h-[48px] px-6"
             >
               <Play className="h-4 w-4 mr-2" />

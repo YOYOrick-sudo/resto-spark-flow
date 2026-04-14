@@ -98,7 +98,7 @@ export function ChecklistRunPanel({ run, open, onClose }: Props) {
           <NestoButton
             onClick={handleAfronden}
             disabled={!allRequiredDone}
-            loading={afronden.isPending}
+            isLoading={afronden.isPending}
             className="w-full min-h-[48px]"
           >
             <Check className="h-4 w-4 mr-2" />

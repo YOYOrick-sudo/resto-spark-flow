@@ -85,7 +85,10 @@ export function useChecklistTemplates() {
         .order("type")
         .order("naam");
       if (error) throw error;
-      return (data ?? []) as ChecklistTemplate[];
+      return (data ?? []).map((d: any) => ({
+        ...d,
+        items: (typeof d.items === 'string' ? JSON.parse(d.items) : d.items) as ChecklistItem[],
+      })) as ChecklistTemplate[];
     },
     enabled: !!locationId,
   });

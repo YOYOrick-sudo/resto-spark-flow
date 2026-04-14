@@ -156,7 +156,7 @@ export function TemperatuurTab() {
           <NestoButton
             onClick={handleSubmit}
             disabled={!locatieNaam.trim() || temp === null}
-            loading={registreer.isPending}
+            isLoading={registreer.isPending}
             className="min-h-[48px] w-full"
           >
             <Thermometer className="h-4 w-4 mr-2" />
