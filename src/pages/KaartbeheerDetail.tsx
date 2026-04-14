@@ -1,9 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { NestoTabs, NestoTabContent, NestoButton, NestoSelect, NestoBadge, Spinner } from "@/components/polar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
 import { useGerechtDetail } from "@/hooks/useGerechtDetail";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
@@ -15,6 +18,7 @@ const DEFAULT_CATS = ["Voorgerechten", "Hoofdgerechten", "Desserts", "Bijgerecht
 
 const tabs = [
   { id: "componenten", label: "Componenten" },
+  { id: "bereiding", label: "Bereiding" },
   { id: "allergenen", label: "Allergenen" },
 ];
 
