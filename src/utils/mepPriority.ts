@@ -61,24 +61,7 @@ export function calculatePriorityScore(task: MepTask, stock: IngredientStockMap)
   return score;
 }
 
-export function getAssistantHint(task: MepTask): string | null {
-  const activePrepTime = task.recept?.actieve_bereidingstijd ?? 0;
-  const passivePrepTime = task.recept?.passieve_bereidingstijd ?? 0;
-  const totalTime = activePrepTime + passivePrepTime;
-
-  // Timing hint: long prep + deadline approaching
-  if (totalTime > 30 && task.deadline) {
-    const minutesUntil = differenceInMinutes(parseDeadlineToday(task.deadline), new Date());
-    if (minutesUntil > 0 && minutesUntil < totalTime + 15) {
-      return `Duurt ${totalTime} min — begin nu om op tijd klaar te zijn`;
-    }
-  }
-
-  // Passive time hint: has waiting time that can be combined
-  if (passivePrepTime > 0) {
-    return `Inclusief ${passivePrepTime} min wachttijd — combineer met andere taken`;
-  }
-
+export function getAssistantHint(_task: MepTask): string | null {
   return null;
 }
 
