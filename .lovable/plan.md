@@ -1,32 +1,47 @@
 
 
-# Fix: Voorkom dubbele MEP taken op dezelfde dag
+# MEP "Plan mijn dag" — Assistent scheduling
 
-## Probleem
+## Overzicht
 
-Quick Add maakt altijd een nieuwe taak aan, ook als er al een openstaande taak bestaat voor hetzelfde halffabricaat op dezelfde dag.
+Client-side scheduling algoritme dat openstaande MEP taken ordent in een slim stappenplan. Passieve wachttijd wordt gevuld met andere taken. Geen API calls — puur berekend op basis van `actieve_bereidingstijd` en `passieve_bereidingstijd` van het recept.
 
-## Oplossing
+## Nieuwe bestanden
 
-`MepQuickAdd` krijgt de bestaande dagtaken als prop en checkt bij toevoegen of er al een match is.
+### `src/utils/mepDayPlanner.ts`
+Scheduling algoritme:
+- **Input**: array `MepTask[]` + optionele `startTime` (default: nu, of 09:00 als voor 09:00)
+- **Output**: `PlannedStep[]` met `task_id`, `task_title`, `start_time`, `active_minutes`, `passive_minutes`, `is_followup`, `note`
+- **Logica**:
+  1. Filter op openstaande taken (pending/in_progress)
+  2. Taken met status "in_progress" eerst
+  3. Sorteer rest: langste passieve tijd eerst, dan deadline urgentie, dan prioriteit
+  4. Greedy scheduling met tijdlijn + wacht-queue
+  5. Vul passieve wachttijd op met korte actieve taken
+  6. Voeg "afmaken" follow-up stappen toe (geschatte duur: `actieve_bereidingstijd / 4`, min 5 min)
+  7. Defaults: 15 min actief, 0 min passief als recept ontbreekt
 
-## Wijzigingen
+### `src/components/mep/MepDayPlan.tsx`
+Panel component (NestoPanel, 460px):
+- Genummerde stappen (①②③④) met starttijd, taaknaam, tijdsindicatie
+- Follow-up stappen met "↩ Vervolg" label
+- Geschatte eindtijd onderaan
+- "Pas toe" knop: sorteert takenlijst client-side (React state, geen DB)
+- "Sluiten" knop
+
+## Gewijzigde bestanden
 
 ### `src/pages/MepTaken.tsx`
-Pass `dayTasks` als prop aan `MepQuickAdd`:
-```tsx
-<MepQuickAdd taskDate={selectedDate} dayTasks={dayTasks} />
-```
+- Import `MepDayPlan`
+- State: `planOpen` boolean + `planOrder` (string[] task IDs, null = geen override)
+- "Plan mijn dag" knop naast de view toggles, zichtbaar bij ≥2 openstaande taken
+- Bij "Pas toe": sla `planOrder` op in state, pas sorting toe op `dayTasks` voor de views
+- `planOrder` reset bij datum-navigatie
 
-### `src/components/mep/MepQuickAdd.tsx`
-1. Voeg `dayTasks: MepTask[]` toe aan props
-2. Importeer `useUpdateMepTask` naast `useCreateMepTask`
-3. In `handleAddFromRecept`, vóór create:
-   - Bereken `smartDate` (bestaande logica)
-   - Zoek `existing = dayTasks.find(t => t.recept_id === item.id && t.task_date === smartDate && t.status !== 'completed' && t.status !== 'cancelled')`
-   - Als existing: `updateTask.mutate({ id: existing.id, units: (existing.units ?? 1) + 1 })` + toast "verhoogd naar X×"
-   - Anders: bestaande create logica
-4. Disable button ook als `updateTask.isPending`
+## Technische details
 
-Twee bestanden, geen database wijzigingen.
+- Geen database wijzigingen (V1: client-side sort only)
+- MepTask heeft al `recept.actieve_bereidingstijd` en `recept.passieve_bereidingstijd` via de join
+- NestoPanel wordt hergebruikt voor het plan-panel (consistent met rest van de app)
+- Knop styling: `variant="outline"` met sparkles icoon, past bij bestaande header actions
 
