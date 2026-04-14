@@ -32,7 +32,7 @@ export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
     <div>
       <div className="relative">
         <NestoInput
-          placeholder="Zoek recept of halffabricaat..."
+          placeholder="Zoek halffabricaat of voeg taak toe..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           leftIcon={<Search className="h-4 w-4" />}
