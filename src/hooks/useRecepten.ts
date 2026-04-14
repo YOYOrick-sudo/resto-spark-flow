@@ -39,7 +39,6 @@ export interface ReceptRow {
 
 export interface ReceptenFilters {
   search: string;
-  type: string; // "" | "halffabricaat" | "gerecht"
   categorie: string;
   showArchived: boolean;
 }
@@ -63,6 +62,7 @@ export function useRecepten(filters: ReceptenFilters) {
           )
         `)
         .eq("location_id", locationId!)
+        .eq("type", "halffabricaat")
         .order("naam", { ascending: true });
 
       if (!filters.showArchived) {
@@ -91,10 +91,6 @@ export function filterRecepten(
         r.naam.toLowerCase().includes(s) ||
         r.categorie.toLowerCase().includes(s)
     );
-  }
-
-  if (filters.type) {
-    result = result.filter((r) => r.type === filters.type);
   }
 
   if (filters.categorie) {

@@ -14,22 +14,19 @@ import Dashboard from "./pages/Dashboard";
 import Assistent from "./pages/Assistent";
 import Reserveringen from "./pages/Reserveringen";
 import MepTaken from "./pages/MepTaken";
-import Halffabricaten from "./pages/Halffabricaten";
-import HalffabricatenDetail from "./pages/HalffabricatenDetail";
 import Recepten from "./pages/Recepten";
 import ReceptenDetail from "./pages/ReceptenDetail";
 import Ingredienten from "./pages/Ingredienten";
-import Kostprijzen from "./pages/Kostprijzen";
 import Inkoop from "./pages/Inkoop";
 import Leveranciers from "./pages/Leveranciers";
 import Kaartbeheer from "./pages/Kaartbeheer";
 import KaartbeheerDetail from "./pages/KaartbeheerDetail";
+import KaartbeheerMenus from "./pages/KaartbeheerMenus";
+import KaartbeheerMenuEngineering from "./pages/KaartbeheerMenuEngineering";
 import Taken from "./pages/Taken";
 import PanelDemo from "./pages/PanelDemo";
 import SettingsVoorkeuren from "./pages/SettingsVoorkeuren";
 import SettingsKeuken from "./pages/SettingsKeuken";
-import SettingsInkoop from "./pages/SettingsInkoop";
-import SettingsLeveranciers from "./pages/SettingsLeveranciers";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
 import BookingWidget from "./pages/BookingWidget";
@@ -119,60 +116,39 @@ const App = () => (
                   {/* Assistent */}
                   <Route path="/assistent" element={<Assistent />} />
                   
-                  
                   {/* Keuken */}
                   <Route path="/mep" element={<MepTaken />} />
-                  <Route path="/halffabricaten" element={<Halffabricaten />} />
-                  <Route path="/halffabricaten/:id" element={<HalffabricatenDetail />} />
+                  <Route path="/halffabricaten" element={<Navigate to="/recepten" replace />} />
+                  <Route path="/halffabricaten/:id" element={<Navigate to="/recepten" replace />} />
                   <Route path="/recepten" element={<Recepten />} />
                   <Route path="/recepten/:id" element={<ReceptenDetail />} />
                   <Route path="/voorraad" element={<Ingredienten />} />
-                  <Route path="/kostprijzen" element={<Kostprijzen />} />
+                  <Route path="/kostprijzen" element={<Navigate to="/voorraad" replace />} />
                   <Route path="/inkoop" element={<Inkoop />} />
                   <Route path="/inkoop/leveranciers" element={<Leveranciers />} />
+                  <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
+                  <Route path="/taken" element={<Taken />} />
                   
                   {/* Kaartbeheer */}
                   <Route path="/kaartbeheer" element={<Kaartbeheer />} />
+                  <Route path="/kaartbeheer/menus" element={<KaartbeheerMenus />} />
+                  <Route path="/kaartbeheer/menu-engineering" element={<KaartbeheerMenuEngineering />} />
                   <Route path="/kaartbeheer/:id" element={<KaartbeheerDetail />} />
-                  
-                  {/* Service */}
-                  <Route path="/taken" element={<Taken />} />
-                  
-                  {/* Interne Bestellingen */}
-                  <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
                   
                   {/* Onboarding */}
                   <Route path="/onboarding" element={<OnboardingPage />} />
                   <Route path="/onboarding/:id" element={<OnboardingDetail />} />
                   
-                  {/* Settings - Legacy */}
+                  {/* Settings */}
                   <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
                   <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
-                  <Route path="/instellingen/inkoop" element={<SettingsInkoop />} />
-                  <Route path="/instellingen/leveranciers" element={<SettingsLeveranciers />} />
                   <Route path="/instellingen/onboarding" element={<SettingsOnboarding />} />
                   <Route path="/instellingen/communicatie" element={<SettingsCommunicatie />} />
                   <Route path="/instellingen/assistent" element={<SettingsAssistent />} />
                   <Route path="/instellingen/betalingen" element={<SettingsBetalingen />} />
-                  
-                  {/* Marketing */}
-                  <Route path="/marketing" element={<MarketingDashboard />} />
-                  <Route path="/marketing/campagnes" element={<CampaignesPage />} />
-                  <Route path="/marketing/campagnes/nieuw" element={<CampaignBuilderPage />} />
-                  <Route path="/marketing/segmenten" element={<SegmentsPage />} />
-                  <Route path="/marketing/contacten" element={<ContactsPage />} />
-                  <Route path="/marketing/kalender" element={<ContentCalendarPage />} />
-                  <Route path="/marketing/social" element={<SocialPostsPage />} />
-                  <Route path="/marketing/social/nieuw" element={<SocialPostCreatorPage />} />
-                  <Route path="/marketing/reviews" element={<ReviewsPage />} />
-                  <Route path="/marketing/popup" element={<PopupPage />} />
-                  <Route path="/analytics" element={<AnalyticsPage />} />
-                  <Route path="/analytics/waste" element={<WasteDetailPage />} />
-                  <Route path="/analytics/reviews" element={<ReviewsDetailPage />} />
-                  <Route path="/analytics/bereik" element={<BereikDetailPage />} />
-                  
-                  {/* Marketing Settings */}
                   <Route path="/instellingen/marketing" element={<MarketingSettings />} />
+                  <Route path="/instellingen/inkoop" element={<Navigate to="/inkoop" replace />} />
+                  <Route path="/instellingen/leveranciers" element={<Navigate to="/inkoop/leveranciers" replace />} />
                   
                   {/* Settings - Reserveringen (Multi-level) */}
                   <Route path="/instellingen/reserveringen" element={<SettingsReserveringenIndex />} />
@@ -190,6 +166,24 @@ const App = () => (
                   <Route path="/instellingen/reserveringen/notificaties" element={<SettingsReserveringenNotificaties />} />
                   <Route path="/instellingen/reserveringen/widget" element={<SettingsReserveringenWidget />} />
                   <Route path="/instellingen/reserveringen/wachtlijst" element={<SettingsReserveringenWachtlijst />} />
+                  
+                  {/* Marketing */}
+                  <Route path="/marketing" element={<MarketingDashboard />} />
+                  <Route path="/marketing/campagnes" element={<CampaignesPage />} />
+                  <Route path="/marketing/campagnes/nieuw" element={<CampaignBuilderPage />} />
+                  <Route path="/marketing/segmenten" element={<SegmentsPage />} />
+                  <Route path="/marketing/contacten" element={<ContactsPage />} />
+                  <Route path="/marketing/kalender" element={<ContentCalendarPage />} />
+                  <Route path="/marketing/social" element={<SocialPostsPage />} />
+                  <Route path="/marketing/social/nieuw" element={<SocialPostCreatorPage />} />
+                  <Route path="/marketing/reviews" element={<ReviewsPage />} />
+                  <Route path="/marketing/popup" element={<PopupPage />} />
+                  
+                  {/* Analytics */}
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/analytics/waste" element={<WasteDetailPage />} />
+                  <Route path="/analytics/reviews" element={<ReviewsDetailPage />} />
+                  <Route path="/analytics/bereik" element={<BereikDetailPage />} />
                 </Route>
                 
                 {/* Catch-all outside layout */}

@@ -1,52 +1,50 @@
-
 import type { UserContext, ModuleKey } from '@/types/auth';
 import { menuItems, type MenuItem, type SubMenuItem } from './navigation';
 
-// Mapping of menu items to module keys
 const MENU_MODULE_MAP: Record<string, ModuleKey> = {
   'reservations': 'reservations',
   'kitchen': 'kitchen',
   'kitchen-mep': 'kitchen',
-  'kitchen-halffabricaten': 'kitchen',
   'kitchen-recipes': 'kitchen',
   'kitchen-voorraad': 'kitchen',
-  'kitchen-kostprijzen': 'kitchen',
   'kitchen-orders': 'kitchen',
-  'kaartbeheer': 'kitchen', // Kaartbeheer uses kitchen module
+  'kitchen-transfers': 'kitchen',
+  'kitchen-taken': 'kitchen',
+  'kaartbeheer': 'kitchen',
   'kaartbeheer-gerechten': 'kitchen',
+  'kaartbeheer-menus': 'kitchen',
   'kaartbeheer-menu-engineering': 'kitchen',
-  'service': 'reservations', // Service uses reservations module
-  'service-tasks': 'reservations',
-  'finance': 'finance',
-  'takeaway': 'marketing',
   'settings': 'settings',
   'settings-voorkeuren': 'settings',
   'settings-keuken': 'settings',
   'settings-reserveringen': 'settings',
-  'settings-inkoop': 'settings',
-  'settings-leveranciers': 'settings',
+  'settings-assistent': 'settings',
+  'settings-communicatie': 'settings',
+  'settings-marketing': 'settings',
+  'settings-onboarding': 'settings',
 };
 
-// Mapping of menu items to required permissions
 const MENU_PERMISSION_MAP: Record<string, string> = {
   'reservations': 'reservations.view',
   'kitchen': 'kitchen.view',
   'kitchen-mep': 'kitchen.mep.view',
-  'kitchen-halffabricaten': 'kitchen.recipes.view',
   'kitchen-recipes': 'kitchen.recipes.view',
   'kitchen-voorraad': 'kitchen.ingredients.view',
-  'kitchen-kostprijzen': 'finance.costs.view',
   'kitchen-orders': 'kitchen.orders.view',
+  'kitchen-transfers': 'kitchen.orders.view',
+  'kitchen-taken': 'kitchen.view',
   'kaartbeheer': 'kitchen.view',
   'kaartbeheer-gerechten': 'kitchen.recipes.view',
-  'service': 'reservations.view',
-  'service-tasks': 'reservations.view',
-  'finance': 'finance.view',
-  'takeaway': 'marketing.view',
+  'kaartbeheer-menus': 'kitchen.view',
+  'kaartbeheer-menu-engineering': 'kitchen.view',
   'settings': 'settings.view',
   'settings-voorkeuren': 'settings.general.view',
   'settings-keuken': 'settings.general.view',
   'settings-reserveringen': 'reservations.settings',
+  'settings-assistent': 'settings.general.view',
+  'settings-communicatie': 'settings.general.view',
+  'settings-marketing': 'settings.general.view',
+  'settings-onboarding': 'settings.general.view',
 };
 
 /**
