@@ -1,36 +1,20 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader, SearchBar, NestoSelect, NestoBadge, Spinner, EmptyState, NestoButton } from "@/components/polar";
+import { AllergeenPills } from "@/components/polar/AllergeenPills";
 import { Switch } from "@/components/ui/switch";
 import { useGerechten, filterGerechten, type GerechtenFilters } from "@/hooks/useGerechten";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useGerechtAllergenen } from "@/hooks/useGerechtAllergenen";
-import { NieuwGerechtPanel } from "./NieuwGerechtPanel";
 import { Plus, UtensilsCrossed } from "lucide-react";
 
 const DEFAULT_CATS = ["Voorgerechten", "Hoofdgerechten", "Desserts", "Bijgerechten", "Dranken", "Overig"];
 
-function AllergeenPills({ gerechtId }: { gerechtId: string }) {
+function AllergeenPillsRow({ gerechtId }: { gerechtId: string }) {
   const { data: allergenen } = useGerechtAllergenen(gerechtId);
-  const relevant = (allergenen ?? []).filter((a) => a.status === "bevat" || a.status === "kan_bevatten");
-  if (relevant.length === 0) return null;
-
-  const show = relevant.slice(0, 4);
-  const rest = relevant.length - show.length;
-
-  return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {show.map((a) => (
-        <NestoBadge key={a.allergeen_id} variant={a.status === "bevat" ? "error" : "warning"} size="sm">
-          {a.code}
-        </NestoBadge>
-      ))}
-      {rest > 0 && (
-        <NestoBadge variant="default" size="sm">+{rest}</NestoBadge>
-      )}
-    </div>
-  );
+  if (!allergenen) return null;
+  return <AllergeenPills allergenen={allergenen} />;
 }
 
 export function GerechtOverzicht() {
@@ -39,16 +23,11 @@ export function GerechtOverzicht() {
   const { data: gerechten, isLoading } = useGerechten(filters);
   const { data: settings } = useKeukenSettings();
   const { toggleActief } = useGerechtMutations();
-  const [nieuwOpen, setNieuwOpen] = useState(false);
 
   const filtered = filterGerechten(gerechten, filters);
 
   const cats = ((settings as any)?.gerecht_categorieen as string[] | undefined) ?? DEFAULT_CATS;
   const catOptions = [{ value: "", label: "Alle categorieën" }, ...cats.map((c) => ({ value: c, label: c }))];
-
-  const handleCreated = (id: string) => {
-    navigate(`/kaartbeheer/${id}`);
-  };
 
   return (
     <div className="space-y-6">

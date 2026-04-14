@@ -21,6 +21,7 @@ import Inkoop from "./pages/Inkoop";
 import Leveranciers from "./pages/Leveranciers";
 import Kaartbeheer from "./pages/Kaartbeheer";
 import KaartbeheerDetail from "./pages/KaartbeheerDetail";
+import KaartbeheerNieuw from "./pages/KaartbeheerNieuw";
 import KaartbeheerMenus from "./pages/KaartbeheerMenus";
 import KaartbeheerMenuEngineering from "./pages/KaartbeheerMenuEngineering";
 import Taken from "./pages/Taken";
@@ -158,6 +159,7 @@ const App = () => (
                   
                   {/* Kaartbeheer */}
                   <Route path="/kaartbeheer" element={<Kaartbeheer />} />
+                  <Route path="/kaartbeheer/nieuw" element={<KaartbeheerNieuw />} />
                   <Route path="/kaartbeheer/menus" element={<KaartbeheerMenus />} />
                   <Route path="/kaartbeheer/menu-engineering" element={<KaartbeheerMenuEngineering />} />
                   <Route path="/kaartbeheer/:id" element={<KaartbeheerDetail />} />
