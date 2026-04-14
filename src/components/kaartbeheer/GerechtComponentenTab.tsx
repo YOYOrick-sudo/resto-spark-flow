@@ -231,22 +231,6 @@ export function GerechtComponentenTab({ gerecht }: Props) {
   const halffabricaten = gerecht.componenten.filter((c) => c.type === "halffabricaat");
   const ingredienten = gerecht.componenten.filter((c) => c.type === "ingredient");
 
-  const totaalHf = halffabricaten.reduce((s, c) => {
-    return s + c.hoeveelheid * ((c.recept_totale_kostprijs ?? 0) / Math.max(c.recept_porties ?? 1, 1));
-  }, 0);
-  const totaalIng = ingredienten.reduce((s, c) => {
-    return s + c.hoeveelheid * (c.ingredient_kostprijs ?? 0);
-  }, 0);
-  const totaalKostprijs = totaalHf + totaalIng;
-  const vkp = gerecht.verkoopprijs ?? 0;
-  const marge = vkp > 0 ? ((vkp - totaalKostprijs) / vkp) * 100 : null;
-  const foodCost = vkp > 0 ? (totaalKostprijs / vkp) * 100 : null;
-
-  const foodCostVariant =
-    foodCost !== null ? (foodCost < 30 ? "success" : foodCost <= 35 ? "warning" : "error") : "default";
-  const margeVariant =
-    marge !== null ? (marge > 65 ? "success" : marge >= 55 ? "warning" : "error") : "default";
-
   return (
     <div className="space-y-6">
       {/* Halffabricaten */}
