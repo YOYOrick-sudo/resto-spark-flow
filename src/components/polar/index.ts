@@ -103,7 +103,11 @@ export { NestoSelectWithCustom } from "./NestoSelectWithCustom";
 export { NestoLogo } from "./NestoLogo";
 export type { NestoLogoProps } from "./NestoLogo";
 
+export { NestoDatePicker, dateFromString, dateToString } from "./NestoDatePicker";
+export type { NestoDatePickerProps } from "./NestoDatePicker";
+
 export { NestoPanel } from "./NestoPanel";
+export type { NestoPanelProps } from "./NestoPanel";
 export type { NestoPanelProps } from "./NestoPanel";
 
 export { NestoErrorBoundary } from "./NestoErrorBoundary";
