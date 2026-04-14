@@ -7,7 +7,7 @@ import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useUserContext } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import type { GerechtDetail, GerechtComponent } from "@/hooks/useGerechtDetail";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -91,12 +91,10 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
         .select("id")
         .single();
       if (error) throw error;
-      toast.success("Halffabricaat aangemaakt", {
-        description: "Vul het recept verder in op de recepten pagina.",
-      });
+      nestoToast.success("Halffabricaat aangemaakt", "Vul het recept verder in op de recepten pagina.");
       navigate(`/recepten?open=${(data as any).id}`);
     } catch {
-      toast.error("Fout bij aanmaken");
+      nestoToast.error("Fout bij aanmaken");
     } finally {
       setCreating(false);
     }
@@ -230,11 +228,11 @@ function AddIngredient({ gerechtId, emptyState }: { gerechtId: string; emptyStat
         .select("id, naam, eenheid")
         .single();
       if (error) throw error;
-      toast.success("Ingrediënt aangemaakt");
+      nestoToast.success("Ingrediënt aangemaakt");
       setSelected({ id: (data as any).id, naam: (data as any).naam, eenheid: (data as any).eenheid });
       setEenheid((data as any).eenheid);
     } catch {
-      toast.error("Fout bij aanmaken");
+      nestoToast.error("Fout bij aanmaken");
     } finally {
       setCreating(false);
     }

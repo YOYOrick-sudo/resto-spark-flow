@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export interface ChecklistItem {
   id: string;
@@ -108,9 +108,9 @@ export function useChecklistTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
-      toast.success("Standaard templates aangemaakt");
+      nestoToast.success("Standaard templates aangemaakt");
     },
-    onError: () => toast.error("Fout bij aanmaken templates"),
+    onError: () => nestoToast.error("Fout bij aanmaken templates"),
   });
 
   const saveTemplate = useMutation({
@@ -133,9 +133,9 @@ export function useChecklistTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
-      toast.success("Template opgeslagen");
+      nestoToast.success("Template opgeslagen");
     },
-    onError: () => toast.error("Fout bij opslaan template"),
+    onError: () => nestoToast.error("Fout bij opslaan template"),
   });
 
   const toggleActief = useMutation({

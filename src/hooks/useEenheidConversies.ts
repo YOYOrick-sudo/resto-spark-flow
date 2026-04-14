@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 
 export interface EenheidConversie {
   id: string;
@@ -38,9 +38,9 @@ export function useEenheidConversieMutations(ingredientId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
-      toast.success("Conversie toegevoegd");
+      nestoToast.success("Conversie toegevoegd");
     },
-    onError: () => toast.error("Kon conversie niet opslaan"),
+    onError: () => nestoToast.error("Kon conversie niet opslaan"),
   });
 
   const deleteConversie = useMutation({
@@ -53,9 +53,9 @@ export function useEenheidConversieMutations(ingredientId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
-      toast.success("Conversie verwijderd");
+      nestoToast.success("Conversie verwijderd");
     },
-    onError: () => toast.error("Kon conversie niet verwijderen"),
+    onError: () => nestoToast.error("Kon conversie niet verwijderen"),
   });
 
   return { addConversie, deleteConversie };

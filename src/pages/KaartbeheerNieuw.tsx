@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { StepWizard, type WizardStep } from "@/components/polar/StepWizard";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useUserContext } from "@/contexts/UserContext";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import { GerechtStapBasis } from "@/components/kaartbeheer/wizard/GerechtStapBasis";
 import { GerechtStapRecepten } from "@/components/kaartbeheer/wizard/GerechtStapRecepten";
 import { GerechtStapBereiding } from "@/components/kaartbeheer/wizard/GerechtStapBereiding";
@@ -62,7 +62,7 @@ export default function KaartbeheerNieuw() {
 
   const handleComplete = async (formData: Record<string, any>) => {
     if (!currentLocation?.id) {
-      toast.error("Geen locatie geselecteerd");
+      nestoToast.error("Geen locatie geselecteerd");
       return;
     }
 
@@ -94,10 +94,10 @@ export default function KaartbeheerNieuw() {
         );
       }
 
-      toast.success(`Gerecht "${formData.basis.naam}" aangemaakt!`);
+      nestoToast.success(`Gerecht "${formData.basis.naam}" aangemaakt!`);
       navigate(`/kaartbeheer/${gerecht.id}`);
     } catch (error) {
-      toast.error("Er ging iets mis bij het opslaan. Probeer het opnieuw.");
+      nestoToast.error("Er ging iets mis bij het opslaan. Probeer het opnieuw.");
       console.error("Gerecht creation failed:", error);
       throw error; // Keep wizard open
     }

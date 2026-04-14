@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { StepWizard, type WizardStep } from "@/components/polar/StepWizard";
 import { useReceptMutations } from "@/hooks/useReceptMutations";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import { ReceptStapBasis } from "@/components/recepten/wizard/ReceptStapBasis";
 import { ReceptStapIngredienten } from "@/components/recepten/wizard/ReceptStapIngredienten";
 import { ReceptStapBereiding } from "@/components/recepten/wizard/ReceptStapBereiding";
@@ -101,10 +101,10 @@ export default function ReceptenNieuw() {
         await Promise.all(promises);
       }
 
-      toast.success(`Recept "${formData.basis.naam}" aangemaakt!`);
+      nestoToast.success(`Recept "${formData.basis.naam}" aangemaakt!`);
       navigate(`/recepten/${id}`);
     } catch (error) {
-      toast.error("Er ging iets mis bij het opslaan. Probeer het opnieuw.");
+      nestoToast.error("Er ging iets mis bij het opslaan. Probeer het opnieuw.");
       console.error("Recept creation failed:", error);
       throw error;
     }

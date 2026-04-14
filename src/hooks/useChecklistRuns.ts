@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { nestoToast } from "@/lib/nestoToast";
 import type { ChecklistItem } from "./useChecklistTemplates";
 
 export interface ChecklistResponse {
@@ -94,9 +94,9 @@ export function useChecklistRuns(datum?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-runs", locationId, today] });
-      toast.success("Dag gestart — checklists aangemaakt");
+      nestoToast.success("Dag gestart — checklists aangemaakt");
     },
-    onError: () => toast.error("Fout bij starten dag"),
+    onError: () => nestoToast.error("Fout bij starten dag"),
   });
 
   const saveResponse = useMutation({
@@ -162,9 +162,9 @@ export function useChecklistRuns(datum?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-runs", locationId, today] });
-      toast.success("Checklist afgerond");
+      nestoToast.success("Checklist afgerond");
     },
-    onError: () => toast.error("Fout bij afronden"),
+    onError: () => nestoToast.error("Fout bij afronden"),
   });
 
   return { ...query, startDag, saveResponse, afronden };
