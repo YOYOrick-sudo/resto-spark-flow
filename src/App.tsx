@@ -58,6 +58,12 @@ import SettingsOnboardingTeam from "./pages/settings/onboarding/SettingsOnboardi
 import SettingsOnboardingTemplates from "./pages/settings/onboarding/SettingsOnboardingTemplates";
 import SettingsOnboardingReminders from "./pages/settings/onboarding/SettingsOnboardingReminders";
 
+// Communicatie settings detail pages
+import SettingsCommunicatieEmailOpmaak from "./pages/settings/communicatie/SettingsCommunicatieEmailOpmaak";
+import SettingsCommunicatieBranding from "./pages/settings/communicatie/SettingsCommunicatieBranding";
+import SettingsCommunicatieGastberichten from "./pages/settings/communicatie/SettingsCommunicatieGastberichten";
+import SettingsCommunicatieWhatsApp from "./pages/settings/communicatie/SettingsCommunicatieWhatsApp";
+
 // Assistent settings detail pages
 import SettingsAssistentKnowledge from "./pages/settings/assistent/SettingsAssistentKnowledge";
 import SettingsAssistentAgent from "./pages/settings/assistent/SettingsAssistentAgent";
@@ -169,6 +175,10 @@ const App = () => (
                   <Route path="/instellingen/onboarding/templates" element={<SettingsOnboardingTemplates />} />
                   <Route path="/instellingen/onboarding/reminders" element={<SettingsOnboardingReminders />} />
                   <Route path="/instellingen/communicatie" element={<SettingsCommunicatie />} />
+                  <Route path="/instellingen/communicatie/email-opmaak" element={<SettingsCommunicatieEmailOpmaak />} />
+                  <Route path="/instellingen/communicatie/branding" element={<SettingsCommunicatieBranding />} />
+                  <Route path="/instellingen/communicatie/gastberichten" element={<SettingsCommunicatieGastberichten />} />
+                  <Route path="/instellingen/communicatie/whatsapp" element={<SettingsCommunicatieWhatsApp />} />
                   <Route path="/instellingen/assistent" element={<SettingsAssistent />} />
                   <Route path="/instellingen/assistent/knowledge" element={<SettingsAssistentKnowledge />} />
                   <Route path="/instellingen/assistent/agent" element={<SettingsAssistentAgent />} />

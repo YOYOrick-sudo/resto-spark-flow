@@ -23,6 +23,8 @@ import {
   BellRing,
   BookOpen,
   Bot,
+  MessagesSquare,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -195,11 +197,25 @@ export const assistentConfig: SettingsModuleConfig = {
   ],
 };
 
+export const communicatieConfig: SettingsModuleConfig = {
+  id: "communicatie",
+  label: "Communicatie",
+  basePath: "/instellingen/communicatie",
+  description: "Email opmaak, branding, gastberichten en WhatsApp",
+  sections: [
+    { id: "email-opmaak", label: "E-mail opmaak", path: "/instellingen/communicatie/email-opmaak", description: "Lay-out en styling van emails", icon: Mail },
+    { id: "branding", label: "Branding", path: "/instellingen/communicatie/branding", description: "Logo, kleuren en footer", icon: Palette },
+    { id: "gastberichten", label: "Gastberichten", path: "/instellingen/communicatie/gastberichten", description: "Berichten naar gasten configureren", icon: MessagesSquare },
+    { id: "whatsapp", label: "WhatsApp", path: "/instellingen/communicatie/whatsapp", description: "WhatsApp kanaal instellingen", icon: MessageSquare },
+  ],
+};
+
 export const settingsModules: SettingsModuleConfig[] = [
   reserveringenConfig,
   marketingConfig,
   onboardingConfig,
   assistentConfig,
+  communicatieConfig,
 ];
 
 // ============================================
