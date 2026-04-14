@@ -8,6 +8,9 @@ interface CreateReceptInput {
   categorie: string;
   type: string;
   porties: number;
+  actieve_bereidingstijd?: number | null;
+  passieve_bereidingstijd?: number | null;
+  bereiding?: string | null;
 }
 
 interface UpdateReceptInput {
