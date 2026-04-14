@@ -199,6 +199,7 @@ export default function MepTaken() {
               onCancel={(id) => cancelTask.mutate(id)}
               onPriorityChange={handlePriorityChange}
               isLoading={dayLoading}
+              hasPlanOrder={!!planOrder}
             />
           ) : (
             <MepCategoryView
