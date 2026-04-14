@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format, addDays, subDays, startOfWeek, endOfWeek } from "date-fns";
 import { nl } from "date-fns/locale";
 import { PageHeader } from "@/components/polar";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, Sparkles } from "lucide-react";
 import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
 import { useMepIngredientStock } from "@/hooks/useMepIngredientStock";
 import { useCancelMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
@@ -13,6 +13,7 @@ import { MepWeekView } from "@/components/mep/MepWeekView";
 import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
 import { MepPriorityView } from "@/components/mep/MepPriorityView";
 import { MepCategoryView } from "@/components/mep/MepCategoryView";
+import { MepDayPlan } from "@/components/mep/MepDayPlan";
 import type { IngredientStockMap } from "@/utils/mepPriority";
 
 type ViewMode = "prioriteit" | "categorie" | "week";
@@ -30,11 +31,18 @@ export default function MepTaken() {
   const today = format(new Date(), "yyyy-MM-dd");
   const [selectedDate, setSelectedDate] = useState(today);
   const [view, setView] = useState<ViewMode>(getInitialView);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [planOrder, setPlanOrder] = useState<string[] | null>(null);
 
   // Persist view preference
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, view); } catch {}
   }, [view]);
+
+  // Reset plan order on date change
+  useEffect(() => {
+    setPlanOrder(null);
+  }, [selectedDate]);
 
   // Date navigation
   const goToday = () => setSelectedDate(today);
@@ -64,11 +72,29 @@ export default function MepTaken() {
     updateTask.mutate({ id: taskId, prioriteit });
   };
 
+  // Apply plan order to day tasks
+  const sortedDayTasks = useMemo(() => {
+    if (!planOrder) return dayTasks;
+    return [...dayTasks].sort((a, b) => {
+      const idxA = planOrder.indexOf(a.id);
+      const idxB = planOrder.indexOf(b.id);
+      const posA = idxA === -1 ? 9999 : idxA;
+      const posB = idxB === -1 ? 9999 : idxB;
+      return posA - posB;
+    });
+  }, [dayTasks, planOrder]);
+
   // Stats
   const nonCancelled = dayTasks.filter((t) => t.status !== "cancelled");
   const completedCount = nonCancelled.filter((t) => t.status === "completed").length;
   const totalCount = nonCancelled.length;
   const progressPct = totalCount > 0 ? completedCount / totalCount : 0;
+
+  // Plan button visibility
+  const openTaskCount = dayTasks.filter(
+    (t) => t.status === "pending" || t.status === "in_progress"
+  ).length;
+  const showPlanButton = openTaskCount >= 2;
 
   const isToday = selectedDate === today;
   const dateLabel = format(new Date(selectedDate), "EEEE d MMMM", { locale: nl });
@@ -84,6 +110,17 @@ export default function MepTaken() {
               <NestoBadge variant={progressPct > 0.5 ? "success" : "pending"}>
                 {completedCount}/{totalCount} klaar
               </NestoBadge>
+            )}
+            {showPlanButton && (
+              <NestoButton
+                variant="outline"
+                size="sm"
+                onClick={() => setPlanOpen(true)}
+                className="gap-1.5"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Plan mijn dag
+              </NestoButton>
             )}
             <div className="flex items-center border border-border rounded-lg overflow-hidden">
               <NestoButton
@@ -156,7 +193,7 @@ export default function MepTaken() {
 
           {view === "prioriteit" ? (
             <MepPriorityView
-              dayTasks={dayTasks}
+              dayTasks={sortedDayTasks}
               ingredientStock={stockMap}
               onComplete={setCompletionTask}
               onCancel={(id) => cancelTask.mutate(id)}
@@ -165,7 +202,7 @@ export default function MepTaken() {
             />
           ) : (
             <MepCategoryView
-              dayTasks={dayTasks}
+              dayTasks={sortedDayTasks}
               onComplete={setCompletionTask}
               onCancel={(id) => cancelTask.mutate(id)}
               isLoading={dayLoading}
@@ -183,6 +220,14 @@ export default function MepTaken() {
           }}
         />
       )}
+
+      <MepDayPlan
+        open={planOpen}
+        onClose={() => setPlanOpen(false)}
+        tasks={dayTasks}
+        selectedDate={selectedDate}
+        onApply={setPlanOrder}
+      />
     </div>
   );
 }
