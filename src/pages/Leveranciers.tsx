@@ -124,7 +124,7 @@ export default function Leveranciers() {
         mode={panelMode}
         leverancierId={selectedId}
         onClose={handlePanelClose}
-        onCreated={handleCreated}
+        onCreated={() => {}}
       />
     </div>
   );
