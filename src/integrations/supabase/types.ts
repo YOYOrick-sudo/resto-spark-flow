@@ -1268,6 +1268,123 @@ export type Database = {
           },
         ]
       }
+      gerecht_componenten: {
+        Row: {
+          created_at: string
+          eenheid: string
+          gerecht_id: string
+          hoeveelheid: number
+          id: string
+          ingredient_id: string | null
+          kostprijs_snapshot: number | null
+          recept_id: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          eenheid: string
+          gerecht_id: string
+          hoeveelheid: number
+          id?: string
+          ingredient_id?: string | null
+          kostprijs_snapshot?: number | null
+          recept_id?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          eenheid?: string
+          gerecht_id?: string
+          hoeveelheid?: number
+          id?: string
+          ingredient_id?: string | null
+          kostprijs_snapshot?: number | null
+          recept_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gerecht_componenten_gerecht_id_fkey"
+            columns: ["gerecht_id"]
+            isOneToOne: false
+            referencedRelation: "gerechten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gerecht_componenten_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gerecht_componenten_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gerechten: {
+        Row: {
+          archived_at: string | null
+          beschrijving: string | null
+          categorie: string
+          created_at: string
+          foto_url: string | null
+          id: string
+          is_actief: boolean
+          is_archived: boolean
+          kostprijs: number
+          location_id: string
+          marge_percentage: number | null
+          naam: string
+          updated_at: string
+          verkoopprijs: number | null
+        }
+        Insert: {
+          archived_at?: string | null
+          beschrijving?: string | null
+          categorie?: string
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          is_actief?: boolean
+          is_archived?: boolean
+          kostprijs?: number
+          location_id: string
+          marge_percentage?: number | null
+          naam: string
+          updated_at?: string
+          verkoopprijs?: number | null
+        }
+        Update: {
+          archived_at?: string | null
+          beschrijving?: string | null
+          categorie?: string
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          is_actief?: boolean
+          is_archived?: boolean
+          kostprijs?: number
+          location_id?: string
+          marge_percentage?: number | null
+          naam?: string
+          updated_at?: string
+          verkoopprijs?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gerechten_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       halffabricaat_methodes: {
         Row: {
           batch_nummer_template: string | null
@@ -1851,6 +1968,7 @@ export type Database = {
           brand_color_secondary: string | null
           created_at: string
           description_short: string | null
+          gerecht_categorieen: Json | null
           google_place_id: string | null
           guest_greeting: string | null
           haccp_kern_min: number | null
@@ -1882,6 +2000,7 @@ export type Database = {
           brand_color_secondary?: string | null
           created_at?: string
           description_short?: string | null
+          gerecht_categorieen?: Json | null
           google_place_id?: string | null
           guest_greeting?: string | null
           haccp_kern_min?: number | null
@@ -1913,6 +2032,7 @@ export type Database = {
           brand_color_secondary?: string | null
           created_at?: string
           description_short?: string | null
+          gerecht_categorieen?: Json | null
           google_place_id?: string | null
           guest_greeting?: string | null
           haccp_kern_min?: number | null
