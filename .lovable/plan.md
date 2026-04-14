@@ -1,26 +1,27 @@
 
 
-# Hernoem "Recepten" → "Halffabricaten" (user-facing labels)
+# Fix: Verberg status badge bij Open en Voltooide taken
 
-Alle user-facing tekst wordt hernoemd. Routes, DB-tabellen en interne code (hooks, types, variabelen) blijven ongewijzigd.
+## Wijziging
 
-## Wijzigingen per bestand
+Eén bestand: `src/components/mep/MepTaskRow.tsx`
 
-| Bestand | Wat verandert |
-|---------|--------------|
-| **src/lib/navigation.ts** | Sidebar label `'Recepten'` → `'Halffabricaten'` (regel ~89) |
-| **src/pages/Recepten.tsx** | Titel `"Recepten"` → `"Halffabricaten"`, subtekst → `"Je sauzen, bouillons, marinades en andere bereidingen."`, knop `"Nieuw recept"` → `"Nieuw halffabricaat"`, emptyMessage → `"Nog geen halffabricaten toegevoegd"` |
-| **src/pages/ReceptenDetail.tsx** | Back-link tekst `"Recepten"` → `"Halffabricaten"` (regel 121), not-found tekst `"Recept niet gevonden"` → `"Halffabricaat niet gevonden"`, archiveer-dialog `"Recept archiveren"` → `"Halffabricaat archiveren"` |
-| **src/pages/ReceptenNieuw.tsx** | Success toast `'Recept "..." aangemaakt!'` → `'Halffabricaat "..." aangemaakt!'` |
-| **src/hooks/useReceptMutations.ts** | Toast `"Recept aangemaakt"` → `"Halffabricaat aangemaakt"`, `"Recept gearchiveerd"` → `"Halffabricaat gearchiveerd"` |
-| **src/components/dashboard/ReceptenTile.tsx** | Label `"Recepten"` → `"Halffabricaten"`, count-tekst `"recepten"` → `"halffabricaten"` |
-| **src/components/kaartbeheer/GerechtComponentenTab.tsx** | Toast subtitle `"Vul het recept verder in op de recepten pagina."` → `"Vul het halffabricaat verder in op de halffabricaten pagina."` |
+Regel 95-98: de status badge wordt nu altijd getoond. Vervang door een conditie:
 
-## Wat NIET verandert
-- Routes (`/recepten`, `/recepten/:id`, `/recepten/nieuw`) — bookmarks blijven werken
-- Database tabel `recepten`
-- Interne code: hook-namen, type-namen, variabelen
-- Wizard titel "Wat ga je bereiden?"
-- Zoekbalk placeholder
-- Tab "Bereiding" binnen detail pagina
+- `pending` → geen badge
+- `in_progress` → "Bezig" badge (primary variant)
+- `completed` → geen badge (doorgestreepte tekst is voldoende)
+- `cancelled` → "Geannuleerd" badge (default variant, blijft — want doorstreping + label maakt duidelijk dat het bewust geannuleerd is)
+
+```typescript
+{/* Status badge — alleen bij in_progress en cancelled */}
+{task.status === "in_progress" && (
+  <NestoBadge variant="primary" size="sm">Bezig</NestoBadge>
+)}
+{task.status === "cancelled" && (
+  <NestoBadge variant="default" size="sm">Geannuleerd</NestoBadge>
+)}
+```
+
+De `STATUS_CONFIG` map kan blijven bestaan (wordt elders niet gebruikt, maar kost niets). Geen andere bestanden wijzigen.
 
