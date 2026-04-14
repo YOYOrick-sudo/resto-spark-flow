@@ -238,12 +238,23 @@ export function GerechtComponentenTab({ gerecht }: Props) {
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Halffabricaten ({halffabricaten.length})
         </h3>
-        <div className="space-y-2 mb-3">
-          {halffabricaten.map((c) => (
-            <ComponentRow key={c.id} comp={c} onRemove={() => removeComponent.mutate(c.id)} />
-          ))}
-        </div>
-        <AddHalffabricaat gerechtId={gerecht.id} />
+        {halffabricaten.length === 0 ? (
+          <div className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center bg-muted/10">
+            <p className="text-sm text-muted-foreground mb-4">
+              Nog geen halffabricaten. Voeg een halffabricaat toe om de kostprijs te berekenen.
+            </p>
+            <AddHalffabricaat gerechtId={gerecht.id} emptyState />
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2 mb-3">
+              {halffabricaten.map((c) => (
+                <ComponentRow key={c.id} comp={c} onRemove={() => removeComponent.mutate(c.id)} />
+              ))}
+            </div>
+            <AddHalffabricaat gerechtId={gerecht.id} />
+          </>
+        )}
       </div>
 
       {/* Ingrediënten */}
@@ -251,14 +262,24 @@ export function GerechtComponentenTab({ gerecht }: Props) {
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Ingrediënten ({ingredienten.length})
         </h3>
-        <div className="space-y-2 mb-3">
-          {ingredienten.map((c) => (
-            <ComponentRow key={c.id} comp={c} onRemove={() => removeComponent.mutate(c.id)} />
-          ))}
-        </div>
-        <AddIngredient gerechtId={gerecht.id} />
+        {ingredienten.length === 0 ? (
+          <div className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center bg-muted/10">
+            <p className="text-sm text-muted-foreground mb-4">
+              Nog geen losse ingrediënten.
+            </p>
+            <AddIngredient gerechtId={gerecht.id} emptyState />
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2 mb-3">
+              {ingredienten.map((c) => (
+                <ComponentRow key={c.id} comp={c} onRemove={() => removeComponent.mutate(c.id)} />
+              ))}
+            </div>
+            <AddIngredient gerechtId={gerecht.id} />
+          </>
+        )}
       </div>
-
     </div>
   );
 }
