@@ -3,6 +3,7 @@ import { NestoInput } from "@/components/polar/NestoInput";
 import { Search, Plus, Loader2 } from "lucide-react";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useCreateMepTask } from "@/hooks/useMepMutations";
+import { addDays, format } from "date-fns";
 
 interface MepQuickAddProps {
   taskDate: string;
@@ -16,10 +17,15 @@ export function MepQuickAdd({ taskDate }: MepQuickAddProps) {
 
   const handleAddFromRecept = (item: (typeof results)[0]) => {
     const methode = item.methodes?.[0];
+    const now = new Date();
+    const isToday = taskDate === format(now, "yyyy-MM-dd");
+    const smartDate = isToday && now.getHours() >= 17
+      ? format(addDays(now, 1), "yyyy-MM-dd")
+      : taskDate;
     createTask.mutate({
       title: item.naam,
       category: item.categorie || "halffabricaat",
-      task_date: taskDate,
+      task_date: smartDate,
       recept_id: item.id,
       methode_id: methode?.id,
       units: 1,
