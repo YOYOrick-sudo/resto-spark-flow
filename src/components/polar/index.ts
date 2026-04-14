@@ -108,7 +108,6 @@ export type { NestoDatePickerProps } from "./NestoDatePicker";
 
 export { NestoPanel } from "./NestoPanel";
 export type { NestoPanelProps } from "./NestoPanel";
-export type { NestoPanelProps } from "./NestoPanel";
 
 export { NestoErrorBoundary } from "./NestoErrorBoundary";
 
