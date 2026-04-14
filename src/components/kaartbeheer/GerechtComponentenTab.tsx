@@ -32,7 +32,7 @@ function ComponentRow({ comp, onRemove }: { comp: GerechtComponent; onRemove: ()
   );
 }
 
-function AddHalffabricaat({ gerechtId }: { gerechtId: string }) {
+function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyState?: boolean }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [hoeveelheid, setHoeveelheid] = useState("1");
@@ -42,7 +42,7 @@ function AddHalffabricaat({ gerechtId }: { gerechtId: string }) {
 
   if (!open) {
     return (
-      <NestoButton variant="ghost" size="sm" onClick={() => setOpen(true)} className="min-h-[44px]">
+      <NestoButton variant={emptyState ? "outline" : "ghost"} size="sm" onClick={() => setOpen(true)} className="min-h-[44px]">
         <Plus className="h-3.5 w-3.5 mr-1" /> Halffabricaat toevoegen
       </NestoButton>
     );
@@ -126,7 +126,7 @@ function AddHalffabricaat({ gerechtId }: { gerechtId: string }) {
   );
 }
 
-function AddIngredient({ gerechtId }: { gerechtId: string }) {
+function AddIngredient({ gerechtId, emptyState }: { gerechtId: string; emptyState?: boolean }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [hoeveelheid, setHoeveelheid] = useState("1");
@@ -137,7 +137,7 @@ function AddIngredient({ gerechtId }: { gerechtId: string }) {
 
   if (!open) {
     return (
-      <NestoButton variant="ghost" size="sm" onClick={() => setOpen(true)} className="min-h-[44px]">
+      <NestoButton variant={emptyState ? "outline" : "ghost"} size="sm" onClick={() => setOpen(true)} className="min-h-[44px]">
         <Plus className="h-3.5 w-3.5 mr-1" /> Ingrediënt toevoegen
       </NestoButton>
     );
