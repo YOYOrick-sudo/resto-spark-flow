@@ -111,5 +111,11 @@ export type { NestoPanelProps } from "./NestoPanel";
 
 export { NestoErrorBoundary } from "./NestoErrorBoundary";
 
+export { StepWizard, useStepWizard } from "./StepWizard";
+export type { StepWizardProps, WizardStep } from "./StepWizard";
+
+export { AllergeenPills } from "./AllergeenPills";
+export type { AllergeenPillData, } from "./AllergeenPills";
+
 // Re-export toast from sonner for easy access
 export { toast } from 'sonner';
