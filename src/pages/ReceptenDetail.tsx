@@ -57,9 +57,9 @@ export default function ReceptenDetail() {
   const tabs: TabItem[] = useMemo(() => [
     { id: "ingredienten", label: "Ingrediënten" },
     { id: "bereiding", label: "Bereiding" },
-    ...(recept?.type === "halffabricaat" ? [{ id: "methodes", label: "Methodes" }] : []),
+    { id: "methodes", label: "Methodes" },
     { id: "allergenen", label: "Allergenen" },
-  ], [recept?.type]);
+  ], []);
 
   const kostprijsPerPortie = recept && recept.porties > 0
     ? recept.totale_kostprijs / recept.porties
