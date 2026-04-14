@@ -1129,6 +1129,145 @@ export type Database = {
           },
         ]
       }
+      factuur_regels: {
+        Row: {
+          created_at: string
+          eenheid: string | null
+          factuur_id: string
+          hoeveelheid: number | null
+          id: string
+          ingredient_id: string | null
+          match_confidence: number | null
+          match_status: string
+          prijs_per_eenheid: number | null
+          product_naam_herkend: string
+          totaal: number | null
+        }
+        Insert: {
+          created_at?: string
+          eenheid?: string | null
+          factuur_id: string
+          hoeveelheid?: number | null
+          id?: string
+          ingredient_id?: string | null
+          match_confidence?: number | null
+          match_status?: string
+          prijs_per_eenheid?: number | null
+          product_naam_herkend: string
+          totaal?: number | null
+        }
+        Update: {
+          created_at?: string
+          eenheid?: string | null
+          factuur_id?: string
+          hoeveelheid?: number | null
+          id?: string
+          ingredient_id?: string | null
+          match_confidence?: number | null
+          match_status?: string
+          prijs_per_eenheid?: number | null
+          product_naam_herkend?: string
+          totaal?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factuur_regels_factuur_id_fkey"
+            columns: ["factuur_id"]
+            isOneToOne: false
+            referencedRelation: "factuur_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factuur_regels_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factuur_uploads: {
+        Row: {
+          bestand_url: string
+          bestandsnaam: string
+          bron: string
+          created_at: string
+          factuurdatum: string | null
+          factuurnummer: string | null
+          goedgekeurd_door: string | null
+          goedgekeurd_op: string | null
+          id: string
+          leverancier_id: string | null
+          leverancier_naam_herkend: string | null
+          location_id: string
+          ruwe_tekst: string | null
+          status: string
+          totaalbedrag: number | null
+          updated_at: string
+          verwerkt_op: string | null
+        }
+        Insert: {
+          bestand_url: string
+          bestandsnaam: string
+          bron?: string
+          created_at?: string
+          factuurdatum?: string | null
+          factuurnummer?: string | null
+          goedgekeurd_door?: string | null
+          goedgekeurd_op?: string | null
+          id?: string
+          leverancier_id?: string | null
+          leverancier_naam_herkend?: string | null
+          location_id: string
+          ruwe_tekst?: string | null
+          status?: string
+          totaalbedrag?: number | null
+          updated_at?: string
+          verwerkt_op?: string | null
+        }
+        Update: {
+          bestand_url?: string
+          bestandsnaam?: string
+          bron?: string
+          created_at?: string
+          factuurdatum?: string | null
+          factuurnummer?: string | null
+          goedgekeurd_door?: string | null
+          goedgekeurd_op?: string | null
+          id?: string
+          leverancier_id?: string | null
+          leverancier_naam_herkend?: string | null
+          location_id?: string
+          ruwe_tekst?: string | null
+          status?: string
+          totaalbedrag?: number | null
+          updated_at?: string
+          verwerkt_op?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factuur_uploads_goedgekeurd_door_fkey"
+            columns: ["goedgekeurd_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factuur_uploads_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factuur_uploads_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       halffabricaat_methodes: {
         Row: {
           batch_nummer_template: string | null
@@ -1508,6 +1647,7 @@ export type Database = {
           id: string
           is_actief: boolean
           klantnummer: string | null
+          koppeling_type: string
           location_id: string
           naam: string
           notities: string | null
@@ -1523,6 +1663,7 @@ export type Database = {
           id?: string
           is_actief?: boolean
           klantnummer?: string | null
+          koppeling_type?: string
           location_id: string
           naam: string
           notities?: string | null
@@ -1538,6 +1679,7 @@ export type Database = {
           id?: string
           is_actief?: boolean
           klantnummer?: string | null
+          koppeling_type?: string
           location_id?: string
           naam?: string
           notities?: string | null
