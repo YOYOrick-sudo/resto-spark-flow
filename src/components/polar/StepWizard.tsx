@@ -230,7 +230,7 @@ export function StepWizard({
         {/* Footer */}
         <div className="max-w-[640px] mx-auto flex items-center justify-between pt-4 border-t border-border/30">
           {currentStep > 0 ? (
-            <NestoButton variant="outline" onClick={goPrev} className="min-h-[76px] px-8">
+            <NestoButton variant="outline" onClick={goPrev} size="lg">
               Vorige
             </NestoButton>
           ) : (
@@ -241,12 +241,13 @@ export function StepWizard({
             <NestoButton
               onClick={handleComplete}
               isLoading={isSaving}
-              className="min-h-[76px] px-8 bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
+              size="lg"
+              className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
             >
               Opslaan
             </NestoButton>
           ) : (
-            <NestoButton onClick={goNext} className="min-h-[76px] px-8">
+            <NestoButton onClick={goNext} size="lg">
               Volgende
             </NestoButton>
           )}
