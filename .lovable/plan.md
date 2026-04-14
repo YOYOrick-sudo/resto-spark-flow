@@ -1,73 +1,52 @@
 
 
-# Fix: Kostprijs null-safety in ReceptenDetail
+# Methodes UI: Enterprise inline-edit tabel
 
-## Probleem
-`.toFixed(2)` crasht wanneer kostprijs-velden `null` zijn. En `€0.00` tonen bij ontbrekende data is misleidend.
+## Waarom niet collapsible cards?
 
-## Wijzigingen — `src/pages/ReceptenDetail.tsx`
+Collapsible accordions voelen als een "admin panel" pattern, niet als een enterprise tool. Linear, Notion en Stripe gebruiken **compact inline-editable rows** voor dit soort lijsten. Dat past beter bij Nesto Polar:
 
-### 1. Berekening (regel 64-66)
+- Alles in een oogopslag zichtbaar (geen klik nodig om data te zien)
+- Hogere informatiedichtheid
+- Sneller editen zonder open/dicht gedoe
+- Professioneler gevoel
 
-**Was:**
-```ts
-const kostprijsPerPortie = recept && recept.porties > 0
-  ? recept.totale_kostprijs / recept.porties
-  : 0;
+## Voorstel: Inline-edit tabelweergave
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  #   Type         Output      Duur    Houdbaar   Sub-recept │
+├──────────────────────────────────────────────────────────────┤
+│  1   [Bereiden ▾]  1 [kg ▾]   30 min   3 d       [Tomatensaus ▾] │
+│  2   [Snijden  ▾]  2 [kg ▾]   15 min   —         instructie...   │
+├──────────────────────────────────────────────────────────────┤
+│  [ + Methode toevoegen ]                                     │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-**Wordt:**
-```ts
-const kostprijsPerPortie = recept && recept.porties > 0 && recept.totale_kostprijs != null
-  ? recept.totale_kostprijs / recept.porties
-  : null;
-```
+### Kenmerken
+- Compacte rijen met inline selects en inputs (geen labels, kolom-headers doen dat)
+- Elke rij heeft een volgnummer, hover toont delete-icoon rechts
+- Alle velden direct bewerkbaar, geen expand/collapse nodig
+- Instructie/sub-recept toont als laatste kolom, klikbaar om te openen in een kleine inline textarea
+- Tabular-nums voor getallen
+- `py-2.5 px-3` compact density (conform Nesto design patterns)
 
-### 2. Kostprijs card (regels 214-223)
+### Optioneel: expandable row voor instructie
+Alleen het instructie-veld (textarea) kan expandable zijn per rij via een klein chevron-icoon. Zo blijft de tabel compact maar is er ruimte voor langere tekst wanneer nodig.
 
-**Was:**
-```tsx
-<div className="grid grid-cols-2 gap-y-1.5 text-sm">
-  <span className="text-muted-foreground">Ingrediënten</span>
-  <span className="text-right">€{recept.totale_ingredientkostprijs.toFixed(2)}</span>
-  <span className="text-muted-foreground">Arbeid</span>
-  <span className="text-right">€{recept.arbeidskostprijs.toFixed(2)}</span>
-  <span className="font-semibold pt-1 border-t border-border/50">Totaal</span>
-  <span className="font-semibold text-right pt-1 border-t border-border/50">€{recept.totale_kostprijs.toFixed(2)}</span>
-  <span className="text-muted-foreground">Per portie</span>
-  <span className="text-right font-medium text-primary">€{kostprijsPerPortie.toFixed(2)}</span>
-</div>
-```
+## Wijzigingen
 
-**Wordt:**
-```tsx
-<div className="grid grid-cols-2 gap-y-1.5 text-sm">
-  <span className="text-muted-foreground">Ingrediënten</span>
-  <span className="text-right">
-    {recept.totale_ingredientkostprijs != null
-      ? `€${recept.totale_ingredientkostprijs.toFixed(2)}`
-      : "—"}
-  </span>
-  <span className="text-muted-foreground">Arbeid</span>
-  <span className="text-right">
-    {recept.arbeidskostprijs != null
-      ? `€${recept.arbeidskostprijs.toFixed(2)}`
-      : "—"}
-  </span>
-  <span className="font-semibold pt-1 border-t border-border/50">Totaal</span>
-  <span className="font-semibold text-right pt-1 border-t border-border/50">
-    {recept.totale_kostprijs != null
-      ? `€${recept.totale_kostprijs.toFixed(2)}`
-      : "—"}
-  </span>
-  <span className="text-muted-foreground">Per portie</span>
-  <span className="text-right font-medium text-primary">
-    {kostprijsPerPortie != null
-      ? `€${kostprijsPerPortie.toFixed(2)}`
-      : "Nog niet berekend"}
-  </span>
-</div>
-```
+### `src/components/recepten/tabs/MethodesTab.tsx`
+- Vervang losse `MethodeCard` componenten door een compacte tabel-layout
+- Kolommen: #, Type (select), Output (number + eenheid select), Duur, Houdbaar, Sub-recept/Instructie, Delete
+- Inline editing: selects en inputs direct in de rij
+- Hover state op rij toont delete-knop (opacity transition)
+- Optionele instructie-row die uitklapt onder de hoofdrij
 
-**Totaal: 1 bestand, 0 migraties.**
+### `src/components/recepten/wizard/ReceptStapMethodes.tsx`  
+- Zelfde tabel-layout voor consistentie
+- Zonder sub-recept kolom (die is wizard-irrelevant)
+
+**Totaal: 2 bestanden, 0 migraties.**
 
