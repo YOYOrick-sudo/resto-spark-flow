@@ -48,7 +48,7 @@ export default function SettingsVoorkeuren() {
         <NestoButton
           onClick={handleSeed}
           disabled={seeding || seedDone}
-          variant={seedDone ? "outline" : "default"}
+          variant={seedDone ? "outline" : "primary"}
           size="sm"
         >
           {seeding && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
