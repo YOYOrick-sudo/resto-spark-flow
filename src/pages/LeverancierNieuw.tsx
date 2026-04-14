@@ -176,7 +176,7 @@ export default function LeverancierNieuw() {
         description="Je hebt onopgeslagen wijzigingen. Weet je zeker dat je terug wilt?"
         confirmLabel="Ja, annuleren"
         onConfirm={() => navigate("/inkoop/leveranciers")}
-        variant="danger"
+        variant="destructive"
       />
     </div>
   );
