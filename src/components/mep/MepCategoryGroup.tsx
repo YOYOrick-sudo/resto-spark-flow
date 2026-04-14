@@ -49,7 +49,7 @@ export function MepCategoryGroup({
         onClick={() => setCollapsed((p) => !p)}
         className={cn(
           "w-full flex items-center justify-between px-4 py-3 min-h-[48px] transition-colors",
-          allDone ? "bg-green-50 dark:bg-green-950/30" : "bg-rose-50 dark:bg-rose-950/30"
+          allDone ? "bg-primary/[0.06]" : "bg-muted/50"
         )}
       >
         <div className="flex items-center gap-2">
