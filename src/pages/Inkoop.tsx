@@ -4,14 +4,14 @@ import { PageHeader, NestoTabs, NestoTabContent, NestoButton } from "@/component
 import { BesteladviesTab } from "@/components/inkoop/BesteladviesTab";
 import { BestellijstenTab } from "@/components/inkoop/BestellijstenTab";
 import { OrderhistorieTab } from "@/components/inkoop/OrderhistorieTab";
-import { WasteTab } from "@/components/inkoop/WasteTab";
+import { FacturenTab } from "@/components/inkoop/FacturenTab";
 import { Truck } from "lucide-react";
 
 const tabs = [
   { id: "advies", label: "Besteladvies" },
   { id: "bestellijsten", label: "Bestellijsten" },
+  { id: "facturen", label: "Facturen" },
   { id: "historie", label: "Orderhistorie" },
-  { id: "waste", label: "Waste" },
 ];
 
 export default function Inkoop() {
@@ -22,7 +22,7 @@ export default function Inkoop() {
     <div className="space-y-6">
       <PageHeader
         title="Voorraad & Inkoop"
-        subtitle="Besteladvies, bestellingen, orderhistorie en waste registratie."
+        subtitle="Besteladvies, bestellingen, facturen en orderhistorie."
         actions={
           <NestoButton
             variant="outline"
@@ -44,12 +44,12 @@ export default function Inkoop() {
         <BestellijstenTab />
       </NestoTabContent>
 
-      <NestoTabContent value="historie" activeValue={activeTab}>
-        <OrderhistorieTab />
+      <NestoTabContent value="facturen" activeValue={activeTab}>
+        <FacturenTab />
       </NestoTabContent>
 
-      <NestoTabContent value="waste" activeValue={activeTab}>
-        <WasteTab />
+      <NestoTabContent value="historie" activeValue={activeTab}>
+        <OrderhistorieTab />
       </NestoTabContent>
     </div>
   );

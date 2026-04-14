@@ -246,6 +246,24 @@ function DetailView({ leverancierId }: { leverancierId: string }) {
         )}
       </div>
 
+      {/* Koppeling type */}
+      <div className="border-t border-border/50 pt-4">
+        <NestoSelect
+          label="Koppeling type"
+          value={(lev as any).koppeling_type ?? "handmatig"}
+          onValueChange={(v) => mutations.updateLeverancier.mutate({ id: leverancierId, koppeling_type: v })}
+          options={[
+            { value: "handmatig", label: "Handmatig" },
+            { value: "api", label: "API koppeling (binnenkort)" },
+          ]}
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          {((lev as any).koppeling_type ?? "handmatig") === "handmatig"
+            ? "Prijzen worden bijgewerkt via factuur-upload of email forward"
+            : "Binnenkort beschikbaar"}
+        </p>
+      </div>
+
       {/* Artikelen section */}
       <div>
         <div className="flex items-center justify-between mb-3">
