@@ -92,10 +92,13 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel }: MepTaskRow
           </div>
         </div>
 
-        {/* Status badge */}
-        <NestoBadge variant={status.variant} size="sm">
-          {status.label}
-        </NestoBadge>
+        {/* Status badge — alleen bij in_progress en cancelled */}
+        {task.status === "in_progress" && (
+          <NestoBadge variant="primary" size="sm">Bezig</NestoBadge>
+        )}
+        {task.status === "cancelled" && (
+          <NestoBadge variant="default" size="sm">Geannuleerd</NestoBadge>
+        )}
 
         {/* Action buttons */}
         {isActive && (
