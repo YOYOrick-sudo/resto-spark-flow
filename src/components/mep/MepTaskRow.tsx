@@ -2,97 +2,131 @@ import { useState } from "react";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MepAssistantHint } from "./MepAssistantHint";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MepTask } from "@/hooks/useMepTasks";
-
-const STATUS_CONFIG: Record<
-  string,
-  { variant: "outline" | "primary" | "success" | "default"; label: string }
-> = {
-  pending: { variant: "outline", label: "Open" },
-  in_progress: { variant: "primary", label: "Bezig" },
-  completed: { variant: "success", label: "Klaar" },
-  cancelled: { variant: "default", label: "Geannuleerd" },
-};
 
 interface MepTaskRowProps {
   task: MepTask;
   isOverdue?: boolean;
   onComplete: (task: MepTask) => void;
   onCancel: (taskId: string) => void;
+  onPriorityChange?: (taskId: string, prioriteit: string) => void;
+  hint?: string | null;
 }
 
-export function MepTaskRow({ task, isOverdue, onComplete, onCancel }: MepTaskRowProps) {
+const PRIORITY_OPTIONS = [
+  { value: "Hoog", label: "Hoog", variant: "error" as const },
+  { value: "Normaal", label: "Normaal", variant: null },
+  { value: "Laag", label: "Laag", variant: "default" as const },
+];
+
+export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityChange, hint }: MepTaskRowProps) {
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const status = STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
+  const [prioOpen, setPrioOpen] = useState(false);
   const isActive = task.status === "pending" || task.status === "in_progress";
   const isDone = task.status === "completed" || task.status === "cancelled";
 
-  // Deadline urgency: within 1 hour or overdue
+  // Left border color based on priority / overdue
+  const borderClass = isOverdue || task.prioriteit === "Hoog"
+    ? "border-l-[3px] border-l-destructive"
+    : task.prioriteit === "Laag"
+      ? "border-l-[3px] border-l-muted-foreground/30"
+      : "";
+
+  // Deadline urgency
   const deadlineUrgent = (() => {
     if (!task.deadline || isDone) return false;
     const now = new Date();
     const [h, m] = task.deadline.split(":").map(Number);
     const dl = new Date();
     dl.setHours(h, m, 0, 0);
-    const diffMs = dl.getTime() - now.getTime();
-    return diffMs < 60 * 60 * 1000; // less than 1 hour or past
+    return dl.getTime() - now.getTime() < 60 * 60 * 1000;
   })();
 
-  const formattedDeadline = task.deadline
-    ? task.deadline.substring(0, 5)
-    : null;
+  const formattedDeadline = task.deadline ? task.deadline.substring(0, 5) : null;
 
   return (
     <>
       <div
         className={cn(
           "flex items-center gap-3 px-4 py-3 min-h-[56px] transition-colors",
-          isOverdue && "border-l-[3px] border-l-destructive",
+          borderClass,
           isDone && "opacity-50"
         )}
       >
         {/* Task info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "text-sm font-medium truncate",
-                isDone && "line-through"
-              )}
-            >
+            <span className={cn("text-sm font-medium truncate", isDone && "line-through")}>
               {task.title}
             </span>
-            {task.prioriteit === "Hoog" && (
-              <NestoBadge variant="error" size="sm">
-                Hoog
-              </NestoBadge>
-            )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             {task.units && (
               <span className="text-xs text-muted-foreground">
-                {task.units}×
-                {task.methode ? ` ${task.methode.visuele_eenheid}` : ""}
+                {task.units}×{task.methode ? ` ${task.methode.visuele_eenheid}` : ""}
               </span>
             )}
             {formattedDeadline && (
-              <span
-                className={cn(
-                  "text-xs",
-                  deadlineUrgent
-                    ? "text-destructive font-medium"
-                    : "text-muted-foreground"
-                )}
-              >
+              <span className={cn("text-xs", deadlineUrgent ? "text-destructive font-medium" : "text-muted-foreground")}>
                 ⏰ {formattedDeadline}
               </span>
             )}
           </div>
+          {hint && <MepAssistantHint hint={hint} />}
         </div>
 
-        {/* Status badge — alleen bij in_progress en cancelled */}
+        {/* Priority badge — clickable dropdown */}
+        {isActive && onPriorityChange && (
+          <Popover open={prioOpen} onOpenChange={setPrioOpen}>
+            <PopoverTrigger asChild>
+              {task.prioriteit === "Hoog" ? (
+                <button className="flex-shrink-0">
+                  <NestoBadge variant="error" size="sm" className="cursor-pointer">
+                    Hoog
+                  </NestoBadge>
+                </button>
+              ) : task.prioriteit === "Laag" ? (
+                <button className="flex-shrink-0">
+                  <NestoBadge variant="default" size="sm" className="cursor-pointer">
+                    Laag
+                  </NestoBadge>
+                </button>
+              ) : (
+                <button className="flex-shrink-0 text-xs text-muted-foreground hover:text-foreground px-1">
+                  ···
+                </button>
+              )}
+            </PopoverTrigger>
+            <PopoverContent className="w-36 p-1" align="end">
+              {PRIORITY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors",
+                    task.prioriteit === opt.value && "bg-accent font-medium"
+                  )}
+                  onClick={() => {
+                    onPriorityChange(task.id, opt.value);
+                    setPrioOpen(false);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+        )}
+
+        {/* Static priority badge for completed/cancelled */}
+        {isDone && task.prioriteit === "Hoog" && (
+          <NestoBadge variant="error" size="sm">Hoog</NestoBadge>
+        )}
+
+        {/* Status badge — only in_progress and cancelled */}
         {task.status === "in_progress" && (
           <NestoBadge variant="primary" size="sm">Bezig</NestoBadge>
         )}

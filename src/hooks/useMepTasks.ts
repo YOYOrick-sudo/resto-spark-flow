@@ -20,7 +20,7 @@ export interface MepTask {
   created_at: string;
   updated_at: string;
   // Joined
-  recept?: { id: string; naam: string; porties: number } | null;
+  recept?: { id: string; naam: string; porties: number; actieve_bereidingstijd?: number | null; passieve_bereidingstijd?: number | null } | null;
   methode?: {
     id: string;
     type: string;
@@ -43,7 +43,7 @@ export function useMepTasks(date: string) {
         .from("mep_tasks")
         .select(`
           *,
-          recept:recepten(id, naam, porties),
+          recept:recepten(id, naam, porties, actieve_bereidingstijd, passieve_bereidingstijd),
           methode:halffabricaat_methodes(id, type, output_hoeveelheid, output_eenheid, visuele_eenheid, houdbaarheid)
         `)
         .eq("location_id", locationId)
@@ -69,7 +69,7 @@ export function useMepTasksWeek(startDate: string, endDate: string) {
         .from("mep_tasks")
         .select(`
           *,
-          recept:recepten(id, naam, porties),
+          recept:recepten(id, naam, porties, actieve_bereidingstijd, passieve_bereidingstijd),
           methode:halffabricaat_methodes(id, type, output_hoeveelheid, output_eenheid, visuele_eenheid, houdbaarheid)
         `)
         .eq("location_id", locationId)
