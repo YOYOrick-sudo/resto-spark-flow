@@ -508,11 +508,11 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
     const today = new Date().toISOString().split("T")[0];
 
     const mepDefs = [
-      { title: "Tomatenrelish maken", recept: "Tomatenrelish", status: "pending", prioriteit: "Normaal", units: 2, deadline: `${today}T11:00:00`, category: "Sauzen" },
-      { title: "Kippensoep koken", recept: "Kippensoep", status: "pending", prioriteit: "Hoog", units: 1, deadline: `${today}T10:30:00`, category: "Soepen" },
+      { title: "Tomatenrelish maken", recept: "Tomatenrelish", status: "pending", prioriteit: "Normaal", units: 2, deadline: "11:00:00", category: "Sauzen" },
+      { title: "Kippensoep koken", recept: "Kippensoep", status: "pending", prioriteit: "Hoog", units: 1, deadline: "10:30:00", category: "Soepen" },
       { title: "Kruidenboter rollen", recept: "Kruidenboter", status: "completed", prioriteit: "Normaal", units: 1, deadline: null, category: "Sauzen" },
-      { title: "Pasta basis voorbereiden", recept: "Pasta aglio e olio basis", status: "in_progress", prioriteit: "Normaal", units: 3, deadline: `${today}T16:00:00`, category: "Pasta" },
-      { title: "Zalmgravad controleren", recept: "Zalmgravad", status: "pending", prioriteit: "Normaal", units: 1, deadline: `${today}T12:00:00`, category: "Vis" },
+      { title: "Pasta basis voorbereiden", recept: "Pasta aglio e olio basis", status: "in_progress", prioriteit: "Normaal", units: 3, deadline: "16:00:00", category: "Pasta" },
+      { title: "Zalmgravad controleren", recept: "Zalmgravad", status: "pending", prioriteit: "Normaal", units: 1, deadline: "12:00:00", category: "Vis" },
     ];
 
     const mepInserts = mepDefs.map((t) => ({
