@@ -138,6 +138,8 @@ const App = () => (
                   {/* Service */}
                   <Route path="/taken" element={<Taken />} />
                   
+                  {/* Interne Bestellingen */}
+                  <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
                   
                   {/* Onboarding */}
                   <Route path="/onboarding" element={<OnboardingPage />} />
