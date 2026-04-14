@@ -62,6 +62,7 @@ export function useKeukenSettings() {
         haccp_warmhouden_min: (data as any).haccp_warmhouden_min ?? DEFAULTS.haccp_warmhouden_min,
         ingredient_categorieen: ((data as any).ingredient_categorieen ?? DEFAULTS.ingredient_categorieen) as string[],
         recept_categorieen: ((data as any).recept_categorieen ?? DEFAULTS.recept_categorieen) as string[],
+        gerecht_categorieen: ((data as any).gerecht_categorieen ?? DEFAULTS.gerecht_categorieen) as string[],
         ai_bevoegdheden_keuken: ((data as any).ai_bevoegdheden_keuken ?? DEFAULTS.ai_bevoegdheden_keuken) as AiBevoegdheden,
       };
     },
