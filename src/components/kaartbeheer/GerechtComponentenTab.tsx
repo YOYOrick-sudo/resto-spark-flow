@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NestoButton, NestoBadge } from "@/components/polar";
+import { NestoButton } from "@/components/polar";
 import { Input } from "@/components/ui/input";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
