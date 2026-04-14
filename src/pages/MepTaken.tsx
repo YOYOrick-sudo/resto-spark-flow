@@ -1,16 +1,18 @@
 import { useState, useMemo } from "react";
 import { format, addDays, subDays, startOfWeek, endOfWeek } from "date-fns";
 import { nl } from "date-fns/locale";
-import { PageHeader } from "@/components/polar";
+import { PageHeader, EmptyState } from "@/components/polar";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-
-import { ChevronLeft, ChevronRight, CalendarDays, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, List, ClipboardList } from "lucide-react";
 import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
+import { useCancelMepTask } from "@/hooks/useMepMutations";
 import { MepQuickAdd } from "@/components/mep/MepQuickAdd";
-import { MepTaskList } from "@/components/mep/MepTaskList";
 import { MepWeekView } from "@/components/mep/MepWeekView";
 import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
+import { MepOvertijdGroup } from "@/components/mep/MepOvertijdGroup";
+import { MepCategoryGroup } from "@/components/mep/MepCategoryGroup";
+import { MepCompletedGroup } from "@/components/mep/MepCompletedGroup";
 
 export default function MepTaken() {
   const today = format(new Date(), "yyyy-MM-dd");
@@ -40,26 +42,55 @@ export default function MepTaken() {
     weekEndStr
   );
 
-  // Stats
-  const stats = useMemo(() => {
-    const pending = dayTasks.filter((t) => t.status === "pending").length;
-    const completed = dayTasks.filter((t) => t.status === "completed").length;
-    return { pending, completed, total: dayTasks.length };
-  }, [dayTasks]);
+  // Mutations
+  const cancelTask = useCancelMepTask();
 
-  // Completion modal state for week view
+  // Completion modal
   const [completionTask, setCompletionTask] = useState<MepTask | null>(null);
 
-  const handleWeekTaskClick = (task: MepTask) => {
-    if (task.status === "pending" || task.status === "in_progress") {
-      setCompletionTask(task);
-    }
-  };
+  // 3-layer grouping
+  const { overtijd, openGrouped, voltooid, stats } = useMemo(() => {
+    const now = new Date();
+
+    const isOverdue = (t: MepTask) => {
+      if (!t.deadline || t.status === "completed" || t.status === "cancelled") return false;
+      const [h, m] = t.deadline.split(":").map(Number);
+      const dl = new Date();
+      dl.setHours(h, m, 0, 0);
+      return now > dl;
+    };
+
+    const overtijd = dayTasks.filter(isOverdue);
+    const overtijdIds = new Set(overtijd.map((t) => t.id));
+
+    const activeTasks = dayTasks.filter(
+      (t) => t.status !== "completed" && t.status !== "cancelled" && !overtijdIds.has(t.id)
+    );
+    const voltooid = dayTasks.filter((t) => t.status === "completed");
+
+    // Group open by category
+    const groups: Record<string, MepTask[]> = {};
+    activeTasks.forEach((t) => {
+      const key = t.category || "overig";
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(t);
+    });
+
+    // Stats: exclude cancelled
+    const nonCancelled = dayTasks.filter((t) => t.status !== "cancelled");
+    const completed = nonCancelled.filter((t) => t.status === "completed").length;
+
+    return {
+      overtijd,
+      openGrouped: groups,
+      voltooid,
+      stats: { completed, total: nonCancelled.length },
+    };
+  }, [dayTasks]);
 
   const isToday = selectedDate === today;
-  const dateLabel = format(new Date(selectedDate), "EEEE d MMMM", {
-    locale: nl,
-  });
+  const dateLabel = format(new Date(selectedDate), "EEEE d MMMM", { locale: nl });
+  const progressPct = stats.total > 0 ? stats.completed / stats.total : 0;
 
   return (
     <div className="space-y-6">
@@ -69,7 +100,7 @@ export default function MepTaken() {
         actions={
           <div className="flex items-center gap-2">
             {stats.total > 0 && (
-              <NestoBadge variant={stats.pending === 0 ? "success" : "pending"}>
+              <NestoBadge variant={progressPct > 0.5 ? "success" : "pending"}>
                 {stats.completed}/{stats.total} klaar
               </NestoBadge>
             )}
@@ -108,9 +139,7 @@ export default function MepTaken() {
         >
           {dateLabel}
           {isToday && (
-            <span className="ml-2 text-xs text-primary font-normal">
-              (vandaag)
-            </span>
+            <span className="ml-2 text-xs text-primary font-normal">(vandaag)</span>
           )}
         </button>
         <NestoButton variant="ghost" size="icon" onClick={goNext} className="h-11 w-11">
@@ -126,7 +155,11 @@ export default function MepTaken() {
             setSelectedDate(d);
             setView("dag");
           }}
-          onTaskClick={handleWeekTaskClick}
+          onTaskClick={(task) => {
+            if (task.status === "pending" || task.status === "in_progress") {
+              setCompletionTask(task);
+            }
+          }}
           isLoading={weekLoading}
         />
       ) : (
@@ -134,12 +167,47 @@ export default function MepTaken() {
           {/* Quick add */}
           <MepQuickAdd taskDate={selectedDate} />
 
-          {/* Task list */}
-          <MepTaskList tasks={dayTasks} isLoading={dayLoading} />
+          {/* Day view content */}
+          {dayLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : dayTasks.length === 0 ? (
+            <EmptyState
+              icon={ClipboardList}
+              title="Geen taken voor deze dag"
+              description="Voeg taken toe via het zoekveld hierboven."
+            />
+          ) : (
+            <div className="space-y-4">
+              {/* Layer 1: Overtijd */}
+              <MepOvertijdGroup
+                tasks={overtijd}
+                onComplete={setCompletionTask}
+                onCancel={(id) => cancelTask.mutate(id)}
+              />
+
+              {/* Layer 2: Open per category */}
+              {Object.entries(openGrouped).map(([category, tasks]) => (
+                <MepCategoryGroup
+                  key={category}
+                  category={category}
+                  tasks={tasks}
+                  onComplete={setCompletionTask}
+                  onCancel={(id) => cancelTask.mutate(id)}
+                />
+              ))}
+
+              {/* Layer 3: Completed today */}
+              <MepCompletedGroup tasks={voltooid} />
+            </div>
+          )}
         </>
       )}
 
-      {/* Completion modal for week view inline clicks */}
+      {/* Completion modal */}
       {completionTask && (
         <MepCompletionModal
           task={completionTask}
