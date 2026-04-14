@@ -8,6 +8,9 @@ interface CreateReceptInput {
   categorie: string;
   type: string;
   porties: number;
+  actieve_bereidingstijd?: number | null;
+  passieve_bereidingstijd?: number | null;
+  bereiding?: string | null;
 }
 
 interface UpdateReceptInput {
@@ -69,6 +72,9 @@ export function useReceptMutations() {
           categorie: input.categorie,
           type: input.type,
           porties: input.porties,
+          actieve_bereidingstijd: input.actieve_bereidingstijd ?? null,
+          passieve_bereidingstijd: input.passieve_bereidingstijd ?? null,
+          bereiding: input.bereiding ?? null,
         })
         .select("id")
         .single();

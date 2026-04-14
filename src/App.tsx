@@ -16,6 +16,7 @@ import Reserveringen from "./pages/Reserveringen";
 import MepTaken from "./pages/MepTaken";
 import Recepten from "./pages/Recepten";
 import ReceptenDetail from "./pages/ReceptenDetail";
+import ReceptenNieuw from "./pages/ReceptenNieuw";
 import Ingredienten from "./pages/Ingredienten";
 import Inkoop from "./pages/Inkoop";
 import Leveranciers from "./pages/Leveranciers";
@@ -149,6 +150,7 @@ const App = () => (
                   <Route path="/halffabricaten" element={<Navigate to="/recepten" replace />} />
                   <Route path="/halffabricaten/:id" element={<Navigate to="/recepten" replace />} />
                   <Route path="/recepten" element={<Recepten />} />
+                  <Route path="/recepten/nieuw" element={<ReceptenNieuw />} />
                   <Route path="/recepten/:id" element={<ReceptenDetail />} />
                   <Route path="/voorraad" element={<Ingredienten />} />
                   <Route path="/kostprijzen" element={<Navigate to="/voorraad" replace />} />
