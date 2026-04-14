@@ -85,7 +85,7 @@ export function useRecept(id: string | null) {
             *,
             allergenen(id, code, naam_nl, naam_en, sort_order)
           ),
-          halffabricaat_methodes(*)
+          halffabricaat_methodes!halffabricaat_methodes_recept_id_fkey(*)
         `)
         .eq("id", id!)
         .single();

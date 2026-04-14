@@ -29,7 +29,7 @@ export function useHalffabricaatSearch(search: string) {
         .from("recepten")
         .select(`
           id, naam, categorie, type, porties, totale_kostprijs,
-          methodes:halffabricaat_methodes(id, type, output_hoeveelheid, output_eenheid, visuele_eenheid, houdbaarheid)
+          methodes:halffabricaat_methodes!halffabricaat_methodes_recept_id_fkey(id, type, output_hoeveelheid, output_eenheid, visuele_eenheid, houdbaarheid)
         `)
         .eq("location_id", locationId)
         .eq("is_archived", false)
