@@ -58,6 +58,7 @@ import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 import WasteDetailPage from "./pages/analytics/detail/WasteDetailPage";
 import ReviewsDetailPage from "./pages/analytics/detail/ReviewsDetailPage";
 import BereikDetailPage from "./pages/analytics/detail/BereikDetailPage";
+import InterneBestellingen from "./pages/InterneBestellingen";
 import WaitlistAccept from "./pages/WaitlistAccept";
 import ReconfirmReservation from "./pages/ReconfirmReservation";
 
@@ -137,6 +138,8 @@ const App = () => (
                   {/* Service */}
                   <Route path="/taken" element={<Taken />} />
                   
+                  {/* Interne Bestellingen */}
+                  <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
                   
                   {/* Onboarding */}
                   <Route path="/onboarding" element={<OnboardingPage />} />

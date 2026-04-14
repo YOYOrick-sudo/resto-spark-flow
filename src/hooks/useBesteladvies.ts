@@ -35,6 +35,14 @@ export function useBesteladvies() {
   return useQuery({
     queryKey: ["besteladvies", locationId],
     queryFn: async () => {
+      // Get location buffer percentage
+      const { data: locData } = await supabase
+        .from("locations")
+        .select("besteladvies_buffer_percentage")
+        .eq("id", locationId!)
+        .single();
+      const bufferMultiplier = 1 + ((locData?.besteladvies_buffer_percentage ?? 20) / 100);
+
       // Get ingredients below minimum
       const { data: ingredienten, error: iErr } = await supabase
         .from("ingredienten")
@@ -66,7 +74,7 @@ export function useBesteladvies() {
 
       const regels: AdviesRegel[] = onderMin.map((ing) => {
         const tekort = ing.min_voorraad - ing.voorraad;
-        const buffer = tekort * 1.2;
+        const buffer = tekort * bufferMultiplier;
         const artikel = artikelMap.get(ing.id);
         const verpH = artikel?.verpakking_hoeveelheid ?? null;
         const aantalVerp = verpH ? Math.ceil(buffer / verpH) : null;

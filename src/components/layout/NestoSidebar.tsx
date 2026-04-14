@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, PanelLeft, Search, Building2 } from 'lucide-react';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import { useUserContext } from '@/contexts/UserContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: ReactNode }) {
@@ -65,6 +66,8 @@ interface NestoSidebarProps {
 export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 0, collapsed, onToggleCollapse }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { availableLocations } = useUserContext();
+  const isMultiLocation = availableLocations.length > 1;
   
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
     const group = getExpandedGroupFromPath(location.pathname);
@@ -270,7 +273,9 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     <ExpandableContent isOpen={isExpanded || !!hasActiveChild}>
                       <div className="relative ml-[23px] mt-1 pl-3 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-muted-foreground/25 dark:before:bg-muted-foreground/50">
                         <ul>
-                          {item.subItems.map((subItem) => {
+                          {item.subItems
+                            .filter((sub) => sub.id !== 'kitchen-transfers' || isMultiLocation)
+                            .map((subItem) => {
                             const isSubActive = activeItemId === subItem.id;
                             
                             if (subItem.disabled) {

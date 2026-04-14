@@ -26,6 +26,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'kitchen-kostprijzen': '/kostprijzen',
   'kitchen-orders': '/inkoop',
   'kitchen-leveranciers': '/inkoop/leveranciers',
+  'kitchen-transfers': '/interne-bestellingen',
   'kaartbeheer-gerechten': '/kaartbeheer',
   'service-tasks': '/taken',
   'marketing-dashboard': '/marketing',
@@ -100,6 +101,7 @@ export const menuItems: MenuItem[] = [
       { id: 'kitchen-voorraad', label: 'Ingrediënten', path: '/voorraad' },
       { id: 'kitchen-kostprijzen', label: 'Kostprijzen', path: '/kostprijzen' },
       { id: 'kitchen-orders', label: 'Voorraad & Inkoop', path: '/inkoop' },
+      { id: 'kitchen-transfers', label: 'Interne Bestellingen', path: '/interne-bestellingen' },
     ],
   },
   {
@@ -217,7 +219,8 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
     path.startsWith('/voorraad') ||
     path.startsWith('/kostprijzen') ||
     path.startsWith('/mep') ||
-    path.startsWith('/inkoop')
+    path.startsWith('/inkoop') ||
+    path.startsWith('/interne-bestellingen')
   ) {
     return 'kitchen';
   }
