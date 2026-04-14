@@ -72,21 +72,13 @@ export function ScheduleStep({
 
             {!sendNow && (
               <div className="flex items-center gap-3">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <NestoButton variant="outline" size="sm" leftIcon={<CalendarDays className="h-4 w-4" />}>
-                      {scheduledDate ? format(scheduledDate, 'd MMMM yyyy', { locale: nl }) : 'Kies datum'}
-                    </NestoButton>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={scheduledDate ?? undefined}
-                      onSelect={(d) => onScheduledDateChange(d ?? null)}
-                      disabled={(date) => date < new Date()}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <NestoDatePicker
+                  value={scheduledDate ?? undefined}
+                  onChange={(d) => onScheduledDateChange(d ?? null)}
+                  placeholder="Kies datum"
+                  minDate={new Date()}
+                  className="w-48"
+                />
                 <input
                   type="time"
                   value={scheduledTime}
