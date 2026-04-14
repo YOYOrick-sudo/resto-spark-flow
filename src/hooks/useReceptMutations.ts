@@ -72,6 +72,9 @@ export function useReceptMutations() {
           categorie: input.categorie,
           type: input.type,
           porties: input.porties,
+          actieve_bereidingstijd: input.actieve_bereidingstijd ?? null,
+          passieve_bereidingstijd: input.passieve_bereidingstijd ?? null,
+          bereiding: input.bereiding ?? null,
         })
         .select("id")
         .single();
