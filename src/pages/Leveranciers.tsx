@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader, NestoButton, NestoBadge, DataTable, NestoInput } from "@/components/polar";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
