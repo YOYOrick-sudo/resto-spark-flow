@@ -28,7 +28,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'kitchen-leveranciers': '/inkoop/leveranciers',
   'kitchen-transfers': '/interne-bestellingen',
   'kaartbeheer-gerechten': '/kaartbeheer',
-  'service-tasks': '/taken',
+  'kitchen-taken': '/taken',
   'marketing-dashboard': '/marketing',
   'marketing-campagnes': '/marketing/campagnes',
   'marketing-segmenten': '/marketing/segmenten',
