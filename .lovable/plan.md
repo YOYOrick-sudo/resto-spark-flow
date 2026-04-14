@@ -1,34 +1,34 @@
 
 
-# FIX: StepWizard buttons te groot
+# Fix: Ingrediënt detail — slide-over → volledige pagina
 
-## Probleem
+## Wijzigingen
 
-De buttons in de StepWizard footer hebben `min-h-[76px]` — dat was bedoeld als touch target maar het maakt de buttons visueel veel te groot. De 76dp touch target regel geldt voor het **klikbare gebied**, niet voor de visuele grootte van de button zelf.
+### 1. `src/App.tsx`
+- Toevoegen: `<Route path="/voorraad/:id" element={<IngredientenDetail />} />` tussen `/voorraad/nieuw` en `/voorraad`
+- Lazy import voor `IngredientenDetail`
 
-Het design systeem zegt: NestoButton default size = `h-10` (40px). De `lg` variant = `h-12` (48px). Een button van 76px hoog bestaat niet in het systeem.
+### 2. Nieuw: `src/pages/IngredientenDetail.tsx`
+Volledige pagina, zelfde patroon als `ReceptenDetail.tsx`:
 
-## Oplossing
+- `useParams()` voor `id`, `useIngredient(id)` voor data
+- Loading → `<Spinner />`, error/not found → "Ingrediënt niet gevonden" + terug-link
+- Back link: `← Ingrediënten` naar `/voorraad`
+- Twee-kolom layout `grid-cols-5`:
+  - **Links (col-span-3)**: `NestoTabs` + 5 tab contents (Algemeen, Voorraad, Kostprijs, Leveranciers, Allergenen) — importeer bestaande tab components
+  - **Rechts (col-span-2, sticky)**: Naam (h2), categorie badge, eenheid, voorraad + status badge, kostprijs samenvatting, allergenen pills, archiveer button
 
-In `src/components/polar/StepWizard.tsx` (regels 233, 244, 249):
+### 3. `src/components/ingredienten/tabs/AlgemeenTab.tsx`
+- Wijzig `onClose` prop naar optioneel
+- Na archiveren: `navigate("/voorraad")` via `useNavigate()` in plaats van `onClose()`
+- Verwijder `onClose` prop uit interface
 
-- Verwijder `min-h-[76px]` van alle drie de buttons
-- Gebruik `size="lg"` voor iets grotere buttons in de wizard footer (48px, past bij het design systeem)
-- Behoud `px-8` voor voldoende horizontale padding
+### 4. `src/pages/Ingredienten.tsx`
+- `onRowClick` → `navigate(/voorraad/${item.id})` 
+- Verwijder `IngredientDetailPanel` import, `selectedId` state, en `<IngredientDetailPanel>` JSX
 
-**Van:**
-```tsx
-<NestoButton variant="outline" onClick={goPrev} className="min-h-[76px] px-8">
-```
+### 5. `src/components/ingredienten/IngredientDetailPanel.tsx`
+- Kan verwijderd worden (niet meer gebruikt)
 
-**Naar:**
-```tsx
-<NestoButton variant="outline" onClick={goPrev} size="lg">
-```
-
-Hetzelfde voor de "Volgende" en "Opslaan" buttons.
-
-De `lg` size geeft `h-12 px-6` — dat is consistent met het design systeem en nog steeds comfortabel voor touch.
-
-**Totaal: 1 bestand, 3 regels aangepast.**
+**Totaal: 1 nieuw bestand, 3 gewijzigd, 1 verwijderd, 0 migraties.**
 
