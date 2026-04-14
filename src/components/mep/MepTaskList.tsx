@@ -171,9 +171,9 @@ export function MepTaskList({ tasks, isLoading }: MepTaskListProps) {
                                 ⏰ {task.deadline}
                               </span>
                             )}
-                            {task.assigned_profile?.name && (
+                            {task.assigned_to && (
                               <span className="text-xs text-muted-foreground">
-                                → {task.assigned_profile.name}
+                                → Toegewezen
                               </span>
                             )}
                           </div>
