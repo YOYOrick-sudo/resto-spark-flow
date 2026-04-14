@@ -1,30 +1,32 @@
 
 
-# Fix: Categorie headers — design system kleuren
+# Fix: Voorkom dubbele MEP taken op dezelfde dag
 
 ## Probleem
 
-`MepCategoryGroup.tsx` regel 52 gebruikt `bg-rose-50` voor openstaande categorieën. Dit lijkt op een error/alert en is visueel te agressief voor een normale toestand.
+Quick Add maakt altijd een nieuwe taak aan, ook als er al een openstaande taak bestaat voor hetzelfde halffabricaat op dezelfde dag.
 
 ## Oplossing
 
-Gebruik design system tokens in plaats van hardcoded Tailwind kleuren:
+`MepQuickAdd` krijgt de bestaande dagtaken als prop en checkt bij toevoegen of er al een match is.
 
-- **Openstaand** (niet alles klaar): `bg-muted/50` — dezelfde subtiele achtergrond die elders wordt gebruikt voor neutrale states. Rustig, geen alarm.
-- **Alles klaar**: `bg-primary/[0.06]` — heel licht teal, consistent met hoe de primary kleur elders als achtergrond wordt gebruikt (bijv. selected states, confirmed badges).
-- **Counter badge**: `pending` variant bij openstaand (oranje), `success` bij klaar (groen) — blijft zoals het is.
+## Wijzigingen
 
-## Wijziging
-
-**`src/components/mep/MepCategoryGroup.tsx`** — regel 52:
-
-```typescript
-// Was:
-allDone ? "bg-green-50 dark:bg-green-950/30" : "bg-rose-50 dark:bg-rose-950/30"
-
-// Wordt:
-allDone ? "bg-primary/[0.06]" : "bg-muted/50"
+### `src/pages/MepTaken.tsx`
+Pass `dayTasks` als prop aan `MepQuickAdd`:
+```tsx
+<MepQuickAdd taskDate={selectedDate} dayTasks={dayTasks} />
 ```
 
-Eén regel, één bestand. Dark mode werkt automatisch mee omdat `bg-muted` en `bg-primary` semantic tokens zijn.
+### `src/components/mep/MepQuickAdd.tsx`
+1. Voeg `dayTasks: MepTask[]` toe aan props
+2. Importeer `useUpdateMepTask` naast `useCreateMepTask`
+3. In `handleAddFromRecept`, vóór create:
+   - Bereken `smartDate` (bestaande logica)
+   - Zoek `existing = dayTasks.find(t => t.recept_id === item.id && t.task_date === smartDate && t.status !== 'completed' && t.status !== 'cancelled')`
+   - Als existing: `updateTask.mutate({ id: existing.id, units: (existing.units ?? 1) + 1 })` + toast "verhoogd naar X×"
+   - Anders: bestaande create logica
+4. Disable button ook als `updateTask.isPending`
+
+Twee bestanden, geen database wijzigingen.
 
