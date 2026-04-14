@@ -65,9 +65,9 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityCh
             </span>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            {task.units && (
-              <span className="text-xs text-muted-foreground">
-                {task.units}×{task.methode ? ` ${task.methode.visuele_eenheid}` : ""}
+            {task.methode?.visuele_eenheid && (
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {(task.units ?? 1) > 1 ? `${task.units}× ${task.methode.visuele_eenheid}` : task.methode.visuele_eenheid}
               </span>
             )}
             {formattedDeadline && (
