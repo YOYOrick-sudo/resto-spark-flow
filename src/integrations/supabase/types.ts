@@ -1329,6 +1329,7 @@ export type Database = {
       gerechten: {
         Row: {
           archived_at: string | null
+          bereidingswijze: string | null
           beschrijving: string | null
           categorie: string
           created_at: string
@@ -1340,11 +1341,13 @@ export type Database = {
           location_id: string
           marge_percentage: number | null
           naam: string
+          omschrijving: string | null
           updated_at: string
           verkoopprijs: number | null
         }
         Insert: {
           archived_at?: string | null
+          bereidingswijze?: string | null
           beschrijving?: string | null
           categorie?: string
           created_at?: string
@@ -1356,11 +1359,13 @@ export type Database = {
           location_id: string
           marge_percentage?: number | null
           naam: string
+          omschrijving?: string | null
           updated_at?: string
           verkoopprijs?: number | null
         }
         Update: {
           archived_at?: string | null
+          bereidingswijze?: string | null
           beschrijving?: string | null
           categorie?: string
           created_at?: string
@@ -1372,6 +1377,7 @@ export type Database = {
           location_id?: string
           marge_percentage?: number | null
           naam?: string
+          omschrijving?: string | null
           updated_at?: string
           verkoopprijs?: number | null
         }

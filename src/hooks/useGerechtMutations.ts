@@ -15,7 +15,7 @@ export function useGerechtMutations() {
   };
 
   const createGerecht = useMutation({
-    mutationFn: async (values: { naam: string; categorie: string; verkoopprijs?: number }) => {
+    mutationFn: async (values: { naam: string; categorie: string; verkoopprijs?: number; omschrijving?: string | null; bereidingswijze?: string | null; foto_url?: string | null }) => {
       if (!locId) throw new Error("Geen locatie");
       const { data, error } = await supabase
         .from("gerechten")
@@ -24,6 +24,9 @@ export function useGerechtMutations() {
           naam: values.naam,
           categorie: values.categorie,
           verkoopprijs: values.verkoopprijs ?? null,
+          omschrijving: values.omschrijving ?? null,
+          bereidingswijze: values.bereidingswijze ?? null,
+          foto_url: values.foto_url ?? null,
         } as any)
         .select("id")
         .single();
