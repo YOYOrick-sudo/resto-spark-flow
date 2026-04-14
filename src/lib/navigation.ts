@@ -28,7 +28,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'kitchen-leveranciers': '/inkoop/leveranciers',
   'kitchen-transfers': '/interne-bestellingen',
   'kaartbeheer-gerechten': '/kaartbeheer',
-  'service-tasks': '/taken',
+  'kitchen-taken': '/taken',
   'marketing-dashboard': '/marketing',
   'marketing-campagnes': '/marketing/campagnes',
   'marketing-segmenten': '/marketing/segmenten',
@@ -102,6 +102,7 @@ export const menuItems: MenuItem[] = [
       { id: 'kitchen-kostprijzen', label: 'Kostprijzen', path: '/kostprijzen' },
       { id: 'kitchen-orders', label: 'Voorraad & Inkoop', path: '/inkoop' },
       { id: 'kitchen-transfers', label: 'Interne Bestellingen', path: '/interne-bestellingen' },
+      { id: 'kitchen-taken', label: 'Taken & HACCP', path: '/taken' },
     ],
   },
   {
@@ -145,16 +146,6 @@ export const menuItems: MenuItem[] = [
     icon: ShoppingBag,
     disabled: true,
     section: 'SERVICE',
-  },
-  {
-    id: 'service',
-    label: 'Service',
-    icon: ClipboardList,
-    expandable: true,
-    section: 'SERVICE',
-    subItems: [
-      { id: 'service-tasks', label: 'Taken & Checklists', path: '/taken' },
-    ],
   },
   {
     id: 'onboarding',
@@ -220,13 +211,14 @@ export const getExpandedGroupFromPath = (path: string): string | null => {
     path.startsWith('/kostprijzen') ||
     path.startsWith('/mep') ||
     path.startsWith('/inkoop') ||
-    path.startsWith('/interne-bestellingen')
+    path.startsWith('/interne-bestellingen') ||
+    path.startsWith('/taken')
   ) {
     return 'kitchen';
   }
   if (path.startsWith('/kaartbeheer')) return 'kaartbeheer';
   if (path.startsWith('/marketing')) return 'marketing';
-  if (path.startsWith('/taken')) return 'service';
+  
   if (path.startsWith('/instellingen')) return 'settings';
   if (path.startsWith('/onboarding')) return null;
   return null;

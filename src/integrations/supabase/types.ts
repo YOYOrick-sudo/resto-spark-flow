@@ -510,6 +510,190 @@ export type Database = {
           },
         ]
       }
+      checklist_responses: {
+        Row: {
+          checked: boolean | null
+          created_at: string
+          foto_url: string | null
+          id: string
+          ingevuld_door: string | null
+          ingevuld_op: string | null
+          item_id: string
+          notitie: string | null
+          run_id: string
+          temp_in_range: boolean | null
+          temperatuur: number | null
+          type: string
+        }
+        Insert: {
+          checked?: boolean | null
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          ingevuld_door?: string | null
+          ingevuld_op?: string | null
+          item_id: string
+          notitie?: string | null
+          run_id: string
+          temp_in_range?: boolean | null
+          temperatuur?: number | null
+          type: string
+        }
+        Update: {
+          checked?: boolean | null
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          ingevuld_door?: string | null
+          ingevuld_op?: string | null
+          item_id?: string
+          notitie?: string | null
+          run_id?: string
+          temp_in_range?: boolean | null
+          temperatuur?: number | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_responses_ingevuld_door_fkey"
+            columns: ["ingevuld_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_responses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_runs: {
+        Row: {
+          afgerond_door: string | null
+          afgerond_op: string | null
+          created_at: string
+          datum: string
+          gestart_door: string | null
+          gestart_op: string | null
+          id: string
+          location_id: string
+          opmerkingen: string | null
+          shift: string | null
+          status: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          afgerond_door?: string | null
+          afgerond_op?: string | null
+          created_at?: string
+          datum?: string
+          gestart_door?: string | null
+          gestart_op?: string | null
+          id?: string
+          location_id: string
+          opmerkingen?: string | null
+          shift?: string | null
+          status?: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          afgerond_door?: string | null
+          afgerond_op?: string | null
+          created_at?: string
+          datum?: string
+          gestart_door?: string | null
+          gestart_op?: string | null
+          id?: string
+          location_id?: string
+          opmerkingen?: string | null
+          shift?: string | null
+          status?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_runs_afgerond_door_fkey"
+            columns: ["afgerond_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_gestart_door_fkey"
+            columns: ["gestart_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          actief: boolean
+          beschrijving: string | null
+          categorie: string | null
+          created_at: string
+          id: string
+          items: Json
+          location_id: string
+          naam: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          actief?: boolean
+          beschrijving?: string | null
+          categorie?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          location_id: string
+          naam: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          actief?: boolean
+          beschrijving?: string | null
+          categorie?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          location_id?: string
+          naam?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_settings: {
         Row: {
           brand_color: string | null
@@ -4978,6 +5162,69 @@ export type Database = {
             columns: ["area_id"]
             isOneToOne: false
             referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      temperatuur_registraties: {
+        Row: {
+          actie_beschrijving: string | null
+          actie_vereist: boolean
+          created_at: string
+          gemeten_door: string | null
+          gemeten_op: string
+          id: string
+          in_range: boolean
+          locatie_naam: string
+          location_id: string
+          max_temp: number | null
+          min_temp: number | null
+          temperatuur: number
+          type: string
+        }
+        Insert: {
+          actie_beschrijving?: string | null
+          actie_vereist?: boolean
+          created_at?: string
+          gemeten_door?: string | null
+          gemeten_op?: string
+          id?: string
+          in_range?: boolean
+          locatie_naam: string
+          location_id: string
+          max_temp?: number | null
+          min_temp?: number | null
+          temperatuur: number
+          type: string
+        }
+        Update: {
+          actie_beschrijving?: string | null
+          actie_vereist?: boolean
+          created_at?: string
+          gemeten_door?: string | null
+          gemeten_op?: string
+          id?: string
+          in_range?: boolean
+          locatie_naam?: string
+          location_id?: string
+          max_temp?: number | null
+          min_temp?: number | null
+          temperatuur?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temperatuur_registraties_gemeten_door_fkey"
+            columns: ["gemeten_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "temperatuur_registraties_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
