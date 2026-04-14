@@ -1,33 +1,34 @@
 
 
-# FIX: Recepten zijn ALTIJD halffabricaten
+# FIX: StepWizard buttons te groot
 
-Simpele cleanup — verwijder het type-concept uit de recepten module op 4 plekken.
+## Probleem
 
-## Wijzigingen
+De buttons in de StepWizard footer hebben `min-h-[76px]` — dat was bedoeld als touch target maar het maakt de buttons visueel veel te groot. De 76dp touch target regel geldt voor het **klikbare gebied**, niet voor de visuele grootte van de button zelf.
 
-### 1. `src/components/recepten/wizard/ReceptStapBasis.tsx`
-- Verwijder de `onTypeChange` prop en interface
-- Verwijder het type toggle UI blok (regels 55-73)
-- Verwijder de `if (field === "type")` logica in `update()` (regels 34-40)
-- Hardcode `type: "halffabricaat"` in de default data
+Het design systeem zegt: NestoButton default size = `h-10` (40px). De `lg` variant = `h-12` (48px). Een button van 76px hoog bestaat niet in het systeem.
 
-### 2. `src/pages/ReceptenNieuw.tsx`
-- Verwijder `useReceptTypeState` hook en `useState` import
-- Verwijder `useReceptSteps` — vervang door een simpele `steps` constante (geen dynamische filtering meer)
-- Methodes stap is ALTIJD in de array
-- Verwijder `key={type}` van StepWizard
-- Verwijder `onTypeChange={setType}` prop van ReceptStapBasis
-- Hardcode `type: 'halffabricaat'` in handleComplete (regel 43)
-- Verwijder `ReceptenNieuwInner` (dode code)
+## Oplossing
 
-### 3. `src/pages/ReceptenDetail.tsx`
-- Verwijder type badge uit basisinfo card (regels 155-157)
-- Methodes tab ALTIJD in tabs array — verwijder de conditional spread (regel 60)
-- Methodes tab content ALTIJD renderen — verwijder `recept.type === "halffabricaat"` check (regel 138)
+In `src/components/polar/StepWizard.tsx` (regels 233, 244, 249):
 
-### 4. `src/pages/Recepten.tsx`
-- Geen type filter of type kolom aanwezig — geen wijziging nodig
+- Verwijder `min-h-[76px]` van alle drie de buttons
+- Gebruik `size="lg"` voor iets grotere buttons in de wizard footer (48px, past bij het design systeem)
+- Behoud `px-8` voor voldoende horizontale padding
 
-**Totaal: 3 bestanden gewijzigd, 0 nieuw, 0 verwijderd, 0 migraties.**
+**Van:**
+```tsx
+<NestoButton variant="outline" onClick={goPrev} className="min-h-[76px] px-8">
+```
+
+**Naar:**
+```tsx
+<NestoButton variant="outline" onClick={goPrev} size="lg">
+```
+
+Hetzelfde voor de "Volgende" en "Opslaan" buttons.
+
+De `lg` size geeft `h-12 px-6` — dat is consistent met het design systeem en nog steeds comfortabel voor touch.
+
+**Totaal: 1 bestand, 3 regels aangepast.**
 
