@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { format, setHours, setMinutes, addHours } from 'date-fns';
+import { NestoDatePicker, dateFromString, dateToString } from '@/components/polar/NestoDatePicker';
 import { PageHeader } from '@/components/polar/PageHeader';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoSelect } from '@/components/polar/NestoSelect';
@@ -775,11 +776,10 @@ function PublishSection({
         <div className="flex gap-3">
           <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground font-medium">Datum</label>
-            <input
-              type="date"
-              value={scheduleDate}
-              onChange={(e) => setScheduleDate(e.target.value)}
-              className="rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            <NestoDatePicker
+              value={dateFromString(scheduleDate)}
+              onChange={(d) => setScheduleDate(dateToString(d) || format(new Date(), 'yyyy-MM-dd'))}
+              minDate={new Date()}
             />
           </div>
           <div className="space-y-1.5">

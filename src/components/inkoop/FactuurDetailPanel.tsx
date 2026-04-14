@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NestoPanel, NestoButton, NestoSelect, NestoBadge, Spinner } from "@/components/polar";
+import { NestoPanel, NestoButton, NestoSelect, NestoBadge, Spinner, NestoDatePicker, dateFromString, dateToString } from "@/components/polar";
 import { Input } from "@/components/ui/input";
 import { useFactuurDetail } from "@/hooks/useFactuurDetail";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
@@ -163,20 +163,17 @@ function DetailContent({ factuurId }: { factuurId: string }) {
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">
-            Factuurdatum
-          </label>
-          <Input
-            type="date"
-            value={factuurdatum}
-            onChange={(e) => setFactuurdatum(e.target.value)}
-            onBlur={() => {
-              if (factuurdatum !== (factuur.factuurdatum ?? "")) {
-                updateFactuur.mutate({ id: factuurId, factuurdatum });
+          <NestoDatePicker
+            label="Factuurdatum"
+            value={dateFromString(factuurdatum)}
+            onChange={(d) => {
+              const str = dateToString(d);
+              setFactuurdatum(str);
+              if (str !== (factuur.factuurdatum ?? "")) {
+                updateFactuur.mutate({ id: factuurId, factuurdatum: str || null });
               }
             }}
             disabled={!isEditable}
-            className="h-9"
           />
         </div>
         <div>

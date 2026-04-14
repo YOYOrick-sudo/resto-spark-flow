@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { DataTable, NestoBadge, NestoButton, NestoSelect } from "@/components/polar";
+import { DataTable, NestoBadge, NestoButton, NestoSelect, NestoDatePicker, dateFromString, dateToString } from "@/components/polar";
 import { useBestellingen, BestellingFilters } from "@/hooks/useBestellingen";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
 import { BestellingDetailPanel } from "./BestellingDetailPanel";
-import { Input } from "@/components/ui/input";
 import { RefreshCw } from "lucide-react";
 import type { DataTableColumn } from "@/components/polar";
 
@@ -93,19 +92,17 @@ export function OrderhistorieTab() {
           placeholder="Status"
           className="w-40"
         />
-        <Input
-          type="date"
-          className="w-40"
-          value={filters.dateFrom ?? ""}
-          onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value || undefined }))}
+        <NestoDatePicker
+          value={dateFromString(filters.dateFrom)}
+          onChange={(d) => setFilters((f) => ({ ...f, dateFrom: dateToString(d) || undefined }))}
           placeholder="Vanaf"
-        />
-        <Input
-          type="date"
           className="w-40"
-          value={filters.dateTo ?? ""}
-          onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value || undefined }))}
+        />
+        <NestoDatePicker
+          value={dateFromString(filters.dateTo)}
+          onChange={(d) => setFilters((f) => ({ ...f, dateTo: dateToString(d) || undefined }))}
           placeholder="Tot"
+          className="w-40"
         />
       </div>
 
