@@ -235,10 +235,24 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
             .select("ingredient_id, hoeveelheid, eenheid, ingredient:ingredienten(kostprijs)")
             .eq("recept_id", item.receptId);
 
+          // Calculate portion multiplier based on eenheid
+          let portieFractie = item.hoeveelheid;
+          if (item.eenheid !== "portie" && item.methodeOutputHoeveelheid && item.receptPorties) {
+            // Convert entered weight to method output eenheid, then calculate fraction
+            const portieGrootte = item.methodeOutputHoeveelheid / item.receptPorties;
+            const hoeveelheidInMethodeEenheid = converteerNaarMethodeEenheid(
+              item.hoeveelheid,
+              item.eenheid,
+              item.methodeOutputEenheid ?? "g"
+            );
+            portieFractie = hoeveelheidInMethodeEenheid / portieGrootte;
+          }
+
           for (const ri of receptIngs ?? []) {
             if (!ri.ingredient_id) continue;
             const kostprijs = (ri.ingredient as any)?.kostprijs ?? null;
-            const qty = ri.hoeveelheid * item.hoeveelheid; // multiply by portions
+            const qtyPerPortie = ri.hoeveelheid / (item.receptPorties ?? 1);
+            const qty = qtyPerPortie * portieFractie;
             await wasteMutation.mutateAsync({
               ingredient_id: ri.ingredient_id,
               hoeveelheid: qty,
