@@ -44,12 +44,11 @@ export function useBijnaVerlopen(dagen: number = 2) {
 
       if (error) throw error;
 
-      // Exclude batches for which a personeelsmaaltijd was already registered today
+      // Exclude batches for which ANY waste was already registered today
       const { data: wasteVandaag } = await supabase
         .from("waste_registraties")
         .select("recept_id")
         .eq("location_id", locationId!)
-        .eq("categorie", "personeelsmaaltijd")
         .gte("created_at", `${vandaag}T00:00:00`);
 
       const vandaagReceptIds = new Set(
