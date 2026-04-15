@@ -104,7 +104,7 @@ export function SnellePrepModal({ open, onOpenChange, ingredient, taskDate }: Sn
 
         <div className="grid grid-cols-2 gap-4">
           <NestoInput
-            label="Yield %"
+            label="Bruikbaar %"
             type="number"
             min={1}
             max={100}
