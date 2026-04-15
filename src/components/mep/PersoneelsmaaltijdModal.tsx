@@ -20,6 +20,12 @@ interface PersoneelsmaaltijdModalProps {
 
 type ItemType = "ingrediënt" | "halffabricaat" | "gerecht";
 
+interface BreakdownIngredient {
+  naam: string;
+  eenheid: string;
+  hoeveelheidPerPortie: number;
+}
+
 interface MealItem {
   id: string;
   type: ItemType;
@@ -31,6 +37,8 @@ interface MealItem {
   gerechtId?: string;
   ingredientId?: string;
   isAuto?: boolean;
+  breakdown?: BreakdownIngredient[];
+  breakdownLoading?: boolean;
 }
 
 export function PersoneelsmaaltijdModal({ open, onOpenChange }: PersoneelsmaaltijdModalProps) {
