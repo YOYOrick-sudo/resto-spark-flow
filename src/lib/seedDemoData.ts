@@ -648,6 +648,14 @@ export async function seedDemoData(locationId: string): Promise<SeedResult> {
       .insert(wasteInserts);
     if (wasteErr) throw new Error(`Waste registraties: ${wasteErr.message}`);
 
+    // Medewerkers
+    const medewerkerDefs = [
+      { location_id: locationId, naam: "Arie de Vries", rol: "Kok", is_actief: true },
+      { location_id: locationId, naam: "Sophie Bakker", rol: "Sous-chef", is_actief: true },
+      { location_id: locationId, naam: "Mo el Amrani", rol: "Kok", is_actief: true },
+    ];
+    await supabase.from("medewerkers").upsert(medewerkerDefs, { onConflict: "location_id,naam" });
+
     return {
       success: true,
       message: "Demo data succesvol aangemaakt!",
