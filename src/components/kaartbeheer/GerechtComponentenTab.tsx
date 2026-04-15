@@ -12,13 +12,51 @@ import type { GerechtDetail, GerechtComponent } from "@/hooks/useGerechtDetail";
 import { Plus, Trash2 } from "lucide-react";
 import { type AllergeenPillData } from "@/components/polar/AllergeenPills";
 import { useComponentenAllergenen } from "@/hooks/useComponentenAllergenen";
+import { berekenPortieGrootte, getPrimaireMethode, converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
+
+function berekenHfKostprijs(comp: GerechtComponent): number {
+  const totaleKostprijs = comp.recept_totale_kostprijs ?? 0;
+  const porties = Math.max(comp.recept_porties ?? 1, 1);
+
+  if (comp.eenheid === "portie") {
+    return comp.hoeveelheid * (totaleKostprijs / porties);
+  }
+
+  // Bij g/kg/ml/L: gebruik kostprijs_snapshot (per eenheid opgeslagen bij toevoegen)
+  if (comp.kostprijs_snapshot != null) {
+    return comp.hoeveelheid * comp.kostprijs_snapshot;
+  }
+
+  // Fallback: bereken via methode output als beschikbaar
+  if (comp.recept_methode_output && comp.recept_methode_eenheid) {
+    const outputInEenheid = converteerNaarMethodeEenheid(
+      comp.recept_methode_output,
+      comp.recept_methode_eenheid,
+      comp.eenheid
+    );
+    if (outputInEenheid > 0) {
+      return comp.hoeveelheid * (totaleKostprijs / outputInEenheid);
+    }
+  }
+
+  return comp.hoeveelheid * (totaleKostprijs / porties);
+}
 
 function ComponentRow({ comp, onRemove, allergenen }: { comp: GerechtComponent; onRemove: () => void; allergenen?: AllergeenPillData[] }) {
   const isHf = comp.type === "halffabricaat";
   const naam = isHf ? comp.recept_naam : comp.ingredient_naam;
   const kostprijs = isHf
-    ? comp.hoeveelheid * ((comp.recept_totale_kostprijs ?? 0) / Math.max(comp.recept_porties ?? 1, 1))
+    ? berekenHfKostprijs(comp)
     : comp.hoeveelheid * (comp.ingredient_kostprijs ?? 0);
+
+  // Portiegrootte label voor halffabricaat met eenheid "portie"
+  let eenheidLabel = comp.eenheid;
+  if (isHf && comp.eenheid === "portie" && comp.recept_methode_output && comp.recept_methode_eenheid) {
+    const portie = berekenPortieGrootte(comp.recept_methode_output, comp.recept_methode_eenheid, comp.recept_porties);
+    if (portie) {
+      eenheidLabel = `portie (${portie.display})`;
+    }
+  }
 
   return (
     <div className="flex items-center gap-3 py-2.5 px-3 rounded-xl border border-border/30 bg-muted/20 min-h-[44px]">
@@ -37,7 +75,7 @@ function ComponentRow({ comp, onRemove, allergenen }: { comp: GerechtComponent; 
            )}
         </div>
         <p className="text-xs text-muted-foreground">
-          {comp.hoeveelheid} {comp.eenheid} · €{kostprijs.toFixed(2)}
+          {comp.hoeveelheid} {eenheidLabel} · €{kostprijs.toFixed(2)}
         </p>
       </div>
       <button
@@ -50,16 +88,59 @@ function ComponentRow({ comp, onRemove, allergenen }: { comp: GerechtComponent; 
   );
 }
 
+interface MethodeData {
+  output_hoeveelheid: number;
+  output_eenheid: string;
+  porties: number;
+  totale_kostprijs: number;
+}
+
 function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyState?: boolean }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [hoeveelheid, setHoeveelheid] = useState("1");
-  const [selected, setSelected] = useState<{ id: string; naam: string; eenheid: string } | null>(null);
+  const [selectedEenheid, setSelectedEenheid] = useState("portie");
+  const [selected, setSelected] = useState<{ id: string; naam: string } | null>(null);
+  const [methodeData, setMethodeData] = useState<MethodeData | null>(null);
   const [creating, setCreating] = useState(false);
   const { data: results } = useHalffabricaatSearch(search);
   const { addComponent } = useGerechtMutations();
   const { currentLocation } = useUserContext();
   const navigate = useNavigate();
+
+  const portie = methodeData
+    ? berekenPortieGrootte(methodeData.output_hoeveelheid, methodeData.output_eenheid, methodeData.porties)
+    : null;
+
+  const eenheidOptions = [
+    { value: "portie", label: portie ? `portie (${portie.display})` : "portie" },
+    { value: "g", label: "g" },
+    { value: "kg", label: "kg" },
+    { value: "ml", label: "ml" },
+    { value: "L", label: "L" },
+  ];
+
+  const isPortie = selectedEenheid === "portie";
+  const inputStep = isPortie ? "1" : "0.5";
+  const inputMin = isPortie ? "1" : "0.1";
+
+  // Live kostprijs berekening
+  const geschatteKostprijs = (() => {
+    if (!methodeData) return null;
+    const h = parseFloat(hoeveelheid) || 0;
+    const { totale_kostprijs, porties, output_hoeveelheid, output_eenheid } = methodeData;
+
+    if (selectedEenheid === "portie") {
+      return h * (totale_kostprijs / Math.max(porties, 1));
+    }
+
+    // Bereken kostprijs per eenheid via output
+    const outputInEenheid = converteerNaarMethodeEenheid(output_hoeveelheid, output_eenheid, selectedEenheid);
+    if (outputInEenheid > 0) {
+      return h * (totale_kostprijs / outputInEenheid);
+    }
+    return null;
+  })();
 
   if (!open) {
     return (
@@ -77,14 +158,16 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
         type: "halffabricaat",
         recept_id: selected.id,
         hoeveelheid: parseFloat(hoeveelheid) || 1,
-        eenheid: selected.eenheid,
+        eenheid: selectedEenheid,
       },
       {
         onSuccess: () => {
           setOpen(false);
           setSelected(null);
+          setMethodeData(null);
           setSearch("");
           setHoeveelheid("1");
+          setSelectedEenheid("portie");
         },
       }
     );
@@ -131,23 +214,28 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
           />
           {showDropdown && (
             <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-36 overflow-y-auto">
-              {hasResults && results.map((r: any) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 min-h-[44px]"
-                  onClick={() => {
-                    const m = r.methodes?.[0];
-                    setSelected({
-                      id: r.id,
-                      naam: r.naam,
-                      eenheid: m?.visuele_eenheid || m?.output_eenheid || "portie",
-                    });
-                  }}
-                >
-                  {r.naam} <span className="text-muted-foreground">· {r.categorie}</span>
-                </button>
-              ))}
+              {hasResults && results.map((r: any) => {
+                const m = getPrimaireMethode(r.methodes);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 min-h-[44px]"
+                    onClick={() => {
+                      setSelected({ id: r.id, naam: r.naam });
+                      setSelectedEenheid("portie");
+                      setMethodeData({
+                        output_hoeveelheid: m?.output_hoeveelheid ?? 0,
+                        output_eenheid: m?.output_eenheid ?? "g",
+                        porties: r.porties ?? 1,
+                        totale_kostprijs: r.totale_kostprijs ?? 0,
+                      });
+                    }}
+                  >
+                    {r.naam} <span className="text-muted-foreground">· {r.categorie}</span>
+                  </button>
+                );
+              })}
               {noResults && (
                 <button
                   type="button"
@@ -168,12 +256,40 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <label className="text-xs text-muted-foreground mb-1 block">Hoeveelheid</label>
-              <Input type="number" step="0.1" value={hoeveelheid} onChange={(e) => setHoeveelheid(e.target.value)} className="h-11" />
+              <Input
+                type="number"
+                step={inputStep}
+                min={inputMin}
+                value={hoeveelheid}
+                onChange={(e) => setHoeveelheid(e.target.value)}
+                className="h-11"
+              />
             </div>
-            <span className="text-sm text-muted-foreground pb-3">{selected.eenheid}</span>
+            <div className="w-40">
+              <label className="text-xs text-muted-foreground mb-1 block">Eenheid</label>
+              <select
+                value={selectedEenheid}
+                onChange={(e) => {
+                  setSelectedEenheid(e.target.value);
+                  if (e.target.value === "portie") {
+                    setHoeveelheid("1");
+                  }
+                }}
+                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {eenheidOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
+          {geschatteKostprijs !== null && (
+            <p className="text-xs text-muted-foreground">
+              Geschatte kostprijs: €{geschatteKostprijs.toFixed(2)}
+            </p>
+          )}
           <div className="flex justify-end gap-2">
-            <NestoButton variant="ghost" size="sm" onClick={() => { setOpen(false); setSelected(null); }} className="min-h-[44px]">
+            <NestoButton variant="ghost" size="sm" onClick={() => { setOpen(false); setSelected(null); setMethodeData(null); }} className="min-h-[44px]">
               Annuleren
             </NestoButton>
             <NestoButton size="sm" onClick={handleAdd} isLoading={addComponent.isPending} className="min-h-[44px]">
