@@ -6606,6 +6606,33 @@ export type Database = {
         Args: { _location_id: string }
         Returns: number
       }
+      get_recent_inbox_conversations: {
+        Args: { p_location_id: string }
+        Returns: {
+          channel: string
+          channel_contact_id: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string | null
+          customer_id: string | null
+          handled_by: string | null
+          id: string
+          last_message_at: string | null
+          last_notification_at: string | null
+          location_id: string
+          reservation_id: string | null
+          service_window_expires_at: string | null
+          status: string | null
+          unread_count: number | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "conversations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_shift_ticket_config: {
         Args: { _shift_id: string; _ticket_id: string }
         Returns: Json

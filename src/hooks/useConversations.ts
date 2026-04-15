@@ -59,6 +59,15 @@ export function useInboxConversations() {
     queryKey: ['conversations-recent', locationId],
     queryFn: async () => {
       if (!locationId) return [];
+      
+      // Use RPC that filters on conversations with real inbound messages
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_recent_inbox_conversations', { p_location_id: locationId });
+      if (rpcError) throw rpcError;
+      
+      const ids = (rpcData || []).map((c: any) => c.id);
+      if (ids.length === 0) return [];
+      
       const { data, error } = await supabase
         .from('conversations')
         .select(`
@@ -66,11 +75,8 @@ export function useInboxConversations() {
           unread_count, last_message_at, created_at, customer_id,
           customer:customers(first_name, last_name, phone_number)
         `)
-        .eq('location_id', locationId)
-        .eq('handled_by', 'ai')
-        .in('status', ['active', 'waiting'])
-        .order('last_message_at', { ascending: false })
-        .limit(20);
+        .in('id', ids)
+        .order('last_message_at', { ascending: false });
       if (error) throw error;
       return fetchLastMessages(mapConversations(data));
     },
