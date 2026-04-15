@@ -12,6 +12,8 @@ import { MepWeekView } from "@/components/mep/MepWeekView";
 import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
 import { MepCategoryView } from "@/components/mep/MepCategoryView";
 import { MepDayPlan } from "@/components/mep/MepDayPlan";
+import { WasteModal } from "@/components/mep/WasteModal";
+import { PersoneelsmaaltijdModal } from "@/components/mep/PersoneelsmaaltijdModal";
 
 type ViewMode = "categorie" | "week";
 const STORAGE_KEY = "mep-view-preference";
