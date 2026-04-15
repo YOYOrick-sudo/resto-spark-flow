@@ -183,6 +183,7 @@ export function WasteModal({ open, onOpenChange }: WasteModalProps) {
   const handleSubmit = async () => {
     if (!selected || hoeveelheid <= 0) return;
     setIsSubmitting(true);
+    if (medewerkerId) setLastMedewerkerId(medewerkerId);
 
     const redenLabel = WASTE_REDENEN.find((r) => r.value === reden)?.label ?? reden;
 
@@ -245,6 +246,7 @@ export function WasteModal({ open, onOpenChange }: WasteModalProps) {
     setHoeveelheid(1);
     setEenheid("kg");
     setReden("bederf");
+    setMedewerkerId("");
     onOpenChange(false);
   };
 
@@ -398,6 +400,23 @@ export function WasteModal({ open, onOpenChange }: WasteModalProps) {
             )}
           </div>
         </div>
+
+        {/* Medewerker (optional) */}
+        {medewerkers.length > 0 && (
+          <div>
+            <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">
+              Geregistreerd door (optioneel)
+            </label>
+            <Select value={medewerkerId} onValueChange={setMedewerkerId}>
+              <SelectTrigger><SelectValue placeholder="Selecteer medewerker" /></SelectTrigger>
+              <SelectContent>
+                {medewerkers.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.naam}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Reason */}
         <div>
