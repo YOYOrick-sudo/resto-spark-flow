@@ -58,7 +58,6 @@ export function useGerechtMutations() {
       hoeveelheid: number;
       eenheid: string;
     }) => {
-      // Fix 4: fetch kostprijs_snapshot
       let snapshot: number | null = null;
       if (values.type === "ingredient" && values.ingredient_id) {
         const { data } = await supabase
@@ -75,7 +74,32 @@ export function useGerechtMutations() {
           .eq("id", values.recept_id)
           .single();
         if (data) {
-          snapshot = (data as any).totale_kostprijs / Math.max((data as any).porties ?? 1, 1);
+          const totaal = (data as any).totale_kostprijs ?? 0;
+          const porties = Math.max((data as any).porties ?? 1, 1);
+
+          if (values.eenheid === "portie") {
+            snapshot = totaal / porties;
+          } else {
+            // Bereken kostprijs per gekozen eenheid via methode output
+            const { data: methodes } = await supabase
+              .from("halffabricaat_methodes")
+              .select("output_hoeveelheid, output_eenheid, type")
+              .eq("recept_id", values.recept_id)
+              .order("sort_order", { ascending: true });
+            
+            const primaire = methodes?.find((m: any) => m.type === "Bereiden") || methodes?.[0];
+            if (primaire) {
+              const { converteerNaarMethodeEenheid } = await import("@/utils/portieGrootte");
+              const outputInEenheid = converteerNaarMethodeEenheid(
+                primaire.output_hoeveelheid,
+                primaire.output_eenheid,
+                values.eenheid
+              );
+              snapshot = outputInEenheid > 0 ? totaal / outputInEenheid : totaal / porties;
+            } else {
+              snapshot = totaal / porties;
+            }
+          }
         }
       }
       const { error } = await supabase.from("gerecht_componenten").insert({

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
 import { NestoTabs, NestoTabContent, NestoButton, NestoSelect, NestoBadge, Spinner } from "@/components/polar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,7 +51,22 @@ export default function KaartbeheerDetail() {
     if (!gerecht) return { hf: 0, ing: 0, totaal: 0, marge: null as number | null, foodCost: null as number | null };
     const halffabricaten = gerecht.componenten.filter((c) => c.type === "halffabricaat");
     const ingredienten = gerecht.componenten.filter((c) => c.type === "ingredient");
-    const hf = halffabricaten.reduce((s, c) => s + c.hoeveelheid * ((c.recept_totale_kostprijs ?? 0) / Math.max(c.recept_porties ?? 1, 1)), 0);
+    const hf = halffabricaten.reduce((s, c) => {
+      if (c.eenheid === "portie") {
+        return s + c.hoeveelheid * ((c.recept_totale_kostprijs ?? 0) / Math.max(c.recept_porties ?? 1, 1));
+      }
+      if (c.kostprijs_snapshot != null) {
+        return s + c.hoeveelheid * c.kostprijs_snapshot;
+      }
+      // Fallback via methode output
+      if (c.recept_methode_output && c.recept_methode_eenheid) {
+        const outputInEenheid = converteerNaarMethodeEenheid(c.recept_methode_output, c.recept_methode_eenheid, c.eenheid);
+        if (outputInEenheid > 0) {
+          return s + c.hoeveelheid * ((c.recept_totale_kostprijs ?? 0) / outputInEenheid);
+        }
+      }
+      return s + c.hoeveelheid * ((c.recept_totale_kostprijs ?? 0) / Math.max(c.recept_porties ?? 1, 1));
+    }, 0);
     const ing = ingredienten.reduce((s, c) => s + c.hoeveelheid * (c.ingredient_kostprijs ?? 0), 0);
     const totaal = hf + ing;
     const vkp = gerecht.verkoopprijs ?? 0;
