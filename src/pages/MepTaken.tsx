@@ -4,26 +4,29 @@ import { nl } from "date-fns/locale";
 import { PageHeader } from "@/components/polar";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, ListOrdered, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
 import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
 import { useCancelMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
+import { useMepIngredientStock } from "@/hooks/useMepIngredientStock";
 import { MepQuickAdd } from "@/components/mep/MepQuickAdd";
 import { MepWeekView } from "@/components/mep/MepWeekView";
 import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
 import { MepCategoryView } from "@/components/mep/MepCategoryView";
+import { MepPriorityView } from "@/components/mep/MepPriorityView";
 import { MepDayPlan } from "@/components/mep/MepDayPlan";
 import { WasteModal } from "@/components/mep/WasteModal";
 import { PersoneelsmaaltijdModal } from "@/components/mep/PersoneelsmaaltijdModal";
+import type { IngredientStockMap } from "@/utils/mepPriority";
 
-type ViewMode = "categorie" | "week";
+type ViewMode = "prioriteit" | "categorie" | "week";
 const STORAGE_KEY = "mep-view-preference";
 
 function getInitialView(): ViewMode {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "categorie" || saved === "week") return saved;
+    if (saved === "prioriteit" || saved === "categorie" || saved === "week") return saved;
   } catch {}
-  return "categorie";
+  return "prioriteit";
 }
 
 export default function MepTaken() {
@@ -35,43 +38,37 @@ export default function MepTaken() {
   const [wasteOpen, setWasteOpen] = useState(false);
   const [personeelOpen, setPersoneelOpen] = useState(false);
 
-  // Persist view preference
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, view); } catch {}
   }, [view]);
 
-  // Reset plan order on date change
   useEffect(() => {
     setPlanOrder(null);
   }, [selectedDate]);
 
-  // Date navigation
   const goToday = () => setSelectedDate(today);
   const goPrev = () => setSelectedDate(format(subDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
   const goNext = () => setSelectedDate(format(addDays(new Date(selectedDate), 1), "yyyy-MM-dd"));
 
-  // Queries
   const { data: dayTasks = [], isLoading: dayLoading } = useMepTasks(selectedDate);
 
   const weekStartStr = format(startOfWeek(new Date(selectedDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEndStr = format(endOfWeek(new Date(selectedDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const { data: weekTasks = [], isLoading: weekLoading } = useMepTasksWeek(weekStartStr, weekEndStr);
 
-  // Mutations
+  // Ingredient stock for priority scoring
+  const { data: ingredientStock } = useMepIngredientStock(dayTasks, view === "prioriteit");
+  const stockMap: IngredientStockMap = ingredientStock ?? new Map();
 
-  // Mutations
   const cancelTask = useCancelMepTask();
   const updateTask = useUpdateMepTask();
 
-  // Completion modal
   const [completionTask, setCompletionTask] = useState<MepTask | null>(null);
 
-  // Priority change handler
   const handlePriorityChange = (taskId: string, prioriteit: string) => {
     updateTask.mutate({ id: taskId, prioriteit });
   };
 
-  // Apply plan order to day tasks
   const sortedDayTasks = useMemo(() => {
     if (!planOrder) return dayTasks;
     return [...dayTasks].sort((a, b) => {
@@ -83,13 +80,11 @@ export default function MepTaken() {
     });
   }, [dayTasks, planOrder]);
 
-  // Stats
   const nonCancelled = dayTasks.filter((t) => t.status !== "cancelled");
   const completedCount = nonCancelled.filter((t) => t.status === "completed").length;
   const totalCount = nonCancelled.length;
   const progressPct = totalCount > 0 ? completedCount / totalCount : 0;
 
-  // Plan button visibility
   const openTaskCount = dayTasks.filter(
     (t) => t.status === "pending" || t.status === "in_progress"
   ).length;
@@ -143,6 +138,15 @@ export default function MepTaken() {
               <NestoButton
                 variant="ghost"
                 size="icon"
+                className={view === "prioriteit" ? "bg-accent" : ""}
+                onClick={() => setView("prioriteit")}
+                title="Prioriteitsweergave"
+              >
+                <ListOrdered className="h-4 w-4" />
+              </NestoButton>
+              <NestoButton
+                variant="ghost"
+                size="icon"
                 className={view === "categorie" ? "bg-accent" : ""}
                 onClick={() => setView("categorie")}
                 title="Categorie-weergave"
@@ -186,7 +190,7 @@ export default function MepTaken() {
           currentDate={selectedDate}
           onSelectDate={(d) => {
             setSelectedDate(d);
-            setView("categorie");
+            setView("prioriteit");
           }}
           onTaskClick={(task) => {
             if (task.status === "pending" || task.status === "in_progress") {
@@ -199,16 +203,28 @@ export default function MepTaken() {
         <>
           <MepQuickAdd taskDate={selectedDate} dayTasks={dayTasks} />
 
-          <MepCategoryView
-            dayTasks={sortedDayTasks}
-            onComplete={setCompletionTask}
-            onCancel={(id) => cancelTask.mutate(id)}
-            onPriorityChange={handlePriorityChange}
-            isLoading={dayLoading}
-      />
+          {view === "prioriteit" ? (
+            <MepPriorityView
+              dayTasks={sortedDayTasks}
+              ingredientStock={stockMap}
+              onComplete={setCompletionTask}
+              onCancel={(id) => cancelTask.mutate(id)}
+              onPriorityChange={handlePriorityChange}
+              isLoading={dayLoading}
+              hasPlanOrder={!!planOrder}
+            />
+          ) : (
+            <MepCategoryView
+              dayTasks={sortedDayTasks}
+              onComplete={setCompletionTask}
+              onCancel={(id) => cancelTask.mutate(id)}
+              onPriorityChange={handlePriorityChange}
+              isLoading={dayLoading}
+            />
+          )}
 
-      <WasteModal open={wasteOpen} onOpenChange={setWasteOpen} />
-      <PersoneelsmaaltijdModal open={personeelOpen} onOpenChange={setPersoneelOpen} />
+          <WasteModal open={wasteOpen} onOpenChange={setWasteOpen} />
+          <PersoneelsmaaltijdModal open={personeelOpen} onOpenChange={setPersoneelOpen} />
         </>
       )}
 
