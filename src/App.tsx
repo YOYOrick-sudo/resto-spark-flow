@@ -90,6 +90,8 @@ import BereikDetailPage from "./pages/analytics/detail/BereikDetailPage";
 import InterneBestellingen from "./pages/InterneBestellingen";
 import WaitlistAccept from "./pages/WaitlistAccept";
 import ReconfirmReservation from "./pages/ReconfirmReservation";
+import MedewerkersSettings from "./pages/MedewerkersSettings";
+import PrinterSettings from "./pages/PrinterSettings";
 
 // New multi-level settings pages
 import {
@@ -179,6 +181,8 @@ const App = () => (
                   {/* Settings */}
                   <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
                   <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
+                  <Route path="/instellingen/keuken/medewerkers" element={<MedewerkersSettings />} />
+                  <Route path="/instellingen/keuken/printer" element={<PrinterSettings />} />
                   <Route path="/instellingen/onboarding" element={<SettingsOnboarding />} />
                   <Route path="/instellingen/onboarding/fasen" element={<SettingsOnboardingFasen />} />
                   <Route path="/instellingen/onboarding/team" element={<SettingsOnboardingTeam />} />

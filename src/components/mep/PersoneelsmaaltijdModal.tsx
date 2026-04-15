@@ -1,14 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Search, X, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useGerechtSearch } from "@/hooks/useGerechtSearch";
 import { useWasteMutation, type WasteInput } from "@/hooks/useWasteMutation";
+import { useMedewerkers } from "@/hooks/useMedewerkers";
 import { getPortieVoorPersonen } from "@/utils/portieDefaults";
 import { berekenPortieGrootte, getPrimaireMethode, converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
 import { nestoToast } from "@/lib/nestoToast";
@@ -50,6 +52,7 @@ interface MealItem {
 export function PersoneelsmaaltijdModal({ open, onOpenChange }: PersoneelsmaaltijdModalProps) {
   const [aantalPersonen, setAantalPersonen] = useState(1);
   const [items, setItems] = useState<MealItem[]>([]);
+  const [selectedMedewerkerIds, setSelectedMedewerkerIds] = useState<string[]>([]);
 
   // Search states for each section
   const [searchMain, setSearchMain] = useState("");
@@ -65,6 +68,16 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   const { data: igResultsMain = [] } = useIngredientSearch(searchMain);
   const { data: gerechtResults = [] } = useGerechtSearch(searchGerecht);
   const { data: igResultsSchatting = [] } = useIngredientSearch(searchSchatting);
+  const { data: medewerkers = [] } = useMedewerkers();
+
+  const hasMedewerkers = medewerkers.length > 0;
+
+  // Sync aantalPersonen from checked medewerkers
+  useEffect(() => {
+    if (hasMedewerkers && selectedMedewerkerIds.length > 0) {
+      setAantalPersonen(selectedMedewerkerIds.length);
+    }
+  }, [selectedMedewerkerIds, hasMedewerkers]);
 
   const wasteMutation = useWasteMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -327,12 +340,27 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   const resetAndClose = () => {
     setAantalPersonen(1);
     setItems([]);
+    setSelectedMedewerkerIds([]);
     setSearchMain("");
     setSearchGerecht("");
     setSearchSchatting("");
     setGerechtOpen(false);
     setSchattingOpen(false);
     onOpenChange(false);
+  };
+
+  const toggleMedewerker = (id: string) => {
+    setSelectedMedewerkerIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAllMedewerkers = () => {
+    if (selectedMedewerkerIds.length === medewerkers.length) {
+      setSelectedMedewerkerIds([]);
+    } else {
+      setSelectedMedewerkerIds(medewerkers.map((m) => m.id));
+    }
   };
 
   return (
@@ -343,18 +371,47 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
       size="lg"
     >
       <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-        {/* Aantal personen */}
+        {/* Wie heeft gegeten? */}
         <div>
           <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">
-            Aantal personen
+            {hasMedewerkers ? "Wie heeft gegeten?" : "Aantal personen"}
           </label>
-          <NestoInput
-            type="number"
-            min={1}
-            value={aantalPersonen}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setAantalPersonen(parseInt(v, 10) || 1); }}
-            className="w-32"
-          />
+          {hasMedewerkers ? (
+            <div className="space-y-1.5">
+              {medewerkers.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/30 cursor-pointer">
+                  <Checkbox
+                    checked={selectedMedewerkerIds.includes(m.id)}
+                    onCheckedChange={() => toggleMedewerker(m.id)}
+                  />
+                  <span className="text-sm">{m.naam}</span>
+                  {m.rol && <span className="text-[11px] text-muted-foreground">({m.rol})</span>}
+                </label>
+              ))}
+              <button
+                onClick={toggleAllMedewerkers}
+                className="text-xs text-primary hover:underline mt-1"
+              >
+                {selectedMedewerkerIds.length === medewerkers.length ? "Geen" : "Alle"}
+              </button>
+              {selectedMedewerkerIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">→ {selectedMedewerkerIds.length} personen</p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <NestoInput
+                type="number"
+                min={1}
+                value={aantalPersonen}
+                onChange={(e) => { const v = e.target.value; if (v === "") return; setAantalPersonen(parseInt(v, 10) || 1); }}
+                className="w-32"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                <a href="/instellingen/keuken/medewerkers" className="text-primary hover:underline">Voeg medewerkers toe</a> om namen te selecteren.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Section 1: Search halffabricaat / ingredient */}
