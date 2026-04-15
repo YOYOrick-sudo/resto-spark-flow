@@ -8,6 +8,7 @@ export interface HalffabricaatSearchResult {
   categorie: string;
   type: string;
   porties: number;
+  totale_kostprijs: number;
   methodes: {
     id: string;
     type: string;

@@ -17,6 +17,8 @@ export interface GerechtComponent {
   recept_naam?: string;
   recept_porties?: number;
   recept_totale_kostprijs?: number;
+  recept_methode_output?: number;
+  recept_methode_eenheid?: string;
 }
 
 export interface GerechtDetail {
@@ -49,22 +51,33 @@ export function useGerechtDetail(id: string | null) {
           gerecht_componenten(
             *,
             ingredienten(naam, kostprijs, eenheid),
-            recepten(naam, porties, totale_kostprijs)
+            recepten(
+              naam, porties, totale_kostprijs,
+              halffabricaat_methodes!halffabricaat_methodes_recept_id_fkey(
+                output_hoeveelheid, output_eenheid, type
+              )
+            )
           )
         `)
         .eq("id", id!)
         .single();
       if (error) throw error;
 
-      const componenten = ((data as any).gerecht_componenten ?? []).map((c: any) => ({
-        ...c,
-        ingredient_naam: c.ingredienten?.naam ?? null,
-        ingredient_kostprijs: c.ingredienten?.kostprijs ?? null,
-        ingredient_eenheid: c.ingredienten?.eenheid ?? null,
-        recept_naam: c.recepten?.naam ?? null,
-        recept_porties: c.recepten?.porties ?? null,
-        recept_totale_kostprijs: c.recepten?.totale_kostprijs ?? null,
-      }));
+      const componenten = ((data as any).gerecht_componenten ?? []).map((c: any) => {
+        const methodes = c.recepten?.halffabricaat_methodes ?? [];
+        const primaire = methodes.find((m: any) => m.type === "Bereiden") || methodes[0];
+        return {
+          ...c,
+          ingredient_naam: c.ingredienten?.naam ?? null,
+          ingredient_kostprijs: c.ingredienten?.kostprijs ?? null,
+          ingredient_eenheid: c.ingredienten?.eenheid ?? null,
+          recept_naam: c.recepten?.naam ?? null,
+          recept_porties: c.recepten?.porties ?? null,
+          recept_totale_kostprijs: c.recepten?.totale_kostprijs ?? null,
+          recept_methode_output: primaire?.output_hoeveelheid ?? null,
+          recept_methode_eenheid: primaire?.output_eenheid ?? null,
+        };
+      });
 
       return { ...data, componenten } as GerechtDetail;
     },
