@@ -52,6 +52,7 @@ interface MealItem {
 export function PersoneelsmaaltijdModal({ open, onOpenChange }: PersoneelsmaaltijdModalProps) {
   const [aantalPersonen, setAantalPersonen] = useState(1);
   const [items, setItems] = useState<MealItem[]>([]);
+  const [selectedMedewerkerIds, setSelectedMedewerkerIds] = useState<string[]>([]);
 
   // Search states for each section
   const [searchMain, setSearchMain] = useState("");
@@ -67,6 +68,16 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   const { data: igResultsMain = [] } = useIngredientSearch(searchMain);
   const { data: gerechtResults = [] } = useGerechtSearch(searchGerecht);
   const { data: igResultsSchatting = [] } = useIngredientSearch(searchSchatting);
+  const { data: medewerkers = [] } = useMedewerkers();
+
+  const hasMedewerkers = medewerkers.length > 0;
+
+  // Sync aantalPersonen from checked medewerkers
+  useEffect(() => {
+    if (hasMedewerkers && selectedMedewerkerIds.length > 0) {
+      setAantalPersonen(selectedMedewerkerIds.length);
+    }
+  }, [selectedMedewerkerIds, hasMedewerkers]);
 
   const wasteMutation = useWasteMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
