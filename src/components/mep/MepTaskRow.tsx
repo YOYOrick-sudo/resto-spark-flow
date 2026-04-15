@@ -72,11 +72,16 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityCh
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            {task.methode?.visuele_eenheid && (
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {(task.units ?? 1) > 1 ? `${task.units}× ` : ""}{task.methode.visuele_eenheid.replace(/^1\s+/, '')}
-              </span>
-            )}
+            {(() => {
+              const displayEenheid = task.methode?.visuele_eenheid?.replace(/^1\s+/, '')
+                || (task.methode ? `${task.methode.output_hoeveelheid} ${task.methode.output_eenheid}` : null);
+              const displayUnits = task.units ?? 1;
+              return displayEenheid ? (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {displayUnits}× {displayEenheid}
+                </span>
+              ) : null;
+            })()}
             {formattedDeadline && (
               <span className={cn("text-xs", deadlineUrgent ? "text-destructive font-medium" : "text-muted-foreground")}>
                 ⏰ {formattedDeadline}
