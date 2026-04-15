@@ -219,7 +219,7 @@ export default function BestellingDetail() {
           <input
             type="date"
             value={verwachteLeverdatum}
-            onChange={(e) => setVerwachteLeverdatum(e.target.value)}
+            onChange={(e) => updateLeverdatum(e.target.value)}
             className="h-11 rounded-button border-[1.5px] border-border bg-card px-3 text-sm text-foreground focus:!border-primary focus:outline-none focus:ring-0"
           />
         </div>
@@ -369,7 +369,7 @@ export default function BestellingDetail() {
           <label className="text-sm font-medium text-foreground block mb-1.5">Notities</label>
           <textarea
             value={notities}
-            onChange={(e) => setNotities(e.target.value)}
+            onChange={(e) => updateNotities(e.target.value)}
             placeholder="Optionele notities voor de leverancier..."
             rows={3}
             className="w-full rounded-button border-[1.5px] border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:!border-primary focus:outline-none focus:ring-0 resize-none"
