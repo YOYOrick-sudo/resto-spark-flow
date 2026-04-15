@@ -32,6 +32,8 @@ export default function MepTaken() {
   const [view, setView] = useState<ViewMode>(getInitialView);
   const [planOpen, setPlanOpen] = useState(false);
   const [planOrder, setPlanOrder] = useState<string[] | null>(null);
+  const [wasteOpen, setWasteOpen] = useState(false);
+  const [personeelOpen, setPersoneelOpen] = useState(false);
 
   // Persist view preference
   useEffect(() => {
