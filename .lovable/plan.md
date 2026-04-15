@@ -1,18 +1,35 @@
 
 
-# Fix: Snelle Prep titel bevat methode type
+# Allergenen visueel subtieler maken
 
-## Probleem
+## Wijzigingen
 
-In `useSnellePrep.ts` regel 26 wordt de titel samengesteld als `"Slagroom aanvullen"`. Exact hetzelfde probleem als eerder gefixt in `MepQuickAdd.tsx` — de methode wordt in de titel gezet waardoor `MepTaskRow` het niet visueel kan scheiden.
+### 1. `ComponentRow` — pills subtieler (regel 28-30)
+- Gebruik `maxVisible={2}` en forceer één neutrale kleur: alle pills worden `variant="default"` (grijs) in plaats van rood/oranje
+- Dit maakt ze subtiel en niet-alarmerend naast de componentnaam
 
-## Fix
+### 2. Allergenen samenvatting — "automatisch berekend" info weg, geen "Bevat" label (regels 391-407)
+- Verwijder het `<Info>` blok met "Automatisch berekend uit de componenten hierboven"
+- Toon alleen de allergeen naam (bijv. "Melk", "Soja") zonder "· Bevat" erachter
+- Houd wel het kleurverschil: `error` voor "bevat", `warning` voor "kan bevatten" — maar zonder het woord "Bevat"
+- "Kan bevatten" allergenen tonen als `warning` badge met tekst "Kan bevatten: [naam]" (daar voegt het wél waarde toe)
 
-| Bestand | Regel | Oud | Nieuw |
-|---------|-------|-----|-------|
-| `src/hooks/useSnellePrep.ts` | 26 | `const titel = \`${input.ingredientNaam} ${input.handeling.toLowerCase()}\`` | `const titel = input.ingredientNaam` |
+### Bestanden
+| Bestand | Actie |
+|---------|-------|
+| `src/components/kaartbeheer/GerechtComponentenTab.tsx` | Pills subtieler + info weg + labels vereenvoudigen |
 
-De `handeling` wordt al apart opgeslagen via `methode_id` op de MEP taak, en `MepTaskRow` toont het methode-type visueel als een aparte uppercase label.
+### Visueel resultaat
 
-Geen andere wijzigingen nodig.
+**Component-rij:**
+```
+Kruidenboter                              🗑
+1 portie · €2.00  [Melk] [Soja]  ← grijze subtiele pills
+```
+
+**Samenvatting onderaan:**
+```
+ALLERGENEN
+[Melk] [Soja] [Kan bevatten: Noten]
+```
 
