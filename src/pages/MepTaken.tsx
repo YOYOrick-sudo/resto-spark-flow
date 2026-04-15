@@ -4,7 +4,7 @@ import { nl } from "date-fns/locale";
 import { PageHeader } from "@/components/polar";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
 import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
 import { useCancelMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { MepQuickAdd } from "@/components/mep/MepQuickAdd";
