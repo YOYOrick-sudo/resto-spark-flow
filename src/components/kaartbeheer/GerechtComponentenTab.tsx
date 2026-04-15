@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { NestoButton } from "@/components/polar";
+import { NestoButton, NestoBadge } from "@/components/polar";
 import { Input } from "@/components/ui/input";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
@@ -9,9 +9,11 @@ import { useUserContext } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { nestoToast } from "@/lib/nestoToast";
 import type { GerechtDetail, GerechtComponent } from "@/hooks/useGerechtDetail";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Info } from "lucide-react";
+import { AllergeenPills, type AllergeenPillData } from "@/components/polar/AllergeenPills";
+import { useComponentenAllergenen } from "@/hooks/useComponentenAllergenen";
 
-function ComponentRow({ comp, onRemove }: { comp: GerechtComponent; onRemove: () => void }) {
+function ComponentRow({ comp, onRemove, allergenen }: { comp: GerechtComponent; onRemove: () => void; allergenen?: AllergeenPillData[] }) {
   const isHf = comp.type === "halffabricaat";
   const naam = isHf ? comp.recept_naam : comp.ingredient_naam;
   const kostprijs = isHf
@@ -21,7 +23,12 @@ function ComponentRow({ comp, onRemove }: { comp: GerechtComponent; onRemove: ()
   return (
     <div className="flex items-center gap-3 py-2.5 px-3 rounded-xl border border-border/30 bg-muted/20 min-h-[44px]">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{naam ?? "Onbekend"}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium truncate">{naam ?? "Onbekend"}</p>
+          {allergenen && allergenen.length > 0 && (
+            <AllergeenPills allergenen={allergenen} maxVisible={3} />
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">
           {comp.hoeveelheid} {comp.eenheid} · €{kostprijs.toFixed(2)}
         </p>
@@ -315,9 +322,15 @@ interface Props {
 
 export function GerechtComponentenTab({ gerecht }: Props) {
   const { removeComponent } = useGerechtMutations();
+  const { data: allergeenData } = useComponentenAllergenen(gerecht.componenten);
 
   const halffabricaten = gerecht.componenten.filter((c) => c.type === "halffabricaat");
   const ingredienten = gerecht.componenten.filter((c) => c.type === "ingredient");
+
+  const STATUS_LABELS: Record<string, { label: string; variant: "error" | "warning" | "default" }> = {
+    bevat: { label: "Bevat", variant: "error" },
+    kan_bevatten: { label: "Kan bevatten", variant: "warning" },
+  };
 
   return (
     <div className="space-y-6">
@@ -337,7 +350,7 @@ export function GerechtComponentenTab({ gerecht }: Props) {
           <>
             <div className="space-y-2 mb-3">
               {halffabricaten.map((c) => (
-                <ComponentRow key={c.id} comp={c} onRemove={() => removeComponent.mutate(c.id)} />
+                <ComponentRow key={c.id} comp={c} onRemove={() => removeComponent.mutate(c.id)} allergenen={allergeenData?.perComponent.get(c.id)} />
               ))}
             </div>
             <AddHalffabricaat gerechtId={gerecht.id} />
@@ -361,13 +374,39 @@ export function GerechtComponentenTab({ gerecht }: Props) {
           <>
             <div className="space-y-2 mb-3">
               {ingredienten.map((c) => (
-                <ComponentRow key={c.id} comp={c} onRemove={() => removeComponent.mutate(c.id)} />
+                <ComponentRow key={c.id} comp={c} onRemove={() => removeComponent.mutate(c.id)} allergenen={allergeenData?.perComponent.get(c.id)} />
               ))}
             </div>
             <AddIngredient gerechtId={gerecht.id} />
           </>
         )}
       </div>
+
+      {/* Allergenen samenvatting */}
+      {allergeenData && allergeenData.summary.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Allergenen
+          </h3>
+          <div className="flex items-start gap-2.5 rounded-xl border border-border/50 bg-muted/20 p-3">
+            <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground">
+              Automatisch berekend uit de componenten hierboven.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {allergeenData.summary.map((a) => {
+              const cfg = STATUS_LABELS[a.status];
+              if (!cfg) return null;
+              return (
+                <NestoBadge key={a.allergeen_id} variant={cfg.variant} size="sm">
+                  {a.naam_nl ?? a.code} · {cfg.label}
+                </NestoBadge>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
