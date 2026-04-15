@@ -53,9 +53,7 @@ export default function MepTaken() {
   const weekEndStr = format(endOfWeek(new Date(selectedDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const { data: weekTasks = [], isLoading: weekLoading } = useMepTasksWeek(weekStartStr, weekEndStr);
 
-  // Ingredient stock — only for priority view
-  const { data: ingredientStock } = useMepIngredientStock(dayTasks, view === "prioriteit");
-  const stockMap: IngredientStockMap = ingredientStock ?? new Map();
+  // Mutations
 
   // Mutations
   const cancelTask = useCancelMepTask();
