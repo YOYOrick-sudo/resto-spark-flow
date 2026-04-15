@@ -223,10 +223,11 @@ export default function ReceptenDetail() {
                     <span className="text-sm font-medium">{portie.display}</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        <span><Info className="h-3 w-3 text-muted-foreground cursor-help" /></span>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        Berekend: {primaireMethode?.output_hoeveelheid}{primaireMethode?.output_eenheid} totaal ÷ {recept.porties} porties
+                      <TooltipContent className="max-w-xs">
+                        Berekend op basis van de totale output van de bereiding gedeeld door het aantal porties.
+                        Bijvoorbeeld: {primaireMethode?.output_hoeveelheid}{primaireMethode?.output_eenheid} output ÷ {recept.porties} porties = {portie?.display} per portie.
                       </TooltipContent>
                     </Tooltip>
                   </div>
