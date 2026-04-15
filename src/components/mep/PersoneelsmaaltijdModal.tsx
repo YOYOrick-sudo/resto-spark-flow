@@ -332,36 +332,52 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
         {items.length > 0 && (
           <div className="space-y-1">
             {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2"
-              >
-                <span className="text-sm font-medium flex-1 min-w-0 truncate">
-                  {item.naam}
-                </span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {item.isAuto && (
-                    <span className="text-[11px] text-muted-foreground">(auto)</span>
-                  )}
-                  <span className="text-muted-foreground">×</span>
-                  <input
-                    type="number"
-                    min={0.01}
-                    step={0.1}
-                    value={item.hoeveelheid}
-                    onChange={(e) =>
-                      updateItemHoeveelheid(item.id, parseFloat(e.target.value) || 0)
-                    }
-                    className="w-16 text-sm text-right bg-transparent border border-border/50 rounded px-1.5 py-0.5"
-                  />
-                  <span className="text-xs text-muted-foreground w-12">{item.eenheid}</span>
+              <div key={item.id}>
+                <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                  <span className="text-sm font-medium flex-1 min-w-0 truncate">
+                    {item.naam}
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {item.isAuto && (
+                      <span className="text-[11px] text-muted-foreground">(auto)</span>
+                    )}
+                    <span className="text-muted-foreground">×</span>
+                    <input
+                      type="number"
+                      min={0.01}
+                      step={0.1}
+                      value={item.hoeveelheid}
+                      onChange={(e) =>
+                        updateItemHoeveelheid(item.id, parseFloat(e.target.value) || 0)
+                      }
+                      className="w-16 text-sm text-right bg-transparent border border-border/50 rounded px-1.5 py-0.5"
+                    />
+                    <span className="text-xs text-muted-foreground w-12">{item.eenheid}</span>
+                  </div>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="text-muted-foreground hover:text-foreground shrink-0"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="text-muted-foreground hover:text-foreground shrink-0"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                {item.type === "halffabricaat" && item.breakdownLoading && (
+                  <div className="pl-6 pb-1 pt-0.5">
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                )}
+                {item.type === "halffabricaat" && item.breakdown && item.breakdown.length > 0 && (
+                  <div className="pl-6 pb-1 pt-0.5 text-xs text-muted-foreground">
+                    ↳{" "}
+                    {item.breakdown.slice(0, 3).map((b, i) => (
+                      <span key={i}>
+                        {i > 0 && " · "}
+                        {(b.hoeveelheidPerPortie * item.hoeveelheid).toFixed(2)} {b.eenheid} {b.naam}
+                      </span>
+                    ))}
+                    {item.breakdown.length > 3 && ` · +${item.breakdown.length - 3} meer`}
+                  </div>
+                )}
               </div>
             ))}
           </div>
