@@ -366,7 +366,7 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  <span><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   Zoek een halffabricaat (bijv. Kippensoep) of ingrediënt (bijv. Rijst).
