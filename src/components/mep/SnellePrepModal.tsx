@@ -32,7 +32,7 @@ export function SnellePrepModal({ open, onOpenChange, ingredient, taskDate }: Sn
 
   const preview = useMemo(() => {
     if (!handeling) return null;
-    const naam = `${ingredient.naam} ${handeling.toLowerCase()}`;
+    const naam = ingredient.naam;
     const outputHoeveelheid = hoeveelheid * (yieldPct / 100);
     const kostprijsPerEenheid = ingredient.kostprijs
       ? ingredient.kostprijs / (yieldPct / 100)
