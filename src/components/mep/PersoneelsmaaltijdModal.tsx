@@ -1,14 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Search, X, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useGerechtSearch } from "@/hooks/useGerechtSearch";
 import { useWasteMutation, type WasteInput } from "@/hooks/useWasteMutation";
+import { useMedewerkers } from "@/hooks/useMedewerkers";
 import { getPortieVoorPersonen } from "@/utils/portieDefaults";
 import { berekenPortieGrootte, getPrimaireMethode, converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
 import { nestoToast } from "@/lib/nestoToast";
