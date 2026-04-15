@@ -48,6 +48,9 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityCh
 
   const formattedDeadline = task.deadline ? task.deadline.substring(0, 5) : null;
 
+  const methodeType = task.methode?.type?.toLowerCase();
+  const showMethode = methodeType && !task.title.toLowerCase().includes(methodeType);
+
   return (
     <>
       <div
@@ -61,7 +64,7 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityCh
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={cn("text-sm font-medium truncate", isDone && "line-through")}>
-              {(task.units ?? 1) > 1 ? `${task.units}× ` : ""}{task.title}
+              {(task.units ?? 1) > 1 ? `${task.units}× ` : ""}{task.title}{showMethode && ` · ${methodeType}`}
             </span>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
