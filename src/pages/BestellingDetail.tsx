@@ -14,11 +14,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
 
-const STATUS_BADGES: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  concept: { label: "Concept", variant: "secondary" },
+const STATUS_BADGES: Record<string, { label: string; variant: "default" | "warning" | "error" | "outline" }> = {
+  concept: { label: "Concept", variant: "warning" },
   verzonden: { label: "Verzonden", variant: "default" },
   ontvangen: { label: "Ontvangen", variant: "outline" },
-  geannuleerd: { label: "Geannuleerd", variant: "destructive" },
+  geannuleerd: { label: "Geannuleerd", variant: "error" },
 };
 
 export default function BestellingDetail() {
@@ -363,7 +363,7 @@ export default function BestellingDetail() {
       <div className="flex items-center justify-between border-t border-border/50 pt-6">
         <div>
           {isConcept && (
-            <NestoButton variant="destructive-outline" onClick={() => setDeleteDialogOpen(true)}>
+            <NestoButton variant="danger" onClick={() => setDeleteDialogOpen(true)}>
               <Trash2 className="h-4 w-4 mr-1.5" /> Verwijderen
             </NestoButton>
           )}
@@ -426,7 +426,7 @@ export default function BestellingDetail() {
           </p>
           <div className="flex justify-end gap-2">
             <NestoButton variant="outline" onClick={() => setDeleteDialogOpen(false)}>Annuleren</NestoButton>
-            <NestoButton variant="destructive" onClick={handleDelete}>Verwijderen</NestoButton>
+            <NestoButton variant="danger" onClick={handleDelete}>Verwijderen</NestoButton>
           </div>
         </div>
       </NestoModal>
