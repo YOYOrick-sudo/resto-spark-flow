@@ -68,20 +68,46 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   const showSchattingDropdown = searchSchatting.trim().length >= 2;
 
   // Add halffabricaat
-  const addHalffabricaat = (hf: typeof hfResults[0]) => {
+  const addHalffabricaat = async (hf: typeof hfResults[0]) => {
+    const itemId = crypto.randomUUID();
     setItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: itemId,
         type: "halffabricaat",
         naam: hf.naam,
         hoeveelheid: 1,
         eenheid: "portie",
         kostprijs: null,
         receptId: hf.id,
+        breakdownLoading: true,
       },
     ]);
     setSearchMain("");
+
+    try {
+      const { data: receptIngs } = await supabase
+        .from("recept_ingredienten")
+        .select("hoeveelheid, ingredient:ingredienten(naam, eenheid)")
+        .eq("recept_id", hf.id);
+
+      const porties = hf.porties || 1;
+      const breakdown: BreakdownIngredient[] = (receptIngs ?? [])
+        .filter((ri) => ri.ingredient)
+        .map((ri) => ({
+          naam: (ri.ingredient as any).naam,
+          eenheid: (ri.ingredient as any).eenheid,
+          hoeveelheidPerPortie: ri.hoeveelheid / porties,
+        }));
+
+      setItems((prev) =>
+        prev.map((i) => i.id === itemId ? { ...i, breakdown, breakdownLoading: false } : i)
+      );
+    } catch {
+      setItems((prev) =>
+        prev.map((i) => i.id === itemId ? { ...i, breakdownLoading: false } : i)
+      );
+    }
   };
 
   // Add ingredient (manual section)
