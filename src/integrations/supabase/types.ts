@@ -3247,6 +3247,58 @@ export type Database = {
           },
         ]
       }
+      mep_favorieten: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          location_id: string
+          methode_id: string | null
+          recept_id: string | null
+          title: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          location_id: string
+          methode_id?: string | null
+          recept_id?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          location_id?: string
+          methode_id?: string | null
+          recept_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_favorieten_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_favorieten_methode_id_fkey"
+            columns: ["methode_id"]
+            isOneToOne: false
+            referencedRelation: "halffabricaat_methodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_favorieten_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mep_task_completions: {
         Row: {
           batch_nummer: string | null
