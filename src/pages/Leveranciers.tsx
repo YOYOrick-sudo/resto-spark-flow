@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader, NestoButton, NestoBadge, DataTable, NestoInput } from "@/components/polar";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
-import { LeverancierDetailPanel } from "@/components/inkoop/LeverancierDetailPanel";
 import { Plus, Truck, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { NestoSelect } from "@/components/polar";
@@ -22,8 +21,6 @@ export default function Leveranciers() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [panelMode, setPanelMode] = useState<"detail" | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = (leveranciers ?? []).filter((l) => {
     if (statusFilter === "actief" && !l.is_actief) return false;
@@ -69,17 +66,11 @@ export default function Leveranciers() {
   ];
 
   const handleRowClick = (l: any) => {
-    setSelectedId(l.id);
-    setPanelMode("detail");
+    navigate(`/inkoop/leveranciers/${l.id}`);
   };
 
   const handleCreateClick = () => {
     navigate("/inkoop/leveranciers/nieuw");
-  };
-
-  const handlePanelClose = () => {
-    setPanelMode(null);
-    setSelectedId(null);
   };
 
   return (
@@ -120,12 +111,6 @@ export default function Leveranciers() {
         emptyIcon={Truck}
       />
 
-      <LeverancierDetailPanel
-        mode={panelMode}
-        leverancierId={selectedId}
-        onClose={handlePanelClose}
-        onCreated={() => {}}
-      />
     </div>
   );
 }
