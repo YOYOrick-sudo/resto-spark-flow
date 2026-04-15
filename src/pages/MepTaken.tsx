@@ -121,6 +121,24 @@ export default function MepTaken() {
                 Plan mijn dag
               </NestoButton>
             )}
+            <NestoButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setWasteOpen(true)}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Waste
+            </NestoButton>
+            <NestoButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setPersoneelOpen(true)}
+              className="gap-1.5"
+            >
+              <UtensilsCrossed className="h-3.5 w-3.5" />
+              Personeel
+            </NestoButton>
             <div className="flex items-center border border-border rounded-lg overflow-hidden">
               <NestoButton
                 variant="ghost"
