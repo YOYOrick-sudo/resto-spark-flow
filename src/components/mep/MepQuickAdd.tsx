@@ -5,14 +5,17 @@ import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useCreateMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { MepQuickAddDropdown } from "./MepQuickAddDropdown";
+import { MepFavorieten } from "./MepFavorieten";
 import { SnellePrepModal } from "./SnellePrepModal";
 import { addDays, format } from "date-fns";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
+import { useAddMepFavoriet } from "@/hooks/useMepFavorieten";
 import type { MepTask } from "@/hooks/useMepTasks";
 import type { HalffabricaatSearchResult } from "@/hooks/useHalffabricaatSearch";
 import type { IngredientResult } from "./MepQuickAddDropdown";
+import type { MepFavoriet } from "@/hooks/useMepFavorieten";
 
 interface MepQuickAddProps {
   taskDate: string;
@@ -29,6 +32,7 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
   const { data: ingredienten = [], isLoading: igLoading } = useIngredientSearch(search);
   const createTask = useCreateMepTask();
   const updateTask = useUpdateMepTask();
+  const addFavoriet = useAddMepFavoriet();
 
   const isPending = createTask.isPending || updateTask.isPending;
   const isLoading = hfLoading || igLoading;
@@ -47,7 +51,6 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
   ) => {
     const smartDate = getSmartDate();
 
-    // Check for existing task via DB query (handles smartDate !== taskDate)
     if (locationId) {
       let query = supabase
         .from("mep_tasks")
@@ -101,7 +104,6 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
     const title = search.trim();
     if (!title) return;
 
-    // Check for existing free task via DB query
     if (locationId) {
       const { data: existing } = await supabase
         .from("mep_tasks")
@@ -133,10 +135,96 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
     setSearch("");
   };
 
+  const handleFavorietSelect = async (fav: MepFavoriet) => {
+    if (fav.recept_id) {
+      // Simulate halffabricaat add with duplicate check
+      const smartDate = getSmartDate();
+
+      if (locationId) {
+        let query = supabase
+          .from("mep_tasks")
+          .select("id, units")
+          .eq("location_id", locationId)
+          .eq("recept_id", fav.recept_id)
+          .eq("task_date", smartDate)
+          .not("status", "in", '("completed","cancelled")')
+          .limit(1);
+
+        if (fav.methode_id) {
+          query = query.eq("methode_id", fav.methode_id);
+        } else {
+          query = query.is("methode_id", null);
+        }
+
+        const { data: existing } = await query;
+
+        if (existing && existing.length > 0) {
+          const task = existing[0];
+          const newUnits = (task.units ?? 1) + 1;
+          updateTask.mutate({ id: task.id, units: newUnits });
+          nestoToast.success(`${fav.title} — verhoogd naar ${newUnits}×`);
+          return;
+        }
+      }
+
+      createTask.mutate({
+        title: fav.title,
+        category: fav.category,
+        task_date: getSmartDate(),
+        recept_id: fav.recept_id,
+        methode_id: fav.methode_id ?? null,
+        units: 1,
+        prioriteit: "Normaal",
+      });
+    } else {
+      // Free task favorite
+      const smartDate = getSmartDate();
+
+      if (locationId) {
+        const { data: existing } = await supabase
+          .from("mep_tasks")
+          .select("id, units")
+          .eq("location_id", locationId)
+          .eq("title", fav.title)
+          .is("recept_id", null)
+          .eq("task_date", smartDate)
+          .not("status", "in", '("completed","cancelled")')
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          const task = existing[0];
+          const newUnits = (task.units ?? 1) + 1;
+          updateTask.mutate({ id: task.id, units: newUnits });
+          nestoToast.success(`${fav.title} — verhoogd naar ${newUnits}×`);
+          return;
+        }
+      }
+
+      createTask.mutate({
+        title: fav.title,
+        category: fav.category,
+        task_date: smartDate,
+        units: 1,
+        prioriteit: "Normaal",
+      });
+    }
+  };
+
+  const handleAddFavoriet = (input: {
+    title: string;
+    category: string;
+    recept_id?: string | null;
+    methode_id?: string | null;
+  }) => {
+    addFavoriet.mutate(input);
+  };
+
   const showDropdown = search.trim().length >= 2;
 
   return (
-    <div>
+    <div className="space-y-2">
+      <MepFavorieten onSelect={handleFavorietSelect} isPending={isPending} />
+
       <div className="relative">
         <NestoInput
           placeholder="Zoek halffabricaat, ingrediënt of voeg taak toe..."
@@ -155,6 +243,7 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
               onSelectHalffabricaat={handleAddHalffabricaat}
               onSelectIngredient={handleSelectIngredient}
               onAddFreeTask={handleAddFreeTask}
+              onAddFavoriet={handleAddFavoriet}
             />
           </div>
         )}
