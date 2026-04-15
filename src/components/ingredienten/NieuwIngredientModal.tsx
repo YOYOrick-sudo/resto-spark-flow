@@ -199,7 +199,8 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button type="button" className="inline-flex">
-                    </TooltipTrigger>
+                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-[220px] text-xs">
