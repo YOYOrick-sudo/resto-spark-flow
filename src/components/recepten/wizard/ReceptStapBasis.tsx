@@ -54,6 +54,9 @@ export function ReceptStapBasis() {
           value={data.porties}
           onChange={(e) => update("porties", Number(e.target.value) || 1)}
         />
+        <p className="text-xs text-muted-foreground mt-1">
+          Hoeveel porties haal je uit één volledige bereiding? De portiegrootte (gram per portie) wordt automatisch berekend zodra je in stap 4 de totale output invult.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

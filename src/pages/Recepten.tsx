@@ -12,6 +12,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { BookOpen, Plus } from "lucide-react";
 import { useRecepten, filterRecepten, ReceptRow, ReceptenFilters } from "@/hooks/useRecepten";
+import { berekenPortieGrootte, getPrimaireMethode } from "@/utils/portieGrootte";
 import type { DataTableColumn } from "@/components/polar";
 
 const CATEGORIE_FILTER_OPTIONS = [
@@ -54,6 +55,15 @@ export default function Recepten() {
       key: "porties",
       header: "Porties",
       render: (r) => <span className="text-muted-foreground">{r.porties}</span>,
+    },
+    {
+      key: "perPortie",
+      header: "Per portie",
+      render: (r) => {
+        const methode = getPrimaireMethode(r.halffabricaat_methodes ?? []);
+        const portie = berekenPortieGrootte(methode?.output_hoeveelheid, methode?.output_eenheid, r.porties);
+        return <span className="text-muted-foreground">{portie ? portie.display : "—"}</span>;
+      },
     },
     {
       key: "kostprijs",

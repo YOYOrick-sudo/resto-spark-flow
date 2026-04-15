@@ -17,7 +17,9 @@ import { IngredintenTab } from "@/components/recepten/tabs/IngredintenTab";
 import { BereidingTab } from "@/components/recepten/tabs/BereidingTab";
 import { MethodesTab } from "@/components/recepten/tabs/MethodesTab";
 import { AllergenenTab } from "@/components/recepten/tabs/AllergenenTab";
-import { ChevronLeft, Archive } from "lucide-react";
+import { ChevronLeft, Archive, Info } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { berekenPortieGrootte, getPrimaireMethode } from "@/utils/portieGrootte";
 import type { TabItem } from "@/components/polar";
 
 const CATEGORIE_OPTIONS = [
@@ -64,6 +66,13 @@ export default function ReceptenDetail() {
   const kostprijsPerPortie = recept && recept.porties > 0 && recept.totale_kostprijs != null
     ? recept.totale_kostprijs / recept.porties
     : null;
+
+  const primaireMethode = recept ? getPrimaireMethode(recept.halffabricaat_methodes) : null;
+  const portie = recept ? berekenPortieGrootte(
+    primaireMethode?.output_hoeveelheid ?? null,
+    primaireMethode?.output_eenheid ?? null,
+    recept.porties
+  ) : null;
 
   const allergeenPills = useMemo(() => {
     if (!recept?.recept_allergenen) return [];
@@ -204,6 +213,26 @@ export default function ReceptenDetail() {
                 className="h-9 text-xs"
               />
             </div>
+
+            {/* Per portie — auto-berekend */}
+            {portie && (
+              <TooltipProvider>
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Per portie</label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium">{portie.display}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Berekend: {primaireMethode?.output_hoeveelheid}{primaireMethode?.output_eenheid} totaal ÷ {recept.porties} porties
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              </TooltipProvider>
+            )}
           </div>
 
           {/* Card 2: Kostprijs */}
@@ -230,7 +259,7 @@ export default function ReceptenDetail() {
                   ? `€${recept.totale_kostprijs.toFixed(2)}`
                   : "—"}
               </span>
-              <span className="text-muted-foreground">Per portie</span>
+              <span className="text-muted-foreground">Per portie{portie ? ` (${portie.display})` : ""}</span>
               <span className="text-right font-medium text-primary">
                 {kostprijsPerPortie != null
                   ? `€${kostprijsPerPortie.toFixed(2)}`

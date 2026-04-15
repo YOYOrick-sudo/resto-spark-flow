@@ -3,12 +3,14 @@ import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, X, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useGerechtSearch } from "@/hooks/useGerechtSearch";
 import { useWasteMutation, type WasteInput } from "@/hooks/useWasteMutation";
 import { getPortieVoorPersonen } from "@/utils/portieDefaults";
+import { berekenPortieGrootte, getPrimaireMethode, converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,10 @@ interface MealItem {
   isAuto?: boolean;
   breakdown?: BreakdownIngredient[];
   breakdownLoading?: boolean;
+  portieDisplay?: string | null;
+  methodeOutputHoeveelheid?: number | null;
+  methodeOutputEenheid?: string | null;
+  receptPorties?: number | null;
 }
 
 export function PersoneelsmaaltijdModal({ open, onOpenChange }: PersoneelsmaaltijdModalProps) {
@@ -70,6 +76,12 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   // Add halffabricaat
   const addHalffabricaat = async (hf: typeof hfResults[0]) => {
     const itemId = crypto.randomUUID();
+    const primaireMethode = getPrimaireMethode(hf.methodes ?? []);
+    const portie = berekenPortieGrootte(
+      primaireMethode?.output_hoeveelheid ?? null,
+      primaireMethode?.output_eenheid ?? null,
+      hf.porties
+    );
     setItems((prev) => [
       ...prev,
       {
@@ -81,6 +93,10 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
         kostprijs: null,
         receptId: hf.id,
         breakdownLoading: true,
+        portieDisplay: portie?.display ?? null,
+        methodeOutputHoeveelheid: primaireMethode?.output_hoeveelheid ?? null,
+        methodeOutputEenheid: primaireMethode?.output_eenheid ?? null,
+        receptPorties: hf.porties,
       },
     ]);
     setSearchMain("");
@@ -171,6 +187,28 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
     );
   };
 
+  const updateItemEenheid = (id: string, eenheid: string) => {
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.id !== id) return i;
+        // When switching eenheid, reset hoeveelheid to sensible default
+        let newHoeveelheid = i.hoeveelheid;
+        if (eenheid === "portie" && i.eenheid !== "portie") {
+          newHoeveelheid = 1;
+        } else if (eenheid !== "portie" && i.eenheid === "portie") {
+          // Convert porties to weight: porties × portieGrootte
+          const portieGrootte = (i.methodeOutputHoeveelheid ?? 0) / (i.receptPorties ?? 1);
+          let gewicht = i.hoeveelheid * portieGrootte;
+          const methodeEenheid = i.methodeOutputEenheid ?? "g";
+          if (eenheid === "g" && methodeEenheid === "kg") gewicht *= 1000;
+          else if (eenheid === "kg" && methodeEenheid === "g") gewicht /= 1000;
+          newHoeveelheid = Math.round(gewicht * 100) / 100;
+        }
+        return { ...i, eenheid, hoeveelheid: newHoeveelheid, isAuto: false };
+      })
+    );
+  };
+
   // Submit
   const handleSubmit = async () => {
     if (items.length === 0) return;
@@ -197,10 +235,24 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
             .select("ingredient_id, hoeveelheid, eenheid, ingredient:ingredienten(kostprijs)")
             .eq("recept_id", item.receptId);
 
+          // Calculate portion multiplier based on eenheid
+          let portieFractie = item.hoeveelheid;
+          if (item.eenheid !== "portie" && item.methodeOutputHoeveelheid && item.receptPorties) {
+            // Convert entered weight to method output eenheid, then calculate fraction
+            const portieGrootte = item.methodeOutputHoeveelheid / item.receptPorties;
+            const hoeveelheidInMethodeEenheid = converteerNaarMethodeEenheid(
+              item.hoeveelheid,
+              item.eenheid,
+              item.methodeOutputEenheid ?? "g"
+            );
+            portieFractie = hoeveelheidInMethodeEenheid / portieGrootte;
+          }
+
           for (const ri of receptIngs ?? []) {
             if (!ri.ingredient_id) continue;
             const kostprijs = (ri.ingredient as any)?.kostprijs ?? null;
-            const qty = ri.hoeveelheid * item.hoeveelheid; // multiply by portions
+            const qtyPerPortie = ri.hoeveelheid / (item.receptPorties ?? 1);
+            const qty = qtyPerPortie * portieFractie;
             await wasteMutation.mutateAsync({
               ingredient_id: ri.ingredient_id,
               hoeveelheid: qty,
@@ -307,9 +359,23 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
 
         {/* Section 1: Search halffabricaat / ingredient */}
         <div>
-          <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">
-            Wat gegeten?
-          </label>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <label className="text-[13px] font-medium text-muted-foreground">
+              Wat gegeten?
+            </label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  Zoek een halffabricaat (bijv. Kippensoep) of ingrediënt (bijv. Rijst).
+                  Bij halffabricaten zie je automatisch hoeveel gram 1 portie is en
+                  welke ingrediënten van de voorraad worden afgeschreven.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <div className="relative">
             <NestoInput
               placeholder="Zoek halffabricaat of ingrediënt..."
@@ -331,55 +397,81 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
         {/* Items list */}
         {items.length > 0 && (
           <div className="space-y-1">
-            {items.map((item) => (
-              <div key={item.id}>
-                <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                  <span className="text-sm font-medium flex-1 min-w-0 truncate">
-                    {item.naam}
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {item.isAuto && (
-                      <span className="text-[11px] text-muted-foreground">(auto)</span>
-                    )}
-                    <span className="text-muted-foreground">×</span>
-                    <input
-                      type="number"
-                      min={0.01}
-                      step={0.1}
-                      value={item.hoeveelheid}
-                      onChange={(e) =>
-                        updateItemHoeveelheid(item.id, parseFloat(e.target.value) || 0)
-                      }
-                      className="w-16 text-sm text-right bg-transparent border border-border/50 rounded px-1.5 py-0.5"
-                    />
-                    <span className="text-xs text-muted-foreground w-12">{item.eenheid}</span>
+            {items.map((item) => {
+              // Calculate portieFractie for breakdown display
+              let breakdownMultiplier = item.hoeveelheid;
+              if (item.type === "halffabricaat" && item.eenheid !== "portie" && item.methodeOutputHoeveelheid && item.receptPorties) {
+                const portieGrootte = item.methodeOutputHoeveelheid / item.receptPorties;
+                const inMethodeEenheid = converteerNaarMethodeEenheid(
+                  item.hoeveelheid,
+                  item.eenheid,
+                  item.methodeOutputEenheid ?? "g"
+                );
+                breakdownMultiplier = inMethodeEenheid / portieGrootte;
+              }
+
+              return (
+                <div key={item.id}>
+                  <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                    <span className="text-sm font-medium flex-1 min-w-0 truncate">
+                      {item.naam}
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {item.isAuto && (
+                        <span className="text-[11px] text-muted-foreground">(auto)</span>
+                      )}
+                      <span className="text-muted-foreground">×</span>
+                      <input
+                        type="number"
+                        min={item.type === "halffabricaat" && item.eenheid === "portie" ? 1 : 0.1}
+                        step={item.type === "halffabricaat" && item.eenheid === "portie" ? 1 : 0.5}
+                        value={item.hoeveelheid}
+                        onChange={(e) =>
+                          updateItemHoeveelheid(item.id, parseFloat(e.target.value) || 0)
+                        }
+                        className="w-16 text-sm text-right bg-transparent border border-border/50 rounded px-1.5 py-0.5"
+                      />
+                      {item.type === "halffabricaat" ? (
+                        <select
+                          value={item.eenheid}
+                          onChange={(e) => updateItemEenheid(item.id, e.target.value)}
+                          className="text-xs text-muted-foreground bg-transparent border border-border/50 rounded px-1 py-0.5 w-auto"
+                        >
+                          <option value="portie">portie{item.portieDisplay ? ` (${item.portieDisplay})` : ""}</option>
+                          <option value="kg">kg</option>
+                          <option value="g">g</option>
+                        </select>
+                      ) : (
+                        <span className="text-xs text-muted-foreground w-12">{item.eenheid}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="text-muted-foreground hover:text-foreground shrink-0"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => removeItem(item.id)}
-                    className="text-muted-foreground hover:text-foreground shrink-0"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                  {item.type === "halffabricaat" && item.breakdownLoading && (
+                    <div className="pl-6 pb-1 pt-0.5">
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  )}
+                  {item.type === "halffabricaat" && item.breakdown && item.breakdown.length > 0 && (
+                    <div className="pl-6 pb-1 pt-0.5 text-xs text-muted-foreground">
+                      ↳{" "}
+                      {item.breakdown.slice(0, 3).map((b, i) => (
+                        <span key={i}>
+                          {i > 0 && " · "}
+                          {(b.hoeveelheidPerPortie * breakdownMultiplier).toFixed(2)} {b.eenheid} {b.naam}
+                        </span>
+                      ))}
+                      {item.breakdown.length > 3 && ` · +${item.breakdown.length - 3} meer`}
+                    </div>
+                  )}
                 </div>
-                {item.type === "halffabricaat" && item.breakdownLoading && (
-                  <div className="pl-6 pb-1 pt-0.5">
-                    <Skeleton className="h-3 w-48" />
-                  </div>
-                )}
-                {item.type === "halffabricaat" && item.breakdown && item.breakdown.length > 0 && (
-                  <div className="pl-6 pb-1 pt-0.5 text-xs text-muted-foreground">
-                    ↳{" "}
-                    {item.breakdown.slice(0, 3).map((b, i) => (
-                      <span key={i}>
-                        {i > 0 && " · "}
-                        {(b.hoeveelheidPerPortie * item.hoeveelheid).toFixed(2)} {b.eenheid} {b.naam}
-                      </span>
-                    ))}
-                    {item.breakdown.length > 3 && ` · +${item.breakdown.length - 3} meer`}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
