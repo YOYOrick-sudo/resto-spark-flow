@@ -9,8 +9,8 @@ import { useUserContext } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { nestoToast } from "@/lib/nestoToast";
 import type { GerechtDetail, GerechtComponent } from "@/hooks/useGerechtDetail";
-import { Plus, Trash2, Info } from "lucide-react";
-import { AllergeenPills, type AllergeenPillData } from "@/components/polar/AllergeenPills";
+import { Plus, Trash2 } from "lucide-react";
+import { type AllergeenPillData } from "@/components/polar/AllergeenPills";
 import { useComponentenAllergenen } from "@/hooks/useComponentenAllergenen";
 
 function ComponentRow({ comp, onRemove, allergenen }: { comp: GerechtComponent; onRemove: () => void; allergenen?: AllergeenPillData[] }) {
@@ -334,10 +334,6 @@ export function GerechtComponentenTab({ gerecht }: Props) {
   const halffabricaten = gerecht.componenten.filter((c) => c.type === "halffabricaat");
   const ingredienten = gerecht.componenten.filter((c) => c.type === "ingredient");
 
-  const STATUS_LABELS: Record<string, { label: string; variant: "error" | "warning" | "default" }> = {
-    bevat: { label: "Bevat", variant: "error" },
-    kan_bevatten: { label: "Kan bevatten", variant: "warning" },
-  };
 
   return (
     <div className="space-y-6">
