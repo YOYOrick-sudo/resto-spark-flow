@@ -4,7 +4,7 @@ import { nl } from "date-fns/locale";
 import { PageHeader } from "@/components/polar";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, ListOrdered, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
 import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
 import { useCancelMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { useMepIngredientStock } from "@/hooks/useMepIngredientStock";
@@ -12,21 +12,21 @@ import { MepQuickAdd } from "@/components/mep/MepQuickAdd";
 import { MepWeekView } from "@/components/mep/MepWeekView";
 import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
 import { MepCategoryView } from "@/components/mep/MepCategoryView";
-import { MepPriorityView } from "@/components/mep/MepPriorityView";
+
 import { MepDayPlan } from "@/components/mep/MepDayPlan";
 import { WasteModal } from "@/components/mep/WasteModal";
 import { PersoneelsmaaltijdModal } from "@/components/mep/PersoneelsmaaltijdModal";
 import type { IngredientStockMap } from "@/utils/mepPriority";
 
-type ViewMode = "prioriteit" | "categorie" | "week";
+type ViewMode = "categorie" | "week";
 const STORAGE_KEY = "mep-view-preference";
 
 function getInitialView(): ViewMode {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "prioriteit" || saved === "categorie" || saved === "week") return saved;
+    if (saved === "categorie" || saved === "week") return saved;
   } catch {}
-  return "prioriteit";
+  return "categorie";
 }
 
 export default function MepTaken() {
@@ -138,15 +138,6 @@ export default function MepTaken() {
               <NestoButton
                 variant="ghost"
                 size="icon"
-                className={view === "prioriteit" ? "bg-accent" : ""}
-                onClick={() => setView("prioriteit")}
-                title="Prioriteitsweergave"
-              >
-                <ListOrdered className="h-4 w-4" />
-              </NestoButton>
-              <NestoButton
-                variant="ghost"
-                size="icon"
                 className={view === "categorie" ? "bg-accent" : ""}
                 onClick={() => setView("categorie")}
                 title="Categorie-weergave"
@@ -203,25 +194,13 @@ export default function MepTaken() {
         <>
           <MepQuickAdd taskDate={selectedDate} dayTasks={dayTasks} />
 
-          {view === "prioriteit" ? (
-            <MepPriorityView
-              dayTasks={sortedDayTasks}
-              ingredientStock={stockMap}
-              onComplete={setCompletionTask}
-              onCancel={(id) => cancelTask.mutate(id)}
-              onPriorityChange={handlePriorityChange}
-              isLoading={dayLoading}
-              hasPlanOrder={!!planOrder}
-            />
-          ) : (
-            <MepCategoryView
+          <MepCategoryView
               dayTasks={sortedDayTasks}
               onComplete={setCompletionTask}
               onCancel={(id) => cancelTask.mutate(id)}
               onPriorityChange={handlePriorityChange}
               isLoading={dayLoading}
             />
-          )}
 
           <WasteModal open={wasteOpen} onOpenChange={setWasteOpen} />
           <PersoneelsmaaltijdModal open={personeelOpen} onOpenChange={setPersoneelOpen} />
