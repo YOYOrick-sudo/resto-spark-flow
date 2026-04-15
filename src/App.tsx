@@ -24,7 +24,7 @@ import Inkoop from "./pages/Inkoop";
 import Leveranciers from "./pages/Leveranciers";
 import LeverancierNieuw from "./pages/LeverancierNieuw";
 import LeverancierDetail from "./pages/LeverancierDetail";
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 const AfnamelijstImport = lazy(() => import("./pages/AfnamelijstImport"));
 import Kaartbeheer from "./pages/Kaartbeheer";
 import KaartbeheerDetail from "./pages/KaartbeheerDetail";
