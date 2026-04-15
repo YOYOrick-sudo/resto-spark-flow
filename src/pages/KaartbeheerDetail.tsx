@@ -67,6 +67,7 @@ export default function KaartbeheerDetail() {
       }
       return s + c.hoeveelheid * ((c.recept_totale_kostprijs ?? 0) / Math.max(c.recept_porties ?? 1, 1));
     }, 0);
+    const ing = ingredienten.reduce((s, c) => s + c.hoeveelheid * (c.ingredient_kostprijs ?? 0), 0);
     const totaal = hf + ing;
     const vkp = gerecht.verkoopprijs ?? 0;
     const marge = vkp > 0 ? ((vkp - totaal) / vkp) * 100 : null;
