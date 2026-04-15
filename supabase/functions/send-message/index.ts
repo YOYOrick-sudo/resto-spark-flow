@@ -226,11 +226,9 @@ async function logMessage(
     reservation_id: reservationId,
   });
 
-  // Update conversation last_message_at
-  await supabase
-    .from('conversations')
-    .update({ last_message_at: new Date().toISOString() })
-    .eq('id', conversationId);
+  // NOTE: Do NOT update last_message_at here.
+  // send-message only sends outbound templates (reminders, confirmations).
+  // Real conversation timestamps are set by whatsapp-webhook (inbound) and ai-respond (AI reply).
 }
 
 async function sendViaWhatsApp(
