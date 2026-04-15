@@ -92,6 +92,7 @@ import WaitlistAccept from "./pages/WaitlistAccept";
 import ReconfirmReservation from "./pages/ReconfirmReservation";
 import MedewerkersSettings from "./pages/MedewerkersSettings";
 import PrinterSettings from "./pages/PrinterSettings";
+import BestellingDetail from "./pages/BestellingDetail";
 
 // New multi-level settings pages
 import {
@@ -162,6 +163,7 @@ const App = () => (
                   <Route path="/voorraad" element={<Ingredienten />} />
                   <Route path="/kostprijzen" element={<Navigate to="/voorraad" replace />} />
                   <Route path="/inkoop" element={<Inkoop />} />
+                  <Route path="/inkoop/bestellingen/:id" element={<BestellingDetail />} />
                   <Route path="/inkoop/leveranciers" element={<Leveranciers />} />
                   <Route path="/inkoop/leveranciers/nieuw" element={<LeverancierNieuw />} />
                   <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
