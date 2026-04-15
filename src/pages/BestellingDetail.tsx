@@ -32,6 +32,7 @@ export default function BestellingDetail() {
   const [isSending, setIsSending] = useState(false);
   const [notities, setNotities] = useState("");
   const [verwachteLeverdatum, setVerwachteLeverdatum] = useState("");
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
 
   // Add ingredient state
   const [addSearch, setAddSearch] = useState("");
