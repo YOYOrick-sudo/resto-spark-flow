@@ -413,7 +413,6 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
             </div>
           )}
         </div>
-        </div>
 
         {/* Section 1: Search halffabricaat / ingredient */}
         <div>
