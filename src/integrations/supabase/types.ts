@@ -386,6 +386,7 @@ export type Database = {
           bestelnummer: string | null
           created_at: string
           id: string
+          laatst_verzonden: string | null
           leverancier_id: string
           location_id: string
           notities: string | null
@@ -401,6 +402,7 @@ export type Database = {
           bestelnummer?: string | null
           created_at?: string
           id?: string
+          laatst_verzonden?: string | null
           leverancier_id: string
           location_id: string
           notities?: string | null
@@ -416,6 +418,7 @@ export type Database = {
           bestelnummer?: string | null
           created_at?: string
           id?: string
+          laatst_verzonden?: string | null
           leverancier_id?: string
           location_id?: string
           notities?: string | null

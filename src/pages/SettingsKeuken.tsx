@@ -357,7 +357,36 @@ export default function SettingsKeuken() {
           </div>
         </div>
 
-        {/* Save button */}
+        {/* Section 5: Assistent Drempels */}
+        <div className="border-t border-border/50 pt-6 mt-6">
+          <SectionHeader
+            title="ASSISTENT MELDINGEN"
+            description="Drempelwaarden voor wanneer de Assistent keuken-meldingen toont."
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <InputWithSuffix
+              label="Meld bijna-verlopende items als waarde ≥"
+              value={String(settings?.assistent_min_waarde_verlopen ?? 5)}
+              onChange={(v) => {
+                updateSettings.mutate({ assistent_min_waarde_verlopen: parseFloat(v) || 5 } as any);
+              }}
+              suffix="€"
+              step="1"
+              helpText="Items onder deze waarde worden niet gemeld"
+            />
+            <InputWithSuffix
+              label="Meld voorraad overschot als waarde ≥"
+              value={String(settings?.assistent_min_waarde_overschot ?? 10)}
+              onChange={(v) => {
+                updateSettings.mutate({ assistent_min_waarde_overschot: parseFloat(v) || 10 } as any);
+              }}
+              suffix="€"
+              step="1"
+              helpText="Overstocked items onder deze waarde worden niet gemeld"
+            />
+          </div>
+        </div>
+
         <div className="border-t border-border/50 pt-6 mt-6">
           <NestoButton
             onClick={handleSave}

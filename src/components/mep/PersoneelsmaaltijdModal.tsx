@@ -4,17 +4,21 @@ import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, X, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { Search, X, ChevronDown, ChevronRight, Info, Sparkles } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useGerechtSearch } from "@/hooks/useGerechtSearch";
 import { useWasteMutation, type WasteInput } from "@/hooks/useWasteMutation";
 import { useMedewerkers } from "@/hooks/useMedewerkers";
+import { useBijnaVerlopen } from "@/hooks/useBijnaVerlopen";
+import { useVoorraadOverschot } from "@/hooks/useVoorraadOverschot";
+import { matchSuggestieToItems } from "@/utils/matchSuggestieToItems";
 import { getPortieVoorPersonen } from "@/utils/portieDefaults";
 import { berekenPortieGrootte, getPrimaireMethode, converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserContext } from "@/contexts/UserContext";
 import { cn } from "@/lib/utils";
 
 interface PersoneelsmaaltijdModalProps {
@@ -53,6 +57,17 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   const [aantalPersonen, setAantalPersonen] = useState(1);
   const [items, setItems] = useState<MealItem[]>([]);
   const [selectedMedewerkerIds, setSelectedMedewerkerIds] = useState<string[]>([]);
+  const { currentLocation } = useUserContext();
+
+  // AI suggestion state
+  const [aiSuggestion, setAiSuggestion] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAttempts, setAiAttempts] = useState(0);
+
+  // Bijna verlopen + overstocked data
+  const { data: bijnaVerlopen = [] } = useBijnaVerlopen(2);
+  const { data: overstocked = [] } = useVoorraadOverschot();
+  const hasRelevantItems = bijnaVerlopen.length > 0 || overstocked.length > 0;
 
   // Search states for each section
   const [searchMain, setSearchMain] = useState("");
@@ -337,6 +352,50 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
     }
   };
 
+  const handleSuggestMeal = async () => {
+    setAiLoading(true);
+    setAiAttempts((p) => p + 1);
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-staff-meal", {
+        body: {
+          bijna_verlopen: bijnaVerlopen.map((i) => ({
+            naam: i.productnaam,
+            hoeveelheid: i.geschatte_hoeveelheid,
+            dagen_resterend: i.dagen_resterend,
+          })),
+          overstocked: overstocked.map((i) => ({
+            naam: i.naam,
+            hoeveelheid: `${i.hoeveelheid} ${i.eenheid}`,
+          })),
+          aantal_personen: aantalPersonen,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiSuggestion(data);
+    } catch {
+      nestoToast.error("Kon geen suggestie ophalen");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleUseSuggestion = async () => {
+    if (!aiSuggestion?.ingredienten || !currentLocation?.id) return;
+    const matched = await matchSuggestieToItems(aiSuggestion.ingredienten, currentLocation.id);
+    setItems(matched.map((m) => ({
+      id: m.id,
+      type: m.type,
+      naam: m.naam,
+      hoeveelheid: m.hoeveelheid,
+      eenheid: m.eenheid,
+      kostprijs: m.kostprijs,
+      receptId: m.receptId,
+      ingredientId: m.ingredientId,
+    })));
+    setAiSuggestion(null);
+  };
+
   const resetAndClose = () => {
     setAantalPersonen(1);
     setItems([]);
@@ -346,6 +405,8 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
     setSearchSchatting("");
     setGerechtOpen(false);
     setSchattingOpen(false);
+    setAiSuggestion(null);
+    setAiAttempts(0);
     onOpenChange(false);
   };
 
@@ -413,6 +474,56 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
             </div>
           )}
         </div>
+
+        {/* AI suggestion banner */}
+        {hasRelevantItems && !aiSuggestion && (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 space-y-2">
+            <p className="text-sm font-medium text-foreground">
+              💡 {bijnaVerlopen.length > 0 && `${bijnaVerlopen.length} item${bijnaVerlopen.length > 1 ? "s" : ""} verloop${bijnaVerlopen.length > 1 ? "en" : "t"} binnenkort`}
+              {bijnaVerlopen.length > 0 && overstocked.length > 0 && " · "}
+              {overstocked.length > 0 && `${overstocked.length} overstocked`}
+            </p>
+            <div className="text-xs text-muted-foreground space-y-0.5">
+              {bijnaVerlopen.slice(0, 3).map((i) => (
+                <p key={i.id}>{i.productnaam} ({i.geschatte_hoeveelheid}, {i.dagen_resterend === 0 ? "vandaag" : i.dagen_resterend === 1 ? "morgen" : `over ${i.dagen_resterend} dagen`})</p>
+              ))}
+              {overstocked.slice(0, 2).map((i) => (
+                <p key={i.id} className="text-blue-400">{i.naam} ({i.hoeveelheid} {i.eenheid}, {i.ratio}× weekverbruik)</p>
+              ))}
+            </div>
+            <NestoButton size="sm" variant="outline" onClick={handleSuggestMeal} isLoading={aiLoading} disabled={aiLoading}>
+              <Sparkles className="h-3.5 w-3.5 mr-1" /> Stel maaltijd voor
+            </NestoButton>
+          </div>
+        )}
+
+        {aiSuggestion && !aiSuggestion.geen_voorstel && (
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
+            <p className="text-sm font-medium">💡 {aiSuggestion.naam}</p>
+            <p className="text-xs text-muted-foreground">{aiSuggestion.beschrijving}</p>
+            {aiSuggestion.bereidingstijd_min && (
+              <p className="text-xs text-muted-foreground">⏱ ~{aiSuggestion.bereidingstijd_min} min</p>
+            )}
+            <div className="flex gap-2">
+              <NestoButton size="sm" onClick={handleUseSuggestion}>Gebruiken</NestoButton>
+              {aiAttempts < 3 && (
+                <NestoButton size="sm" variant="outline" onClick={handleSuggestMeal} isLoading={aiLoading}>
+                  Ander voorstel
+                </NestoButton>
+              )}
+              <NestoButton size="sm" variant="ghost" onClick={() => setAiSuggestion(null)}>Handmatig</NestoButton>
+            </div>
+          </div>
+        )}
+
+        {aiSuggestion?.geen_voorstel && (
+          <div className="bg-muted/50 border border-border rounded-lg p-3">
+            <p className="text-sm text-muted-foreground">
+              {aiSuggestion.reden || "Helaas geen goed voorstel mogelijk met de huidige ingrediënten."}
+            </p>
+            <NestoButton size="sm" variant="ghost" onClick={() => setAiSuggestion(null)} className="mt-2">Handmatig samenstellen</NestoButton>
+          </div>
+        )}
 
         {/* Section 1: Search halffabricaat / ingredient */}
         <div>

@@ -1,0 +1,1 @@
+ALTER TABLE public.bestellingen ADD COLUMN IF NOT EXISTS laatst_verzonden TIMESTAMPTZ;
