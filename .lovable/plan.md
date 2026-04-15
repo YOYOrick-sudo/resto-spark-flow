@@ -1,51 +1,84 @@
 
 
-# MEP Quick Add: 3 fixes
+# MEP Favorieten — Onthoud veelgebruikte taken
 
-## Problemen
+## Probleem
 
-1. **Geen duplicate check bij multi-methode** — als je "Kruidenboter bereiden" 2× toevoegt, wordt het 2 losse taken i.p.v. units ophogen. De duplicate check werkt al in de code, maar het probleem zit erin dat `dayTasks` alleen de huidige dag bevat terwijl `getSmartDate()` naar morgen kan wijzen (na 17:00). Fix: ook taken van smartDate ophalen, of de check uitbreiden.
+Als een kok "Zout aanvullen" toevoegt via Snelle Prep, moet hij de volgende dag opnieuw zoeken. Er is geen manier om veelgebruikte taken te onthouden en snel opnieuw toe te voegen.
 
-2. **Multi-methode dropdown onduidelijk** — de screenshot toont "Kruidenboter" als kop met "Bereiden" / "Snijden" eronder, maar visueel is niet duidelijk dat dit methodes zijn van dat halffabricaat. Fix: subtiele methode-labels met betere hiërarchie.
+## Oplossing
 
-3. **Single-methode items tonen geen methode type** — als een halffabricaat maar 1 methode heeft, zie je alleen de naam zonder welke methode. Fix: toon methode type ook bij single-methode items.
+Een `mep_favorieten` tabel die per locatie veelgebruikte taak-templates opslaat. Deze worden als horizontale chips boven de zoekbalk getoond. Eén tik = taak op de MEP. Lang indrukken of X = verwijderen.
 
-## Wijzigingen
-
-### `src/components/mep/MepQuickAddDropdown.tsx`
-
-**Single-methode items (issue 3):** Toon methode type als subtekst naast categorie:
-```
-Kruidenboter
-Prep · Bereiden · 1 rol
-```
-
-**Multi-methode items (issue 2):** Betere visuele hiërarchie:
-- Halffabricaat naam als groepskop met categorie ernaast in muted tekst
-- Methodes als ingesprongen rijen met het type als hoofdtekst + visuele_eenheid als subtekst
-- Lichte achtergrondkleur voor de methode-rijen om groepering te verduidelijken
-
-Voorbeeld weergave:
 ```text
-HALFFABRICATEN
-
-Kruidenboter · Prep
-  Bereiden · 1 rol                    [+]
-  Snijden                             [+]
+┌──────────────────────────────────────────────────┐
+│ ★ Zout aanvullen   ★ Kruidenboter bereiden   +  │  ← chips
+├──────────────────────────────────────────────────┤
+│ 🔍 Zoek halffabricaat, ingrediënt...             │  ← zoekbalk
+└──────────────────────────────────────────────────┘
 ```
 
-### `src/components/mep/MepQuickAdd.tsx`
+### Hoe komen favorieten erin?
 
-**Duplicate check (issue 1):** De `handleAddHalffabricaat` functie checkt `dayTasks` maar die bevat alleen taken van `selectedDate`. Als `getSmartDate()` naar morgen wijst, vindt hij geen bestaande taken. Fix: de duplicate check moet ook zoeken op basis van de smartDate door de parent ook taken van die datum mee te geven, OF door een directe supabase query te doen in de handler.
+1. **Automatisch** — na het afronden van een taak (completion) verschijnt een subtiele toast-actie: "Onthouden als favoriet?"
+2. **Handmatig** — bij het toevoegen via Quick Add verschijnt een ster-icoontje naast het zoekresultaat om het direct als favoriet op te slaan.
 
-Pragmatische fix: doe een snelle supabase query in `handleAddHalffabricaat` om te checken of er al een taak bestaat voor die `recept_id + methode_id + smartDate` combinatie, in plaats van alleen op de lokale `dayTasks` array te vertrouwen.
+### Hoe verwijder je favorieten?
 
-### Samenvatting bestanden
+- Elke chip heeft een kleine `×` knop die zichtbaar wordt bij hover.
+- Klik op `×` → ConfirmDialog → verwijderd.
 
-| # | Bestand | Actie |
-|---|---------|-------|
-| 1 | `src/components/mep/MepQuickAddDropdown.tsx` | Methode type tonen bij single-methode + betere hiërarchie bij multi-methode |
-| 2 | `src/components/mep/MepQuickAdd.tsx` | Duplicate check via supabase query i.p.v. alleen lokale dayTasks |
+## Technische wijzigingen
 
-Geen database wijzigingen.
+### Database migratie
+
+Nieuwe tabel `mep_favorieten`:
+
+```sql
+CREATE TABLE public.mep_favorieten (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  location_id uuid REFERENCES public.locations(id) ON DELETE CASCADE NOT NULL,
+  title varchar NOT NULL,
+  category varchar NOT NULL DEFAULT 'Overig',
+  recept_id uuid REFERENCES public.recepten(id) ON DELETE CASCADE,
+  methode_id uuid REFERENCES public.halffabricaat_methodes(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (location_id, title)
+);
+
+ALTER TABLE public.mep_favorieten ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own location favorieten"
+  ON public.mep_favorieten FOR ALL TO authenticated
+  USING (location_id IN (
+    SELECT location_id FROM organization_members
+    WHERE user_id = auth.uid()
+  ))
+  WITH CHECK (location_id IN (
+    SELECT location_id FROM organization_members
+    WHERE user_id = auth.uid()
+  ));
+```
+
+### Nieuwe bestanden
+
+| # | Bestand | Doel |
+|---|---------|------|
+| 1 | `src/hooks/useMepFavorieten.ts` | CRUD hook: fetch, add, remove favorieten |
+| 2 | `src/components/mep/MepFavorieten.tsx` | Horizontale chip-strip boven zoekbalk |
+
+### Gewijzigde bestanden
+
+| # | Bestand | Wijziging |
+|---|---------|-----------|
+| 1 | `src/components/mep/MepQuickAdd.tsx` | Render `<MepFavorieten />` boven zoekbalk; bij klik op favoriet → taak aanmaken (met zelfde duplicate check) |
+| 2 | `src/components/mep/MepQuickAddDropdown.tsx` | Ster-icoontje per zoekresultaat om direct als favoriet op te slaan |
+| 3 | `src/components/mep/MepCompletionModal.tsx` | Na afronden: optionele "Onthouden als favoriet" knop als taak nog geen favoriet is |
+
+### UX details
+
+- **Chips**: `NestoBadge`-achtige styling, horizontaal scrollbaar, met `×` bij hover
+- **Klik op chip**: Maakt direct een MEP taak aan voor de geselecteerde datum (met duplicate check)
+- **Maximaal ~8 favorieten** per locatie (soft limit, geen harde restrictie)
+- **Volgorde**: Laatst aangemaakt bovenaan (of meest gebruikt — simpel `created_at DESC` voor nu)
 
