@@ -111,6 +111,8 @@ function replacePlaceholders(text: string, params: Record<string, string>): stri
   for (const [key, value] of Object.entries(params)) {
     result = result.replaceAll(`{{${key}}}`, value);
   }
+  // Convert literal \n sequences (from DB/JSON) to real newlines
+  result = result.replace(/\\n/g, '\n');
   return result;
 }
 

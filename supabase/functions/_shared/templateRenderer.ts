@@ -17,7 +17,8 @@ export function renderTemplate(template: string, context: TemplateContext): stri
     .replace(/\[achternaam\]/g, context.achternaam)
     .replace(/\[vestiging\]/g, context.vestiging)
     .replace(/\[functie\]/g, context.functie || 'Open positie')
-    .replace(/\[datum\]/g, context.datum || '');
+    .replace(/\[datum\]/g, context.datum || '')
+    .replace(/\\n/g, '\n');
 }
 
 /**

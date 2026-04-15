@@ -123,6 +123,8 @@ export function GastberichtenTab() {
     for (const [k, v] of Object.entries(vars)) {
       text = text.split(k).join(v);
     }
+    // Convert literal \n sequences to real newlines
+    text = text.replace(/\\n/g, '\n');
     return text;
   };
 
