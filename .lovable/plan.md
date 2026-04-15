@@ -1,39 +1,51 @@
 
 
-# MEP: Verwijder prioriteitsview, voeg prio-badges toe aan categorieview
+# MEP Quick Add: 3 fixes
 
-## Wat verandert
+## Problemen
 
-1. **Prioriteitsview verwijderen** — de "lijst" knop (List icon) verdwijnt uit de view-switcher. Alleen categorie (LayoutGrid) en week (CalendarDays) blijven over. Default view wordt `"categorie"`.
+1. **Geen duplicate check bij multi-methode** — als je "Kruidenboter bereiden" 2× toevoegt, wordt het 2 losse taken i.p.v. units ophogen. De duplicate check werkt al in de code, maar het probleem zit erin dat `dayTasks` alleen de huidige dag bevat terwijl `getSmartDate()` naar morgen kan wijzen (na 17:00). Fix: ook taken van smartDate ophalen, of de check uitbreiden.
 
-2. **Priority badges + dropdown in categorieview** — `MepCategoryView` en `MepCategoryGroup` krijgen een `onPriorityChange` prop, die wordt doorgegeven aan `MepTaskRow`. Daarmee wordt de bestaande priority-dropdown (Hoog/Normaal/Laag popover) actief in de categorieview. Prioriteit-badges worden subtiel getoond: alleen "Hoog" (rode NestoBadge) en "Laag" (grijze NestoBadge); "Normaal" toont alleen `···` bij hover.
+2. **Multi-methode dropdown onduidelijk** — de screenshot toont "Kruidenboter" als kop met "Bereiden" / "Snijden" eronder, maar visueel is niet duidelijk dat dit methodes zijn van dat halffabricaat. Fix: subtiele methode-labels met betere hiërarchie.
 
-3. **Week view dag-klik** gaat naar `"categorie"` in plaats van `"prioriteit"`.
+3. **Single-methode items tonen geen methode type** — als een halffabricaat maar 1 methode heeft, zie je alleen de naam zonder welke methode. Fix: toon methode type ook bij single-methode items.
 
-## Technische wijzigingen
+## Wijzigingen
 
-### `src/pages/MepTaken.tsx`
-- `ViewMode` type: `"categorie" | "week"` (verwijder `"prioriteit"`)
-- `getInitialView()` default: `"categorie"`, filter out `"prioriteit"` uit localStorage
-- Verwijder `MepPriorityView` import en `useMepIngredientStock` import
-- Verwijder `ingredientStock` / `stockMap` logica
-- View-switcher: verwijder de `List` knop, houd `LayoutGrid` + `CalendarDays`
-- Week view `onSelectDate`: `setView("categorie")`
-- Categorie view: geef `onPriorityChange={handlePriorityChange}` door
-- Verwijder `view === "prioriteit"` branch — altijd `MepCategoryView` renderen in dag-modus
-- Verwijder `List` uit lucide imports
+### `src/components/mep/MepQuickAddDropdown.tsx`
 
-### `src/components/mep/MepCategoryView.tsx`
-- Voeg `onPriorityChange` prop toe aan interface
-- Geef door aan `MepCategoryGroup` en `MepOvertijdGroup`
+**Single-methode items (issue 3):** Toon methode type als subtekst naast categorie:
+```
+Kruidenboter
+Prep · Bereiden · 1 rol
+```
 
-### `src/components/mep/MepCategoryGroup.tsx`
-- Voeg `onPriorityChange` prop toe
-- Geef door aan `MepTaskRow`
+**Multi-methode items (issue 2):** Betere visuele hiërarchie:
+- Halffabricaat naam als groepskop met categorie ernaast in muted tekst
+- Methodes als ingesprongen rijen met het type als hoofdtekst + visuele_eenheid als subtekst
+- Lichte achtergrondkleur voor de methode-rijen om groepering te verduidelijken
 
-### `src/components/mep/MepOvertijdGroup.tsx`
-- Voeg `onPriorityChange` prop toe (als dat nog niet het geval is)
-- Geef door aan `MepTaskRow`
+Voorbeeld weergave:
+```text
+HALFFABRICATEN
 
-Geen database wijzigingen. De priority popover in `MepTaskRow` werkt al — het enige wat nodig is, is dat `onPriorityChange` wordt doorgegeven vanuit de categorieview.
+Kruidenboter · Prep
+  Bereiden · 1 rol                    [+]
+  Snijden                             [+]
+```
+
+### `src/components/mep/MepQuickAdd.tsx`
+
+**Duplicate check (issue 1):** De `handleAddHalffabricaat` functie checkt `dayTasks` maar die bevat alleen taken van `selectedDate`. Als `getSmartDate()` naar morgen wijst, vindt hij geen bestaande taken. Fix: de duplicate check moet ook zoeken op basis van de smartDate door de parent ook taken van die datum mee te geven, OF door een directe supabase query te doen in de handler.
+
+Pragmatische fix: doe een snelle supabase query in `handleAddHalffabricaat` om te checken of er al een taak bestaat voor die `recept_id + methode_id + smartDate` combinatie, in plaats van alleen op de lokale `dayTasks` array te vertrouwen.
+
+### Samenvatting bestanden
+
+| # | Bestand | Actie |
+|---|---------|-------|
+| 1 | `src/components/mep/MepQuickAddDropdown.tsx` | Methode type tonen bij single-methode + betere hiërarchie bij multi-methode |
+| 2 | `src/components/mep/MepQuickAdd.tsx` | Duplicate check via supabase query i.p.v. alleen lokale dayTasks |
+
+Geen database wijzigingen.
 
