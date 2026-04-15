@@ -26,8 +26,15 @@ function ComponentRow({ comp, onRemove, allergenen }: { comp: GerechtComponent; 
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium truncate">{naam ?? "Onbekend"}</p>
           {allergenen && allergenen.length > 0 && (
-            <AllergeenPills allergenen={allergenen} maxVisible={3} />
-          )}
+             <div className="flex items-center gap-1">
+               {allergenen.filter(a => a.status === "bevat" || a.status === "kan_bevatten").slice(0, 2).map(a => (
+                 <NestoBadge key={a.allergeen_id} variant="default" size="sm">{a.code}</NestoBadge>
+               ))}
+               {allergenen.filter(a => a.status === "bevat" || a.status === "kan_bevatten").length > 2 && (
+                 <NestoBadge variant="default" size="sm">+{allergenen.filter(a => a.status === "bevat" || a.status === "kan_bevatten").length - 2}</NestoBadge>
+               )}
+             </div>
+           )}
         </div>
         <p className="text-xs text-muted-foreground">
           {comp.hoeveelheid} {comp.eenheid} · €{kostprijs.toFixed(2)}
@@ -388,23 +395,25 @@ export function GerechtComponentenTab({ gerecht }: Props) {
           <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             Allergenen
           </h3>
-          <div className="flex items-start gap-2.5 rounded-xl border border-border/50 bg-muted/20 p-3">
-            <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <p className="text-xs text-muted-foreground">
-              Automatisch berekend uit de componenten hierboven.
-            </p>
-          </div>
           <div className="flex flex-wrap gap-2">
-            {allergeenData.summary.map((a) => {
-              const cfg = STATUS_LABELS[a.status];
-              if (!cfg) return null;
-              return (
-                <NestoBadge key={a.allergeen_id} variant={cfg.variant} size="sm">
-                  {a.naam_nl ?? a.code} · {cfg.label}
-                </NestoBadge>
-              );
-            })}
-          </div>
+             {allergeenData.summary.map((a) => {
+               if (a.status === "bevat") {
+                 return (
+                   <NestoBadge key={a.allergeen_id} variant="error" size="sm">
+                     {a.naam_nl ?? a.code}
+                   </NestoBadge>
+                 );
+               }
+               if (a.status === "kan_bevatten") {
+                 return (
+                   <NestoBadge key={a.allergeen_id} variant="warning" size="sm">
+                     Kan bevatten: {a.naam_nl ?? a.code}
+                   </NestoBadge>
+                 );
+               }
+               return null;
+             })}
+           </div>
         </div>
       )}
     </div>
