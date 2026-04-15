@@ -13,6 +13,8 @@ export interface KeukenSettings {
   recept_categorieen: string[];
   gerecht_categorieen: string[];
   ai_bevoegdheden_keuken: AiBevoegdheden;
+  assistent_min_waarde_verlopen: number;
+  assistent_min_waarde_overschot: number;
 }
 
 export interface AiBevoegdheden {
@@ -64,6 +66,8 @@ export function useKeukenSettings() {
         recept_categorieen: ((data as any).recept_categorieen ?? DEFAULTS.recept_categorieen) as string[],
         gerecht_categorieen: ((data as any).gerecht_categorieen ?? DEFAULTS.gerecht_categorieen) as string[],
         ai_bevoegdheden_keuken: ((data as any).ai_bevoegdheden_keuken ?? DEFAULTS.ai_bevoegdheden_keuken) as AiBevoegdheden,
+        assistent_min_waarde_verlopen: (data as any).assistent_min_waarde_verlopen ?? 5,
+        assistent_min_waarde_overschot: (data as any).assistent_min_waarde_overschot ?? 10,
       };
     },
     enabled: !!locationId,
