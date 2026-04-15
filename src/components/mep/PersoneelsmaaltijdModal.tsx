@@ -359,9 +359,23 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
 
         {/* Section 1: Search halffabricaat / ingredient */}
         <div>
-          <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">
-            Wat gegeten?
-          </label>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <label className="text-[13px] font-medium text-muted-foreground">
+              Wat gegeten?
+            </label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  Zoek een halffabricaat (bijv. Kippensoep) of ingrediënt (bijv. Rijst).
+                  Bij halffabricaten zie je automatisch hoeveel gram 1 portie is en
+                  welke ingrediënten van de voorraad worden afgeschreven.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <div className="relative">
             <NestoInput
               placeholder="Zoek halffabricaat of ingrediënt..."
@@ -383,55 +397,81 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
         {/* Items list */}
         {items.length > 0 && (
           <div className="space-y-1">
-            {items.map((item) => (
-              <div key={item.id}>
-                <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                  <span className="text-sm font-medium flex-1 min-w-0 truncate">
-                    {item.naam}
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {item.isAuto && (
-                      <span className="text-[11px] text-muted-foreground">(auto)</span>
-                    )}
-                    <span className="text-muted-foreground">×</span>
-                    <input
-                      type="number"
-                      min={0.01}
-                      step={0.1}
-                      value={item.hoeveelheid}
-                      onChange={(e) =>
-                        updateItemHoeveelheid(item.id, parseFloat(e.target.value) || 0)
-                      }
-                      className="w-16 text-sm text-right bg-transparent border border-border/50 rounded px-1.5 py-0.5"
-                    />
-                    <span className="text-xs text-muted-foreground w-12">{item.eenheid}</span>
+            {items.map((item) => {
+              // Calculate portieFractie for breakdown display
+              let breakdownMultiplier = item.hoeveelheid;
+              if (item.type === "halffabricaat" && item.eenheid !== "portie" && item.methodeOutputHoeveelheid && item.receptPorties) {
+                const portieGrootte = item.methodeOutputHoeveelheid / item.receptPorties;
+                const inMethodeEenheid = converteerNaarMethodeEenheid(
+                  item.hoeveelheid,
+                  item.eenheid,
+                  item.methodeOutputEenheid ?? "g"
+                );
+                breakdownMultiplier = inMethodeEenheid / portieGrootte;
+              }
+
+              return (
+                <div key={item.id}>
+                  <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                    <span className="text-sm font-medium flex-1 min-w-0 truncate">
+                      {item.naam}
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {item.isAuto && (
+                        <span className="text-[11px] text-muted-foreground">(auto)</span>
+                      )}
+                      <span className="text-muted-foreground">×</span>
+                      <input
+                        type="number"
+                        min={item.type === "halffabricaat" && item.eenheid === "portie" ? 1 : 0.1}
+                        step={item.type === "halffabricaat" && item.eenheid === "portie" ? 1 : 0.5}
+                        value={item.hoeveelheid}
+                        onChange={(e) =>
+                          updateItemHoeveelheid(item.id, parseFloat(e.target.value) || 0)
+                        }
+                        className="w-16 text-sm text-right bg-transparent border border-border/50 rounded px-1.5 py-0.5"
+                      />
+                      {item.type === "halffabricaat" ? (
+                        <select
+                          value={item.eenheid}
+                          onChange={(e) => updateItemEenheid(item.id, e.target.value)}
+                          className="text-xs text-muted-foreground bg-transparent border border-border/50 rounded px-1 py-0.5 w-auto"
+                        >
+                          <option value="portie">portie{item.portieDisplay ? ` (${item.portieDisplay})` : ""}</option>
+                          <option value="kg">kg</option>
+                          <option value="g">g</option>
+                        </select>
+                      ) : (
+                        <span className="text-xs text-muted-foreground w-12">{item.eenheid}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="text-muted-foreground hover:text-foreground shrink-0"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => removeItem(item.id)}
-                    className="text-muted-foreground hover:text-foreground shrink-0"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                  {item.type === "halffabricaat" && item.breakdownLoading && (
+                    <div className="pl-6 pb-1 pt-0.5">
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  )}
+                  {item.type === "halffabricaat" && item.breakdown && item.breakdown.length > 0 && (
+                    <div className="pl-6 pb-1 pt-0.5 text-xs text-muted-foreground">
+                      ↳{" "}
+                      {item.breakdown.slice(0, 3).map((b, i) => (
+                        <span key={i}>
+                          {i > 0 && " · "}
+                          {(b.hoeveelheidPerPortie * breakdownMultiplier).toFixed(2)} {b.eenheid} {b.naam}
+                        </span>
+                      ))}
+                      {item.breakdown.length > 3 && ` · +${item.breakdown.length - 3} meer`}
+                    </div>
+                  )}
                 </div>
-                {item.type === "halffabricaat" && item.breakdownLoading && (
-                  <div className="pl-6 pb-1 pt-0.5">
-                    <Skeleton className="h-3 w-48" />
-                  </div>
-                )}
-                {item.type === "halffabricaat" && item.breakdown && item.breakdown.length > 0 && (
-                  <div className="pl-6 pb-1 pt-0.5 text-xs text-muted-foreground">
-                    ↳{" "}
-                    {item.breakdown.slice(0, 3).map((b, i) => (
-                      <span key={i}>
-                        {i > 0 && " · "}
-                        {(b.hoeveelheidPerPortie * item.hoeveelheid).toFixed(2)} {b.eenheid} {b.naam}
-                      </span>
-                    ))}
-                    {item.breakdown.length > 3 && ` · +${item.breakdown.length - 3} meer`}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
