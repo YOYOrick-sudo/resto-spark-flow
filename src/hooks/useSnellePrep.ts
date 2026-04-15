@@ -23,7 +23,7 @@ export function useSnellePrep() {
     mutationFn: async (input: SnellePrepInput) => {
       if (!locationId) throw new Error("Geen locatie geselecteerd");
 
-      const titel = `${input.ingredientNaam} ${input.handeling.toLowerCase()}`;
+      const titel = input.ingredientNaam;
 
       // 1. Maak halffabricaat (recept) aan
       const { data: recept, error: receptErr } = await supabase
