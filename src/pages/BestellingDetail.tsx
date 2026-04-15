@@ -47,8 +47,25 @@ export default function BestellingDetail() {
     if (bestelling) {
       setNotities(bestelling.notities ?? "");
       setVerwachteLeverdatum(bestelling.verwachte_leverdatum ?? "");
+      setHasLocalChanges(false);
     }
   }, [bestelling]);
+
+  // Auto-save notities & leverdatum for concept orders
+  useEffect(() => {
+    if (!hasLocalChanges || !bestelling || bestelling.status !== "concept") return;
+    const timer = setTimeout(async () => {
+      await supabase.from("bestellingen").update({
+        notities: notities || null,
+        verwachte_leverdatum: verwachteLeverdatum || null,
+      } as any).eq("id", bestelling.id);
+      setHasLocalChanges(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [notities, verwachteLeverdatum, hasLocalChanges, bestelling]);
+
+  const updateNotities = (val: string) => { setNotities(val); setHasLocalChanges(true); };
+  const updateLeverdatum = (val: string) => { setVerwachteLeverdatum(val); setHasLocalChanges(true); };
 
   const leverancier = bestelling?.leveranciers as any;
   const regels = (bestelling?.bestelregels as any[]) ?? [];
