@@ -5,7 +5,7 @@ import { NestoBadge } from "@/components/polar/NestoBadge";
 import { cn } from "@/lib/utils";
 import type { MepTask } from "@/hooks/useMepTasks";
 
-const MAX_VISIBLE_TASKS = 3;
+const MAX_VISIBLE_TASKS = 5;
 
 interface MepWeekViewProps {
   tasks: MepTask[];
