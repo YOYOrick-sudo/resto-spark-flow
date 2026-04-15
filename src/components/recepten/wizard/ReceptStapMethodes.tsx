@@ -53,7 +53,12 @@ export function ReceptStapMethodes() {
   };
 
   const updateItem = (index: number, field: string, value: unknown) => {
-    const next = items.map((m, i) => (i === index ? { ...m, [field]: value } : m));
+    let cleanValue = value;
+    // Strip leading number from visuele eenheid — the quantity is tracked separately
+    if (field === "visueleEenheid" && typeof value === "string") {
+      cleanValue = value.replace(/^\d+\s+/, '');
+    }
+    const next = items.map((m, i) => (i === index ? { ...m, [field]: cleanValue } : m));
     updateItems(next);
   };
 
