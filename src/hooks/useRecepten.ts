@@ -35,6 +35,11 @@ export interface ReceptRow {
   created_at: string;
   updated_at: string;
   recept_allergenen: ReceptAllergeenRow[];
+  halffabricaat_methodes: {
+    type: string;
+    output_hoeveelheid: number;
+    output_eenheid: string;
+  }[];
 }
 
 export interface ReceptenFilters {
@@ -59,7 +64,8 @@ export function useRecepten(filters: ReceptenFilters) {
             allergeen_id,
             status,
             allergenen(id, code, naam_nl, naam_en, sort_order)
-          )
+          ),
+          halffabricaat_methodes!halffabricaat_methodes_recept_id_fkey(type, output_hoeveelheid, output_eenheid)
         `)
         .eq("location_id", locationId!)
         .eq("type", "halffabricaat")

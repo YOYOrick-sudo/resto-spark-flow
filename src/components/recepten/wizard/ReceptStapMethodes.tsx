@@ -2,6 +2,7 @@ import * as React from "react";
 import { useStepWizard } from "@/components/polar/StepWizard";
 import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { berekenPortieGrootte } from "@/utils/portieGrootte";
 
 const METHODE_TYPES = [
   { value: "Bereiden", label: "Bereiden" },
@@ -44,6 +45,7 @@ const DEFAULT_METHODE: WizardMethode = {
 export function ReceptStapMethodes() {
   const { formData, setStepData } = useStepWizard();
   const items: WizardMethode[] = formData.methodes?.items ?? [{ ...DEFAULT_METHODE }];
+  const porties = formData.basis?.porties ?? 1;
   const [expandedRows, setExpandedRows] = React.useState<Set<number>>(new Set());
 
   const updateItems = (newItems: WizardMethode[]) => {
@@ -118,7 +120,15 @@ export function ReceptStapMethodes() {
                   options={OUTPUT_EENHEID_OPTIONS}
                   size="sm"
                 />
-              </div>
+                </div>
+                {(() => {
+                  const portie = berekenPortieGrootte(m.outputHoeveelheid, m.outputEenheid, porties);
+                  return portie && m.outputHoeveelheid > 0 ? (
+                    <p className="text-[11px] text-muted-foreground col-span-full pl-8 -mt-1">
+                      → 1 portie = {portie.display} ({m.outputHoeveelheid}{m.outputEenheid} ÷ {porties} porties)
+                    </p>
+                  ) : null;
+                })()}
 
               {/* Duur */}
               <div className="flex items-center gap-1">
