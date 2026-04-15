@@ -340,12 +340,27 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   const resetAndClose = () => {
     setAantalPersonen(1);
     setItems([]);
+    setSelectedMedewerkerIds([]);
     setSearchMain("");
     setSearchGerecht("");
     setSearchSchatting("");
     setGerechtOpen(false);
     setSchattingOpen(false);
     onOpenChange(false);
+  };
+
+  const toggleMedewerker = (id: string) => {
+    setSelectedMedewerkerIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAllMedewerkers = () => {
+    if (selectedMedewerkerIds.length === medewerkers.length) {
+      setSelectedMedewerkerIds([]);
+    } else {
+      setSelectedMedewerkerIds(medewerkers.map((m) => m.id));
+    }
   };
 
   return (
@@ -356,18 +371,48 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
       size="lg"
     >
       <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-        {/* Aantal personen */}
+        {/* Wie heeft gegeten? */}
         <div>
           <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">
-            Aantal personen
+            {hasMedewerkers ? "Wie heeft gegeten?" : "Aantal personen"}
           </label>
-          <NestoInput
-            type="number"
-            min={1}
-            value={aantalPersonen}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setAantalPersonen(parseInt(v, 10) || 1); }}
-            className="w-32"
-          />
+          {hasMedewerkers ? (
+            <div className="space-y-1.5">
+              {medewerkers.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/30 cursor-pointer">
+                  <Checkbox
+                    checked={selectedMedewerkerIds.includes(m.id)}
+                    onCheckedChange={() => toggleMedewerker(m.id)}
+                  />
+                  <span className="text-sm">{m.naam}</span>
+                  {m.rol && <span className="text-[11px] text-muted-foreground">({m.rol})</span>}
+                </label>
+              ))}
+              <button
+                onClick={toggleAllMedewerkers}
+                className="text-xs text-primary hover:underline mt-1"
+              >
+                {selectedMedewerkerIds.length === medewerkers.length ? "Geen" : "Alle"}
+              </button>
+              {selectedMedewerkerIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">→ {selectedMedewerkerIds.length} personen</p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <NestoInput
+                type="number"
+                min={1}
+                value={aantalPersonen}
+                onChange={(e) => { const v = e.target.value; if (v === "") return; setAantalPersonen(parseInt(v, 10) || 1); }}
+                className="w-32"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                <a href="/instellingen/keuken/medewerkers" className="text-primary hover:underline">Voeg medewerkers toe</a> om namen te selecteren.
+              </p>
+            </div>
+          )}
+        </div>
         </div>
 
         {/* Section 1: Search halffabricaat / ingredient */}
