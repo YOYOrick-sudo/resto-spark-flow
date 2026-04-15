@@ -7,6 +7,7 @@ export interface HalffabricaatSearchResult {
   naam: string;
   categorie: string;
   type: string;
+  porties: number;
   methodes: {
     id: string;
     type: string;
