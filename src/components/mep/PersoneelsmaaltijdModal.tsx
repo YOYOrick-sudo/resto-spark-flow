@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Search, X, ChevronDown, ChevronRight } from "lucide-react";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
