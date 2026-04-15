@@ -213,6 +213,26 @@ export default function ReceptenDetail() {
                 className="h-9 text-xs"
               />
             </div>
+
+            {/* Per portie — auto-berekend */}
+            {portie && (
+              <TooltipProvider>
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Per portie</label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium">{portie.display}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Berekend: {primaireMethode?.output_hoeveelheid}{primaireMethode?.output_eenheid} totaal ÷ {recept.porties} porties
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              </TooltipProvider>
+            )}
           </div>
 
           {/* Card 2: Kostprijs */}
