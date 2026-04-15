@@ -64,7 +64,7 @@ export function IngredientStapBevestigen() {
         </p>
         <SummaryRow label="Kostprijs per eenheid" value={kostprijs} />
         <SummaryRow label="Minimum voorraad" value={minVoorraad} />
-        <SummaryRow label="Yield percentage" value={yieldPct} />
+        <SummaryRow label="Bruikbaar percentage" value={yieldPct} />
       </div>
 
       {/* Allergenen */}
