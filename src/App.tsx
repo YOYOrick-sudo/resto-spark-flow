@@ -24,6 +24,8 @@ import Inkoop from "./pages/Inkoop";
 import Leveranciers from "./pages/Leveranciers";
 import LeverancierNieuw from "./pages/LeverancierNieuw";
 import LeverancierDetail from "./pages/LeverancierDetail";
+import { lazy } from "react";
+const AfnamelijstImport = lazy(() => import("./pages/AfnamelijstImport"));
 import Kaartbeheer from "./pages/Kaartbeheer";
 import KaartbeheerDetail from "./pages/KaartbeheerDetail";
 import KaartbeheerNieuw from "./pages/KaartbeheerNieuw";
@@ -168,6 +170,7 @@ const App = () => (
                   <Route path="/inkoop/leveranciers" element={<Leveranciers />} />
                   <Route path="/inkoop/leveranciers/nieuw" element={<LeverancierNieuw />} />
                   <Route path="/inkoop/leveranciers/:id" element={<LeverancierDetail />} />
+                  <Route path="/inkoop/leveranciers/:id/import" element={<AfnamelijstImport />} />
                   <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
                   <Route path="/taken" element={<Taken />} />
                   

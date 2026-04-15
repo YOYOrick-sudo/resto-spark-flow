@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trash2, Plus, Search } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Search, Upload } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoBadge } from "@/components/polar/NestoBadge";
@@ -168,6 +168,13 @@ export default function LeverancierDetail() {
                 Artikelen ({(lev.leveranciers_artikelen as any[])?.length ?? 0})
               </h2>
               <div className="flex items-center gap-2">
+                <NestoButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/inkoop/leveranciers/${id}/import`)}
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1" /> Afnamelijst importeren
+                </NestoButton>
                 {!addOpen && (
                   <NestoButton variant="ghost" size="sm" onClick={() => setAddOpen(true)}>
                     <Plus className="h-3.5 w-3.5 mr-1" /> Toevoegen
