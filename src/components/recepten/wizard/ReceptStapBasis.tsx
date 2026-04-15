@@ -52,7 +52,7 @@ export function ReceptStapBasis() {
           type="number"
           min={1}
           value={data.porties}
-          onChange={(e) => update("porties", Number(e.target.value) || 1)}
+          onChange={(e) => { const v = e.target.value; if (v === "") return; update("porties", Number(v) || 1); }}
         />
         <p className="text-xs text-muted-foreground mt-1">
           Hoeveel porties haal je uit één volledige bereiding? De portiegrootte (gram per portie) wordt automatisch berekend zodra je in stap 4 de totale output invult.

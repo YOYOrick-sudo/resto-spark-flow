@@ -104,7 +104,7 @@ export function ConditionRow({ condition, onChange, onRemove }: ConditionRowProp
             onChange={(e) =>
               onChange({
                 ...condition,
-                value: isTextContains ? e.target.value : (e.target.value ? Number(e.target.value) : 0),
+                value: isTextContains ? e.target.value : (e.target.value === "" ? condition.value : Number(e.target.value)),
               })
             }
           />

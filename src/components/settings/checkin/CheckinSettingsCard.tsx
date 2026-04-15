@@ -124,7 +124,7 @@ export function CheckinSettingsCard({ locationId }: CheckinSettingsCardProps) {
             step={5}
             value={localSettings.checkin_window_minutes}
             onChange={(e) =>
-              handleNumberChange("checkin_window_minutes", parseInt(e.target.value) || 15)
+              { const v = e.target.value; if (v === "") return; handleNumberChange("checkin_window_minutes", parseInt(v, 10) || 15); }
             }
           />
           <p className="text-xs text-muted-foreground mt-1">
@@ -162,7 +162,7 @@ export function CheckinSettingsCard({ locationId }: CheckinSettingsCardProps) {
               step={5}
               value={localSettings.no_show_after_minutes}
               onChange={(e) =>
-                handleNumberChange("no_show_after_minutes", parseInt(e.target.value) || 15)
+                { const v = e.target.value; if (v === "") return; handleNumberChange("no_show_after_minutes", parseInt(v, 10) || 15); }
               }
             />
             <p className="text-xs text-muted-foreground mt-1">

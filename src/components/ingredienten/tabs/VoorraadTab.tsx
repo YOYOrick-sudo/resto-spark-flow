@@ -91,7 +91,7 @@ export function VoorraadTab({ ingredient }: VoorraadTabProps) {
             type="number"
             min={0}
             value={minVoorraad}
-            onChange={(e) => setMinVoorraad(Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setMinVoorraad(Number(v)); }}
           />
         </div>
         <div>
@@ -145,7 +145,7 @@ export function VoorraadTab({ ingredient }: VoorraadTabProps) {
               type="number"
               min={0}
               value={nieuweVoorraad}
-              onChange={(e) => setNieuweVoorraad(Number(e.target.value))}
+              onChange={(e) => { const v = e.target.value; if (v === "") return; setNieuweVoorraad(Number(v)); }}
               autoFocus
             />
           </div>

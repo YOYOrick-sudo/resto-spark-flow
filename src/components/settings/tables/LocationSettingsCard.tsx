@@ -170,7 +170,7 @@ export function LocationSettingsCard({ locationId }: LocationSettingsCardProps) 
               max={480}
               step={15}
               value={localSettings.default_duration_minutes}
-              onChange={(e) => handleNumberChange('default_duration_minutes', parseInt(e.target.value) || 120)}
+              onChange={(e) => { const v = e.target.value; if (v === "") return; handleNumberChange('default_duration_minutes', parseInt(v, 10) || 120); }}
             />
           </div>
           <div>
@@ -181,7 +181,7 @@ export function LocationSettingsCard({ locationId }: LocationSettingsCardProps) 
               max={1440}
               step={15}
               value={localSettings.booking_cutoff_minutes}
-              onChange={(e) => handleNumberChange('booking_cutoff_minutes', parseInt(e.target.value) || 0)}
+              onChange={(e) => { const v = e.target.value; if (v === "") return; handleNumberChange('booking_cutoff_minutes', parseInt(v, 10) || 0); }}
             />
           </div>
           <div>
@@ -192,7 +192,7 @@ export function LocationSettingsCard({ locationId }: LocationSettingsCardProps) 
               max={120}
               step={5}
               value={localSettings.default_buffer_minutes}
-              onChange={(e) => handleNumberChange('default_buffer_minutes', parseInt(e.target.value) || 0)}
+              onChange={(e) => { const v = e.target.value; if (v === "") return; handleNumberChange('default_buffer_minutes', parseInt(v, 10) || 0); }}
             />
           </div>
         </div>

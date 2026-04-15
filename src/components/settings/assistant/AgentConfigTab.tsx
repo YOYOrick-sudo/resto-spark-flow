@@ -209,7 +209,7 @@ export function AgentConfigTab() {
                 min={2}
                 max={50}
                 value={local.large_party_threshold}
-                onChange={(e) => updateField('large_party_threshold', parseInt(e.target.value) || 8)}
+                onChange={(e) => { const v = e.target.value; if (v === "") return; updateField('large_party_threshold', parseInt(v, 10) || 8); }}
                 className="text-sm w-20"
               />
               <span className="text-xs text-muted-foreground">personen</span>

@@ -84,7 +84,7 @@ export function BulkTableModal({ open, onOpenChange, areaId }: BulkTableModalPro
             type="number"
             min={1}
             value={startNumber}
-            onChange={(e) => setStartNumber(parseInt(e.target.value) || 1)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setStartNumber(parseInt(v, 10) || 1); }}
           />
           <NestoInput
             label="Aantal tafels"
@@ -92,7 +92,7 @@ export function BulkTableModal({ open, onOpenChange, areaId }: BulkTableModalPro
             min={1}
             max={50}
             value={count}
-            onChange={(e) => setCount(parseInt(e.target.value) || 1)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setCount(parseInt(v, 10) || 1); }}
           />
         </div>
         
@@ -103,7 +103,7 @@ export function BulkTableModal({ open, onOpenChange, areaId }: BulkTableModalPro
             min={1}
             max={50}
             value={minCapacity}
-            onChange={(e) => setMinCapacity(parseInt(e.target.value) || 1)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setMinCapacity(parseInt(v, 10) || 1); }}
           />
           <NestoInput
             label="Max. capaciteit"
@@ -111,7 +111,7 @@ export function BulkTableModal({ open, onOpenChange, areaId }: BulkTableModalPro
             min={1}
             max={50}
             value={maxCapacity}
-            onChange={(e) => setMaxCapacity(parseInt(e.target.value) || 1)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setMaxCapacity(parseInt(v, 10) || 1); }}
           />
         </div>
         
