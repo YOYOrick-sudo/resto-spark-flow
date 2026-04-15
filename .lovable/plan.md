@@ -1,15 +1,18 @@
 
 
-# "Yield percentage" → "Bruikbaar percentage" op 3 resterende plekken
+# Fix: Snelle Prep titel bevat methode type
 
-## Te wijzigen
+## Probleem
 
-| # | Bestand | Regel | Huidige tekst | Nieuwe tekst |
-|---|---------|-------|---------------|--------------|
-| 1 | `NieuwIngredientModal.tsx` | 198 | `Yield percentage` | `Bruikbaar percentage` |
-| 1b | `NieuwIngredientModal.tsx` | 200-201 | `<Info>` zonder button wrapper | Wrap in `<button type="button" className="inline-flex">` |
-| 2 | `IngredientStapBevestigen.tsx` | 67 | `label="Yield percentage"` | `label="Bruikbaar percentage"` |
-| 3 | `KostprijsTab.tsx` | 119 | `({ingredient.yield_percentage}% yield)` | `({ingredient.yield_percentage}% bruikbaar)` |
+In `useSnellePrep.ts` regel 26 wordt de titel samengesteld als `"Slagroom aanvullen"`. Exact hetzelfde probleem als eerder gefixt in `MepQuickAdd.tsx` — de methode wordt in de titel gezet waardoor `MepTaskRow` het niet visueel kan scheiden.
 
-Geen database wijzigingen. Variabelnamen (`yieldPct`, `yield_percentage`) blijven ongewijzigd — alleen zichtbare labels worden aangepast.
+## Fix
+
+| Bestand | Regel | Oud | Nieuw |
+|---------|-------|-----|-------|
+| `src/hooks/useSnellePrep.ts` | 26 | `const titel = \`${input.ingredientNaam} ${input.handeling.toLowerCase()}\`` | `const titel = input.ingredientNaam` |
+
+De `handeling` wordt al apart opgeslagen via `methode_id` op de MEP taak, en `MepTaskRow` toont het methode-type visueel als een aparte uppercase label.
+
+Geen andere wijzigingen nodig.
 
