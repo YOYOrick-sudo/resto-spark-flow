@@ -116,7 +116,7 @@ export function KostprijsTab({ ingredient }: KostprijsTabProps) {
             <span className="text-sm font-normal text-muted-foreground">per bruikbare {ingredient.eenheid}</span>
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Berekening: €{ingredient.kostprijs!.toFixed(2)} / ({ingredient.yield_percentage}% yield)
+            Berekening: €{ingredient.kostprijs!.toFixed(2)} / ({ingredient.yield_percentage}% bruikbaar)
           </p>
         </div>
       )}
