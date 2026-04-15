@@ -41,6 +41,8 @@ const DEFAULTS: KeukenSettings = {
     voorraad_waarschuwingen: "zelfstandig",
     haccp_waarschuwingen: "zelfstandig",
   },
+  assistent_min_waarde_verlopen: 5,
+  assistent_min_waarde_overschot: 10,
 };
 
 export function useKeukenSettings() {
