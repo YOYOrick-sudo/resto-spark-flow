@@ -1884,8 +1884,10 @@ export type Database = {
           created_at: string
           ean_code: string | null
           id: string
+          import_bestandsnaam: string | null
           ingredient_id: string
           is_actief: boolean
+          laatst_geimporteerd: string | null
           laatst_gesynchroniseerd: string | null
           leverancier_id: string
           prijs_per_eenheid: number | null
@@ -1901,8 +1903,10 @@ export type Database = {
           created_at?: string
           ean_code?: string | null
           id?: string
+          import_bestandsnaam?: string | null
           ingredient_id: string
           is_actief?: boolean
+          laatst_geimporteerd?: string | null
           laatst_gesynchroniseerd?: string | null
           leverancier_id: string
           prijs_per_eenheid?: number | null
@@ -1918,8 +1922,10 @@ export type Database = {
           created_at?: string
           ean_code?: string | null
           id?: string
+          import_bestandsnaam?: string | null
           ingredient_id?: string
           is_actief?: boolean
+          laatst_geimporteerd?: string | null
           laatst_gesynchroniseerd?: string | null
           leverancier_id?: string
           prijs_per_eenheid?: number | null
