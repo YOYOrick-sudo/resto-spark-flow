@@ -89,9 +89,7 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
       }
     }
 
-    const title = methode
-      ? `${item.naam} ${methode.type.toLowerCase()}`
-      : item.naam;
+    const title = item.naam;
     createTask.mutate({
       title,
       category: item.categorie || "halffabricaat",
