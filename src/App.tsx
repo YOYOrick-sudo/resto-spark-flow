@@ -170,7 +170,7 @@ const App = () => (
                   <Route path="/inkoop/leveranciers" element={<Leveranciers />} />
                   <Route path="/inkoop/leveranciers/nieuw" element={<LeverancierNieuw />} />
                   <Route path="/inkoop/leveranciers/:id" element={<LeverancierDetail />} />
-                  <Route path="/inkoop/leveranciers/:id/import" element={<AfnamelijstImport />} />
+                  <Route path="/inkoop/leveranciers/:id/import" element={<Suspense fallback={null}><AfnamelijstImport /></Suspense>} />
                   <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
                   <Route path="/taken" element={<Taken />} />
                   
