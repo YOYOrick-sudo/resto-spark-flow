@@ -187,6 +187,28 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
     );
   };
 
+  const updateItemEenheid = (id: string, eenheid: string) => {
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.id !== id) return i;
+        // When switching eenheid, reset hoeveelheid to sensible default
+        let newHoeveelheid = i.hoeveelheid;
+        if (eenheid === "portie" && i.eenheid !== "portie") {
+          newHoeveelheid = 1;
+        } else if (eenheid !== "portie" && i.eenheid === "portie") {
+          // Convert porties to weight: porties × portieGrootte
+          const portieGrootte = (i.methodeOutputHoeveelheid ?? 0) / (i.receptPorties ?? 1);
+          let gewicht = i.hoeveelheid * portieGrootte;
+          const methodeEenheid = i.methodeOutputEenheid ?? "g";
+          if (eenheid === "g" && methodeEenheid === "kg") gewicht *= 1000;
+          else if (eenheid === "kg" && methodeEenheid === "g") gewicht /= 1000;
+          newHoeveelheid = Math.round(gewicht * 100) / 100;
+        }
+        return { ...i, eenheid, hoeveelheid: newHoeveelheid, isAuto: false };
+      })
+    );
+  };
+
   // Submit
   const handleSubmit = async () => {
     if (items.length === 0) return;
