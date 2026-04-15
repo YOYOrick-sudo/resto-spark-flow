@@ -86,7 +86,7 @@ export function IngredientStapVoorraadPrijs() {
             min={1}
             max={100}
             value={data.yield_percentage ?? 100}
-            onChange={(e) => update("yield_percentage", Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; update("yield_percentage", Number(v)); }}
             className="rounded-r-none border-r-0"
           />
           <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-r-[var(--radius-button)] border-[1.5px] border-l-0 border-border">

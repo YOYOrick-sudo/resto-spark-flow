@@ -476,7 +476,7 @@ export function BulkExceptionModal({
                     min={1}
                     max={500}
                     value={occurrenceCount}
-                    onChange={(e) => setOccurrenceCount(Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
+                    onChange={(e) => { const v = e.target.value; if (v === "") return; setOccurrenceCount(Math.min(500, Math.max(1, parseInt(v, 10) || 1))); }}
                   />
                 </div>
                 <span className="text-sm text-muted-foreground">keer</span>

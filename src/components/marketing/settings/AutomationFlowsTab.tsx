@@ -95,7 +95,8 @@ export default function AutomationFlowsTab({ readOnly }: AutomationFlowsTabProps
                     value={delayDays}
                     onChange={(e) => {
                       if (readOnly) return;
-                      const newConfig = { ...triggerConfig, delay_days: parseInt(e.target.value) || 0 };
+                      const v = e.target.value; if (v === "") return;
+                      const newConfig = { ...triggerConfig, delay_days: parseInt(v, 10) || 0 };
                       updateFlow.mutate(
                         { flowId: flow.id, updates: { trigger_config: newConfig } },
                         { onError: () => nestoToast.error('Wijziging mislukt') }
@@ -115,7 +116,8 @@ export default function AutomationFlowsTab({ readOnly }: AutomationFlowsTabProps
                     value={delayHours}
                     onChange={(e) => {
                       if (readOnly) return;
-                      const newConfig = { ...triggerConfig, delay_hours: parseInt(e.target.value) || 0 };
+                      const v = e.target.value; if (v === "") return;
+                      const newConfig = { ...triggerConfig, delay_hours: parseInt(v, 10) || 0 };
                       updateFlow.mutate(
                         { flowId: flow.id, updates: { trigger_config: newConfig } },
                         { onError: () => nestoToast.error('Wijziging mislukt') }

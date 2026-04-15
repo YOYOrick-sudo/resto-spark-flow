@@ -109,7 +109,7 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
             type="number"
             min={1}
             value={tableNumber}
-            onChange={(e) => setTableNumber(parseInt(e.target.value) || 1)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setTableNumber(parseInt(v, 10) || 1); }}
             error={error && error.includes('tafelnummer') ? error : undefined}
           />
           <NestoInput
@@ -131,7 +131,7 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
               min={1}
               max={50}
               value={minCapacity}
-              onChange={(e) => setMinCapacity(parseInt(e.target.value) || 1)}
+              onChange={(e) => { const v = e.target.value; if (v === "") return; setMinCapacity(parseInt(v, 10) || 1); }}
             />
             <NestoInput
               label="Max. capaciteit"
@@ -139,7 +139,7 @@ export function TableModal({ open, onOpenChange, areaId, editingTable }: TableMo
               min={1}
               max={50}
               value={maxCapacity}
-              onChange={(e) => setMaxCapacity(parseInt(e.target.value) || 1)}
+              onChange={(e) => { const v = e.target.value; if (v === "") return; setMaxCapacity(parseInt(v, 10) || 1); }}
             />
           </div>
         </div>

@@ -92,7 +92,7 @@ export function SnellePrepModal({ open, onOpenChange, ingredient, taskDate }: Sn
             min={0.1}
             step={0.1}
             value={hoeveelheid}
-            onChange={(e) => setHoeveelheid(Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setHoeveelheid(Number(v)); }}
           />
           <NestoSelect
             label="Eenheid"
@@ -109,14 +109,14 @@ export function SnellePrepModal({ open, onOpenChange, ingredient, taskDate }: Sn
             min={1}
             max={100}
             value={yieldPct}
-            onChange={(e) => setYieldPct(Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setYieldPct(Number(v)); }}
           />
           <NestoInput
             label="Duur (min)"
             type="number"
             min={1}
             value={duur}
-            onChange={(e) => setDuur(Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setDuur(Number(v)); }}
           />
         </div>
 

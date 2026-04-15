@@ -185,7 +185,7 @@ export default function ReceptenDetail() {
                   type="number"
                   min={1}
                   value={porties}
-                  onChange={(e) => setPorties(Number(e.target.value) || 1)}
+                  onChange={(e) => { const v = e.target.value; if (v === "") return; setPorties(Number(v) || 1); }}
                   onBlur={() => porties !== recept.porties && handleFieldSave("porties", porties)}
                   className="h-9 text-xs"
                 />
@@ -196,7 +196,7 @@ export default function ReceptenDetail() {
                   type="number"
                   min={0}
                   value={actief}
-                  onChange={(e) => setActief(Number(e.target.value))}
+                  onChange={(e) => { const v = e.target.value; if (v === "") return; setActief(Number(v)); }}
                   onBlur={() => actief !== (recept.actieve_bereidingstijd ?? 0) && handleFieldSave("actieve_bereidingstijd", actief || null)}
                   className="h-9 text-xs"
                 />
@@ -208,7 +208,7 @@ export default function ReceptenDetail() {
                 type="number"
                 min={0}
                 value={passief}
-                onChange={(e) => setPassief(Number(e.target.value))}
+                onChange={(e) => { const v = e.target.value; if (v === "") return; setPassief(Number(v)); }}
                 onBlur={() => passief !== (recept.passieve_bereidingstijd ?? 0) && handleFieldSave("passieve_bereidingstijd", passief || null)}
                 className="h-9 text-xs"
               />

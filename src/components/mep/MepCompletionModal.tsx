@@ -79,7 +79,7 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
           type="number"
           min={1}
           value={unitsGemaakt}
-          onChange={(e) => setUnitsGemaakt(Number(e.target.value))}
+          onChange={(e) => { const v = e.target.value; if (v === "") return; setUnitsGemaakt(Number(v)); }}
           className="text-lg h-14"
         />
 

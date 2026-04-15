@@ -97,7 +97,7 @@ export function ReminderSettingsSection() {
           <Input
             type="number"
             value={localConfig.first_reminder_hours ?? 24}
-            onChange={(e) => updateField('first_reminder_hours', parseInt(e.target.value) || 0)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; updateField('first_reminder_hours', parseInt(v, 10) || 0); }}
             className="w-20 h-8 text-sm tabular-nums text-right"
             disabled={!enabled}
             min={1}
@@ -110,7 +110,7 @@ export function ReminderSettingsSection() {
           <Input
             type="number"
             value={localConfig.urgent_reminder_hours ?? 48}
-            onChange={(e) => updateField('urgent_reminder_hours', parseInt(e.target.value) || 0)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; updateField('urgent_reminder_hours', parseInt(v, 10) || 0); }}
             className="w-20 h-8 text-sm tabular-nums text-right"
             disabled={!enabled}
             min={1}
@@ -123,7 +123,7 @@ export function ReminderSettingsSection() {
           <Input
             type="number"
             value={localConfig.no_response_days ?? 7}
-            onChange={(e) => updateField('no_response_days', parseInt(e.target.value) || 0)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; updateField('no_response_days', parseInt(v, 10) || 0); }}
             className="w-20 h-8 text-sm tabular-nums text-right"
             disabled={!enabled}
             min={1}

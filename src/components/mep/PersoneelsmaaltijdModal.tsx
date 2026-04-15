@@ -352,7 +352,7 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
             type="number"
             min={1}
             value={aantalPersonen}
-            onChange={(e) => setAantalPersonen(parseInt(e.target.value) || 1)}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setAantalPersonen(parseInt(v, 10) || 1); }}
             className="w-32"
           />
         </div>

@@ -111,7 +111,7 @@ export function ReceptStapMethodes() {
                   type="number"
                   min={0}
                   value={m.outputHoeveelheid}
-                  onChange={(e) => updateItem(i, "outputHoeveelheid", Number(e.target.value))}
+                  onChange={(e) => { const v = e.target.value; if (v === "") return; updateItem(i, "outputHoeveelheid", Number(v)); }}
                   className="h-7 text-xs w-12 tabular-nums"
                 />
                 <NestoSelect
@@ -136,7 +136,7 @@ export function ReceptStapMethodes() {
                   type="number"
                   min={0}
                   value={m.standaardDuur}
-                  onChange={(e) => updateItem(i, "standaardDuur", Number(e.target.value))}
+                  onChange={(e) => { const v = e.target.value; if (v === "") return; updateItem(i, "standaardDuur", Number(v)); }}
                   className="h-7 text-xs w-12 tabular-nums"
                 />
                 <span className="text-[11px] text-muted-foreground">min</span>
@@ -148,7 +148,7 @@ export function ReceptStapMethodes() {
                   type="number"
                   min={0}
                   value={m.houdbaarheid}
-                  onChange={(e) => updateItem(i, "houdbaarheid", Number(e.target.value))}
+                  onChange={(e) => { const v = e.target.value; if (v === "") return; updateItem(i, "houdbaarheid", Number(v)); }}
                   className="h-7 text-xs w-12 tabular-nums"
                 />
                 <span className="text-[11px] text-muted-foreground">d</span>

@@ -148,7 +148,7 @@ export function AlgemeenTab({ ingredient }: AlgemeenTabProps) {
             min={1}
             max={100}
             value={yieldPct}
-            onChange={(e) => setYieldPct(Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setYieldPct(Number(v)); }}
             className="rounded-r-none border-r-0"
           />
           <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-r-[var(--radius-button)] border-[1.5px] border-l-0 border-border">

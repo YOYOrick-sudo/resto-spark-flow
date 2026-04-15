@@ -157,7 +157,7 @@ export default function SettingsReserveringenPacing() {
               onChange={(e) =>
                 setSettings({
                   ...settings,
-                  defaultLimitPerQuarter: parseInt(e.target.value) || 1,
+                  defaultLimitPerQuarter: (() => { const v = e.target.value; if (v === "") return settings.defaultLimitPerQuarter; return parseInt(v, 10) || 1; })(),
                 })
               }
             />
@@ -187,7 +187,7 @@ export default function SettingsReserveringenPacing() {
                 onChange={(e) =>
                   setSettings({
                     ...settings,
-                    lunchLimit: parseInt(e.target.value) || 1,
+                    lunchLimit: (() => { const v = e.target.value; if (v === "") return settings.lunchLimit; return parseInt(v, 10) || 1; })(),
                   })
                 }
               />
@@ -200,7 +200,7 @@ export default function SettingsReserveringenPacing() {
                 onChange={(e) =>
                   setSettings({
                     ...settings,
-                    dinnerLimit: parseInt(e.target.value) || 1,
+                    dinnerLimit: (() => { const v = e.target.value; if (v === "") return settings.dinnerLimit; return parseInt(v, 10) || 1; })(),
                   })
                 }
               />

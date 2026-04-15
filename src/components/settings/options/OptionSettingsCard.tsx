@@ -140,7 +140,7 @@ export function OptionSettingsCard({ locationId }: OptionSettingsCardProps) {
                 step={1}
                 value={localSettings.option_default_expiry_hours}
                 onChange={(e) =>
-                  handleNumberChange(parseInt(e.target.value) || 24)
+                  { const v = e.target.value; if (v === "") return; handleNumberChange(parseInt(v, 10) || 24); }
                 }
               />
               <p className="text-xs text-muted-foreground mt-1">

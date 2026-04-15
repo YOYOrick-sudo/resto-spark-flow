@@ -66,7 +66,7 @@ export function ExtendOptionDialog({
               max={168}
               step={1}
               value={extraHours}
-              onChange={(e) => setExtraHours(parseInt(e.target.value) || 24)}
+              onChange={(e) => { const v = e.target.value; if (v === "") return; setExtraHours(parseInt(v, 10) || 24); }}
             />
           </div>
 

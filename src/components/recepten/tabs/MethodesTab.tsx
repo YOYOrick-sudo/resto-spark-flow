@@ -182,7 +182,7 @@ function MethodeRow({
             type="number"
             min={0}
             value={outputHoeveelheid}
-            onChange={(e) => setOutputHoeveelheid(Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setOutputHoeveelheid(Number(v)); }}
             onBlur={() => onUpdate({ output_hoeveelheid: outputHoeveelheid })}
             className="h-7 text-xs w-12 tabular-nums"
           />
@@ -208,7 +208,7 @@ function MethodeRow({
             type="number"
             min={0}
             value={duur}
-            onChange={(e) => setDuur(Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setDuur(Number(v)); }}
             onBlur={() => onUpdate({ standaard_duur: duur })}
             className="h-7 text-xs w-12 tabular-nums"
           />
@@ -221,7 +221,7 @@ function MethodeRow({
             type="number"
             min={0}
             value={houdbaarheid}
-            onChange={(e) => setHoudbaarheid(Number(e.target.value))}
+            onChange={(e) => { const v = e.target.value; if (v === "") return; setHoudbaarheid(Number(v)); }}
             onBlur={() => onUpdate({ houdbaarheid: houdbaarheid || null })}
             className="h-7 text-xs w-12 tabular-nums"
           />
