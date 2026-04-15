@@ -4,17 +4,21 @@ import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, X, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { Search, X, ChevronDown, ChevronRight, Info, Sparkles } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useGerechtSearch } from "@/hooks/useGerechtSearch";
 import { useWasteMutation, type WasteInput } from "@/hooks/useWasteMutation";
 import { useMedewerkers } from "@/hooks/useMedewerkers";
+import { useBijnaVerlopen } from "@/hooks/useBijnaVerlopen";
+import { useVoorraadOverschot } from "@/hooks/useVoorraadOverschot";
+import { matchSuggestieToItems } from "@/utils/matchSuggestieToItems";
 import { getPortieVoorPersonen } from "@/utils/portieDefaults";
 import { berekenPortieGrootte, getPrimaireMethode, converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserContext } from "@/contexts/UserContext";
 import { cn } from "@/lib/utils";
 
 interface PersoneelsmaaltijdModalProps {
@@ -53,6 +57,17 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   const [aantalPersonen, setAantalPersonen] = useState(1);
   const [items, setItems] = useState<MealItem[]>([]);
   const [selectedMedewerkerIds, setSelectedMedewerkerIds] = useState<string[]>([]);
+  const { currentLocation } = useUserContext();
+
+  // AI suggestion state
+  const [aiSuggestion, setAiSuggestion] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAttempts, setAiAttempts] = useState(0);
+
+  // Bijna verlopen + overstocked data
+  const { data: bijnaVerlopen = [] } = useBijnaVerlopen(2);
+  const { data: overstocked = [] } = useVoorraadOverschot();
+  const hasRelevantItems = bijnaVerlopen.length > 0 || overstocked.length > 0;
 
   // Search states for each section
   const [searchMain, setSearchMain] = useState("");
