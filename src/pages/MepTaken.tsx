@@ -4,27 +4,24 @@ import { nl } from "date-fns/locale";
 import { PageHeader } from "@/components/polar";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { ChevronLeft, ChevronRight, CalendarDays, List, LayoutGrid, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles } from "lucide-react";
 import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
-import { useMepIngredientStock } from "@/hooks/useMepIngredientStock";
 import { useCancelMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { MepQuickAdd } from "@/components/mep/MepQuickAdd";
 import { MepWeekView } from "@/components/mep/MepWeekView";
 import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
-import { MepPriorityView } from "@/components/mep/MepPriorityView";
 import { MepCategoryView } from "@/components/mep/MepCategoryView";
 import { MepDayPlan } from "@/components/mep/MepDayPlan";
-import type { IngredientStockMap } from "@/utils/mepPriority";
 
-type ViewMode = "prioriteit" | "categorie" | "week";
+type ViewMode = "categorie" | "week";
 const STORAGE_KEY = "mep-view-preference";
 
 function getInitialView(): ViewMode {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "prioriteit" || saved === "categorie" || saved === "week") return saved;
+    if (saved === "categorie" || saved === "week") return saved;
   } catch {}
-  return "prioriteit";
+  return "categorie";
 }
 
 export default function MepTaken() {
@@ -56,9 +53,7 @@ export default function MepTaken() {
   const weekEndStr = format(endOfWeek(new Date(selectedDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const { data: weekTasks = [], isLoading: weekLoading } = useMepTasksWeek(weekStartStr, weekEndStr);
 
-  // Ingredient stock — only for priority view
-  const { data: ingredientStock } = useMepIngredientStock(dayTasks, view === "prioriteit");
-  const stockMap: IngredientStockMap = ingredientStock ?? new Map();
+  // Mutations
 
   // Mutations
   const cancelTask = useCancelMepTask();
@@ -126,15 +121,6 @@ export default function MepTaken() {
               <NestoButton
                 variant="ghost"
                 size="icon"
-                className={view === "prioriteit" ? "bg-accent" : ""}
-                onClick={() => setView("prioriteit")}
-                title="Prioriteitslijst"
-              >
-                <List className="h-4 w-4" />
-              </NestoButton>
-              <NestoButton
-                variant="ghost"
-                size="icon"
                 className={view === "categorie" ? "bg-accent" : ""}
                 onClick={() => setView("categorie")}
                 title="Categorie-weergave"
@@ -178,7 +164,7 @@ export default function MepTaken() {
           currentDate={selectedDate}
           onSelectDate={(d) => {
             setSelectedDate(d);
-            setView("prioriteit");
+            setView("categorie");
           }}
           onTaskClick={(task) => {
             if (task.status === "pending" || task.status === "in_progress") {
@@ -191,24 +177,13 @@ export default function MepTaken() {
         <>
           <MepQuickAdd taskDate={selectedDate} dayTasks={dayTasks} />
 
-          {view === "prioriteit" ? (
-            <MepPriorityView
-              dayTasks={sortedDayTasks}
-              ingredientStock={stockMap}
-              onComplete={setCompletionTask}
-              onCancel={(id) => cancelTask.mutate(id)}
-              onPriorityChange={handlePriorityChange}
-              isLoading={dayLoading}
-              hasPlanOrder={!!planOrder}
-            />
-          ) : (
-            <MepCategoryView
-              dayTasks={sortedDayTasks}
-              onComplete={setCompletionTask}
-              onCancel={(id) => cancelTask.mutate(id)}
-              isLoading={dayLoading}
-            />
-          )}
+          <MepCategoryView
+            dayTasks={sortedDayTasks}
+            onComplete={setCompletionTask}
+            onCancel={(id) => cancelTask.mutate(id)}
+            onPriorityChange={handlePriorityChange}
+            isLoading={dayLoading}
+          />
         </>
       )}
 

@@ -11,6 +11,7 @@ interface MepCategoryViewProps {
   dayTasks: MepTask[];
   onComplete: (task: MepTask) => void;
   onCancel: (taskId: string) => void;
+  onPriorityChange?: (taskId: string, prioriteit: string) => void;
   isLoading?: boolean;
 }
 
@@ -18,6 +19,7 @@ export function MepCategoryView({
   dayTasks,
   onComplete,
   onCancel,
+  onPriorityChange,
   isLoading,
 }: MepCategoryViewProps) {
   const { overtijd, openGrouped, voltooid } = useMemo(() => {
@@ -68,6 +70,7 @@ export function MepCategoryView({
         tasks={overtijd}
         onComplete={onComplete}
         onCancel={onCancel}
+        onPriorityChange={onPriorityChange}
       />
 
       {Object.entries(openGrouped).map(([category, tasks]) => (
@@ -77,6 +80,7 @@ export function MepCategoryView({
           tasks={tasks}
           onComplete={onComplete}
           onCancel={onCancel}
+          onPriorityChange={onPriorityChange}
         />
       ))}
 

@@ -7,9 +7,10 @@ interface MepOvertijdGroupProps {
   tasks: MepTask[];
   onComplete: (task: MepTask) => void;
   onCancel: (taskId: string) => void;
+  onPriorityChange?: (taskId: string, prioriteit: string) => void;
 }
 
-export function MepOvertijdGroup({ tasks, onComplete, onCancel }: MepOvertijdGroupProps) {
+export function MepOvertijdGroup({ tasks, onComplete, onCancel, onPriorityChange }: MepOvertijdGroupProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   if (tasks.length === 0) return null;
@@ -41,6 +42,7 @@ export function MepOvertijdGroup({ tasks, onComplete, onCancel }: MepOvertijdGro
               isOverdue
               onComplete={onComplete}
               onCancel={onCancel}
+              onPriorityChange={onPriorityChange}
             />
           ))}
         </div>

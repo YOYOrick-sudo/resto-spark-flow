@@ -17,6 +17,7 @@ interface MepCategoryGroupProps {
   tasks: MepTask[];
   onComplete: (task: MepTask) => void;
   onCancel: (taskId: string) => void;
+  onPriorityChange?: (taskId: string, prioriteit: string) => void;
   defaultCollapsed?: boolean;
 }
 
@@ -25,6 +26,7 @@ export function MepCategoryGroup({
   tasks,
   onComplete,
   onCancel,
+  onPriorityChange,
   defaultCollapsed = false,
 }: MepCategoryGroupProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
@@ -78,6 +80,7 @@ export function MepCategoryGroup({
               task={task}
               onComplete={onComplete}
               onCancel={onCancel}
+              onPriorityChange={onPriorityChange}
             />
           ))}
         </div>
