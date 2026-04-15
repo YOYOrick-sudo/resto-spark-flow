@@ -205,7 +205,10 @@ export default function MepTaken() {
             onCancel={(id) => cancelTask.mutate(id)}
             onPriorityChange={handlePriorityChange}
             isLoading={dayLoading}
-          />
+      />
+
+      <WasteModal open={wasteOpen} onOpenChange={setWasteOpen} />
+      <PersoneelsmaaltijdModal open={personeelOpen} onOpenChange={setPersoneelOpen} />
         </>
       )}
 
