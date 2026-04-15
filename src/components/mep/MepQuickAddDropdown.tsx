@@ -60,40 +60,53 @@ export function MepQuickAddDropdown({
           </p>
           {halffabricaten.map((item) => {
             const methodes = item.methodes ?? [];
+
             if (methodes.length <= 1) {
+              const m = methodes[0];
               return (
                 <button
                   key={item.id}
                   className="w-full text-left px-4 py-3 hover:bg-accent transition-colors flex items-center justify-between min-h-[44px]"
-                  onClick={() => onSelectHalffabricaat(item, methodes[0])}
+                  onClick={() => onSelectHalffabricaat(item, m)}
                   disabled={isPending}
                 >
                   <div>
                     <p className="text-sm font-medium text-foreground">{item.naam}</p>
                     <p className="text-xs text-muted-foreground">
                       {item.categorie}
-                      {methodes[0] && ` · ${methodes[0].visuele_eenheid}`}
+                      {m && (
+                        <>
+                          {" · "}
+                          <span className="capitalize">{m.type}</span>
+                          {" · "}
+                          {m.visuele_eenheid}
+                        </>
+                      )}
                     </p>
                   </div>
                   <Plus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 </button>
               );
             }
+
             return (
               <div key={item.id}>
-                <p className="px-4 pt-3 pb-1 text-sm font-medium text-foreground">
-                  {item.naam}
-                </p>
+                <div className="px-4 pt-3 pb-1 flex items-baseline gap-2">
+                  <p className="text-sm font-medium text-foreground">{item.naam}</p>
+                  <span className="text-[11px] text-muted-foreground">{item.categorie}</span>
+                </div>
                 {methodes.map((m) => (
                   <button
                     key={m.id}
-                    className="w-full text-left px-6 py-2.5 hover:bg-accent transition-colors flex items-center justify-between min-h-[40px]"
+                    className="w-full text-left pl-8 pr-4 py-2.5 hover:bg-accent/60 transition-colors flex items-center justify-between min-h-[40px] bg-muted/30"
                     onClick={() => onSelectHalffabricaat(item, m)}
                     disabled={isPending}
                   >
                     <div>
                       <p className="text-sm text-foreground capitalize">{m.type}</p>
-                      <p className="text-xs text-muted-foreground">{m.visuele_eenheid}</p>
+                      {m.visuele_eenheid && (
+                        <p className="text-xs text-muted-foreground">{m.visuele_eenheid}</p>
+                      )}
                     </div>
                     <Plus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   </button>

@@ -8,6 +8,8 @@ import { MepQuickAddDropdown } from "./MepQuickAddDropdown";
 import { SnellePrepModal } from "./SnellePrepModal";
 import { addDays, format } from "date-fns";
 import { nestoToast } from "@/lib/nestoToast";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserContext } from "@/contexts/UserContext";
 import type { MepTask } from "@/hooks/useMepTasks";
 import type { HalffabricaatSearchResult } from "@/hooks/useHalffabricaatSearch";
 import type { IngredientResult } from "./MepQuickAddDropdown";
@@ -20,6 +22,8 @@ interface MepQuickAddProps {
 export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
   const [search, setSearch] = useState("");
   const [prepIngredient, setPrepIngredient] = useState<IngredientResult | null>(null);
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
 
   const { data: halffabricaten = [], isLoading: hfLoading } = useHalffabricaatSearch(search);
   const { data: ingredienten = [], isLoading: igLoading } = useIngredientSearch(search);
@@ -37,38 +41,53 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
       : taskDate;
   }
 
-  const handleAddHalffabricaat = (
+  const handleAddHalffabricaat = async (
     item: HalffabricaatSearchResult,
     methode?: HalffabricaatSearchResult["methodes"][0]
   ) => {
     const smartDate = getSmartDate();
-    const existing = dayTasks.find(
-      (t) =>
-        t.recept_id === item.id &&
-        (!methode || t.methode_id === methode.id) &&
-        t.task_date === smartDate &&
-        t.status !== "completed" &&
-        t.status !== "cancelled"
-    );
 
-    if (existing) {
-      const newUnits = (existing.units ?? 1) + 1;
-      updateTask.mutate({ id: existing.id, units: newUnits });
-      nestoToast.success(`${item.naam} — verhoogd naar ${newUnits}×`);
-    } else {
-      const title = methode
-        ? `${item.naam} ${methode.type.toLowerCase()}`
-        : item.naam;
-      createTask.mutate({
-        title,
-        category: item.categorie || "halffabricaat",
-        task_date: smartDate,
-        recept_id: item.id,
-        methode_id: methode?.id ?? null,
-        units: 1,
-        prioriteit: "Normaal",
-      });
+    // Check for existing task via DB query (handles smartDate !== taskDate)
+    if (locationId) {
+      let query = supabase
+        .from("mep_tasks")
+        .select("id, units")
+        .eq("location_id", locationId)
+        .eq("recept_id", item.id)
+        .eq("task_date", smartDate)
+        .not("status", "in", '("completed","cancelled")')
+        .limit(1);
+
+      if (methode) {
+        query = query.eq("methode_id", methode.id);
+      } else {
+        query = query.is("methode_id", null);
+      }
+
+      const { data: existing } = await query;
+
+      if (existing && existing.length > 0) {
+        const task = existing[0];
+        const newUnits = (task.units ?? 1) + 1;
+        updateTask.mutate({ id: task.id, units: newUnits });
+        nestoToast.success(`${item.naam} — verhoogd naar ${newUnits}×`);
+        setSearch("");
+        return;
+      }
     }
+
+    const title = methode
+      ? `${item.naam} ${methode.type.toLowerCase()}`
+      : item.naam;
+    createTask.mutate({
+      title,
+      category: item.categorie || "halffabricaat",
+      task_date: smartDate,
+      recept_id: item.id,
+      methode_id: methode?.id ?? null,
+      units: 1,
+      prioriteit: "Normaal",
+    });
     setSearch("");
   };
 
@@ -77,33 +96,40 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
     setSearch("");
   };
 
-  const handleAddFreeTask = () => {
+  const handleAddFreeTask = async () => {
     const smartDate = getSmartDate();
     const title = search.trim();
     if (!title) return;
 
-    const existing = dayTasks.find(
-      (t) =>
-        t.title === title &&
-        !t.recept_id &&
-        t.task_date === smartDate &&
-        t.status !== "completed" &&
-        t.status !== "cancelled"
-    );
+    // Check for existing free task via DB query
+    if (locationId) {
+      const { data: existing } = await supabase
+        .from("mep_tasks")
+        .select("id, units")
+        .eq("location_id", locationId)
+        .eq("title", title)
+        .is("recept_id", null)
+        .eq("task_date", smartDate)
+        .not("status", "in", '("completed","cancelled")')
+        .limit(1);
 
-    if (existing) {
-      const newUnits = (existing.units ?? 1) + 1;
-      updateTask.mutate({ id: existing.id, units: newUnits });
-      nestoToast.success(`${title} — verhoogd naar ${newUnits}×`);
-    } else {
-      createTask.mutate({
-        title,
-        category: "Overig",
-        task_date: smartDate,
-        units: 1,
-        prioriteit: "Normaal",
-      });
+      if (existing && existing.length > 0) {
+        const task = existing[0];
+        const newUnits = (task.units ?? 1) + 1;
+        updateTask.mutate({ id: task.id, units: newUnits });
+        nestoToast.success(`${title} — verhoogd naar ${newUnits}×`);
+        setSearch("");
+        return;
+      }
     }
+
+    createTask.mutate({
+      title,
+      category: "Overig",
+      task_date: smartDate,
+      units: 1,
+      prioriteit: "Normaal",
+    });
     setSearch("");
   };
 
