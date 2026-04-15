@@ -352,6 +352,50 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
     }
   };
 
+  const handleSuggestMeal = async () => {
+    setAiLoading(true);
+    setAiAttempts((p) => p + 1);
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-staff-meal", {
+        body: {
+          bijna_verlopen: bijnaVerlopen.map((i) => ({
+            naam: i.productnaam,
+            hoeveelheid: i.geschatte_hoeveelheid,
+            dagen_resterend: i.dagen_resterend,
+          })),
+          overstocked: overstocked.map((i) => ({
+            naam: i.naam,
+            hoeveelheid: `${i.hoeveelheid} ${i.eenheid}`,
+          })),
+          aantal_personen: aantalPersonen,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiSuggestion(data);
+    } catch {
+      nestoToast.error("Kon geen suggestie ophalen");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleUseSuggestion = async () => {
+    if (!aiSuggestion?.ingredienten || !currentLocation?.id) return;
+    const matched = await matchSuggestieToItems(aiSuggestion.ingredienten, currentLocation.id);
+    setItems(matched.map((m) => ({
+      id: m.id,
+      type: m.type,
+      naam: m.naam,
+      hoeveelheid: m.hoeveelheid,
+      eenheid: m.eenheid,
+      kostprijs: m.kostprijs,
+      receptId: m.receptId,
+      ingredientId: m.ingredientId,
+    })));
+    setAiSuggestion(null);
+  };
+
   const resetAndClose = () => {
     setAantalPersonen(1);
     setItems([]);
@@ -361,6 +405,8 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
     setSearchSchatting("");
     setGerechtOpen(false);
     setSchattingOpen(false);
+    setAiSuggestion(null);
+    setAiAttempts(0);
     onOpenChange(false);
   };
 
