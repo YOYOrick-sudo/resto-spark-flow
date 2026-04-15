@@ -88,6 +88,11 @@ export interface CompleteTaskInput {
   werkelijkeGram?: number;
   yieldPercentage?: number;
   temperatuur?: number;
+  kokMedewerkerId?: string;
+}
+
+export interface CompleteTaskResult {
+  batchNummer: string;
 }
 
 export function useCompleteMepTask() {
@@ -97,7 +102,7 @@ export function useCompleteMepTask() {
   const locationId = currentLocation?.id;
 
   return useMutation({
-    mutationFn: async (input: CompleteTaskInput) => {
+    mutationFn: async (input: CompleteTaskInput): Promise<CompleteTaskResult> => {
       if (!user) throw new Error("Niet ingelogd");
       if (!locationId) throw new Error("Geen locatie");
 
@@ -121,6 +126,7 @@ export function useCompleteMepTask() {
         .insert({
           task_id: input.taskId,
           medewerker_id: user.id,
+          kok_medewerker_id: input.kokMedewerkerId || null,
           units_gemaakt: input.unitsGemaakt,
           verwachte_output_gram: verwachteGram ?? null,
           werkelijke_output_gram: input.werkelijkeGram ?? null,
@@ -165,6 +171,8 @@ export function useCompleteMepTask() {
         .update({ status: "completed" })
         .eq("id", input.taskId);
       if (statusErr) throw statusErr;
+
+      return { batchNummer: batchNummer as string };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mep-tasks"] });
