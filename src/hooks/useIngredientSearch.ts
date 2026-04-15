@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
@@ -12,11 +11,11 @@ export function useIngredientSearch(searchTerm: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ingredienten")
-        .select("id, naam, eenheid, kostprijs, voorraad")
+        .select("id, naam, eenheid, kostprijs, voorraad, categorie")
         .eq("location_id", locationId!)
         .eq("is_archived", false)
         .ilike("naam", `%${searchTerm}%`)
-        .limit(10);
+        .limit(5);
       if (error) throw error;
       return data ?? [];
     },
