@@ -32,6 +32,9 @@ interface MethodesTabProps {
   recept: ReceptDetail;
 }
 
+// Import portie utility
+import { berekenPortieGrootte } from "@/utils/portieGrootte";
+
 export function MethodesTab({ recept }: MethodesTabProps) {
   const { addMethode, updateMethode, removeMethode } = useReceptMutations();
   const { data: alleRecepten } = useRecepten({
@@ -95,6 +98,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
               key={m.id}
               methode={m}
               index={index}
+              porties={recept.porties}
               subReceptOptions={subReceptOptions}
               isExpanded={expandedRows.has(m.id)}
               onToggleExpand={() => toggleRow(m.id)}
@@ -124,6 +128,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
 interface MethodeRowProps {
   methode: HalffabricaatMethodeRow;
   index: number;
+  porties: number;
   subReceptOptions: { value: string; label: string }[];
   isExpanded: boolean;
   onToggleExpand: () => void;
@@ -134,6 +139,7 @@ interface MethodeRowProps {
 function MethodeRow({
   methode,
   index,
+  porties,
   subReceptOptions,
   isExpanded,
   onToggleExpand,
@@ -147,6 +153,8 @@ function MethodeRow({
   const [houdbaarheid, setHoudbaarheid] = React.useState(methode.houdbaarheid ?? 0);
   const [instructie, setInstructie] = React.useState(methode.instructie ?? "");
   const [subReceptId, setSubReceptId] = React.useState(methode.sub_recept_id ?? "");
+
+  const portie = berekenPortieGrootte(outputHoeveelheid, outputEenheid, porties);
 
   const hasDetail = type === "Bereiden" || instructie.length > 0;
 
@@ -188,6 +196,11 @@ function MethodeRow({
             size="sm"
           />
         </div>
+        {portie && (
+          <span className="text-[11px] text-muted-foreground col-span-2 pl-8 -mt-1.5">
+            = {portie.display} per portie
+          </span>
+        )}
 
         {/* Duur */}
         <div className="flex items-center gap-1">
