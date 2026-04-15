@@ -32,6 +32,7 @@ export default function BestellingDetail() {
   const [isSending, setIsSending] = useState(false);
   const [notities, setNotities] = useState("");
   const [verwachteLeverdatum, setVerwachteLeverdatum] = useState("");
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
 
   // Add ingredient state
   const [addSearch, setAddSearch] = useState("");
@@ -46,8 +47,25 @@ export default function BestellingDetail() {
     if (bestelling) {
       setNotities(bestelling.notities ?? "");
       setVerwachteLeverdatum(bestelling.verwachte_leverdatum ?? "");
+      setHasLocalChanges(false);
     }
   }, [bestelling]);
+
+  // Auto-save notities & leverdatum for concept orders
+  useEffect(() => {
+    if (!hasLocalChanges || !bestelling || bestelling.status !== "concept") return;
+    const timer = setTimeout(async () => {
+      await supabase.from("bestellingen").update({
+        notities: notities || null,
+        verwachte_leverdatum: verwachteLeverdatum || null,
+      } as any).eq("id", bestelling.id);
+      setHasLocalChanges(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [notities, verwachteLeverdatum, hasLocalChanges, bestelling]);
+
+  const updateNotities = (val: string) => { setNotities(val); setHasLocalChanges(true); };
+  const updateLeverdatum = (val: string) => { setVerwachteLeverdatum(val); setHasLocalChanges(true); };
 
   const leverancier = bestelling?.leveranciers as any;
   const regels = (bestelling?.bestelregels as any[]) ?? [];
@@ -201,7 +219,7 @@ export default function BestellingDetail() {
           <input
             type="date"
             value={verwachteLeverdatum}
-            onChange={(e) => setVerwachteLeverdatum(e.target.value)}
+            onChange={(e) => updateLeverdatum(e.target.value)}
             className="h-11 rounded-button border-[1.5px] border-border bg-card px-3 text-sm text-foreground focus:!border-primary focus:outline-none focus:ring-0"
           />
         </div>
@@ -351,7 +369,7 @@ export default function BestellingDetail() {
           <label className="text-sm font-medium text-foreground block mb-1.5">Notities</label>
           <textarea
             value={notities}
-            onChange={(e) => setNotities(e.target.value)}
+            onChange={(e) => updateNotities(e.target.value)}
             placeholder="Optionele notities voor de leverancier..."
             rows={3}
             className="w-full rounded-button border-[1.5px] border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:!border-primary focus:outline-none focus:ring-0 resize-none"

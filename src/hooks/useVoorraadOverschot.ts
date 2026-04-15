@@ -27,24 +27,16 @@ export function useVoorraadOverschot(minWaarde: number = 10) {
         .gt("voorraad", 0);
       if (error) throw error;
 
-      // Get OUT movements from last 4 weeks for weekly average
+      // Get WASTE + OUT movements from last 4 weeks in a single query
       const vierWekenGeleden = format(subWeeks(new Date(), 4), "yyyy-MM-dd");
       const { data: bewegingen } = await supabase
         .from("voorraad_bewegingen")
         .select("ingredient_id, hoeveelheid")
-        .eq("type", "WASTE")
+        .in("type", ["WASTE", "OUT"])
         .gte("created_at", `${vierWekenGeleden}T00:00:00`);
 
-      // Also get OUT type movements
-      const { data: outBewegingen } = await supabase
-        .from("voorraad_bewegingen")
-        .select("ingredient_id, hoeveelheid")
-        .eq("type", "OUT")
-        .gte("created_at", `${vierWekenGeleden}T00:00:00`);
-
-      // Fix 2: use Math.abs() to handle negative movement values
       const weekVerbruik = new Map<string, number>();
-      for (const b of [...(bewegingen ?? []), ...(outBewegingen ?? [])]) {
+      for (const b of bewegingen ?? []) {
         const curr = weekVerbruik.get(b.ingredient_id) ?? 0;
         weekVerbruik.set(b.ingredient_id, curr + Math.abs(b.hoeveelheid ?? 0));
       }
