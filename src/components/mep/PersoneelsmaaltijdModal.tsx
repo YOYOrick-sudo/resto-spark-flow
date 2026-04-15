@@ -3,12 +3,14 @@ import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, X, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useGerechtSearch } from "@/hooks/useGerechtSearch";
 import { useWasteMutation, type WasteInput } from "@/hooks/useWasteMutation";
 import { getPortieVoorPersonen } from "@/utils/portieDefaults";
+import { berekenPortieGrootte, getPrimaireMethode, converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,10 @@ interface MealItem {
   isAuto?: boolean;
   breakdown?: BreakdownIngredient[];
   breakdownLoading?: boolean;
+  portieDisplay?: string | null;
+  methodeOutputHoeveelheid?: number | null;
+  methodeOutputEenheid?: string | null;
+  receptPorties?: number | null;
 }
 
 export function PersoneelsmaaltijdModal({ open, onOpenChange }: PersoneelsmaaltijdModalProps) {
@@ -70,6 +76,12 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   // Add halffabricaat
   const addHalffabricaat = async (hf: typeof hfResults[0]) => {
     const itemId = crypto.randomUUID();
+    const primaireMethode = getPrimaireMethode(hf.methodes ?? []);
+    const portie = berekenPortieGrootte(
+      primaireMethode?.output_hoeveelheid ?? null,
+      primaireMethode?.output_eenheid ?? null,
+      hf.porties
+    );
     setItems((prev) => [
       ...prev,
       {
@@ -81,6 +93,10 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
         kostprijs: null,
         receptId: hf.id,
         breakdownLoading: true,
+        portieDisplay: portie?.display ?? null,
+        methodeOutputHoeveelheid: primaireMethode?.output_hoeveelheid ?? null,
+        methodeOutputEenheid: primaireMethode?.output_eenheid ?? null,
+        receptPorties: hf.porties,
       },
     ]);
     setSearchMain("");
