@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NestoButton, NestoInput, NestoSelect, Spinner } from "@/components/polar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Lock, X, Plus } from "lucide-react";
+import { Lock, X, Plus, Users, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useKeukenSettings,
@@ -142,6 +142,7 @@ function CategoryManager({
 }
 
 export default function SettingsKeuken() {
+  const navigate = useNavigate();
   const { data: settings, isLoading } = useKeukenSettings();
   const updateSettings = useUpdateKeukenSettings();
   const updateAi = useUpdateAiBevoegdheden();
@@ -357,7 +358,7 @@ export default function SettingsKeuken() {
         </div>
 
         {/* Save button */}
-        <div className="border-t border-border/50 pt-6 mt-6 pb-8">
+        <div className="border-t border-border/50 pt-6 mt-6">
           <NestoButton
             onClick={handleSave}
             disabled={!isDirty}
@@ -366,6 +367,36 @@ export default function SettingsKeuken() {
           >
             Opslaan
           </NestoButton>
+        </div>
+
+        {/* Section: Quick links */}
+        <div className="border-t border-border/50 pt-6 mt-6 pb-8">
+          <SectionHeader
+            title="BEHEER"
+            description="Beheer medewerkers en printers voor je keuken."
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => navigate("/instellingen/keuken/medewerkers")}
+              className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card hover:border-primary/50 transition-colors text-left"
+            >
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Medewerkers</p>
+                <p className="text-xs text-muted-foreground">Koks, sous-chefs en labels</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate("/instellingen/keuken/printer")}
+              className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card hover:border-primary/50 transition-colors text-left"
+            >
+              <Printer className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Printer & Labels</p>
+                <p className="text-xs text-muted-foreground">Zebra printer configuratie</p>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
