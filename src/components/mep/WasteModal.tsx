@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
@@ -7,6 +7,7 @@ import { Search, X } from "lucide-react";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useWasteMutation } from "@/hooks/useWasteMutation";
+import { useMedewerkers, getLastMedewerkerId, setLastMedewerkerId } from "@/hooks/useMedewerkers";
 import { berekenPortieGrootte, getPrimaireMethode, converteerNaarMethodeEenheid } from "@/utils/portieGrootte";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,10 +65,22 @@ export function WasteModal({ open, onOpenChange }: WasteModalProps) {
   const [eenheid, setEenheid] = useState("kg");
   const [reden, setReden] = useState("bederf");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [medewerkerId, setMedewerkerId] = useState("");
 
   const { data: hfResults = [] } = useHalffabricaatSearch(search);
   const { data: igResults = [], isLoading: searching } = useIngredientSearch(search);
+  const { data: medewerkers = [] } = useMedewerkers();
   const wasteMutation = useWasteMutation();
+
+  // Set default medewerker
+  useEffect(() => {
+    if (open) {
+      const lastId = getLastMedewerkerId();
+      if (lastId && medewerkers.some((m) => m.id === lastId)) {
+        setMedewerkerId(lastId);
+      }
+    }
+  }, [open, medewerkers]);
 
   // Calculate portieFractie for cost estimation and breakdown display
   const portieFractie = useMemo(() => {
