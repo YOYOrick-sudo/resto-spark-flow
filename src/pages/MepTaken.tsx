@@ -57,7 +57,7 @@ export default function MepTaken() {
   const { data: weekTasks = [], isLoading: weekLoading } = useMepTasksWeek(weekStartStr, weekEndStr);
 
   // Ingredient stock for priority scoring
-  const { data: ingredientStock } = useMepIngredientStock(dayTasks, view === "prioriteit");
+  const { data: ingredientStock } = useMepIngredientStock(dayTasks, false);
   const stockMap: IngredientStockMap = ingredientStock ?? new Map();
 
   const cancelTask = useCancelMepTask();
@@ -181,7 +181,7 @@ export default function MepTaken() {
           currentDate={selectedDate}
           onSelectDate={(d) => {
             setSelectedDate(d);
-            setView("prioriteit");
+            setView("categorie");
           }}
           onTaskClick={(task) => {
             if (task.status === "pending" || task.status === "in_progress") {
