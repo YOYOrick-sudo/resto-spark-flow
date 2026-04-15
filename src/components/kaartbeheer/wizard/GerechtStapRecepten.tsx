@@ -111,7 +111,7 @@ export function GerechtStapRecepten() {
                         setSelected({
                           id: r.id,
                           naam: r.naam,
-                          eenheid: m?.visuele_eenheid || m?.output_eenheid || "portie",
+                          eenheid: (m?.visuele_eenheid || m?.output_eenheid || "portie").replace(/^1\s+/, ''),
                           kostprijs: r.totale_kostprijs
                             ? r.totale_kostprijs / Math.max(r.porties ?? 1, 1)
                             : 0,

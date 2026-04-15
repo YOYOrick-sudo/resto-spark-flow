@@ -31,7 +31,9 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
     ? methode.output_hoeveelheid * defaultUnits
     : undefined;
 
-  const displayEenheid = methode?.visuele_eenheid || methode?.output_eenheid;
+  // Strip leading "1 " from visuele_eenheid defensively
+  const rawEenheid = methode?.visuele_eenheid || methode?.output_eenheid;
+  const displayEenheid = rawEenheid?.replace(/^1\s+/, '');
 
   const [unitsGemaakt, setUnitsGemaakt] = useState(defaultUnits);
   const [werkelijkeGram, setWerkelijkeGram] = useState<string>(
