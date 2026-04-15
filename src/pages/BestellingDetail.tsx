@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Trash2, Send, Plus, X } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
@@ -41,13 +41,13 @@ export default function BestellingDetail() {
   // Inline editing state
   const [editingRegels, setEditingRegels] = useState<Map<string, { hoeveelheid: number; prijs: number | null }>>(new Map());
 
-  // Sync from bestelling
-  useState(() => {
+  // Sync from bestelling when data loads
+  useEffect(() => {
     if (bestelling) {
       setNotities(bestelling.notities ?? "");
       setVerwachteLeverdatum(bestelling.verwachte_leverdatum ?? "");
     }
-  });
+  }, [bestelling]);
 
   const leverancier = bestelling?.leveranciers as any;
   const regels = (bestelling?.bestelregels as any[]) ?? [];
