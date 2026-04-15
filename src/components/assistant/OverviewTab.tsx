@@ -14,7 +14,7 @@ import { useAgentActions } from '@/hooks/useAgentActions';
 import { useAssistentLog } from '@/hooks/useAssistentLog';
 import { useUserContext } from '@/contexts/UserContext';
 import { nestoToast } from '@/lib/nestoToast';
-import { KeukenSectie } from './KeukenSectie';
+import { KeukenSectie } from '@/components/assistent/KeukenSectie';
 
 function getGreeting(): string {
   const h = new Date().getHours();
