@@ -122,8 +122,13 @@ export function SnellePrepModal({ open, onOpenChange, ingredient, taskDate }: Sn
 
         {preview && (
           <div className="border-t border-border/50 pt-4 mt-4 space-y-1">
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-foreground flex items-center gap-2">
               → <span className="font-medium">{preview.naam}</span>
+              {handeling && (
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  {handeling}
+                </span>
+              )}
             </p>
             {preview.kostprijsPerEenheid != null && (
               <p className="text-xs text-muted-foreground">
