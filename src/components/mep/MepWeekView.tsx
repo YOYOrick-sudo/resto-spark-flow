@@ -5,7 +5,7 @@ import { NestoBadge } from "@/components/polar/NestoBadge";
 import { cn } from "@/lib/utils";
 import type { MepTask } from "@/hooks/useMepTasks";
 
-const MAX_VISIBLE_TASKS = 3;
+const MAX_VISIBLE_TASKS = 5;
 
 interface MepWeekViewProps {
   tasks: MepTask[];
@@ -45,10 +45,12 @@ export function MepWeekView({
     );
   }
 
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+
   return (
     <div className="grid grid-cols-7 gap-2">
       {days.map(({ date, dateStr, dayTasks, completed, total }) => {
-        const isToday = dateStr === format(new Date(), "yyyy-MM-dd");
+        const isToday = dateStr === todayStr;
         const isSelected = dateStr === currentDate;
         const allDone = total > 0 && completed === total;
         const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
@@ -95,6 +97,9 @@ export function MepWeekView({
             <div className="flex-1 p-1.5 space-y-0.5">
               {visibleTasks.map((task) => {
                 const isDone = task.status === "completed";
+                const isCancelled = task.status === "cancelled";
+                const isOverdue = task.task_date < todayStr && !isDone && !isCancelled;
+
                 return (
                   <button
                     key={task.id}
@@ -106,7 +111,9 @@ export function MepWeekView({
                       "w-full flex items-center gap-1.5 py-1.5 px-2 rounded text-left transition-colors text-xs",
                       isDone
                         ? "text-success/70 hover:bg-success/5"
-                        : "text-foreground hover:bg-accent",
+                        : isOverdue
+                          ? "text-destructive font-medium hover:bg-destructive/5"
+                          : "text-foreground hover:bg-accent",
                     )}
                   >
                     <span
@@ -120,6 +127,11 @@ export function MepWeekView({
                     {task.units != null && task.units > 0 && (
                       <span className="shrink-0 text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded tabular-nums">
                         {task.units}×
+                      </span>
+                    )}
+                    {task.methode?.type && (
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        {task.methode.type.toLowerCase()}
                       </span>
                     )}
                   </button>
