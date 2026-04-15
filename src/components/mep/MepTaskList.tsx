@@ -98,7 +98,7 @@ export function MepTaskList({ tasks, isLoading }: MepTaskListProps) {
                 onClick={() => toggleGroup(category)}
                 className={cn(
                   "w-full flex items-center justify-between px-4 py-3 min-h-[48px] transition-colors",
-                  hasOverdue ? "bg-error-light" : "bg-muted/30",
+                  hasOverdue ? "bg-destructive/[0.06]" : "bg-muted/50",
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -144,6 +144,15 @@ export function MepTaskList({ tasks, isLoading }: MepTaskListProps) {
                             >
                               {task.title}
                             </span>
+                            {(() => {
+                              const mt = task.methode?.type?.toLowerCase();
+                              const show = mt && !task.title.toLowerCase().includes(mt);
+                              return show ? (
+                                <span className="text-[11px] text-muted-foreground/70 font-medium uppercase tracking-wider shrink-0">
+                                  {mt}
+                                </span>
+                              ) : null;
+                            })()}
                             {task.prioriteit === "Hoog" && (
                               <NestoBadge variant="error" size="sm">
                                 Hoog
@@ -176,10 +185,11 @@ export function MepTaskList({ tasks, isLoading }: MepTaskListProps) {
                           </div>
                         </div>
 
-                        {/* Status badge */}
-                        <NestoBadge variant={status.variant} size="sm">
-                          {status.label}
-                        </NestoBadge>
+                        {task.status !== "pending" && (
+                          <NestoBadge variant={status.variant} size="sm">
+                            {status.label}
+                          </NestoBadge>
+                        )}
 
                         {/* Actions */}
                         {task.status === "pending" || task.status === "in_progress" ? (

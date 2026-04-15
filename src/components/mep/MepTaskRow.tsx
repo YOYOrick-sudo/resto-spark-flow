@@ -3,7 +3,7 @@ import { NestoBadge } from "@/components/polar/NestoBadge";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MepAssistantHint } from "./MepAssistantHint";
+
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MepTask } from "@/hooks/useMepTasks";
@@ -14,7 +14,6 @@ interface MepTaskRowProps {
   onComplete: (task: MepTask) => void;
   onCancel: (taskId: string) => void;
   onPriorityChange?: (taskId: string, prioriteit: string) => void;
-  hint?: string | null;
 }
 
 const PRIORITY_OPTIONS = [
@@ -23,7 +22,7 @@ const PRIORITY_OPTIONS = [
   { value: "Laag", label: "Laag", variant: "default" as const },
 ];
 
-export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityChange, hint }: MepTaskRowProps) {
+export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityChange }: MepTaskRowProps) {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [prioOpen, setPrioOpen] = useState(false);
   const isActive = task.status === "pending" || task.status === "in_progress";
@@ -84,7 +83,7 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityCh
               </span>
             )}
           </div>
-          {hint && <MepAssistantHint hint={hint} />}
+          
         </div>
 
         {/* Priority badge — clickable dropdown */}

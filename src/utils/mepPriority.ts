@@ -61,9 +61,6 @@ export function calculatePriorityScore(task: MepTask, stock: IngredientStockMap)
   return score;
 }
 
-export function getAssistantHint(_task: MepTask): string | null {
-  return null;
-}
 
 export function isTaskOverdue(task: MepTask): boolean {
   return isOverdue(task);

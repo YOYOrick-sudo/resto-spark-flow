@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/polar";
 import { ClipboardList } from "lucide-react";
 import type { MepTask } from "@/hooks/useMepTasks";
 import type { IngredientStockMap } from "@/utils/mepPriority";
-import { calculatePriorityScore, getAssistantHint, isTaskOverdue } from "@/utils/mepPriority";
+import { calculatePriorityScore, isTaskOverdue } from "@/utils/mepPriority";
 
 interface MepPriorityViewProps {
   dayTasks: MepTask[];
@@ -100,7 +100,6 @@ export function MepPriorityView({
               onComplete={onComplete}
               onCancel={onCancel}
               onPriorityChange={onPriorityChange}
-              hint={getAssistantHint(task)}
             />
           ))}
         </div>
