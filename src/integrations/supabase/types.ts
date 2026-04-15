@@ -580,6 +580,7 @@ export type Database = {
           gestart_op: string | null
           id: string
           location_id: string
+          medewerker_id: string | null
           opmerkingen: string | null
           shift: string | null
           status: string
@@ -595,6 +596,7 @@ export type Database = {
           gestart_op?: string | null
           id?: string
           location_id: string
+          medewerker_id?: string | null
           opmerkingen?: string | null
           shift?: string | null
           status?: string
@@ -610,6 +612,7 @@ export type Database = {
           gestart_op?: string | null
           id?: string
           location_id?: string
+          medewerker_id?: string | null
           opmerkingen?: string | null
           shift?: string | null
           status?: string
@@ -636,6 +639,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_medewerker_id_fkey"
+            columns: ["medewerker_id"]
+            isOneToOne: false
+            referencedRelation: "medewerkers"
             referencedColumns: ["id"]
           },
           {
@@ -1754,6 +1764,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "knowledge_base_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      label_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          label_breedte_mm: number | null
+          label_hoogte_mm: number | null
+          location_id: string
+          naam: string
+          type: string
+          velden: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          label_breedte_mm?: number | null
+          label_hoogte_mm?: number | null
+          location_id: string
+          naam: string
+          type: string
+          velden?: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          label_breedte_mm?: number | null
+          label_hoogte_mm?: number | null
+          location_id?: string
+          naam?: string
+          type?: string
+          velden?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "label_templates_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
@@ -3247,6 +3301,50 @@ export type Database = {
           },
         ]
       }
+      medewerkers: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          is_actief: boolean | null
+          laatst_actief: string | null
+          location_id: string
+          naam: string
+          rol: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_actief?: boolean | null
+          laatst_actief?: string | null
+          location_id: string
+          naam: string
+          rol?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_actief?: boolean | null
+          laatst_actief?: string | null
+          location_id?: string
+          naam?: string
+          rol?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medewerkers_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mep_favorieten: {
         Row: {
           category: string
@@ -3304,6 +3402,7 @@ export type Database = {
           batch_nummer: string | null
           completed_at: string
           id: string
+          kok_medewerker_id: string | null
           medewerker_id: string
           notitie: string | null
           task_id: string
@@ -3317,6 +3416,7 @@ export type Database = {
           batch_nummer?: string | null
           completed_at?: string
           id?: string
+          kok_medewerker_id?: string | null
           medewerker_id: string
           notitie?: string | null
           task_id: string
@@ -3330,6 +3430,7 @@ export type Database = {
           batch_nummer?: string | null
           completed_at?: string
           id?: string
+          kok_medewerker_id?: string | null
           medewerker_id?: string
           notitie?: string | null
           task_id?: string
@@ -3340,6 +3441,13 @@ export type Database = {
           yield_percentage?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "mep_task_completions_kok_medewerker_id_fkey"
+            columns: ["kok_medewerker_id"]
+            isOneToOne: false
+            referencedRelation: "medewerkers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mep_task_completions_task_id_fkey"
             columns: ["task_id"]
@@ -4391,6 +4499,136 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "policy_sets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      print_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          label_data: Json
+          location_id: string
+          medewerker_id: string | null
+          printer_id: string | null
+          status: string | null
+          template_id: string | null
+          zpl_output: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          label_data: Json
+          location_id: string
+          medewerker_id?: string | null
+          printer_id?: string | null
+          status?: string | null
+          template_id?: string | null
+          zpl_output?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          label_data?: Json
+          location_id?: string
+          medewerker_id?: string | null
+          printer_id?: string | null
+          status?: string | null
+          template_id?: string | null
+          zpl_output?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_logs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_logs_medewerker_id_fkey"
+            columns: ["medewerker_id"]
+            isOneToOne: false
+            referencedRelation: "medewerkers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_logs_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "printer_configuraties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "label_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      printer_configuraties: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_actief: boolean | null
+          laatst_geprint: string | null
+          label_breedte_mm: number | null
+          label_hoogte_mm: number | null
+          location_id: string
+          naam: string
+          print_bridge_url: string | null
+          print_darkness: number | null
+          print_speed: number | null
+          printer_ip: string | null
+          printer_port: number | null
+          printer_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_actief?: boolean | null
+          laatst_geprint?: string | null
+          label_breedte_mm?: number | null
+          label_hoogte_mm?: number | null
+          location_id: string
+          naam?: string
+          print_bridge_url?: string | null
+          print_darkness?: number | null
+          print_speed?: number | null
+          printer_ip?: string | null
+          printer_port?: number | null
+          printer_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_actief?: boolean | null
+          laatst_geprint?: string | null
+          label_breedte_mm?: number | null
+          label_hoogte_mm?: number | null
+          location_id?: string
+          naam?: string
+          print_bridge_url?: string | null
+          print_darkness?: number | null
+          print_speed?: number | null
+          printer_ip?: string | null
+          printer_port?: number | null
+          printer_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_configuraties_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
