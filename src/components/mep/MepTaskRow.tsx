@@ -172,7 +172,7 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityCh
         onOpenChange={setConfirmCancel}
         title="Taak annuleren?"
         description={`Weet je zeker dat je "${task.title}" wilt annuleren?`}
-        confirmLabel="Annuleren"
+        confirmLabel="Ja, annuleren"
         variant="destructive"
         onConfirm={() => {
           setConfirmCancel(false);

@@ -128,10 +128,12 @@ export function AlgemeenTab({ ingredient }: AlgemeenTabProps) {
 
       <div>
         <div className="flex items-center gap-1.5 mb-2">
-          <label className="text-label text-muted-foreground">Yield percentage</label>
+          <label className="text-label text-muted-foreground">Bruikbaar percentage</label>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              <button type="button" className="inline-flex">
+                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              </button>
             </TooltipTrigger>
             <TooltipContent>
               <p className="max-w-[220px] text-xs">
@@ -199,7 +201,9 @@ export function AlgemeenTab({ ingredient }: AlgemeenTabProps) {
           <label className="text-label text-muted-foreground font-medium">Eigen eenheid koppelen</label>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              <button type="button" className="inline-flex">
+                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              </button>
             </TooltipTrigger>
             <TooltipContent>
               <p className="max-w-[240px] text-xs">
