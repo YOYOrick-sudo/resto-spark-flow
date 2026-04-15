@@ -11,7 +11,6 @@ import { useGerechtDetail } from "@/hooks/useGerechtDetail";
 import { useGerechtMutations } from "@/hooks/useGerechtMutations";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { GerechtComponentenTab } from "@/components/kaartbeheer/GerechtComponentenTab";
-import { GerechtAllergenenTab } from "@/components/kaartbeheer/GerechtAllergenenTab";
 import { ChevronLeft } from "lucide-react";
 
 const DEFAULT_CATS = ["Voorgerechten", "Hoofdgerechten", "Desserts", "Bijgerechten", "Dranken", "Overig"];
@@ -19,7 +18,6 @@ const DEFAULT_CATS = ["Voorgerechten", "Hoofdgerechten", "Desserts", "Bijgerecht
 const tabs = [
   { id: "componenten", label: "Componenten" },
   { id: "bereiding", label: "Bereiding" },
-  { id: "allergenen", label: "Allergenen" },
 ];
 
 export default function KaartbeheerDetail() {
@@ -177,9 +175,6 @@ export default function KaartbeheerDetail() {
             </div>
           </NestoTabContent>
 
-          <NestoTabContent value="allergenen" activeValue={activeTab}>
-            <GerechtAllergenenTab gerechtId={gerecht.id} />
-          </NestoTabContent>
         </div>
 
         {/* Right column — sticky sidebar */}
