@@ -5,13 +5,12 @@ import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useCreateMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { MepQuickAddDropdown } from "./MepQuickAddDropdown";
-import { MepFavorieten } from "./MepFavorieten";
 import { SnellePrepModal } from "./SnellePrepModal";
 import { addDays, format } from "date-fns";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
-import { useAddMepFavoriet } from "@/hooks/useMepFavorieten";
+import { useMepFavorieten, useAddMepFavoriet, useRemoveMepFavoriet } from "@/hooks/useMepFavorieten";
 import type { MepTask } from "@/hooks/useMepTasks";
 import type { HalffabricaatSearchResult } from "@/hooks/useHalffabricaatSearch";
 import type { IngredientResult } from "./MepQuickAddDropdown";
@@ -30,9 +29,11 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
 
   const { data: halffabricaten = [], isLoading: hfLoading } = useHalffabricaatSearch(search);
   const { data: ingredienten = [], isLoading: igLoading } = useIngredientSearch(search);
+  const { data: favorieten = [] } = useMepFavorieten();
   const createTask = useCreateMepTask();
   const updateTask = useUpdateMepTask();
   const addFavoriet = useAddMepFavoriet();
+  const removeFavoriet = useRemoveMepFavoriet();
 
   const isPending = createTask.isPending || updateTask.isPending;
   const isLoading = hfLoading || igLoading;
@@ -44,6 +45,15 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
       ? format(addDays(now, 1), "yyyy-MM-dd")
       : taskDate;
   }
+
+  const autoSaveFavoriet = (input: {
+    title: string;
+    category: string;
+    recept_id?: string | null;
+    methode_id?: string | null;
+  }) => {
+    addFavoriet.mutate(input);
+  };
 
   const handleAddHalffabricaat = async (
     item: HalffabricaatSearchResult,
@@ -91,6 +101,12 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
       units: 1,
       prioriteit: "Normaal",
     });
+    autoSaveFavoriet({
+      title,
+      category: item.categorie || "halffabricaat",
+      recept_id: item.id,
+      methode_id: methode?.id,
+    });
     setSearch("");
   };
 
@@ -132,12 +148,12 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
       units: 1,
       prioriteit: "Normaal",
     });
+    autoSaveFavoriet({ title, category: "Overig" });
     setSearch("");
   };
 
   const handleFavorietSelect = async (fav: MepFavoriet) => {
     if (fav.recept_id) {
-      // Simulate halffabricaat add with duplicate check
       const smartDate = getSmartDate();
 
       if (locationId) {
@@ -163,6 +179,7 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
           const newUnits = (task.units ?? 1) + 1;
           updateTask.mutate({ id: task.id, units: newUnits });
           nestoToast.success(`${fav.title} — verhoogd naar ${newUnits}×`);
+          setSearch("");
           return;
         }
       }
@@ -177,7 +194,6 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
         prioriteit: "Normaal",
       });
     } else {
-      // Free task favorite
       const smartDate = getSmartDate();
 
       if (locationId) {
@@ -196,6 +212,7 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
           const newUnits = (task.units ?? 1) + 1;
           updateTask.mutate({ id: task.id, units: newUnits });
           nestoToast.success(`${fav.title} — verhoogd naar ${newUnits}×`);
+          setSearch("");
           return;
         }
       }
@@ -208,23 +225,13 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
         prioriteit: "Normaal",
       });
     }
-  };
-
-  const handleAddFavoriet = (input: {
-    title: string;
-    category: string;
-    recept_id?: string | null;
-    methode_id?: string | null;
-  }) => {
-    addFavoriet.mutate(input);
+    setSearch("");
   };
 
   const showDropdown = search.trim().length >= 2;
 
   return (
     <div className="space-y-2">
-      <MepFavorieten onSelect={handleFavorietSelect} isPending={isPending} />
-
       <div className="relative">
         <NestoInput
           placeholder="Zoek halffabricaat, ingrediënt of voeg taak toe..."
@@ -238,12 +245,14 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
               search={search.trim()}
               halffabricaten={halffabricaten}
               ingredienten={ingredienten}
+              favorieten={favorieten}
               isLoading={isLoading}
               isPending={isPending}
               onSelectHalffabricaat={handleAddHalffabricaat}
               onSelectIngredient={handleSelectIngredient}
               onAddFreeTask={handleAddFreeTask}
-              onAddFavoriet={handleAddFavoriet}
+              onSelectFavoriet={handleFavorietSelect}
+              onRemoveFavoriet={(id) => removeFavoriet.mutate(id)}
             />
           </div>
         )}

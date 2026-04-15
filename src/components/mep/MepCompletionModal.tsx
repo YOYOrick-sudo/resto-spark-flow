@@ -3,8 +3,6 @@ import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { useCompleteMepTask } from "@/hooks/useMepMutations";
-import { useMepFavorieten, useAddMepFavoriet } from "@/hooks/useMepFavorieten";
-import { Star } from "lucide-react";
 import type { MepTask } from "@/hooks/useMepTasks";
 
 interface MepCompletionModalProps {
@@ -29,12 +27,6 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
   const [temperatuur, setTemperatuur] = useState<string>("");
 
   const completeTask = useCompleteMepTask();
-  const { data: favorieten = [] } = useMepFavorieten();
-  const addFavoriet = useAddMepFavoriet();
-
-  const isAlreadyFavoriet = favorieten.some(
-    (f) => f.title === task.title
-  );
 
   const calculatedYield =
     verwachteGram && werkelijkeGram
@@ -57,15 +49,6 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
     );
   };
 
-  const handleSaveFavoriet = () => {
-    addFavoriet.mutate({
-      title: task.title,
-      category: task.category || "Overig",
-      recept_id: task.recept_id,
-      methode_id: task.methode_id,
-    });
-  };
-
   return (
     <NestoModal
       open={open}
@@ -77,30 +60,16 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
           : undefined
       }
       footer={
-        <div className="flex items-center justify-between w-full">
-          <div>
-            {!isAlreadyFavoriet && (
-              <button
-                onClick={handleSaveFavoriet}
-                disabled={addFavoriet.isPending}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Star className="h-3.5 w-3.5" />
-                <span>Onthouden</span>
-              </button>
-            )}
-          </div>
-          <div className="flex gap-3">
-            <NestoButton variant="outline" onClick={() => onOpenChange(false)}>
-              Annuleren
-            </NestoButton>
-            <NestoButton
-              onClick={handleSubmit}
-              disabled={completeTask.isPending || unitsGemaakt <= 0}
-            >
-              {completeTask.isPending ? "Bezig..." : "Afronden"}
-            </NestoButton>
-          </div>
+        <div className="flex items-center justify-end w-full gap-3">
+          <NestoButton variant="outline" onClick={() => onOpenChange(false)}>
+            Annuleren
+          </NestoButton>
+          <NestoButton
+            onClick={handleSubmit}
+            disabled={completeTask.isPending || unitsGemaakt <= 0}
+          >
+            {completeTask.isPending ? "Bezig..." : "Afronden"}
+          </NestoButton>
         </div>
       }
     >
