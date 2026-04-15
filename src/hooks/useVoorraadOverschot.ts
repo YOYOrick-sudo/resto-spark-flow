@@ -12,6 +12,8 @@ export interface OverstockedItem {
   ratio: number;
 }
 
+const EXCLUDE_OVERSTOCKED_CATEGORIES = /conserven|droog|hard.?kaas/i;
+
 export function useVoorraadOverschot(minWaarde: number = 10) {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
@@ -21,13 +23,12 @@ export function useVoorraadOverschot(minWaarde: number = 10) {
     queryFn: async (): Promise<OverstockedItem[]> => {
       const { data: ingredients, error } = await supabase
         .from("ingredienten")
-        .select("id, naam, voorraad, eenheid, kostprijs, opslag_type")
+        .select("id, naam, voorraad, eenheid, kostprijs, opslag_type, categorie")
         .eq("location_id", locationId!)
         .eq("is_archived", false)
         .gt("voorraad", 0);
       if (error) throw error;
 
-      // Get WASTE + OUT movements from last 4 weeks in a single query
       const vierWekenGeleden = format(subWeeks(new Date(), 4), "yyyy-MM-dd");
       const { data: bewegingen } = await supabase
         .from("voorraad_bewegingen")
@@ -43,8 +44,8 @@ export function useVoorraadOverschot(minWaarde: number = 10) {
 
       const items: OverstockedItem[] = (ingredients ?? [])
         .filter((ig) => {
-          // Exclude dry/non-perishable
           if (ig.opslag_type === "droog") return false;
+          if (ig.categorie && EXCLUDE_OVERSTOCKED_CATEGORIES.test(ig.categorie)) return false;
           const totaalVerbruik = weekVerbruik.get(ig.id) ?? 0;
           const gemiddeldPerWeek = totaalVerbruik / 4;
           if (gemiddeldPerWeek <= 0) return false;

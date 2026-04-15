@@ -5,7 +5,7 @@ import { useVoorraadNul } from "./useVoorraadNul";
 import { useKeukenSettings } from "./useKeukenSettings";
 
 export interface KeukenMelding {
-  type: "bijna_verlopen" | "verlopen" | "voorraad_nul" | "voorraad_laag" | "overschot";
+  type: "bijna_verlopen" | "verlopen" | "voorraad_nul" | "voorraad_laag" | "overschot" | string;
   severity: "error" | "warning" | "info";
   titel: string;
   beschrijving: string;
@@ -14,6 +14,15 @@ export interface KeukenMelding {
   actie_path?: string;
   items?: BijnaVerlopenItem[];
   overstockedItems?: OverstockedItem[];
+}
+
+function formatItemList(
+  items: { label: string }[],
+  max = 2
+): string {
+  const shown = items.slice(0, max).map((i) => i.label).join(" · ");
+  const rest = items.length - max;
+  return rest > 0 ? `${shown} · +${rest} meer` : shown;
 }
 
 export function useKeukenMeldingen() {
@@ -28,7 +37,7 @@ export function useKeukenMeldingen() {
   return useMemo(() => {
     const meldingen: KeukenMelding[] = [];
 
-    // Verlopen items (dagen_resterend <= 0) — always show
+    // Verlopen items
     const verlopen = bijnaVerlopen.filter((i) => i.dagen_resterend <= 0);
     if (verlopen.length > 0) {
       const totaleWaarde = verlopen.reduce((s, i) => s + i.geschatte_waarde, 0);
@@ -36,14 +45,16 @@ export function useKeukenMeldingen() {
         type: "verlopen",
         severity: "error",
         titel: `${verlopen.length} item${verlopen.length > 1 ? "s" : ""} verlopen`,
-        beschrijving: verlopen.map((i) => `${i.productnaam} (${i.geschatte_hoeveelheid})`).join(", "),
+        beschrijving: formatItemList(
+          verlopen.map((i) => ({ label: `${i.productnaam} — ${i.geschatte_hoeveelheid}` }))
+        ),
         waarde: totaleWaarde,
         actie_label: "Personeelsmaaltijd bedenken",
         items: verlopen,
       });
     }
 
-    // Bijna verlopen (dagen_resterend > 0) — only if value >= threshold
+    // Bijna verlopen
     const bijna = bijnaVerlopen.filter((i) => i.dagen_resterend > 0);
     if (bijna.length > 0) {
       const totaleWaarde = bijna.reduce((s, i) => s + i.geschatte_waarde, 0);
@@ -52,9 +63,11 @@ export function useKeukenMeldingen() {
           type: "bijna_verlopen",
           severity: "warning",
           titel: `${bijna.length} item${bijna.length > 1 ? "s" : ""} verloop${bijna.length > 1 ? "en" : "t"} binnenkort`,
-          beschrijving: bijna
-            .map((i) => `${i.productnaam} (${i.geschatte_hoeveelheid}, ${i.dagen_resterend === 1 ? "morgen" : `over ${i.dagen_resterend} dagen`})`)
-            .join(", "),
+          beschrijving: formatItemList(
+            bijna.map((i) => ({
+              label: `${i.productnaam} — ${i.geschatte_hoeveelheid}, ${i.dagen_resterend === 1 ? "morgen" : `over ${i.dagen_resterend} dagen`}`,
+            }))
+          ),
           waarde: totaleWaarde,
           actie_label: "Personeelsmaaltijd bedenken",
           items: bijna,
@@ -62,45 +75,54 @@ export function useKeukenMeldingen() {
       }
     }
 
-    // Voorraad nul — always show
+    // Voorraad nul
     const nul = voorraadData?.nul ?? [];
     if (nul.length > 0) {
       meldingen.push({
         type: "voorraad_nul",
         severity: "error",
         titel: `${nul.length} ingrediënt${nul.length > 1 ? "en" : ""} op`,
-        beschrijving: nul.slice(0, 5).map((i) => i.naam).join(", ") + (nul.length > 5 ? ` +${nul.length - 5}` : ""),
+        beschrijving: formatItemList(nul.map((i) => ({ label: i.naam }))),
         actie_label: "Bestelling aanmaken",
         actie_path: "/inkoop",
       });
     }
 
-    // Voorraad laag — always show
+    // Voorraad laag
     const laag = voorraadData?.laag ?? [];
     if (laag.length > 0) {
       meldingen.push({
         type: "voorraad_laag",
         severity: "warning",
         titel: `${laag.length} ingrediënt${laag.length > 1 ? "en" : ""} onder minimum`,
-        beschrijving: laag.slice(0, 5).map((i) => `${i.naam} (${i.voorraad} ${i.eenheid})`).join(", "),
+        beschrijving: formatItemList(
+          laag.map((i) => ({ label: `${i.naam} (${i.voorraad} ${i.eenheid})` }))
+        ),
         actie_label: "Bestelling aanmaken",
         actie_path: "/inkoop",
       });
     }
 
-    // Overstocked — only if value >= threshold
+    // Overstocked — versimpeld
     if (overstocked.length > 0) {
       meldingen.push({
         type: "overschot",
         severity: "info",
-        titel: `${overstocked.length} ingrediënt${overstocked.length > 1 ? "en" : ""} overstocked`,
-        beschrijving: overstocked
-          .slice(0, 3)
-          .map((i) => `${i.naam} (${i.hoeveelheid} ${i.eenheid}, ${i.ratio}× weekverbruik)`)
-          .join(", "),
+        titel: "Hoge voorraad",
+        beschrijving: formatItemList(
+          overstocked.map((i) => ({ label: `${i.naam} — ${i.hoeveelheid} ${i.eenheid}` }))
+        ),
+        actie_label: "Personeelsmaaltijd bedenken",
         overstockedItems: overstocked,
       });
     }
+
+    // Sort: error > warning > info, then by value desc
+    const sevOrder: Record<string, number> = { error: 0, warning: 1, info: 2 };
+    meldingen.sort((a, b) => {
+      const diff = (sevOrder[a.severity] ?? 2) - (sevOrder[b.severity] ?? 2);
+      return diff !== 0 ? diff : (b.waarde ?? 0) - (a.waarde ?? 0);
+    });
 
     return meldingen;
   }, [bijnaVerlopen, overstocked, voorraadData, minWaardeVerlopen, minWaardeOverschot]);

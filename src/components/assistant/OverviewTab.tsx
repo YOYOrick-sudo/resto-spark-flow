@@ -14,7 +14,7 @@ import { useAgentActions } from '@/hooks/useAgentActions';
 import { useAssistentLog } from '@/hooks/useAssistentLog';
 import { useUserContext } from '@/contexts/UserContext';
 import { nestoToast } from '@/lib/nestoToast';
-import { KeukenSectie } from '@/components/assistent/KeukenSectie';
+import { MeldingenSecties } from '@/components/assistent/MeldingenSecties';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -102,7 +102,7 @@ export function OverviewTab() {
   });
 
   const urgentSignals = useMemo(
-    () => signals.filter((s) => s.actionable && (s.severity === 'error' || s.severity === 'warning')),
+    () => signals.filter((s) => s.actionable && (s.severity === 'error' || s.severity === 'warning') && s.module !== 'reserveringen'),
     [signals]
   );
 
@@ -320,7 +320,7 @@ export function OverviewTab() {
       )}
 
       {/* Kitchen alerts */}
-      <KeukenSectie />
+      <MeldingenSecties />
 
       {/* Activity log */}
       {allLogItems.length > 0 ? (
