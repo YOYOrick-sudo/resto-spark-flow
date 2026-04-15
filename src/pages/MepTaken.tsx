@@ -4,7 +4,7 @@ import { nl } from "date-fns/locale";
 import { PageHeader } from "@/components/polar";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
 import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
 import { useCancelMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { MepQuickAdd } from "@/components/mep/MepQuickAdd";
@@ -12,6 +12,8 @@ import { MepWeekView } from "@/components/mep/MepWeekView";
 import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
 import { MepCategoryView } from "@/components/mep/MepCategoryView";
 import { MepDayPlan } from "@/components/mep/MepDayPlan";
+import { WasteModal } from "@/components/mep/WasteModal";
+import { PersoneelsmaaltijdModal } from "@/components/mep/PersoneelsmaaltijdModal";
 
 type ViewMode = "categorie" | "week";
 const STORAGE_KEY = "mep-view-preference";
@@ -30,6 +32,8 @@ export default function MepTaken() {
   const [view, setView] = useState<ViewMode>(getInitialView);
   const [planOpen, setPlanOpen] = useState(false);
   const [planOrder, setPlanOrder] = useState<string[] | null>(null);
+  const [wasteOpen, setWasteOpen] = useState(false);
+  const [personeelOpen, setPersoneelOpen] = useState(false);
 
   // Persist view preference
   useEffect(() => {
@@ -117,6 +121,24 @@ export default function MepTaken() {
                 Plan mijn dag
               </NestoButton>
             )}
+            <NestoButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setWasteOpen(true)}
+              className="gap-1.5"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Waste
+            </NestoButton>
+            <NestoButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setPersoneelOpen(true)}
+              className="gap-1.5"
+            >
+              <UtensilsCrossed className="h-3.5 w-3.5" />
+              Personeel
+            </NestoButton>
             <div className="flex items-center border border-border rounded-lg overflow-hidden">
               <NestoButton
                 variant="ghost"
@@ -183,7 +205,10 @@ export default function MepTaken() {
             onCancel={(id) => cancelTask.mutate(id)}
             onPriorityChange={handlePriorityChange}
             isLoading={dayLoading}
-          />
+      />
+
+      <WasteModal open={wasteOpen} onOpenChange={setWasteOpen} />
+      <PersoneelsmaaltijdModal open={personeelOpen} onOpenChange={setPersoneelOpen} />
         </>
       )}
 
