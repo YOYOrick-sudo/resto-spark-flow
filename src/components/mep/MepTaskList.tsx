@@ -17,7 +17,7 @@ const STATUS_CONFIG: Record<string, { variant: "default" | "success" | "error" |
   pending: { variant: "default", label: "Open" },
   in_progress: { variant: "pending", label: "Bezig" },
   completed: { variant: "success", label: "Klaar" },
-  cancelled: { variant: "error", label: "Geannuleerd" },
+  cancelled: { variant: "default", label: "Geannuleerd" },
 };
 
 export function MepTaskList({ tasks, isLoading }: MepTaskListProps) {
