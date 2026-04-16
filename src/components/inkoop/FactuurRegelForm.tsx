@@ -40,7 +40,7 @@ export function FactuurRegelForm({ factuurId, onDone }: Props) {
           : undefined,
         totaal: totaal ? parseFloat(totaal) : undefined,
         ingredient_id: ingredientId || undefined,
-        match_status: ingredientId ? "handmatig" : "niet_gematcht",
+        match_status: ingredientId ? "manual" : "unmatched",
       },
       { onSuccess: () => onDone() }
     );

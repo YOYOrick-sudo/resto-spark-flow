@@ -143,7 +143,7 @@ export function useFactuurMutations() {
     mutationFn: async ({ regelId, ingredientId }: { regelId: string; ingredientId: string }) => {
       const { error } = await supabase
         .from("factuur_regels")
-        .update({ ingredient_id: ingredientId, match_status: "handmatig" })
+        .update({ ingredient_id: ingredientId, match_status: "manual" })
         .eq("id", regelId);
       if (error) throw error;
     },
@@ -176,7 +176,7 @@ export function useFactuurMutations() {
       const matchedRegels = ((factuur as any).factuur_regels ?? []).filter(
         (r: any) =>
           r.ingredient_id &&
-          (r.match_status === "gematcht" || r.match_status === "handmatig") &&
+          (r.match_status === "matched" || r.match_status === "manual") &&
           r.prijs_per_eenheid != null
       );
 
