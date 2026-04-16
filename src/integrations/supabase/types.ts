@@ -216,43 +216,52 @@ export type Database = {
       }
       ai_logs: {
         Row: {
-          cost_usd: number | null
+          cost_eur: number | null
           created_at: string | null
+          duration_ms: number | null
           error_message: string | null
           feature: string
           id: string
           input_tokens: number | null
           latency_ms: number | null
-          location_id: string
+          location_id: string | null
           model: string
+          organization_id: string | null
           output_tokens: number | null
           status: string | null
+          was_fallback: boolean
         }
         Insert: {
-          cost_usd?: number | null
+          cost_eur?: number | null
           created_at?: string | null
+          duration_ms?: number | null
           error_message?: string | null
           feature: string
           id?: string
           input_tokens?: number | null
           latency_ms?: number | null
-          location_id: string
+          location_id?: string | null
           model: string
+          organization_id?: string | null
           output_tokens?: number | null
           status?: string | null
+          was_fallback?: boolean
         }
         Update: {
-          cost_usd?: number | null
+          cost_eur?: number | null
           created_at?: string | null
+          duration_ms?: number | null
           error_message?: string | null
           feature?: string
           id?: string
           input_tokens?: number | null
           latency_ms?: number | null
-          location_id?: string
+          location_id?: string | null
           model?: string
+          organization_id?: string | null
           output_tokens?: number | null
           status?: string | null
+          was_fallback?: boolean
         }
         Relationships: [
           {
@@ -260,6 +269,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
