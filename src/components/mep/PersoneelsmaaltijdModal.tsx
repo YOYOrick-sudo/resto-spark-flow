@@ -353,6 +353,10 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
   };
 
   const handleSuggestMeal = async () => {
+    if (!currentLocation?.id) {
+      nestoToast.error("Geen actieve locatie geselecteerd");
+      return;
+    }
     setAiLoading(true);
     setAiAttempts((p) => p + 1);
     try {

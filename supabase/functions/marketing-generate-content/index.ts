@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAIWithTools, resolveOrgId } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -44,18 +44,17 @@ serve(async (req) => {
     const location = locationRes.data;
     const intelligence = intelligenceRes.data;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const organizationId = await resolveOrgId(locationId);
 
     if (type === "social") {
-      const result = await generateSocialContent(body, brandKit, location, intelligence, LOVABLE_API_KEY);
+      const result = await generateSocialContent(body, brandKit, location, intelligence, locationId, organizationId);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (type === "email") {
-      const result = await generateEmailContent(body, brandKit, location, LOVABLE_API_KEY);
+      const result = await generateEmailContent(body, brandKit, location, locationId, organizationId);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -92,39 +91,7 @@ interface BrandIntelligence {
   optimal_post_times: any[] | null;
   top_hashtag_sets: any[] | null;
   learning_stage: string | null;
-}
-
-async function callAI(messages: { role: string; content: string }[], tools: any[], toolChoice: any, apiKey: string) {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages,
-      tools,
-      tool_choice: toolChoice,
-    }),
-  });
-
-  if (!response.ok) {
-    if (response.status === 429) {
-      throw Object.assign(new Error("Te veel verzoeken, probeer het later opnieuw"), { status: 429 });
-    }
-    if (response.status === 402) {
-      throw Object.assign(new Error("AI credits zijn op"), { status: 402 });
-    }
-    const text = await response.text();
-    console.error("AI gateway error:", response.status, text);
-    throw new Error("AI gateway error");
-  }
-
-  const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("No tool call in AI response");
-  return JSON.parse(toolCall.function.arguments);
+  engagement_baseline?: Record<string, any> | null;
 }
 
 function buildIntelligenceContext(intelligence: BrandIntelligence | null): { systemExtra: string; userExtra: string } {
@@ -173,7 +140,8 @@ async function generateSocialContent(
   brandKit: BrandKit | null,
   location: Location | null,
   intelligence: BrandIntelligence | null,
-  apiKey: string
+  locationId: string,
+  organizationId: string
 ) {
   const platforms = body.platforms ?? ["instagram"];
   const abTest = body.ab_test === true;
@@ -182,36 +150,19 @@ async function generateSocialContent(
   const restaurantName = location?.name ?? "het restaurant";
 
   const platformInstructions = platforms.map((p) => {
-    if (p === "instagram") {
-      return `Instagram: Schrijf een korte caption (max 150 woorden). Visueel beschrijvend, geef sfeer weer. Gebruik 8-12 hashtags (mix van breed en niche). Emoji's passend bij de tone of voice. GEEN links — Instagram caption links werken niet.`;
-    }
-    if (p === "facebook") {
-      return `Facebook: Schrijf een langere post met context en storytelling. GEEN hashtags. Voeg "[RESERVEER_LINK]" toe als placeholder voor de reserveringslink. Sluit af met een vraag of CTA.`;
-    }
-    if (p === "google_business") {
-      return `Google Business: Zakelijk en to-the-point. Focus op het aanbod of de actie. Sterke CTA (bijv. "Reserveer nu", "Bezoek ons"). Vermeld openingstijden als relevant.`;
-    }
+    if (p === "instagram") return `Instagram: Schrijf een korte caption (max 150 woorden). Visueel beschrijvend, geef sfeer weer. Gebruik 8-12 hashtags (mix van breed en niche). Emoji's passend bij de tone of voice. GEEN links — Instagram caption links werken niet.`;
+    if (p === "facebook") return `Facebook: Schrijf een langere post met context en storytelling. GEEN hashtags. Voeg "[RESERVEER_LINK]" toe als placeholder voor de reserveringslink. Sluit af met een vraag of CTA.`;
+    if (p === "google_business") return `Google Business: Zakelijk en to-the-point. Focus op het aanbod of de actie. Sterke CTA (bijv. "Reserveer nu", "Bezoek ons"). Vermeld openingstijden als relevant.`;
     return "";
   }).join("\n\n");
 
   const { systemExtra, userExtra } = buildIntelligenceContext(intelligence);
 
   const abTestInstruction = abTest
-    ? `\n\nGENEREER TWEE VARIANTEN:
-- Variant A: Gebruik de huidige stijl en aanpak.
-- Variant B: Gebruik een alternatieve aanpak — andere openingszin, andere CTA, andere invalshoek. Hashtags mogen ook variëren.
-Beide varianten moeten over hetzelfde onderwerp gaan, maar op een duidelijk andere manier geschreven zijn.`
+    ? `\n\nGENEREER TWEE VARIANTEN:\n- Variant A: Gebruik de huidige stijl en aanpak.\n- Variant B: Gebruik een alternatieve aanpak — andere openingszin, andere CTA, andere invalshoek. Hashtags mogen ook variëren.\nBeide varianten moeten over hetzelfde onderwerp gaan, maar op een duidelijk andere manier geschreven zijn.`
     : "";
 
-  const systemPrompt = `Je bent een social media copywriter voor ${restaurantName}, een horecabedrijf.
-
-Tone of voice: ${tone}${toneDesc ? ` — ${toneDesc}` : ""}
-
-Per platform schrijf je een unieke, op maat gemaakte caption. Niet dezelfde tekst kopiëren.
-
-${platformInstructions}
-
-Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatietijd en dag.${systemExtra}${abTestInstruction}`;
+  const systemPrompt = `Je bent een social media copywriter voor ${restaurantName}, een horecabedrijf.\n\nTone of voice: ${tone}${toneDesc ? ` — ${toneDesc}` : ""}\n\nPer platform schrijf je een unieke, op maat gemaakte caption. Niet dezelfde tekst kopiëren.\n\n${platformInstructions}\n\nGeef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatietijd en dag.${systemExtra}${abTestInstruction}`;
 
   let userPrompt = body.context
     ? `Onderwerp: ${body.context}${body.content_type_tag ? `\nContent type: ${body.content_type_tag}` : ""}`
@@ -220,28 +171,13 @@ Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatieti
 
   const platformProperties: Record<string, any> = {};
   if (platforms.includes("instagram")) {
-    platformProperties.instagram = {
-      type: "object",
-      properties: {
-        caption: { type: "string" },
-        hashtags: { type: "array", items: { type: "string" } },
-      },
-      required: ["caption", "hashtags"],
-    };
+    platformProperties.instagram = { type: "object", properties: { caption: { type: "string" }, hashtags: { type: "array", items: { type: "string" } } }, required: ["caption", "hashtags"] };
   }
   if (platforms.includes("facebook")) {
-    platformProperties.facebook = {
-      type: "object",
-      properties: { caption: { type: "string" } },
-      required: ["caption"],
-    };
+    platformProperties.facebook = { type: "object", properties: { caption: { type: "string" } }, required: ["caption"] };
   }
   if (platforms.includes("google_business")) {
-    platformProperties.google_business = {
-      type: "object",
-      properties: { caption: { type: "string" } },
-      required: ["caption"],
-    };
+    platformProperties.google_business = { type: "object", properties: { caption: { type: "string" } }, required: ["caption"] };
   }
 
   let timeDescription = "Optimal posting time, e.g. 18:00";
@@ -254,129 +190,111 @@ Geef ook 10 relevante hashtag suggesties (zonder #) en een optimale publicatieti
   }
 
   if (abTest) {
-    // A/B test mode: return variants.a and variants.b
     const variantSchema = {
       type: "object",
-      properties: {
-        platforms: { type: "object", properties: platformProperties, required: Object.keys(platformProperties) },
-      },
+      properties: { platforms: { type: "object", properties: platformProperties, required: Object.keys(platformProperties) } },
       required: ["platforms"],
     };
 
-    const tools = [
-      {
-        type: "function",
-        function: {
-          name: "return_social_content",
-          description: "Return generated social media content with two A/B test variants",
-          parameters: {
-            type: "object",
-            properties: {
-              variants: {
-                type: "object",
-                properties: {
-                  a: variantSchema,
-                  b: variantSchema,
-                },
-                required: ["a", "b"],
-              },
-              suggested_hashtags: { type: "array", items: { type: "string" }, description: "10 suggested hashtags without #" },
-              suggested_time: { type: "string", description: timeDescription },
-              suggested_day: { type: "string", description: dayDescription },
-            },
-            required: ["variants", "suggested_hashtags"],
-            additionalProperties: false,
-          },
-        },
-      },
-    ];
-
-    return await callAI(
-      [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      tools,
-      { type: "function", function: { name: "return_social_content" } },
-      apiKey
-    );
-  }
-
-  // Normal mode (no A/B)
-  const tools = [
-    {
+    const tools = [{
       type: "function",
       function: {
         name: "return_social_content",
-        description: "Return generated social media content per platform",
+        description: "Return generated social media content with two A/B test variants",
         parameters: {
           type: "object",
           properties: {
-            platforms: { type: "object", properties: platformProperties, required: Object.keys(platformProperties) },
+            variants: { type: "object", properties: { a: variantSchema, b: variantSchema }, required: ["a", "b"] },
             suggested_hashtags: { type: "array", items: { type: "string" }, description: "10 suggested hashtags without #" },
             suggested_time: { type: "string", description: timeDescription },
             suggested_day: { type: "string", description: dayDescription },
-            photo_suggestion: { type: "string", description: "Concrete foto-tip in 1 zin, passend bij de visuele stijl" },
-            content_type: { type: "string", description: "Aanbevolen content type: food_shot, behind_the_scenes, team, ambiance, seasonal, promo, event, user_generated" },
           },
-          required: ["platforms", "suggested_hashtags"],
+          required: ["variants", "suggested_hashtags"],
           additionalProperties: false,
         },
       },
-    },
-  ];
+    }];
 
-  return await callAI(
-    [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
+    const result = await callAIWithTools({
+      featureKey: 'marketing_generate_social',
+      organizationId,
+      locationId,
+      messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+      tools,
+      toolChoice: { type: "function", function: { name: "return_social_content" } },
+    });
+    if (result.toolCalls?.length) return result.toolCalls[0].arguments;
+    throw new Error("No tool call in AI response");
+  }
+
+  const tools = [{
+    type: "function",
+    function: {
+      name: "return_social_content",
+      description: "Return generated social media content per platform",
+      parameters: {
+        type: "object",
+        properties: {
+          platforms: { type: "object", properties: platformProperties, required: Object.keys(platformProperties) },
+          suggested_hashtags: { type: "array", items: { type: "string" }, description: "10 suggested hashtags without #" },
+          suggested_time: { type: "string", description: timeDescription },
+          suggested_day: { type: "string", description: dayDescription },
+          photo_suggestion: { type: "string", description: "Concrete foto-tip in 1 zin, passend bij de visuele stijl" },
+          content_type: { type: "string", description: "Aanbevolen content type: food_shot, behind_the_scenes, team, ambiance, seasonal, promo, event, user_generated" },
+        },
+        required: ["platforms", "suggested_hashtags"],
+        additionalProperties: false,
+      },
+    },
+  }];
+
+  const result = await callAIWithTools({
+    featureKey: 'marketing_generate_social',
+    organizationId,
+    locationId,
+    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
     tools,
-    { type: "function", function: { name: "return_social_content" } },
-    apiKey
-  );
+    toolChoice: { type: "function", function: { name: "return_social_content" } },
+  });
+  if (result.toolCalls?.length) return result.toolCalls[0].arguments;
+  throw new Error("No tool call in AI response");
 }
 
 async function generateEmailContent(
   body: { email_body?: string; instruction?: string },
   brandKit: BrandKit | null,
   location: Location | null,
-  apiKey: string
+  locationId: string,
+  organizationId: string
 ) {
   const tone = brandKit?.tone_of_voice ?? "professioneel en gastvrij";
   const restaurantName = location?.name ?? "het restaurant";
 
-  const systemPrompt = `Je bent een e-mail copywriter voor ${restaurantName}.
-Tone of voice: ${tone}
-Pas de gegeven e-mailtekst aan volgens de instructie van de gebruiker. Geef alleen de aangepaste tekst terug, geen uitleg.`;
-
+  const systemPrompt = `Je bent een e-mail copywriter voor ${restaurantName}.\nTone of voice: ${tone}\nPas de gegeven e-mailtekst aan volgens de instructie van de gebruiker. Geef alleen de aangepaste tekst terug, geen uitleg.`;
   const userPrompt = `Huidige tekst:\n${body.email_body ?? "(leeg)"}\n\nInstructie: ${body.instruction ?? "Verbeter de tekst"}`;
 
-  const tools = [
-    {
-      type: "function",
-      function: {
-        name: "return_email_content",
-        description: "Return the updated email body text",
-        parameters: {
-          type: "object",
-          properties: {
-            updated_body: { type: "string", description: "The adjusted email body text" },
-          },
-          required: ["updated_body"],
-          additionalProperties: false,
-        },
+  const tools = [{
+    type: "function",
+    function: {
+      name: "return_email_content",
+      description: "Return the updated email body text",
+      parameters: {
+        type: "object",
+        properties: { updated_body: { type: "string", description: "The adjusted email body text" } },
+        required: ["updated_body"],
+        additionalProperties: false,
       },
     },
-  ];
+  }];
 
-  return await callAI(
-    [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
+  const result = await callAIWithTools({
+    featureKey: 'marketing_generate_email',
+    organizationId,
+    locationId,
+    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
     tools,
-    { type: "function", function: { name: "return_email_content" } },
-    apiKey
-  );
+    toolChoice: { type: "function", function: { name: "return_email_content" } },
+  });
+  if (result.toolCalls?.length) return result.toolCalls[0].arguments;
+  throw new Error("No tool call in AI response");
 }

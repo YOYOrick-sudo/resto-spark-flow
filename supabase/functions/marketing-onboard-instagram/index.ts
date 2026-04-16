@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAIWithTools, resolveOrgId } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +17,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing Authorization header");
     const token = authHeader.replace("Bearer ", "");
@@ -26,7 +26,6 @@ Deno.serve(async (req) => {
     const { account_id } = await req.json();
     if (!account_id) throw new Error("Missing account_id");
 
-    // Get employee -> location
     const { data: employee } = await supabase
       .from("employees")
       .select("location_id")
@@ -35,7 +34,6 @@ Deno.serve(async (req) => {
     if (!employee) throw new Error("No location found");
     const locationId = employee.location_id;
 
-    // Get social account
     const { data: account } = await supabase
       .from("marketing_social_accounts")
       .select("*")
@@ -68,7 +66,6 @@ Deno.serve(async (req) => {
     const insertedPosts: { id: string; externalId: string; caption: string | null }[] = [];
 
     for (const media of mediaItems) {
-      // Skip if already exists
       const { data: existing } = await supabase
         .from("marketing_social_posts")
         .select("id")
@@ -130,7 +127,6 @@ Deno.serve(async (req) => {
           metrics[metric.name] = metric.values?.[0]?.value ?? 0;
         }
 
-        // Merge with existing analytics
         const { data: current } = await supabase
           .from("marketing_social_posts")
           .select("analytics")
@@ -156,84 +152,69 @@ Deno.serve(async (req) => {
 
     if (captionsForClassification.length > 0) {
       try {
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        if (LOVABLE_API_KEY) {
-          const captionList = captionsForClassification
-            .map((c) => `${c.index}: ${c.caption}`)
-            .join("\n");
+        const organizationId = await resolveOrgId(locationId);
+        const captionList = captionsForClassification
+          .map((c) => `${c.index}: ${c.caption}`)
+          .join("\n");
 
-          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
-              messages: [
-                {
-                  role: "system",
-                  content: `Classificeer elke Instagram caption in exact 1 van deze categorieën:
+        const aiResult = await callAIWithTools({
+          featureKey: 'marketing_classify_captions',
+          organizationId,
+          locationId,
+          messages: [
+            {
+              role: "system",
+              content: `Classificeer elke Instagram caption in exact 1 van deze categorieën:
 food_shot, behind_the_scenes, team, ambiance, seasonal, promo, event, user_generated.
 Geef voor elke caption het nummer en de categorie.`,
-                },
-                { role: "user", content: captionList },
-              ],
-              tools: [
-                {
-                  type: "function",
-                  function: {
-                    name: "classify_captions",
-                    description: "Classify each caption into a content type",
-                    parameters: {
+            },
+            { role: "user", content: captionList },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "classify_captions",
+              description: "Classify each caption into a content type",
+              parameters: {
+                type: "object",
+                properties: {
+                  classifications: {
+                    type: "array",
+                    items: {
                       type: "object",
                       properties: {
-                        classifications: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              index: { type: "number" },
-                              tag: {
-                                type: "string",
-                                enum: [
-                                  "food_shot", "behind_the_scenes", "team", "ambiance",
-                                  "seasonal", "promo", "event", "user_generated",
-                                ],
-                              },
-                            },
-                            required: ["index", "tag"],
-                          },
+                        index: { type: "number" },
+                        tag: {
+                          type: "string",
+                          enum: [
+                            "food_shot", "behind_the_scenes", "team", "ambiance",
+                            "seasonal", "promo", "event", "user_generated",
+                          ],
                         },
                       },
-                      required: ["classifications"],
-                      additionalProperties: false,
+                      required: ["index", "tag"],
                     },
                   },
                 },
-              ],
-              tool_choice: { type: "function", function: { name: "classify_captions" } },
-            }),
-          });
+                required: ["classifications"],
+                additionalProperties: false,
+              },
+            },
+          }],
+          toolChoice: { type: "function", function: { name: "classify_captions" } },
+        });
 
-          if (aiResp.ok) {
-            const aiData = await aiResp.json();
-            const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-            if (toolCall) {
-              const { classifications } = JSON.parse(toolCall.function.arguments);
-              for (const c of classifications ?? []) {
-                const post = insertedPosts[c.index];
-                if (post) {
-                  await supabase
-                    .from("marketing_social_posts")
-                    .update({ content_type_tag: c.tag })
-                    .eq("id", post.id);
-                  classified++;
-                }
-              }
+        if (aiResult.toolCalls?.length) {
+          const { classifications } = aiResult.toolCalls[0].arguments;
+          for (const c of classifications ?? []) {
+            const post = insertedPosts[c.index];
+            if (post) {
+              await supabase
+                .from("marketing_social_posts")
+                .update({ content_type_tag: c.tag })
+                .eq("id", post.id);
+              classified++;
             }
-          } else {
-            console.error("AI classification failed:", aiResp.status);
           }
         }
       } catch (err) {
