@@ -26,11 +26,16 @@ export function useAdminAuth(): AdminAuthState {
 
     async function check() {
       try {
+        console.log("[useAdminAuth] START check for user:", session.user.id, session.user.email);
+
         // 1. Check platform_admin role via RPC
         const { data: adminCheck, error } = await supabase.rpc("is_platform_admin", {
           _user_id: session.user.id,
         });
+        console.log("[useAdminAuth] is_platform_admin RPC →", { adminCheck, error });
+
         if (error || !adminCheck) {
+          console.warn("[useAdminAuth] NOT admin → setting isAdmin=false");
           if (!cancelled) {
             setIsAdmin(false);
             setNeedsMFA(false);
@@ -39,28 +44,35 @@ export function useAdminAuth(): AdminAuthState {
         }
 
         if (!cancelled) setIsAdmin(true);
+        console.log("[useAdminAuth] isAdmin=true, now checking MFA…");
 
         // 2. Check MFA assurance level
         const { data: aalData, error: aalError } =
           await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        console.log("[useAdminAuth] AAL →", { aalData, aalError });
+
+        // 3. Also check listFactors as fallback diagnostic
+        const { data: factorsData, error: factorsError } =
+          await supabase.auth.mfa.listFactors();
+        console.log("[useAdminAuth] listFactors →", { factorsData, factorsError });
 
         if (!cancelled) {
           if (aalError) {
-            // If MFA check fails, require enrollment
+            console.warn("[useAdminAuth] AAL error → needsMFA=true");
             setNeedsMFA(true);
           } else {
-            // Admin needs AAL2 (MFA verified)
             const currentLevel = aalData.currentLevel;
             const nextLevel = aalData.nextLevel;
+            console.log("[useAdminAuth] levels:", { currentLevel, nextLevel });
 
             if (nextLevel === "aal2" && currentLevel !== "aal2") {
-              // User has MFA enrolled but hasn't verified this session
+              console.log("[useAdminAuth] → MFA enrolled, not verified this session");
               setNeedsMFA(true);
             } else if (nextLevel === "aal1") {
-              // No MFA factors enrolled → needs enrollment
+              console.log("[useAdminAuth] → no factors, needs enrollment");
               setNeedsMFA(true);
             } else {
-              // AAL2 verified
+              console.log("[useAdminAuth] → AAL2 verified, no MFA needed");
               setNeedsMFA(false);
             }
           }
