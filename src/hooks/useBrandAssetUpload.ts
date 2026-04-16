@@ -60,7 +60,7 @@ export function useBrandAssetUpload() {
 
       const field = assetType === 'logo' ? 'logo_url' : 'hero_image_url';
       await updateBranding.mutateAsync({ [field]: url });
-      nestoToast.success(assetType === 'logo' ? 'Logo geüpload' : 'Sfeerbeeld geüpload');
+      
     } catch {
       nestoToast.error('Upload mislukt', 'Probeer het opnieuw.');
     } finally {
@@ -87,7 +87,7 @@ export function useBrandAssetUpload() {
 
       const field = assetType === 'logo' ? 'logo_url' : 'hero_image_url';
       await updateBranding.mutateAsync({ [field]: null });
-      nestoToast.success(assetType === 'logo' ? 'Logo verwijderd' : 'Sfeerbeeld verwijderd');
+      
     } catch {
       nestoToast.error('Verwijderen mislukt', 'Probeer het opnieuw.');
     } finally {

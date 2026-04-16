@@ -162,7 +162,7 @@ export function useChecklistRuns(datum?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-runs", locationId, today] });
-      nestoToast.success("Checklist afgerond");
+      
     },
     onError: () => nestoToast.error("Fout bij afronden"),
   });

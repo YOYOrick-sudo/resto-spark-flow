@@ -64,7 +64,7 @@ export function useCreateMedewerker() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["medewerkers"] });
-      nestoToast.success("Medewerker aangemaakt");
+      
     },
     onError: (e: Error) => nestoToast.error("Aanmaken mislukt", e.message),
   });
@@ -81,7 +81,7 @@ export function useUpdateMedewerker() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["medewerkers"] });
-      nestoToast.success("Medewerker bijgewerkt");
+      
     },
     onError: (e: Error) => nestoToast.error("Bijwerken mislukt", e.message),
   });

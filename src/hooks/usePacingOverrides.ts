@@ -93,7 +93,7 @@ export function useUpsertPacingOverride() {
     onSuccess: ({ locationId, date }) => {
       queryClient.invalidateQueries({ queryKey: ['pacing-overrides', locationId, date] });
       queryClient.invalidateQueries({ queryKey: queryKeys.shiftExceptions(locationId), exact: false });
-      nestoToast.success('Pacing override opgeslagen');
+      
     },
     onError: (error: Error) => {
       nestoToast.error('Fout bij opslaan', error.message);
@@ -143,7 +143,7 @@ export function useResetPacingOverride() {
     onSuccess: ({ locationId, date }) => {
       queryClient.invalidateQueries({ queryKey: ['pacing-overrides', locationId, date] });
       queryClient.invalidateQueries({ queryKey: queryKeys.shiftExceptions(locationId), exact: false });
-      nestoToast.success('Pacing override gereset naar standaard');
+      
     },
     onError: (error: Error) => {
       nestoToast.error('Fout bij resetten', error.message);

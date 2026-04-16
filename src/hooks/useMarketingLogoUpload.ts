@@ -58,7 +58,7 @@ export function useMarketingLogoUpload() {
       const logoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
       await updateBrandKit.mutateAsync({ logo_url: logoUrl });
-      nestoToast.success('Marketing logo geüpload');
+      
     } catch {
       nestoToast.error('Upload mislukt', 'Probeer het opnieuw.');
     } finally {
@@ -84,7 +84,7 @@ export function useMarketingLogoUpload() {
       }
 
       await updateBrandKit.mutateAsync({ logo_url: null });
-      nestoToast.success('Marketing logo verwijderd');
+      
     } catch {
       nestoToast.error('Verwijderen mislukt', 'Probeer het opnieuw.');
     } finally {

@@ -98,7 +98,7 @@ export function useTemperatuurRegistraties() {
       queryClient.invalidateQueries({ queryKey: ["temp-registraties-vandaag", locationId, today] });
       queryClient.invalidateQueries({ queryKey: ["temp-registraties-week", locationId] });
       queryClient.invalidateQueries({ queryKey: ["temp-locatie-namen", locationId] });
-      nestoToast.success("Temperatuur geregistreerd");
+      
     },
     onError: () => nestoToast.error("Fout bij registreren"),
   });

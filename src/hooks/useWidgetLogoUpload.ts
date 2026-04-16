@@ -64,7 +64,7 @@ export function useWidgetLogoUpload() {
       const logoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
       await updateSettings.mutateAsync({ widget_logo_url: logoUrl } as any);
-      nestoToast.success('Widget logo geüpload');
+      
     } catch {
       nestoToast.error('Upload mislukt', 'Probeer het opnieuw.');
     } finally {
@@ -91,7 +91,7 @@ export function useWidgetLogoUpload() {
       }
 
       await updateSettings.mutateAsync({ widget_logo_url: null } as any);
-      nestoToast.success('Widget logo verwijderd');
+      
     } catch {
       nestoToast.error('Verwijderen mislukt', 'Probeer het opnieuw.');
     } finally {
