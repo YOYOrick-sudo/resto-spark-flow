@@ -97,6 +97,12 @@ import MedewerkersSettings from "./pages/MedewerkersSettings";
 import PrinterSettings from "./pages/PrinterSettings";
 import BestellingDetail from "./pages/BestellingDetail";
 
+// Admin Panel
+import { AdminRouteGuard } from "./components/admin/AdminRouteGuard";
+import { AdminLayout } from "./components/admin/AdminLayout";
+import { MFAEnrollmentPage } from "./components/admin/MFAEnrollmentPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
 // New multi-level settings pages
 import {
   SettingsReserveringenIndex,
@@ -137,6 +143,14 @@ const App = () => (
                 <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
                 <Route path="/widget-mockups" element={<WidgetMockups />} />
                 <Route path="/popup-preview" element={<PopupPreviewDemo />} />
+                
+                {/* Admin Panel — eigen layout, eigen guard */}
+                <Route path="/nesto-admin" element={<AdminRouteGuard />}>
+                  <Route element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                  </Route>
+                  <Route path="mfa-setup" element={<MFAEnrollmentPage />} />
+                </Route>
                 
                 {/* Protected routes - Layout wrapper with persistent sidebar */}
                 <Route element={
