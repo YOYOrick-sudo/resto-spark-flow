@@ -1,3 +1,5 @@
+import { callAIWithTools, resolveOrgId } from "../_shared/ai.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -9,14 +11,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { bijna_verlopen, overstocked, aantal_personen } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const { bijna_verlopen, overstocked, aantal_personen, location_id } = await req.json();
+
+    if (!location_id) {
       return new Response(
-        JSON.stringify({ error: "AI niet geconfigureerd" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "location_id is verplicht" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const organizationId = await resolveOrgId(location_id);
 
     const bijnaVerlopenList = (bijna_verlopen ?? [])
       .map((i: any) => `- ${i.naam}: ${i.hoeveelheid} (verloopt over ${i.dagen_resterend} dag${i.dagen_resterend !== 1 ? "en" : ""})`)
@@ -43,92 +47,63 @@ Regels:
 - Geef exacte hoeveelheden per ingrediënt
 - Prioriteit: verwerk eerst de bijna-verlopende items, dan overstocked
 - Als de ingrediënten niet tot een goed gerecht leiden, zeg dat eerlijk
-- Geen rare combinaties (slagroom + uien = geen maaltijd)
+- Geen rare combinaties (slagroom + uien = geen maaltijd)`;
 
-Antwoord ALLEEN in valide JSON.`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "Je bent een sous-chef. Antwoord uitsluitend in JSON." },
-          { role: "user", content: prompt },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "suggest_meal",
-            description: "Stel een personeelsmaaltijd voor",
-            parameters: {
-              type: "object",
-              properties: {
-                naam: { type: "string", description: "Gerechtnaam" },
-                beschrijving: { type: "string", description: "Korte beschrijving" },
-                bereidingstijd_min: { type: "number" },
-                ingredienten: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      naam: { type: "string" },
-                      hoeveelheid: { type: "number" },
-                      eenheid: { type: "string" },
-                      bron: { type: "string", enum: ["bijna_verlopen", "overstocked", "basis"] },
-                    },
-                    required: ["naam", "hoeveelheid", "eenheid", "bron"],
-                  },
+    const tools = [{
+      type: "function" as const,
+      function: {
+        name: "suggest_meal",
+        description: "Stel een personeelsmaaltijd voor",
+        parameters: {
+          type: "object",
+          properties: {
+            naam: { type: "string", description: "Gerechtnaam" },
+            beschrijving: { type: "string", description: "Korte beschrijving" },
+            bereidingstijd_min: { type: "number" },
+            ingredienten: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  naam: { type: "string" },
+                  hoeveelheid: { type: "number" },
+                  eenheid: { type: "string" },
+                  bron: { type: "string", enum: ["bijna_verlopen", "overstocked", "basis"] },
                 },
-                geen_voorstel: { type: "boolean", description: "true als geen goed gerecht mogelijk" },
-                reden: { type: "string", description: "Waarom geen voorstel (als geen_voorstel=true)" },
+                required: ["naam", "hoeveelheid", "eenheid", "bron"],
               },
-              required: ["naam", "ingredienten"],
             },
+            geen_voorstel: { type: "boolean", description: "true als geen goed gerecht mogelijk" },
+            reden: { type: "string", description: "Waarom geen voorstel (als geen_voorstel=true)" },
           },
-        }],
-        tool_choice: { type: "function", function: { name: "suggest_meal" } },
-      }),
+          required: ["naam", "ingredienten"],
+        },
+      },
+    }];
+
+    const result = await callAIWithTools({
+      featureKey: "suggest_staff_meal",
+      organizationId,
+      locationId: location_id,
+      prompt,
+      systemPrompt: "Je bent een sous-chef. Antwoord uitsluitend via de suggest_meal tool.",
+      tools,
+      toolChoice: { type: "function", function: { name: "suggest_meal" } },
+      maxTokens: 1000,
+      temperature: 0.7,
     });
 
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Te veel verzoeken, probeer het later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits op." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const text = await response.text();
-      console.error("AI error:", status, text);
-      return new Response(JSON.stringify({ error: "AI niet beschikbaar" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const aiResult = await response.json();
-    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
+    // Extract suggestion from tool call or fallback to text
     let suggestion;
-
-    if (toolCall) {
-      try {
-        suggestion = JSON.parse(toolCall.function.arguments);
-      } catch {
-        suggestion = { geen_voorstel: true, reden: "Kon het antwoord niet verwerken" };
-      }
+    if (result.toolCalls.length > 0) {
+      suggestion = result.toolCalls[0].arguments;
     } else {
-      // Try to extract JSON from message content
-      const content = aiResult.choices?.[0]?.message?.content ?? "";
+      // Fallback: try to parse JSON from text response
       try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        suggestion = jsonMatch ? JSON.parse(jsonMatch[0]) : { geen_voorstel: true, reden: "Kon geen voorstel genereren" };
+        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+        suggestion = jsonMatch
+          ? JSON.parse(jsonMatch[0])
+          : { geen_voorstel: true, reden: "Kon geen voorstel genereren" };
       } catch {
         suggestion = { geen_voorstel: true, reden: "Kon geen voorstel genereren" };
       }
@@ -139,9 +114,14 @@ Antwoord ALLEEN in valide JSON.`;
     });
   } catch (e) {
     console.error("suggest-staff-meal error:", e);
+
+    // Surface specific errors
+    const message = e instanceof Error ? e.message : "Onbekende fout";
+    const status = message.includes("both models failed") ? 503 : 500;
+
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Onbekende fout" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: message }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

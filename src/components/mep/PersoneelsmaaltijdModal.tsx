@@ -358,6 +358,7 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
     try {
       const { data, error } = await supabase.functions.invoke("suggest-staff-meal", {
         body: {
+          location_id: currentLocation?.id,
           bijna_verlopen: bijnaVerlopen.map((i) => ({
             naam: i.productnaam,
             hoeveelheid: i.geschatte_hoeveelheid,
