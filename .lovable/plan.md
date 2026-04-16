@@ -1,28 +1,53 @@
 
 
-# Plan: Vervang Panel door Full-Page Navigatie in Orderhistorie
+# Plan: Methode-info tonen in MEP Recent-sectie
 
-## Samenvatting
+## Probleem
+Recent-items tonen alleen `{categorie}` (bijv. "Sauzen"), terwijl halffabricaten `{categorie} · {methode.type} · {visuele_eenheid}` tonen. Bij halffabricaten met meerdere methodes (Vissoep Bereiden vs Opwarmen) zie je geen verschil.
 
-Vervang het `BestellingDetailPanel` in `OrderhistorieTab.tsx` door `useNavigate()` navigatie naar `/inkoop/bestellingen/:id`. Verwijder het panel-bestand — het wordt nergens anders gebruikt.
+## Oorzaak
+`mep_favorieten` slaat `methode_id` op maar de query doet `select("*")` — geen join op `halffabricaat_methodes`. De dropdown rendert alleen `fav.category`.
 
-## Wijzigingen
+## Oplossing
+Eén wijziging in de query + één in de rendering. Geen schema-wijziging nodig.
 
-### 1. `src/components/inkoop/OrderhistorieTab.tsx`
+### 1. `src/hooks/useMepFavorieten.ts` — Join methode data
 
-- Verwijder `import { BestellingDetailPanel }` en `useState` voor `selectedId`
-- Voeg `import { useNavigate } from "react-router-dom"` toe
-- `onRowClick` wordt `(b) => navigate(\`/inkoop/bestellingen/\${b.id}\`)`
-- Verwijder `<BestellingDetailPanel ... />` rendering
+Verander de select van `"*"` naar:
+```
+"*, methode:halffabricaat_methodes!mep_favorieten_methode_id_fkey(type, visuele_eenheid)"
+```
 
-### 2. `src/components/inkoop/BestellingDetailPanel.tsx`
+Update het `MepFavoriet` type met:
+```typescript
+methode: { type: string; visuele_eenheid: string | null } | null;
+```
 
-- **Verwijder bestand** — geen andere imports gevonden
+### 2. `src/components/mep/MepQuickAddDropdown.tsx` — Toon methode in subtitle
+
+Verander de subtitle van recent-items van:
+```
+<p className="text-xs text-muted-foreground">{fav.category}</p>
+```
+naar:
+```
+<p className="text-xs text-muted-foreground">
+  {fav.category}
+  {fav.methode && (
+    <>
+      {" · "}<span className="capitalize">{fav.methode.type}</span>
+      {fav.methode.visuele_eenheid && <>{" · "}{fav.methode.visuele_eenheid}</>}
+    </>
+  )}
+</p>
+```
+
+Identiek format als de halffabricaten-sectie.
 
 ## Bestanden
 
 | Bestand | Actie |
 |---------|-------|
-| `src/components/inkoop/OrderhistorieTab.tsx` | Refactor: panel → navigate |
-| `src/components/inkoop/BestellingDetailPanel.tsx` | **Verwijderen** |
+| `src/hooks/useMepFavorieten.ts` | Join op `halffabricaat_methodes`, extend type |
+| `src/components/mep/MepQuickAddDropdown.tsx` | Methode info in recent subtitle |
 
