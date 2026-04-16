@@ -1,49 +1,34 @@
 
 
-## Status voor de 2FA test
+## Diagnose
 
-### ✅ Wat goed staat
-- Jouw account `mulder.yorick@gmail.com` heeft `platform_role = 'platform_admin'` in profiles
-- DB-functie `is_platform_admin` bestaat
-- Routes `/nesto-admin` en `/nesto-admin/mfa-setup` bestaan
-- MFA enrollment component is klaar
+Je wordt naar `/` geredirect vanaf zowel `/nesto-admin` als `/nesto-admin/mfa-setup`. Beide routes zitten achter `AdminRouteGuard`. Mogelijke oorzaken:
 
-### ❌ Bug die de test gaat blokkeren
-In `src/hooks/useAdminAuth.ts` staat:
-```ts
-supabase.rpc("is_platform_admin")  // geen argument
-```
-Maar de DB-functie verwacht `_user_id uuid`:
-```sql
-is_platform_admin(_user_id uuid)
-```
+1. **`is_platform_admin` RPC retourneert `false`** → guard redirect naar `/`
+2. **`getAuthenticatorAssuranceLevel()` faalt** → `needsMFA = true` zou moeten triggeren, maar in plaats daarvan wordt iets anders geraakt
+3. **Race condition / stale state** waardoor `isAdmin = false` blijft
 
-Resultaat: RPC faalt → `isAdmin` blijft `false` → guard redirect je naar `/`. Je komt dus nooit op de MFA-setup pagina, laat staan op het dashboard.
+Zonder console-logs kan ik niet zien welke tak van de guard wordt geraakt. Tijd voor diagnostiek.
 
-## Plan: 1 fix, daarna testen
+## Plan
 
-### Fix
-Pas `src/hooks/useAdminAuth.ts` aan zodat de RPC de user-id meegeeft:
-```ts
-const { data: adminCheck, error } = await supabase.rpc("is_platform_admin", {
-  _user_id: session.user.id,
-});
-```
+### Stap 1 — Tijdelijke debug-logs toevoegen
+- In `src/hooks/useAdminAuth.ts`: log `adminCheck`, `error`, `aalData`, `aalError` na elke check
+- In `src/components/admin/AdminRouteGuard.tsx`: log `session`, `isAdmin`, `needsMFA`, `isLoading` + welke redirect-tak wordt gepakt
 
-### Testflow (na de fix)
-1. Login in preview met `mulder.yorick@gmail.com`
-2. Navigeer naar `/nesto-admin`
-3. Guard detecteert: admin ✅, geen MFA → redirect naar `/nesto-admin/mfa-setup`
-4. Scan QR met authenticator app (Google Authenticator / Authy / 1Password)
-5. Voer 6-cijferige code in → "Verifieer & activeer"
-6. Bij succes: redirect naar `/nesto-admin` → admin dashboard zichtbaar
+### Stap 2 — Jij navigeert naar `/nesto-admin`
+Open de browser console (F12 → Console tab) vóór navigatie. Plak daarna de console-output hier.
 
-### Mogelijke vervolgissues om op te letten
-- **Browser/iframe + MFA QR**: Authenticator-apps kunnen niet scannen vanuit een iframe-preview op je telefoon. Open `/nesto-admin/mfa-setup` in een **nieuw tabblad** (preview-URL direct), zodat je QR vanaf je laptop-scherm kunt scannen met je telefoon-authenticator app.
-- **AAL2 challenge bij volgende sessies**: Na enrollment wordt elke nieuwe login een AAL2-challenge vereisen. Dat hebben we nu nog niet gebouwd (er is geen `MFAVerifyPage`, alleen enrollment). Voor deze eerste test is dat oké — je sessie is direct AAL2 na enrollment+verify.
+### Stap 3 — Definitieve fix op basis van logs
+Drie waarschijnlijke uitkomsten:
+- **`adminCheck = false`** → DB-issue (ondanks dat de RPC eerder `true` gaf in network log). Mogelijk session.user.id mismatch.
+- **`aalError` of `aalData` ongedefinieerd** → MFA-detectie faalt. Switchen naar `supabase.auth.mfa.listFactors()` als robuustere check.
+- **`isLoading` blijft `true`** → race condition in de hook.
 
-### Wat ik ga doen na approval
-1. De 1-regel fix in `useAdminAuth.ts` (rpc parameter toevoegen)
-2. Korte verificatie dat `needsMFA`-logica klopt voor nieuwe gebruiker zonder factors
-3. Klaar — jij voert de test handmatig uit met je authenticator-app
+### Stap 4 — Debug-logs verwijderen na fix
+
+## Wat ik ga doen na approval
+1. Console.log statements toevoegen aan beide bestanden
+2. Wachten tot je de logs deelt
+3. Definitieve fix toepassen + debug-logs opruimen
 
