@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { NestoSelect, NestoBadge, Spinner, EmptyState } from "@/components/polar";
 import { useFactuurUploads } from "@/hooks/useFactuurUploads";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurUploadZone } from "./FactuurUploadZone";
 import { FactuurDetailPanel } from "./FactuurDetailPanel";
-import { FileText, Lightbulb } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { FileText, Lightbulb, Sparkles } from "lucide-react";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Alle statussen" },
+  { value: "verwerken", label: "Verwerken" },
   { value: "review", label: "Review nodig" },
   { value: "goedgekeurd", label: "Goedgekeurd" },
   { value: "afgewezen", label: "Afgewezen" },
@@ -20,16 +23,39 @@ const STATUS_BADGES: Record<string, { variant: "default" | "warning" | "success"
   afgewezen: { variant: "error", label: "Afgewezen" },
 };
 
+const AI_BADGES: Record<string, { variant: "default" | "warning" | "success" | "error"; label: string }> = {
+  pending: { variant: "default", label: "AI wacht" },
+  processing: { variant: "warning", label: "AI leest..." },
+  completed: { variant: "success", label: "AI klaar" },
+  failed: { variant: "error", label: "AI gefaald" },
+};
+
 export function FacturenTab() {
   const [statusFilter, setStatusFilter] = useState("");
   const [leverancierFilter, setLeverancierFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const qc = useQueryClient();
 
   const { data: facturen, isLoading } = useFactuurUploads({
     status: statusFilter || undefined,
     leverancierId: leverancierFilter || undefined,
   });
   const { data: leveranciers } = useLeveranciers();
+
+  // Realtime: live status-updates terwijl AI factuur leest
+  useEffect(() => {
+    const channel = supabase
+      .channel("factuur-uploads-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "factuur_uploads" },
+        () => qc.invalidateQueries({ queryKey: ["factuur-uploads"] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const leverancierOptions = [
     { value: "", label: "Alle leveranciers" },
@@ -88,6 +114,9 @@ export function FacturenTab() {
         <div className="space-y-2">
           {facturen.map((f) => {
             const badge = STATUS_BADGES[f.status] ?? STATUS_BADGES.review;
+            const aiBadge = f.ai_parsing_status
+              ? AI_BADGES[f.ai_parsing_status]
+              : null;
             return (
               <div
                 key={f.id}
@@ -104,6 +133,12 @@ export function FacturenTab() {
                     {f.leverancier_naam}
                   </p>
                 </div>
+                {aiBadge && (
+                  <NestoBadge variant={aiBadge.variant} size="sm" className="gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    {aiBadge.label}
+                  </NestoBadge>
+                )}
                 <NestoBadge variant={badge.variant} size="sm">
                   {badge.label}
                 </NestoBadge>

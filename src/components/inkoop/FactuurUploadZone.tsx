@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Upload, FileText } from "lucide-react";
+import { Upload, FileText, Sparkles } from "lucide-react";
 import { NestoButton, NestoSelect } from "@/components/polar";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
@@ -19,10 +19,13 @@ export function FactuurUploadZone() {
     (l: any) => !l.koppeling_type || l.koppeling_type === "handmatig"
   );
 
-  const leverancierOptions = handmatigeLeveranciers.map((l: any) => ({
-    value: l.id,
-    label: l.naam,
-  }));
+  const leverancierOptions = [
+    { value: "", label: "AI laat herkennen" },
+    ...handmatigeLeveranciers.map((l: any) => ({
+      value: l.id,
+      label: l.naam,
+    })),
+  ];
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -48,9 +51,9 @@ export function FactuurUploadZone() {
   );
 
   const handleUpload = () => {
-    if (!file || !leverancierId) return;
+    if (!file) return;
     uploadFactuur.mutate(
-      { file, leverancierId },
+      { file, leverancierId: leverancierId || undefined },
       {
         onSuccess: () => {
           setFile(null);
@@ -86,7 +89,10 @@ export function FactuurUploadZone() {
         >
           <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
           <p className="text-sm font-medium">Sleep een factuur hierheen</p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
+            <Sparkles className="h-3 w-3" /> AI herkent automatisch leverancier en regels
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
             PDF, JPG of PNG · max 10MB
           </p>
         </div>
@@ -111,20 +117,21 @@ export function FactuurUploadZone() {
           </div>
 
           <NestoSelect
-            label="Van welke leverancier is deze factuur?"
+            label="Leverancier (optioneel)"
             value={leverancierId}
             onValueChange={setLeverancierId}
             options={leverancierOptions}
-            placeholder="Selecteer leverancier..."
+            placeholder="AI laat herkennen"
           />
 
           <NestoButton
             onClick={handleUpload}
-            disabled={!leverancierId}
+            disabled={!file}
             isLoading={uploadFactuur.isPending}
             className="w-full min-h-[44px]"
           >
-            Factuur uploaden
+            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+            Upload & laat AI lezen
           </NestoButton>
         </div>
       )}
