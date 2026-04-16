@@ -243,7 +243,7 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["waste-registraties"] });
-      nestoToast.success("Waste geregistreerd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });

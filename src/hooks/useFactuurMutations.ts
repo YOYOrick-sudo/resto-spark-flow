@@ -72,7 +72,7 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
-      nestoToast.success("Regel toegevoegd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -95,7 +95,7 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
-      nestoToast.success("Regel verwijderd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -110,7 +110,7 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
-      nestoToast.success("Ingrediënt gekoppeld");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });

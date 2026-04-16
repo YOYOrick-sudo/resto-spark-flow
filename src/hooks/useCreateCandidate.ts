@@ -26,7 +26,7 @@ export function useCreateCandidate() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-candidates'] });
-      nestoToast.success(`${data.first_name} ${data.last_name} toegevoegd`);
+      
     },
     onError: (error) => {
       nestoToast.error('Kandidaat toevoegen mislukt', error.message);

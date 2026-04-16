@@ -87,7 +87,7 @@ export function useSnellePrep() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mep-tasks"] });
       qc.invalidateQueries({ queryKey: ["halffabricaat-search"] });
-      nestoToast.success("Prep aangemaakt en op MEP gezet!");
+      
     },
     onError: (e: Error) => nestoToast.error("Aanmaken mislukt", e.message),
   });

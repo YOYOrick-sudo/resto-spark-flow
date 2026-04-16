@@ -91,7 +91,7 @@ export function useUpdateKeukenSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["keuken-settings", locationId] });
-      nestoToast.success("Keuken instellingen opgeslagen");
+      
     },
     onError: () => {
       nestoToast.error("Fout bij opslaan instellingen");

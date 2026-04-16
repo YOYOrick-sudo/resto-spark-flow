@@ -25,7 +25,7 @@ export function useUpdatePhaseOwner() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases-all', locationId] });
-      nestoToast.success('Verantwoordelijke bijgewerkt');
+      
     },
     onError: () => {
       nestoToast.error('Kon verantwoordelijke niet bijwerken');

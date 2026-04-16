@@ -26,7 +26,7 @@ export function useSaveEvaluation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-events'] });
-      nestoToast.success('Evaluatie opgeslagen');
+      
     },
     onError: (error) => {
       nestoToast.error('Evaluatie opslaan mislukt', error.message);

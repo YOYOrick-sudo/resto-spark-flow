@@ -70,7 +70,7 @@ export function useUpsertPrinterConfig() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["printer-config"] });
-      nestoToast.success("Printer opgeslagen");
+      
     },
     onError: (e: Error) => nestoToast.error("Opslaan mislukt", e.message),
   });

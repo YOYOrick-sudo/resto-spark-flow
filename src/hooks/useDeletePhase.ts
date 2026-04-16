@@ -31,7 +31,7 @@ export function useDeletePhase() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases-all', locationId] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases', locationId] });
-      nestoToast.success('Fase verwijderd');
+      
     },
     onError: (error: Error) => {
       nestoToast.error(error.message || 'Kon fase niet verwijderen');
