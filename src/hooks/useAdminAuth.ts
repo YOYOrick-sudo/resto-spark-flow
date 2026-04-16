@@ -94,7 +94,8 @@ export function useAdminAuth(): AdminAuthState {
     return () => {
       cancelled = true;
     };
-  }, [session?.user?.id, authLoading]);
+    // access_token wijzigt bij AAL-upgrade na MFA-verify → triggert re-check
+  }, [session?.user?.id, session?.access_token, authLoading]);
 
   return { isAdmin, needsMFA, isLoading };
 }
