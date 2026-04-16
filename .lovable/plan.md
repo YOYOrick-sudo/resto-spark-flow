@@ -1,71 +1,52 @@
 
 
-## Situatie
-Je hebt een Supabase Personal Access Token (PAT) aangemaakt en gedeeld in chat. Hiermee kan ik via de officiële Supabase Management API de Custom Access Token Hook activeren — zonder dat je het dashboard nodig hebt.
+## Antwoord: Nee, de hook is NIET geactiveerd
 
-## ⚠️ Belangrijk: token is nu compromised
-Je hebt de PAT in plain text in de chat geplakt. Chat-berichten kunnen gelogd worden. **Eerste actie na activatie: deze token revoken** op https://supabase.com/dashboard/account/tokens en eventueel een nieuwe maken als je hem nog ergens anders nodig hebt.
+De Management API call gaf **403 Forbidden** terug. De PAT die je aanmaakte hoort bij een Supabase-account dat geen toegang heeft tot project `igqcfxizgtdkwnajvers` (dat project wordt beheerd door de Lovable Cloud organisatie, niet door jouw persoonlijke account).
 
-## Plan
+Bewijs uit het JWT in je huidige sessie (zie network requests):
+- `"aal":"aal1"` — geen MFA, geen verrijking
+- Geen `actor_type`, `org_id`, `device_id`, `device_role` claims
+- Alleen standaard Supabase claims (`sub`, `email`, `role`)
 
-### Stap 1 — Token veilig opslaan
-Token toevoegen als runtime secret `SUPABASE_MANAGEMENT_PAT` (via add_secret tool). Niet hardcoden in code, niet committen.
+Als de hook actief was, zouden die custom claims er nu wél in staan na je login.
 
-### Stap 2 — Eenmalige activatie-edge-function
-Tijdelijke edge function `activate-jwt-hook` die één API call doet:
+## Wat dit betekent
 
-```
-PATCH https://api.supabase.com/v1/projects/igqcfxizgtdkwnajvers/config/auth
-Authorization: Bearer ${SUPABASE_MANAGEMENT_PAT}
-Content-Type: application/json
+Het device-model blijft geblokkeerd. Drie routes vooruit:
 
-{
-  "hook_custom_access_token_enabled": true,
-  "hook_custom_access_token_uri": "pg-functions://postgres/public/custom_access_token_hook"
-}
-```
+### Route A — Lovable Cloud UI (aanbevolen, simpelst)
+Lovable Cloud heeft tegenwoordig een eigen "Auth Settings" UI in het project (Cloud → Users → Auth Settings, tandwiel-icoon). Daar kun je hooks soms direct activeren zonder supabase.com.
 
-Function returnt de response van Supabase zodat we kunnen verifiëren dat het gelukt is (HTTP 200 + bevestiging in payload).
+**Plan:** Ik check via de Lovable docs of de Custom Access Token Hook configureerbaar is via de Cloud UI in dit project. Zo ja → jij klikt het zelf aan in 30 seconden, geen PAT nodig.
 
-### Stap 3 — Functie triggeren + resultaat checken
-Eenmalige invocation. Verwachte uitkomst: `hook_custom_access_token_enabled: true` in response.
+### Route B — Lovable support / workspace-koppeling
+Het project zit in een Supabase organisatie waar jouw account geen lid van is. Oplossing: via Lovable workspace settings vragen om jouw e-mail (`mulder.yorick@gmail.com`) toe te voegen aan de gekoppelde Supabase organisatie. Dan zie je het project op supabase.com en kun je de hook + PAT zelf doen.
 
-Mogelijke fouten en hoe we ze afhandelen:
-- **403 Forbidden** → jouw account heeft geen toegang tot het project. Dan val ik terug op de account-koppeling route.
-- **401 Unauthorized** → token ongeldig of revoked.
-- **200 OK** → klaar, door naar stap 4.
+### Route C — Workaround: claims in app-laag
+Niet de hook gebruiken, maar dezelfde data via een `useUserContext` hook ophalen direct na login (RPC naar `get_user_context()`). Nadeel: claims zitten niet in JWT zelf, dus RLS policies die op JWT-claims leunen werken niet. Alleen zinvol als nood het hoogst is.
 
-### Stap 4 — End-to-end verificatie
-Test via een echte login op `/auth`:
-1. Login met je test-account
-2. In browser console: `(await supabase.auth.getSession()).data.session.access_token` → kopieer JWT
-3. Decode op jwt.io of via een kleine helper
-4. Check claims: `actor_type`, `org_id`, `location_id`, `device_id`, `device_role`, `roles`, `platform_role`
+## Cleanup status (wat al gedaan is)
+- Edge function `activate-jwt-hook` is **nog aanwezig** in de codebase (`supabase/functions/activate-jwt-hook/index.ts`). Moet weg.
+- Secret `MANAGEMENT_PAT_TOKEN` staat nog opgeslagen. Moet weg.
+- PAT op supabase.com moet jij revoken: https://supabase.com/dashboard/account/tokens
 
-### Stap 5 — Opruimen (security)
-- Edge function `activate-jwt-hook` verwijderen (niet meer nodig)
-- Secret `SUPABASE_MANAGEMENT_PAT` verwijderen
-- Jij revoked de PAT op supabase.com/dashboard/account/tokens
+## Voorstel volgende stap
 
-## Bestanden
+Eerste keuze: **Route A** verkennen. Ik zoek uit of Lovable Cloud's eigen Auth Settings UI de Custom Access Token Hook ondersteunt. Als dat kan, los je het zelf op zonder externe toegang.
 
-| Actie | Bestand | Doel |
-|-------|---------|------|
-| CREATE | `supabase/functions/activate-jwt-hook/index.ts` | Eenmalige Management API call |
-| (geen migratie nodig) | — | Grants staan al in `20260416144509_*.sql` |
+Daarnaast: cleanup van de mislukte poging (edge function + secret verwijderen) zodat we geen rommel laten staan.
 
-## Wat ik NIET doe
-- Geen SQL hack op `auth` schema
-- Geen permanente edge function (alleen eenmalig, daarna weg)
-- Token niet loggen, niet in code, niet in commits
-
-## Risico-inschatting
-- **Officieel API endpoint** → geen toekomstig risico op breken
-- **PAT exposure window**: ~5 minuten tussen storage en cleanup, daarna revoked
-- **Worst case**: API geeft 403 → we leren dat account-koppeling het echte probleem is, geen schade aangericht
+## Bestanden / acties bij goedkeuring
+| Actie | Doel |
+|-------|------|
+| READ Lovable docs | Check of hook UI bestaat in Cloud |
+| DELETE `supabase/functions/activate-jwt-hook/` | Cleanup mislukte poging |
+| DELETE secret `MANAGEMENT_PAT_TOKEN` | Cleanup compromised token |
+| (jij) Revoke PAT op supabase.com | Security |
 
 ## Klaar als
-- API response 200 met `hook_custom_access_token_enabled: true`
-- Echte login produceert JWT met alle device/user claims
-- Cleanup voltooid (function weg, secret weg, PAT revoked)
+- Duidelijk of Route A werkt (en zo ja, jij hebt de hook aangezet)
+- Of: duidelijk dat we Route B/C nodig hebben
+- Cleanup voltooid
 
