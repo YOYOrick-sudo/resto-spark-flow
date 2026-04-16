@@ -6,6 +6,7 @@ import { useFactuurMutations } from "@/hooks/useFactuurMutations";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { FactuurRegelForm } from "./FactuurRegelForm";
+import { LeverancierMatchWidget } from "./LeverancierMatchWidget";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Trash2, Link, FileText } from "lucide-react";
 
@@ -128,6 +129,19 @@ function DetailContent({ factuurId }: { factuurId: string }) {
           {new Date(factuur.created_at).toLocaleDateString("nl-NL")}
         </span>
       </div>
+
+      {/* AI Match Widget */}
+      <LeverancierMatchWidget
+        factuurId={factuurId}
+        aiStatus={(factuur as any).ai_parsing_status ?? null}
+        herkendNaam={factuur.leverancier_naam_herkend}
+        huidigeLeverancierId={factuur.leverancier_id}
+        huidigeLeverancierNaam={
+          (leveranciers ?? []).find((l: any) => l.id === factuur.leverancier_id)?.naam ?? null
+        }
+        aiConfidence={(factuur as any).ai_confidence_overall ?? null}
+        rawResponse={(factuur as any).ai_raw_response ?? null}
+      />
 
       {/* Preview */}
       <FactuurPreview bestandUrl={factuur.bestand_url} />
