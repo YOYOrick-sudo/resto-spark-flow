@@ -11,7 +11,7 @@ export function useFactuurMutations() {
   const locId = currentLocation?.id;
 
   const uploadFactuur = useMutation({
-    mutationFn: async (values: { file: File; leverancierId: string }) => {
+    mutationFn: async (values: { file: File; leverancierId?: string }) => {
       if (!locId) throw new Error("Geen locatie");
 
       const ext = values.file.name.split(".").pop();
@@ -29,17 +29,56 @@ export function useFactuurMutations() {
           bestandsnaam: values.file.name,
           bestand_url: path,
           bron: "upload" as const,
-          status: "review" as const,
-          leverancier_id: values.leverancierId,
+          status: "verwerken" as const,
+          leverancier_id: values.leverancierId ?? null,
+          ai_parsing_status: "pending",
         })
         .select("id")
         .single();
       if (error) throw error;
+
+      // Trigger AI parse — fire-and-forget. UI luistert via realtime op factuur_uploads.
+      supabase.functions
+        .invoke("parse-factuur", { body: { factuurId: data.id } })
+        .catch((e) => console.error("[parse-factuur] invoke failed:", e));
+
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
-      nestoToast.success("Factuur geüpload — vul de regels in");
+      nestoToast.success("Factuur geüpload — AI leest mee...");
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
+  const linkLeverancierAlias = useMutation({
+    mutationFn: async (vars: {
+      factuurId: string;
+      leverancierId: string;
+      aliasNaam: string;
+    }) => {
+      // 1. Koppel factuur aan leverancier
+      const { error: e1 } = await supabase
+        .from("factuur_uploads")
+        .update({ leverancier_id: vars.leverancierId })
+        .eq("id", vars.factuurId);
+      if (e1) throw e1;
+
+      // 2. Sla alias op zodat volgende factuur auto-matcht
+      if (vars.aliasNaam && vars.aliasNaam.trim().length > 0) {
+        const { error: e2 } = await supabase.from("leverancier_aliassen").insert({
+          leverancier_id: vars.leverancierId,
+          alias_naam: vars.aliasNaam.trim(),
+          bron: "handmatig",
+        });
+        // 23505 = unique violation → alias bestaat al, prima
+        if (e2 && (e2 as any).code !== "23505") throw e2;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+      qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
+      nestoToast.success("Leverancier gekoppeld — volgende factuur wordt auto-herkend");
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -181,5 +220,15 @@ export function useFactuurMutations() {
     onError: (e: Error) => nestoToast.error(e.message),
   });
 
-  return { uploadFactuur, updateFactuur, addRegel, updateRegel, deleteRegel, matchRegel, goedkeuren, afwijzen };
+  return {
+    uploadFactuur,
+    updateFactuur,
+    linkLeverancierAlias,
+    addRegel,
+    updateRegel,
+    deleteRegel,
+    matchRegel,
+    goedkeuren,
+    afwijzen,
+  };
 }

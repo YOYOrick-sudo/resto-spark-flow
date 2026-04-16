@@ -97,6 +97,10 @@ import MedewerkersSettings from "./pages/MedewerkersSettings";
 import PrinterSettings from "./pages/PrinterSettings";
 import BestellingDetail from "./pages/BestellingDetail";
 
+// Devices
+const SettingsApparaten = lazy(() => import("./pages/settings/SettingsApparaten"));
+const DevicePairing = lazy(() => import("./pages/device/DevicePairing"));
+
 // Admin Panel
 import { AdminRouteGuard } from "./components/admin/AdminRouteGuard";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -143,6 +147,7 @@ const App = () => (
                 <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
                 <Route path="/widget-mockups" element={<WidgetMockups />} />
                 <Route path="/popup-preview" element={<PopupPreviewDemo />} />
+                <Route path="/device/pair" element={<Suspense fallback={null}><DevicePairing /></Suspense>} />
                 
                 {/* Admin Panel — eigen layout, eigen guard */}
                 <Route path="/nesto-admin" element={<AdminRouteGuard />}>
@@ -204,6 +209,7 @@ const App = () => (
                   <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
                   <Route path="/instellingen/keuken/medewerkers" element={<MedewerkersSettings />} />
                   <Route path="/instellingen/keuken/printer" element={<PrinterSettings />} />
+                  <Route path="/instellingen/apparaten" element={<Suspense fallback={null}><SettingsApparaten /></Suspense>} />
                   <Route path="/instellingen/onboarding" element={<SettingsOnboarding />} />
                   <Route path="/instellingen/onboarding/fasen" element={<SettingsOnboardingFasen />} />
                   <Route path="/instellingen/onboarding/team" element={<SettingsOnboardingTeam />} />

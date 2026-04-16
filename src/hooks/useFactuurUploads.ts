@@ -18,6 +18,10 @@ export interface FactuurUploadRow {
   goedgekeurd_op: string | null;
   created_at: string;
   updated_at: string;
+  ai_parsing_status: string | null;
+  ai_parsed_at: string | null;
+  ai_confidence_overall: number | null;
+  ai_raw_response: any;
   leverancier_naam?: string;
 }
 
