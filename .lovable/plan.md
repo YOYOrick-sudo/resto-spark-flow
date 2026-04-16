@@ -1,64 +1,31 @@
 
 
-## Check: routing-structuur in App.tsx
+## Eerlijk antwoord: nee, niet 100% zeker
 
-Goede vraag — ik heb dit nagekeken in de huidige `App.tsx`. De admin routes staan **al correct buiten** de `ProtectedRoute` + `AppShell` wrapper. Hier is het relevante stuk:
+De fix lost de **bekende bug** op (eindeloos "2FA is al ingesteld"-toast bij gebruikers met al-geregistreerde 2FA), maar er zijn 2 randgevallen die ik wil checken voordat ik "zeker" zeg.
 
-```tsx
-<Routes>
-  {/* Public routes */}
-  <Route path="/auth" element={<AuthPage />} />
-  <Route path="/book/:slug" element={<BookingWidget />} />
-  <Route path="/manage/:token" element={<ManageReservation />} />
-  <Route path="/waitlist/accept/:token" element={<WaitlistAccept />} />
-  <Route path="/reconfirm/:token" element={<ReconfirmReservation />} />
-  <Route path="/panel-demo" element={<PanelDemo />} />
-  <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
-  <Route path="/widget-mockups" element={<WidgetMockups />} />
-  <Route path="/popup-preview" element={<PopupPreviewDemo />} />
-  
-  {/* Admin Panel — eigen layout, eigen guard */}
-  <Route path="/nesto-admin" element={<AdminRouteGuard />}>
-    <Route element={<AdminLayout />}>
-      <Route index element={<AdminDashboard />} />
-    </Route>
-    <Route path="mfa-setup" element={<MFAEnrollmentPage />} />
-  </Route>
-  
-  {/* Protected routes - Layout wrapper with persistent sidebar */}
-  <Route element={
-    <ProtectedRoute>
-      <AppShell />
-    </ProtectedRoute>
-  }>
-    <Route path="/" element={<Dashboard />} />
-    {/* ... alle restaurant routes ... */}
-  </Route>
-  
-  <Route path="*" element={<NotFound />} />
-</Routes>
-```
+## Wat de fix doet
 
-### Wat klopt
-- `/nesto-admin` staat **vóór** de `ProtectedRoute` block → wordt eerst gematcht
-- `AdminRouteGuard` is een eigen guard, geen child van `ProtectedRoute`
-- `AdminLayout` is apart, geen `AppShell` (geen restaurant-sidebar)
-- `mfa-setup` is een sibling van de `AdminLayout`-wrapper → MFA enrollment heeft GEEN admin sidebar/dashboard chrome (correct, want je bent nog niet voldoende geauthenticeerd)
+Vervang in `MFAEnrollmentPage.tsx` de "already enrolled → toast → navigate"-tak door een echte verificatie-flow:
 
-### Wat de echte oorzaak was
-De redirect-loop kwam **niet** door de routing-structuur, maar door:
-1. **Race condition** in `useAdminAuth` → `isLoading` werd te vroeg `false`, guard redirectte naar `/` voordat admin-check klaar was
-2. **MFA-loop** in `AdminRouteGuard` → guard redirectte naar `/nesto-admin/mfa-setup` zelfs wanneer je al daar was
+- Nieuwe state `mode: "enroll" | "verify"`
+- Bij verified factor gevonden: `setMode("verify")` + `setFactorId(existingFactor.id)`, geen nieuwe enrollment
+- UI toont dan: header "2FA verifiëren" + uitleg "Voer je 2FA-code in" (geen QR-code blok)
+- `handleVerify` werkt onveranderd → challenge → verify → AAL2 → `navigate("/nesto-admin")`
+- `useAdminAuth` re-runt na sessie-wissel (AAL2) → `needsMFA: false` → guard laat door
 
-Beide zijn in de vorige stap gefixed. De routing zelf hoefde niet aangepast.
+## Wat ik nog wil verifiëren (2 risico's)
 
-### Wat ik na approval doe
+1. **Re-render timing van `useAdminAuth`**: Na `mfa.verify()` wordt de sessie geüpdatet met AAL2. De hook is gekoppeld aan `session?.user?.id` — die verandert NIET bij AAL-upgrade, dus de hook re-runt mogelijk niet automatisch. Risico: navigate gebeurt, guard ziet nog cached `needsMFA: true`, redirect terug naar mfa-setup. Ik moet checken of `AuthContext` op `TOKEN_REFRESHED` / `MFA_CHALLENGE_VERIFIED` events luistert en de session vernieuwt.
 
-Niets aan de code. Je kunt nu testen:
-1. Ga naar `/nesto-admin`
-2. Verwacht: redirect naar `/nesto-admin/mfa-setup` met QR-code scherm
-3. Scan met authenticator app, vul code in
-4. Verwacht: redirect terug naar `/nesto-admin` met admin dashboard
+2. **Cleanup-tak in `enrollMFA`**: De huidige code unenrollt eerst alle "unverified" factors. Voor een gebruiker met een al-verified factor is dat prima. Maar als er per ongeluk een verified + unverified factor naast elkaar staan, kan dat tot rare state leiden. Lage prio.
 
-Als er iets misgaat, deel je console-output (de `[useAdminAuth]` en `[AdminRouteGuard]` logs staan er nog in voor diagnose).
+## Wat ik na approval doe
+
+1. `src/contexts/AuthContext.tsx` lezen → bevestigen dat sessie wordt ververst na MFA-verify
+2. Indien nodig: `useAdminAuth` dependency uitbreiden naar `session?.access_token` (verandert wel bij AAL-upgrade) zodat re-check triggert
+3. `MFAEnrollmentPage.tsx` herschrijven met `mode` state (enroll vs verify pad)
+4. Kort testplan: jij logt in → `/nesto-admin` → moet direct verify-scherm tonen (geen QR) → code invoeren → admin dashboard verschijnt zonder refresh
+
+Pas na deze 2 checks + de rewrite kan ik met zekerheid zeggen dat het opgelost is.
 
