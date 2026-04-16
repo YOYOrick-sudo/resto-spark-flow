@@ -38,7 +38,7 @@ export function useEenheidConversieMutations(ingredientId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
-      nestoToast.success("Conversie toegevoegd");
+      
     },
     onError: () => nestoToast.error("Kon conversie niet opslaan"),
   });
@@ -53,7 +53,7 @@ export function useEenheidConversieMutations(ingredientId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
-      nestoToast.success("Conversie verwijderd");
+      
     },
     onError: () => nestoToast.error("Kon conversie niet verwijderen"),
   });

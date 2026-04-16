@@ -218,7 +218,7 @@ export default function SocialPostCreatorPage() {
 
       setAiModalOpen(false);
       setAiContext('');
-      nestoToast.success('Content gegenereerd');
+      
     } catch {
       // Error handling is in the hook
     }
@@ -312,7 +312,7 @@ export default function SocialPostCreatorPage() {
       }
 
       if (status === 'draft') {
-        nestoToast.success('Concept opgeslagen');
+        
       } else if (publishMode === 'now') {
         nestoToast.success('Bericht gepubliceerd');
       } else {

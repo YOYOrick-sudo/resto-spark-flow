@@ -35,7 +35,7 @@ export function useGerechtMutations() {
     },
     onSuccess: () => {
       invalidate();
-      nestoToast.success("Gerecht aangemaakt");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -110,7 +110,7 @@ export function useGerechtMutations() {
     },
     onSuccess: () => {
       invalidate();
-      nestoToast.success("Component toegevoegd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -131,7 +131,7 @@ export function useGerechtMutations() {
     },
     onSuccess: () => {
       invalidate();
-      nestoToast.success("Component verwijderd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });

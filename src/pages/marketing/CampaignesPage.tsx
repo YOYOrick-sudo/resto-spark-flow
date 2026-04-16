@@ -31,7 +31,7 @@ export default function CampaignesPage() {
     if (!deleteId) return;
     deleteMutation.mutate(deleteId, {
       onSuccess: () => {
-        nestoToast.success('Campagne verwijderd');
+        
         setDeleteId(null);
       },
       onError: () => nestoToast.error('Verwijderen mislukt'),

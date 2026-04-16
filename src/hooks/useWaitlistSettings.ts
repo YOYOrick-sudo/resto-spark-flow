@@ -60,7 +60,7 @@ export function useUpdateWaitlistSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['waitlist-settings', locationId] });
-      nestoToast.success('Wachtlijst-instellingen opgeslagen');
+      
     },
     onError: (err: Error) => {
       nestoToast.error(`Fout: ${err.message}`);

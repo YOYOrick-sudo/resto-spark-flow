@@ -96,7 +96,7 @@ export function useIngredientMutations() {
     },
     onSuccess: () => {
       invalidate();
-      nestoToast.success("Ingrediënt aangemaakt");
+      
     },
     onError: (err: Error) => {
       nestoToast.error(`Fout: ${err.message}`);
@@ -113,7 +113,7 @@ export function useIngredientMutations() {
     },
     onSuccess: () => {
       invalidate();
-      nestoToast.success("Ingrediënt bijgewerkt");
+      
     },
     onError: (err: Error) => {
       nestoToast.error(`Fout: ${err.message}`);

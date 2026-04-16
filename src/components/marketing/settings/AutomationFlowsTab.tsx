@@ -76,7 +76,7 @@ export default function AutomationFlowsTab({ readOnly }: AutomationFlowsTabProps
                     updateFlow.mutate(
                       { flowId: flow.id, updates: { is_active: checked } },
                       {
-                        onSuccess: () => nestoToast.success(checked ? 'Flow geactiveerd' : 'Flow gepauzeerd'),
+                        onSuccess: () => {},
                         onError: () => nestoToast.error('Wijziging mislukt'),
                       }
                     );

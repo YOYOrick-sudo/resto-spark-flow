@@ -108,7 +108,7 @@ export default function BestellingDetail() {
     }
     setEditingRegels(new Map());
     refetch();
-    nestoToast.success("Bestelregels opgeslagen");
+    
   };
 
   const handleDeleteRegel = async (regelId: string) => {

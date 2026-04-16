@@ -100,7 +100,7 @@ export function QuickCreatePost({ date, onCancel, onCreated }: QuickCreatePostPr
           media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
         });
       }
-      nestoToast.success(`Bericht ingepland voor ${hour}:${minute}`);
+      
       onCreated();
     } catch {
       nestoToast.error('Inplannen mislukt');

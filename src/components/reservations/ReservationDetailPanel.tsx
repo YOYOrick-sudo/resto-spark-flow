@@ -66,7 +66,7 @@ export function ReservationDetailPanel({ reservationId, open, onClose }: Reserva
     }, {
       onSuccess: (data) => {
         if (data.assigned) {
-          nestoToast.success(`${data.table_name} toegewezen (${data.area_name})`);
+          
         } else {
           nestoToast.warning('Geen tafel beschikbaar');
         }

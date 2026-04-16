@@ -19,7 +19,7 @@ export function useCreateTicket(locationId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      nestoToast.success("Ticket aangemaakt");
+      
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {
@@ -43,7 +43,7 @@ export function useUpdateTicket(locationId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      nestoToast.success("Ticket bijgewerkt");
+      
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {
@@ -83,7 +83,7 @@ export function useRestoreTicket(locationId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      nestoToast.success("Ticket hersteld als draft");
+      
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {
@@ -132,7 +132,7 @@ export function useDuplicateTicket(locationId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      nestoToast.success("Ticket gedupliceerd");
+      
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.tickets(locationId) });
     },
     onError: (err: any) => {

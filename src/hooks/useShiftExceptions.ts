@@ -104,7 +104,7 @@ export function useCreateShiftException() {
         special: 'Speciaal',
       };
 
-      nestoToast.success('Uitzondering aangemaakt', `${typeLabels[data.exception_type] || data.exception_type} op ${data.exception_date}`);
+      
     },
     onError: (error: Error) => {
       nestoToast.error('Fout bij aanmaken', error.message);
@@ -129,7 +129,7 @@ export function useUpdateShiftException() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shiftExceptions(data.location_id), exact: false });
       queryClient.invalidateQueries({ queryKey: queryKeys.effectiveSchedule(data.location_id, data.exception_date), exact: false });
-      nestoToast.success('Uitzondering bijgewerkt', 'De wijzigingen zijn opgeslagen.');
+      
     },
     onError: (error: Error) => {
       nestoToast.error('Fout bij opslaan', error.message);
@@ -163,7 +163,7 @@ export function useDeleteShiftException() {
     onSuccess: ({ locationId, date }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shiftExceptions(locationId), exact: false });
       queryClient.invalidateQueries({ queryKey: queryKeys.effectiveSchedule(locationId, date), exact: false });
-      nestoToast.success('Uitzondering verwijderd', 'De uitzondering is verwijderd.');
+      
     },
     onError: (error: Error) => {
       nestoToast.error('Fout bij verwijderen', error.message);

@@ -83,7 +83,7 @@ export function useReceptMutations() {
     },
     onSuccess: () => {
       invalidate();
-      nestoToast.success("Halffabricaat aangemaakt");
+      
     },
     onError: (err: Error) => nestoToast.error(`Fout: ${err.message}`),
   });
@@ -132,7 +132,7 @@ export function useReceptMutations() {
     },
     onSuccess: (_, vars) => {
       invalidate(vars.receptId);
-      nestoToast.success("Ingrediënt toegevoegd");
+      
     },
     onError: (err: Error) => nestoToast.error(`Fout: ${err.message}`),
   });
@@ -148,7 +148,7 @@ export function useReceptMutations() {
     },
     onSuccess: (receptId) => {
       invalidate(receptId);
-      nestoToast.success("Ingrediënt verwijderd");
+      
     },
     onError: (err: Error) => nestoToast.error(`Fout: ${err.message}`),
   });
@@ -184,7 +184,7 @@ export function useReceptMutations() {
     },
     onSuccess: (_, vars) => {
       invalidate(vars.receptId);
-      nestoToast.success("Methode toegevoegd");
+      
     },
     onError: (err: Error) => nestoToast.error(`Fout: ${err.message}`),
   });
@@ -211,7 +211,7 @@ export function useReceptMutations() {
     },
     onSuccess: (receptId) => {
       invalidate(receptId);
-      nestoToast.success("Methode verwijderd");
+      
     },
     onError: (err: Error) => nestoToast.error(`Fout: ${err.message}`),
   });

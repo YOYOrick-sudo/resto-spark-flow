@@ -49,7 +49,7 @@ export function useDismissCoachingTip() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['marketing-coaching-tips'] });
-      nestoToast.success('Tip verwijderd');
+      
     },
     onError: () => {
       nestoToast.error('Tip kon niet worden verwijderd');

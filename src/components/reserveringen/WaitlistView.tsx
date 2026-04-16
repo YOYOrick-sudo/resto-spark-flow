@@ -66,7 +66,7 @@ export function WaitlistView({ selectedDate }: WaitlistViewProps) {
 
   const handleCancel = (entry: WaitlistEntryWithInvites) => {
     cancelEntry.mutate(entry.id, {
-      onSuccess: () => nestoToast.success('Wachtlijst-entry geannuleerd'),
+      onSuccess: () => {},
       onError: (err) => nestoToast.error(`Fout: ${err.message}`),
     });
   };

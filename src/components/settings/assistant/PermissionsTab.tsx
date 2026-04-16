@@ -72,7 +72,7 @@ export function PermissionsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-configurations', locationId] });
-      nestoToast.success('Opgeslagen');
+      
     },
     onError: () => {
       nestoToast.error('Opslaan mislukt');

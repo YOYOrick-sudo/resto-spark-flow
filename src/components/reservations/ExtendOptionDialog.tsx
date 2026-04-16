@@ -40,7 +40,7 @@ export function ExtendOptionDialog({
       },
       {
         onSuccess: () => {
-          nestoToast.success('Optie verlengd');
+          
           onOpenChange(false);
         },
         onError: (err) => {

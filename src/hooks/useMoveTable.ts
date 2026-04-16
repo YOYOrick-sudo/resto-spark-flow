@@ -22,7 +22,7 @@ export function useMoveTable() {
       queryClient.invalidateQueries({ queryKey: ["reservation"] });
       queryClient.invalidateQueries({ queryKey: ["reservations"] });
       queryClient.invalidateQueries({ queryKey: ["audit-log"] });
-      nestoToast.success(variables.newTableId ? "Tafel gewijzigd" : "Tafeltoewijzing verwijderd");
+      
     },
     onError: (error: Error) => {
       nestoToast.error(`Fout: ${error.message}`);

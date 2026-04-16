@@ -46,7 +46,7 @@ export function useCreatePhase() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases-all', locationId] });
       queryClient.invalidateQueries({ queryKey: ['onboarding-phases', locationId] });
-      nestoToast.success('Fase toegevoegd');
+      
     },
     onError: () => {
       nestoToast.error('Kon fase niet toevoegen');

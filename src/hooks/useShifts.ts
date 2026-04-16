@@ -106,7 +106,7 @@ export function useCreateShift() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts(data.location_id), exact: false });
-      nestoToast.success('Shift aangemaakt', `${data.name} is toegevoegd.`);
+      
     },
     onError: (error: Error) => {
       nestoToast.error('Fout bij aanmaken', error.message);
@@ -131,7 +131,7 @@ export function useUpdateShift() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts(data.location_id), exact: false });
       queryClient.invalidateQueries({ queryKey: queryKeys.shift(data.id), exact: false });
-      nestoToast.success('Shift bijgewerkt', `${data.name} is opgeslagen.`);
+      
     },
     onError: (error: Error) => {
       nestoToast.error('Fout bij opslaan', error.message);
@@ -189,7 +189,7 @@ export function useRestoreShift() {
     },
     onSuccess: ({ locationId, name }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts(locationId), exact: false });
-      nestoToast.success('Shift hersteld', `${name} is weer actief.`);
+      
     },
     onError: (error: Error) => {
       nestoToast.error('Fout bij herstellen', error.message);

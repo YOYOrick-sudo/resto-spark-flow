@@ -33,7 +33,7 @@ export function useCreateArea() {
         queryKey: queryKeys.areasWithTables(variables.location_id),
         exact: false 
       });
-      nestoToast.success('Area aangemaakt');
+      
     },
     onError: (error: Error) => {
       nestoToast.error(`Fout bij aanmaken: ${error.message}`);
@@ -127,7 +127,7 @@ export function useRestoreArea() {
           exact: false 
         });
       }
-      nestoToast.success('Area hersteld');
+      
     }
   });
 }
@@ -165,7 +165,7 @@ export function useCreateTable() {
           exact: false 
         });
       }
-      nestoToast.success('Tafel aangemaakt');
+      
     },
     onError: (error: Error) => {
       nestoToast.error(`Fout bij aanmaken: ${error.message}`);
@@ -203,7 +203,7 @@ export function useCreateTablesBulk() {
           exact: false 
         });
       }
-      nestoToast.success(`${data.length} tafel(s) aangemaakt`);
+      
     },
     onError: (error: Error) => {
       nestoToast.error(`Fout bij aanmaken: ${error.message}`);
@@ -257,7 +257,7 @@ export function useArchiveTable() {
         queryKey: queryKeys.areasWithTables(locationId),
         exact: false 
       });
-      nestoToast.success('Tafel gearchiveerd');
+      
     }
   });
 }
@@ -304,7 +304,7 @@ export function useRestoreTable() {
           exact: false 
         });
       }
-      nestoToast.success(`Tafel "${result.display_label}" hersteld`);
+      
     },
     onError: (error: Error & { code?: string }) => {
       // Don't show toast for label conflicts - let UI handle it

@@ -83,7 +83,7 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
         const task = existing[0];
         const newUnits = (task.units ?? 1) + 1;
         updateTask.mutate({ id: task.id, units: newUnits });
-        nestoToast.success(`${item.naam} — verhoogd naar ${newUnits}×`);
+        
         setSearch("");
         return;
       }
@@ -133,7 +133,7 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
         const task = existing[0];
         const newUnits = (task.units ?? 1) + 1;
         updateTask.mutate({ id: task.id, units: newUnits });
-        nestoToast.success(`${title} — verhoogd naar ${newUnits}×`);
+        
         setSearch("");
         return;
       }
@@ -176,7 +176,6 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
           const task = existing[0];
           const newUnits = (task.units ?? 1) + 1;
           updateTask.mutate({ id: task.id, units: newUnits });
-          nestoToast.success(`${fav.title} — verhoogd naar ${newUnits}×`);
           setSearch("");
           return;
         }
@@ -209,7 +208,6 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
           const task = existing[0];
           const newUnits = (task.units ?? 1) + 1;
           updateTask.mutate({ id: task.id, units: newUnits });
-          nestoToast.success(`${fav.title} — verhoogd naar ${newUnits}×`);
           setSearch("");
           return;
         }

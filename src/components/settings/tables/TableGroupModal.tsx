@@ -193,7 +193,7 @@ export function TableGroupModal({ open, onOpenChange, locationId, editingGroup }
                 });
               }
               
-              nestoToast.success('Groep bijgewerkt');
+              
               onOpenChange(false);
             },
             onError: (err) => {

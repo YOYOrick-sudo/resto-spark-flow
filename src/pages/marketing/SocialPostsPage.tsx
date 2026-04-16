@@ -118,7 +118,7 @@ export default function SocialPostsPage() {
     if (!deleteId) return;
     deletePost.mutate(deleteId, {
       onSuccess: () => {
-        nestoToast.success('Bericht verwijderd');
+        
         setDeleteId(null);
       },
       onError: () => nestoToast.error('Verwijderen mislukt'),

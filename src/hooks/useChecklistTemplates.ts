@@ -108,7 +108,7 @@ export function useChecklistTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
-      nestoToast.success("Standaard templates aangemaakt");
+      
     },
     onError: () => nestoToast.error("Fout bij aanmaken templates"),
   });
@@ -133,7 +133,7 @@ export function useChecklistTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
-      nestoToast.success("Template opgeslagen");
+      
     },
     onError: () => nestoToast.error("Fout bij opslaan template"),
   });

@@ -112,7 +112,7 @@ export function ContentStep({ blocks, onChange }: ContentStepProps) {
         }
       }
 
-      nestoToast.success('Email aangepast door AI');
+      
       setAiModalOpen(false);
       setAiInstruction('');
     } catch {

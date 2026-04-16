@@ -108,7 +108,7 @@ export default function PopupPage() {
     createPopup.mutate(undefined, {
       onSuccess: (newPopup) => {
         setSelectedId(newPopup.id);
-        nestoToast.success('Popup aangemaakt');
+        
       },
       onError: () => nestoToast.error('Fout', 'Kon popup niet aanmaken.'),
     });
@@ -116,7 +116,7 @@ export default function PopupPage() {
 
   const handleDelete = (id: string) => {
     deletePopup.mutate(id, {
-      onSuccess: () => nestoToast.success('Popup verwijderd'),
+      onSuccess: () => {},
       onError: () => nestoToast.error('Fout', 'Kon popup niet verwijderen.'),
     });
   };
