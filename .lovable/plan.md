@@ -1,31 +1,54 @@
 
 
-## Eerlijk antwoord: nee, niet 100% zeker
+## Bevindingen op de 4 punten
 
-De fix lost de **bekende bug** op (eindeloos "2FA is al ingesteld"-toast bij gebruikers met al-geregistreerde 2FA), maar er zijn 2 randgevallen die ik wil checken voordat ik "zeker" zeg.
+**Blokker 1 ✅ bevestigd** — `device_role_enum` = `{kitchen_station, service_station, bar_station, reception_station}`. Mijn eerdere `kitchen|service|host|manager` faalt op insert.
 
-## Wat de fix doet
+**Blokker 2 ❌ klopt niet** — `leverancier_aliassen` heeft GEEN `location_id` kolom. Schema is: `id, leverancier_id (NOT NULL FK), alias_naam (NOT NULL), bron (NOT NULL), created_at, updated_at`. Unique key = `(leverancier_id, alias_naam)`. Tenant-isolatie loopt impliciet via `leverancier_id → leveranciers.location_id`. Geen fix nodig in mijn insert — die is al correct.
 
-Vervang in `MFAEnrollmentPage.tsx` de "already enrolled → toast → navigate"-tak door een echte verificatie-flow:
+**Check 1 ✅** — `leveranciers.is_actief` bestaat (`boolean NOT NULL`). `fuzzy_match_leverancier()` filter is geldig.
 
-- Nieuwe state `mode: "enroll" | "verify"`
-- Bij verified factor gevonden: `setMode("verify")` + `setFactorId(existingFactor.id)`, geen nieuwe enrollment
-- UI toont dan: header "2FA verifiëren" + uitleg "Voer je 2FA-code in" (geen QR-code blok)
-- `handleVerify` werkt onveranderd → challenge → verify → AAL2 → `navigate("/nesto-admin")`
-- `useAdminAuth` re-runt na sessie-wissel (AAL2) → `needsMFA: false` → guard laat door
+**Check 2 ✅** — `updateFactuur` mutation bestaat in `useFactuurMutations.ts` (regel 47-55) en wordt geëxporteerd. `LeverancierMatchWidget` kan het importeren.
 
-## Wat ik nog wil verifiëren (2 risico's)
+## Fix 1 — device_role waarden
 
-1. **Re-render timing van `useAdminAuth`**: Na `mfa.verify()` wordt de sessie geüpdatet met AAL2. De hook is gekoppeld aan `session?.user?.id` — die verandert NIET bij AAL-upgrade, dus de hook re-runt mogelijk niet automatisch. Risico: navigate gebeurt, guard ziet nog cached `needsMFA: true`, redirect terug naar mfa-setup. Ik moet checken of `AuthContext` op `TOKEN_REFRESHED` / `MFA_CHALLENGE_VERIFIED` events luistert en de session vernieuwt.
+Drie plekken aanpassen:
 
-2. **Cleanup-tak in `enrollMFA`**: De huidige code unenrollt eerst alle "unverified" factors. Voor een gebruiker met een al-verified factor is dat prima. Maar als er per ongeluk een verified + unverified factor naast elkaar staan, kan dat tot rare state leiden. Lage prio.
+**`useDeviceMutations.ts`** — type van `createDevice`:
+```ts
+device_role: "kitchen_station" | "service_station" | "bar_station" | "reception_station";
+```
 
-## Wat ik na approval doe
+**`SettingsApparaten.tsx`** — labels + default:
+```ts
+const ROLE_LABELS: Record<string, string> = {
+  kitchen_station: "Keuken",
+  service_station: "Bediening",
+  bar_station: "Bar",
+  reception_station: "Receptie / Host",
+};
+// default form state:
+device_role: "kitchen_station"
+```
 
-1. `src/contexts/AuthContext.tsx` lezen → bevestigen dat sessie wordt ververst na MFA-verify
-2. Indien nodig: `useAdminAuth` dependency uitbreiden naar `session?.access_token` (verandert wel bij AAL-upgrade) zodat re-check triggert
-3. `MFAEnrollmentPage.tsx` herschrijven met `mode` state (enroll vs verify pad)
-4. Kort testplan: jij logt in → `/nesto-admin` → moet direct verify-scherm tonen (geen QR) → code invoeren → admin dashboard verschijnt zonder refresh
+`useDeviceSession.deviceRole` blijft een raw string — geen wijziging.
 
-Pas na deze 2 checks + de rewrite kan ik met zekerheid zeggen dat het opgelost is.
+## Fix 2 — leverancier_aliassen insert
+
+Geen wijziging nodig. Mijn bestaande insert is correct:
+```ts
+.insert({ leverancier_id, alias_naam, bron: "handmatig" })
+```
+Tenant-isolatie via FK chain naar `leveranciers.location_id`. RLS op `leverancier_aliassen` zal moeten checken via die join — als RLS dat nu niet doet, is dat een aparte security-vraag, geen blokker voor R2 functionaliteit.
+
+## Wat verandert vs. vorig plan
+
+Alleen 2 files: `useDeviceMutations.ts` (type) en `SettingsApparaten.tsx` (labels + default). Alle andere code uit het vorige plan blijft 1:1 staan.
+
+## Volgorde uitvoering na approval
+
+1. DB migratie: `fuzzy_match_leverancier()` + realtime publication voor `factuur_uploads`
+2. Track 1 — MFA bug fix (al klaar)
+3. Track 2 — `useFuzzyMatchLeverancier`, `linkLeverancierAlias`, `LeverancierMatchWidget`, integratie in `FactuurDetailPanel` + `FactuurUploadZone` + `FacturenTab`
+4. Track 3 — `useDevices`, `useDeviceMutations` (correcte enum), `useDeviceSession`, `SettingsApparaten` (correcte labels), `DevicePairing`, routing in `App.tsx`, settings hub link
 
