@@ -395,6 +395,73 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_action_enum"]
+          actor_id: string | null
+          actor_type: Database["public"]["Enums"]["actor_type_enum"]
+          details: Json | null
+          device_id: string | null
+          id: string
+          ip_address: unknown
+          location_id: string | null
+          organization_id: string
+          recorded_at: string
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_action_enum"]
+          actor_id?: string | null
+          actor_type: Database["public"]["Enums"]["actor_type_enum"]
+          details?: Json | null
+          device_id?: string | null
+          id?: string
+          ip_address?: unknown
+          location_id?: string | null
+          organization_id: string
+          recorded_at?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_action_enum"]
+          actor_id?: string | null
+          actor_type?: Database["public"]["Enums"]["actor_type_enum"]
+          details?: Json | null
+          device_id?: string | null
+          id?: string
+          ip_address?: unknown
+          location_id?: string | null
+          organization_id?: string
+          recorded_at?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bestellingen: {
         Row: {
           aangemaakt_door: string | null
@@ -1040,6 +1107,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "day_notes_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          app_version: string | null
+          auth_user_id: string | null
+          created_at: string
+          device_name: string
+          device_role: Database["public"]["Enums"]["device_role_enum"]
+          id: string
+          last_heartbeat: string | null
+          location_id: string
+          metadata: Json | null
+          paired_at: string | null
+          paired_by: string | null
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          app_version?: string | null
+          auth_user_id?: string | null
+          created_at?: string
+          device_name: string
+          device_role?: Database["public"]["Enums"]["device_role_enum"]
+          id?: string
+          last_heartbeat?: string | null
+          location_id: string
+          metadata?: Json | null
+          paired_at?: string | null
+          paired_by?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          app_version?: string | null
+          auth_user_id?: string | null
+          created_at?: string
+          device_name?: string
+          device_role?: Database["public"]["Enums"]["device_role_enum"]
+          id?: string
+          last_heartbeat?: string | null
+          location_id?: string
+          metadata?: Json | null
+          paired_at?: string | null
+          paired_by?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
@@ -5809,6 +5938,143 @@ export type Database = {
           },
         ]
       }
+      staff_members: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          location_id: string
+          metadata: Json | null
+          organization_id: string
+          role: Database["public"]["Enums"]["location_role"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          metadata?: Json | null
+          organization_id: string
+          role?: Database["public"]["Enums"]["location_role"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          metadata?: Json | null
+          organization_id?: string
+          role?: Database["public"]["Enums"]["location_role"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_transfers: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          bestelling_id: string | null
+          completed_at: string | null
+          created_at: string
+          from_location_id: string
+          id: string
+          notes: string | null
+          organization_id: string
+          requested_at: string
+          requested_by_id: string | null
+          requested_by_type: Database["public"]["Enums"]["actor_type_enum"]
+          status: string
+          to_location_id: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          bestelling_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          from_location_id: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          requested_at?: string
+          requested_by_id?: string | null
+          requested_by_type?: Database["public"]["Enums"]["actor_type_enum"]
+          status?: string
+          to_location_id: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          bestelling_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          from_location_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          requested_at?: string
+          requested_by_id?: string | null
+          requested_by_type?: Database["public"]["Enums"]["actor_type_enum"]
+          status?: string
+          to_location_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_transfers_bestelling_id_fkey"
+            columns: ["bestelling_id"]
+            isOneToOne: false
+            referencedRelation: "interne_bestellingen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_group_members: {
         Row: {
           id: string
@@ -6142,6 +6408,67 @@ export type Database = {
             columns: ["policy_set_id"]
             isOneToOne: false
             referencedRelation: "policy_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transfer_items: {
+        Row: {
+          created_at: string
+          eenheid: string
+          id: string
+          ingredient_id: string | null
+          notes: string | null
+          product_naam: string
+          quantity: number
+          received_quantity: number | null
+          recept_id: string | null
+          transfer_id: string
+        }
+        Insert: {
+          created_at?: string
+          eenheid: string
+          id?: string
+          ingredient_id?: string | null
+          notes?: string | null
+          product_naam: string
+          quantity: number
+          received_quantity?: number | null
+          recept_id?: string | null
+          transfer_id: string
+        }
+        Update: {
+          created_at?: string
+          eenheid?: string
+          id?: string
+          ingredient_id?: string | null
+          notes?: string | null
+          product_naam?: string
+          quantity?: number
+          received_quantity?: number | null
+          recept_id?: string | null
+          transfer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_items_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_items_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_items_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_transfers"
             referencedColumns: ["id"]
           },
         ]
@@ -6750,6 +7077,7 @@ export type Database = {
         }
         Returns: string
       }
+      custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       detect_empty_shifts: { Args: never; Returns: undefined }
       extend_option: {
         Args: {
@@ -7048,9 +7376,34 @@ export type Database = {
       }
     }
     Enums: {
+      actor_type_enum: "device" | "user" | "system"
+      audit_action_enum:
+        | "haccp.temperature_logged"
+        | "haccp.checklist_completed"
+        | "haccp.corrective_action"
+        | "invoice.approved"
+        | "invoice.rejected"
+        | "inventory.large_adjustment"
+        | "cash.reconciled"
+        | "transfer.recorded"
+        | "transfer.cancelled"
+        | "device.paired"
+        | "device.deactivated"
+      device_role_enum:
+        | "kitchen_station"
+        | "service_station"
+        | "bar_station"
+        | "reception_station"
       employee_status: "invited" | "active" | "archived"
       fill_order_type: "first_available" | "round_robin" | "priority" | "custom"
-      location_role: "owner" | "manager" | "service" | "kitchen" | "finance"
+      location_role:
+        | "owner"
+        | "manager"
+        | "service"
+        | "kitchen"
+        | "finance"
+        | "marketing"
+        | "employee"
       module_key:
         | "reservations"
         | "kitchen"
@@ -7211,9 +7564,37 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      actor_type_enum: ["device", "user", "system"],
+      audit_action_enum: [
+        "haccp.temperature_logged",
+        "haccp.checklist_completed",
+        "haccp.corrective_action",
+        "invoice.approved",
+        "invoice.rejected",
+        "inventory.large_adjustment",
+        "cash.reconciled",
+        "transfer.recorded",
+        "transfer.cancelled",
+        "device.paired",
+        "device.deactivated",
+      ],
+      device_role_enum: [
+        "kitchen_station",
+        "service_station",
+        "bar_station",
+        "reception_station",
+      ],
       employee_status: ["invited", "active", "archived"],
       fill_order_type: ["first_available", "round_robin", "priority", "custom"],
-      location_role: ["owner", "manager", "service", "kitchen", "finance"],
+      location_role: [
+        "owner",
+        "manager",
+        "service",
+        "kitchen",
+        "finance",
+        "marketing",
+        "employee",
+      ],
       module_key: [
         "reservations",
         "kitchen",
