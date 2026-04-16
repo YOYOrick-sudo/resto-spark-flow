@@ -4,6 +4,7 @@ import { nl } from "date-fns/locale";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import { cn } from "@/lib/utils";
 import type { MepTask } from "@/hooks/useMepTasks";
+import { formatTaskAmount } from "@/utils/mepDisplay";
 
 const MAX_VISIBLE_TASKS = 5;
 
@@ -124,16 +125,14 @@ export function MepWeekView({
                     >
                       {task.title}
                     </span>
-                    {task.units != null && task.units > 0 && (
-                      <span className="shrink-0 text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded tabular-nums">
-                        {task.units}×
-                      </span>
-                    )}
-                    {task.methode?.type && (
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
-                        {task.methode.type.toLowerCase()}
-                      </span>
-                    )}
+                    {(() => {
+                      const amount = formatTaskAmount(task);
+                      return amount ? (
+                        <span className="shrink-0 text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded tabular-nums">
+                          {amount}
+                        </span>
+                      ) : null;
+                    })()}
                   </button>
                 );
               })}

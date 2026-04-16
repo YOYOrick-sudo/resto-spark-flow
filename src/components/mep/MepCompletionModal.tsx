@@ -9,6 +9,7 @@ import { getQuickPrintPreset } from "@/hooks/usePrintLabel";
 import { usePrintLabel } from "@/hooks/usePrintLabel";
 import type { LabelData } from "@/utils/zplGenerator";
 import type { MepTask } from "@/hooks/useMepTasks";
+import { getDisplayEenheid } from "@/utils/mepDisplay";
 import { Printer } from "lucide-react";
 import {
   Select,
@@ -31,9 +32,7 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
     ? methode.output_hoeveelheid * defaultUnits
     : undefined;
 
-  // Strip leading "1 " from visuele_eenheid defensively
-  const rawEenheid = methode?.visuele_eenheid || methode?.output_eenheid;
-  const displayEenheid = rawEenheid?.replace(/^1\s+/, '');
+  const displayEenheid = getDisplayEenheid(task);
 
   const [unitsGemaakt, setUnitsGemaakt] = useState(defaultUnits);
   const [werkelijkeGram, setWerkelijkeGram] = useState<string>(

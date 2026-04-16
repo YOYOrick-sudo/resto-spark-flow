@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MepTask } from "@/hooks/useMepTasks";
+import { formatTaskAmount, formatTaskTotal } from "@/utils/mepDisplay";
 
 interface MepTaskRowProps {
   task: MepTask;
@@ -73,12 +74,12 @@ export function MepTaskRow({ task, isOverdue, onComplete, onCancel, onPriorityCh
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             {(() => {
-              const displayEenheid = task.methode?.visuele_eenheid?.replace(/^1\s+/, '')
-                || (task.methode ? `${task.methode.output_hoeveelheid} ${task.methode.output_eenheid}` : null);
-              const displayUnits = task.units ?? 1;
-              return displayEenheid ? (
+              const amount = formatTaskAmount(task);
+              const total = formatTaskTotal(task);
+              return amount ? (
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {displayUnits}× {displayEenheid}
+                  {amount}
+                  {total && <span className="text-muted-foreground/60"> · {total}</span>}
                 </span>
               ) : null;
             })()}
