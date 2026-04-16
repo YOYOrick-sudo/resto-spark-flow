@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, PanelLeft, Search, Building2 } from 'lucide-react';
+import { ChevronDown, PanelLeft, Search, Building2, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { useUserContext } from '@/contexts/UserContext';
@@ -66,7 +67,8 @@ interface NestoSidebarProps {
 export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 0, collapsed, onToggleCollapse }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { availableLocations } = useUserContext();
+  const { user, signOut } = useAuth();
+  const { availableLocations, currentLocation } = useUserContext();
   const isMultiLocation = availableLocations.length > 1;
   
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
