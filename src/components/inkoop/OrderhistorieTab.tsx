@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DataTable, NestoBadge, NestoButton, NestoSelect, NestoDatePicker, dateFromString, dateToString } from "@/components/polar";
 import { useBestellingen, BestellingFilters } from "@/hooks/useBestellingen";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
-import { BestellingDetailPanel } from "./BestellingDetailPanel";
 import { RefreshCw } from "lucide-react";
 import type { DataTableColumn } from "@/components/polar";
 
@@ -15,11 +15,11 @@ const statusVariant: Record<string, "default" | "primary" | "success" | "error">
 };
 
 export function OrderhistorieTab() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<BestellingFilters>({});
   const { data: bestellingen, isLoading } = useBestellingen(filters);
   const { data: leveranciers } = useLeveranciers();
   const mutations = useVoorraadInkoopMutations();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const columns: DataTableColumn<any>[] = [
     { key: "bestelnummer", header: "Bestelnummer", render: (b) => b.bestelnummer ?? "-" },
@@ -110,11 +110,9 @@ export function OrderhistorieTab() {
         columns={columns}
         data={bestellingen ?? []}
         keyExtractor={(b) => b.id}
-        onRowClick={(b) => setSelectedId(b.id)}
+        onRowClick={(b) => navigate(`/inkoop/bestellingen/${b.id}`)}
         emptyMessage="Geen bestellingen gevonden"
       />
-
-      <BestellingDetailPanel bestellingId={selectedId} onClose={() => setSelectedId(null)} />
     </div>
   );
 }
