@@ -1,0 +1,1 @@
+ALTER VIEW public.gedeelde_halffabricaten_cross_locatie SET (security_invoker = true);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, PanelLeft, Search, Building2 } from 'lucide-react';
+import { ChevronDown, PanelLeft, Search, Building2, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { menuItems, getActiveItemFromPath, getExpandedGroupFromPath, MenuItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import { useUserContext } from '@/contexts/UserContext';
@@ -66,7 +67,8 @@ interface NestoSidebarProps {
 export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 0, collapsed, onToggleCollapse }: NestoSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { availableLocations } = useUserContext();
+  const { user, signOut } = useAuth();
+  const { availableLocations, currentLocation } = useUserContext();
   const isMultiLocation = availableLocations.length > 1;
   
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
@@ -375,15 +377,26 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
         <div className="border-t border-border px-3 pt-3 pb-3 space-y-2">
           <div className="flex items-center gap-2 px-2.5">
             <Building2 size={16} className="text-muted-foreground flex-shrink-0" />
-            <span className="text-sm font-medium text-foreground truncate">Restaurant Demo</span>
+            <span className="text-sm font-medium text-foreground truncate">
+              {currentLocation?.name ?? "Geen locatie"}
+            </span>
           </div>
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg">
             <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center flex-shrink-0">
-              JD
+              {(user?.email?.[0] ?? "?").toUpperCase()}
             </div>
-            <span className="text-sm text-foreground truncate flex-1">Jan de Vries</span>
-            <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-foreground truncate flex-1">
+              {user?.email ?? "Gebruiker"}
+            </span>
           </div>
+          <button
+            type="button"
+            onClick={async () => { await signOut(); navigate("/auth"); }}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-colors"
+          >
+            <LogOut size={14} className="flex-shrink-0" />
+            <span>Uitloggen</span>
+          </button>
         </div>
       )}
     </div>
