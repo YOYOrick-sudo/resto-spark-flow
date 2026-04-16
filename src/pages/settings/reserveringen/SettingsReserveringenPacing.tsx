@@ -99,7 +99,7 @@ export default function SettingsReserveringenPacing() {
         dinner: settings.dinnerLimit,
       },
     });
-    nestoToast.success("Pacing instellingen opgeslagen");
+    
   };
 
   const breadcrumbs = buildBreadcrumbs("reserveringen", "pacing");

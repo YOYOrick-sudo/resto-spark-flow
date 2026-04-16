@@ -36,10 +36,10 @@ export default function SegmentsPage() {
     try {
       if (editSegment) {
         await updateMutation.mutateAsync({ id: editSegment.id, ...data });
-        nestoToast.success('Doelgroep bijgewerkt');
+        
       } else {
         await createMutation.mutateAsync(data);
-        nestoToast.success('Doelgroep aangemaakt');
+        
       }
       setBuilderOpen(false);
     } catch {
@@ -51,7 +51,7 @@ export default function SegmentsPage() {
     if (!deleteTarget) return;
     try {
       await deleteMutation.mutateAsync(deleteTarget);
-      nestoToast.success('Doelgroep verwijderd');
+      
     } catch {
       nestoToast.error('Verwijderen mislukt');
     }

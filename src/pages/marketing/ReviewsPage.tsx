@@ -109,7 +109,7 @@ export default function ReviewsPage() {
       responded_at: responseText ? new Date().toISOString() : undefined,
       operator_edited: operatorEdited,
     });
-    nestoToast.success('Antwoord opgeslagen');
+    
     setSelectedReview(null);
   };
 
@@ -125,14 +125,14 @@ export default function ReviewsPage() {
   const handleCopyResponse = async () => {
     if (!responseText) return;
     await copyToClipboard(responseText);
-    nestoToast.success('Gekopieerd — plak in Google Maps');
+    
   };
 
   const handleToggleFeatured = async (val: boolean) => {
     if (!selectedReview) return;
     setIsFeatured(val);
     await updateReview.mutateAsync({ id: selectedReview.id, is_featured: val });
-    nestoToast.success(val ? 'Review gemarkeerd als featured' : 'Featured verwijderd');
+    
   };
 
   const handleGenerateAI = async () => {
@@ -145,7 +145,7 @@ export default function ReviewsPage() {
     });
     if (content) {
       setResponseText(content);
-      nestoToast.success('AI-suggestie gegenereerd');
+      
     }
   };
 

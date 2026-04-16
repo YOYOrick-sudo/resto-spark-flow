@@ -45,7 +45,7 @@ export function DayPanel({ date, posts, onClose }: DayPanelProps) {
 
   function handleDelete(id: string) {
     deletePost.mutate(id, {
-      onSuccess: () => nestoToast.success('Bericht verwijderd'),
+      onSuccess: () => {},
       onError: () => nestoToast.error('Verwijderen mislukt'),
     });
   }

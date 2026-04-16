@@ -27,7 +27,7 @@ export default function SettingsReserveringenShiftTijden() {
         dinner: { start: settings.dinnerStart, end: settings.dinnerEnd },
       },
     });
-    nestoToast.success("Shift tijden opgeslagen");
+    
   };
 
   const timeOptions = Array.from({ length: 24 }, (_, i) => {
