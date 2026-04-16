@@ -1483,6 +1483,54 @@ export type Database = {
           },
         ]
       }
+      ingredient_aliassen: {
+        Row: {
+          alias_naam: string
+          artikelnummer: string | null
+          bron: string
+          created_at: string
+          id: string
+          ingredient_id: string
+          leverancier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          alias_naam: string
+          artikelnummer?: string | null
+          bron?: string
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          leverancier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alias_naam?: string
+          artikelnummer?: string | null
+          bron?: string
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          leverancier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_aliassen_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_aliassen_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_allergenen: {
         Row: {
           allergeen_id: string
@@ -1830,6 +1878,41 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leverancier_aliassen: {
+        Row: {
+          alias_naam: string
+          bron: string
+          created_at: string
+          id: string
+          leverancier_id: string
+          updated_at: string
+        }
+        Insert: {
+          alias_naam: string
+          bron?: string
+          created_at?: string
+          id?: string
+          leverancier_id: string
+          updated_at?: string
+        }
+        Update: {
+          alias_naam?: string
+          bron?: string
+          created_at?: string
+          id?: string
+          leverancier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leverancier_aliassen_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
             referencedColumns: ["id"]
           },
         ]
@@ -6720,6 +6803,15 @@ export type Database = {
       }
       process_scheduled_campaigns: { Args: never; Returns: undefined }
       publish_scheduled_social_posts: { Args: never; Returns: undefined }
+      record_factuur_correction: {
+        Args: {
+          p_alias_naam: string
+          p_artikelnummer?: string
+          p_ingredient_id: string
+          p_leverancier_id?: string
+        }
+        Returns: undefined
+      }
       reorder_areas: {
         Args: { _area_ids: string[]; _location_id: string }
         Returns: Json
