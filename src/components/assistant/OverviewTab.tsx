@@ -97,7 +97,7 @@ export function OverviewTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['new-capabilities', locationId] });
       queryClient.invalidateQueries({ queryKey: ['agent-configurations', locationId] });
-      nestoToast.success('Ingesteld!');
+      
     },
   });
 

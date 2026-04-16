@@ -513,7 +513,7 @@ export function ReservationGridView({
       location_id: reservation.location_id,
       customer_id: reservation.customer_id,
     }, {
-      onSuccess: () => nestoToast.success('Ingecheckt'),
+      onSuccess: () => {},
       onError: (err) => nestoToast.error(err.message),
     });
   }, [transition]);

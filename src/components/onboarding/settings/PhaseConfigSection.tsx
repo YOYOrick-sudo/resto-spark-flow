@@ -31,7 +31,6 @@ export function PhaseConfigSection() {
   };
 
   const handleExplicitAction = () => {
-    nestoToast.success('Taak bijgewerkt');
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {

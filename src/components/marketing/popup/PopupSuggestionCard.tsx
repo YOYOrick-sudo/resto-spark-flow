@@ -24,7 +24,7 @@ export function PopupSuggestionCard({ suggestion, targetPopupId }: Props) {
 
   const handleAccept = () => {
     accept.mutate({ suggestion, targetPopupId }, {
-      onSuccess: () => nestoToast.success('Popup bijgewerkt', 'AI suggestie toegepast.'),
+      onSuccess: () => {},
       onError: () => nestoToast.error('Fout', 'Kon suggestie niet toepassen.'),
     });
   };

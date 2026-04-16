@@ -59,7 +59,7 @@ export function AreaModal({ open, onOpenChange, locationId, editingArea }: AreaM
           { id: editingArea.id, name: name.trim(), fill_order: fillOrder },
           {
             onSuccess: () => {
-              nestoToast.success('Area bijgewerkt');
+              
               onOpenChange(false);
             },
             onError: (err) => {

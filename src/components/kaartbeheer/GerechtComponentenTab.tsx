@@ -188,7 +188,7 @@ function AddHalffabricaat({ gerechtId, emptyState }: { gerechtId: string; emptyS
         .select("id")
         .single();
       if (error) throw error;
-      nestoToast.success("Halffabricaat aangemaakt", "Vul het halffabricaat verder in op de halffabricaten pagina.");
+      
       navigate(`/recepten?open=${(data as any).id}`);
     } catch {
       nestoToast.error("Fout bij aanmaken");
@@ -358,7 +358,7 @@ function AddIngredient({ gerechtId, emptyState }: { gerechtId: string; emptyStat
         .select("id, naam, eenheid")
         .single();
       if (error) throw error;
-      nestoToast.success("Ingrediënt aangemaakt");
+      
       setSelected({ id: (data as any).id, naam: (data as any).naam, eenheid: (data as any).eenheid });
       setEenheid((data as any).eenheid);
     } catch {

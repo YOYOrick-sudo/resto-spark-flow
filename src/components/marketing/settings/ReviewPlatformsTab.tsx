@@ -42,7 +42,7 @@ export default function ReviewPlatformsTab({ readOnly }: Props) {
     if (error) {
       nestoToast.error('Opslaan mislukt');
     } else {
-      nestoToast.success('Review platforms opgeslagen');
+      
     }
   };
 

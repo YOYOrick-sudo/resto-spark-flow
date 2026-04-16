@@ -90,7 +90,7 @@ export function AgentConfigTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messaging-config', locationId] });
-      nestoToast.success('Opgeslagen');
+      
     },
     onError: () => {
       nestoToast.error('Opslaan mislukt');
