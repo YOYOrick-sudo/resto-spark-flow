@@ -6,6 +6,7 @@ import { Check, X, ChevronDown, ChevronRight, ClipboardList } from "lucide-react
 import { useUpdateMepTask, useCancelMepTask } from "@/hooks/useMepMutations";
 import { MepCompletionModal } from "./MepCompletionModal";
 import type { MepTask } from "@/hooks/useMepTasks";
+import { formatTaskAmount } from "@/utils/mepDisplay";
 import { cn } from "@/lib/utils";
 
 interface MepTaskListProps {
@@ -160,11 +161,14 @@ export function MepTaskList({ tasks, isLoading }: MepTaskListProps) {
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {task.methode?.visuele_eenheid && (
-                              <span className="text-xs text-muted-foreground tabular-nums">
-                                {task.units ?? 1}× {task.methode.visuele_eenheid}
-                              </span>
-                            )}
+                            {(() => {
+                              const amount = formatTaskAmount(task);
+                              return amount ? (
+                                <span className="text-xs text-muted-foreground tabular-nums">
+                                  {amount}
+                                </span>
+                              ) : null;
+                            })()}
                             {task.deadline && (
                               <span
                                 className={cn(
