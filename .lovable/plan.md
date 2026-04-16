@@ -1,74 +1,68 @@
 
 
-# Plan: Fix literal `\n` in berichten
+# Plan: Drie MEP Fixes + Totale Output
 
-## Probleem
+## Samenvatting
 
-Berichten in de chat tonen letterlijke `\n` tekens ("Beste Jan,\n\nDit is een herinnering...") in plaats van echte regelovergangen. ChatView heeft al `whitespace-pre-wrap` — het probleem zit dus in de **opgeslagen content**.
+Vier wijzigingen: (1) gedeelde `mepDisplay.ts` helper voor eenheid-formatting, (2) SQL migratie om bestaande `visuele_eenheid` data op te schonen, (3) weekview eenheid-info tonen, (4) totale output weergave ("3× GN1/3 · 4.5 kg totaal").
 
-## Oorzaak
+**Lijstview:** al verwijderd — `MepTaken.tsx` heeft alleen `categorie` en `week` toggles.
 
-De `replacePlaceholders` functie in `send-message/index.ts` vervangt alleen `{{placeholders}}`. Als de template body literal `\n` bevat (twee characters: backslash + n — mogelijk uit de `message_templates` DB tabel of via JSON-import), worden die niet geconverteerd naar echte newlines.
+**Wizard validatie:** niet nodig — er is geen user-facing input voor `visuele_eenheid`. Het veld wordt programmatisch gezet en de wizard (`ReceptStapMethodes.tsx`) stript al leading nummers op regel 58-59.
 
-De hardcoded `DEFAULT_TEMPLATES` in de edge function gebruiken JS string literals (`'...\n...'`) waar `\n` automatisch een echte newline wordt. Maar templates uit de database (`message_templates` tabel) of templates die via de UI als JSON zijn geïmporteerd kunnen literal `\n` bevatten.
+---
 
-## Fix
+## Wijzigingen
 
-**Eén regel toevoegen in `replacePlaceholders`** in `send-message/index.ts`:
+### 1. Nieuw bestand: `src/utils/mepDisplay.ts`
 
-```typescript
-function replacePlaceholders(text: string, params: Record<string, string>): string {
-  let result = text;
-  for (const [key, value] of Object.entries(params)) {
-    result = result.replaceAll(`{{${key}}}`, value);
-  }
-  // Convert literal \n sequences to real newlines
-  result = result.replace(/\\n/g, '\n');
-  return result;
-}
-```
-
-Dit vangt alle gevallen: of de `\n` nu uit de DB komt, uit een JSON-import, of uit een copy-paste.
-
-**Zelfde fix in `renderTemplate`** in `_shared/templateRenderer.ts` (voor onboarding emails):
+Gedeelde helpers die de `^1\s+` strip-logica, fallback-keten, en totaalberekening centraliseren:
 
 ```typescript
-export function renderTemplate(template: string, context: TemplateContext): string {
-  return template
-    .replace(/\[voornaam\]/g, context.voornaam)
-    .replace(/\[achternaam\]/g, context.achternaam)
-    .replace(/\[vestiging\]/g, context.vestiging)
-    .replace(/\[functie\]/g, context.functie || 'Open positie')
-    .replace(/\[datum\]/g, context.datum || '')
-    .replace(/\\n/g, '\n');
-}
+export function getDisplayEenheid(task): string | null
+// Fallback: visuele_eenheid → output_hoeveelheid+eenheid → target_eenheid
+
+export function formatTaskAmount(task): string | null
+// "3× GN1/3"
+
+export function formatTaskTotal(task): string | null
+// "4.5 kg totaal"
 ```
 
-## Extra issue: preview in GastberichtenTab
+### 2. Bestaande componenten refactoren
 
-De preview modal in `GastberichtenTab.tsx` (regel 254) gebruikt al `<pre className="whitespace-pre-wrap">` — dit is correct. Maar de inline preview (regel 254) zou ook literal `\n` tonen als die in de template staan. De `renderPreview` functie moet dezelfde conversie doen:
+| Component | Was | Wordt |
+|-----------|-----|-------|
+| `MepTaskRow.tsx` r.74-84 | Inline IIFE met `replace(/^1\s+/, '')` | `formatTaskAmount(task)` + `formatTaskTotal(task)` |
+| `MepTaskList.tsx` r.163-166 | Rauw `task.methode.visuele_eenheid` | `formatTaskAmount(task)` |
+| `MepWeekView.tsx` r.127-131 | Alleen `{task.units}×` | `formatTaskAmount(task)` met eenheid |
+| `MepCompletionModal.tsx` r.34-36 | Inline strip-logica | `getDisplayEenheid(task)` |
 
-```typescript
-// In GastberichtenTab.tsx renderPreview functie
-const renderPreview = (key: TemplateKey) => {
-  const t = localTemplates[key];
-  if (!t) return '';
-  return t.body
-    .replace(/\{voornaam\}/g, 'Jan')
-    // ...existing replacements...
-    .replace(/\\n/g, '\n'); // Convert literal \n
-};
+### 3. SQL migratie: bestaande data opschonen
+
+```sql
+UPDATE halffabricaat_methodes 
+SET visuele_eenheid = REGEXP_REPLACE(visuele_eenheid, '^1\s+', '') 
+WHERE visuele_eenheid ~ '^1\s+';
 ```
+
+### 4. Verwacht resultaat
+
+- **MepTaskRow:** "3× GN1/3 · 4.5 kg totaal" — kok ziet direct hoeveel er geproduceerd wordt
+- **MepTaskList:** "3× GN1/3" i.p.v. "3× 1 GN 1/3"
+- **MepWeekView:** "3× GN1/3" i.p.v. alleen "3×"
+- **Database:** geen `visuele_eenheid` records meer met leading "1 "
+
+---
 
 ## Bestanden
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `supabase/functions/send-message/index.ts` | `replacePlaceholders`: + `result.replace(/\\n/g, '\n')` |
-| `supabase/functions/_shared/templateRenderer.ts` | `renderTemplate`: + `.replace(/\\n/g, '\n')` |
-| `src/components/settings/communication/GastberichtenTab.tsx` | `renderPreview`: + `.replace(/\\n/g, '\n')` |
-
-## Extra observatie
-
-De `renderPreview` in `GastberichtenTab` (r.278-295) en de DEFAULT_TEMPLATES in `useReservationEmailTemplates.ts` bevatten `\n` als JS string literals — die zijn correcte echte newlines. Het probleem ontstaat alleen wanneer templates via de DB worden opgehaald en de DB-inhoud literal backslash-n bevat. De edge function fix vangt dit op het juiste punt af: vlak voor verzending.
+| Bestand | Actie |
+|---------|-------|
+| `src/utils/mepDisplay.ts` | **Nieuw** — getDisplayEenheid, formatTaskAmount, formatTaskTotal |
+| `src/components/mep/MepTaskRow.tsx` | Refactor → helper + totaal |
+| `src/components/mep/MepTaskList.tsx` | Refactor → helper |
+| `src/components/mep/MepWeekView.tsx` | Eenheid in badge |
+| `src/components/mep/MepCompletionModal.tsx` | Refactor → helper |
+| SQL migratie | Strip `^1\s+` uit bestaande visuele_eenheid |
 
