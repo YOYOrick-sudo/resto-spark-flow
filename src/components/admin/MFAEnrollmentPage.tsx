@@ -7,26 +7,42 @@ import { NestoInput } from "@/components/polar/NestoInput";
 import { Shield, Loader2, CheckCircle2 } from "lucide-react";
 import { nestoToast } from "@/lib/nestoToast";
 
+type Mode = "enroll" | "verify";
+
 export function MFAEnrollmentPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<Mode>("enroll");
   const [qrCode, setQrCode] = useState<string>("");
   const [factorId, setFactorId] = useState<string>("");
   const [verifyCode, setVerifyCode] = useState("");
-  const [isEnrolling, setIsEnrolling] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    enrollMFA();
+    initMFA();
   }, []);
 
-  async function enrollMFA() {
-    setIsEnrolling(true);
+  async function initMFA() {
+    setIsLoading(true);
     setError(null);
 
     try {
-      // Cleanup: remove any existing unverified TOTP factors
       const { data: factors } = await supabase.auth.mfa.listFactors();
+
+      // Check voor bestaande verified factor
+      const verifiedFactor = factors?.totp?.find(
+        (f) => f.factor_type === "totp" && f.status === "verified"
+      );
+
+      if (verifiedFactor) {
+        // Al ingesteld → alleen sessie verifiëren (geen nieuwe QR)
+        setMode("verify");
+        setFactorId(verifiedFactor.id);
+        return;
+      }
+
+      // Cleanup: verwijder oude unverified factors
       if (factors?.totp) {
         for (const factor of factors.totp) {
           if ((factor as any).status === "unverified") {
@@ -35,15 +51,7 @@ export function MFAEnrollmentPage() {
         }
       }
 
-      // Check if already has verified factor
-      if (factors?.totp?.some((f) => f.factor_type === "totp" && f.status === "verified")) {
-        // Already enrolled, just need to verify session
-        nestoToast.success("2FA is al ingesteld. Verifieer je sessie.");
-        navigate("/nesto-admin");
-        return;
-      }
-
-      // Enroll new TOTP factor
+      // Enroll nieuwe TOTP factor
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({
         factorType: "totp",
         friendlyName: "Nesto Admin TOTP",
@@ -51,13 +59,14 @@ export function MFAEnrollmentPage() {
 
       if (enrollError) throw enrollError;
 
+      setMode("enroll");
       setFactorId(data.id);
       setQrCode(data.totp.qr_code);
     } catch (err: any) {
-      console.error("[MFA] enroll error:", err);
-      setError(err.message || "Kon 2FA niet instellen");
+      console.error("[MFA] init error:", err);
+      setError(err.message || "Kon 2FA niet initialiseren");
     } finally {
-      setIsEnrolling(false);
+      setIsLoading(false);
     }
   }
 
@@ -84,8 +93,10 @@ export function MFAEnrollmentPage() {
 
       if (verifyError) throw verifyError;
 
-      nestoToast.success("2FA succesvol ingesteld!");
-      navigate("/nesto-admin");
+      nestoToast.success(mode === "enroll" ? "2FA succesvol ingesteld!" : "Sessie geverifieerd");
+      // Sessie is nu AAL2 → AuthContext vuurt MFA_CHALLENGE_VERIFIED
+      // → useAdminAuth re-runt via access_token dependency → guard laat door
+      navigate("/nesto-admin", { replace: true });
     } catch (err: any) {
       console.error("[MFA] verify error:", err);
       setError(err.message || "Verificatie mislukt. Probeer opnieuw.");
@@ -94,6 +105,8 @@ export function MFAEnrollmentPage() {
       setIsVerifying(false);
     }
   }
+
+  const isEnrollMode = mode === "enroll";
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
@@ -106,72 +119,93 @@ export function MFAEnrollmentPage() {
                 <Shield className="h-5 w-5 text-amber-400" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-white">2FA instellen</h1>
-                <p className="text-sm text-slate-400">Verplicht voor admin-toegang</p>
+                <h1 className="text-lg font-semibold text-white">
+                  {isEnrollMode ? "2FA instellen" : "2FA verifiëren"}
+                </h1>
+                <p className="text-sm text-slate-400">
+                  {isEnrollMode ? "Verplicht voor admin-toegang" : "Bevestig je identiteit"}
+                </p>
               </div>
             </div>
 
-            {/* Why 2FA */}
+            {/* Context */}
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
               <p className="text-xs text-slate-400 leading-relaxed">
-                <strong className="text-slate-300">Waarom 2FA?</strong> Het admin-paneel bevat 
-                gevoelige klantgegevens en platforminstellingen. Twee-factor authenticatie 
-                voorkomt ongeautoriseerde toegang, zelfs als je wachtwoord gelekt is.
+                {isEnrollMode ? (
+                  <>
+                    <strong className="text-slate-300">Waarom 2FA?</strong> Het admin-paneel bevat
+                    gevoelige klantgegevens en platforminstellingen. Twee-factor authenticatie
+                    voorkomt ongeautoriseerde toegang, zelfs als je wachtwoord gelekt is.
+                  </>
+                ) : (
+                  <>
+                    <strong className="text-slate-300">Sessie verifiëren.</strong> Je hebt 2FA al
+                    ingesteld. Open je authenticator-app en voer de huidige 6-cijferige code in om
+                    deze sessie te activeren voor admin-toegang.
+                  </>
+                )}
               </p>
             </div>
 
-            {isEnrolling ? (
+            {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
               </div>
-            ) : qrCode ? (
+            ) : (
               <>
-                {/* QR Code */}
-                <div className="space-y-3">
-                  <p className="text-sm text-slate-300">
-                    Scan deze QR-code met je authenticator-app (Google Authenticator, Authy, 1Password):
-                  </p>
-                  <div className="flex justify-center bg-white rounded-lg p-4">
-                    <img src={qrCode} alt="QR Code voor 2FA" className="w-48 h-48" />
+                {/* QR Code — alleen bij enroll */}
+                {isEnrollMode && qrCode && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-slate-300">
+                      Scan deze QR-code met je authenticator-app (Google Authenticator, Authy,
+                      1Password):
+                    </p>
+                    <div className="flex justify-center bg-white rounded-lg p-4">
+                      <img src={qrCode} alt="QR Code voor 2FA" className="w-48 h-48" />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Verify */}
-                <div className="space-y-3">
-                  <label className="text-sm text-slate-300">
-                    Voer de 6-cijferige code in:
-                  </label>
-                  <NestoInput
-                    value={verifyCode}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-                      setVerifyCode(val);
-                    }}
-                    placeholder="000000"
-                    className="text-center text-2xl tracking-[0.5em] font-mono bg-slate-800 border-slate-700 text-white"
-                    maxLength={6}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && verifyCode.length === 6) handleVerify();
-                    }}
-                  />
-                  <NestoButton
-                    onClick={handleVerify}
-                    disabled={verifyCode.length !== 6 || isVerifying}
-                    className="w-full"
-                  >
-                    {isVerifying ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Verifieer & activeer
-                      </>
-                    )}
-                  </NestoButton>
-                </div>
+                {/* Code invoer */}
+                {factorId && (
+                  <div className="space-y-3">
+                    <label className="text-sm text-slate-300">
+                      {isEnrollMode
+                        ? "Voer de 6-cijferige code in:"
+                        : "Voer je 2FA-code in:"}
+                    </label>
+                    <NestoInput
+                      value={verifyCode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setVerifyCode(val);
+                      }}
+                      placeholder="000000"
+                      className="text-center text-2xl tracking-[0.5em] font-mono bg-slate-800 border-slate-700 text-white"
+                      maxLength={6}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && verifyCode.length === 6) handleVerify();
+                      }}
+                    />
+                    <NestoButton
+                      onClick={handleVerify}
+                      disabled={verifyCode.length !== 6 || isVerifying}
+                      className="w-full"
+                    >
+                      {isVerifying ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          {isEnrollMode ? "Verifieer & activeer" : "Verifieer sessie"}
+                        </>
+                      )}
+                    </NestoButton>
+                  </div>
+                )}
               </>
-            ) : null}
+            )}
 
             {error && (
               <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2 border border-red-500/20">
