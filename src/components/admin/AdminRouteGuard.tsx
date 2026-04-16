@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Loader2 } from "lucide-react";
@@ -6,19 +6,9 @@ import { Loader2 } from "lucide-react";
 export function AdminRouteGuard() {
   const { session, isLoading: authLoading } = useAuth();
   const { isAdmin, needsMFA, isLoading } = useAdminAuth();
-
-  console.log("[AdminRouteGuard] render →", {
-    hasSession: !!session,
-    userId: session?.user?.id,
-    authLoading,
-    isAdmin,
-    needsMFA,
-    isLoading,
-    pathname: window.location.pathname,
-  });
+  const location = useLocation();
 
   if (authLoading || isLoading) {
-    console.log("[AdminRouteGuard] → showing loader");
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -27,20 +17,19 @@ export function AdminRouteGuard() {
   }
 
   if (!session) {
-    console.log("[AdminRouteGuard] → redirect /auth (no session)");
     return <Navigate to="/auth" replace />;
   }
 
   if (!isAdmin) {
-    console.log("[AdminRouteGuard] → redirect / (not admin)");
     return <Navigate to="/" replace />;
   }
 
-  if (needsMFA) {
-    console.log("[AdminRouteGuard] → redirect /nesto-admin/mfa-setup (needs MFA)");
+  const isOnMfaSetup = location.pathname === "/nesto-admin/mfa-setup";
+
+  if (needsMFA && !isOnMfaSetup) {
     return <Navigate to="/nesto-admin/mfa-setup" replace />;
   }
 
-  console.log("[AdminRouteGuard] → render Outlet (admin OK)");
+  // Already on MFA setup OR MFA satisfied → render children
   return <Outlet />;
 }
