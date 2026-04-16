@@ -1,129 +1,122 @@
 
 
-# Sprint D.0.2 — Ronde 2B: Refactor 9 Edge Functions + UX Fix
+# Sprint A.3 Ronde 1 — Fixes (additive migratie)
 
-## Stap 0: UX Fix PersoneelsmaaltijdModal
+## Context
+Migratie 1 is al gedraaid. Drie correcties via additive ALTER, geen DROP TABLE.
 
-Add early return in `handleSuggestMeal()` (line 355-358):
+## Verificatie state (gecheckt)
+<lov-tool-use id="toolu_vrtx_01VeXr9NH2McxxJmPunDka1z" name="supabase--read_query" integration-id="supabase" data="{\"query\": \"SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('stock_transfers','audit_logs','staff_members','transfer_items') ORDER BY table_name, ordinal_position;\"}">
+</lov-tool-use>
 
-```typescript
-const handleSuggestMeal = async () => {
-  if (!currentLocation?.id) {
-    nestoToast.error("Geen actieve locatie geselecteerd");
-    return;
-  }
-  setAiLoading(true);
-  // ...rest
+<lov-tool-use id="toolu_vrtx_01KFNwgCzqVtfZhcFoWELvWf" name="supabase--read_query" integration-id="supabase" data="{\"query\": \"SELECT table_name, column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('stock_transfers','audit_logs','staff_members','transfer_items') ORDER BY table_name, ordinal_position;\"}">
+</lov-tool-use>
+
+<lov-tool-use id="toolu_vrtx_016UDzySGuoeArJbgBanJyYh" name="supabase--read_query" integration-id="supabase" data="{\"query\": \"SELECT proname, pg_get_functiondef(oid) FROM pg_proc WHERE proname IN ('validate_transfer_status','validate_device_status');\"}">
+</lov-tool-use>
+Schema bevestigd. Geen rijen in `stock_transfers` of `transfer_items` (tabellen net aangemaakt) — drop kolommen veilig. Plan klaar.
+
+<lov-plan>
+
+# Sprint A.3 Ronde 1 — 3 Fixes (Additive Migration)
+
+## Geverifieerde state
+- `stock_transfers.status` default: `'pending'`, trigger accepteert oude waardenset
+- `stock_transfers` heeft kolommen: `accepted_by`, `accepted_at`, `completed_at`
+- `transfer_items` heeft kolom: `received_quantity`
+- `staff_members.location_id`: `NOT NULL`
+- `audit_logs`: mist `actor_name`, `identified_by_staff_id`, `identified_by_name`, `identification_method`
+- Tabellen zijn leeg → DROP COLUMN veilig, geen data-conversie nodig
+
+## Fixes in één migratie
+
+### Fix 1 — `stock_transfers`: instant recording (geen approval)
+```sql
+-- Update validation trigger first (anders breekt UPDATE van default)
+CREATE OR REPLACE FUNCTION public.validate_transfer_status()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.status NOT IN ('draft', 'recorded', 'cancelled') THEN
+    RAISE EXCEPTION 'Invalid transfer status: %', NEW.status;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+ALTER TABLE stock_transfers ALTER COLUMN status DROP DEFAULT;
+ALTER TABLE stock_transfers ALTER COLUMN status SET DEFAULT 'recorded';
+ALTER TABLE stock_transfers DROP COLUMN accepted_by;
+ALTER TABLE stock_transfers DROP COLUMN accepted_at;
+ALTER TABLE stock_transfers DROP COLUMN completed_at;
+
+ALTER TABLE transfer_items DROP COLUMN received_quantity;
 ```
 
----
+### Fix 2 — `audit_logs`: identificatie-kolommen
+```sql
+ALTER TABLE audit_logs
+  ADD COLUMN actor_name TEXT,
+  ADD COLUMN identified_by_staff_id UUID REFERENCES staff_members(id) ON DELETE SET NULL,
+  ADD COLUMN identified_by_name TEXT,
+  ADD COLUMN identification_method TEXT;
 
-## Overzicht: 9 functies, 13 AI call-sites
+CREATE INDEX idx_audit_logs_identified_staff ON audit_logs(identified_by_staff_id);
+```
 
-| # | Function | Call-sites | featureKey(s) | Variant | Complexiteit |
-|---|----------|-----------|---------------|---------|-------------|
-| 1 | `ai-respond` | 4 | `ai_respond_intent`, `ai_respond_generate`, `ai_respond_tools`, `ai_respond_tool_followup` | callAIWithTools (intent) + callAI (generate, followup) + callAIWithTools (tools) | **Hoog** — messages array, multi-step tool flow |
-| 2 | `marketing-analyze-brand` | 4 | `marketing_analyze_caption_style`, `marketing_analyze_visual_style`, `marketing_analyze_review_style`, `marketing_analyze_caption_edits` | callAIWithTools (all 4) | **Hoog** — multimodal images, loop per location |
-| 3 | `marketing-generate-content` | 2 | `marketing_generate_social`, `marketing_generate_email` | callAIWithTools (both) | Medium — has its own `callAI` local function to replace |
-| 4 | `marketing-generate-weekplan` | 2 | `marketing_generate_weekplan`, `marketing_generate_popup` | callAIWithTools (both) | Medium — two separate AI sub-functions |
-| 5 | `marketing-generate-coaching` | 1 | `marketing_generate_coaching` | callAIWithTools | Laag |
-| 6 | `generate-styled-templates` | 1 | `generate_styled_templates` | callAI (jsonMode or text parse) | Laag |
-| 7 | `suggest-widget-colors` | 1 | `suggest_widget_colors` | callAIWithTools | Laag |
-| 8 | `marketing-onboard-instagram` | 1 | `marketing_classify_captions` | callAIWithTools | Laag |
-| 9 | `marketing-sync-reviews` | 2 | `marketing_sentiment_analysis`, `marketing_generate_review_response` | callAI (jsonMode for sentiment) + callAI (text for response) | Medium — **fix missing Authorization header** |
+### Fix 3 — `staff_members.location_id` nullable
+```sql
+ALTER TABLE staff_members ALTER COLUMN location_id DROP NOT NULL;
+COMMENT ON COLUMN staff_members.location_id IS 'NULL = werkt op alle locaties binnen de organization';
+```
 
-Total: 16 call-sites across 9 functions.
+## Verificatie-queries (na migratie)
 
----
+```sql
+-- 1. stock_transfers structuur
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_schema='public' AND table_name='stock_transfers'
+ORDER BY ordinal_position;
+-- Verwacht: geen accepted_by/accepted_at/completed_at, status default 'recorded'
 
-## Per-function refactor details
+-- 2. transfer_items structuur
+SELECT column_name FROM information_schema.columns
+WHERE table_schema='public' AND table_name='transfer_items'
+ORDER BY ordinal_position;
+-- Verwacht: geen received_quantity
 
-### 1. ai-respond (1028 lines, 4 call-sites)
+-- 3. audit_logs structuur
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema='public' AND table_name='audit_logs'
+ORDER BY ordinal_position;
+-- Verwacht: actor_name, identified_by_staff_id, identified_by_name, identification_method aanwezig
 
-**Call-site A: `classifyIntent()` (line 160)**
-- Current: `fetch(AI_GATEWAY, ...)` met `gemini-2.5-flash-lite` + tools
-- Refactor to: `callAIWithTools({ featureKey: "ai_respond_intent", messages: [...], tools: [...], toolChoice: ..., temperature: 0 })`
-- Note: uses `flash-lite` model currently — `callAI` helper forces `flash` as primary. This is acceptable (flash is better).
+-- 4. staff_members.location_id nullable
+SELECT column_name, is_nullable FROM information_schema.columns
+WHERE table_schema='public' AND table_name='staff_members' AND column_name='location_id';
+-- Verwacht: YES
 
-**Call-site B: `generateResponse()` (line 577)**
-- Current: `fetch(AI_GATEWAY, ...)` met `gemini-3-flash-preview` + messages array
-- Refactor to: `callAI({ featureKey: "ai_respond_generate", messages: conversationMessages, maxTokens: 500, temperature: 0.7 })`
+-- 5. trigger functie body
+SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname='validate_transfer_status';
+-- Verwacht: IN ('draft','recorded','cancelled')
 
-**Call-site C: `generateWithBookingTools()` first call (line 693)**
-- Current: `fetch(AI_GATEWAY, ...)` met tools + messages
-- Refactor to: `callAIWithTools({ featureKey: "ai_respond_tools", messages: [...], tools: bookingTools, temperature: 0.3, maxTokens: 500 })`
+-- 6. Trigger smoke test (rollback)
+BEGIN;
+INSERT INTO stock_transfers (organization_id, from_location_id, to_location_id, status, requested_by_type)
+SELECT organization_id, id, id, 'recorded', 'user' FROM locations LIMIT 1;
+-- Verwacht: CHECK from!=to faalt → bevestigt trigger werkt op nieuwe waarden
+ROLLBACK;
+```
 
-**Call-site D: `generateWithBookingTools()` second call (line 750)**
-- Current: feeds tool result back to AI for natural response
-- Refactor to: `callAI({ featureKey: "ai_respond_tool_followup", messages: messagesWithToolResult, maxTokens: 500 })`
+## Bestanden
 
-**Cleanup:**
-- Remove `LOVABLE_API_KEY` constant (line 10)
-- Remove `AI_GATEWAY` constant (line 11)
-- Remove `logAiCall()` function (lines 1020-1028)
-- Add `import { callAI, callAIWithTools, resolveOrgId } from "../_shared/ai.ts";`
-- Call `resolveOrgId(ctx.locationId)` once at start of main handler, pass to all calls
+| Actie | Bestand |
+|-------|---------|
+| CREATE | `supabase/migrations/[timestamp]_a3_round1_fixes.sql` (additive ALTERs hierboven) |
 
-### 2. marketing-analyze-brand (525 lines, 4 sub-calls)
+Geen wijzigingen aan `pair-device/index.ts` of `config.toml` nodig — de Edge Function logt alleen `device.paired` en raakt geen van de gewijzigde kolommen.
 
-**Sub-call A: `analyzeCaptionStyle()` (line 284)**
-- featureKey: `marketing_analyze_caption_style`
-- callAIWithTools with tool `return_caption_style`
-
-**Sub-call B: `analyzeVisualStyle()` (line 339)**
-- featureKey: `marketing_analyze_visual_style`
-- callAIWithTools with `images` parameter (image_url content parts)
-- Note: current code uses `image_url` format in messages — need to use the `messages` array approach (not the `images` base64 option) since these are URLs not base64
-
-**Sub-call C: `analyzeReviewResponseStyle()` (line 399)**
-- featureKey: `marketing_analyze_review_style`
-- callAIWithTools with tool `return_review_response_style`
-
-**Sub-call D: `analyzeCaptionEdits()` (line 473)**
-- featureKey: `marketing_analyze_caption_edits`
-- callAIWithTools with tool `return_refined_caption_style`
-
-**Cleanup:**
-- Remove `LOVABLE_API_KEY` passing through function signatures
-- Each sub-function gets `organizationId` parameter
-- Use `resolveOrgId(locationId)` once per location in the loop
-- Handle rate limiting via catch on the callAI error (both models failed = stop loop)
-
-### 3-9: Simpler functions
-
-Each follows the same pattern:
-- Replace `fetch(AI_GATEWAY, ...)` with `callAI` or `callAIWithTools`
-- Remove `LOVABLE_API_KEY` references
-- Add `import { callAI/callAIWithTools, resolveOrgId } from "../_shared/ai.ts";`
-- Call `resolveOrgId(locationId)` for `organizationId`
-
-**marketing-sync-reviews** special fix: add `Authorization: Bearer ${apiKey}` to both `analyzeSentiment()` and `generateResponse()` fetch headers (currently missing — requests fail silently).
-
----
-
-## Model mapping
-
-| Current model | New model (via helper) |
-|---|---|
-| `google/gemini-2.5-flash-lite` | `google/gemini-2.5-flash` (primary) |
-| `google/gemini-2.5-flash` | `google/gemini-2.5-flash` (primary) |
-| `google/gemini-3-flash-preview` | `google/gemini-2.5-flash` (primary) |
-| `openai/gpt-5-mini` | `google/gemini-2.5-flash` (primary) |
-
-All standardized to one model with automatic fallback to `gemini-2.5-pro`.
-
----
-
-## Pricing table update needed in `_shared/ai.ts`
-
-Current `MODEL_PRICING` only has `gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-2.5-flash-lite`. Since all functions now use the helper with fixed primary/fallback, this is sufficient.
-
----
-
-## Deliverables
-
-1. **Volledige code**: `ai-respond/index.ts` en `marketing-analyze-brand/index.ts`
-2. **Overige 7 functies**: volledige code (alle aanpassingen in één keer)
-3. **Test**: trigger 2-3 features, check `ai_logs` rows
-4. **UX fix**: PersoneelsmaaltijdModal early return
+## Memory update
+Update `mem://architecture/device-auth-jwt-hook` met de nieuwe `stock_transfers` status-set (draft/recorded/cancelled — instant recording, geen approval flow).
 
