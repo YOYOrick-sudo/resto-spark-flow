@@ -1160,12 +1160,17 @@ export type Database = {
       }
       factuur_regels: {
         Row: {
+          ai_confidence: number | null
+          ai_raw_artikelnummer: string | null
+          ai_raw_naam: string | null
+          ai_suggested_naam: string | null
           created_at: string
           eenheid: string | null
           factuur_id: string
           hoeveelheid: number | null
           id: string
           ingredient_id: string | null
+          is_nieuw_ingredient: boolean | null
           match_confidence: number | null
           match_status: string
           prijs_per_eenheid: number | null
@@ -1173,12 +1178,17 @@ export type Database = {
           totaal: number | null
         }
         Insert: {
+          ai_confidence?: number | null
+          ai_raw_artikelnummer?: string | null
+          ai_raw_naam?: string | null
+          ai_suggested_naam?: string | null
           created_at?: string
           eenheid?: string | null
           factuur_id: string
           hoeveelheid?: number | null
           id?: string
           ingredient_id?: string | null
+          is_nieuw_ingredient?: boolean | null
           match_confidence?: number | null
           match_status?: string
           prijs_per_eenheid?: number | null
@@ -1186,12 +1196,17 @@ export type Database = {
           totaal?: number | null
         }
         Update: {
+          ai_confidence?: number | null
+          ai_raw_artikelnummer?: string | null
+          ai_raw_naam?: string | null
+          ai_suggested_naam?: string | null
           created_at?: string
           eenheid?: string | null
           factuur_id?: string
           hoeveelheid?: number | null
           id?: string
           ingredient_id?: string | null
+          is_nieuw_ingredient?: boolean | null
           match_confidence?: number | null
           match_status?: string
           prijs_per_eenheid?: number | null
@@ -1217,6 +1232,10 @@ export type Database = {
       }
       factuur_uploads: {
         Row: {
+          ai_confidence_overall: number | null
+          ai_parsed_at: string | null
+          ai_parsing_status: string | null
+          ai_raw_response: Json | null
           bestand_url: string
           bestandsnaam: string
           bron: string
@@ -1236,6 +1255,10 @@ export type Database = {
           verwerkt_op: string | null
         }
         Insert: {
+          ai_confidence_overall?: number | null
+          ai_parsed_at?: string | null
+          ai_parsing_status?: string | null
+          ai_raw_response?: Json | null
           bestand_url: string
           bestandsnaam: string
           bron?: string
@@ -1255,6 +1278,10 @@ export type Database = {
           verwerkt_op?: string | null
         }
         Update: {
+          ai_confidence_overall?: number | null
+          ai_parsed_at?: string | null
+          ai_parsing_status?: string | null
+          ai_raw_response?: Json | null
           bestand_url?: string
           bestandsnaam?: string
           bron?: string
