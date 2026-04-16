@@ -1,4 +1,4 @@
-import { callAIWithTools } from "../_shared/ai.ts";
+import { callAIWithTools, resolveOrgId } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,13 +14,20 @@ Deno.serve(async (req) => {
   try {
     const { primary, accent, location_id } = await req.json();
 
-    // resolveOrgId is optional here since this is a lightweight utility
-    const organizationId = "system";
+    // If no location_id, return empty suggestions (frontend falls back to curated palettes)
+    if (!location_id) {
+      return new Response(
+        JSON.stringify({ suggestions: [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const organizationId = await resolveOrgId(location_id);
 
     const result = await callAIWithTools({
       featureKey: "suggest_widget_colors",
       organizationId,
-      locationId: location_id || undefined,
+      locationId: location_id,
       messages: [
         {
           role: "system",
@@ -93,7 +100,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("suggest-widget-colors error:", e);
 
-    // Surface rate limit / credit errors
     const msg = e instanceof Error ? e.message : "Unknown error";
     if (msg.includes("429") || msg.includes("rate")) {
       return new Response(

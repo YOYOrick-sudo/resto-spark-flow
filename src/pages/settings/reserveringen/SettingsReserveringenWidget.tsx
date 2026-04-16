@@ -300,6 +300,7 @@ export default function SettingsReserveringenWidget() {
               onPaletteChange={(primary, accent) =>
                 updateFields({ widget_primary_color: primary, widget_accent_color: accent })
               }
+              locationId={currentLocation?.id}
             />
 
             {/* Logo upload */}

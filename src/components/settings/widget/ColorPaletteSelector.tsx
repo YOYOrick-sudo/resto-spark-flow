@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, Info } from 'lucide-react';
 import { NestoInput } from '@/components/polar/NestoInput';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -24,6 +24,7 @@ interface ColorPaletteSelectorProps {
   onPrimaryChange: (color: string) => void;
   onAccentChange: (color: string) => void;
   onPaletteChange?: (primary: string, accent: string) => void;
+  locationId?: string;
 }
 
 const CURATED_PALETTES: PaletteOption[] = [
@@ -93,16 +94,21 @@ export function ColorPaletteSelector({
   onPrimaryChange,
   onAccentChange,
   onPaletteChange,
+  locationId,
 }: ColorPaletteSelectorProps) {
   const [suggestions, setSuggestions] = useState<PaletteOption[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const hasFetched = useRef(false);
 
+  const canFetchAI = !!locationId;
+
   const fetchSuggestions = async () => {
+    if (!canFetchAI) return;
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('suggest-widget-colors', {
-        body: { primary: primaryColor, accent: accentColor },
+        body: { primary: primaryColor, accent: accentColor, location_id: locationId },
       });
       if (error) throw error;
       const items: PaletteOption[] = (data?.suggestions ?? []).map((s: any) => ({
@@ -114,18 +120,17 @@ export function ColorPaletteSelector({
       if (items.length > 0) setSuggestions(items);
     } catch (e) {
       console.error('AI palette fetch error:', e);
-      // keep fallback (curated)
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!hasFetched.current) {
+    if (!hasFetched.current && canFetchAI) {
       hasFetched.current = true;
       fetchSuggestions();
     }
-  }, []);
+  }, [canFetchAI]);
 
   const displayPalettes = suggestions ?? CURATED_PALETTES;
 
@@ -213,20 +218,27 @@ export function ColorPaletteSelector({
             )}
           </div>
 
-          {/* Refresh link */}
-          <button
-            type="button"
-            onClick={fetchSuggestions}
-            disabled={isLoading}
-            className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-          >
-            {isLoading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5" />
-            )}
-            {isLoading ? 'Laden...' : 'Nieuwe suggesties'}
-          </button>
+          {/* AI suggestions button or info text */}
+          {canFetchAI ? (
+            <button
+              type="button"
+              onClick={fetchSuggestions}
+              disabled={isLoading}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+            >
+              {isLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {isLoading ? 'Laden...' : 'Nieuwe suggesties'}
+            </button>
+          ) : (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5" />
+              Log in op een vestiging voor AI-suggesties
+            </p>
+          )}
         </div>
 
         {/* Dual swatch grids */}
