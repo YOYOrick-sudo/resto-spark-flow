@@ -6,6 +6,7 @@ import { Check, X, ChevronDown, ChevronRight, ClipboardList } from "lucide-react
 import { useUpdateMepTask, useCancelMepTask } from "@/hooks/useMepMutations";
 import { MepCompletionModal } from "./MepCompletionModal";
 import type { MepTask } from "@/hooks/useMepTasks";
+import { formatTaskAmount } from "@/utils/mepDisplay";
 import { cn } from "@/lib/utils";
 
 interface MepTaskListProps {
