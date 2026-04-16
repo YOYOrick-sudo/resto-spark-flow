@@ -27,7 +27,9 @@ export function useAdminAuth(): AdminAuthState {
     async function check() {
       try {
         // 1. Check platform_admin role via RPC
-        const { data: adminCheck, error } = await supabase.rpc("is_platform_admin");
+        const { data: adminCheck, error } = await supabase.rpc("is_platform_admin", {
+          _user_id: session.user.id,
+        });
         if (error || !adminCheck) {
           if (!cancelled) {
             setIsAdmin(false);
