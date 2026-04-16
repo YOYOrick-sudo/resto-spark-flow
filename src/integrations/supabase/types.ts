@@ -399,10 +399,14 @@ export type Database = {
         Row: {
           action: Database["public"]["Enums"]["audit_action_enum"]
           actor_id: string | null
+          actor_name: string | null
           actor_type: Database["public"]["Enums"]["actor_type_enum"]
           details: Json | null
           device_id: string | null
           id: string
+          identification_method: string | null
+          identified_by_name: string | null
+          identified_by_staff_id: string | null
           ip_address: unknown
           location_id: string | null
           organization_id: string
@@ -413,10 +417,14 @@ export type Database = {
         Insert: {
           action: Database["public"]["Enums"]["audit_action_enum"]
           actor_id?: string | null
+          actor_name?: string | null
           actor_type: Database["public"]["Enums"]["actor_type_enum"]
           details?: Json | null
           device_id?: string | null
           id?: string
+          identification_method?: string | null
+          identified_by_name?: string | null
+          identified_by_staff_id?: string | null
           ip_address?: unknown
           location_id?: string | null
           organization_id: string
@@ -427,10 +435,14 @@ export type Database = {
         Update: {
           action?: Database["public"]["Enums"]["audit_action_enum"]
           actor_id?: string | null
+          actor_name?: string | null
           actor_type?: Database["public"]["Enums"]["actor_type_enum"]
           details?: Json | null
           device_id?: string | null
           id?: string
+          identification_method?: string | null
+          identified_by_name?: string | null
+          identified_by_staff_id?: string | null
           ip_address?: unknown
           location_id?: string | null
           organization_id?: string
@@ -444,6 +456,13 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_identified_by_staff_id_fkey"
+            columns: ["identified_by_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
             referencedColumns: ["id"]
           },
           {
@@ -5944,7 +5963,7 @@ export type Database = {
           display_name: string
           id: string
           is_active: boolean
-          location_id: string
+          location_id: string | null
           metadata: Json | null
           organization_id: string
           role: Database["public"]["Enums"]["location_role"]
@@ -5956,7 +5975,7 @@ export type Database = {
           display_name: string
           id?: string
           is_active?: boolean
-          location_id: string
+          location_id?: string | null
           metadata?: Json | null
           organization_id: string
           role?: Database["public"]["Enums"]["location_role"]
@@ -5968,7 +5987,7 @@ export type Database = {
           display_name?: string
           id?: string
           is_active?: boolean
-          location_id?: string
+          location_id?: string | null
           metadata?: Json | null
           organization_id?: string
           role?: Database["public"]["Enums"]["location_role"]
@@ -5994,10 +6013,7 @@ export type Database = {
       }
       stock_transfers: {
         Row: {
-          accepted_at: string | null
-          accepted_by: string | null
           bestelling_id: string | null
-          completed_at: string | null
           created_at: string
           from_location_id: string
           id: string
@@ -6011,10 +6027,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          accepted_at?: string | null
-          accepted_by?: string | null
           bestelling_id?: string | null
-          completed_at?: string | null
           created_at?: string
           from_location_id: string
           id?: string
@@ -6028,10 +6041,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          accepted_at?: string | null
-          accepted_by?: string | null
           bestelling_id?: string | null
-          completed_at?: string | null
           created_at?: string
           from_location_id?: string
           id?: string
@@ -6421,7 +6431,6 @@ export type Database = {
           notes: string | null
           product_naam: string
           quantity: number
-          received_quantity: number | null
           recept_id: string | null
           transfer_id: string
         }
@@ -6433,7 +6442,6 @@ export type Database = {
           notes?: string | null
           product_naam: string
           quantity: number
-          received_quantity?: number | null
           recept_id?: string | null
           transfer_id: string
         }
@@ -6445,7 +6453,6 @@ export type Database = {
           notes?: string | null
           product_naam?: string
           quantity?: number
-          received_quantity?: number | null
           recept_id?: string | null
           transfer_id?: string
         }
