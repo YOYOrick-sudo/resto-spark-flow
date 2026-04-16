@@ -4,7 +4,7 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Loader2 } from "lucide-react";
 
 export function AdminRouteGuard() {
-  const { session, loading: authLoading } = useAuth();
+  const { session, isLoading: authLoading } = useAuth();
   const { isAdmin, needsMFA, isLoading } = useAdminAuth();
 
   if (authLoading || isLoading) {

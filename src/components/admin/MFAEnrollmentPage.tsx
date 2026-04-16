@@ -36,7 +36,7 @@ export function MFAEnrollmentPage() {
       }
 
       // Check if already has verified factor
-      if (factors?.totp?.some((f) => f.status === "verified")) {
+      if (factors?.totp?.some((f) => f.factor_type === "totp" && f.status === "verified")) {
         // Already enrolled, just need to verify session
         nestoToast.success("2FA is al ingesteld. Verifieer je sessie.");
         navigate("/nesto-admin");
