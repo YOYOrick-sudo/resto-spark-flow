@@ -40,7 +40,6 @@ export function useCreateMepTask() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mep-tasks"] });
-      nestoToast.success("Taak aangemaakt");
     },
     onError: (e: Error) => nestoToast.error("Aanmaken mislukt", e.message),
   });
@@ -198,7 +197,7 @@ export function useCancelMepTask() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mep-tasks"] });
-      nestoToast.success("Taak geannuleerd");
+      
     },
     onError: (e: Error) => nestoToast.error("Annuleren mislukt", e.message),
   });

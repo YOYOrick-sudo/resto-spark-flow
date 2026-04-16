@@ -60,7 +60,7 @@ export function useAddMepFavoriet() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mep_favorieten", locationId] });
-      nestoToast.success("Favoriet opgeslagen");
+      
     },
     onError: () => {
       nestoToast.error("Kon favoriet niet opslaan");
@@ -83,7 +83,7 @@ export function useRemoveMepFavoriet() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mep_favorieten", locationId] });
-      nestoToast.success("Favoriet verwijderd");
+      
     },
     onError: () => {
       nestoToast.error("Kon favoriet niet verwijderen");
