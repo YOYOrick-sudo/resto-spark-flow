@@ -24,12 +24,17 @@ export interface FactuurDetail {
   bron: string;
   status: string;
   leverancier_id: string | null;
+  leverancier_naam_herkend: string | null;
   factuurnummer: string | null;
   factuurdatum: string | null;
   totaalbedrag: number | null;
   goedgekeurd_door: string | null;
   goedgekeurd_op: string | null;
   created_at: string;
+  ai_parsing_status: string | null;
+  ai_parsed_at: string | null;
+  ai_confidence_overall: number | null;
+  ai_raw_response: any;
   leverancier_naam?: string;
   regels: FactuurRegel[];
 }
