@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAIWithTools, resolveOrgId } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -30,13 +30,12 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    let aiAvailable = !!LOVABLE_API_KEY;
+    let aiAvailable = true;
     const results: Record<string, string> = {};
 
     for (const locationId of uniqueLocationIds) {
       try {
-        const result = await analyzeLocation(supabase, locationId as string, LOVABLE_API_KEY, aiAvailable);
+        const result = await analyzeLocation(supabase, locationId as string, aiAvailable);
         results[locationId as string] = result;
         if (result === "rate_limited") aiAvailable = false;
       } catch (e) {
@@ -72,7 +71,6 @@ serve(async (req) => {
 async function analyzeLocation(
   supabase: any,
   locationId: string,
-  apiKey: string | undefined,
   aiAvailable: boolean
 ): Promise<string> {
   const { data: posts } = await supabase
@@ -175,7 +173,6 @@ async function analyzeLocation(
   let captionStyleProfile: string | null = null;
   let visualStyleProfile: string | null = null;
 
-  // Declare upsertData BEFORE the AI blocks so it can be populated by review + caption learning
   const upsertData: any = {
     location_id: locationId,
     content_type_performance: contentTypePerformance,
@@ -189,7 +186,14 @@ async function analyzeLocation(
     updated_at: new Date().toISOString(),
   };
 
-  if (aiAvailable && apiKey && postsAnalyzed >= 5) {
+  let organizationId: string;
+  try {
+    organizationId = await resolveOrgId(locationId);
+  } catch {
+    organizationId = "unknown";
+  }
+
+  if (aiAvailable && postsAnalyzed >= 5) {
     // Caption style
     try {
       const captionPosts = allPosts
@@ -197,10 +201,10 @@ async function analyzeLocation(
         .slice(0, 20);
       if (captionPosts.length >= 5) {
         const captions = captionPosts.map((p: any) => p.content_text).join("\n---\n");
-        captionStyleProfile = await analyzeCaptionStyle(captions, apiKey);
+        captionStyleProfile = await analyzeCaptionStyle(captions, locationId, organizationId);
       }
     } catch (e: any) {
-      if (e?.status === 429) return "rate_limited";
+      if (String(e).includes("both models failed")) return "rate_limited";
       console.error("Caption style analysis failed:", e);
     }
 
@@ -211,10 +215,10 @@ async function analyzeLocation(
         .slice(0, 10);
       if (mediaPosts.length >= 5) {
         const imageUrls = mediaPosts.flatMap((p: any) => p.media_urls).slice(0, 10);
-        visualStyleProfile = await analyzeVisualStyle(imageUrls, apiKey);
+        visualStyleProfile = await analyzeVisualStyle(imageUrls, locationId, organizationId);
       }
     } catch (e: any) {
-      if (e?.status === 429) return "rate_limited";
+      if (String(e).includes("both models failed")) return "rate_limited";
       console.error("Visual style analysis failed:", e);
     }
 
@@ -230,17 +234,17 @@ async function analyzeLocation(
         .limit(20);
 
       if (editedReviews && editedReviews.length >= 5) {
-        const reviewResponseProfile = await analyzeReviewResponseStyle(editedReviews, apiKey);
+        const reviewResponseProfile = await analyzeReviewResponseStyle(editedReviews, locationId, organizationId);
         if (reviewResponseProfile) {
           upsertData.review_response_profile = reviewResponseProfile;
         }
       }
     } catch (e: any) {
-      if (e?.status === 429) return "rate_limited";
+      if (String(e).includes("both models failed")) return "rate_limited";
       console.error("Review response style analysis failed:", e);
     }
 
-    // Caption learning cycle: learn from operator edits on AI-generated captions
+    // Caption learning cycle
     try {
       const { data: editedCaptions } = await supabase
         .from('marketing_social_posts')
@@ -252,15 +256,14 @@ async function analyzeLocation(
         .limit(20);
 
       if (editedCaptions && editedCaptions.length >= 5) {
-        // Get existing caption_style_profile for context
         const existingProfile = captionStyleProfile || upsertData.caption_style_profile || null;
-        const refinedProfile = await analyzeCaptionEdits(editedCaptions, existingProfile, apiKey);
+        const refinedProfile = await analyzeCaptionEdits(editedCaptions, existingProfile, locationId, organizationId);
         if (refinedProfile) {
           captionStyleProfile = refinedProfile;
         }
       }
     } catch (e: any) {
-      if (e?.status === 429) return "rate_limited";
+      if (String(e).includes("both models failed")) return "rate_limited";
       console.error("Caption learning cycle failed:", e);
     }
   }
@@ -280,111 +283,88 @@ async function analyzeLocation(
   return "ok";
 }
 
-async function analyzeCaptionStyle(captions: string, apiKey: string): Promise<string> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        {
-          role: "system",
-          content: `Beschrijf de schrijfstijl van dit restaurant in max 100 woorden:
+async function analyzeCaptionStyle(captions: string, locationId: string, organizationId: string): Promise<string> {
+  const result = await callAIWithTools({
+    featureKey: 'marketing_analyze_caption_style',
+    organizationId,
+    locationId,
+    messages: [
+      {
+        role: 'system',
+        content: `Beschrijf de schrijfstijl van dit restaurant in max 100 woorden:
 tone, woordkeuze, emoji gebruik, zinslengte, favoriete uitdrukkingen, CTA stijl.
 Dit profiel wordt gebruikt om nieuwe captions in exact dezelfde stijl te genereren.`,
+      },
+      { role: 'user', content: `Hier zijn de recente captions:\n\n${captions}` },
+    ],
+    tools: [{
+      type: 'function',
+      function: {
+        name: 'return_caption_style',
+        description: 'Return the caption style profile',
+        parameters: {
+          type: 'object',
+          properties: { style_profile: { type: 'string', description: 'The writing style profile in max 100 words' } },
+          required: ['style_profile'],
+          additionalProperties: false,
         },
-        { role: "user", content: `Hier zijn de recente captions:\n\n${captions}` },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "return_caption_style",
-            description: "Return the caption style profile",
-            parameters: {
-              type: "object",
-              properties: { style_profile: { type: "string", description: "The writing style profile in max 100 words" } },
-              required: ["style_profile"],
-              additionalProperties: false,
-            },
-          },
-        },
-      ],
-      tool_choice: { type: "function", function: { name: "return_caption_style" } },
-    }),
+      },
+    }],
+    toolChoice: { type: 'function', function: { name: 'return_caption_style' } },
   });
 
-  if (!response.ok) {
-    if (response.status === 429) throw Object.assign(new Error("Rate limited"), { status: 429 });
-    const text = await response.text();
-    console.error("AI caption style error:", response.status, text);
-    throw new Error("AI error");
+  if (result.toolCalls?.length) {
+    return result.toolCalls[0].arguments.style_profile;
   }
-
-  const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("No tool call in response");
-  const args = JSON.parse(toolCall.function.arguments);
-  return args.style_profile;
+  throw new Error('No tool call in response');
 }
 
-async function analyzeVisualStyle(imageUrls: string[], apiKey: string): Promise<string> {
+async function analyzeVisualStyle(imageUrls: string[], locationId: string, organizationId: string): Promise<string> {
   const contentParts: any[] = [
-    { type: "text", text: "Analyseer de visuele stijl van deze restaurant foto's." },
+    { type: 'text', text: 'Analyseer de visuele stijl van deze restaurant foto\'s.' },
   ];
   for (const url of imageUrls) {
-    contentParts.push({ type: "image_url", image_url: { url } });
+    contentParts.push({ type: 'image_url', image_url: { url } });
   }
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        {
-          role: "system",
-          content: `Beschrijf de visuele stijl in max 80 woorden: kleurpalet, lichtgebruik,
+  const result = await callAIWithTools({
+    featureKey: 'marketing_analyze_visual_style',
+    organizationId,
+    locationId,
+    messages: [
+      {
+        role: 'system',
+        content: `Beschrijf de visuele stijl in max 80 woorden: kleurpalet, lichtgebruik,
 compositie, achtergronden, food styling. Dit wordt intern gebruikt voor foto-suggesties.`,
+      },
+      { role: 'user', content: contentParts },
+    ],
+    tools: [{
+      type: 'function',
+      function: {
+        name: 'return_visual_style',
+        description: 'Return the visual style profile',
+        parameters: {
+          type: 'object',
+          properties: { style_profile: { type: 'string', description: 'The visual style profile in max 80 words' } },
+          required: ['style_profile'],
+          additionalProperties: false,
         },
-        { role: "user", content: contentParts },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "return_visual_style",
-            description: "Return the visual style profile",
-            parameters: {
-              type: "object",
-              properties: { style_profile: { type: "string", description: "The visual style profile in max 80 words" } },
-              required: ["style_profile"],
-              additionalProperties: false,
-            },
-          },
-        },
-      ],
-      tool_choice: { type: "function", function: { name: "return_visual_style" } },
-    }),
+      },
+    }],
+    toolChoice: { type: 'function', function: { name: 'return_visual_style' } },
   });
 
-  if (!response.ok) {
-    if (response.status === 429) throw Object.assign(new Error("Rate limited"), { status: 429 });
-    const text = await response.text();
-    console.error("AI visual style error:", response.status, text);
-    throw new Error("AI error");
+  if (result.toolCalls?.length) {
+    return result.toolCalls[0].arguments.style_profile;
   }
-
-  const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("No tool call in response");
-  const args = JSON.parse(toolCall.function.arguments);
-  return args.style_profile;
+  throw new Error('No tool call in response');
 }
 
 async function analyzeReviewResponseStyle(
   reviews: { ai_original_response: string | null; response_text: string | null; review_text: string | null; rating: number }[],
-  apiKey: string
+  locationId: string,
+  organizationId: string
 ): Promise<string | null> {
   const pairs = reviews
     .filter(r => r.ai_original_response && r.response_text)
@@ -396,15 +376,14 @@ async function analyzeReviewResponseStyle(
 
   if (!pairs) return null;
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        {
-          role: "system",
-          content: `Analyseer hoe deze restaurateur review-reacties aanpast.
+  const result = await callAIWithTools({
+    featureKey: 'marketing_analyze_review_style',
+    organizationId,
+    locationId,
+    messages: [
+      {
+        role: 'system',
+        content: `Analyseer hoe deze restaurateur review-reacties aanpast.
 Je krijgt paren van [AI suggestie] en [Operator versie].
 
 Beschrijf het reactiepatroon in max 100 woorden:
@@ -417,46 +396,36 @@ Beschrijf het reactiepatroon in max 100 woorden:
 - Wat verwijdert de operator uit de AI suggestie?
 
 Dit profiel wordt gebruikt om toekomstige reactie-suggesties in EXACT deze stijl te schrijven.`,
+      },
+      { role: 'user', content: pairs },
+    ],
+    tools: [{
+      type: 'function',
+      function: {
+        name: 'return_review_response_style',
+        description: 'Return the review response style profile',
+        parameters: {
+          type: 'object',
+          properties: { style_profile: { type: 'string', description: 'The review response style profile in max 100 words' } },
+          required: ['style_profile'],
+          additionalProperties: false,
         },
-        { role: "user", content: pairs },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "return_review_response_style",
-            description: "Return the review response style profile",
-            parameters: {
-              type: "object",
-              properties: { style_profile: { type: "string", description: "The review response style profile in max 100 words" } },
-              required: ["style_profile"],
-              additionalProperties: false,
-            },
-          },
-        },
-      ],
-      tool_choice: { type: "function", function: { name: "return_review_response_style" } },
-    }),
+      },
+    }],
+    toolChoice: { type: 'function', function: { name: 'return_review_response_style' } },
   });
 
-  if (!response.ok) {
-    if (response.status === 429) throw Object.assign(new Error("Rate limited"), { status: 429 });
-    const text = await response.text();
-    console.error("AI review response style error:", response.status, text);
-    throw new Error("AI error");
+  if (result.toolCalls?.length) {
+    return result.toolCalls[0].arguments.style_profile;
   }
-
-  const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("No tool call in response");
-  const args = JSON.parse(toolCall.function.arguments);
-  return args.style_profile;
+  throw new Error('No tool call in response');
 }
 
 async function analyzeCaptionEdits(
   editedCaptions: { ai_original_caption: string; content_text: string; platform: string; content_type_tag: string | null }[],
   existingProfile: string | null,
-  apiKey: string
+  locationId: string,
+  organizationId: string
 ): Promise<string | null> {
   const pairs = editedCaptions
     .map((c, i) => `Paar ${i + 1} (${c.platform}${c.content_type_tag ? `, ${c.content_type_tag}` : ''}):
@@ -470,15 +439,14 @@ async function analyzeCaptionEdits(
     ? `\n\nHuidig schrijfstijlprofiel (verfijn dit, niet vervangen):\n${existingProfile}`
     : '';
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        {
-          role: "system",
-          content: `Analyseer hoe deze restaurateur AI-gegenereerde social media captions aanpast.
+  const result = await callAIWithTools({
+    featureKey: 'marketing_analyze_caption_edits',
+    organizationId,
+    locationId,
+    messages: [
+      {
+        role: 'system',
+        content: `Analyseer hoe deze restaurateur AI-gegenereerde social media captions aanpast.
 Je krijgt paren van [AI suggestie] en [Operator versie].
 
 Vergelijk de AI-suggesties met de operator-aanpassingen en beschrijf de patronen in max 100 woorden:
@@ -488,38 +456,27 @@ Vergelijk de AI-suggesties met de operator-aanpassingen en beschrijf de patronen
 - Welke elementen behoudt de operator altijd uit de AI suggestie?
 
 ${existingProfile ? 'Verfijn het bestaande profiel met deze nieuwe inzichten — niet volledig vervangen.' : 'Maak een nieuw schrijfstijlprofiel.'}${profileContext}`,
+      },
+      { role: 'user', content: pairs },
+    ],
+    tools: [{
+      type: 'function',
+      function: {
+        name: 'return_refined_caption_style',
+        description: 'Return the refined caption style profile',
+        parameters: {
+          type: 'object',
+          properties: { style_profile: { type: 'string', description: 'The refined writing style profile in max 100 words' } },
+          required: ['style_profile'],
+          additionalProperties: false,
         },
-        { role: "user", content: pairs },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "return_refined_caption_style",
-            description: "Return the refined caption style profile",
-            parameters: {
-              type: "object",
-              properties: { style_profile: { type: "string", description: "The refined writing style profile in max 100 words" } },
-              required: ["style_profile"],
-              additionalProperties: false,
-            },
-          },
-        },
-      ],
-      tool_choice: { type: "function", function: { name: "return_refined_caption_style" } },
-    }),
+      },
+    }],
+    toolChoice: { type: 'function', function: { name: 'return_refined_caption_style' } },
   });
 
-  if (!response.ok) {
-    if (response.status === 429) throw Object.assign(new Error("Rate limited"), { status: 429 });
-    const text = await response.text();
-    console.error("AI caption learning error:", response.status, text);
-    throw new Error("AI error");
+  if (result.toolCalls?.length) {
+    return result.toolCalls[0].arguments.style_profile;
   }
-
-  const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("No tool call in response");
-  const args = JSON.parse(toolCall.function.arguments);
-  return args.style_profile;
+  throw new Error('No tool call in response');
 }

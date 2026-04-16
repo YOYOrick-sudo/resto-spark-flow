@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { callAI, resolveOrgId } from '../_shared/ai.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,8 +11,6 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
-
-const AI_GATEWAY = 'https://ai.gateway.lovable.dev';
 
 // SHA-256 hash for external_review_id
 async function hashReviewId(authorName: string, text: string, time: number): Promise<string> {
@@ -38,41 +37,36 @@ async function fetchGoogleReviews(placeId: string, apiKey: string) {
 }
 
 // Batch sentiment analysis
-async function analyzeSentiment(reviews: { id: string; text: string }[]): Promise<Record<string, { sentiment: string; aspects: Record<string, string> }>> {
+async function analyzeSentiment(
+  reviews: { id: string; text: string }[],
+  locationId: string,
+  organizationId: string
+): Promise<Record<string, { sentiment: string; aspects: Record<string, string> }>> {
   if (reviews.length === 0) return {};
 
   const reviewTexts = reviews.map((r, i) => `Review ${i + 1} (ID: ${r.id}):\n${r.text}`).join('\n\n---\n\n');
 
   try {
-    const res = await fetch(`${AI_GATEWAY}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `Je bent een sentiment-analysist voor restaurantreviews. Analyseer elke review en geef per review:
+    const result = await callAI({
+      featureKey: 'marketing_sentiment_analysis',
+      organizationId,
+      locationId,
+      messages: [
+        {
+          role: 'system',
+          content: `Je bent een sentiment-analysist voor restaurantreviews. Analyseer elke review en geef per review:
 - sentiment: "positive", "neutral", of "negative"
 - sentiment_aspects: een object met keys "food", "service", "ambiance" en waarden "positive", "neutral", of "negative" (alleen als de review dat aspect noemt, anders weglaten)
 
 Antwoord in JSON format: { "results": [{ "id": "...", "sentiment": "...", "sentiment_aspects": {...} }] }`
-          },
-          { role: 'user', content: reviewTexts }
-        ],
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-      }),
+        },
+        { role: 'user', content: reviewTexts }
+      ],
+      temperature: 0.2,
+      jsonMode: true,
     });
 
-    if (!res.ok) {
-      console.error('Sentiment analysis API error:', res.status);
-      await res.text();
-      return {};
-    }
-
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = result.text;
     if (!content) return {};
 
     const parsed = JSON.parse(content);
@@ -87,55 +81,47 @@ Antwoord in JSON format: { "results": [{ "id": "...", "sentiment": "...", "senti
   }
 }
 
-// Generate AI response for reviews (all ratings, style varies by rating)
-async function generateResponse(
+// Generate AI response for reviews
+async function generateReviewResponse(
   reviewText: string,
   authorName: string,
   rating: number,
-  reviewResponseProfile: string | null
+  reviewResponseProfile: string | null,
+  locationId: string,
+  organizationId: string
 ): Promise<string | null> {
   try {
-    // Rating-dependent instructions
     const ratingInstruction = rating >= 4
       ? 'Schrijf een kort, warm bedankje (1-2 zinnen). Persoonlijk, niet generiek. Noem iets specifieks uit de review.'
       : `Erken het probleem specifiek (niet generiek). Bied een concrete oplossing of verbetering aan. Nodig de gast uit om terug te komen. Houd het kort (max 3-4 zinnen). Toon empathie zonder excuses te zoeken.`;
 
-    // Use review_response_profile if available, otherwise generic
     const voiceInstruction = reviewResponseProfile
       ? `Schrijf het antwoord in EXACT deze stijl:\n${reviewResponseProfile}`
       : 'Schrijf professioneel en vriendelijk.';
 
-    const res = await fetch(`${AI_GATEWAY}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `Je schrijft antwoorden op restaurantreviews namens het restaurant. ${voiceInstruction}
+    const result = await callAI({
+      featureKey: 'marketing_generate_review_response',
+      organizationId,
+      locationId,
+      messages: [
+        {
+          role: 'system',
+          content: `Je schrijft antwoorden op restaurantreviews namens het restaurant. ${voiceInstruction}
 
 Regels:
 - Spreek de reviewer aan met hun voornaam
 - ${ratingInstruction}`
-          },
-          {
-            role: 'user',
-            content: `Review van ${authorName} (${rating}/5 sterren):\n${reviewText}`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 300,
-      }),
+        },
+        {
+          role: 'user',
+          content: `Review van ${authorName} (${rating}/5 sterren):\n${reviewText}`
+        }
+      ],
+      temperature: 0.7,
+      maxTokens: 300,
     });
 
-    if (!res.ok) {
-      await res.text();
-      return null;
-    }
-
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || null;
+    return result.text || null;
   } catch (err) {
     console.error('Response generation failed:', err);
     return null;
@@ -145,11 +131,16 @@ Regels:
 async function processLocation(locationId: string, placeId: string, apiKey: string) {
   const result = { reviews_inserted: 0, reviews_skipped: 0, errors: [] as string[] };
 
+  let organizationId: string;
   try {
-    // 1. Fetch from Google Places API
+    organizationId = await resolveOrgId(locationId);
+  } catch {
+    organizationId = "unknown";
+  }
+
+  try {
     const placeData = await fetchGoogleReviews(placeId, apiKey);
 
-    // 2. Store aggregate ratings in brand_intelligence
     if (placeData.rating !== undefined || placeData.user_ratings_total !== undefined) {
       const { data: existing } = await supabaseAdmin
         .from('marketing_brand_intelligence')
@@ -174,7 +165,6 @@ async function processLocation(locationId: string, placeId: string, apiKey: stri
         }, { onConflict: 'location_id' });
     }
 
-    // 3. Process individual reviews
     const reviews = placeData.reviews || [];
     const newReviews: { id: string; text: string; dbId: string }[] = [];
 
@@ -216,10 +206,12 @@ async function processLocation(locationId: string, placeId: string, apiKey: stri
       }
     }
 
-    // 4. Sentiment analysis for new reviews
+    // Sentiment analysis for new reviews
     if (newReviews.length > 0) {
       const sentimentMap = await analyzeSentiment(
-        newReviews.map(r => ({ id: r.dbId, text: r.text }))
+        newReviews.map(r => ({ id: r.dbId, text: r.text })),
+        locationId,
+        organizationId
       );
 
       for (const review of newReviews) {
@@ -236,7 +228,7 @@ async function processLocation(locationId: string, placeId: string, apiKey: stri
       }
     }
 
-    // 5. Generate AI responses for ALL reviews without a suggestion
+    // Generate AI responses for unresponded reviews
     const { data: unresponded } = await supabaseAdmin
       .from('marketing_reviews')
       .select('id, review_text, author_name, rating')
@@ -245,7 +237,6 @@ async function processLocation(locationId: string, placeId: string, apiKey: stri
       .not('review_text', 'is', null);
 
     if (unresponded && unresponded.length > 0) {
-      // Get review_response_profile (NOT caption_style_profile)
       const { data: brandIntel } = await supabaseAdmin
         .from('marketing_brand_intelligence')
         .select('review_response_profile')
@@ -255,15 +246,16 @@ async function processLocation(locationId: string, placeId: string, apiKey: stri
       const reviewResponseProfile = brandIntel?.review_response_profile || null;
 
       for (const review of unresponded) {
-        const response = await generateResponse(
+        const response = await generateReviewResponse(
           review.review_text!,
           review.author_name,
           review.rating,
-          reviewResponseProfile
+          reviewResponseProfile,
+          locationId,
+          organizationId
         );
 
         if (response) {
-          // Save both ai_suggested_response and ai_original_response (immutable)
           await supabaseAdmin
             .from('marketing_reviews')
             .update({
@@ -274,7 +266,7 @@ async function processLocation(locationId: string, placeId: string, apiKey: stri
         }
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     result.errors.push(err.message);
   }
 
@@ -295,7 +287,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get locations with google_place_id
     const { data: locations, error } = await supabaseAdmin
       .from('locations')
       .select('id, google_place_id')
@@ -321,7 +312,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ results }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error('marketing-sync-reviews error:', err);
     return new Response(
       JSON.stringify({ error: err.message }),

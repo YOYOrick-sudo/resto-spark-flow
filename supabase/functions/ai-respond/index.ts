@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { callAI, callAIWithTools, resolveOrgId } from '../_shared/ai.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,8 +8,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
-const AI_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -38,6 +37,7 @@ interface Context {
   knowledgeBase: any[];
   upcomingReservations: any[];
   locationId: string;
+  organizationId: string;
 }
 
 interface Intent {
@@ -55,11 +55,9 @@ function checkRateLimit(conversationId: string): { allowed: boolean; reason?: st
   const entry = recentResponses.get(conversationId);
 
   if (entry) {
-    // Max 1 response per 2 seconds
     if (now - entry.lastAt < 2000) {
       return { allowed: false, reason: 'Too fast' };
     }
-    // Max 50 per day (reset every 24h)
     if (now - entry.lastAt > 86400000) {
       recentResponses.set(conversationId, { count: 1, lastAt: now });
       return { allowed: true };
@@ -109,6 +107,8 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
     upcomingReservations = resRes.data || [];
   }
 
+  const organizationId = await resolveOrgId(input.location_id);
+
   return {
     conversation,
     messages: (msgsRes.data || []).reverse(),
@@ -118,6 +118,7 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
     knowledgeBase: kbRes.data || [],
     upcomingReservations,
     locationId: input.location_id,
+    organizationId,
   };
 }
 
@@ -138,7 +139,6 @@ function checkActiveWindow(config: any, messageContent: string): { outsideWindow
 
   if (!outside) return { outsideWindow: false };
 
-  // Reservation keywords bypass window
   const keywords = ['reserv', 'boek', 'tafel', 'book', 'table', 'annul', 'cancel', 'wijzig', 'change', 'modify'];
   if (keywords.some(kw => messageContent.toLowerCase().includes(kw))) {
     return { outsideWindow: false };
@@ -157,54 +157,42 @@ async function classifyIntent(ctx: Context): Promise<Intent> {
   const recentContext = ctx.messages.slice(-3).map(m => `${m.direction}: ${m.content}`).join('\n');
 
   try {
-    const resp = await fetch(AI_GATEWAY, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
-        messages: [{
-          role: 'system',
-          content: `Classificeer het bericht van een restaurantgast. Gebruik de tool classify_intent om het resultaat te geven.
+    const result = await callAIWithTools({
+      featureKey: 'ai_respond_intent',
+      organizationId: ctx.organizationId,
+      locationId: ctx.locationId,
+      messages: [{
+        role: 'system',
+        content: `Classificeer het bericht van een restaurantgast. Gebruik de tool classify_intent om het resultaat te geven.
 
 Context (laatste 3 berichten):
 ${recentContext}`,
-        }, {
-          role: 'user',
-          content: lastMessage?.content || '',
-        }],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'classify_intent',
-            description: 'Classificeer de intent van een gastbericht.',
-            parameters: {
-              type: 'object',
-              properties: {
-                type: { type: 'string', enum: ['booking', 'faq', 'custom_request', 'greeting', 'complaint', 'escalate', 'unclear'] },
-                subtype: { type: 'string', enum: ['new', 'modify', 'cancel', 'status', 'menu', 'hours', 'facilities', 'parking', 'allergies', 'general', 'private_event', 'special_menu', 'large_group', 'other'] },
-                confidence: { type: 'number' },
-              },
-              required: ['type', 'subtype', 'confidence'],
+      }, {
+        role: 'user',
+        content: lastMessage?.content || '',
+      }],
+      tools: [{
+        type: 'function',
+        function: {
+          name: 'classify_intent',
+          description: 'Classificeer de intent van een gastbericht.',
+          parameters: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['booking', 'faq', 'custom_request', 'greeting', 'complaint', 'escalate', 'unclear'] },
+              subtype: { type: 'string', enum: ['new', 'modify', 'cancel', 'status', 'menu', 'hours', 'facilities', 'parking', 'allergies', 'general', 'private_event', 'special_menu', 'large_group', 'other'] },
+              confidence: { type: 'number' },
             },
+            required: ['type', 'subtype', 'confidence'],
           },
-        }],
-        tool_choice: { type: 'function', function: { name: 'classify_intent' } },
-        temperature: 0,
-      }),
+        },
+      }],
+      toolChoice: { type: 'function', function: { name: 'classify_intent' } },
+      temperature: 0,
     });
 
-    if (!resp.ok) {
-      console.error('[AI-RESPOND] Classification error:', resp.status);
-      return { type: 'unclear', subtype: 'other', confidence: 0 };
-    }
-
-    const data = await resp.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      return JSON.parse(toolCall.function.arguments);
+    if (result.toolCalls?.length) {
+      return result.toolCalls[0].arguments;
     }
     return { type: 'unclear', subtype: 'other', confidence: 0 };
   } catch (err) {
@@ -231,7 +219,6 @@ function shouldEscalate(content: string, intent: Intent, ctx: Context): { escala
     return { escalate: true, tone: 'enthusiastic', reason: 'Maatwerk verzoek' };
   }
 
-  // 3+ fallbacks
   const recentOutbound = ctx.messages.slice(-6)
     .filter(m => m.direction === 'outbound' && m.is_ai_generated)
     .filter(m => m.content?.includes('niet helemaal') || m.content?.includes('even doorverbinden'));
@@ -242,7 +229,7 @@ function shouldEscalate(content: string, intent: Intent, ctx: Context): { escala
   return { escalate: false };
 }
 
-function getEscalationMessage(tone: string, config: any, branding: any): string {
+function getEscalationMessage(tone: string, config: any, _branding: any): string {
   switch (tone) {
     case 'empathetic':
       return 'Ik begrijp dat dit vervelend is. Ik schakel je door naar een collega die je verder kan helpen.';
@@ -300,7 +287,6 @@ async function executeBookingTool(toolName: string, toolInput: any, ctx: Context
     }
   }
 
-  // Large party check
   if (toolName === 'create_reservation' && toolInput.party_size > (ctx.config.large_party_threshold || 8)) {
     await supabase.from('agent_actions').insert({
       location_id: ctx.locationId,
@@ -313,7 +299,6 @@ async function executeBookingTool(toolName: string, toolInput: any, ctx: Context
     return { pending: true };
   }
 
-  // Execute the tool
   if (toolName === 'check_availability') {
     try {
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/check-availability`, {
@@ -334,7 +319,6 @@ async function executeBookingTool(toolName: string, toolInput: any, ctx: Context
     }
   }
 
-  // Create reservation via public-booking-api
   if (toolName === 'create_reservation') {
     try {
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/public-booking-api`, {
@@ -366,7 +350,6 @@ async function executeBookingTool(toolName: string, toolInput: any, ctx: Context
     }
   }
 
-  // Modify reservation via public-booking-api (uses manage_token)
   if (toolName === 'modify_reservation') {
     const reservation = ctx.upcomingReservations.find((r: any) => r.id === toolInput.reservation_id);
     if (!reservation?.manage_token) {
@@ -396,7 +379,6 @@ async function executeBookingTool(toolName: string, toolInput: any, ctx: Context
     }
   }
 
-  // Cancel reservation via public-booking-api (uses manage_token)
   if (toolName === 'cancel_reservation') {
     const reservation = ctx.upcomingReservations.find((r: any) => r.id === toolInput.reservation_id);
     if (!reservation?.manage_token) {
@@ -464,10 +446,8 @@ function searchKnowledgeBase(query: string, kb: any[]): string | null {
 // ─── GAP DETECTION ───
 
 async function handleUnknownFaq(ctx: Context, question: string): Promise<string> {
-  // Use RPC to upsert hit_count
   await supabase.rpc('increment_knowledge_hit', { question_text: question, loc_id: ctx.locationId });
 
-  // Create card on Overview
   await supabase.from('agent_actions').insert({
     location_id: ctx.locationId,
     action_type: 'knowledge_gap',
@@ -574,28 +554,15 @@ async function generateResponse(ctx: Context, intent: Intent, extraContext?: str
   ];
 
   try {
-    const resp = await fetch(AI_GATEWAY, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages,
-        temperature: 0.7,
-        max_tokens: 500,
-      }),
+    const result = await callAI({
+      featureKey: 'ai_respond_generate',
+      organizationId: ctx.organizationId,
+      locationId: ctx.locationId,
+      messages,
+      maxTokens: 500,
+      temperature: 0.7,
     });
-
-    if (!resp.ok) {
-      const err = await resp.text();
-      console.error('[AI-RESPOND] Generation error:', resp.status, err);
-      return 'Even geduld, ik kom zo bij je terug.';
-    }
-
-    const data = await resp.json();
-    return data.choices?.[0]?.message?.content || 'Even geduld, ik kom zo bij je terug.';
+    return result.text || 'Even geduld, ik kom zo bij je terug.';
   } catch (err) {
     console.error('[AI-RESPOND] Generation failed:', err);
     return 'Even geduld, ik kom zo bij je terug.';
@@ -690,38 +657,25 @@ async function generateResponseWithTools(ctx: Context, intent: Intent, extraCont
 
   try {
     // Step 1: Ask AI what tool to call
-    const resp = await fetch(AI_GATEWAY, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages,
-        tools: bookingTools,
-        temperature: 0.3,
-        max_tokens: 500,
-      }),
+    const result = await callAIWithTools({
+      featureKey: 'ai_respond_tools',
+      organizationId: ctx.organizationId,
+      locationId: ctx.locationId,
+      messages,
+      tools: bookingTools,
+      temperature: 0.3,
+      maxTokens: 500,
     });
 
-    if (!resp.ok) {
-      console.error('[AI-RESPOND] Tool-calling generation error:', resp.status);
-      return 'Even geduld, ik kom zo bij je terug.';
-    }
-
-    const data = await resp.json();
-    const choice = data.choices?.[0]?.message;
-
     // If AI responds with text (no tool call), return that
-    if (!choice?.tool_calls?.length) {
-      return choice?.content || 'Even geduld, ik kom zo bij je terug.';
+    if (!result.toolCalls?.length) {
+      return result.text || 'Even geduld, ik kom zo bij je terug.';
     }
 
     // Step 2: Execute the tool
-    const toolCall = choice.tool_calls[0];
-    const toolName = toolCall.function.name;
-    const toolInput = JSON.parse(toolCall.function.arguments || '{}');
+    const toolCall = result.toolCalls[0];
+    const toolName = toolCall.name;
+    const toolInput = toolCall.arguments;
     console.log(`[AI-RESPOND] Tool call: ${toolName}`, toolInput);
 
     const toolResult = await executeBookingTool(toolName, toolInput, ctx);
@@ -731,7 +685,6 @@ async function generateResponseWithTools(ctx: Context, intent: Intent, extraCont
     }
 
     if (toolResult.pending) {
-      // Generate a friendly "I'll pass this along" message
       return await generateResponse(ctx, intent, 'De actie moet eerst goedgekeurd worden door een collega. Laat de gast vriendelijk weten dat je het doorgeeft en dat er snel een reactie volgt.');
     }
 
@@ -739,7 +692,7 @@ async function generateResponseWithTools(ctx: Context, intent: Intent, extraCont
     messages.push({
       role: 'assistant',
       content: null,
-      tool_calls: [toolCall],
+      tool_calls: [{ id: toolCall.id, type: 'function', function: { name: toolName, arguments: JSON.stringify(toolInput) } }],
     });
     messages.push({
       role: 'tool',
@@ -747,27 +700,19 @@ async function generateResponseWithTools(ctx: Context, intent: Intent, extraCont
       content: toolResult.response || 'Actie uitgevoerd.',
     });
 
-    const resp2 = await fetch(AI_GATEWAY, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+    try {
+      const followup = await callAI({
+        featureKey: 'ai_respond_tool_followup',
+        organizationId: ctx.organizationId,
+        locationId: ctx.locationId,
         messages,
+        maxTokens: 500,
         temperature: 0.7,
-        max_tokens: 500,
-      }),
-    });
-
-    if (!resp2.ok) {
-      // Fallback to direct tool response
+      });
+      return followup.text || toolResult.response || 'Even geduld, ik kom zo bij je terug.';
+    } catch {
       return toolResult.response || 'Even geduld, ik kom zo bij je terug.';
     }
-
-    const data2 = await resp2.json();
-    return data2.choices?.[0]?.message?.content || toolResult.response || 'Even geduld, ik kom zo bij je terug.';
   } catch (err) {
     console.error('[AI-RESPOND] Tool-calling failed:', err);
     return 'Even geduld, ik kom zo bij je terug.';
@@ -777,7 +722,6 @@ async function generateResponseWithTools(ctx: Context, intent: Intent, extraCont
 // ─── SEND RESPONSE ───
 
 async function sendResponse(ctx: Context, content: string) {
-  // Insert outbound message
   await supabase.from('messages').insert({
     conversation_id: ctx.conversation.id,
     location_id: ctx.locationId,
@@ -788,12 +732,10 @@ async function sendResponse(ctx: Context, content: string) {
     is_ai_generated: true,
   });
 
-  // Update conversation
   await supabase.from('conversations').update({
     last_message_at: new Date().toISOString(),
   }).eq('id', ctx.conversation.id);
 
-  // If WhatsApp, actually send via send-whatsapp
   if (ctx.conversation.channel === 'whatsapp' && ctx.conversation.channel_contact_id) {
     await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -814,16 +756,13 @@ async function sendResponse(ctx: Context, content: string) {
 async function escalateConversation(ctx: Context, reason: string, tone: string) {
   const message = getEscalationMessage(tone, ctx.config, ctx.branding);
 
-  // Send escalation message to guest
   await sendResponse(ctx, message);
 
-  // Update conversation status
   await supabase.from('conversations').update({
     handled_by: 'operator',
     status: 'escalated',
   }).eq('id', ctx.conversation.id);
 
-  // Create card
   const customerName = ctx.customer?.first_name || 'Een gast';
   let cardText: string;
   switch (reason) {
@@ -858,8 +797,6 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  const startTime = Date.now();
-
   try {
     const input: AiRespondInput = await req.json();
     if (!input.conversation_id || !input.location_id) {
@@ -870,7 +807,6 @@ Deno.serve(async (req: Request) => {
     const rl = checkRateLimit(input.conversation_id);
     if (!rl.allowed) {
       if (rl.reason === 'Daily limit reached') {
-        // Auto-escalate
         const ctx = await loadContext(input);
         await escalateConversation(ctx, 'Dagelijkse AI-limiet bereikt', 'honest');
       }
@@ -892,7 +828,6 @@ Deno.serve(async (req: Request) => {
     const windowCheck = checkActiveWindow(ctx.config, content);
     if (windowCheck.outsideWindow && windowCheck.autoReply) {
       await sendResponse(ctx, windowCheck.autoReply);
-      await logAiCall(ctx.locationId, 'auto_reply', startTime, 'success');
       return json({ success: true, type: 'auto_reply' });
     }
 
@@ -904,7 +839,6 @@ Deno.serve(async (req: Request) => {
     const esc = shouldEscalate(content, intent, ctx);
     if (esc.escalate) {
       await escalateConversation(ctx, esc.reason!, esc.tone!);
-      await logAiCall(ctx.locationId, `escalation_${intent.type}`, startTime, 'success');
       return json({ success: true, type: 'escalation', reason: esc.reason });
     }
 
@@ -913,13 +847,11 @@ Deno.serve(async (req: Request) => {
 
     switch (intent.type) {
       case 'booking': {
-        // Build reservation context string for all booking intents
         const resInfo = ctx.upcomingReservations.map(r =>
           `${r.reservation_date} om ${r.start_time?.slice(0, 5)}, ${r.party_size}p (${r.status})`
         ).join('; ');
 
         if (intent.subtype === 'new') {
-          // Use tool-calling flow for new bookings
           responseText = await generateResponseWithTools(ctx, intent,
             'De gast wil een reservering maken. Gebruik check_availability om beschikbaarheid te checken en create_reservation om de boeking te maken. Vraag naar datum, tijd en aantal personen als die info ontbreekt.');
         } else if (intent.subtype === 'status') {
@@ -944,7 +876,6 @@ Deno.serve(async (req: Request) => {
             });
             responseText = await generateResponse(ctx, intent, resContext + ' De wijziging moet eerst goedgekeurd worden door een collega. Laat de gast weten dat je het doorgeeft.');
           } else {
-            // Use tool-calling flow for autonomous modify
             responseText = await generateResponseWithTools(ctx, intent,
               resContext + ' Gebruik modify_reservation om de wijziging door te voeren. Benoem welke reservering je gaat wijzigen.');
           }
@@ -965,7 +896,6 @@ Deno.serve(async (req: Request) => {
             });
             responseText = await generateResponse(ctx, intent, resContext + ' De annulering moet eerst goedgekeurd worden door een collega. Laat de gast weten dat je het doorgeeft.');
           } else {
-            // Use tool-calling flow for autonomous cancel
             responseText = await generateResponseWithTools(ctx, intent,
               resContext + ' Gebruik cancel_reservation om te annuleren. Benoem welke reservering je gaat annuleren.');
           }
@@ -976,11 +906,9 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'faq': {
-        // Search knowledge base
         const kbAnswer = searchKnowledgeBase(content, ctx.knowledgeBase);
         if (kbAnswer) {
           responseText = await generateResponse(ctx, intent, `Antwoord uit kennisbank: ${kbAnswer}`);
-          // Increment hit count for analytics
         } else {
           responseText = await handleUnknownFaq(ctx, content);
         }
@@ -998,7 +926,6 @@ Deno.serve(async (req: Request) => {
       }
 
       default: {
-        // custom_request, complaint, escalate handled by shouldEscalate above
         responseText = await generateResponse(ctx, intent);
         break;
       }
@@ -1007,22 +934,9 @@ Deno.serve(async (req: Request) => {
     // Send the response
     await sendResponse(ctx, responseText);
 
-    // Log
-    await logAiCall(ctx.locationId, `messaging_${intent.type}`, startTime, 'success');
-
     return json({ success: true, type: intent.type, subtype: intent.subtype });
   } catch (err) {
     console.error('[AI-RESPOND] Error:', err);
     return json({ error: 'Internal server error' }, 500);
   }
 });
-
-async function logAiCall(locationId: string, feature: string, startTime: number, status: string) {
-  await supabase.from('ai_logs').insert({
-    location_id: locationId,
-    feature,
-    model: 'gemini-3-flash-preview',
-    latency_ms: Date.now() - startTime,
-    status,
-  });
-}

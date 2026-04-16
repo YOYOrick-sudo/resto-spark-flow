@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAIWithTools, resolveOrgId } from "../_shared/ai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -17,9 +17,6 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    // Accept location_ids from request body (triggered by analyze-brand) or process all
     let locationIds: string[] = [];
     try {
       const body = await req.json();
@@ -43,7 +40,7 @@ serve(async (req) => {
     const results: Record<string, string> = {};
     for (const locId of locationIds) {
       try {
-        await generateCoachingForLocation(supabase, locId, LOVABLE_API_KEY);
+        await generateCoachingForLocation(supabase, locId);
         results[locId] = "ok";
       } catch (e) {
         console.error(`Coaching error for ${locId}:`, e);
@@ -70,8 +67,7 @@ interface CandidateTip {
   priority: number;
 }
 
-async function generateCoachingForLocation(supabase: any, locationId: string, apiKey: string | undefined) {
-  // Load brand intelligence
+async function generateCoachingForLocation(supabase: any, locationId: string) {
   const { data: intel } = await supabase
     .from("marketing_brand_intelligence")
     .select("engagement_baseline, content_type_performance, optimal_post_times, posts_analyzed, learning_stage")
@@ -80,7 +76,6 @@ async function generateCoachingForLocation(supabase: any, locationId: string, ap
 
   if (!intel || intel.learning_stage === "onboarding") return;
 
-  // Load posts from last 14 days
   const twoWeeksAgo = new Date();
   twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
   const { data: recentPosts } = await supabase
@@ -116,7 +111,7 @@ async function generateCoachingForLocation(supabase: any, locationId: string, ap
     }
   }
 
-  // Rule 2: Engagement dropping (average of last 2 weeks < 0.7x baseline)
+  // Rule 2: Engagement dropping
   if (avgEngagement > 0 && posts.length >= 3) {
     const recentAvg =
       posts.reduce((sum: number, p: any) => sum + Number(p.analytics?.engagement ?? 0), 0) / posts.length;
@@ -185,23 +180,18 @@ async function generateCoachingForLocation(supabase: any, locationId: string, ap
     });
   }
 
-  // Take top 3
   candidates.sort((a, b) => b.priority - a.priority);
   const top3 = candidates.slice(0, 3);
 
   if (top3.length === 0) return;
 
-  // Optionally refine wording with AI
   let finalTips = top3;
-  if (apiKey && top3.length > 0) {
-    try {
-      finalTips = await refineTipsWithAI(top3, apiKey);
-    } catch (e) {
-      console.error("AI tip refinement failed, using raw tips:", e);
-    }
+  try {
+    finalTips = await refineTipsWithAI(top3, locationId);
+  } catch (e) {
+    console.error("AI tip refinement failed, using raw tips:", e);
   }
 
-  // Delete old active tips, insert new
   await supabase
     .from("marketing_coaching_tips")
     .delete()
@@ -240,65 +230,58 @@ function formatContentType(type: string): string {
   return map[type] ?? type;
 }
 
-async function refineTipsWithAI(tips: CandidateTip[], apiKey: string): Promise<CandidateTip[]> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        {
-          role: "system",
-          content: `Je bent een vriendelijke social media coach voor een restaurant.
+async function refineTipsWithAI(tips: CandidateTip[], locationId: string): Promise<CandidateTip[]> {
+  const organizationId = await resolveOrgId(locationId);
+
+  const result = await callAIWithTools({
+    featureKey: 'marketing_generate_coaching',
+    organizationId,
+    locationId,
+    messages: [
+      {
+        role: "system",
+        content: `Je bent een vriendelijke social media coach voor een restaurant.
 Herschrijf de volgende tips in positieve, niet-technische taal.
 Gebruik GEEN termen als: engagement rate, impressions, reach, conversie.
 Max 2 zinnen per tip. Behoud de tip_type en priority exact.`,
-        },
-        {
-          role: "user",
-          content: JSON.stringify(tips),
-        },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "return_tips",
-            description: "Return the refined coaching tips",
-            parameters: {
-              type: "object",
-              properties: {
-                tips: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      tip_type: { type: "string" },
-                      title: { type: "string" },
-                      description: { type: "string" },
-                      priority: { type: "number" },
-                    },
-                    required: ["tip_type", "title", "description", "priority"],
-                  },
+      },
+      {
+        role: "user",
+        content: JSON.stringify(tips),
+      },
+    ],
+    tools: [{
+      type: "function",
+      function: {
+        name: "return_tips",
+        description: "Return the refined coaching tips",
+        parameters: {
+          type: "object",
+          properties: {
+            tips: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  tip_type: { type: "string" },
+                  title: { type: "string" },
+                  description: { type: "string" },
+                  priority: { type: "number" },
                 },
+                required: ["tip_type", "title", "description", "priority"],
               },
-              required: ["tips"],
-              additionalProperties: false,
             },
           },
+          required: ["tips"],
+          additionalProperties: false,
         },
-      ],
-      tool_choice: { type: "function", function: { name: "return_tips" } },
-    }),
+      },
+    }],
+    toolChoice: { type: "function", function: { name: "return_tips" } },
   });
 
-  if (!response.ok) {
-    throw new Error(`AI error: ${response.status}`);
+  if (result.toolCalls?.length) {
+    return result.toolCalls[0].arguments.tips ?? tips;
   }
-
-  const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("No tool call");
-  const result = JSON.parse(toolCall.function.arguments);
-  return result.tips ?? tips;
+  return tips;
 }

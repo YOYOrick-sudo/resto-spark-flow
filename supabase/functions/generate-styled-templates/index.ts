@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { callAI, resolveOrgId } from '../_shared/ai.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,8 +8,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
-const AI_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -29,7 +28,6 @@ Deno.serve(async (req: Request) => {
     const { location_id } = await req.json();
     if (!location_id) return json({ error: 'location_id required' }, 400);
 
-    // Load branding
     const { data: location } = await supabase
       .from('locations')
       .select('name, tone_of_voice, description_short')
@@ -38,7 +36,6 @@ Deno.serve(async (req: Request) => {
 
     if (!location) return json({ error: 'Location not found' }, 404);
 
-    // Load default templates
     const { data: templates } = await supabase
       .from('message_templates')
       .select('id, template_key, channel, body, subject')
@@ -49,7 +46,6 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'No templates found' }, 404);
     }
 
-    // Build prompt
     const templateList = templates.map(t =>
       `[${t.template_key} / ${t.channel}]\nSubject: ${t.subject || '(geen)'}\nBody: ${t.body}`
     ).join('\n\n---\n\n');
@@ -60,17 +56,15 @@ Deno.serve(async (req: Request) => {
       casual: 'Casual — relaxed, kort, speels, max 1 emoji',
     }[location.tone_of_voice || 'informeel'] || 'Informeel — gebruik "je/jij", vriendelijk';
 
-    const resp = await fetch(AI_GATEWAY, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [{
-          role: 'system',
-          content: `Je bent een copywriter voor ${location.name || 'een restaurant'}.
+    const organizationId = await resolveOrgId(location_id);
+
+    const result = await callAI({
+      featureKey: 'generate_styled_templates',
+      organizationId,
+      locationId: location_id,
+      messages: [{
+        role: 'system',
+        content: `Je bent een copywriter voor ${location.name || 'een restaurant'}.
 ${location.description_short ? `Over het restaurant: ${location.description_short}` : ''}
 
 Stijl: ${toneDesc}
@@ -82,25 +76,16 @@ REGELS:
 - Email berichten: mogen iets langer maar bondig
 - Klinkt als een mens, niet als een systeem
 - Retourneer ALLEEN een JSON array met objecten: { "id": "...", "new_body": "...", "new_subject": "..." }`,
-        }, {
-          role: 'user',
-          content: `Herschrijf deze templates:\n\n${templateList}`,
-        }],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
+      }, {
+        role: 'user',
+        content: `Herschrijf deze templates:\n\n${templateList}`,
+      }],
+      temperature: 0.7,
+      maxTokens: 2000,
     });
 
-    if (!resp.ok) {
-      const err = await resp.text();
-      console.error('[GENERATE-TEMPLATES] AI error:', resp.status, err);
-      return json({ error: 'AI generation failed' }, 500);
-    }
+    const rawContent = result.text || '';
 
-    const data = await resp.json();
-    const rawContent = data.choices?.[0]?.message?.content || '';
-
-    // Parse JSON from response
     let previews: any[];
     try {
       const jsonMatch = rawContent.match(/\[[\s\S]*\]/);
@@ -110,8 +95,7 @@ REGELS:
       return json({ error: 'Failed to parse AI response' }, 500);
     }
 
-    // Combine with original for side-by-side preview
-    const result = templates.map(t => {
+    const combinedResult = templates.map(t => {
       const preview = previews.find((p: any) => p.id === t.id);
       return {
         id: t.id,
@@ -124,7 +108,7 @@ REGELS:
       };
     });
 
-    return json({ previews: result });
+    return json({ previews: combinedResult });
   } catch (err) {
     console.error('[GENERATE-TEMPLATES] Error:', err);
     return json({ error: 'Internal server error' }, 500);
