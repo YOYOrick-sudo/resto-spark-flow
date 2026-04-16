@@ -1,39 +1,64 @@
 
 
-## Diagnose
+## Check: routing-structuur in App.tsx
 
-Op basis van vorige analyse:
-- Je bent platform_admin in de DB ✅
-- `is_platform_admin` RPC werkt ✅
-- Maar je wordt vanaf `/nesto-admin` én `/nesto-admin/mfa-setup` geredirect naar `/`
-- Console logs zie je niet → óf de guard rendert nooit (route niet gematcht), óf er staat een andere catch-all redirect vóór de admin route
+Goede vraag — ik heb dit nagekeken in de huidige `App.tsx`. De admin routes staan **al correct buiten** de `ProtectedRoute` + `AppShell` wrapper. Hier is het relevante stuk:
 
-## Plan: 3 stappen
+```tsx
+<Routes>
+  {/* Public routes */}
+  <Route path="/auth" element={<AuthPage />} />
+  <Route path="/book/:slug" element={<BookingWidget />} />
+  <Route path="/manage/:token" element={<ManageReservation />} />
+  <Route path="/waitlist/accept/:token" element={<WaitlistAccept />} />
+  <Route path="/reconfirm/:token" element={<ReconfirmReservation />} />
+  <Route path="/panel-demo" element={<PanelDemo />} />
+  <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
+  <Route path="/widget-mockups" element={<WidgetMockups />} />
+  <Route path="/popup-preview" element={<PopupPreviewDemo />} />
+  
+  {/* Admin Panel — eigen layout, eigen guard */}
+  <Route path="/nesto-admin" element={<AdminRouteGuard />}>
+    <Route element={<AdminLayout />}>
+      <Route index element={<AdminDashboard />} />
+    </Route>
+    <Route path="mfa-setup" element={<MFAEnrollmentPage />} />
+  </Route>
+  
+  {/* Protected routes - Layout wrapper with persistent sidebar */}
+  <Route element={
+    <ProtectedRoute>
+      <AppShell />
+    </ProtectedRoute>
+  }>
+    <Route path="/" element={<Dashboard />} />
+    {/* ... alle restaurant routes ... */}
+  </Route>
+  
+  <Route path="*" element={<NotFound />} />
+</Routes>
+```
 
-### Stap 1 — Routes verifiëren in `App.tsx`
-Ik check de exacte volgorde van routes: staat `/nesto-admin/*` boven of onder de catch-all `<ProtectedRoute>` met `*`-route? Als er een `*`-route is die naar `/` redirect en die staat vóór de admin routes (of de admin routes zitten ín de ProtectedRoute), dan worden ze nooit bereikt.
+### Wat klopt
+- `/nesto-admin` staat **vóór** de `ProtectedRoute` block → wordt eerst gematcht
+- `AdminRouteGuard` is een eigen guard, geen child van `ProtectedRoute`
+- `AdminLayout` is apart, geen `AppShell` (geen restaurant-sidebar)
+- `mfa-setup` is een sibling van de `AdminLayout`-wrapper → MFA enrollment heeft GEEN admin sidebar/dashboard chrome (correct, want je bent nog niet voldoende geauthenticeerd)
 
-Verwachte oorzaak: `/nesto-admin` zit binnen `<ProtectedRoute>` of `<AppLayout>`, waardoor je in het normale dashboard belandt.
+### Wat de echte oorzaak was
+De redirect-loop kwam **niet** door de routing-structuur, maar door:
+1. **Race condition** in `useAdminAuth` → `isLoading` werd te vroeg `false`, guard redirectte naar `/` voordat admin-check klaar was
+2. **MFA-loop** in `AdminRouteGuard` → guard redirectte naar `/nesto-admin/mfa-setup` zelfs wanneer je al daar was
 
-### Stap 2 — Fix routing structuur
-Verplaats `/nesto-admin/*` routes **buiten** de `ProtectedRoute` / `AppLayout` wrapper, zodat:
-- `/nesto-admin` → `AdminRouteGuard` → `AdminLayout` (eigen layout, geen restaurant sidebar)
-- `/nesto-admin/mfa-setup` → ook achter `AdminRouteGuard`
+Beide zijn in de vorige stap gefixed. De routing zelf hoefde niet aangepast.
 
-### Stap 3 — Fix race condition in `useAdminAuth`
-- `isLoading` start altijd op `true` bij sessie-wissel (nu wordt 'ie te vroeg `false` gezet als session loading is)
-- `AdminRouteGuard` mag niet redirecten zolang `isLoading === true`
+### Wat ik na approval doe
 
-### Stap 4 — Fix MFA-redirect loop
-In `AdminRouteGuard`: als gebruiker al op `/nesto-admin/mfa-setup` is en `needsMFA === true`, render `<Outlet />` in plaats van weer redirecten naar dezelfde pagina (anders loop / fallback).
+Niets aan de code. Je kunt nu testen:
+1. Ga naar `/nesto-admin`
+2. Verwacht: redirect naar `/nesto-admin/mfa-setup` met QR-code scherm
+3. Scan met authenticator app, vul code in
+4. Verwacht: redirect terug naar `/nesto-admin` met admin dashboard
 
-### Stap 5 — Test handmatig
-Jij gaat naar `/nesto-admin` → guard detecteert admin + needsMFA → redirect naar `/nesto-admin/mfa-setup` → enrollment scherm verschijnt → QR scannen → activeren → terug naar `/nesto-admin` dashboard.
-
-## Wat ik ga doen na approval
-1. `App.tsx` lezen en routing-structuur fixen (admin routes buiten restaurant-shell)
-2. `useAdminAuth.ts` race condition fixen (isLoading correct beheren)
-3. `AdminRouteGuard.tsx` MFA-loop fixen (geen redirect als al op mfa-setup)
-4. Debug-logs verwijderen
-5. Jij test de flow met je authenticator app
+Als er iets misgaat, deel je console-output (de `[useAdminAuth]` en `[AdminRouteGuard]` logs staan er nog in voor diagnose).
 
