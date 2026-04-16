@@ -84,7 +84,15 @@ export function MepQuickAddDropdown({
             >
               <div>
                 <p className="text-sm font-medium text-foreground">{fav.title}</p>
-                <p className="text-xs text-muted-foreground">{fav.category}</p>
+                <p className="text-xs text-muted-foreground">
+                  {fav.category}
+                  {fav.methode && (
+                    <>
+                      {" · "}<span className="capitalize">{fav.methode.type}</span>
+                      {fav.methode.visuele_eenheid && <>{" · "}{fav.methode.visuele_eenheid}</>}
+                    </>
+                  )}
+                </p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <span
