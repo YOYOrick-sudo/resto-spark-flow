@@ -213,7 +213,7 @@ export function ChatView({ conversationId }: ChatViewProps) {
                       : 'bg-muted text-foreground rounded-2xl rounded-bl-md'
                   )}
                 >
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  <p className="whitespace-pre-wrap">{msg.content?.replace(/\\n/g, '\n')}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-[10px] text-muted-foreground">
                       {msg.created_at

@@ -105,7 +105,7 @@ function AttentionRow({ conversation: conv, isSelected, onClick }: {
           <span className="text-[10px] text-muted-foreground flex-shrink-0">{waitTime}</span>
         </div>
         <p className="text-xs text-muted-foreground truncate mt-0.5">
-          {conv.lastMessage ? conv.lastMessage.slice(0, 50) : 'Wacht op reactie'}
+          {conv.lastMessage ? conv.lastMessage.replace(/\\n/g, ' ').slice(0, 50) : 'Wacht op reactie'}
         </p>
       </div>
     </button>
@@ -147,7 +147,7 @@ function RecentRow({ conversation: conv, isSelected, onClick }: {
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           <p className="text-xs text-muted-foreground truncate">
-            {conv.lastMessage ? conv.lastMessage.slice(0, 50) : 'Geen berichten'}
+            {conv.lastMessage ? conv.lastMessage.replace(/\\n/g, ' ').slice(0, 50) : 'Geen berichten'}
           </p>
         </div>
         <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 mt-0.5">
