@@ -11,6 +11,7 @@ export interface MepFavoriet {
   recept_id: string | null;
   methode_id: string | null;
   created_at: string;
+  methode: { type: string; visuele_eenheid: string | null } | null;
 }
 
 export function useMepFavorieten() {
@@ -23,7 +24,7 @@ export function useMepFavorieten() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mep_favorieten")
-        .select("*")
+        .select("*, methode:halffabricaat_methodes!mep_favorieten_methode_id_fkey(type, visuele_eenheid)")
         .eq("location_id", locationId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
