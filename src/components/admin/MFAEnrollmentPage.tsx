@@ -29,7 +29,7 @@ export function MFAEnrollmentPage() {
       const { data: factors } = await supabase.auth.mfa.listFactors();
       if (factors?.totp) {
         for (const factor of factors.totp) {
-          if (factor.status === "unverified") {
+          if ((factor as any).status === "unverified") {
             await supabase.auth.mfa.unenroll({ factorId: factor.id });
           }
         }
