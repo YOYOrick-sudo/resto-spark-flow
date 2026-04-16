@@ -1324,6 +1324,61 @@ export type Database = {
           },
         ]
       }
+      gedeelde_producten_per_locatie: {
+        Row: {
+          actief: boolean
+          created_at: string
+          id: string
+          ingredient_id: string | null
+          locatie_id: string
+          product_type: string
+          recept_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actief?: boolean
+          created_at?: string
+          id?: string
+          ingredient_id?: string | null
+          locatie_id: string
+          product_type: string
+          recept_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actief?: boolean
+          created_at?: string
+          id?: string
+          ingredient_id?: string | null
+          locatie_id?: string
+          product_type?: string
+          recept_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gedeelde_producten_per_locatie_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gedeelde_producten_per_locatie_locatie_id_fkey"
+            columns: ["locatie_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gedeelde_producten_per_locatie_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gerecht_componenten: {
         Row: {
           created_at: string
@@ -2163,6 +2218,7 @@ export type Database = {
           brand_color_secondary: string | null
           created_at: string
           description_short: string | null
+          einde_dienst_evaluatie_tijd: string | null
           gerecht_categorieen: Json | null
           google_place_id: string | null
           guest_greeting: string | null
@@ -2178,7 +2234,9 @@ export type Database = {
           name: string
           organization_id: string
           recept_categorieen: Json | null
+          role_in_organization: string | null
           slug: string
+          start_dag_evaluatie_tijd: string | null
           timezone: string
           tone_of_voice: string | null
           tripadvisor_url: string | null
@@ -2195,6 +2253,7 @@ export type Database = {
           brand_color_secondary?: string | null
           created_at?: string
           description_short?: string | null
+          einde_dienst_evaluatie_tijd?: string | null
           gerecht_categorieen?: Json | null
           google_place_id?: string | null
           guest_greeting?: string | null
@@ -2210,7 +2269,9 @@ export type Database = {
           name: string
           organization_id: string
           recept_categorieen?: Json | null
+          role_in_organization?: string | null
           slug: string
+          start_dag_evaluatie_tijd?: string | null
           timezone?: string
           tone_of_voice?: string | null
           tripadvisor_url?: string | null
@@ -2227,6 +2288,7 @@ export type Database = {
           brand_color_secondary?: string | null
           created_at?: string
           description_short?: string | null
+          einde_dienst_evaluatie_tijd?: string | null
           gerecht_categorieen?: Json | null
           google_place_id?: string | null
           guest_greeting?: string | null
@@ -2242,7 +2304,9 @@ export type Database = {
           name?: string
           organization_id?: string
           recept_categorieen?: Json | null
+          role_in_organization?: string | null
           slug?: string
+          start_dag_evaluatie_tijd?: string | null
           timezone?: string
           tone_of_voice?: string | null
           tripadvisor_url?: string | null
@@ -3596,6 +3660,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           bron: string | null
+          bron_details: Json | null
           category: string
           created_at: string
           deadline: string | null
@@ -3615,6 +3680,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           bron?: string | null
+          bron_details?: Json | null
           category: string
           created_at?: string
           deadline?: string | null
@@ -3634,6 +3700,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           bron?: string | null
+          bron_details?: Json | null
           category?: string
           created_at?: string
           deadline?: string | null
@@ -4423,6 +4490,7 @@ export type Database = {
           billing_contact: string | null
           created_at: string
           id: string
+          interne_bestellingen_enabled: boolean | null
           name: string
           status: string
           updated_at: string
@@ -4431,6 +4499,7 @@ export type Database = {
           billing_contact?: string | null
           created_at?: string
           id?: string
+          interne_bestellingen_enabled?: boolean | null
           name: string
           status?: string
           updated_at?: string
@@ -4439,6 +4508,7 @@ export type Database = {
           billing_contact?: string | null
           created_at?: string
           id?: string
+          interne_bestellingen_enabled?: boolean | null
           name?: string
           status?: string
           updated_at?: string
@@ -4984,6 +5054,7 @@ export type Database = {
           naam: string
           passieve_bereidingstijd: number | null
           porties: number
+          productie_location_id: string | null
           totale_ingredientkostprijs: number | null
           totale_kostprijs: number | null
           type: string
@@ -5006,6 +5077,7 @@ export type Database = {
           naam: string
           passieve_bereidingstijd?: number | null
           porties?: number
+          productie_location_id?: string | null
           totale_ingredientkostprijs?: number | null
           totale_kostprijs?: number | null
           type?: string
@@ -5028,6 +5100,7 @@ export type Database = {
           naam?: string
           passieve_bereidingstijd?: number | null
           porties?: number
+          productie_location_id?: string | null
           totale_ingredientkostprijs?: number | null
           totale_kostprijs?: number | null
           type?: string
@@ -5039,6 +5112,13 @@ export type Database = {
           {
             foreignKeyName: "recepten_location_id_fkey"
             columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recepten_productie_location_id_fkey"
+            columns: ["productie_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
@@ -6551,6 +6631,51 @@ export type Database = {
       }
     }
     Views: {
+      gedeelde_halffabricaten_cross_locatie: {
+        Row: {
+          actief: boolean | null
+          created_at: string | null
+          gedeeld_product_id: string | null
+          ingredient_id: string | null
+          ontvangende_locatie_id: string | null
+          ontvangende_locatie_naam: string | null
+          product_type: string | null
+          productie_locatie_id: string | null
+          productie_locatie_naam: string | null
+          recept_id: string | null
+          recept_naam: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gedeelde_producten_per_locatie_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gedeelde_producten_per_locatie_locatie_id_fkey"
+            columns: ["ontvangende_locatie_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gedeelde_producten_per_locatie_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recepten_location_id_fkey"
+            columns: ["productie_locatie_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_risk_summary: {
         Row: {
           avg_risk_score: number | null
