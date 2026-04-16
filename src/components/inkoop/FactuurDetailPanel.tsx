@@ -233,7 +233,7 @@ function DetailContent({ factuurId }: { factuurId: string }) {
             <div
               key={r.id}
               className={`rounded-xl border p-3 space-y-1 ${
-                r.match_status === "niet_gematcht"
+                r.match_status === "unmatched"
                   ? "border-warning/50 bg-warning/5"
                   : "border-border/30 bg-muted/30"
               }`}
@@ -269,7 +269,7 @@ function DetailContent({ factuurId }: { factuurId: string }) {
               </div>
 
               {isEditable &&
-                r.match_status === "niet_gematcht" &&
+                r.match_status === "unmatched" &&
                 (editingMatch === r.id ? (
                   <InlineMatch
                     regelId={r.id}
