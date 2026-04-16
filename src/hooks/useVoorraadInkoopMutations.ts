@@ -32,7 +32,7 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
-      nestoToast.success("Leverancier aangemaakt");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -45,7 +45,7 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
       qc.invalidateQueries({ queryKey: ["leverancier-detail"] });
-      nestoToast.success("Leverancier bijgewerkt");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -81,7 +81,7 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leverancier-detail"] });
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
-      nestoToast.success("Artikel toegevoegd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -94,7 +94,7 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leverancier-detail"] });
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
-      nestoToast.success("Artikel verwijderd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -148,7 +148,7 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestellingen"] });
       qc.invalidateQueries({ queryKey: ["besteladvies"] });
-      nestoToast.success("Bestellijst aangemaakt");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -161,7 +161,7 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestellingen"] });
       qc.invalidateQueries({ queryKey: ["bestelling"] });
-      nestoToast.success("Bestelling bijgewerkt");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -197,7 +197,7 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestelling"] });
-      nestoToast.success("Regel verwijderd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -216,7 +216,7 @@ export function useVoorraadInkoopMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bestelling"] });
-      nestoToast.success("Regel toegevoegd");
+      
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
