@@ -121,7 +121,7 @@ export function useCreatePolicySet(locationId: string | undefined) {
       return data.id as string;
     },
     onSuccess: () => {
-      nestoToast.success("Beleid aangemaakt");
+      
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.policySets(locationId) });
     },
     onError: (err: any) => {
@@ -146,7 +146,7 @@ export function useUpdatePolicySet(locationId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      nestoToast.success("Beleid bijgewerkt");
+      
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.policySets(locationId) });
     },
     onError: (err: any) => {
@@ -182,7 +182,7 @@ export function useArchivePolicySet(locationId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      nestoToast.success("Beleid gearchiveerd");
+      
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.policySets(locationId) });
     },
     onError: (err: any) => {
@@ -209,7 +209,7 @@ export function useRestorePolicySet(locationId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      nestoToast.success("Beleid hersteld");
+      
       if (locationId) qc.invalidateQueries({ queryKey: queryKeys.policySets(locationId) });
     },
     onError: (err: any) => {

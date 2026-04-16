@@ -62,7 +62,7 @@ export function useCreateSeries() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content-series'] });
-      nestoToast.success('Serie aangemaakt');
+      
     },
     onError: () => nestoToast.error('Kon serie niet aanmaken'),
   });
@@ -92,7 +92,7 @@ export function useUpdateSeries() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content-series'] });
-      nestoToast.success('Serie bijgewerkt');
+      
     },
     onError: () => nestoToast.error('Kon serie niet bijwerken'),
   });
@@ -112,7 +112,7 @@ export function useDeleteSeries() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content-series'] });
-      nestoToast.success('Serie verwijderd');
+      
     },
     onError: () => nestoToast.error('Kon serie niet verwijderen'),
   });

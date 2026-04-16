@@ -60,7 +60,7 @@ export function useKnowledgeBase() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      nestoToast.success('Toegevoegd', 'Knowledge base entry aangemaakt.');
+      
     },
     onError: () => {
       nestoToast.error('Fout', 'Kon entry niet aanmaken.');
@@ -82,7 +82,7 @@ export function useKnowledgeBase() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      nestoToast.success('Opgeslagen', 'Entry bijgewerkt.');
+      
     },
     onError: () => {
       nestoToast.error('Fout', 'Kon entry niet bijwerken.');
@@ -99,7 +99,7 @@ export function useKnowledgeBase() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      nestoToast.success('Verwijderd', 'Entry gedeactiveerd.');
+      
     },
     onError: () => {
       nestoToast.error('Fout', 'Kon entry niet verwijderen.');

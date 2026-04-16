@@ -109,7 +109,7 @@ export function useCreateTableGroup() {
         queryKey: queryKeys.areasWithTables(variables.location_id),
         exact: false 
       });
-      nestoToast.success('Tafelgroep aangemaakt');
+      
     },
     onError: (error: Error) => {
       nestoToast.error(`Fout bij aanmaken: ${error.message}`);
@@ -167,7 +167,7 @@ export function useArchiveTableGroup() {
         queryKey: queryKeys.areasWithTables(locationId),
         exact: false 
       });
-      nestoToast.success('Tafelgroep gearchiveerd');
+      
     }
   });
 }
@@ -198,7 +198,7 @@ export function useRestoreTableGroup() {
         queryKey: queryKeys.areasWithTables(locationId),
         exact: false 
       });
-      nestoToast.success('Tafelgroep hersteld');
+      
     }
   });
 }
