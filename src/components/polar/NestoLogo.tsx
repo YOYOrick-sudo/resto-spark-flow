@@ -10,15 +10,20 @@ export interface NestoLogoProps {
   className?: string;
 }
 
-// Heights per size (px). Width auto-scales to preserve aspect ratio.
-const heightMap = {
-  sm: 20,
-  md: 26,
-  lg: 32,
+// Separate height maps per render mode so each asset's optical weight
+// matches the old Nesto SVG. Width auto-scales to preserve aspect ratio.
+const iconHeightMap = {
+  sm: 22,
+  md: 28,
+  lg: 34,
 } as const;
 
-// Lockup is wider than tall, so render slightly taller for visual parity with the
-// previous icon+wordmark combo.
+const wordmarkHeightMap = {
+  sm: 14,
+  md: 18,
+  lg: 24,
+} as const;
+
 const lockupHeightMap = {
   sm: 22,
   md: 30,
@@ -32,7 +37,7 @@ export function NestoLogo({
   className,
 }: NestoLogoProps) {
   let src = shoufIcon;
-  let height: number = heightMap[size];
+  let height: number = iconHeightMap[size];
   const alt = 'Shouf';
 
   if (showIcon && showWordmark) {
@@ -40,8 +45,10 @@ export function NestoLogo({
     height = lockupHeightMap[size];
   } else if (showWordmark && !showIcon) {
     src = shoufWordmark;
+    height = wordmarkHeightMap[size];
   } else {
     src = shoufIcon;
+    height = iconHeightMap[size];
   }
 
   return (
