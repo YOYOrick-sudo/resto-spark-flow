@@ -32,8 +32,8 @@ export function NestoLogo({
   className,
 }: NestoLogoProps) {
   let src = shoufIcon;
-  let height = heightMap[size];
-  let alt = 'Shouf';
+  let height: number = heightMap[size];
+  const alt = 'Shouf';
 
   if (showIcon && showWordmark) {
     src = shoufLockup;
