@@ -1,21 +1,34 @@
-import { useState, useEffect } from "react";
-import { useChecklistTemplates, type ChecklistTemplate, type ChecklistItem } from "@/hooks/useChecklistTemplates";
+import { useState } from "react";
+import {
+  useChecklistTemplates,
+  type ChecklistTemplate,
+  type ChecklistItem,
+} from "@/hooks/useChecklistTemplates";
 import { useUserContext } from "@/contexts/UserContext";
-import { NestoButton, NestoCard, NestoCardContent, NestoBadge, NestoInput, NestoSelect, Spinner, EmptyState } from "@/components/polar";
-import { NestoPanel } from "@/components/polar/NestoPanel";
-import { Plus, Trash2, ArrowUp, ArrowDown, CheckSquare } from "lucide-react";
+import {
+  NestoButton,
+  NestoCard,
+  NestoCardContent,
+  NestoBadge,
+  NestoInput,
+  NestoSelect,
+  Spinner,
+  EmptyState,
+} from "@/components/polar";
+import { Plus, Trash2, ArrowUp, ArrowDown, FileText, CheckSquare } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { nestoToast } from "@/lib/nestoToast";
 
 const TYPE_OPTIONS = [
   { value: "opening", label: "Opening" },
-  { value: "sluiting", label: "Sluiting" },
   { value: "tussentijds", label: "Tussentijds" },
+  { value: "sluiting", label: "Sluiting" },
   { value: "schoonmaak", label: "Schoonmaak" },
   { value: "haccp", label: "HACCP" },
 ];
 
 const ITEM_TYPE_OPTIONS = [
-  { value: "check", label: "Checkbox" },
+  { value: "check", label: "Afvinken" },
   { value: "temperatuur", label: "Temperatuur" },
   { value: "notitie", label: "Notitie" },
 ];
@@ -28,11 +41,12 @@ const TYPE_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "pr
   haccp: "warning",
 };
 
+type Selection = { mode: "edit"; id: string } | { mode: "new" } | null;
+
 export function TemplatesTab() {
   const { context } = useUserContext();
   const { data: templates, isLoading, saveTemplate, toggleActief } = useChecklistTemplates();
-  const [editing, setEditing] = useState<ChecklistTemplate | null>(null);
-  const [isNew, setIsNew] = useState(false);
+  const [selection, setSelection] = useState<Selection>(null);
 
   const isManager = context?.role === "owner" || context?.role === "manager";
 
@@ -46,117 +60,150 @@ export function TemplatesTab() {
     );
   }
 
-  if (isLoading) return <div className="flex justify-center py-12"><Spinner /></div>;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner />
+      </div>
+    );
+  }
 
-  const handleNew = () => {
-    setIsNew(true);
-    setEditing({
-      id: "",
-      location_id: "",
-      naam: "",
-      type: "opening",
-      categorie: null,
-      beschrijving: null,
-      items: [],
-      actief: true,
-      created_at: "",
-      updated_at: "",
-    });
-  };
+  const list = templates ?? [];
+  const selected =
+    selection?.mode === "edit"
+      ? list.find((t) => t.id === selection.id) ?? null
+      : null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <NestoButton onClick={handleNew} className="min-h-[44px]">
+    <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+      {/* Linkerkolom — lijst */}
+      <aside className="space-y-3">
+        <NestoButton
+          variant="outline"
+          className="w-full justify-start min-h-[44px]"
+          onClick={() => setSelection({ mode: "new" })}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nieuwe template
         </NestoButton>
-      </div>
 
-      {(templates ?? []).length === 0 ? (
-        <EmptyState icon={CheckSquare} title="Geen templates" description="Maak je eerste template aan." />
-      ) : (
-        <div className="border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">Naam</th>
-                <th className="text-left px-4 py-3 font-medium">Type</th>
-                <th className="text-right px-4 py-3 font-medium">Items</th>
-                <th className="text-center px-4 py-3 font-medium">Actief</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(templates ?? []).map((t) => (
-                <tr
-                  key={t.id}
-                  className="border-t cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => { setIsNew(false); setEditing(t); }}
-                >
-                  <td className="px-4 py-3 font-medium">{t.naam}</td>
-                  <td className="px-4 py-3">
-                    <NestoBadge variant={TYPE_BADGE_VARIANT[t.type] ?? "default"}>{t.type}</NestoBadge>
-                  </td>
-                  <td className="px-4 py-3 text-right">{t.items.length}</td>
-                  <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                    <Switch
-                      checked={t.actief}
-                      onCheckedChange={(v) => toggleActief.mutate({ id: t.id, actief: v })}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+          {list.length === 0 && (
+            <p className="text-sm text-muted-foreground px-2 py-4">
+              Nog geen templates.
+            </p>
+          )}
+          {list.map((t) => {
+            const isActive = selection?.mode === "edit" && selection.id === t.id;
+            const itemCount = Array.isArray(t.items) ? t.items.length : 0;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSelection({ mode: "edit", id: t.id })}
+                className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                  isActive
+                    ? "bg-accent border-primary/40"
+                    : "bg-card border-border hover:bg-accent/50"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="font-medium truncate">{t.naam}</span>
+                  <Switch
+                    checked={t.actief}
+                    onCheckedChange={(v) =>
+                      toggleActief.mutate({ id: t.id, actief: v })
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <NestoBadge variant={TYPE_BADGE_VARIANT[t.type] ?? "default"}>
+                    {t.type}
+                  </NestoBadge>
+                  <span className="text-xs text-muted-foreground">
+                    {itemCount} items
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
-      )}
+      </aside>
 
-      <TemplateEditorPanel
-        template={editing}
-        isNew={isNew}
-        open={!!editing}
-        onClose={() => setEditing(null)}
-        onSave={saveTemplate}
-      />
+      {/* Rechterkolom — editor / empty */}
+      <section>
+        {selection === null && (
+          <EmptyState
+            icon={FileText}
+            title="Geen template geselecteerd"
+            description="Selecteer een template links of maak een nieuwe aan."
+          />
+        )}
+        {selection?.mode === "new" && (
+          <TemplateEditor
+            key="new"
+            template={null}
+            onSave={async (data) => {
+              await saveTemplate.mutateAsync(data);
+              nestoToast.success("Template aangemaakt");
+              setSelection(null);
+            }}
+            onCancel={() => setSelection(null)}
+            isSaving={saveTemplate.isPending}
+          />
+        )}
+        {selection?.mode === "edit" && selected && (
+          <TemplateEditor
+            key={selected.id}
+            template={selected}
+            onSave={async (data) => {
+              await saveTemplate.mutateAsync({ ...data, id: selected.id });
+              nestoToast.success("Template opgeslagen");
+            }}
+            onCancel={() => setSelection(null)}
+            isSaving={saveTemplate.isPending}
+          />
+        )}
+      </section>
     </div>
   );
 }
 
-// --- Template Editor Panel ---
+// ---- Inline editor ----
 
 interface EditorProps {
   template: ChecklistTemplate | null;
-  isNew: boolean;
-  open: boolean;
-  onClose: () => void;
-  onSave: ReturnType<typeof useChecklistTemplates>["saveTemplate"];
+  onSave: (data: {
+    naam: string;
+    type: string;
+    beschrijving?: string;
+    items: ChecklistItem[];
+    actief?: boolean;
+  }) => Promise<void>;
+  onCancel: () => void;
+  isSaving: boolean;
 }
 
-function TemplateEditorPanel({ template, isNew, open, onClose, onSave }: EditorProps) {
-  const [naam, setNaam] = useState("");
-  const [type, setType] = useState("opening");
-  const [beschrijving, setBeschrijving] = useState("");
-  const [items, setItems] = useState<ChecklistItem[]>([]);
-
-  useEffect(() => {
-    if (template) {
-      setNaam(template.naam);
-      setType(template.type);
-      setBeschrijving(template.beschrijving ?? "");
-      setItems([...template.items]);
-    }
-  }, [template]);
-
-  if (!template) return null;
+function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
+  const [naam, setNaam] = useState(template?.naam ?? "");
+  const [type, setType] = useState(template?.type ?? "opening");
+  const [beschrijving, setBeschrijving] = useState(template?.beschrijving ?? "");
+  const [actief, setActief] = useState(template?.actief ?? true);
+  const [items, setItems] = useState<ChecklistItem[]>(
+    () =>
+      (template?.items ?? [])
+        .slice()
+        .sort((a, b) => a.volgorde - b.volgorde)
+  );
 
   const addItem = () => {
-    setItems([
-      ...items,
+    setItems((prev) => [
+      ...prev,
       {
         id: crypto.randomUUID(),
         titel: "",
         type: "check",
-        volgorde: items.length + 1,
+        volgorde: prev.length + 1,
         vereist: false,
         temp_min: null,
         temp_max: null,
@@ -165,163 +212,211 @@ function TemplateEditorPanel({ template, isNew, open, onClose, onSave }: EditorP
     ]);
   };
 
-  const removeItem = (idx: number) => {
-    const next = items.filter((_, i) => i !== idx).map((it, i) => ({ ...it, volgorde: i + 1 }));
-    setItems(next);
-  };
-
-  const moveItem = (idx: number, dir: -1 | 1) => {
-    const next = [...items];
-    const target = idx + dir;
-    if (target < 0 || target >= next.length) return;
-    [next[idx], next[target]] = [next[target], next[idx]];
-    setItems(next.map((it, i) => ({ ...it, volgorde: i + 1 })));
-  };
-
   const updateItem = (idx: number, patch: Partial<ChecklistItem>) => {
-    setItems(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+    setItems((prev) =>
+      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it))
+    );
+  };
+
+  const removeItem = (idx: number) =>
+    setItems((prev) =>
+      prev
+        .filter((_, i) => i !== idx)
+        .map((it, i) => ({ ...it, volgorde: i + 1 }))
+    );
+
+  const move = (idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= items.length) return;
+    setItems((prev) => {
+      const next = prev.slice();
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next.map((it, i) => ({ ...it, volgorde: i + 1 }));
+    });
   };
 
   const handleSave = async () => {
-    await onSave.mutateAsync({
-      id: isNew ? undefined : template.id,
-      naam,
+    if (!naam.trim()) {
+      nestoToast.error("Geef een naam op");
+      return;
+    }
+    await onSave({
+      naam: naam.trim(),
       type,
-      beschrijving,
-      items,
+      beschrijving: beschrijving.trim() || undefined,
+      actief,
+      items: items.map((it, i) => ({ ...it, volgorde: i + 1 })),
     });
-    onClose();
   };
 
   return (
-    <NestoPanel
-      open={open}
-      onClose={onClose}
-      title={isNew ? "Nieuwe template" : "Template bewerken"}
-      footer={
-        <NestoButton
-          onClick={handleSave}
-          disabled={!naam.trim() || items.length === 0}
-          isLoading={onSave.isPending}
-          className="w-full min-h-[48px]"
-        >
-          Opslaan
-        </NestoButton>
-      }
-    >
-      {(titleRef) => (
-        <div className="px-5 py-6 space-y-5">
-          <h2 ref={titleRef} className="text-xl font-semibold">
-            {isNew ? "Nieuwe template" : template.naam}
-          </h2>
+    <div className="space-y-6">
+      {/* Sticky header met acties */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur z-10 flex items-center justify-between py-3 -mt-3 border-b">
+        <h2 className="text-lg font-semibold">
+          {template ? "Template bewerken" : "Nieuwe template"}
+        </h2>
+        <div className="flex items-center gap-2">
+          <NestoButton variant="ghost" onClick={onCancel}>
+            Annuleren
+          </NestoButton>
+          <NestoButton onClick={handleSave} isLoading={isSaving}>
+            Opslaan
+          </NestoButton>
+        </div>
+      </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Naam</label>
-              <NestoInput value={naam} onChange={(e) => setNaam(e.target.value)} placeholder="Naam checklist" />
-            </div>
+      {/* Basisvelden */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Naam</label>
+          <NestoInput
+            value={naam}
+            onChange={(e) => setNaam(e.target.value)}
+            placeholder="bv. Opening keuken"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Type</label>
+          <NestoSelect value={type} onValueChange={setType} options={TYPE_OPTIONS} />
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium mb-1.5 block">Beschrijving</label>
+          <NestoInput
+            value={beschrijving}
+            onChange={(e) => setBeschrijving(e.target.value)}
+            placeholder="Optioneel"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <Switch checked={actief} onCheckedChange={setActief} />
+          <span className="text-sm">Actief (verschijnt bij dag-start)</span>
+        </div>
+      </div>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">Type</label>
-              <NestoSelect value={type} onValueChange={setType} options={TYPE_OPTIONS} />
-            </div>
+      {/* Items */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Items ({items.length})
+          </h3>
+          {items.length > 0 && (
+            <NestoButton size="sm" variant="outline" onClick={addItem}>
+              <Plus className="h-4 w-4 mr-1" /> Item toevoegen
+            </NestoButton>
+          )}
+        </div>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">Beschrijving</label>
-              <textarea
-                value={beschrijving}
-                onChange={(e) => setBeschrijving(e.target.value)}
-                className="w-full min-h-[60px] rounded-xl border bg-background p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Optionele beschrijving..."
-              />
-            </div>
+        {items.length === 0 && (
+          <div className="text-center py-10 border border-dashed border-border rounded-lg">
+            <p className="text-base font-medium text-foreground mb-1">
+              Nog geen items
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Voeg taken toe die de kok bij elke run moet uitvoeren.
+            </p>
+            <NestoButton size="sm" variant="outline" onClick={addItem}>
+              <Plus className="h-4 w-4 mr-1" /> Eerste item toevoegen
+            </NestoButton>
           </div>
+        )}
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Items</h3>
-              <NestoButton variant="outline" size="sm" onClick={addItem} className="min-h-[44px]">
-                <Plus className="h-4 w-4 mr-1" />
-                Item toevoegen
-              </NestoButton>
-            </div>
+        {items.map((item, idx) => (
+          <NestoCard key={item.id}>
+            <NestoCardContent className="py-3">
+              <div className="flex items-start gap-2">
+                <div className="flex flex-col gap-1 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => move(idx, -1)}
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-30 h-7 w-7 flex items-center justify-center rounded hover:bg-muted"
+                    disabled={idx === 0}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(idx, 1)}
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-30 h-7 w-7 flex items-center justify-center rounded hover:bg-muted"
+                    disabled={idx === items.length - 1}
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </button>
+                </div>
 
-            {items.map((item, idx) => (
-              <div key={item.id} className="p-4 rounded-xl border bg-muted/20 space-y-3">
-                <div className="flex items-start gap-2">
-                  <div className="flex flex-col gap-1">
-                    <button
-                      onClick={() => moveItem(idx, -1)}
-                      disabled={idx === 0}
-                      className="h-8 w-8 rounded flex items-center justify-center hover:bg-muted disabled:opacity-30"
-                    >
-                      <ArrowUp className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => moveItem(idx, 1)}
-                      disabled={idx === items.length - 1}
-                      className="h-8 w-8 rounded flex items-center justify-center hover:bg-muted disabled:opacity-30"
-                    >
-                      <ArrowDown className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
                     <NestoInput
                       value={item.titel}
                       onChange={(e) => updateItem(idx, { titel: e.target.value })}
-                      placeholder="Item titel"
+                      placeholder="Titel van het item"
+                      className="flex-1"
                     />
-                    <div className="flex gap-2 items-center">
+                    <div className="w-[160px]">
                       <NestoSelect
                         value={item.type}
                         onValueChange={(v) => updateItem(idx, { type: v as any })}
                         options={ITEM_TYPE_OPTIONS}
                       />
-                      <label className="flex items-center gap-2 text-sm min-h-[44px]">
-                        <Switch
-                          checked={item.vereist}
-                          onCheckedChange={(v) => updateItem(idx, { vereist: v })}
-                        />
-                        Vereist
-                      </label>
                     </div>
-                    {item.type === "temperatuur" && (
-                      <div className="flex gap-2">
-                        <div>
-                          <label className="text-xs text-muted-foreground">Min °C</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={item.temp_min ?? ""}
-                            onChange={(e) => updateItem(idx, { temp_min: e.target.value ? parseFloat(e.target.value) : null })}
-                            className="h-10 w-20 rounded-lg border bg-background px-2 text-sm text-center"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground">Max °C</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={item.temp_max ?? ""}
-                            onChange={(e) => updateItem(idx, { temp_max: e.target.value ? parseFloat(e.target.value) : null })}
-                            className="h-10 w-20 rounded-lg border bg-background px-2 text-sm text-center"
-                          />
-                        </div>
-                      </div>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      className="text-muted-foreground hover:text-error p-2 rounded hover:bg-error-light shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => removeItem(idx)}
-                    className="h-10 w-10 rounded-lg flex items-center justify-center hover:bg-error-light text-error shrink-0 min-h-[44px]"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+
+                  {item.type === "temperatuur" && (
+                    <div className="flex items-center gap-2">
+                      <NestoInput
+                        type="number"
+                        step="0.1"
+                        value={item.temp_min ?? ""}
+                        onChange={(e) =>
+                          updateItem(idx, {
+                            temp_min:
+                              e.target.value === ""
+                                ? null
+                                : parseFloat(e.target.value),
+                          })
+                        }
+                        placeholder="Min °C"
+                        className="w-[110px]"
+                      />
+                      <span className="text-muted-foreground text-sm">tot</span>
+                      <NestoInput
+                        type="number"
+                        step="0.1"
+                        value={item.temp_max ?? ""}
+                        onChange={(e) =>
+                          updateItem(idx, {
+                            temp_max:
+                              e.target.value === ""
+                                ? null
+                                : parseFloat(e.target.value),
+                          })
+                        }
+                        placeholder="Max °C"
+                        className="w-[110px]"
+                      />
+                    </div>
+                  )}
+
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Switch
+                      checked={!!item.vereist}
+                      onCheckedChange={(v) => updateItem(idx, { vereist: v })}
+                    />
+                    Vereist
+                  </label>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </NestoPanel>
+            </NestoCardContent>
+          </NestoCard>
+        ))}
+      </div>
+    </div>
   );
 }
