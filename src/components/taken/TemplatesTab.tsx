@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   useChecklistTemplates,
   type ChecklistTemplate,
@@ -7,6 +7,7 @@ import {
 } from "@/hooks/useChecklistTemplates";
 import { useUserContext } from "@/contexts/UserContext";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
+import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import {
   NestoButton,
   NestoBadge,
@@ -15,7 +16,7 @@ import {
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, FileText, CheckSquare, GripVertical } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
@@ -169,13 +170,9 @@ export function TemplatesTab() {
             template={null}
             locationId={locationId}
             standaardTijden={settings?.standaard_tijden_per_type}
-            onSave={async (data) => {
-              await saveTemplate.mutateAsync(data);
-              nestoToast.success("Template aangemaakt");
-              setSelection(null);
-            }}
+            saveTemplate={saveTemplate.mutateAsync}
+            onCreated={(id) => setSelection({ mode: "edit", id })}
             onCancel={() => setSelection(null)}
-            isSaving={saveTemplate.isPending}
           />
         )}
         {selection?.mode === "edit" && selected && (
@@ -184,12 +181,8 @@ export function TemplatesTab() {
             template={selected}
             locationId={locationId}
             standaardTijden={settings?.standaard_tijden_per_type}
-            onSave={async (data) => {
-              await saveTemplate.mutateAsync({ ...data, id: selected.id });
-              nestoToast.success("Template opgeslagen");
-            }}
+            saveTemplate={saveTemplate.mutateAsync}
             onCancel={() => setSelection(null)}
-            isSaving={saveTemplate.isPending}
           />
         )}
       </section>
@@ -199,11 +192,14 @@ export function TemplatesTab() {
 
 // ---- Inline editor ----
 
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
 interface EditorProps {
   template: ChecklistTemplate | null;
   locationId: string;
   standaardTijden?: Record<string, string>;
-  onSave: (data: {
+  saveTemplate: (input: {
+    id?: string;
     naam: string;
     type: string;
     beschrijving?: string;
@@ -212,12 +208,12 @@ interface EditorProps {
     frequentie?: Frequentie;
     frequentie_config?: Record<string, any>;
     default_time?: string | null;
-  }) => Promise<void>;
+  }) => Promise<any>;
+  onCreated?: (id: string) => void;
   onCancel: () => void;
-  isSaving: boolean;
 }
 
-function TemplateEditor({ template, locationId, standaardTijden, onSave, onCancel, isSaving }: EditorProps) {
+function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, onCreated, onCancel }: EditorProps) {
   const [naam, setNaam] = useState(template?.naam ?? "");
   const [type, setType] = useState(template?.type ?? "opening");
   const [beschrijving, setBeschrijving] = useState(template?.beschrijving ?? "");
@@ -236,12 +232,125 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
         .sort((a, b) => a.volgorde - b.volgorde)
   );
 
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  // Houd huidige template-id bij — wordt gezet zodra een nieuwe template voor het eerst geinsert is.
+  const [currentId, setCurrentId] = useState<string | undefined>(template?.id);
+  // Markeer of editor "vies" is (heeft pending wijzigingen vergeleken met laatst opgeslagen versie)
+  const dirtyRef = useRef(false);
+  // Markeer of we al een initiële save voor een nieuwe template hebben gedaan (om dubbele inserts te voorkomen)
+  const creatingRef = useRef(false);
+  // Voorkom dat de auto-save al triggert bij eerste mount (state-init zou anders direct als wijziging gezien worden)
+  const mountedRef = useRef(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   );
 
   const fallbackTijd = standaardTijden?.[type]?.slice(0, 5) ?? "—";
 
+  // ---- Save-engine ----
+  const performSave = useCallback(
+    async (overrides?: Partial<{
+      naam: string;
+      type: string;
+      beschrijving: string;
+      actief: boolean;
+      frequentie: Frequentie;
+      frequentieConfig: Record<string, any>;
+      defaultTime: string;
+      items: ChecklistItem[];
+    }>) => {
+      const eff = {
+        naam: overrides?.naam ?? naam,
+        type: overrides?.type ?? type,
+        beschrijving: overrides?.beschrijving ?? beschrijving,
+        actief: overrides?.actief ?? actief,
+        frequentie: overrides?.frequentie ?? frequentie,
+        frequentieConfig: overrides?.frequentieConfig ?? frequentieConfig,
+        defaultTime: overrides?.defaultTime ?? defaultTime,
+        items: overrides?.items ?? items,
+      };
+
+      // Validatie: naam is vereist voor een save
+      if (!eff.naam.trim()) {
+        setSaveStatus("idle");
+        return;
+      }
+
+      // Voorkom dubbele inserts wanneer we nog bezig zijn een nieuwe template aan te maken
+      if (!currentId && creatingRef.current) return;
+
+      setSaveStatus("saving");
+      try {
+        const payload = {
+          id: currentId,
+          naam: eff.naam.trim(),
+          type: eff.type,
+          beschrijving: eff.beschrijving.trim() || undefined,
+          actief: eff.actief,
+          items: eff.items.map((it, i) => ({ ...it, volgorde: i + 1 })),
+          frequentie: eff.frequentie,
+          frequentie_config: eff.frequentieConfig,
+          default_time: eff.defaultTime ? `${eff.defaultTime}:00` : null,
+        };
+
+        if (!currentId) creatingRef.current = true;
+        const result: any = await saveTemplate(payload);
+        if (!currentId) {
+          creatingRef.current = false;
+          // Probeer id uit response te halen; anders laat parent eventueel weten via onCreated als die ooit komt
+          const newId: string | undefined = result?.id ?? result?.[0]?.id;
+          if (newId) {
+            setCurrentId(newId);
+            onCreated?.(newId);
+          }
+        }
+        dirtyRef.current = false;
+        setSaveStatus("saved");
+      } catch (e) {
+        creatingRef.current = false;
+        setSaveStatus("error");
+        nestoToast.error("Opslaan mislukt, probeer opnieuw");
+      }
+    },
+    [naam, type, beschrijving, actief, frequentie, frequentieConfig, defaultTime, items, currentId, saveTemplate, onCreated]
+  );
+
+  const debouncedSave = useDebouncedCallback(() => {
+    if (!dirtyRef.current) return;
+    void performSave();
+  }, 800);
+
+  // Auto-clear "saved" indicator na 2s, zodat hij niet permanent in beeld blijft
+  useEffect(() => {
+    if (saveStatus !== "saved") return;
+    const t = setTimeout(() => {
+      setSaveStatus((s) => (s === "saved" ? "idle" : s));
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [saveStatus]);
+
+  // Markeer dirty + trigger debounced save bij elke statewijziging
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    dirtyRef.current = true;
+    debouncedSave();
+  }, [naam, type, beschrijving, actief, frequentie, frequentieConfig, defaultTime, items, debouncedSave]);
+
+  // Instant save voor toggles (geen debounce — voelt direct aan)
+  const saveNow = useCallback(
+    (overrides?: Parameters<typeof performSave>[0]) => {
+      debouncedSave.cancel();
+      dirtyRef.current = true;
+      void performSave(overrides);
+    },
+    [debouncedSave, performSave]
+  );
+
+  // ---- Item-mutaties ----
   const addItem = () => {
     setItems((prev) => [
       ...prev,
@@ -265,12 +374,24 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
     );
   };
 
-  const removeItem = (id: string) =>
-    setItems((prev) =>
-      prev
+  // Voor toggles & andere instant-acties op items: muteer + sla direct op
+  const updateItemInstant = (id: string, patch: Partial<ChecklistItem>) => {
+    setItems((prev) => {
+      const next = prev.map((it) => (it.id === id ? { ...it, ...patch } : it));
+      saveNow({ items: next });
+      return next;
+    });
+  };
+
+  const removeItem = (id: string) => {
+    setItems((prev) => {
+      const next = prev
         .filter((it) => it.id !== id)
-        .map((it, i) => ({ ...it, volgorde: i + 1 }))
-    );
+        .map((it, i) => ({ ...it, volgorde: i + 1 }));
+      saveNow({ items: next });
+      return next;
+    });
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -279,51 +400,39 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
       const oldIndex = prev.findIndex((it) => it.id === active.id);
       const newIndex = prev.findIndex((it) => it.id === over.id);
       if (oldIndex === -1 || newIndex === -1) return prev;
-      return arrayMove(prev, oldIndex, newIndex).map((it, i) => ({
+      const next = arrayMove(prev, oldIndex, newIndex).map((it, i) => ({
         ...it,
         volgorde: i + 1,
       }));
+      saveNow({ items: next });
+      return next;
     });
   };
 
-  const handleSave = async () => {
-    if (!naam.trim()) {
-      nestoToast.error("Geef een naam op");
-      return;
-    }
-    await onSave({
-      naam: naam.trim(),
-      type,
-      beschrijving: beschrijving.trim() || undefined,
-      actief,
-      items: items.map((it, i) => ({ ...it, volgorde: i + 1 })),
-      frequentie,
-      frequentie_config: frequentieConfig,
-      default_time: defaultTime ? `${defaultTime}:00` : null,
-    });
+  const handleCancel = () => {
+    debouncedSave.cancel();
+    onCancel();
   };
 
   return (
     <div className="space-y-6">
-      {/* Sticky header met acties */}
+      {/* Sticky transparante header */}
       <div className="sticky top-0 z-10 -mx-1 px-1 bg-background/80 backdrop-blur-md">
-        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border">
+        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/40">
           <div className="min-w-0 flex items-center gap-2">
             <h2 className="text-base font-semibold tracking-tight truncate">
-              {template ? naam.trim() || "Naamloze template" : "Nieuwe template"}
+              {template || currentId ? naam.trim() || "Naamloze template" : "Nieuwe template"}
             </h2>
-            {template && (
+            {(template || currentId) && (
               <NestoBadge variant={TYPE_BADGE_VARIANT[type] ?? "default"}>
                 {type}
               </NestoBadge>
             )}
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <NestoButton variant="ghost" size="sm" onClick={onCancel}>
-              Annuleren
-            </NestoButton>
-            <NestoButton size="sm" onClick={handleSave} isLoading={isSaving}>
-              Opslaan
+          <div className="flex items-center gap-3 shrink-0">
+            <SaveStatusIndicator status={saveStatus} />
+            <NestoButton variant="ghost" size="sm" onClick={handleCancel}>
+              Sluiten
             </NestoButton>
           </div>
         </div>
@@ -341,7 +450,14 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
         </div>
         <div>
           <label className="text-sm font-medium mb-1.5 block">Type</label>
-          <NestoSelect value={type} onValueChange={setType} options={TYPE_OPTIONS} />
+          <NestoSelect
+            value={type}
+            onValueChange={(v) => {
+              setType(v);
+              saveNow({ type: v });
+            }}
+            options={TYPE_OPTIONS}
+          />
         </div>
         <div className="md:col-span-2">
           <label className="text-sm font-medium mb-1.5 block">Beschrijving</label>
@@ -352,7 +468,13 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
           />
         </div>
         <div className="flex items-center gap-3">
-          <Switch checked={actief} onCheckedChange={setActief} />
+          <Switch
+            checked={actief}
+            onCheckedChange={(v) => {
+              setActief(v);
+              saveNow({ actief: v });
+            }}
+          />
           <span className="text-sm">Actief (verschijnt bij dag-start)</span>
         </div>
       </div>
@@ -430,6 +552,7 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
                       item={item}
                       locationId={locationId}
                       onUpdate={(patch) => updateItem(item.id, patch)}
+                      onUpdateInstant={(patch) => updateItemInstant(item.id, patch)}
                       onRemove={() => removeItem(item.id)}
                     />
                   ))}
@@ -451,16 +574,51 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
   );
 }
 
+// ---- Status indicator ----
+
+function SaveStatusIndicator({ status }: { status: SaveStatus }) {
+  if (status === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        Opslaan…
+      </span>
+    );
+  }
+  if (status === "saved") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-success">
+        <Check className="h-3.5 w-3.5" />
+        Opgeslagen
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-error">
+        <AlertCircle className="h-3.5 w-3.5" />
+        Opslaan mislukt
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs text-muted-foreground/70">
+      Wijzigingen worden automatisch opgeslagen
+    </span>
+  );
+}
+
 // ---- Sortable row ----
 
 interface SortableItemRowProps {
   item: ChecklistItem;
   locationId: string;
   onUpdate: (patch: Partial<ChecklistItem>) => void;
+  onUpdateInstant: (patch: Partial<ChecklistItem>) => void;
   onRemove: () => void;
 }
 
-function SortableItemRow({ item, locationId, onUpdate, onRemove }: SortableItemRowProps) {
+function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove }: SortableItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
@@ -494,7 +652,7 @@ function SortableItemRow({ item, locationId, onUpdate, onRemove }: SortableItemR
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
 
-      {/* Titel */}
+      {/* Titel — debounced save (typing) */}
       <input
         type="text"
         value={item.titel}
@@ -503,11 +661,11 @@ function SortableItemRow({ item, locationId, onUpdate, onRemove }: SortableItemR
         className="h-8 px-2 text-sm bg-transparent border border-transparent rounded hover:bg-background focus:bg-background focus:border-border focus:outline-none focus:ring-1 focus:ring-ring transition-colors min-w-0"
       />
 
-      {/* Type select compact */}
+      {/* Type select — instant save */}
       <div>
         <NestoSelect
           value={item.type}
-          onValueChange={(v) => onUpdate({ type: v as ChecklistItem["type"] })}
+          onValueChange={(v) => onUpdateInstant({ type: v as ChecklistItem["type"] })}
           options={ITEM_TYPE_OPTIONS}
         />
       </div>
@@ -551,20 +709,20 @@ function SortableItemRow({ item, locationId, onUpdate, onRemove }: SortableItemR
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
           <Switch
             checked={!!item.vereist}
-            onCheckedChange={(v) => onUpdate({ vereist: v })}
+            onCheckedChange={(v) => onUpdateInstant({ vereist: v })}
           />
           <span>Vereist</span>
         </label>
       </div>
 
-      {/* Foto-uploader */}
+      {/* Foto-uploader (schrijft direct via eigen mutation, dirty-flag niet nodig) */}
       <div className={cn(fotoUrls.length === 0 && "opacity-0 group-hover:opacity-100 transition-opacity")}>
         {locationId && (
           <ItemFotoUploader
             locationId={locationId}
             itemId={item.id}
             fotoUrls={fotoUrls}
-            onChange={(urls) => onUpdate({ foto_urls: urls })}
+            onChange={(urls) => onUpdateInstant({ foto_urls: urls })}
           />
         )}
       </div>

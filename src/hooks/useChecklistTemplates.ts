@@ -155,11 +155,22 @@ export function useChecklistTemplates() {
         default_time: input.default_time ?? null,
       };
       if (input.id) {
-        const { error } = await supabase.from("checklist_templates").update(payload).eq("id", input.id);
+        const { data, error } = await supabase
+          .from("checklist_templates")
+          .update(payload)
+          .eq("id", input.id)
+          .select()
+          .single();
         if (error) throw error;
+        return data;
       } else {
-        const { error } = await supabase.from("checklist_templates").insert(payload);
+        const { data, error } = await supabase
+          .from("checklist_templates")
+          .insert(payload)
+          .select()
+          .single();
         if (error) throw error;
+        return data;
       }
     },
     onSuccess: () => {
