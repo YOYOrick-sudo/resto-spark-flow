@@ -208,15 +208,15 @@ export function GoedkeurenPreviewModal({
                 title="Nieuwe ingrediënten"
                 count={preview.nieuweIngredienten.length}
               >
-                {preview.nieuweIngredienten.map((n) => (
+                {preview.nieuweIngredienten.map((n, idx) => (
                   <div
-                    key={n.regelId}
+                    key={`${n.regelId}-${idx}`}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{n.naam}</p>
                       <p className="text-xs text-muted-foreground">
-                        {n.eenheid ?? "—"}
+                        {n.verpakkingLabel ?? n.eenheid ?? "—"}
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground tabular-nums shrink-0">
