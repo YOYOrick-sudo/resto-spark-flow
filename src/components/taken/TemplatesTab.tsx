@@ -401,7 +401,7 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
   );
 
   // ---- Item-mutaties ----
-  const addItem = () => {
+  const addItem = (sectie?: string) => {
     setItems((prev) => [
       ...prev,
       {
@@ -413,6 +413,7 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         temp_min: null,
         temp_max: null,
         foto_urls: [],
+        sectie: sectie && sectie !== DEFAULT_SECTIE ? sectie : undefined,
       },
     ]);
   };
@@ -441,19 +442,95 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
     });
   };
 
+  // ---- Sectie-mutaties ----
+  const groepen = useMemo(() => groupItemsBySectie(items), [items]);
+  const sectieNamen = useMemo(() => groepen.map((g) => g.naam), [groepen]);
+
+  const addSectie = (naam: string) => {
+    const trimmed = naam.trim();
+    if (!trimmed) return;
+    // Check op bestaande sectie (case-insensitive)
+    if (sectieNamen.some((n) => sectieNamenGelijk(n, trimmed))) {
+      nestoToast.error(`Sectie '${trimmed}' bestaat al`);
+      return;
+    }
+    setItems((prev) => {
+      const next: ChecklistItem[] = [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          titel: "",
+          type: "check",
+          volgorde: prev.length + 1,
+          vereist: false,
+          temp_min: null,
+          temp_max: null,
+          foto_urls: [],
+          sectie: trimmed,
+        },
+      ];
+      saveNow({ items: next });
+      return next;
+    });
+  };
+
+  const renameSectie = (oude: string, nieuwe: string): { ok: boolean; error?: string } => {
+    const trimmed = nieuwe.trim();
+    if (!trimmed) return { ok: false, error: "Naam mag niet leeg zijn" };
+    if (sectieNamenGelijk(oude, trimmed)) return { ok: true };
+    // Conflict-check: bestaat nieuwe naam al als andere sectie?
+    const conflict = sectieNamen.some(
+      (n) => !sectieNamenGelijk(n, oude) && sectieNamenGelijk(n, trimmed)
+    );
+    if (conflict) return { ok: false, error: `Sectie '${trimmed}' bestaat al` };
+    setItems((prev) => {
+      const next = prev.map((it) => {
+        const itSectie = it.sectie?.trim() || DEFAULT_SECTIE;
+        if (sectieNamenGelijk(itSectie, oude)) {
+          return { ...it, sectie: trimmed === DEFAULT_SECTIE ? undefined : trimmed };
+        }
+        return it;
+      });
+      saveNow({ items: next });
+      return next;
+    });
+    return { ok: true };
+  };
+
+  const deleteSectie = (naam: string) => {
+    if (naam === DEFAULT_SECTIE) return;
+    setItems((prev) => {
+      const next = prev.map((it) => {
+        const itSectie = it.sectie?.trim() || DEFAULT_SECTIE;
+        if (sectieNamenGelijk(itSectie, naam)) {
+          return { ...it, sectie: undefined };
+        }
+        return it;
+      });
+      saveNow({ items: next });
+      return next;
+    });
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     setItems((prev) => {
-      const oldIndex = prev.findIndex((it) => it.id === active.id);
-      const newIndex = prev.findIndex((it) => it.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return prev;
-      const next = arrayMove(prev, oldIndex, newIndex).map((it, i) => ({
-        ...it,
-        volgorde: i + 1,
-      }));
-      saveNow({ items: next });
-      return next;
+      const activeItem = prev.find((it) => it.id === active.id);
+      const overItem = prev.find((it) => it.id === over.id);
+      if (!activeItem || !overItem) return prev;
+      const oldIndex = prev.indexOf(activeItem);
+      const newIndex = prev.indexOf(overItem);
+      // Cross-section: zet sectie van actieve gelijk aan target
+      const targetSectie = overItem.sectie;
+      const moved = arrayMove(prev, oldIndex, newIndex).map((it, i) => {
+        if (it.id === active.id) {
+          return { ...it, sectie: targetSectie, volgorde: i + 1 };
+        }
+        return { ...it, volgorde: i + 1 };
+      });
+      saveNow({ items: moved });
+      return moved;
     });
   };
 
