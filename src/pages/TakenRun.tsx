@@ -15,6 +15,8 @@ import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
 import type { ChecklistItem } from "@/hooks/useChecklistTemplates";
 import { FotoReferentieDialog } from "@/components/taken/FotoReferentieDialog";
+import { SectieGroup } from "@/components/taken/SectieGroup";
+import { groupItemsBySectie } from "@/lib/sectieGroup";
 
 function afleidTempType(titel: string): string {
   const t = titel.toLowerCase();
@@ -229,161 +231,196 @@ export default function TakenRun() {
         )}
       </div>
 
-      {/* Items lijst — leesbaar maar niet smal */}
-      <div className="max-w-4xl mx-auto rounded-lg border border-border/60 bg-card divide-y divide-border/40 shadow-[0_1px_2px_rgb(0_0_0/0.02)] overflow-hidden">
-        {items.map((item) => {
-          const resp = responsesById.get(item.id);
-          const isTemp = item.type === "temperatuur";
-          const fotoUrls = item.foto_urls ?? [];
-          const hasFotos = fotoUrls.length > 0;
-          const done = isItemDone(item);
-          const overdueVan = overdueMap.get(item.id);
-          const itemFreqLabel = isPerItem
-            ? formatFrequentieKort(item.item_frequentie, item.item_frequentie_config)
-            : null;
+      {/* Items lijst — gegroepeerd per sectie */}
+      <div className="max-w-4xl mx-auto rounded-lg border border-border/60 bg-card shadow-[0_1px_2px_rgb(0_0_0/0.02)] overflow-hidden">
+        {(() => {
+          const groepen = groupItemsBySectie(items);
+          // Sectie-headers tonen we alleen als er meerdere secties zijn, óf als
+          // de enige sectie een expliciete naam heeft (niet "Algemeen" default).
+          const showHeaders = groepen.length > 1 || (groepen[0] && groepen[0].naam !== "Algemeen");
 
-          if (!isTemp) {
-            return (
-              <label key={item.id}
-                className={cn(
-                  "flex items-start gap-3.5 px-5 py-3 min-h-[56px] cursor-pointer transition-colors duration-150",
-                  done ? "bg-success/[0.04] hover:bg-success/[0.06]" : "hover:bg-accent/40",
-                  "focus-within:bg-accent/30",
-                  frozen && "cursor-not-allowed opacity-70"
-                )}>
-                <Checkbox
-                  checked={!!resp?.checked}
-                  onCheckedChange={(c) => handleCheck(item, !!c)}
-                  disabled={frozen}
-                  className="h-5 w-5 flex-shrink-0 mt-0.5"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className={cn(
-                      "text-sm font-medium transition-colors",
-                      done && "text-foreground/50 line-through"
-                    )}>
-                      {item.titel}
-                    </span>
-                    {itemFreqLabel && (
-                      <span className="text-[11px] text-muted-foreground tabular-nums">
-                        · {itemFreqLabel}
-                      </span>
-                    )}
-                    {overdueVan && (
-                      <span className="inline-flex items-center gap-0.5 text-[11px] text-error tabular-nums">
-                        <AlertCircle className="h-3 w-3" />
-                        moest {formatDatumKort(overdueVan)}
-                      </span>
-                    )}
-                  </div>
-                  {item.beschrijving?.trim() && (
-                    <p className={cn(
-                      "text-xs mt-1 leading-relaxed whitespace-pre-line",
-                      done ? "text-foreground/40" : "text-foreground/70"
-                    )}>
-                      {item.beschrijving}
-                    </p>
-                  )}
-                </div>
-                {hasFotos && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setFotoDialogItem(item);
-                    }}
-                    className="text-muted-foreground hover:text-primary p-1 rounded transition-colors flex-shrink-0 mt-0.5"
-                    aria-label={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"} bekijken`}
-                    title={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"}`}
-                  >
-                    <Camera className="h-4 w-4" />
-                  </button>
-                )}
-                {item.vereist && (
-                  <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0 mt-1.5">
-                    Vereist
-                  </span>
-                )}
-              </label>
-            );
-          }
+          const renderItem = (item: ChecklistItem) => {
+            const resp = responsesById.get(item.id);
+            const isTemp = item.type === "temperatuur";
+            const fotoUrls = item.foto_urls ?? [];
+            const hasFotos = fotoUrls.length > 0;
+            const itemDone = isItemDone(item);
+            const overdueVan = overdueMap.get(item.id);
+            const itemFreqLabel = isPerItem
+              ? formatFrequentieKort(item.item_frequentie, item.item_frequentie_config)
+              : null;
 
-          return (
-            <div key={item.id} className={cn(
-              "px-5 py-3.5 transition-colors duration-150",
-              done ? "bg-success/[0.04]" : "hover:bg-accent/20"
-            )}>
-              <div className="flex items-start gap-3 flex-wrap">
-                <div className="flex-1 min-w-[180px]">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={cn(
-                      "text-sm font-medium",
-                      done && "text-foreground/50"
-                    )}>
-                      {item.titel}
-                    </span>
-                    {itemFreqLabel && (
-                      <span className="text-[11px] text-muted-foreground tabular-nums">
-                        · {itemFreqLabel}
-                      </span>
-                    )}
-                    {overdueVan && (
-                      <span className="inline-flex items-center gap-0.5 text-[11px] text-error tabular-nums">
-                        <AlertCircle className="h-3 w-3" />
-                        moest {formatDatumKort(overdueVan)}
-                      </span>
-                    )}
-                    {hasFotos && (
-                      <button
-                        type="button"
-                        onClick={() => setFotoDialogItem(item)}
-                        className="text-muted-foreground hover:text-primary p-1 -m-1 rounded transition-colors"
-                        aria-label={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"} bekijken`}
-                        title={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"}`}
-                      >
-                        <Camera className="h-4 w-4" />
-                      </button>
-                    )}
-                    {item.vereist && (
-                      <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
-                        Vereist
-                      </span>
-                    )}
-                  </div>
-                  {item.beschrijving?.trim() && (
-                    <p className="text-xs text-foreground/70 mt-1 leading-relaxed whitespace-pre-line">
-                      {item.beschrijving}
-                    </p>
+            if (!isTemp) {
+              return (
+                <label
+                  key={item.id}
+                  className={cn(
+                    "flex items-start gap-3.5 px-5 py-3 min-h-[56px] cursor-pointer transition-colors duration-150",
+                    itemDone ? "bg-success/[0.04] hover:bg-success/[0.06]" : "hover:bg-accent/40",
+                    "focus-within:bg-accent/30",
+                    frozen && "cursor-not-allowed opacity-70"
                   )}
-                  {(item.temp_min != null || item.temp_max != null) && (
-                    <p className="text-xs text-muted-foreground mt-1 tabular-nums">
-                      {item.temp_min ?? "—"}°C tot {item.temp_max ?? "—"}°C
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <NestoInput type="number" step="0.1"
-                    placeholder={resp?.temperatuur != null ? `${resp.temperatuur}°C` : "Temp °C"}
-                    value={tempInputs[item.id] ?? ""}
-                    onChange={(e) => setTempInputs((p) => ({ ...p, [item.id]: e.target.value }))}
+                >
+                  <Checkbox
+                    checked={!!resp?.checked}
+                    onCheckedChange={(c) => handleCheck(item, !!c)}
                     disabled={frozen}
-                    className="max-w-[110px] h-9" />
-                  <NestoButton size="sm" onClick={() => handleTemp(item)}
-                    disabled={frozen || !tempInputs[item.id]}>
-                    Opslaan
-                  </NestoButton>
-                  {resp?.temperatuur != null && (
-                    <NestoBadge variant={resp.temp_in_range ? "success" : "error"}>
-                      {resp.temperatuur}°C {resp.temp_in_range ? "✓" : "!"}
-                    </NestoBadge>
+                    className="h-5 w-5 flex-shrink-0 mt-0.5"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span
+                        className={cn(
+                          "text-sm font-medium transition-colors",
+                          itemDone && "text-foreground/50 line-through"
+                        )}
+                      >
+                        {item.titel}
+                      </span>
+                      {itemFreqLabel && (
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          · {itemFreqLabel}
+                        </span>
+                      )}
+                      {overdueVan && (
+                        <span className="inline-flex items-center gap-0.5 text-[11px] text-error tabular-nums">
+                          <AlertCircle className="h-3 w-3" />
+                          moest {formatDatumKort(overdueVan)}
+                        </span>
+                      )}
+                    </div>
+                    {item.beschrijving?.trim() && (
+                      <p
+                        className={cn(
+                          "text-xs mt-1 leading-relaxed whitespace-pre-line",
+                          itemDone ? "text-foreground/40" : "text-foreground/70"
+                        )}
+                      >
+                        {item.beschrijving}
+                      </p>
+                    )}
+                  </div>
+                  {hasFotos && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setFotoDialogItem(item);
+                      }}
+                      className="text-muted-foreground hover:text-primary p-1 rounded transition-colors flex-shrink-0 mt-0.5"
+                      aria-label={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"} bekijken`}
+                      title={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"}`}
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
                   )}
+                  {item.vereist && (
+                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0 mt-1.5">
+                      Vereist
+                    </span>
+                  )}
+                </label>
+              );
+            }
+
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "px-5 py-3.5 transition-colors duration-150",
+                  itemDone ? "bg-success/[0.04]" : "hover:bg-accent/20"
+                )}
+              >
+                <div className="flex items-start gap-3 flex-wrap">
+                  <div className="flex-1 min-w-[180px]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={cn("text-sm font-medium", itemDone && "text-foreground/50")}>
+                        {item.titel}
+                      </span>
+                      {itemFreqLabel && (
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          · {itemFreqLabel}
+                        </span>
+                      )}
+                      {overdueVan && (
+                        <span className="inline-flex items-center gap-0.5 text-[11px] text-error tabular-nums">
+                          <AlertCircle className="h-3 w-3" />
+                          moest {formatDatumKort(overdueVan)}
+                        </span>
+                      )}
+                      {hasFotos && (
+                        <button
+                          type="button"
+                          onClick={() => setFotoDialogItem(item)}
+                          className="text-muted-foreground hover:text-primary p-1 -m-1 rounded transition-colors"
+                          aria-label={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"} bekijken`}
+                          title={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"}`}
+                        >
+                          <Camera className="h-4 w-4" />
+                        </button>
+                      )}
+                      {item.vereist && (
+                        <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+                          Vereist
+                        </span>
+                      )}
+                    </div>
+                    {item.beschrijving?.trim() && (
+                      <p className="text-xs text-foreground/70 mt-1 leading-relaxed whitespace-pre-line">
+                        {item.beschrijving}
+                      </p>
+                    )}
+                    {(item.temp_min != null || item.temp_max != null) && (
+                      <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+                        {item.temp_min ?? "—"}°C tot {item.temp_max ?? "—"}°C
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <NestoInput
+                      type="number"
+                      step="0.1"
+                      placeholder={resp?.temperatuur != null ? `${resp.temperatuur}°C` : "Temp °C"}
+                      value={tempInputs[item.id] ?? ""}
+                      onChange={(e) => setTempInputs((p) => ({ ...p, [item.id]: e.target.value }))}
+                      disabled={frozen}
+                      className="max-w-[110px] h-9"
+                    />
+                    <NestoButton size="sm" onClick={() => handleTemp(item)} disabled={frozen || !tempInputs[item.id]}>
+                      Opslaan
+                    </NestoButton>
+                    {resp?.temperatuur != null && (
+                      <NestoBadge variant={resp.temp_in_range ? "success" : "error"}>
+                        {resp.temperatuur}°C {resp.temp_in_range ? "✓" : "!"}
+                      </NestoBadge>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          };
+
+          if (!showHeaders) {
+            // Geen secties → render als platte lijst (oude gedrag)
+            return <div className="divide-y divide-border/40">{groepen[0]?.items.map(renderItem)}</div>;
+          }
+
+          return groepen.map((groep, idx) => {
+            const groepDone = groep.items.filter(isItemDone).length;
+            return (
+              <SectieGroup
+                key={groep.naam}
+                naam={groep.naam}
+                done={groepDone}
+                total={groep.items.length}
+                isFirst={idx === 0}
+              >
+                {groep.items.map(renderItem)}
+              </SectieGroup>
+            );
+          });
+        })()}
       </div>
 
       {/* Sticky footer — altijd zichtbaar, commit-moment. Progressbar staat in voortgangs-blok bovenaan; hier alleen counter + actie. */}

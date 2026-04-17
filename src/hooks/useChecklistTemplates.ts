@@ -35,6 +35,12 @@ export interface ChecklistItem {
   item_frequentie_config?: Record<string, any>;
   foto_urls?: string[];
   beschrijving?: string;
+  /**
+   * Optionele sectie waar dit item bij hoort. Items zonder sectie vallen onder
+   * de default-sectie "Algemeen". Sectie-volgorde wordt bepaald door volgorde
+   * van het eerste item per sectie.
+   */
+  sectie?: string;
 }
 
 export interface ChecklistTemplate {
