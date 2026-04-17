@@ -56,6 +56,12 @@ export interface ChecklistTemplate {
   frequentie_config: Record<string, any>;
   default_time: string | null;
   modus: TemplateModus;
+  /**
+   * System templates kunnen niet gearchiveerd, hernoemd of van type gewijzigd
+   * worden. Wel deactiveerbaar en items zijn vrij bewerkbaar. Worden per
+   * locatie automatisch geseed (Periodieke taken, Onderhoud).
+   */
+  is_system: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -135,6 +141,7 @@ export function useChecklistTemplates() {
         frequentie_config: (d.frequentie_config ?? {}) as Record<string, any>,
         default_time: d.default_time ?? null,
         modus: (d.modus ?? "gebundeld") as TemplateModus,
+        is_system: d.is_system ?? false,
       })) as ChecklistTemplate[];
     },
     enabled: !!locationId,
@@ -225,6 +232,15 @@ export function useChecklistTemplates() {
 
   const archiveTemplate = useMutation({
     mutationFn: async (id: string) => {
+      // Pre-check: blokkeer archivering van system templates
+      const current = queryClient.getQueryData<ChecklistTemplate[]>([
+        "checklist-templates",
+        locationId,
+      ]);
+      const target = current?.find((t) => t.id === id);
+      if (target?.is_system) {
+        throw new Error("System templates kunnen niet gearchiveerd worden");
+      }
       const { error } = await supabase
         .from("checklist_templates")
         .update({ gearchiveerd_op: new Date().toISOString() })
@@ -235,7 +251,7 @@ export function useChecklistTemplates() {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
       nestoToast.success("Template gearchiveerd");
     },
-    onError: () => nestoToast.error("Fout bij archiveren"),
+    onError: (e: any) => nestoToast.error(e?.message ?? "Fout bij archiveren"),
   });
 
   return { ...query, seedTemplates, saveTemplate, toggleActief, archiveTemplate };
