@@ -20,6 +20,7 @@ import {
   type NewIngredientPrefill,
 } from "@/components/inkoop/IngredientMatchBadge";
 import { NieuwIngredientFromFactuurModal } from "@/components/inkoop/NieuwIngredientFromFactuurModal";
+import { VerpakkingHint } from "@/components/inkoop/VerpakkingHint";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Plus, Trash2, CheckCircle2 } from "lucide-react";
 
@@ -346,6 +347,7 @@ export default function FactuurDetailPage() {
                             {r.prijs_per_eenheid?.toFixed(2) ?? "-"}/eh · €
                             {r.totaal?.toFixed(2) ?? "-"}
                           </p>
+                          <VerpakkingHint regel={r} />
                         </div>
                         {isEditable && (
                           <button
@@ -434,6 +436,11 @@ export default function FactuurDetailPage() {
         regelId={newIngState?.regelId ?? null}
         prefill={newIngState?.prefill ?? null}
         leverancierId={factuur.leverancier_id}
+        leverancierNaam={
+          (leveranciers ?? []).find((l: any) => l.id === factuur.leverancier_id)?.naam ??
+          factuur.leverancier_naam_herkend ??
+          null
+        }
       />
     </div>
   );
