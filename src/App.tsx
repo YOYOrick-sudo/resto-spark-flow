@@ -96,6 +96,7 @@ import ReconfirmReservation from "./pages/ReconfirmReservation";
 import MedewerkersSettings from "./pages/MedewerkersSettings";
 import PrinterSettings from "./pages/PrinterSettings";
 import BestellingDetail from "./pages/BestellingDetail";
+import FactuurDetailPage from "./pages/inkoop/FactuurDetailPage";
 
 // Devices
 const SettingsApparaten = lazy(() => import("./pages/settings/SettingsApparaten"));
@@ -186,6 +187,7 @@ const App = () => (
                   <Route path="/kostprijzen" element={<Navigate to="/voorraad" replace />} />
                   <Route path="/inkoop" element={<Inkoop />} />
                   <Route path="/inkoop/bestellingen/:id" element={<BestellingDetail />} />
+                  <Route path="/inkoop/facturen/:id" element={<FactuurDetailPage />} />
                   <Route path="/inkoop/leveranciers" element={<Leveranciers />} />
                   <Route path="/inkoop/leveranciers/nieuw" element={<LeverancierNieuw />} />
                   <Route path="/inkoop/leveranciers/:id" element={<LeverancierDetail />} />
