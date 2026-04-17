@@ -18,6 +18,7 @@ export function IngredintenTab({ recept }: IngredintenTabProps) {
     search: "",
     categorie: "",
     voorraadStatus: "",
+    leverancierId: "",
     showArchived: false,
   });
   const [searchVal, setSearchVal] = React.useState("");
