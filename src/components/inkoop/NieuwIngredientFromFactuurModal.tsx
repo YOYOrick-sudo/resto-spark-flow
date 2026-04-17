@@ -68,7 +68,8 @@ export function NieuwIngredientFromFactuurModal({
       setNaam(prefill.naam);
       setEenheid(prefill.eenheid || "stuk");
       setKostprijs(prefill.kostprijs?.toString() ?? "");
-      setCategorie("overig");
+      // FIX 5: gebruik AI categorie-hint als beschikbaar, anders "overig"
+      setCategorie(prefill.categorie ?? "overig");
       setMinVoorraad("");
     }
   }, [open, prefill]);

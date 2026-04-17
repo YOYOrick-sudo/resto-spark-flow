@@ -16,6 +16,8 @@ export interface FactuurRegel {
   ai_raw_naam: string | null;
   ai_raw_artikelnummer: string | null;
   ai_suggested_naam: string | null;
+  ai_category_hint: string | null;
+  ai_suggested_eenheid: string | null;
   is_nieuw_ingredient: boolean | null;
   created_at: string;
   ingredient_naam?: string | null;

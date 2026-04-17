@@ -22,10 +22,13 @@ Geef een JSON-object terug met exact deze structuur:
   "totaalbedrag": 123.45,
   "regels": [
     {
-      "product_naam": "naam van het product",
+      "product_naam": "naam van het product zoals letterlijk op factuur (incl. merk/verpakking)",
+      "clean_ingredient_naam": "schone ingredient-naam zonder merk/verpakking, bv. 'Falafel' i.p.v. 'Falafel Party Pure Orient NINA BAKERY 2x1,5kg'",
+      "category_hint": "exact één van: groenten, vlees, vis, zuivel, kruiden, olie, droog, overig — null als onzeker",
+      "basiseenheid": "exact één van: kg, g, L, ml, stuk — de eenheid waarin dit ingredient in recepten gebruikt wordt (NIET de leveranciers-doos)",
       "artikelnummer": "artikelnummer indien zichtbaar, anders null",
       "hoeveelheid": 10,
-      "eenheid": "kg, liter, stuk, doos, etc.",
+      "eenheid": "kg, liter, stuk, doos, etc. — zoals op de factuur staat",
       "prijs_per_eenheid": 2.50,
       "totaal": 25.00,
       "confidence": 0.95
@@ -41,7 +44,16 @@ Regels:
 - confidence_overall: gemiddelde zekerheid over hele factuur
 - Als iets onleesbaar is, gebruik null en lagere confidence
 - Negeer BTW-regels, korting-regels en subtotalen — alleen productregels
-- Eenheden standaardiseren: kg, g, l, ml, stuk, doos, pak, bos, fles`;
+- Eenheden (factuur-veld 'eenheid'): kg, g, l, ml, stuk, doos, pak, bos, fles
+
+EXTRA VELDEN — voor "Nieuw ingrediënt" suggesties:
+- clean_ingredient_naam: strip merk, gewicht, aantal-per-doos en verpakking.
+  Voorbeelden: "Slagroom DEBIC 1ltr" → "Slagroom"; "Falafel NINA BAKERY 2x1,5kg" → "Falafel".
+  Geen merknamen, geen aantallen, geen eenheden in deze naam.
+- category_hint: lower-case, exact uit lijst (groenten, vlees, vis, zuivel, kruiden, olie, droog, overig).
+  Bij twijfel of onbekend: null. NIET gokken.
+- basiseenheid: kies de natuurlijke recept-eenheid, NIET de leveranciers-verpakking.
+  "Eieren 30st doos" → "stuk"; "Olie 5L jerrycan" → "L"; "Bloem 25kg zak" → "kg"; "Melk 6x1L" → "L".`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -388,6 +400,17 @@ serve(async (req) => {
         }
       }
 
+      // FIX 4/5/6: AI-hints voor "Nieuw ingrediënt" modal
+      // Whitelist categorie tegen toegestane lijst — anders null (geen vervuiling)
+      const allowedCategories = ["groenten","vlees","vis","zuivel","kruiden","olie","droog","overig"];
+      const rawCategory = regel.category_hint?.toString().toLowerCase().trim();
+      const categoryHint = rawCategory && allowedCategories.includes(rawCategory) ? rawCategory : null;
+
+      // Whitelist basiseenheid — anders null (modal valt terug op "stuk")
+      const allowedEenheden = ["kg","g","L","ml","stuk"];
+      const rawEenheid = regel.basiseenheid?.toString().trim();
+      const basiseenheid = rawEenheid && allowedEenheden.includes(rawEenheid) ? rawEenheid : null;
+
       regelInserts.push({
         factuur_id: factuurId,
         product_naam_herkend: productNaam ?? "Onbekend",
@@ -401,6 +424,9 @@ serve(async (req) => {
         ai_confidence: regel.confidence ?? null,
         ai_raw_naam: regel.product_naam ?? null,
         ai_raw_artikelnummer: artikelnr,
+        ai_suggested_naam: regel.clean_ingredient_naam?.toString().trim() || null,
+        ai_category_hint: categoryHint,
+        ai_suggested_eenheid: basiseenheid,
         is_nieuw_ingredient: !ingredientId,
       });
     }

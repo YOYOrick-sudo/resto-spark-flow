@@ -1308,9 +1308,11 @@ export type Database = {
       }
       factuur_regels: {
         Row: {
+          ai_category_hint: string | null
           ai_confidence: number | null
           ai_raw_artikelnummer: string | null
           ai_raw_naam: string | null
+          ai_suggested_eenheid: string | null
           ai_suggested_naam: string | null
           created_at: string
           eenheid: string | null
@@ -1326,9 +1328,11 @@ export type Database = {
           totaal: number | null
         }
         Insert: {
+          ai_category_hint?: string | null
           ai_confidence?: number | null
           ai_raw_artikelnummer?: string | null
           ai_raw_naam?: string | null
+          ai_suggested_eenheid?: string | null
           ai_suggested_naam?: string | null
           created_at?: string
           eenheid?: string | null
@@ -1344,9 +1348,11 @@ export type Database = {
           totaal?: number | null
         }
         Update: {
+          ai_category_hint?: string | null
           ai_confidence?: number | null
           ai_raw_artikelnummer?: string | null
           ai_raw_naam?: string | null
+          ai_suggested_eenheid?: string | null
           ai_suggested_naam?: string | null
           created_at?: string
           eenheid?: string | null
