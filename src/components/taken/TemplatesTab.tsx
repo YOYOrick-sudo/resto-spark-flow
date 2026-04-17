@@ -16,7 +16,8 @@ import {
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, Loader2, X, ChevronRight, Info } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
@@ -416,26 +417,17 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
 
   return (
     <div className="space-y-6">
-      {/* Sticky transparante header */}
-      <div className="sticky top-0 z-10 -mx-1 px-1 bg-background/80 backdrop-blur-md">
-        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border/40">
-          <div className="min-w-0 flex items-center gap-2">
-            <h2 className="text-base font-semibold tracking-tight truncate">
-              {template || currentId ? naam.trim() || "Naamloze template" : "Nieuwe template"}
-            </h2>
-            {(template || currentId) && (
-              <NestoBadge variant={TYPE_BADGE_VARIANT[type] ?? "default"}>
-                {type}
-              </NestoBadge>
-            )}
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <SaveStatusIndicator status={saveStatus} />
-            <NestoButton variant="ghost" size="sm" onClick={handleCancel}>
-              Sluiten
-            </NestoButton>
-          </div>
-        </div>
+      {/* Subtiele topbar — alleen status + sluiten, geen titel/badge */}
+      <div className="flex items-center justify-end gap-1.5 -mb-2">
+        <SaveStatusIndicator status={saveStatus} />
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="p-1.5 -mr-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          aria-label="Sluiten"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Basisvelden */}

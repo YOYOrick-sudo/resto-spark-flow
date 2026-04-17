@@ -93,13 +93,13 @@ export function FotoReferentieDialog({ open, onOpenChange, titel, fotoUrls }: Pr
                 key={url}
                 type="button"
                 onClick={() => setActiveIndex(i)}
-                className="group relative aspect-square rounded-lg overflow-hidden border border-border bg-muted hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted hover:border-primary/40 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
                 aria-label={`Vergroot foto ${i + 1}`}
               >
                 <img
                   src={url}
                   alt={`Referentie ${i + 1}`}
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  className="w-full h-full object-cover"
                 />
               </button>
             ))}
