@@ -684,6 +684,7 @@ export type Database = {
           gestart_door: string | null
           gestart_op: string | null
           id: string
+          items_snapshot: Json | null
           location_id: string
           medewerker_id: string | null
           opmerkingen: string | null
@@ -700,6 +701,7 @@ export type Database = {
           gestart_door?: string | null
           gestart_op?: string | null
           id?: string
+          items_snapshot?: Json | null
           location_id: string
           medewerker_id?: string | null
           opmerkingen?: string | null
@@ -716,6 +718,7 @@ export type Database = {
           gestart_door?: string | null
           gestart_op?: string | null
           id?: string
+          items_snapshot?: Json | null
           location_id?: string
           medewerker_id?: string | null
           opmerkingen?: string | null
@@ -774,6 +777,7 @@ export type Database = {
           id: string
           items: Json
           location_id: string
+          modus: string
           naam: string
           type: string
           updated_at: string
@@ -789,6 +793,7 @@ export type Database = {
           id?: string
           items?: Json
           location_id: string
+          modus?: string
           naam: string
           type: string
           updated_at?: string
@@ -804,6 +809,7 @@ export type Database = {
           id?: string
           items?: Json
           location_id?: string
+          modus?: string
           naam?: string
           type?: string
           updated_at?: string
@@ -7256,6 +7262,10 @@ export type Database = {
         Args: { _location_id: string }
         Returns: number
       }
+      get_overdue_items: {
+        Args: { today: string; tpl_id: string }
+        Returns: Json
+      }
       get_recent_inbox_conversations: {
         Args: { p_location_id: string }
         Returns: {
@@ -7314,6 +7324,10 @@ export type Database = {
       }
       is_employee_at_location: {
         Args: { _location_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_frequentie_due: {
+        Args: { check_date: string; config: Json; freq: string }
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
