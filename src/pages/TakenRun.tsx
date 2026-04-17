@@ -208,16 +208,23 @@ export default function TakenRun() {
             return (
               <label key={item.id}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 min-h-[48px] cursor-pointer hover:bg-accent/40 transition-colors",
+                  "flex items-start gap-3 px-4 py-2.5 min-h-[48px] cursor-pointer hover:bg-accent/40 transition-colors",
                   frozen && "cursor-not-allowed opacity-70"
                 )}>
                 <Checkbox
                   checked={!!resp?.checked}
                   onCheckedChange={(c) => handleCheck(item, !!c)}
                   disabled={frozen}
-                  className="h-5 w-5 flex-shrink-0"
+                  className="h-5 w-5 flex-shrink-0 mt-0.5"
                 />
-                <span className="text-sm font-medium flex-1 truncate">{item.titel}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium block truncate">{item.titel}</span>
+                  {item.beschrijving?.trim() && (
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed whitespace-pre-line">
+                      {item.beschrijving}
+                    </p>
+                  )}
+                </div>
                 {hasFotos && (
                   <button
                     type="button"
@@ -226,7 +233,7 @@ export default function TakenRun() {
                       e.stopPropagation();
                       setFotoDialogItem(item);
                     }}
-                    className="text-muted-foreground hover:text-primary p-1 rounded transition-colors flex-shrink-0"
+                    className="text-muted-foreground hover:text-primary p-1 rounded transition-colors flex-shrink-0 mt-0.5"
                     aria-label={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"} bekijken`}
                     title={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"}`}
                   >
@@ -234,7 +241,7 @@ export default function TakenRun() {
                   </button>
                 )}
                 {item.vereist && (
-                  <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0">
+                  <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0 mt-1">
                     Vereist
                   </span>
                 )}
@@ -244,7 +251,7 @@ export default function TakenRun() {
 
           return (
             <div key={item.id} className="px-4 py-3 hover:bg-accent/20 transition-colors">
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-start gap-3 flex-wrap">
                 <div className="flex-1 min-w-[180px]">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{item.titel}</span>
@@ -265,6 +272,11 @@ export default function TakenRun() {
                       </span>
                     )}
                   </div>
+                  {item.beschrijving?.trim() && (
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed whitespace-pre-line">
+                      {item.beschrijving}
+                    </p>
+                  )}
                   {(item.temp_min != null || item.temp_max != null) && (
                     <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
                       {item.temp_min ?? "—"}°C tot {item.temp_max ?? "—"}°C
@@ -295,21 +307,23 @@ export default function TakenRun() {
       </div>
 
       {!frozen && (
-        <div className="sticky bottom-0 border-t border-border/50 bg-background p-4 mt-6 flex items-center gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden max-w-[300px]">
-              <div className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${pct}%` }} />
+        <div className="sticky bottom-0 border-t border-border/50 bg-background/80 backdrop-blur-md px-4 py-3 mt-6 flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${pct}%` }}
+              />
             </div>
-            <span className="text-sm text-muted-foreground tabular-nums">{done}/{total}</span>
+            <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">{done}/{total}</span>
             {vereistOpen.length > 0 && (
-              <span className="text-xs text-warning">
+              <span className="text-xs text-warning flex-shrink-0">
                 {vereistOpen.length} vereist open
               </span>
             )}
           </div>
           <NestoButton onClick={triggerAfronden} isLoading={afronden.isPending}
-            className="min-h-[44px] px-6">
+            className="min-h-[40px] px-5">
             <Check className="h-4 w-4 mr-2" />
             {isAfgerond ? "Opnieuw afronden" : "Afronden"}
           </NestoButton>
