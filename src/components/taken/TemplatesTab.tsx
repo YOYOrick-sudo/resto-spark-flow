@@ -7,17 +7,35 @@ import {
 import { useUserContext } from "@/contexts/UserContext";
 import {
   NestoButton,
-  NestoCard,
-  NestoCardContent,
   NestoBadge,
   NestoInput,
   NestoSelect,
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, ArrowUp, ArrowDown, FileText, CheckSquare } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { nestoToast } from "@/lib/nestoToast";
+import { cn } from "@/lib/utils";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
 
 const TYPE_OPTIONS = [
   { value: "opening", label: "Opening" },
@@ -130,8 +148,8 @@ export function TemplatesTab() {
         </div>
       </aside>
 
-      {/* Rechterkolom — editor / empty */}
-      <section>
+      {/* Rechterkolom — editor / empty (eigen scroll-container) */}
+      <section className="h-[calc(100vh-220px)] overflow-y-auto pr-1">
         {selection === null && (
           <EmptyState
             icon={FileText}
@@ -196,6 +214,10 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
         .sort((a, b) => a.volgorde - b.volgorde)
   );
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+  );
+
   const addItem = () => {
     setItems((prev) => [
       ...prev,
@@ -212,26 +234,30 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
     ]);
   };
 
-  const updateItem = (idx: number, patch: Partial<ChecklistItem>) => {
+  const updateItem = (id: string, patch: Partial<ChecklistItem>) => {
     setItems((prev) =>
-      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it))
+      prev.map((it) => (it.id === id ? { ...it, ...patch } : it))
     );
   };
 
-  const removeItem = (idx: number) =>
+  const removeItem = (id: string) =>
     setItems((prev) =>
       prev
-        .filter((_, i) => i !== idx)
+        .filter((it) => it.id !== id)
         .map((it, i) => ({ ...it, volgorde: i + 1 }))
     );
 
-  const move = (idx: number, dir: -1 | 1) => {
-    const target = idx + dir;
-    if (target < 0 || target >= items.length) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
     setItems((prev) => {
-      const next = prev.slice();
-      [next[idx], next[target]] = [next[target], next[idx]];
-      return next.map((it, i) => ({ ...it, volgorde: i + 1 }));
+      const oldIndex = prev.findIndex((it) => it.id === active.id);
+      const newIndex = prev.findIndex((it) => it.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex).map((it, i) => ({
+        ...it,
+        volgorde: i + 1,
+      }));
     });
   };
 
@@ -295,128 +321,176 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
       </div>
 
       {/* Items */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Items ({items.length})
           </h3>
-          {items.length > 0 && (
-            <NestoButton size="sm" variant="outline" onClick={addItem}>
-              <Plus className="h-4 w-4 mr-1" /> Item toevoegen
-            </NestoButton>
-          )}
         </div>
 
-        {items.length === 0 && (
-          <div className="text-center py-10 border border-dashed border-border rounded-lg">
-            <p className="text-base font-medium text-foreground mb-1">
-              Nog geen items
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Voeg taken toe die de kok bij elke run moet uitvoeren.
+        {items.length === 0 ? (
+          <div className="text-center py-8 border border-dashed border-border rounded-lg bg-muted/20">
+            <p className="text-sm text-muted-foreground mb-3">
+              Nog geen items — voeg taken toe die de kok bij elke run uitvoert.
             </p>
             <NestoButton size="sm" variant="outline" onClick={addItem}>
               <Plus className="h-4 w-4 mr-1" /> Eerste item toevoegen
             </NestoButton>
           </div>
+        ) : (
+          <>
+            <div className="bg-card border border-border rounded-lg overflow-hidden divide-y divide-border">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={items.map((it) => it.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {items.map((item) => (
+                    <SortableItemRow
+                      key={item.id}
+                      item={item}
+                      onUpdate={(patch) => updateItem(item.id, patch)}
+                      onRemove={() => removeItem(item.id)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            </div>
+
+            <button
+              type="button"
+              onClick={addItem}
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-primary/40 rounded-lg transition-colors"
+            >
+              <Plus className="h-4 w-4" /> Item toevoegen
+            </button>
+          </>
         )}
-
-        {items.map((item, idx) => (
-          <NestoCard key={item.id}>
-            <NestoCardContent className="py-3">
-              <div className="flex items-start gap-2">
-                <div className="flex flex-col gap-1 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => move(idx, -1)}
-                    className="text-muted-foreground hover:text-foreground disabled:opacity-30 h-7 w-7 flex items-center justify-center rounded hover:bg-muted"
-                    disabled={idx === 0}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => move(idx, 1)}
-                    className="text-muted-foreground hover:text-foreground disabled:opacity-30 h-7 w-7 flex items-center justify-center rounded hover:bg-muted"
-                    disabled={idx === items.length - 1}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="flex-1 space-y-2">
-                  <div className="flex gap-2">
-                    <NestoInput
-                      value={item.titel}
-                      onChange={(e) => updateItem(idx, { titel: e.target.value })}
-                      placeholder="Titel van het item"
-                      className="flex-1"
-                    />
-                    <div className="w-[160px]">
-                      <NestoSelect
-                        value={item.type}
-                        onValueChange={(v) => updateItem(idx, { type: v as any })}
-                        options={ITEM_TYPE_OPTIONS}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(idx)}
-                      className="text-muted-foreground hover:text-error p-2 rounded hover:bg-error-light shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {item.type === "temperatuur" && (
-                    <div className="flex items-center gap-2">
-                      <NestoInput
-                        type="number"
-                        step="0.1"
-                        value={item.temp_min ?? ""}
-                        onChange={(e) =>
-                          updateItem(idx, {
-                            temp_min:
-                              e.target.value === ""
-                                ? null
-                                : parseFloat(e.target.value),
-                          })
-                        }
-                        placeholder="Min °C"
-                        className="w-[110px]"
-                      />
-                      <span className="text-muted-foreground text-sm">tot</span>
-                      <NestoInput
-                        type="number"
-                        step="0.1"
-                        value={item.temp_max ?? ""}
-                        onChange={(e) =>
-                          updateItem(idx, {
-                            temp_max:
-                              e.target.value === ""
-                                ? null
-                                : parseFloat(e.target.value),
-                          })
-                        }
-                        placeholder="Max °C"
-                        className="w-[110px]"
-                      />
-                    </div>
-                  )}
-
-                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Switch
-                      checked={!!item.vereist}
-                      onCheckedChange={(v) => updateItem(idx, { vereist: v })}
-                    />
-                    Vereist
-                  </label>
-                </div>
-              </div>
-            </NestoCardContent>
-          </NestoCard>
-        ))}
       </div>
+    </div>
+  );
+}
+
+// ---- Sortable row ----
+
+interface SortableItemRowProps {
+  item: ChecklistItem;
+  onUpdate: (patch: Partial<ChecklistItem>) => void;
+  onRemove: () => void;
+}
+
+function SortableItemRow({ item, onUpdate, onRemove }: SortableItemRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging
+      ? "none"
+      : "transform 200ms cubic-bezier(0.25, 1, 0.5, 1), opacity 150ms ease",
+    opacity: isDragging ? 0 : 1,
+    visibility: isDragging ? "hidden" : "visible",
+    zIndex: isDragging ? 10 : "auto",
+  };
+
+  const isTemp = item.type === "temperatuur";
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group grid grid-cols-[24px_1fr_140px_auto_28px] items-center gap-2 px-2 py-1.5 hover:bg-accent/30 transition-colors"
+    >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        type="button"
+        className="p-0.5 rounded cursor-grab active:cursor-grabbing hover:bg-muted touch-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        aria-label="Versleep om te herschikken"
+      >
+        <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+      </button>
+
+      {/* Titel — borderless tot focus */}
+      <input
+        type="text"
+        value={item.titel}
+        onChange={(e) => onUpdate({ titel: e.target.value })}
+        placeholder="Titel van het item"
+        className="h-8 px-2 text-sm bg-transparent border border-transparent rounded hover:bg-background focus:bg-background focus:border-border focus:outline-none focus:ring-1 focus:ring-ring transition-colors min-w-0"
+      />
+
+      {/* Type select compact */}
+      <div>
+        <NestoSelect
+          value={item.type}
+          onValueChange={(v) => onUpdate({ type: v as ChecklistItem["type"] })}
+          options={ITEM_TYPE_OPTIONS}
+        />
+      </div>
+
+      {/* Vereist + (temp inline indien nodig) */}
+      <div className="flex items-center gap-3">
+        {isTemp && (
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              step="0.1"
+              value={item.temp_min ?? ""}
+              onChange={(e) =>
+                onUpdate({
+                  temp_min:
+                    e.target.value === "" ? null : parseFloat(e.target.value),
+                })
+              }
+              placeholder="Min"
+              className="h-8 w-16 px-2 text-sm tabular-nums bg-transparent border border-border rounded hover:bg-background focus:bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              aria-label="Min temperatuur"
+            />
+            <span className="text-xs text-muted-foreground">–</span>
+            <input
+              type="number"
+              step="0.1"
+              value={item.temp_max ?? ""}
+              onChange={(e) =>
+                onUpdate({
+                  temp_max:
+                    e.target.value === "" ? null : parseFloat(e.target.value),
+                })
+              }
+              placeholder="Max"
+              className="h-8 w-16 px-2 text-sm tabular-nums bg-transparent border border-border rounded hover:bg-background focus:bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              aria-label="Max temperatuur"
+            />
+            <span className="text-xs text-muted-foreground">°C</span>
+          </div>
+        )}
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+          <Switch
+            checked={!!item.vereist}
+            onCheckedChange={(v) => onUpdate({ vereist: v })}
+          />
+          <span>Vereist</span>
+        </label>
+      </div>
+
+      {/* Delete */}
+      <button
+        type="button"
+        onClick={onRemove}
+        className={cn(
+          "p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+        )}
+        aria-label="Item verwijderen"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
