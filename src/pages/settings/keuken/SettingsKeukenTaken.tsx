@@ -99,16 +99,14 @@ export default function SettingsKeukenTaken() {
       breadcrumbs={buildBreadcrumbs("keuken", "taken")}
     >
       <div className="space-y-6">
-        {/* SECTIE 1 — Templates */}
-        <NestoCard>
-          <NestoCardContent>
-            <SectionHeader
-              title="TEMPLATES"
-              description="Beheer checklist-templates die dagelijks of periodiek door de keuken worden uitgevoerd."
-            />
-            <TemplatesTab />
-          </NestoCardContent>
-        </NestoCard>
+        {/* SECTIE 1 — Templates (geen card-wrapper voor extra editor-breedte) */}
+        <div className="space-y-4">
+          <SectionHeader
+            title="TEMPLATES"
+            description="Beheer checklist-templates die dagelijks of periodiek door de keuken worden uitgevoerd."
+          />
+          <TemplatesTab />
+        </div>
 
         {/* SECTIE 2 — HACCP-bevriestijd */}
         <NestoCard>
