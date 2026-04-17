@@ -11,7 +11,8 @@ import { VerpakkingHint } from "@/components/inkoop/VerpakkingHint";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import type { ChipId } from "./RegelFilterChips";
 
-const OVERIG_REGEX = /bezorg|emballage|retour|statiegeld|toeslag|brandstof|milieu|pallet/i;
+const OVERIG_REGEX =
+  /bezorg|emballage|retour|statiegeld|toeslag|brandstof|milieu|pallet|deksel|beker|bestek|servet|rietje|draagtas|wegwerp|afhaal.*doos/i;
 
 export type SectieId = "perfect" | "naam" | "ai" | "geen" | "overig";
 
@@ -152,6 +153,7 @@ export function RegelSecties({
                   variant="ghost"
                   size="sm"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     onSkipAllOverig(skipKandidaten.map((r) => r.id));
                   }}
@@ -165,7 +167,12 @@ export function RegelSecties({
                   variant="primary"
                   size="sm"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+                    console.log("[bulk] click in RegelSecties", {
+                      count: bulkKandidaten.length,
+                      first: bulkKandidaten[0]?.id,
+                    });
                     onOpenBulkCreate(bulkKandidaten);
                   }}
                 >

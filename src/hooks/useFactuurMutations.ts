@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { nestoToast } from "@/lib/nestoToast";
+import { normalizeIngredientNaam } from "@/lib/stringUtils";
 
 export function useFactuurMutations() {
   const qc = useQueryClient();
@@ -279,12 +280,14 @@ export function useFactuurMutations() {
     }) => {
       if (!locId) throw new Error("Geen locatie");
 
+      const cleanNaam = normalizeIngredientNaam(vars.naam);
+
       // 1. Maak ingrediënt — kostprijs is altijd per basiseenheid
       const { data: ing, error: iErr } = await supabase
         .from("ingredienten")
         .insert({
           location_id: locId,
-          naam: vars.naam,
+          naam: cleanNaam,
           categorie: vars.categorie,
           eenheid: vars.eenheid,
           kostprijs: vars.kostprijs ?? null,
@@ -307,7 +310,7 @@ export function useFactuurMutations() {
         .eq("id", vars.regelId);
       if (rErr) throw rErr;
 
-      // 3. Alias opslaan (best effort)
+      // 3. Alias opslaan (best effort) — rauwe factuur-naam, NIET genormaliseerd
       if (vars.aliasNaam?.trim()) {
         const { error: aErr } = await supabase.rpc("record_factuur_correction", {
           p_ingredient_id: ing.id,
@@ -330,7 +333,7 @@ export function useFactuurMutations() {
               leverancier_id: vars.leverancierId,
               artikel_nummer: artNr,
               ingredient_id: ing.id,
-              artikel_naam: vars.naam,
+              artikel_naam: cleanNaam,
               prijs_per_eenheid: vars.kostprijs ?? null,         // per basiseenheid (afgeleid)
               prijs_per_verpakking: vars.prijsPerVerpakking ?? null,
               verpakking_hoeveelheid: vars.verpakkingHoeveelheid ?? null,
@@ -413,12 +416,14 @@ export function useFactuurMutations() {
 
       for (const item of items) {
         try {
+          const cleanNaam = normalizeIngredientNaam(item.naam);
+
           // 1. INSERT ingrediënt
           const { data: ing, error: iErr } = await supabase
             .from("ingredienten")
             .insert({
               location_id: locId,
-              naam: item.naam,
+              naam: cleanNaam,
               categorie: item.categorie,
               eenheid: item.eenheid,
               kostprijs: item.kostprijs ?? null,
@@ -443,7 +448,7 @@ export function useFactuurMutations() {
             .eq("id", item.regelId);
           if (rErr) throw rErr;
 
-          // 3. Alias (best-effort)
+          // 3. Alias (best-effort) — rauw, NIET genormaliseerd
           if (item.aliasNaam?.trim()) {
             const { error: aErr } = await supabase.rpc("record_factuur_correction", {
               p_ingredient_id: ing.id,
@@ -466,7 +471,7 @@ export function useFactuurMutations() {
                   leverancier_id: item.leverancierId,
                   artikel_nummer: artNr,
                   ingredient_id: ing.id,
-                  artikel_naam: item.naam,
+                  artikel_naam: cleanNaam,
                   prijs_per_eenheid: item.kostprijs ?? null,
                   prijs_per_verpakking: item.prijsPerVerpakking ?? null,
                   verpakking_hoeveelheid: item.verpakkingHoeveelheid ?? null,
