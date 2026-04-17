@@ -21,12 +21,12 @@ import { useFactuurMutations } from "@/hooks/useFactuurMutations";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurRegelForm } from "@/components/inkoop/FactuurRegelForm";
 import { LeverancierMatchWidget } from "@/components/inkoop/LeverancierMatchWidget";
-import { type NewIngredientPrefill } from "@/components/inkoop/IngredientMatchBadge";
-import { NieuwIngredientFromFactuurModal } from "@/components/inkoop/NieuwIngredientFromFactuurModal";
+import { BulkCreateIngredientsDialog } from "@/components/inkoop/BulkCreateIngredientsDialog";
 import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
 import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterChips";
 import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
 import { supabase } from "@/integrations/supabase/client";
+import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { ArrowLeft, Plus, MoreHorizontal } from "lucide-react";
 
 const STATUS_BADGES: Record<
