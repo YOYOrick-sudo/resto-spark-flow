@@ -46,10 +46,11 @@ function FactuurPreview({ bestandUrl }: { bestandUrl: string }) {
 
 function DetailContent({ factuurId }: { factuurId: string }) {
   const { data: factuur, isLoading } = useFactuurDetail(factuurId);
-  const { updateFactuur, deleteRegel, goedkeuren, afwijzen } = useFactuurMutations();
+  const { updateFactuur, deleteRegel, goedkeuren, afwijzen, bulkConfirmHighConfidence } = useFactuurMutations();
   const { data: leveranciers } = useLeveranciers();
   const [addOpen, setAddOpen] = useState(false);
-  const [editingMatch, setEditingMatch] = useState<string | null>(null);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [newIngState, setNewIngState] = useState<{ regelId: string; prefill: NewIngredientPrefill } | null>(null);
 
   // Local state for editable fields (onBlur saves)
   const [factuurnummer, setFactuurnummer] = useState("");
@@ -161,98 +162,27 @@ function DetailContent({ factuurId }: { factuurId: string }) {
       </div>
 
       {/* Regels */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Regels ({factuur.regels.length})
-          </h3>
-          {isEditable && !addOpen && (
-            <NestoButton
-              variant="ghost"
-              size="sm"
-              onClick={() => setAddOpen(true)}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" /> Toevoegen
-            </NestoButton>
-          )}
-        </div>
+      <FactuurRegelsSectie
+        factuur={factuur}
+        factuurId={factuurId}
+        isEditable={isEditable}
+        addOpen={addOpen}
+        setAddOpen={setAddOpen}
+        reviewMode={reviewMode}
+        setReviewMode={setReviewMode}
+        onDeleteRegel={(id) => deleteRegel.mutate(id)}
+        onBulkConfirm={(ids) => bulkConfirmHighConfidence.mutate(ids)}
+        bulkPending={bulkConfirmHighConfidence.isPending}
+        onOpenNewIngredient={(regelId, prefill) => setNewIngState({ regelId, prefill })}
+      />
 
-        {addOpen && (
-          <div className="mb-3">
-            <FactuurRegelForm
-              factuurId={factuurId}
-              onDone={() => setAddOpen(false)}
-            />
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {factuur.regels.map((r) => (
-            <div
-              key={r.id}
-              className={`rounded-xl border p-3 space-y-1 ${
-                r.match_status === "unmatched"
-                  ? "border-warning/50 bg-warning/5"
-                  : "border-border/30 bg-muted/30"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">
-                    {r.product_naam_herkend}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.hoeveelheid ?? "-"} {r.eenheid ?? ""} · €
-                    {r.prijs_per_eenheid?.toFixed(2) ?? "-"}/eh · €
-                    {r.totaal?.toFixed(2) ?? "-"}
-                  </p>
-                  {r.ingredient_naam ? (
-                    <p className="text-xs text-success flex items-center gap-1 mt-0.5">
-                      <Link className="h-3 w-3" /> {r.ingredient_naam}
-                    </p>
-                  ) : (
-                    <NestoBadge variant="warning" size="sm" className="mt-1">
-                      Niet gekoppeld
-                    </NestoBadge>
-                  )}
-                </div>
-                {isEditable && (
-                  <button
-                    onClick={() => deleteRegel.mutate(r.id)}
-                    className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted/50 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {isEditable &&
-                r.match_status === "unmatched" &&
-                (editingMatch === r.id ? (
-                  <InlineMatch
-                    regelId={r.id}
-                    onMatched={() => setEditingMatch(null)}
-                  />
-                ) : (
-                  <NestoButton
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditingMatch(r.id)}
-                    className="mt-1 min-h-[44px]"
-                  >
-                    <Link className="h-3.5 w-3.5 mr-1" /> Koppel ingrediënt
-                  </NestoButton>
-                ))}
-            </div>
-          ))}
-
-          {factuur.regels.length === 0 && !addOpen && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Nog geen regels. Voeg ze handmatig toe.
-            </p>
-          )}
-        </div>
-      </div>
+      <NieuwIngredientFromFactuurModal
+        open={!!newIngState}
+        onClose={() => setNewIngState(null)}
+        regelId={newIngState?.regelId ?? null}
+        prefill={newIngState?.prefill ?? null}
+        leverancierId={factuur.leverancier_id}
+      />
 
       {/* Acties */}
       {isEditable && (
