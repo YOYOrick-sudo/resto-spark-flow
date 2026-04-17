@@ -639,7 +639,7 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
 
   return (
     <div ref={setNodeRef} style={style} className="group">
-      <div className="grid grid-cols-[24px_1fr_140px_auto_28px_28px_28px] items-center gap-2 px-2 py-1.5 hover:bg-accent/30 transition-colors">
+      <div className="grid grid-cols-[28px_1fr_120px_72px_auto_28px_28px_28px_28px] items-center gap-2.5 px-3 py-2 min-h-[44px] hover:bg-accent/30 transition-colors">
         {/* Drag handle */}
         <button
           {...attributes}
