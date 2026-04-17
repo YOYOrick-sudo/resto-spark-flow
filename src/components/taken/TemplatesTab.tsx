@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   useChecklistTemplates,
   type ChecklistTemplate,
@@ -16,7 +16,7 @@ import {
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste, Archive } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste, Archive, FolderPlus } from "lucide-react";
 import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { FrequentieSelector } from "./FrequentieSelector";
 import { ItemFotoUploader } from "./ItemFotoUploader";
 import { formatFrequentieKort } from "@/lib/frequentieFormat";
+import { DEFAULT_SECTIE, groupItemsBySectie, sectieNamenGelijk } from "@/lib/sectieGroup";
 import {
   DndContext,
   PointerSensor,
@@ -41,10 +42,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  restrictToVerticalAxis,
-  restrictToParentElement,
-} from "@dnd-kit/modifiers";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 
 const TYPE_OPTIONS = [
   { value: "opening", label: "Opening" },
