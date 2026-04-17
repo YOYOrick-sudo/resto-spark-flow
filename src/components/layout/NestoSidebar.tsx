@@ -123,10 +123,10 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
       {/* Header */}
       <div className={cn("p-4", collapsed && "px-2 py-4 flex justify-center")}>
         {collapsed ? (
-          <NestoLogo size="sm" showWordmark={false} />
+          <NestoLogo size="md" showIcon showWordmark={false} />
         ) : (
           <div className="flex items-center justify-between">
-            <NestoLogo size="md" />
+            <NestoLogo size="md" showIcon={false} showWordmark />
             <div className="flex items-center gap-1">
               <button
                 type="button"
