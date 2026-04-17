@@ -1,50 +1,57 @@
 
 
-# Plan — Alleen het logo vervangen (Nesto SVG → Shouf PNG)
+# Plan — Sidebar logo: wordmark uitgeklapt, ring-icon ingeklapt
 
-Minimale, gerichte wijziging. Geen kleuren, geen strings, geen rename. Alleen het visuele logo.
+## Wat je wilt
+- **Sidebar uitgeklapt** → toon `shouf` wordmark (zwarte tekst), zelfde visuele grootte als waar voorheen "nesto" tekst stond.
+- **Sidebar ingeklapt** → toon de bordeaux ring-icon (`shouf-icon.png`).
 
-## Wijzigingen
+## Onderzoek nodig
+Eerst checken hoe de sidebar logo render-call eruit ziet en welke size momenteel gebruikt wordt — zodat de wordmark op exact dezelfde hoogte uitlijnt als de oude "nesto" tekst.
 
-### 1. Assets kopiëren
-- `user-uploads://shouf_icon_transparent.png` → `src/assets/shouf-icon.png` (voor sidebar/UI plekken waar alleen icon nodig is)
-- `user-uploads://shouf_lockup_transparent.png` → `src/assets/shouf-lockup.png` (icon + wordmark combinatie, voor plekken waar nu icon+tekst staat)
-- `user-uploads://shouf_wordmark_transparent.png` → `src/assets/shouf-wordmark.png` (alleen tekst, voor plekken zonder icon)
-- `user-uploads://shouf_icon_transparent.png` → `public/favicon.png`
-- Verwijder `public/favicon.svg`
+Te lezen:
+- `src/components/layout/NestoSidebar.tsx` (of vergelijkbaar) — vinden waar `<NestoLogo>` staat en met welke props
+- `src/components/polar/NestoLogo.tsx` — huidige size-mapping (`md` = 26px lockup-hoogte, wordmark ongeknipt)
 
-### 2. `src/components/polar/NestoLogo.tsx` aanpassen
-Component-naam blijft `NestoLogo` (geen breukrisico). Interne SVG + "nesto" tekst worden vervangen door `<img>` elementen die de Shouf PNG's renderen:
+## Wijziging
 
-- `showIcon=true, showWordmark=true` → toon `shouf-lockup.png`
-- `showIcon=true, showWordmark=false` → toon `shouf-icon.png`
-- `showIcon=false, showWordmark=true` → toon `shouf-wordmark.png`
-
-Bestaande size-props (`sm`/`md`/`lg`) blijven werken: hoogte van `<img>` schaalt mee zodat alle bestaande call-sites identiek blijven uitlijnen.
-
-### 3. `index.html` favicon-link
-```html
-<link rel="icon" href="/favicon.png" type="image/png" />
+### 1. Sidebar render-call aanpassen
+In de sidebar-component conditioneel renderen:
+```tsx
+<NestoLogo
+  size="md"
+  showIcon={collapsed}
+  showWordmark={!collapsed}
+/>
 ```
-(Title, meta-tags, og-tags blijven "Nesto" — niet in scope.)
+- `collapsed=true` → alleen icon (ring) → past in smalle 56px-strip
+- `collapsed=false` → alleen wordmark (`shouf` tekst) → vult de header zoals voorheen
 
-## Wat NIET verandert
-- Kleuren (teal blijft teal — geen bordeaux)
-- Component-namen (`NestoLogo`, `NestoCard`, etc.)
-- Tekst-strings ("Nesto" in titles, emails, UI)
-- Database, edge functions, branding-defaults
-- Memory-bestanden
+### 2. `NestoLogo.tsx` size-tuning
+De huidige `heightMap` (`md=26px`) is afgestemd op het oude SVG-logo. De nieuwe `shouf` PNG-wordmark heeft andere proporties (breder, dikker letterbeeld). Mogelijk moet `md` voor wordmark omhoog naar **~22-24px** zodat de visuele body-hoogte van "shouf" overeenkomt met de oude "nesto" tekst (16-18px x-height).
+
+Voorstel: aparte hoogtes voor wordmark vs icon vs lockup:
+```ts
+const wordmarkHeightMap = { sm: 16, md: 22, lg: 28 };
+const iconHeightMap     = { sm: 20, md: 26, lg: 32 };
+const lockupHeightMap   = { sm: 22, md: 30, lg: 38 };
+```
+
+Exacte waardes finetunen na visuele check in preview.
 
 ## Bestandenoverzicht
 
 | # | Actie | Bestand |
 |---|---|---|
-| 1 | COPY | uploads → `src/assets/shouf-icon.png`, `shouf-lockup.png`, `shouf-wordmark.png` |
-| 2 | COPY | upload → `public/favicon.png` |
-| 3 | DELETE | `public/favicon.svg` |
-| 4 | EDIT | `src/components/polar/NestoLogo.tsx` |
-| 5 | EDIT | `index.html` (alleen favicon-regel) |
+| 1 | EDIT | `src/components/polar/NestoLogo.tsx` — aparte size-maps per modus |
+| 2 | EDIT | sidebar-component (waarschijnlijk `src/components/layout/NestoSidebar.tsx`) — `showIcon`/`showWordmark` koppelen aan `collapsed`-state |
+
+## Wat NIET verandert
+- Geen kleuren, geen tekst-strings, geen routes, geen DB
+- Lockup-modus (icon+wordmark) blijft beschikbaar voor andere plekken (login, 404)
+- Andere call-sites van `<NestoLogo />` blijven identiek werken
 
 ## Resultaat
-Overal in de app waar `<NestoLogo />` wordt gerenderd (sidebar, login, 404, loading screens, emails-preview), zie je het Shouf-logo. Browsertab toont Shouf-favicon. Alle andere code blijft 100% intact.
+- Uitgeklapt: zwart `shouf` woord op crème sidebar-bg, zelfde optische gewicht als oude nesto-text
+- Ingeklapt: bordeaux ring-icon, gecentreerd in de smalle strip
 
