@@ -217,11 +217,18 @@ interface EditorProps {
   isSaving: boolean;
 }
 
-function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
+function TemplateEditor({ template, locationId, standaardTijden, onSave, onCancel, isSaving }: EditorProps) {
   const [naam, setNaam] = useState(template?.naam ?? "");
   const [type, setType] = useState(template?.type ?? "opening");
   const [beschrijving, setBeschrijving] = useState(template?.beschrijving ?? "");
   const [actief, setActief] = useState(template?.actief ?? true);
+  const [frequentie, setFrequentie] = useState<Frequentie>(template?.frequentie ?? "dagelijks");
+  const [frequentieConfig, setFrequentieConfig] = useState<Record<string, any>>(
+    template?.frequentie_config ?? {}
+  );
+  const [defaultTime, setDefaultTime] = useState<string>(
+    template?.default_time ? template.default_time.slice(0, 5) : ""
+  );
   const [items, setItems] = useState<ChecklistItem[]>(
     () =>
       (template?.items ?? [])
@@ -232,6 +239,8 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   );
+
+  const fallbackTijd = standaardTijden?.[type]?.slice(0, 5) ?? "—";
 
   const addItem = () => {
     setItems((prev) => [
@@ -245,6 +254,7 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
         temp_min: null,
         temp_max: null,
         frequentie: "dagelijks",
+        foto_urls: [],
       },
     ]);
   };
@@ -287,6 +297,9 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
       beschrijving: beschrijving.trim() || undefined,
       actief,
       items: items.map((it, i) => ({ ...it, volgorde: i + 1 })),
+      frequentie,
+      frequentie_config: frequentieConfig,
+      default_time: defaultTime ? `${defaultTime}:00` : null,
     });
   };
 
