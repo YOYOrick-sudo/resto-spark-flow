@@ -151,11 +151,13 @@ export default function TakenRun() {
   return (
     <div className="space-y-6 pb-24">
       {/* Compact back-link (geen PageHeader op subpagina) */}
-      <Link to="/taken"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="h-4 w-4" />
-        Terug naar vandaag
-      </Link>
+      <div className="max-w-4xl mx-auto">
+        <Link to="/taken"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ChevronLeft className="h-4 w-4" />
+          Terug naar vandaag
+        </Link>
+      </div>
 
       {/* Voortgangs-blok — visual anchor */}
       <div className="max-w-4xl mx-auto rounded-lg border border-border/60 bg-card p-5 space-y-4 shadow-[0_1px_2px_rgb(0_0_0/0.02)]">
