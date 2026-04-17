@@ -1,6 +1,6 @@
 import * as React from "react";
 import { NestoOutlineButtonGroup } from "@/components/polar/NestoOutlineButtonGroup";
-import NestoDatePicker, { dateFromString, dateToString } from "@/components/polar/NestoDatePicker";
+import { NestoDatePicker, dateFromString, dateToString } from "@/components/polar/NestoDatePicker";
 import { cn } from "@/lib/utils";
 import type { Frequentie } from "@/hooks/useChecklistTemplates";
 
