@@ -3,8 +3,10 @@ import {
   useChecklistTemplates,
   type ChecklistTemplate,
   type ChecklistItem,
+  type Frequentie,
 } from "@/hooks/useChecklistTemplates";
 import { useUserContext } from "@/contexts/UserContext";
+import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import {
   NestoButton,
   NestoBadge,
@@ -17,6 +19,8 @@ import { Plus, Trash2, FileText, CheckSquare, GripVertical } from "lucide-react"
 import { Switch } from "@/components/ui/switch";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
+import { FrequentieSelector } from "./FrequentieSelector";
+import { ItemFotoUploader } from "./ItemFotoUploader";
 import {
   DndContext,
   PointerSensor,
