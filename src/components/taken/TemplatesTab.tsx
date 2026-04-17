@@ -639,7 +639,7 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
 
   return (
     <div ref={setNodeRef} style={style} className="group">
-      <div className="grid grid-cols-[28px_1fr_120px_72px_auto_28px_28px_28px_28px] items-center gap-2.5 px-3 py-2 min-h-[44px] hover:bg-accent/30 transition-colors">
+      <div className="grid grid-cols-[28px_1fr_120px_72px_auto_28px_28px_28px] items-center gap-2.5 px-3 py-2 min-h-[44px] hover:bg-accent/30 transition-colors">
         {/* Drag handle */}
         <button
           {...attributes}
@@ -682,6 +682,10 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
           />
         </div>
 
+        {/* Frequentie-badge — gereserveerd voor toekomstige frequentie-per-item (V1.1) */}
+        <div className="flex items-center justify-center" aria-hidden="true">
+          <span className="text-[10px] text-muted-foreground/40 tabular-nums select-none">—</span>
+        </div>
         {/* Vereist + (temp inline indien nodig) */}
         <div className="flex items-center gap-3">
           {isTemp && (
