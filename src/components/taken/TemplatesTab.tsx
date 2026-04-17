@@ -576,9 +576,17 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
   // Auto-detect of template per_item is (≥1 item heeft eigen freq)
   const isPerItem = items.some((it) => !!it.item_frequentie);
 
+  const isSystem = template?.is_system ?? false;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end gap-1.5 -mb-2">
+        {isSystem && (
+          <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground mr-auto">
+            <Lock className="h-3 w-3" />
+            Systeem-template
+          </span>
+        )}
         <SaveStatusIndicator status={saveStatus} />
         <button
           type="button"
@@ -593,22 +601,50 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-1.5 block">Naam</label>
-          <NestoInput
-            value={naam}
-            onChange={(e) => setNaam(e.target.value)}
-            placeholder="bv. Opening keuken"
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <NestoInput
+                    value={naam}
+                    onChange={(e) => setNaam(e.target.value)}
+                    placeholder="bv. Opening keuken"
+                    disabled={isSystem}
+                  />
+                </div>
+              </TooltipTrigger>
+              {isSystem && (
+                <TooltipContent side="bottom">
+                  Systeem-template, naam kan niet worden gewijzigd
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div>
           <label className="text-sm font-medium mb-1.5 block">Type</label>
-          <NestoSelect
-            value={type}
-            onValueChange={(v) => {
-              setType(v);
-              saveNow({ type: v });
-            }}
-            options={TYPE_OPTIONS}
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <NestoSelect
+                    value={type}
+                    onValueChange={(v) => {
+                      setType(v);
+                      saveNow({ type: v });
+                    }}
+                    options={TYPE_OPTIONS}
+                    disabled={isSystem}
+                  />
+                </div>
+              </TooltipTrigger>
+              {isSystem && (
+                <TooltipContent side="bottom">
+                  Systeem-template, type kan niet worden gewijzigd
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
