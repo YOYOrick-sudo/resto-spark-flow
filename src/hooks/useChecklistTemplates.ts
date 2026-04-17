@@ -22,6 +22,7 @@ export interface ChecklistItem {
   temp_max: number | null;
   frequentie: "dagelijks" | "wekelijks" | "maandelijks";
   foto_urls?: string[];
+  beschrijving?: string;
 }
 
 export interface ChecklistTemplate {
