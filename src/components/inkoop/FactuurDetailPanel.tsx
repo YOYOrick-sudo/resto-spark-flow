@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { NestoPanel, NestoButton, NestoSelect, NestoBadge, Spinner, NestoDatePicker, dateFromString, dateToString } from "@/components/polar";
 import { Input } from "@/components/ui/input";
 import { useFactuurDetail } from "@/hooks/useFactuurDetail";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
-import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { FactuurRegelForm } from "./FactuurRegelForm";
 import { LeverancierMatchWidget } from "./LeverancierMatchWidget";
+import { IngredientMatchBadge, type NewIngredientPrefill } from "./IngredientMatchBadge";
+import { NieuwIngredientFromFactuurModal } from "./NieuwIngredientFromFactuurModal";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Link, FileText } from "lucide-react";
+import { Plus, Trash2, FileText, CheckCircle2 } from "lucide-react";
 
 const STATUS_BADGES: Record<string, { variant: "default" | "warning" | "success" | "error"; label: string }> = {
   verwerken: { variant: "default", label: "Verwerken..." },
@@ -41,50 +42,7 @@ function FactuurPreview({ bestandUrl }: { bestandUrl: string }) {
   );
 }
 
-function InlineMatch({ regelId, onMatched }: { regelId: string; onMatched: () => void }) {
-  const { matchRegel } = useFactuurMutations();
-  const [search, setSearch] = useState("");
-  const [show, setShow] = useState(false);
-  const { data: suggestions } = useIngredientSearch(search);
-
-  return (
-    <div className="relative mt-1">
-      <Input
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setShow(true);
-        }}
-        placeholder="Zoek ingrediënt..."
-        className="h-8 text-xs"
-      />
-      {show && suggestions && suggestions.length > 0 && (
-        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg max-h-32 overflow-y-auto">
-          {suggestions.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 min-h-[44px]"
-              onClick={() => {
-                matchRegel.mutate(
-                  { regelId, ingredientId: s.id },
-                  {
-                    onSuccess: () => {
-                      setShow(false);
-                      onMatched();
-                    },
-                  }
-                );
-              }}
-            >
-              {s.naam} <span className="text-muted-foreground">· {s.eenheid}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// (InlineMatch verwijderd in R3 — vervangen door IngredientMatchBadge per regel)
 
 function DetailContent({ factuurId }: { factuurId: string }) {
   const { data: factuur, isLoading } = useFactuurDetail(factuurId);
