@@ -7,6 +7,7 @@ import { ApplicationStep2Position } from '@/components/public-application/Applic
 import { ApplicationStep3Motivation } from '@/components/public-application/ApplicationStep3Motivation';
 import { ApplicationStepSuccess } from '@/components/public-application/ApplicationStepSuccess';
 import { PublicApplicationNotFound } from '@/components/public-application/PublicApplicationNotFound';
+import { PublicApplicationInactive } from '@/components/public-application/PublicApplicationInactive';
 
 export interface ApplicationFormData {
   first_name: string;
@@ -32,17 +33,31 @@ const initialForm: ApplicationFormData = {
   website_url: '',
 };
 
+const MANAGED_META = [
+  { name: 'description', prop: false },
+  { name: 'og:title', prop: true },
+  { name: 'og:description', prop: true },
+  { name: 'og:image', prop: true },
+  { name: 'og:url', prop: true },
+  { name: 'og:type', prop: true },
+  { name: 'twitter:card', prop: false },
+  { name: 'theme-color', prop: false },
+];
+
 export default function PublicApplicationPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, error } = usePublicApplicationData(slug);
   const [step, setStep] = useState<1 | 2 | 3 | 'success'>(1);
   const [form, setForm] = useState<ApplicationFormData>(initialForm);
 
-  // SEO/OG tags
+  // SEO/OG tags — alleen client-side; voor crawler-support is SSR/edge-rendering nodig (post-MVP)
   useEffect(() => {
-    if (!data) return;
+    if (!data || data.status !== 'ok') return;
+
+    const previousTitle = document.title;
     const title = `Werken bij ${data.branding?.location_name ?? ''}`.trim();
     document.title = title;
+
     const setMeta = (name: string, content: string, prop = false) => {
       const sel = prop ? `meta[property="${name}"]` : `meta[name="${name}"]`;
       let el = document.head.querySelector<HTMLMetaElement>(sel);
@@ -54,13 +69,30 @@ export default function PublicApplicationPage() {
       }
       el.setAttribute('content', content);
     };
-    setMeta('description', data.settings.welcome_text ?? 'Solliciteer direct online.');
-    setMeta('og:title', title, true);
-    setMeta('og:description', data.settings.welcome_text ?? '', true);
-    if (data.branding?.logo_url) setMeta('og:image', data.branding.logo_url, true);
-  }, [data]);
 
-  const brandColor = data?.branding?.brand_color ?? '#0F172A';
+    const description = data.settings.welcome_text ?? 'Solliciteer direct online.';
+    const url = `${window.location.origin}/werken-bij/${data.settings.slug}`;
+    const brandColor = data.branding?.brand_color ?? '#1d979e';
+    const logo = data.branding?.logo_url;
+
+    setMeta('description', description);
+    setMeta('og:title', title, true);
+    setMeta('og:description', description, true);
+    setMeta('og:url', url, true);
+    setMeta('og:type', 'website', true);
+    if (logo) setMeta('og:image', logo, true);
+    setMeta('twitter:card', logo ? 'summary_large_image' : 'summary');
+    setMeta('theme-color', brandColor);
+
+    return () => {
+      document.title = previousTitle;
+      MANAGED_META.forEach(({ name, prop }) => {
+        const sel = prop ? `meta[property="${name}"]` : `meta[name="${name}"]`;
+        const el = document.head.querySelector(sel);
+        if (el) el.remove();
+      });
+    };
+  }, [data]);
 
   if (isLoading) {
     return (
@@ -69,7 +101,11 @@ export default function PublicApplicationPage() {
       </div>
     );
   }
-  if (error || !data) return <PublicApplicationNotFound />;
+
+  if (error || !data || data.status === 'not_found') return <PublicApplicationNotFound />;
+  if (data.status === 'inactive') return <PublicApplicationInactive branding={data.branding} />;
+
+  const brandColor = data.branding?.brand_color ?? '#1d979e';
 
   return (
     <div
