@@ -7096,6 +7096,16 @@ export type Database = {
       }
       fn_auto_mark_no_shows: { Args: never; Returns: number }
       fn_auto_release_options: { Args: never; Returns: number }
+      fuzzy_match_ingredient: {
+        Args: { p_location_id: string; p_naam: string }
+        Returns: {
+          eenheid: string
+          id: string
+          kostprijs: number
+          naam: string
+          similarity: number
+        }[]
+      }
       fuzzy_match_leverancier: {
         Args: { p_location_id: string; p_naam: string }
         Returns: {
