@@ -2384,6 +2384,8 @@ export type Database = {
       locations: {
         Row: {
           ai_bevoegdheden_keuken: Json | null
+          assistent_min_waarde_overschot: number | null
+          assistent_min_waarde_verlopen: number | null
           besteladvies_buffer_percentage: number | null
           brand_color_accent: string | null
           brand_color_primary: string | null
@@ -2394,6 +2396,7 @@ export type Database = {
           gerecht_categorieen: Json | null
           google_place_id: string | null
           guest_greeting: string | null
+          haccp_freeze_tijd: string | null
           haccp_kern_min: number | null
           haccp_koeling_max: number | null
           haccp_vriezer_max: number | null
@@ -2408,6 +2411,7 @@ export type Database = {
           recept_categorieen: Json | null
           role_in_organization: string | null
           slug: string
+          standaard_tijden_per_type: Json | null
           start_dag_evaluatie_tijd: string | null
           timezone: string
           tone_of_voice: string | null
@@ -2419,6 +2423,8 @@ export type Database = {
         }
         Insert: {
           ai_bevoegdheden_keuken?: Json | null
+          assistent_min_waarde_overschot?: number | null
+          assistent_min_waarde_verlopen?: number | null
           besteladvies_buffer_percentage?: number | null
           brand_color_accent?: string | null
           brand_color_primary?: string | null
@@ -2429,6 +2435,7 @@ export type Database = {
           gerecht_categorieen?: Json | null
           google_place_id?: string | null
           guest_greeting?: string | null
+          haccp_freeze_tijd?: string | null
           haccp_kern_min?: number | null
           haccp_koeling_max?: number | null
           haccp_vriezer_max?: number | null
@@ -2443,6 +2450,7 @@ export type Database = {
           recept_categorieen?: Json | null
           role_in_organization?: string | null
           slug: string
+          standaard_tijden_per_type?: Json | null
           start_dag_evaluatie_tijd?: string | null
           timezone?: string
           tone_of_voice?: string | null
@@ -2454,6 +2462,8 @@ export type Database = {
         }
         Update: {
           ai_bevoegdheden_keuken?: Json | null
+          assistent_min_waarde_overschot?: number | null
+          assistent_min_waarde_verlopen?: number | null
           besteladvies_buffer_percentage?: number | null
           brand_color_accent?: string | null
           brand_color_primary?: string | null
@@ -2464,6 +2474,7 @@ export type Database = {
           gerecht_categorieen?: Json | null
           google_place_id?: string | null
           guest_greeting?: string | null
+          haccp_freeze_tijd?: string | null
           haccp_kern_min?: number | null
           haccp_koeling_max?: number | null
           haccp_vriezer_max?: number | null
@@ -2478,6 +2489,7 @@ export type Database = {
           recept_categorieen?: Json | null
           role_in_organization?: string | null
           slug?: string
+          standaard_tijden_per_type?: Json | null
           start_dag_evaluatie_tijd?: string | null
           timezone?: string
           tone_of_voice?: string | null

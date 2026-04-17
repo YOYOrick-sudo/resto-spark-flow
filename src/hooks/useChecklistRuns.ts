@@ -36,14 +36,24 @@ export interface ChecklistRun {
 }
 
 /**
- * Een run is "bevroren" voor HACCP zodra het 03:00 of later is op de dag NA de run-datum.
- * Voorbeeld: run van 17-04 → bevroren vanaf 18-04 03:00.
+ * Een run is "bevroren" voor HACCP zodra het `freezeTime` (HH:MM[:SS]) of later
+ * is op de dag NA de run-datum. Default 03:00:00 — kan per locatie geconfigureerd
+ * worden via locations.haccp_freeze_tijd.
+ *
+ * Voorbeeld: run van 17-04, freezeTime "03:00" → bevroren vanaf 18-04 03:00.
  */
-export function isRunFrozen(run: Pick<ChecklistRun, "datum">): boolean {
+export function isRunFrozen(
+  run: Pick<ChecklistRun, "datum">,
+  freezeTime: string = "03:00:00"
+): boolean {
+  const [hStr = "3", mStr = "0", sStr = "0"] = freezeTime.split(":");
+  const h = parseInt(hStr, 10) || 0;
+  const m = parseInt(mStr, 10) || 0;
+  const s = parseInt(sStr, 10) || 0;
   const runDate = new Date(`${run.datum}T00:00:00`);
   const freezeAt = new Date(runDate);
   freezeAt.setDate(freezeAt.getDate() + 1);
-  freezeAt.setHours(3, 0, 0, 0);
+  freezeAt.setHours(h, m, s, 0);
   return new Date() >= freezeAt;
 }
 

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, Check, Lock, CheckSquare } from "lucide-react";
 import { useChecklistRuns, isRunFrozen } from "@/hooks/useChecklistRuns";
+import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +28,7 @@ export default function TakenRun() {
   const { currentLocation } = useUserContext();
   const { user } = useAuth();
   const { data: runs, isLoading, saveResponse, afronden } = useChecklistRuns();
+  const { data: keukenSettings } = useKeukenSettings();
   const [tempInputs, setTempInputs] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -60,7 +62,7 @@ export default function TakenRun() {
     );
   }
 
-  const frozen = isRunFrozen(run);
+  const frozen = isRunFrozen(run, keukenSettings?.haccp_freeze_tijd);
   const isAfgerond = run.status === "afgerond";
 
   const isItemDone = (item: ChecklistItem) => {
