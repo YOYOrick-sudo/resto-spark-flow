@@ -159,10 +159,9 @@ export function HandmatigArtikelKoppelenModal({
               <NestoSelect
                 label="Leverancier"
                 value={leverancierId}
-                onChange={setLeverancierId}
+                onValueChange={setLeverancierId}
                 options={leverancierOpties}
                 placeholder="Kies leverancier…"
-                required
               />
               <NestoInput
                 label="Artikelnummer"
@@ -194,7 +193,7 @@ export function HandmatigArtikelKoppelenModal({
               <NestoSelect
                 label="Eenheid"
                 value={verpakkingEenheid}
-                onChange={setVerpakkingEenheid}
+                onValueChange={setVerpakkingEenheid}
                 options={VERPAKKING_EENHEDEN}
                 placeholder="Eenheid"
               />
