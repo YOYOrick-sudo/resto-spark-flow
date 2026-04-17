@@ -181,7 +181,7 @@ export function usePreviewGoedkeuring(
         (w) => w.severity === "groot"
       );
 
-      return {
+      const result: PreviewData = {
         factuur: {
           leverancierNaam: factuur.leverancierNaam,
           factuurnummer: factuur.factuurnummer,
@@ -193,6 +193,8 @@ export function usePreviewGoedkeuring(
         skippedRegels,
         heeftGroteWijzigingen,
       };
+      console.log("[preview] returning", result);
+      return result;
     },
   });
 }
