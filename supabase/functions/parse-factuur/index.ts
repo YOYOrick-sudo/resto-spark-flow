@@ -163,6 +163,9 @@ serve(async (req) => {
         jsonMode: true,
         maxTokens: 4000,
         temperature: 0.2,
+        // R3: Pro is accurater dan Flash voor documentparsing.
+        // Kosten: ~€0.008 vs ~€0.001 per factuur — verwaarloosbaar.
+        modelOverride: "google/gemini-2.5-pro",
       });
     } catch (aiError: any) {
       const errorMsg = aiError?.message || String(aiError);

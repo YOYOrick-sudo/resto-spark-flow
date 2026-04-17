@@ -12,8 +12,13 @@ export interface FactuurRegel {
   totaal: number | null;
   match_status: string;
   match_confidence: number | null;
+  ai_confidence: number | null;
+  ai_raw_naam: string | null;
+  ai_raw_artikelnummer: string | null;
+  ai_suggested_naam: string | null;
+  is_nieuw_ingredient: boolean | null;
   created_at: string;
-  ingredient_naam?: string;
+  ingredient_naam?: string | null;
 }
 
 export interface FactuurDetail {
