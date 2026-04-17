@@ -4311,48 +4311,76 @@ export type Database = {
       }
       onboarding_candidates: {
         Row: {
+          application_id: string | null
           applied_at: string
+          availability_start: string | null
           created_at: string
           current_phase_id: string | null
           email: string
           first_name: string
+          hours_preference: string | null
           id: string
           last_name: string
           location_id: string
+          motivation: string | null
           notes: string | null
           phone: string | null
+          positions: Json | null
+          source: string | null
+          source_tag: string | null
           status: Database["public"]["Enums"]["onboarding_status"]
           updated_at: string
         }
         Insert: {
+          application_id?: string | null
           applied_at?: string
+          availability_start?: string | null
           created_at?: string
           current_phase_id?: string | null
           email: string
           first_name: string
+          hours_preference?: string | null
           id?: string
           last_name: string
           location_id: string
+          motivation?: string | null
           notes?: string | null
           phone?: string | null
+          positions?: Json | null
+          source?: string | null
+          source_tag?: string | null
           status?: Database["public"]["Enums"]["onboarding_status"]
           updated_at?: string
         }
         Update: {
+          application_id?: string | null
           applied_at?: string
+          availability_start?: string | null
           created_at?: string
           current_phase_id?: string | null
           email?: string
           first_name?: string
+          hours_preference?: string | null
           id?: string
           last_name?: string
           location_id?: string
+          motivation?: string | null
           notes?: string | null
           phone?: string | null
+          positions?: Json | null
+          source?: string | null
+          source_tag?: string | null
           status?: Database["public"]["Enums"]["onboarding_status"]
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "onboarding_candidates_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "public_applications"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "onboarding_candidates_current_phase_id_fkey"
             columns: ["current_phase_id"]
@@ -5152,6 +5180,134 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      public_application_settings: {
+        Row: {
+          available_positions: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          location_id: string
+          show_hours: boolean
+          show_start_date: boolean
+          slug: string
+          success_message: string
+          updated_at: string
+          welcome_text: string | null
+          welcome_title: string
+        }
+        Insert: {
+          available_positions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          show_hours?: boolean
+          show_start_date?: boolean
+          slug: string
+          success_message?: string
+          updated_at?: string
+          welcome_text?: string | null
+          welcome_title?: string
+        }
+        Update: {
+          available_positions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          show_hours?: boolean
+          show_start_date?: boolean
+          slug?: string
+          success_message?: string
+          updated_at?: string
+          welcome_text?: string | null
+          welcome_title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_application_settings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: true
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_applications: {
+        Row: {
+          availability_start: string | null
+          candidate_id: string | null
+          created_at: string
+          email: string
+          first_name: string
+          hours_preference: string | null
+          id: string
+          ip_hash: string | null
+          last_name: string
+          location_id: string
+          motivation: string | null
+          phone: string | null
+          positions: Json
+          source: string
+          source_tag: string | null
+          status: string
+          user_agent: string | null
+        }
+        Insert: {
+          availability_start?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          hours_preference?: string | null
+          id?: string
+          ip_hash?: string | null
+          last_name: string
+          location_id: string
+          motivation?: string | null
+          phone?: string | null
+          positions?: Json
+          source?: string
+          source_tag?: string | null
+          status?: string
+          user_agent?: string | null
+        }
+        Update: {
+          availability_start?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          hours_preference?: string | null
+          id?: string
+          ip_hash?: string | null
+          last_name?: string
+          location_id?: string
+          motivation?: string | null
+          phone?: string | null
+          positions?: Json
+          source?: string
+          source_tag?: string | null
+          status?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_applications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_applications_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recept_allergenen: {
         Row: {
@@ -7180,6 +7336,7 @@ export type Database = {
         Returns: string
       }
       generate_daily_checklist_runs: { Args: never; Returns: undefined }
+      generate_unique_slug: { Args: { _base_name: string }; Returns: string }
       get_attention_conversations: {
         Args: { p_location_id: string }
         Returns: {
@@ -7271,6 +7428,20 @@ export type Database = {
       get_overdue_items: {
         Args: { today: string; tpl_id: string }
         Returns: Json
+      }
+      get_public_branding: {
+        Args: { _slug: string }
+        Returns: {
+          available_positions: Json
+          brand_color: string
+          location_name: string
+          logo_url: string
+          show_hours: boolean
+          show_start_date: boolean
+          success_message: string
+          welcome_text: string
+          welcome_title: string
+        }[]
       }
       get_recent_inbox_conversations: {
         Args: { p_location_id: string }
@@ -7445,6 +7616,7 @@ export type Database = {
         }
         Returns: string
       }
+      unaccent: { Args: { "": string }; Returns: string }
       user_has_location_access: {
         Args: { _location_id: string; _user_id: string }
         Returns: boolean

@@ -146,3 +146,6 @@ verify_jwt = false
 
 [functions.pair-device]
 verify_jwt = false
+
+[functions.submit-application]
+verify_jwt = false
