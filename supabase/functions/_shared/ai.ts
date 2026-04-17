@@ -41,6 +41,10 @@ interface BaseAIOptions {
   maxTokens?: number;       // default 1000
   temperature?: number;     // default 0.7
   images?: string[];        // base64, voor multimodal (marketing-analyze-brand)
+
+  // Override default primary model (bv. 'google/gemini-2.5-pro' voor documentparsing).
+  // Fallback blijft FALLBACK_MODEL bij failure.
+  modelOverride?: string;
 }
 
 export interface AICallOptions extends BaseAIOptions {
@@ -114,17 +118,18 @@ async function callWithFallback(
   withTools: boolean
 ): Promise<AIResponse | AIToolsResponse> {
   const startTime = Date.now();
+  const primaryModel = options.modelOverride ?? DEFAULT_MODEL;
 
   // 1. Primary model
   try {
-    const result = await callGateway(DEFAULT_MODEL, options, withTools);
+    const result = await callGateway(primaryModel, options, withTools);
     const durationMs = Date.now() - startTime;
 
     await logCall({
       featureKey: options.featureKey,
       organizationId: options.organizationId,
       locationId: options.locationId,
-      model: DEFAULT_MODEL,
+      model: primaryModel,
       wasFallback: false,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
@@ -132,10 +137,10 @@ async function callWithFallback(
       success: true,
     });
 
-    return buildResponse(result, DEFAULT_MODEL, false, withTools);
+    return buildResponse(result, primaryModel, false, withTools);
   } catch (primaryError) {
     console.warn(
-      `[callAI] ${DEFAULT_MODEL} failed for ${options.featureKey}, trying ${FALLBACK_MODEL}:`,
+      `[callAI] ${primaryModel} failed for ${options.featureKey}, trying ${FALLBACK_MODEL}:`,
       primaryError
     );
 
