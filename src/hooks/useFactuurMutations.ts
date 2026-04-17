@@ -344,7 +344,10 @@ export function useFactuurMutations() {
         .eq("id", factuurId);
       if (uErr) throw uErr;
 
-      const matchedRegels = ((factuur as any).factuur_regels ?? []).filter(
+      const regels = ((factuur as any).factuur_regels ?? []) as any[];
+      const leverancierId = (factuur as any).leverancier_id as string | null;
+
+      const matchedRegels = regels.filter(
         (r: any) =>
           r.ingredient_id &&
           (r.match_status === "matched" || r.match_status === "manual") &&
@@ -362,6 +365,35 @@ export function useFactuurMutations() {
           })
           .eq("id", regel.ingredient_id);
         if (!error) updated++;
+      }
+
+      // R3: leer-loop — upsert artikelnummer→ingredient mapping zodat volgende
+      // factuur van dezelfde leverancier direct via TIER 1 matcht (confidence 1.0).
+      if (leverancierId) {
+        const upsertRows = regels
+          .filter(
+            (r: any) =>
+              r.ingredient_id &&
+              r.ai_raw_artikelnummer &&
+              (r.match_status === "matched" || r.match_status === "manual")
+          )
+          .map((r: any) => ({
+            leverancier_id: leverancierId,
+            artikel_nummer: String(r.ai_raw_artikelnummer).trim(),
+            ingredient_id: r.ingredient_id as string,
+            artikel_naam: r.product_naam_herkend ?? "Onbekend",
+            is_actief: true,
+            laatst_gesynchroniseerd: new Date().toISOString(),
+          }));
+
+        if (upsertRows.length) {
+          const { error: upErr } = await supabase
+            .from("leveranciers_artikelen")
+            .upsert(upsertRows, { onConflict: "leverancier_id,artikel_nummer" });
+          if (upErr) {
+            console.warn("[goedkeuren] leveranciers_artikelen upsert failed:", upErr);
+          }
+        }
       }
 
       return { updated };

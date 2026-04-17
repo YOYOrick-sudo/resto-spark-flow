@@ -51,6 +51,9 @@ interface BaseAIOptions {
 
   // Documents (bv. PDFs) — verstuurd via Gemini OpenAI-compat als data:<mime>;base64
   documents?: Array<{ data: string; mimeType: string }>;
+
+  // Override default timeout (ms). Default 20000. Verhoog voor zware document-parsing (bv. 60000).
+  timeoutMs?: number;
 }
 
 export interface AICallOptions extends BaseAIOptions {
@@ -309,7 +312,7 @@ async function callGateway(
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? TIMEOUT_MS);
 
   try {
     const response = await fetch(GATEWAY_URL, {
