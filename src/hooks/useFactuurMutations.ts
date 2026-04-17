@@ -324,8 +324,23 @@ export function useFactuurMutations() {
       }
 
       // 4. Upsert leveranciers_artikelen — R3.5: zowel verpakking-prijs als per-basiseenheid prijs.
+      // R4b-3: deactiveer ALLE bestaande koppelingen voor deze (leverancier, ingredient)
+      // combinatie vóór upsert. Voorkomt duplicate is_actief=true rijen wanneer dezelfde
+      // leverancier hetzelfde ingrediënt onder een nieuw artikelnummer levert.
       const artNr = vars.artikelnummer?.trim();
       if (vars.leverancierId && artNr) {
+        const { error: deactErr } = await supabase
+          .from("leveranciers_artikelen")
+          .update({ is_actief: false })
+          .eq("leverancier_id", vars.leverancierId)
+          .eq("ingredient_id", ing.id);
+        if (deactErr) {
+          console.warn(
+            "[createNewIngredientFromFactuur] deactivate existing failed:",
+            deactErr
+          );
+        }
+
         const { error: laErr } = await supabase
           .from("leveranciers_artikelen")
           .upsert(
@@ -462,8 +477,19 @@ export function useFactuurMutations() {
           }
 
           // 4. UPSERT leveranciers_artikelen
+          // R4b-3: deactiveer ALLE bestaande koppelingen voor deze (leverancier, ingredient)
+          // vóór upsert — zelfde reden als createNewIngredientFromFactuur.
           const artNr = item.artikelnummer?.trim();
           if (item.leverancierId && artNr) {
+            const { error: deactErr } = await supabase
+              .from("leveranciers_artikelen")
+              .update({ is_actief: false })
+              .eq("leverancier_id", item.leverancierId)
+              .eq("ingredient_id", ing.id);
+            if (deactErr) {
+              console.warn("[bulkCreate] deactivate existing failed:", deactErr);
+            }
+
             const { error: laErr } = await supabase
               .from("leveranciers_artikelen")
               .upsert(
@@ -603,6 +629,23 @@ export function useFactuurMutations() {
             dedupMap.set(key, row);
           }
           const deduped = Array.from(dedupMap.values());
+
+          // R4b-3: deactiveer ALLE bestaande koppelingen voor elke (leverancier, ingredient)
+          // combinatie die we straks gaan upserten. Voorkomt duplicate is_actief=true
+          // wanneer eenzelfde ingrediënt eerder onder een ander artikelnummer was gekoppeld.
+          const uniekeIngredientIds = Array.from(
+            new Set(deduped.map((r) => r.ingredient_id))
+          );
+          if (uniekeIngredientIds.length > 0) {
+            const { error: deactErr } = await supabase
+              .from("leveranciers_artikelen")
+              .update({ is_actief: false })
+              .eq("leverancier_id", leverancierId)
+              .in("ingredient_id", uniekeIngredientIds);
+            if (deactErr) {
+              console.warn("[goedkeuren] deactivate existing failed:", deactErr);
+            }
+          }
 
           const { error: upErr } = await supabase
             .from("leveranciers_artikelen")
