@@ -152,7 +152,7 @@ export function GoedkeurenPreviewModal({
   isConfirming,
   factuur,
 }: Props) {
-  const { data: preview, isLoading } = usePreviewGoedkeuring(open, factuur);
+  const { data: preview, isLoading, isError, error } = usePreviewGoedkeuring(open, factuur);
   const [acked, setAcked] = React.useState(false);
 
   React.useEffect(() => {
@@ -161,6 +161,21 @@ export function GoedkeurenPreviewModal({
 
   const heeftGroot = preview?.heeftGroteWijzigingen ?? false;
   const canConfirm = !isLoading && !!preview && (!heeftGroot || acked);
+
+  React.useEffect(() => {
+    if (open) {
+      console.log("[preview modal]", {
+        isLoading,
+        isError,
+        error,
+        hasPreview: !!preview,
+        heeftGroot,
+        acked,
+        canConfirm,
+        factuurRegels: factuur?.regels.length ?? 0,
+      });
+    }
+  }, [open, isLoading, isError, error, preview, heeftGroot, acked, canConfirm, factuur]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !isConfirming && onClose()}>
