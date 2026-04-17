@@ -103,23 +103,12 @@ export default function Ingredienten() {
       {
         key: "naam",
         header: "Naam",
-        render: (item) => {
-          const actieveLevs = getActieveLeveranciers(item);
-          const showGeenLevBadge =
-            actieveLevs.length === 0 &&
-            (item.kostprijs_bron || "").toLowerCase() === "handmatig";
-          return (
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-foreground">{item.naam}</p>
-                {showGeenLevBadge && (
-                  <NestoBadge variant="warning" size="sm">Geen leverancier</NestoBadge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{item.categorie}</p>
-            </div>
-          );
-        },
+        render: (item) => (
+          <div>
+            <p className="font-medium text-foreground">{item.naam}</p>
+            <p className="text-xs text-muted-foreground">{item.categorie}</p>
+          </div>
+        ),
       },
       {
         key: "eenheid",
