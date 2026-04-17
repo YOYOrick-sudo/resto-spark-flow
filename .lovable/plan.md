@@ -1,96 +1,45 @@
 
 
-## Sprint C2d — Bouwplan (definitief, met blokkerende rename-conflict)
+## Plan: Wit Shouf-logo voor dark mode
 
-### Stap 1 — Type & helper
+### Context
+De `NestoLogo` component (`src/components/polar/NestoLogo.tsx`) gebruikt nu drie PNG-assets: `shouf-icon.png`, `shouf-lockup.png`, `shouf-wordmark.png`. Deze zijn in de standaard (donkere) brand-kleur en blijven hetzelfde in light én dark mode — in dark mode is dat te donker / niet leesbaar.
 
-**`src/hooks/useChecklistTemplates.ts`** — voeg toe aan `ChecklistItem`:
-```ts
-sectie?: string;  // undefined = "Algemeen"
+De gebruiker wil een wit-variant voor dark mode, maar niet spierwit (#FFFFFF) — eerder een zachte off-white zodat het minder fel aanvoelt.
+
+### Aanpak
+
+**Optie gekozen: CSS-filter via dark-mode class** (geen nieuwe assets nodig, geen upload-stap, direct werkend)
+
+In plaats van drie nieuwe witte PNG-bestanden te genereren/uploaden, gebruiken we een CSS-filter dat de bestaande donkere logo's omzet naar zacht-wit in dark mode:
+
+```tsx
+<img
+  src={src}
+  alt={alt}
+  style={{ height, width: 'auto' }}
+  draggable={false}
+  className="dark:brightness-0 dark:invert dark:opacity-90"
+/>
 ```
 
-**`src/lib/sectieGroup.ts`** (nieuw):
-```ts
-export const DEFAULT_SECTIE = "Algemeen";
+- `dark:brightness-0` → maakt logo volledig zwart (silhouet)
+- `dark:invert` → keert om naar wit
+- `dark:opacity-90` → zacht-wit (niet spierwit), ongeveer #E6E6E6-effect
 
-export interface SectieGroep {
-  naam: string;
-  items: ChecklistItem[];
-}
+Dit werkt voor alle drie de varianten (icon / wordmark / lockup) zonder asset-werk, en de gebruiker kan het percentage later finetunen (80, 85, 90, 95).
 
-export function groupItemsBySectie(items: ChecklistItem[]): SectieGroep[] {
-  const order: string[] = [];
-  const map = new Map<string, ChecklistItem[]>();
-  for (const it of [...items].sort((a, b) => a.volgorde - b.volgorde)) {
-    const naam = it.sectie?.trim() || DEFAULT_SECTIE;
-    if (!map.has(naam)) { map.set(naam, []); order.push(naam); }
-    map.get(naam)!.push(it);
-  }
-  return order.map((naam) => ({ naam, items: map.get(naam)! }));
-}
-```
+### Bestand
 
-### Stap 2 — Run-pagina rendering (`TakenRun.tsx`)
+| Bestand | Wijziging |
+|---|---|
+| `src/components/polar/NestoLogo.tsx` | `className` op `<img>` met `dark:brightness-0 dark:invert dark:opacity-90` |
 
-- Nieuwe component **`src/components/taken/SectieGroup.tsx`** (presentatie):
-  - Props: `naam`, `done`, `total`, `children`
-  - Lokale state `manuallyExpanded: boolean | null` (null = auto)
-  - Auto-collapse als `done === total && total > 0 && manuallyExpanded !== true`
-  - Header: klikbaar, toont `{NAAM} ({done}/{total})` of `✓ {naam} — klaar` (success-kleur, sm font, uppercase tracking)
-  - Smooth transitie via shadcn `Collapsible` (al beschikbaar)
-- In `TakenRun.tsx`:
-  - Vervang flat `items.map(...)` door `groupItemsBySectie(items).map(group => <SectieGroup>...</SectieGroup>)`
-  - Render-functie per item extraheren naar `renderItem(item)` om in beide modi (check/temp) te hergebruiken
-  - Sectie-headers krijgen `border-t border-border/40` als visuele scheiding (eerste sectie geen border)
-  - Footer-progress (globaal done/total) blijft ongewijzigd
+### Buiten scope
 
-### Stap 3 — Editor: per-sectie groepering (`TemplatesTab.tsx`)
+- Aparte witte PNG-assets aanmaken/uploaden (kan later als de filter-aanpak niet scherp genoeg is)
+- Logo-kleur configureerbaar via prop (overkill voor één use-case)
 
-- Helper-state in `TemplateEditor`: groepen afgeleid via `useMemo(() => groupItemsBySectie(items), [items])`
-- Items-blok herstructureren: één `DndContext` over alle secties, **per sectie** een eigen `SortableContext` met die items
-- Boven de items-lijst: knop **`+ Sectie toevoegen`** → toont kleine inline input → bij Enter: voeg leeg item toe met `sectie = nieuweNaam`
-- Per sectie-blok:
-  - **Sectie-header rij** (boven sortable-list): inline-editable `<input>` voor sectie-naam, kleine delete-knop (`Trash2`, hover-only)
-  - Header alleen als `naam !== DEFAULT_SECTIE` óf als er meerdere secties zijn
-- **Rename-flow met conflict-blokkade**:
-  - Lokale state `editingNaam` per sectie + `error: string | null`
-  - Op blur/Enter: check of nieuwe naam (case-insensitive trim) al bestaat in andere secties van dit template
-  - Conflict → toon inline `<p class="text-xs text-error">Sectie '{naam}' bestaat al</p>` onder input, revert naar oude naam in state na korte delay (~2s) of bij focus elders
-  - Geen toast, geen merge
-  - Geen conflict → bulk-update alle items met die oude `sectie` → nieuwe naam, `saveNow({ items: next })`
-- **Sectie verwijderen**: alle items in die sectie krijgen `sectie = undefined` (vallen onder Algemeen), `saveNow`
-- **Cross-section drag-and-drop**:
-  - Verwijder `restrictToParentElement` modifier (alleen `restrictToVerticalAxis` blijft)
-  - In `handleDragEnd`: vind `over`-item, lees `over.sectie`, zet `active.sectie = over.sectie`, herbereken volgorde
-  - Items binnen `volgorde` bepalen sectie-volgorde automatisch (eerste verschijning)
-
-### Stap 4 — Verificatie
-
-- Manuele test: voeg sectie toe → items verschijnen onder header → versleep item naar andere sectie → controleer dat `sectie`-veld update in DB → run-pagina toont gegroepeerd
-- Edge case: rename "MEP-kant" naar "Spoelkeuken" (bestaand) → blokkade + inline error
-- Edge case: vink alle items in sectie af → auto-collapse na 300ms → klik header → expand voor review
-
-### Stap 5 — Screenshots (browser)
-
-1. Editor: template met sectie-headers + items
-2. Editor: cross-section drag (voor + na = 2 screenshots)
-3. Run: tijdlijn met sectie-progress `(2/5)`
-4. Run: auto-collapsed sectie `✓ MEP-kant — klaar`
-5. Run: collapsed sectie uitgeklapt na klik
-
-### Wijzigende/nieuwe bestanden
-
-| Bestand | Type | Wijziging |
-|---|---|---|
-| `src/hooks/useChecklistTemplates.ts` | edit | `sectie?: string` op `ChecklistItem` |
-| `src/lib/sectieGroup.ts` | **nieuw** | `groupItemsBySectie()` + `DEFAULT_SECTIE` |
-| `src/components/taken/SectieGroup.tsx` | **nieuw** | Sectie-blok met auto-collapse voor run-pagina |
-| `src/components/taken/TemplatesTab.tsx` | edit | Per-sectie groepering, +Sectie knop, rename met conflict-check, cross-section DnD |
-| `src/pages/TakenRun.tsx` | edit | Sectie-rendering via `SectieGroup` |
-
-### Buiten scope (bevestigd)
-
-- Drag van hele secties (volgorde via items)
-- Secties in archivering/export
-- Per_item modus + secties expliciet getest (werkt orthogonaal, niet apart gevalideerd)
+### Notitie
+Als de filter-aanpak niet het gewenste resultaat geeft (bijv. door verloop in het logo of te zachte randen), is de fallback om witte PNG-versies te uploaden en via een `useTheme()` hook de juiste src te kiezen. Beginnen met de filter-aanpak omdat dat 0 assets en 0 hooks vereist.
 
