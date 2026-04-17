@@ -49,6 +49,7 @@ import WidgetPreviewDemo from "./pages/WidgetPreviewDemo";
 import WidgetMockups from "./pages/WidgetMockups";
 import PopupPreviewDemo from "./pages/PopupPreviewDemo";
 import OnboardingPage from "./pages/OnboardingPage";
+import PublicApplicationPage from "./pages/PublicApplicationPage";
 import OnboardingDetail from "./pages/OnboardingDetail";
 import SettingsOnboarding from "./pages/settings/SettingsOnboarding";
 import SettingsCommunicatie from "./pages/settings/SettingsCommunicatie";
@@ -150,6 +151,7 @@ const App = () => (
                 <Route path="/manage/:token" element={<ManageReservation />} />
                 <Route path="/waitlist/accept/:token" element={<WaitlistAccept />} />
                 <Route path="/reconfirm/:token" element={<ReconfirmReservation />} />
+                <Route path="/werken-bij/:slug" element={<PublicApplicationPage />} />
                 <Route path="/panel-demo" element={<PanelDemo />} />
                 <Route path="/widget-preview" element={<WidgetPreviewDemo />} />
                 <Route path="/widget-mockups" element={<WidgetMockups />} />
