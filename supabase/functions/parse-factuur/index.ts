@@ -21,6 +21,42 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `Je bent een factuur-parser voor de horeca. Analyseer de factuurafbeelding en extraheer alle informatie.
 
+=== VERPAKKING PARSING — WERKENDE VOORBEELDEN (LEES EERST) ===
+
+Input: "Gyoza DIM SUM CHEF 6×41×18gr 1 doos"
+Output: verpakking_aantal=246 (= 6 × 41), verpakking_eenheid="doos", basiseenheid_per_item="stuk"
+Redenering: "18gr" is stukgewicht, NIET meetellen in totaal.
+
+Input: "Nina Large Pitabrood 10×7×95gr"
+Output: verpakking_aantal=70 (= 10 × 7), verpakking_eenheid="doos", basiseenheid_per_item="stuk"
+Redenering: "95gr" is stukgewicht per pitabrood, NIET meetellen.
+
+Input: "Havermout Gemberkoekjes 4×150st"
+Output: verpakking_aantal=600 (= 4 × 150), verpakking_eenheid="doos", basiseenheid_per_item="stuk"
+Redenering: "st" = expliciet stuks per verpakking.
+
+Input: "Frituurolie LEVO 2×5lt"
+Output: verpakking_aantal=10, verpakking_eenheid="doos", basiseenheid_per_item="L"
+
+Input: "Ricotta LATTE CARSO 1,5kg"
+Output: verpakking_aantal=1.5, verpakking_eenheid="bak", basiseenheid_per_item="kg"
+
+Input: "Melk volle 12×1L"
+Output: verpakking_aantal=12, verpakking_eenheid="krat", basiseenheid_per_item="L"
+
+Input: "Tomaten los 1 kg"
+Output: verpakking_aantal=null, verpakking_eenheid=null, basiseenheid_per_item="kg"
+Redenering: losse verkoop, geen verpakking.
+
+REGELS:
+- Patroon Xx"Yx"Zgr/ml met telbaar product: totaal STUKS = X × Y, Z (stukgewicht) NEGEREN.
+- Patroon Xx"Yeenheid (geen 3e cijfer): totaal = X × Y in die eenheid.
+- Losse gewicht zonder ×: totaal = dat gewicht (bv "1,5kg" → 1.5 kg).
+- Expliciet "st" in naam: dat is stuksaantal per verpakking.
+- Onduidelijk: verpakking_aantal=null, NIET raden.
+- Lever GEEN prijs-per-stuk berekening; alleen prijs zoals op factuur (per verpakking). Nesto berekent zelf.
+=== EINDE VERPAKKING PARSING ===
+
 Geef een JSON-object terug met exact deze structuur:
 {
   "leverancier_naam": "naam van de leverancier op de factuur",
@@ -65,17 +101,8 @@ EXTRA VELDEN — voor "Nieuw ingrediënt" suggesties:
 - basiseenheid: kies de natuurlijke recept-eenheid, NIET de leveranciers-verpakking.
   "Eieren 30st doos" → "stuk"; "Olie 5L jerrycan" → "L"; "Bloem 25kg zak" → "kg"; "Melk 6x1L" → "L".
 
-VERPAKKING (KRITIEK voor correcte food cost):
-- verpakking_aantal: TOTAAL aantal basiseenheden in 1 verpakking.
-  "Gyoza 6×41×18gr 1 doos" → verpakking_aantal=246, basiseenheid=stuk (6×41=246 stuks)
-  "Frituurolie 2×5lt 1 doos" → verpakking_aantal=10, basiseenheid=L (2×5=10 liter)
-  "Falafel 2×1,5kg 1 doos" → verpakking_aantal=3, basiseenheid=kg (2×1,5=3 kg)
-  "Bloem 25kg 1 zak" → verpakking_aantal=25, basiseenheid=kg
-  "Tomaten 1 kg los" → verpakking_aantal=null (geen verpakking, los geleverd)
-- verpakking_eenheid: doos | pak | fles | krat | zak | jerrycan | null (null als los/per basiseenheid)
-- verpakking_raw: origineel tekstfragment uit productnaam, bv "6×41×18gr" of "2×5lt"
-- BELANGRIJK: prijs_per_eenheid blijft de prijs zoals letterlijk op factuur (= per doos/pak/etc).
-  Bereken NIET zelf de stuk-prijs; Nesto doet dat. Als verpakking onduidelijk: laat verpakking_aantal NULL.`;
+VERPAKKING — zie de WERKENDE VOORBEELDEN bovenaan deze prompt. Vul altijd verpakking_raw in als origineel tekstfragment.
+verpakking_eenheid mag zijn: doos | pak | fles | krat | zak | jerrycan | bak | bos | null.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
