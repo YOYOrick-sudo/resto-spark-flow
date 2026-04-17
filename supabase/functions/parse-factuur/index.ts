@@ -141,14 +141,28 @@ serve(async (req) => {
       });
     }
 
-    // Convert to base64
+    // Convert to base64 (chunked — voorkomt stack overflow op grote files)
     const arrayBuffer = await fileData.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     let binaryStr = "";
-    for (let i = 0; i < uint8Array.length; i++) {
-      binaryStr += String.fromCharCode(uint8Array[i]);
+    const CHUNK = 8192;
+    for (let i = 0; i < uint8Array.length; i += CHUNK) {
+      binaryStr += String.fromCharCode(...uint8Array.subarray(i, i + CHUNK));
     }
     const base64 = btoa(binaryStr);
+
+    // Detect MIME van extensie → PDF gaat via documents[], images via images[]
+    const ext = factuur.bestandsnaam.toLowerCase().split(".").pop() ?? "";
+    const isPDF = ext === "pdf";
+    const mimeType = isPDF
+      ? "application/pdf"
+      : ext === "png"
+        ? "image/png"
+        : "image/jpeg";
+
+    console.log(
+      `[parse-factuur] file=${factuur.bestandsnaam} ext=${ext} mime=${mimeType} bytes=${uint8Array.length} path=${isPDF ? "documents[]" : "images[]"}`
+    );
 
     // --- Call AI (Gemini Vision via callAI) ---
     let aiResult;
@@ -158,8 +172,10 @@ serve(async (req) => {
         organizationId,
         locationId,
         systemPrompt: SYSTEM_PROMPT,
-        prompt: "Analyseer deze factuurafbeelding en extraheer alle productregels en metadata.",
-        images: [base64],
+        prompt: "Analyseer deze factuur en extraheer alle productregels en metadata.",
+        ...(isPDF
+          ? { documents: [{ data: base64, mimeType: "application/pdf" }] }
+          : { images: [base64] }),
         jsonMode: true,
         maxTokens: 4000,
         temperature: 0.2,
