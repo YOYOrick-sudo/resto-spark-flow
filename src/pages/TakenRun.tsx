@@ -325,6 +325,13 @@ export default function TakenRun() {
         cancelLabel="Annuleren"
         onConfirm={doAfronden}
       />
+
+      <FotoReferentieDialog
+        open={fotoDialogItem !== null}
+        onOpenChange={(o) => { if (!o) setFotoDialogItem(null); }}
+        titel={fotoDialogItem?.titel ?? ""}
+        fotoUrls={fotoDialogItem?.foto_urls ?? []}
+      />
     </div>
   );
 }
