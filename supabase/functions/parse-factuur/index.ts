@@ -355,6 +355,10 @@ serve(async (req) => {
       let ingredientId: string | null = null;
       let matchStatus = "unmatched";
       let matchConfidence: number | null = null;
+      let tier1Cache: {
+        verpakking_hoeveelheid: number | null;
+        verpakking_eenheid: string | null;
+      } | null = null;
 
       const artikelnr = regel.artikelnummer != null
         ? String(regel.artikelnummer).trim() || null
@@ -365,7 +369,7 @@ serve(async (req) => {
       if (artikelnr && leverancierId) {
         const { data } = await supabase
           .from("leveranciers_artikelen")
-          .select("ingredient_id")
+          .select("ingredient_id, verpakking_hoeveelheid, verpakking_eenheid")
           .eq("leverancier_id", leverancierId)
           .eq("artikel_nummer", artikelnr)
           .eq("is_actief", true)
@@ -376,6 +380,10 @@ serve(async (req) => {
           ingredientId = data.ingredient_id;
           matchStatus = "matched";
           matchConfidence = 1.0;
+          tier1Cache = {
+            verpakking_hoeveelheid: data.verpakking_hoeveelheid as number | null,
+            verpakking_eenheid: data.verpakking_eenheid as string | null,
+          };
         }
       }
 
@@ -458,16 +466,35 @@ serve(async (req) => {
       // Reden: voorkomt afronding-conflicten tussen AI's stuk-prijs en factuur-totaal.
       const allowedVerpakking = ["doos","pak","fles","krat","zak","jerrycan","bos"];
       const rawVerpEenh = regel.verpakking_eenheid?.toString().toLowerCase().trim();
-      const verpakkingEenheid = rawVerpEenh && allowedVerpakking.includes(rawVerpEenh) ? rawVerpEenh : null;
+      const aiVerpakkingEenheid = rawVerpEenh && allowedVerpakking.includes(rawVerpEenh) ? rawVerpEenh : null;
 
-      const verpakkingHvh = typeof regel.verpakking_aantal === "number" && regel.verpakking_aantal > 0
+      const aiVerpakkingHvh = typeof regel.verpakking_aantal === "number" && regel.verpakking_aantal > 0
         ? regel.verpakking_aantal
         : null;
+
+      // D.6b quick fix — Cache override: bij Tier 1 match én cache gevuld → gebruik cache, NEGEER AI
+      const cacheHasPackaging =
+        tier1Cache?.verpakking_hoeveelheid != null && tier1Cache?.verpakking_eenheid != null;
+      const usedCachedPackaging = cacheHasPackaging;
+
+      const verpakkingHvh = cacheHasPackaging
+        ? Number(tier1Cache!.verpakking_hoeveelheid)
+        : aiVerpakkingHvh;
+      const verpakkingEenheid = cacheHasPackaging
+        ? tier1Cache!.verpakking_eenheid
+        : aiVerpakkingEenheid;
 
       const prijsOpFactuur = typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
       const prijsPerBasiseenheid = (verpakkingHvh && prijsOpFactuur != null)
         ? prijsOpFactuur / verpakkingHvh
         : prijsOpFactuur; // geen verpakking → factuurprijs is al per basiseenheid
+
+      console.log(
+        `[parse-factuur] regel "${productNaam}" tier=${matchConfidence ?? 'none'} ` +
+        `cached_packaging_used=${usedCachedPackaging} ` +
+        `verpakking=${verpakkingHvh}×${verpakkingEenheid} ` +
+        `(ai=${aiVerpakkingHvh}×${aiVerpakkingEenheid})`
+      );
 
       regelInserts.push({
         factuur_id: factuurId,
