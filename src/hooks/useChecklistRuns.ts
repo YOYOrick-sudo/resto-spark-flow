@@ -25,7 +25,7 @@ export interface ChecklistRun {
   template_id: string;
   datum: string;
   shift: string | null;
-  status: string;
+  status: "open" | "bezig" | "afgerond";
   gestart_door: string | null;
   afgerond_door: string | null;
   gestart_op: string | null;
@@ -35,15 +35,28 @@ export interface ChecklistRun {
   responses: ChecklistResponse[];
 }
 
+/**
+ * Een run is "bevroren" voor HACCP zodra het 03:00 of later is op de dag NA de run-datum.
+ * Voorbeeld: run van 17-04 → bevroren vanaf 18-04 03:00.
+ */
+export function isRunFrozen(run: Pick<ChecklistRun, "datum">): boolean {
+  const runDate = new Date(`${run.datum}T00:00:00`);
+  const freezeAt = new Date(runDate);
+  freezeAt.setDate(freezeAt.getDate() + 1);
+  freezeAt.setHours(3, 0, 0, 0);
+  return new Date() >= freezeAt;
+}
+
 export function useChecklistRuns(datum?: string) {
   const { currentLocation } = useUserContext();
   const { user } = useAuth();
   const locationId = currentLocation?.id;
   const queryClient = useQueryClient();
   const today = datum || new Date().toISOString().split("T")[0];
+  const queryKey = ["checklist-runs", locationId, today];
 
   const query = useQuery({
-    queryKey: ["checklist-runs", locationId, today],
+    queryKey,
     queryFn: async () => {
       const { data: runs, error } = await supabase
         .from("checklist_runs")
@@ -57,15 +70,13 @@ export function useChecklistRuns(datum?: string) {
       let responses: any[] = [];
       if (runIds.length > 0) {
         const { data, error: rErr } = await supabase
-          .from("checklist_responses")
-          .select("*")
-          .in("run_id", runIds);
+          .from("checklist_responses").select("*").in("run_id", runIds);
         if (rErr) throw rErr;
         responses = data ?? [];
       }
 
       const responseMap = new Map<string, ChecklistResponse[]>();
-      responses.forEach((r: any) => {
+      responses.forEach((r) => {
         if (!responseMap.has(r.run_id)) responseMap.set(r.run_id, []);
         responseMap.get(r.run_id)!.push(r);
       });
@@ -74,9 +85,8 @@ export function useChecklistRuns(datum?: string) {
         ...r,
         template: r.template ? {
           ...r.template,
-          items: (typeof r.template.items === 'string'
-            ? JSON.parse(r.template.items)
-            : r.template.items) as ChecklistItem[]
+          items: (typeof r.template.items === "string"
+            ? JSON.parse(r.template.items) : r.template.items) as ChecklistItem[],
         } : undefined,
         responses: responseMap.get(r.id) ?? [],
       })) as ChecklistRun[];
@@ -87,88 +97,94 @@ export function useChecklistRuns(datum?: string) {
   const startDag = useMutation({
     mutationFn: async (templateIds: string[]) => {
       const rows = templateIds.map((tid) => ({
-        location_id: locationId!,
-        template_id: tid,
-        datum: today,
-        status: "open",
-        gestart_door: user?.id ?? null,
-        gestart_op: new Date().toISOString(),
+        location_id: locationId!, template_id: tid, datum: today, status: "open",
+        gestart_door: user?.id ?? null, gestart_op: new Date().toISOString(),
       }));
       const { error } = await supabase.from("checklist_runs").insert(rows);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["checklist-runs", locationId, today] });
+      queryClient.invalidateQueries({ queryKey });
       nestoToast.success("Dag gestart — checklists aangemaakt");
     },
     onError: () => nestoToast.error("Fout bij starten dag"),
   });
 
+  /**
+   * OPTIMISTIC saveResponse — cache direct bijwerken, rollback bij fout.
+   */
   const saveResponse = useMutation({
     mutationFn: async (input: {
-      run_id: string;
-      item_id: string;
-      type: string;
-      checked?: boolean;
-      temperatuur?: number;
-      notitie?: string;
-      temp_in_range?: boolean;
+      run_id: string; item_id: string; type: string;
+      checked?: boolean; temperatuur?: number; notitie?: string; temp_in_range?: boolean;
     }) => {
       const { data: existing } = await supabase
-        .from("checklist_responses")
-        .select("id")
-        .eq("run_id", input.run_id)
-        .eq("item_id", input.item_id)
-        .maybeSingle();
+        .from("checklist_responses").select("id")
+        .eq("run_id", input.run_id).eq("item_id", input.item_id).maybeSingle();
 
       const payload = {
-        run_id: input.run_id,
-        item_id: input.item_id,
-        type: input.type,
-        checked: input.checked ?? null,
-        temperatuur: input.temperatuur ?? null,
-        notitie: input.notitie ?? null,
-        temp_in_range: input.temp_in_range ?? null,
-        ingevuld_door: user?.id ?? null,
-        ingevuld_op: new Date().toISOString(),
+        run_id: input.run_id, item_id: input.item_id, type: input.type,
+        checked: input.checked ?? null, temperatuur: input.temperatuur ?? null,
+        notitie: input.notitie ?? null, temp_in_range: input.temp_in_range ?? null,
+        ingevuld_door: user?.id ?? null, ingevuld_op: new Date().toISOString(),
       };
 
       if (existing?.id) {
-        const { error } = await supabase.from("checklist_responses").update(payload).eq("id", existing.id);
+        const { error } = await supabase.from("checklist_responses")
+          .update(payload).eq("id", existing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("checklist_responses").insert(payload);
         if (error) throw error;
       }
 
-      // Update run status to 'bezig' if still 'open'
-      await supabase
-        .from("checklist_runs")
+      await supabase.from("checklist_runs")
         .update({ status: "bezig", gestart_op: new Date().toISOString(), gestart_door: user?.id })
-        .eq("id", input.run_id)
-        .eq("status", "open");
+        .eq("id", input.run_id).eq("status", "open");
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["checklist-runs", locationId, today] });
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ChecklistRun[]>(queryKey);
+      queryClient.setQueryData<ChecklistRun[]>(queryKey, (old) => {
+        if (!old) return old;
+        return old.map((run) => {
+          if (run.id !== input.run_id) return run;
+          const existingIdx = run.responses.findIndex((r) => r.item_id === input.item_id);
+          const optimistic: ChecklistResponse = {
+            id: existingIdx >= 0 ? run.responses[existingIdx].id : `optimistic-${input.item_id}`,
+            run_id: input.run_id, item_id: input.item_id, type: input.type,
+            checked: input.checked ?? null,
+            temperatuur: input.temperatuur ?? null,
+            notitie: input.notitie ?? null,
+            foto_url: null,
+            temp_in_range: input.temp_in_range ?? null,
+            ingevuld_door: user?.id ?? null,
+            ingevuld_op: new Date().toISOString(),
+          };
+          const responses = existingIdx >= 0
+            ? run.responses.map((r, i) => (i === existingIdx ? optimistic : r))
+            : [...run.responses, optimistic];
+          return { ...run, status: run.status === "open" ? "bezig" : run.status, responses };
+        });
+      });
+      return { previous };
     },
+    onError: (_err, _input, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(queryKey, ctx.previous);
+      nestoToast.error("Opslaan mislukt — wijziging teruggedraaid");
+    },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey }); },
   });
 
   const afronden = useMutation({
     mutationFn: async (runId: string) => {
-      const { error } = await supabase
-        .from("checklist_runs")
-        .update({
-          status: "afgerond",
-          afgerond_door: user?.id ?? null,
-          afgerond_op: new Date().toISOString(),
-        })
-        .eq("id", runId);
+      const { error } = await supabase.from("checklist_runs").update({
+        status: "afgerond", afgerond_door: user?.id ?? null,
+        afgerond_op: new Date().toISOString(),
+      }).eq("id", runId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["checklist-runs", locationId, today] });
-      
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey }); },
     onError: () => nestoToast.error("Fout bij afronden"),
   });
 
