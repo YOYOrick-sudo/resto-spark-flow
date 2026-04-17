@@ -32,6 +32,7 @@ import KaartbeheerNieuw from "./pages/KaartbeheerNieuw";
 import KaartbeheerMenus from "./pages/KaartbeheerMenus";
 import KaartbeheerMenuEngineering from "./pages/KaartbeheerMenuEngineering";
 import Taken from "./pages/Taken";
+import TakenRun from "./pages/TakenRun";
 import PanelDemo from "./pages/PanelDemo";
 import SettingsVoorkeuren from "./pages/SettingsVoorkeuren";
 import SettingsKeuken from "./pages/SettingsKeuken";
@@ -194,6 +195,7 @@ const App = () => (
                   <Route path="/inkoop/leveranciers/:id/import" element={<Suspense fallback={null}><AfnamelijstImport /></Suspense>} />
                   <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
                   <Route path="/taken" element={<Taken />} />
+                  <Route path="/taken/run/:runId" element={<TakenRun />} />
                   
                   {/* Kaartbeheer */}
                   <Route path="/kaartbeheer" element={<Kaartbeheer />} />
