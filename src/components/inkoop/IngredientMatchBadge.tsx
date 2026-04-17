@@ -26,10 +26,17 @@ interface Props {
 export interface NewIngredientPrefill {
   naam: string;
   eenheid: string;
+  /** R3.5 — Prijs per basiseenheid (afgeleid). NIET prijs per verpakking. */
   kostprijs?: number;
   aliasNaam: string;
   artikelnummer?: string | null;
   categorie?: string;
+  // R3.5 — leveringsinfo voor modal-card
+  verpakkingHoeveelheid?: number | null;
+  verpakkingEenheid?: string | null;
+  prijsPerVerpakking?: number | null;
+  prijsPerBasiseenheid?: number | null;
+  verpakkingRaw?: string | null;
 }
 
 export function IngredientMatchBadge({ regel, leverancierId, onOpenNewIngredient }: Props) {
@@ -37,8 +44,6 @@ export function IngredientMatchBadge({ regel, leverancierId, onOpenNewIngredient
   const { confirmMatch } = useFactuurMutations();
 
   // FIX 1: gebruik UITSLUITEND match_confidence voor de badge.
-  // ai_confidence is OCR-leesvertrouwen, geen match-vertrouwen — die mengen
-  // gaf misleidende "Onzekere match (95%)" labels op unmatched regels.
   const conf = regel.match_confidence ?? 0;
   const isManual = regel.match_status === "manual";
   const isMatched = regel.match_status === "matched";
@@ -46,13 +51,18 @@ export function IngredientMatchBadge({ regel, leverancierId, onOpenNewIngredient
 
   const prefill: NewIngredientPrefill = {
     naam: regel.ai_suggested_naam ?? regel.ai_raw_naam ?? regel.product_naam_herkend,
-    // FIX 6: basiseenheid uit AI-hint (kg/L/stuk) i.p.v. leveranciers-verpakking (doos)
     eenheid: regel.ai_suggested_eenheid ?? "stuk",
-    kostprijs: regel.prijs_per_eenheid ?? undefined,
+    // R3.5 — kostprijs is per basiseenheid (afgeleid), met fallback naar factuurprijs
+    kostprijs: regel.prijs_per_basiseenheid ?? regel.prijs_per_eenheid ?? undefined,
     aliasNaam: regel.product_naam_herkend,
     artikelnummer: regel.ai_raw_artikelnummer,
-    // FIX 5: categorie-hint uit AI (groenten/vlees/...) — undefined = laat modal default
     categorie: regel.ai_category_hint ?? undefined,
+    // R3.5 leveringsinfo
+    verpakkingHoeveelheid: regel.verpakking_hoeveelheid,
+    verpakkingEenheid: regel.verpakking_eenheid,
+    prijsPerVerpakking: regel.prijs_per_eenheid,
+    prijsPerBasiseenheid: regel.prijs_per_basiseenheid,
+    verpakkingRaw: regel.ai_raw_verpakking_tekst,
   };
 
   // STATE 1 — Manual OR high-confidence matched (>0.85)
