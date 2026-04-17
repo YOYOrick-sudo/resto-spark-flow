@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { NestoSelect, NestoBadge, Spinner, EmptyState } from "@/components/polar";
 import { useFactuurUploads } from "@/hooks/useFactuurUploads";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurUploadZone } from "./FactuurUploadZone";
-import { FactuurDetailPanel } from "./FactuurDetailPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Lightbulb, Sparkles } from "lucide-react";
 
@@ -33,7 +33,7 @@ const AI_BADGES: Record<string, { variant: "default" | "warning" | "success" | "
 export function FacturenTab() {
   const [statusFilter, setStatusFilter] = useState("");
   const [leverancierFilter, setLeverancierFilter] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const qc = useQueryClient();
 
   const { data: facturen, isLoading } = useFactuurUploads({
@@ -120,7 +120,7 @@ export function FacturenTab() {
             return (
               <div
                 key={f.id}
-                onClick={() => setSelectedId(f.id)}
+                onClick={() => navigate(`/inkoop/facturen/${f.id}`)}
                 className="flex items-center gap-4 py-3 px-4 rounded-xl border border-border/30 bg-card hover:bg-muted/30 cursor-pointer transition-colors min-h-[44px]"
               >
                 <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -152,11 +152,6 @@ export function FacturenTab() {
           })}
         </div>
       )}
-
-      <FactuurDetailPanel
-        factuurId={selectedId}
-        onClose={() => setSelectedId(null)}
-      />
     </div>
   );
 }
