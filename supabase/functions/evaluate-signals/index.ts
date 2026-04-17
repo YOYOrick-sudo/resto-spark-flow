@@ -1489,7 +1489,195 @@ const messagingProvider: SignalProvider = {
   },
 };
 
-const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider, pacingProvider, mollieProvider, messagingProvider];
+// ============================================
+// INKOOP SIGNAL PROVIDER (D.6b R4b-2)
+// ============================================
+
+async function hasInkoopEntitlement(locationId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('location_entitlements')
+    .select('id')
+    .eq('location_id', locationId)
+    .eq('module_key', 'inkoop')
+    .eq('enabled', true)
+    .maybeSingle();
+  return !!data;
+}
+
+const inkoopProvider: SignalProvider = {
+  name: 'inkoop',
+
+  async evaluate(locationId: string, orgId: string): Promise<SignalDraft[]> {
+    const drafts: SignalDraft[] = [];
+    const hasEnt = await hasInkoopEntitlement(locationId);
+    if (!hasEnt) return drafts;
+
+    const now = new Date();
+    const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000);
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+    const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    const seventyTwoHoursAgo = new Date(now.getTime() - 72 * 3600 * 1000);
+
+    // 1. inkoop_factuur_goedgekeurd — laatste 24u
+    const { data: approved } = await supabaseAdmin
+      .from('factuur_uploads')
+      .select('id, factuurnummer, leverancier_naam_herkend, leverancier_id, goedgekeurd_op, preview_snapshot, leveranciers(naam)')
+      .eq('location_id', locationId)
+      .eq('status', 'goedgekeurd')
+      .gte('goedgekeurd_op', dayAgo.toISOString());
+
+    for (const f of approved ?? []) {
+      const snap = (f as any).preview_snapshot ?? {};
+      const nieuwe = Array.isArray(snap.nieuweIngredienten) ? snap.nieuweIngredienten.length : 0;
+      const wijz = Array.isArray(snap.kostprijsWijzigingen) ? snap.kostprijsWijzigingen.length : 0;
+      const lev = (f as any).leveranciers?.naam ?? (f as any).leverancier_naam_herkend ?? 'onbekende leverancier';
+      const parts: string[] = [];
+      if (nieuwe > 0) parts.push(`${nieuwe} nieuw ingrediënt${nieuwe > 1 ? 'en' : ''}`);
+      if (wijz > 0) parts.push(`${wijz} prijswijziging${wijz > 1 ? 'en' : ''}`);
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'inkoop',
+        signal_type: 'inkoop_factuur_goedgekeurd',
+        kind: 'signal',
+        severity: 'info',
+        title: `Factuur goedgekeurd — ${lev}`,
+        message: parts.length > 0 ? parts.join(' · ') : 'Factuur verwerkt zonder wijzigingen.',
+        action_path: `/inkoop/factuur/${(f as any).id}`,
+        dedup_key: `inkoop_factuur_goedgekeurd:${(f as any).id}`,
+        actionable: false,
+        priority: 70,
+        cooldown_hours: 24,
+        payload: { factuur_id: (f as any).id, nieuwe, wijzigingen: wijz },
+      });
+    }
+
+    // 2. inkoop_prijsverandering_groot — uit preview_snapshot, laatste 7d
+    const { data: snapshots } = await supabaseAdmin
+      .from('factuur_uploads')
+      .select('id, factuurnummer, leverancier_naam_herkend, leverancier_id, goedgekeurd_op, preview_snapshot, leveranciers(naam)')
+      .eq('location_id', locationId)
+      .eq('status', 'goedgekeurd')
+      .not('preview_snapshot', 'is', null)
+      .gte('goedgekeurd_op', weekAgo.toISOString());
+
+    for (const f of snapshots ?? []) {
+      const snap = (f as any).preview_snapshot ?? {};
+      const wijzigingen = Array.isArray(snap.kostprijsWijzigingen) ? snap.kostprijsWijzigingen : [];
+      const lev = (f as any).leveranciers?.naam ?? (f as any).leverancier_naam_herkend ?? 'onbekend';
+      for (const w of wijzigingen) {
+        if (w?.severity !== 'groot') continue;
+        if (!w.ingredientId) continue;
+        const pct = typeof w.deltaPct === 'number' ? w.deltaPct : 0;
+        const sign = pct > 0 ? '+' : '';
+        drafts.push({
+          organization_id: orgId,
+          location_id: locationId,
+          module: 'inkoop',
+          signal_type: 'inkoop_prijsverandering_groot',
+          kind: 'signal',
+          severity: 'warning',
+          title: `${w.ingredientNaam ?? 'Ingrediënt'}: ${sign}${pct.toFixed(1)}% prijswijziging`,
+          message: `Grote prijsverandering bij ${lev}. Controleer of dit klopt.`,
+          action_path: `/inkoop/factuur/${(f as any).id}`,
+          dedup_key: `inkoop_prijsverandering_groot:${(f as any).id}:${w.ingredientId}`,
+          actionable: true,
+          priority: 30,
+          cooldown_hours: 168, // 7 dagen
+          payload: {
+            factuur_id: (f as any).id,
+            ingredient_id: w.ingredientId,
+            ingredient_naam: w.ingredientNaam,
+            oude_prijs: w.oudePrijs,
+            nieuwe_prijs: w.nieuwePrijs,
+            delta_pct: pct,
+          },
+        });
+      }
+    }
+
+    // 3. inkoop_factuur_parsing_gefaald — failed of vastgelopen >5 min in 'verwerken'
+    const { data: failed } = await supabaseAdmin
+      .from('factuur_uploads')
+      .select('id, bestandsnaam, ai_parsing_status, status, created_at')
+      .eq('location_id', locationId)
+      .or(
+        `and(ai_parsing_status.eq.failed,status.neq.afgewezen),and(status.eq.verwerken,created_at.lt.${fiveMinAgo.toISOString()})`
+      );
+
+    for (const f of failed ?? []) {
+      if ((f as any).status === 'goedgekeurd' || (f as any).status === 'afgewezen') continue;
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'inkoop',
+        signal_type: 'inkoop_factuur_parsing_gefaald',
+        kind: 'signal',
+        severity: 'error',
+        title: `Factuur kon niet verwerkt worden`,
+        message: `${(f as any).bestandsnaam} — open de factuur en vul handmatig aan.`,
+        action_path: `/inkoop/factuur/${(f as any).id}`,
+        dedup_key: `inkoop_factuur_parsing_gefaald:${(f as any).id}`,
+        actionable: true,
+        priority: 20,
+        cooldown_hours: 4,
+        payload: { factuur_id: (f as any).id, bestandsnaam: (f as any).bestandsnaam },
+      });
+    }
+
+    // 4. inkoop_nieuwe_leverancier_ontdekt — herkend maar niet gekoppeld, dedupe op naam
+    const { data: nieuweLev } = await supabaseAdmin
+      .from('factuur_uploads')
+      .select('id, leverancier_naam_herkend, created_at')
+      .eq('location_id', locationId)
+      .is('leverancier_id', null)
+      .not('leverancier_naam_herkend', 'is', null)
+      .gte('created_at', seventyTwoHoursAgo.toISOString());
+
+    const seenNamen = new Set<string>();
+    for (const f of nieuweLev ?? []) {
+      const naam = ((f as any).leverancier_naam_herkend ?? '').trim();
+      if (!naam) continue;
+      const key = naam.toLowerCase();
+      if (seenNamen.has(key)) continue;
+      seenNamen.add(key);
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'inkoop',
+        signal_type: 'inkoop_nieuwe_leverancier_ontdekt',
+        kind: 'signal',
+        severity: 'info',
+        title: `Nieuwe leverancier herkend: ${naam}`,
+        message: `Maak een leveranciers-record aan om automatisch te koppelen bij volgende facturen.`,
+        action_path: `/inkoop/factuur/${(f as any).id}`,
+        dedup_key: `inkoop_nieuwe_leverancier_ontdekt:${locationId}:${key}`,
+        actionable: true,
+        priority: 50,
+        cooldown_hours: 72,
+        payload: { factuur_id: (f as any).id, leverancier_naam: naam },
+      });
+    }
+
+    return drafts;
+  },
+
+  async resolveStale(locationId: string): Promise<string[]> {
+    const resolved: string[] = [];
+    const hasEnt = await hasInkoopEntitlement(locationId);
+    if (!hasEnt) {
+      return [
+        'inkoop_factuur_goedgekeurd',
+        'inkoop_prijsverandering_groot',
+        'inkoop_factuur_parsing_gefaald',
+        'inkoop_nieuwe_leverancier_ontdekt',
+      ];
+    }
+    return resolved;
+  },
+};
+
+const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider, pacingProvider, mollieProvider, messagingProvider, inkoopProvider];
 
 async function processLocation(locationId: string, orgId: string) {
   const results = { created: 0, resolved: 0, skipped: 0 };

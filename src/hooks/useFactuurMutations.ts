@@ -509,13 +509,27 @@ export function useFactuurMutations() {
   });
 
   const goedkeuren = useMutation({
-    mutationFn: async (factuurId: string) => {
+    mutationFn: async (vars: { id: string; snapshot?: unknown }) => {
+      const factuurId = vars.id;
+
       const { data: factuur, error: fErr } = await supabase
         .from("factuur_uploads")
         .select("*, factuur_regels(*)")
         .eq("id", factuurId)
         .single();
       if (fErr) throw fErr;
+
+      // R4b-2: persist preview snapshot vóór status-update zodat signal-provider
+      // de impact (grote prijswijzigingen, nieuwe ingrediënten) kan lezen.
+      if (vars.snapshot) {
+        const { error: snapErr } = await supabase
+          .from("factuur_uploads")
+          .update({ preview_snapshot: vars.snapshot as any })
+          .eq("id", factuurId);
+        if (snapErr) {
+          console.error("[goedkeuren] preview_snapshot write failed:", snapErr);
+        }
+      }
 
       const { error: uErr } = await supabase
         .from("factuur_uploads")
