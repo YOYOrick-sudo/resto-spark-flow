@@ -355,6 +355,10 @@ serve(async (req) => {
       let ingredientId: string | null = null;
       let matchStatus = "unmatched";
       let matchConfidence: number | null = null;
+      let tier1Cache: {
+        verpakking_hoeveelheid: number | null;
+        verpakking_eenheid: string | null;
+      } | null = null;
 
       const artikelnr = regel.artikelnummer != null
         ? String(regel.artikelnummer).trim() || null
@@ -365,7 +369,7 @@ serve(async (req) => {
       if (artikelnr && leverancierId) {
         const { data } = await supabase
           .from("leveranciers_artikelen")
-          .select("ingredient_id")
+          .select("ingredient_id, verpakking_hoeveelheid, verpakking_eenheid")
           .eq("leverancier_id", leverancierId)
           .eq("artikel_nummer", artikelnr)
           .eq("is_actief", true)
@@ -376,6 +380,10 @@ serve(async (req) => {
           ingredientId = data.ingredient_id;
           matchStatus = "matched";
           matchConfidence = 1.0;
+          tier1Cache = {
+            verpakking_hoeveelheid: data.verpakking_hoeveelheid as number | null,
+            verpakking_eenheid: data.verpakking_eenheid as string | null,
+          };
         }
       }
 
