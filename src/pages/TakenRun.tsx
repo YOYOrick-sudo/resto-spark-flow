@@ -151,14 +151,16 @@ export default function TakenRun() {
   return (
     <div className="space-y-6 pb-24">
       {/* Compact back-link (geen PageHeader op subpagina) */}
-      <Link to="/taken"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="h-4 w-4" />
-        Terug naar vandaag
-      </Link>
+      <div className="max-w-4xl mx-auto">
+        <Link to="/taken"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ChevronLeft className="h-4 w-4" />
+          Terug naar vandaag
+        </Link>
+      </div>
 
       {/* Voortgangs-blok — visual anchor */}
-      <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4 shadow-[0_1px_2px_rgb(0_0_0/0.02)]">
+      <div className="max-w-4xl mx-auto rounded-lg border border-border/60 bg-card p-5 space-y-4 shadow-[0_1px_2px_rgb(0_0_0/0.02)]">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-h1 text-foreground truncate">{run.template?.naam}</h1>
@@ -220,7 +222,7 @@ export default function TakenRun() {
       </div>
 
       {/* Items lijst — leesbaar maar niet smal */}
-      <div className="max-w-4xl rounded-lg border border-border/60 bg-card divide-y divide-border/40 shadow-[0_1px_2px_rgb(0_0_0/0.02)] overflow-hidden">
+      <div className="max-w-4xl mx-auto rounded-lg border border-border/60 bg-card divide-y divide-border/40 shadow-[0_1px_2px_rgb(0_0_0/0.02)] overflow-hidden">
         {items.map((item) => {
           const resp = responsesById.get(item.id);
           const isTemp = item.type === "temperatuur";
@@ -348,23 +350,25 @@ export default function TakenRun() {
         })}
       </div>
 
-      {/* Sticky footer — altijd zichtbaar, commit-moment */}
+      {/* Sticky footer — altijd zichtbaar, commit-moment. Progressbar staat in voortgangs-blok bovenaan; hier alleen counter + actie. */}
       {!frozen && (
-        <div className="sticky bottom-0 -mx-8 lg:-mx-12 xl:-mx-16 border-t border-border/60 bg-card/95 backdrop-blur-md px-8 lg:px-12 xl:px-16 py-4 flex items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
-            {isComplete ? (
-              <span className="text-success font-medium">Alles klaar — afronden?</span>
-            ) : vereistOpen.length > 0 ? (
-              <span><span className="text-warning font-medium">{vereistOpen.length} vereist{vereistOpen.length === 1 ? "" : "e"} item{vereistOpen.length === 1 ? "" : "s"}</span> nog open</span>
-            ) : (
-              <span className="tabular-nums">{done} van {total} afgevinkt</span>
-            )}
+        <div className="sticky bottom-0 -mx-8 lg:-mx-12 xl:-mx-16 border-t border-border/60 bg-card/95 backdrop-blur-md px-8 lg:px-12 xl:px-16 py-4">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              {isComplete ? (
+                <span className="text-success font-medium">Alles klaar — afronden?</span>
+              ) : vereistOpen.length > 0 ? (
+                <span><span className="text-warning font-medium">{vereistOpen.length} vereist{vereistOpen.length === 1 ? "" : "e"} item{vereistOpen.length === 1 ? "" : "s"}</span> nog open</span>
+              ) : (
+                <span className="tabular-nums">{done} van {total} afgevinkt</span>
+              )}
+            </div>
+            <NestoButton onClick={triggerAfronden} isLoading={afronden.isPending}
+              className="min-h-[44px] px-6 font-semibold">
+              <Check className="h-4 w-4 mr-2" />
+              {isAfgerond ? "Opnieuw afronden" : "Afronden"}
+            </NestoButton>
           </div>
-          <NestoButton onClick={triggerAfronden} isLoading={afronden.isPending}
-            className="min-h-[44px] px-6 font-semibold">
-            <Check className="h-4 w-4 mr-2" />
-            {isAfgerond ? "Opnieuw afronden" : "Afronden"}
-          </NestoButton>
         </div>
       )}
 
