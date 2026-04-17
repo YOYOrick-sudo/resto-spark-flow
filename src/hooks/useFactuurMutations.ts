@@ -154,6 +154,177 @@ export function useFactuurMutations() {
     onError: (e: Error) => nestoToast.error(e.message),
   });
 
+  // ============================================================
+  // R3 — Ingrediënt matching mutations
+  // ============================================================
+
+  /**
+   * Koppel een factuurregel handmatig aan een bestaand ingrediënt
+   * + sla alias op zodat AI het volgende keer auto-herkent.
+   * leverancier-specifiek: zelfde alias bij andere leverancier matcht niet.
+   */
+  const linkIngredientAlias = useMutation({
+    mutationFn: async (vars: {
+      regelId: string;
+      ingredientId: string;
+      aliasNaam: string;
+      leverancierId?: string | null;
+      artikelnummer?: string | null;
+    }) => {
+      // 1. Koppel factuurregel
+      const { error: e1 } = await supabase
+        .from("factuur_regels")
+        .update({ ingredient_id: vars.ingredientId, match_status: "manual" })
+        .eq("id", vars.regelId);
+      if (e1) throw e1;
+
+      // 2. Sla alias op via SECURITY DEFINER RPC (R1)
+      if (vars.aliasNaam?.trim()) {
+        const { error: e2 } = await supabase.rpc("record_factuur_correction", {
+          p_ingredient_id: vars.ingredientId,
+          p_alias_naam: vars.aliasNaam.trim(),
+          p_leverancier_id: vars.leverancierId ?? null,
+          p_artikelnummer: vars.artikelnummer ?? null,
+        });
+        // 23505 = unique violation → alias bestaat al, prima
+        if (e2 && (e2 as any).code !== "23505") {
+          console.warn("[record_factuur_correction] failed:", e2);
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+      nestoToast.success("Ingrediënt gekoppeld — AI leert hiervan");
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
+  /**
+   * Bevestig een AI-suggestie (medium confidence) → match_status naar "matched"
+   * + sla alias op om toekomstige auto-matches te versterken.
+   */
+  const confirmMatch = useMutation({
+    mutationFn: async (vars: {
+      regelId: string;
+      ingredientId: string;
+      aliasNaam: string;
+      leverancierId?: string | null;
+      artikelnummer?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("factuur_regels")
+        .update({ match_status: "matched" })
+        .eq("id", vars.regelId);
+      if (error) throw error;
+
+      if (vars.aliasNaam?.trim()) {
+        const { error: aErr } = await supabase.rpc("record_factuur_correction", {
+          p_ingredient_id: vars.ingredientId,
+          p_alias_naam: vars.aliasNaam.trim(),
+          p_leverancier_id: vars.leverancierId ?? null,
+          p_artikelnummer: vars.artikelnummer ?? null,
+        });
+        if (aErr && (aErr as any).code !== "23505") {
+          console.warn("[confirmMatch alias] failed:", aErr);
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
+  /**
+   * Bulk-bevestig alle high-confidence matches in één UPDATE.
+   * Caller filtert eerst op confidence > 0.85 + match_status === "matched".
+   */
+  const bulkConfirmHighConfidence = useMutation({
+    mutationFn: async (regelIds: string[]) => {
+      if (!regelIds.length) return { count: 0 };
+      const { error } = await supabase
+        .from("factuur_regels")
+        .update({ match_status: "matched" })
+        .in("id", regelIds);
+      if (error) throw error;
+      return { count: regelIds.length };
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+      nestoToast.success(`${r.count} matches bevestigd`);
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
+  /**
+   * Maak een nieuw ingrediënt aan vanuit factuurregel-context (prefill),
+   * koppel het direct aan de regel, en sla alias op voor toekomstige auto-match.
+   */
+  const createNewIngredientFromFactuur = useMutation({
+    mutationFn: async (vars: {
+      regelId: string;
+      naam: string;
+      categorie: string;       // NOT NULL in DB
+      eenheid: string;
+      kostprijs?: number;
+      min_voorraad?: number;
+      aliasNaam?: string;
+      leverancierId?: string | null;
+      artikelnummer?: string | null;
+    }) => {
+      if (!locId) throw new Error("Geen locatie");
+
+      // 1. Maak ingrediënt
+      const { data: ing, error: iErr } = await supabase
+        .from("ingredienten")
+        .insert({
+          location_id: locId,
+          naam: vars.naam,
+          categorie: vars.categorie,
+          eenheid: vars.eenheid,
+          kostprijs: vars.kostprijs ?? null,
+          kostprijs_bron: vars.kostprijs ? "factuur" : null,
+          kostprijs_laatst_bijgewerkt: vars.kostprijs ? new Date().toISOString() : null,
+          min_voorraad: vars.min_voorraad ?? 0,
+        })
+        .select("id")
+        .single();
+      if (iErr) throw iErr;
+
+      // 2. Koppel factuurregel
+      const { error: rErr } = await supabase
+        .from("factuur_regels")
+        .update({
+          ingredient_id: ing.id,
+          match_status: "manual",
+          is_nieuw_ingredient: true,
+        })
+        .eq("id", vars.regelId);
+      if (rErr) throw rErr;
+
+      // 3. Alias opslaan (best effort)
+      if (vars.aliasNaam?.trim()) {
+        const { error: aErr } = await supabase.rpc("record_factuur_correction", {
+          p_ingredient_id: ing.id,
+          p_alias_naam: vars.aliasNaam.trim(),
+          p_leverancier_id: vars.leverancierId ?? null,
+          p_artikelnummer: vars.artikelnummer ?? null,
+        });
+        if (aErr && (aErr as any).code !== "23505") {
+          console.warn("[createNewIngredientFromFactuur alias] failed:", aErr);
+        }
+      }
+
+      return ing;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+      qc.invalidateQueries({ queryKey: ["ingredienten"] });
+      nestoToast.success("Nieuw ingrediënt aangemaakt en gekoppeld");
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
   const goedkeuren = useMutation({
     mutationFn: async (factuurId: string) => {
       const { data: factuur, error: fErr } = await supabase
@@ -228,6 +399,10 @@ export function useFactuurMutations() {
     updateRegel,
     deleteRegel,
     matchRegel,
+    linkIngredientAlias,
+    confirmMatch,
+    bulkConfirmHighConfidence,
+    createNewIngredientFromFactuur,
     goedkeuren,
     afwijzen,
   };
