@@ -12,6 +12,7 @@ import { KostprijsTab } from "@/components/ingredienten/tabs/KostprijsTab";
 import { LeveranciersTab } from "@/components/ingredienten/tabs/LeveranciersTab";
 import { AllergenenTab } from "@/components/ingredienten/tabs/AllergenenTab";
 import { ChevronLeft } from "lucide-react";
+import { fmtEuroPrecise } from "@/lib/format";
 
 const TABS = [
   { id: "algemeen", label: "Algemeen" },
@@ -123,7 +124,7 @@ export default function IngredientenDetail() {
             <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Kostprijs</h3>
             <div>
               <span className="text-lg font-medium">
-                {ingredient.kostprijs != null ? `€${ingredient.kostprijs.toFixed(2)}` : "—"}
+                {fmtEuroPrecise(ingredient.kostprijs)}
               </span>
               <span className="text-xs text-muted-foreground ml-1">per {ingredient.eenheid}</span>
             </div>

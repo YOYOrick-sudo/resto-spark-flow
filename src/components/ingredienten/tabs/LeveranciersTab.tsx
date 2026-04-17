@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { nl } from "date-fns/locale";
 import { useLeveranciersArtikelen } from "@/hooks/useLeveranciersArtikelen";
 import { NestoBadge, Spinner } from "@/components/polar";
+import { fmtEuro, fmtEuroPrecise } from "@/lib/format";
 
 interface Props {
   ingredientId: string;
@@ -83,7 +84,7 @@ export function LeveranciersTab({ ingredientId, ingredientEenheid }: Props) {
               {art.prijs_per_verpakking != null ? (
                 <>
                   <span className="text-base font-medium tabular-nums">
-                    €{art.prijs_per_verpakking.toFixed(2)}
+                    {fmtEuro(art.prijs_per_verpakking)}
                   </span>
                   {art.verpakking_hoeveelheid && art.verpakking_eenheid && (
                     <span className="text-xs text-muted-foreground">
@@ -92,13 +93,13 @@ export function LeveranciersTab({ ingredientId, ingredientEenheid }: Props) {
                   )}
                   {prijsPerBasis != null && (
                     <span className="text-xs text-muted-foreground">
-                      (€{prijsPerBasis.toFixed(2)}/{ingredientEenheid})
+                      ({fmtEuroPrecise(prijsPerBasis)}/{ingredientEenheid})
                     </span>
                   )}
                 </>
               ) : art.prijs_per_eenheid != null ? (
                 <span className="text-base font-medium tabular-nums">
-                  €{art.prijs_per_eenheid.toFixed(2)}{" "}
+                  {fmtEuroPrecise(art.prijs_per_eenheid)}{" "}
                   <span className="text-xs text-muted-foreground font-normal">
                     / {ingredientEenheid}
                   </span>

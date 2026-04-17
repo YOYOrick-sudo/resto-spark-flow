@@ -29,6 +29,7 @@ import {
   type PrijsWijziging,
 } from "@/hooks/usePreviewGoedkeuring";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
+import { fmtEuro, fmtEuroPrecise } from "@/lib/format";
 
 interface Props {
   open: boolean;
@@ -42,16 +43,6 @@ interface Props {
     regels: FactuurRegel[];
   } | null;
 }
-
-const fmtEuro = (n: number | null) =>
-  n == null
-    ? "—"
-    : `€${n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-const fmtEuroPrecise = (n: number | null) =>
-  n == null
-    ? "—"
-    : `€${n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 
 const fmtPct = (n: number) => {
   const sign = n > 0 ? "+" : "";

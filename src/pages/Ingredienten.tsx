@@ -23,6 +23,7 @@ import {
   type IngredientenFilters,
 } from "@/hooks/useIngredienten";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
+import { fmtEuroPrecise } from "@/lib/format";
 
 
 // ============================================================================
@@ -123,7 +124,7 @@ export default function Ingredienten() {
           return (
             <div className="flex items-center gap-1.5">
               <span className="tabular-nums font-medium text-foreground">
-                {item.kostprijs != null ? `€${item.kostprijs.toFixed(2)}` : "—"}
+                {fmtEuroPrecise(item.kostprijs)}
               </span>
               {bron && <NestoBadge variant={bron.variant} size="sm">{bron.label}</NestoBadge>}
             </div>

@@ -1,8 +1,13 @@
 /**
- * usePreviewGoedkeuring — D.6b R4b-2
+ * usePreviewGoedkeuring — D.6b R4b-2 / R4b-3
  *
  * Pure simulatie van wat de `goedkeuren` mutation zou doen, zonder DB-writes.
  * Returnt PreviewData voor de GoedkeurenPreviewModal.
+ *
+ * R4b-3: kostprijs-wijzigingen worden GEGROEPEERD per ingredient_id en
+ * berekend als gewogen gemiddelde op basis van regel.hoeveelheid.
+ * Voorkomt dat eenzelfde ingrediënt in meerdere verpakkingen meerdere
+ * (tegenstrijdige) prijsdelta-entries oplevert.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,14 +86,11 @@ export function usePreviewGoedkeuring(
         .map((r) => ({ regelId: r.id, naam: r.product_naam_herkend }));
 
       // 2. Nieuwe ingrediënten = regels met is_nieuw_ingredient=true
-      // (zijn al aangemaakt via inline form / bulk dialog, koppeling staat al)
       const nieuwRegels = regels.filter(
         (r) => r.is_nieuw_ingredient === true && r.match_status !== "skipped"
       );
       const nieuweIngredienten: NieuwIngredientPreview[] = nieuwRegels.map((r) => {
         const heeftBasisPrijs = r.prijs_per_basiseenheid != null;
-        // Basis-eenheid: als er een per-basiseenheid prijs is, gebruik dan ai_suggested_eenheid
-        // (dat is de échte basis: g/ml/stuk). Anders fallback op r.eenheid.
         const basisEenheid = heeftBasisPrijs
           ? (r.ai_suggested_eenheid ?? r.eenheid ?? null)
           : (r.eenheid ?? null);
@@ -105,7 +107,7 @@ export function usePreviewGoedkeuring(
         };
       });
 
-      // 3. Matched regels (incl. manual) → kostprijs-wijzigingen
+      // 3. Matched regels (incl. manual) → groeperen per ingredient_id
       const matchedRegels = regels.filter(
         (r) =>
           r.ingredient_id &&
@@ -133,43 +135,82 @@ export function usePreviewGoedkeuring(
         );
       }
 
-      const kostprijsWijzigingen: PrijsWijziging[] = [];
+      // R4b-3: groepeer per ingredient_id; gewogen gemiddelde over hoeveelheid
+      type Groep = {
+        naam: string;
+        oudePrijs: number | null;
+        som_qty_x_prijs: number;
+        som_qty: number;
+        fallback_prijzen: number[]; // regels zonder hoeveelheid
+      };
+      const groepen = new Map<string, Groep>();
+
       for (const r of matchedRegels) {
         const nieuwePrijs = r.prijs_per_basiseenheid ?? r.prijs_per_eenheid;
         if (nieuwePrijs == null) continue;
         const meta = oudePrijzen.get(r.ingredient_id!);
         if (!meta) continue;
-        const oudePrijs = meta.kostprijs;
 
-        // Geen oude prijs? Dan is dit een "eerste prijs" — toon als info, geen delta
+        const g =
+          groepen.get(r.ingredient_id!) ??
+          ({
+            naam: meta.naam,
+            oudePrijs: meta.kostprijs,
+            som_qty_x_prijs: 0,
+            som_qty: 0,
+            fallback_prijzen: [],
+          } as Groep);
+
+        if (r.hoeveelheid && r.hoeveelheid > 0) {
+          g.som_qty_x_prijs += r.hoeveelheid * nieuwePrijs;
+          g.som_qty += r.hoeveelheid;
+        } else {
+          g.fallback_prijzen.push(nieuwePrijs);
+        }
+        groepen.set(r.ingredient_id!, g);
+      }
+
+      const kostprijsWijzigingen: PrijsWijziging[] = [];
+      for (const [ingId, g] of groepen) {
+        const avgPrice =
+          g.som_qty > 0
+            ? g.som_qty_x_prijs / g.som_qty
+            : g.fallback_prijzen.length > 0
+            ? g.fallback_prijzen.reduce((a, b) => a + b, 0) /
+              g.fallback_prijzen.length
+            : null;
+        if (avgPrice == null) continue;
+
+        const oudePrijs = g.oudePrijs;
+
+        // Geen oude prijs → "eerste prijs" entry
         if (oudePrijs == null || oudePrijs === 0) {
           kostprijsWijzigingen.push({
-            ingredientId: r.ingredient_id!,
-            ingredientNaam: meta.naam,
+            ingredientId: ingId,
+            ingredientNaam: g.naam,
             oudePrijs: null,
-            nieuwePrijs,
+            nieuwePrijs: avgPrice,
             deltaPct: 0,
             severity: "klein",
           });
           continue;
         }
 
-        const deltaPct = ((nieuwePrijs - oudePrijs) / oudePrijs) * 100;
+        const deltaPct = ((avgPrice - oudePrijs) / oudePrijs) * 100;
         // Skip 0% (identiek)
         if (Math.abs(deltaPct) < 0.5) continue;
 
         kostprijsWijzigingen.push({
-          ingredientId: r.ingredient_id!,
-          ingredientNaam: meta.naam,
+          ingredientId: ingId,
+          ingredientNaam: g.naam,
           oudePrijs,
-          nieuwePrijs,
+          nieuwePrijs: avgPrice,
           deltaPct,
           severity: classifySeverity(deltaPct),
         });
       }
 
-      // 4. Nieuwe leveranciers_artikelen koppelingen = regels met
-      //    artikelnummer + matched/manual + niet-skipped
+      // 4. Nieuwe leveranciers_artikelen koppelingen
       const nieuweKoppelingen = regels.filter(
         (r) =>
           r.ai_raw_artikelnummer &&
