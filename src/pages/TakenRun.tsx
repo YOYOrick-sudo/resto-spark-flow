@@ -15,6 +15,8 @@ import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
 import type { ChecklistItem } from "@/hooks/useChecklistTemplates";
 import { FotoReferentieDialog } from "@/components/taken/FotoReferentieDialog";
+import { SectieGroup } from "@/components/taken/SectieGroup";
+import { groupItemsBySectie } from "@/lib/sectieGroup";
 
 function afleidTempType(titel: string): string {
   const t = titel.toLowerCase();
