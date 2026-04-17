@@ -167,6 +167,8 @@ export function TemplatesTab() {
           <TemplateEditor
             key="new"
             template={null}
+            locationId={locationId}
+            standaardTijden={settings?.standaard_tijden_per_type}
             onSave={async (data) => {
               await saveTemplate.mutateAsync(data);
               nestoToast.success("Template aangemaakt");
@@ -180,6 +182,8 @@ export function TemplatesTab() {
           <TemplateEditor
             key={selected.id}
             template={selected}
+            locationId={locationId}
+            standaardTijden={settings?.standaard_tijden_per_type}
             onSave={async (data) => {
               await saveTemplate.mutateAsync({ ...data, id: selected.id });
               nestoToast.success("Template opgeslagen");
@@ -197,12 +201,17 @@ export function TemplatesTab() {
 
 interface EditorProps {
   template: ChecklistTemplate | null;
+  locationId: string;
+  standaardTijden?: Record<string, string>;
   onSave: (data: {
     naam: string;
     type: string;
     beschrijving?: string;
     items: ChecklistItem[];
     actief?: boolean;
+    frequentie?: Frequentie;
+    frequentie_config?: Record<string, any>;
+    default_time?: string | null;
   }) => Promise<void>;
   onCancel: () => void;
   isSaving: boolean;
