@@ -776,6 +776,7 @@ export type Database = {
           frequentie_config: Json
           gearchiveerd_op: string | null
           id: string
+          is_system: boolean
           items: Json
           location_id: string
           modus: string
@@ -793,6 +794,7 @@ export type Database = {
           frequentie_config?: Json
           gearchiveerd_op?: string | null
           id?: string
+          is_system?: boolean
           items?: Json
           location_id: string
           modus?: string
@@ -810,6 +812,7 @@ export type Database = {
           frequentie_config?: Json
           gearchiveerd_op?: string | null
           id?: string
+          is_system?: boolean
           items?: Json
           location_id?: string
           modus?: string

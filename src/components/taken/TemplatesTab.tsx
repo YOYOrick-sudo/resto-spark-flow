@@ -16,7 +16,7 @@ import {
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste, Archive, FolderPlus } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste, Archive, FolderPlus, Lock } from "lucide-react";
 import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,6 +50,7 @@ const TYPE_OPTIONS = [
   { value: "sluiting", label: "Sluiting" },
   { value: "schoonmaak", label: "Schoonmaak" },
   { value: "haccp", label: "HACCP" },
+  { value: "onderhoud", label: "Onderhoud" },
 ];
 
 const ITEM_TYPE_OPTIONS = [
@@ -64,6 +65,7 @@ const TYPE_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "pr
   tussentijds: "warning",
   schoonmaak: "success",
   haccp: "warning",
+  onderhoud: "default",
 };
 
 type Selection = { mode: "edit"; id: string } | { mode: "new" } | null;
@@ -141,26 +143,40 @@ export function TemplatesTab() {
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-medium truncate">{t.naam}</span>
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {t.is_system && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Systeem-template</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    <span className="font-medium truncate">{t.naam}</span>
+                  </div>
                   <div className="flex items-center gap-1.5">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setArchiveTarget(t);
-                            }}
-                            className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                            aria-label="Archiveren"
-                          >
-                            <Archive className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">Archiveren</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    {!t.is_system && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setArchiveTarget(t);
+                              }}
+                              className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label="Archiveren"
+                            >
+                              <Archive className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Archiveren</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     <Switch
                       checked={t.actief}
                       onCheckedChange={(v) =>
@@ -560,9 +576,17 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
   // Auto-detect of template per_item is (≥1 item heeft eigen freq)
   const isPerItem = items.some((it) => !!it.item_frequentie);
 
+  const isSystem = template?.is_system ?? false;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end gap-1.5 -mb-2">
+        {isSystem && (
+          <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground mr-auto">
+            <Lock className="h-3 w-3" />
+            Systeem-template
+          </span>
+        )}
         <SaveStatusIndicator status={saveStatus} />
         <button
           type="button"
@@ -577,22 +601,50 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-1.5 block">Naam</label>
-          <NestoInput
-            value={naam}
-            onChange={(e) => setNaam(e.target.value)}
-            placeholder="bv. Opening keuken"
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <NestoInput
+                    value={naam}
+                    onChange={(e) => setNaam(e.target.value)}
+                    placeholder="bv. Opening keuken"
+                    disabled={isSystem}
+                  />
+                </div>
+              </TooltipTrigger>
+              {isSystem && (
+                <TooltipContent side="bottom">
+                  Systeem-template, naam kan niet worden gewijzigd
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div>
           <label className="text-sm font-medium mb-1.5 block">Type</label>
-          <NestoSelect
-            value={type}
-            onValueChange={(v) => {
-              setType(v);
-              saveNow({ type: v });
-            }}
-            options={TYPE_OPTIONS}
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <NestoSelect
+                    value={type}
+                    onValueChange={(v) => {
+                      setType(v);
+                      saveNow({ type: v });
+                    }}
+                    options={TYPE_OPTIONS}
+                    disabled={isSystem}
+                  />
+                </div>
+              </TooltipTrigger>
+              {isSystem && (
+                <TooltipContent side="bottom">
+                  Systeem-template, type kan niet worden gewijzigd
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
