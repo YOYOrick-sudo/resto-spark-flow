@@ -81,7 +81,7 @@ export function useVoorraadInkoopMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leverancier-detail"] });
       qc.invalidateQueries({ queryKey: ["leveranciers"] });
-      
+      qc.invalidateQueries({ queryKey: ["leveranciers-artikelen"] });
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
