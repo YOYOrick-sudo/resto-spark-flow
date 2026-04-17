@@ -28,6 +28,7 @@ export default function TakenRun() {
   const { currentLocation } = useUserContext();
   const { user } = useAuth();
   const { data: runs, isLoading, saveResponse, afronden } = useChecklistRuns();
+  const { data: keukenSettings } = useKeukenSettings();
   const [tempInputs, setTempInputs] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -61,7 +62,7 @@ export default function TakenRun() {
     );
   }
 
-  const frozen = isRunFrozen(run);
+  const frozen = isRunFrozen(run, keukenSettings?.haccp_freeze_tijd);
   const isAfgerond = run.status === "afgerond";
 
   const isItemDone = (item: ChecklistItem) => {
