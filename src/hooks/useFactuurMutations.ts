@@ -315,11 +315,43 @@ export function useFactuurMutations() {
         }
       }
 
+      // 4. Upsert leveranciers_artikelen — direct beschikbaar in Leveranciers-tab
+      //    zonder te wachten op factuur-goedkeuring.
+      const artNr = vars.artikelnummer?.trim();
+      if (vars.leverancierId && artNr) {
+        const { error: laErr } = await supabase
+          .from("leveranciers_artikelen")
+          .upsert(
+            {
+              leverancier_id: vars.leverancierId,
+              artikel_nummer: artNr,
+              ingredient_id: ing.id,
+              artikel_naam: vars.naam,
+              prijs_per_eenheid: vars.kostprijs ?? null,
+              is_actief: true,
+              laatst_gesynchroniseerd: new Date().toISOString(),
+            },
+            { onConflict: "leverancier_id,artikel_nummer" }
+          );
+        if (laErr) {
+          console.warn(
+            "[createNewIngredientFromFactuur leveranciers_artikelen] upsert failed:",
+            laErr
+          );
+        }
+      } else if (vars.leverancierId && !artNr) {
+        console.warn(
+          "[createNewIngredientFromFactuur] leverancier bekend maar artikelnummer ontbreekt — geen leveranciers_artikelen koppeling aangemaakt voor ingredient",
+          ing.id
+        );
+      }
+
       return ing;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["ingredienten"] });
+      qc.invalidateQueries({ queryKey: ["leveranciers-artikelen"] });
       nestoToast.success("Nieuw ingrediënt aangemaakt en gekoppeld");
     },
     onError: (e: Error) => nestoToast.error(e.message),
