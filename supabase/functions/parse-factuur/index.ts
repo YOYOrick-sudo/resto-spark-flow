@@ -179,12 +179,11 @@ serve(async (req) => {
         jsonMode: true,
         maxTokens: 4000,
         temperature: 0.2,
-        // R3: Pro is accurater dan Flash voor documentparsing.
-        // Kosten: ~€0.008 vs ~€0.001 per factuur — verwaarloosbaar.
-        modelOverride: "google/gemini-2.5-pro",
-        // R3 fix: PDF-parsing kan langer duren dan default 20s. 60s biedt ruimte
-        // voor complexe facturen voordat we naar Flash fallback gaan.
-        timeoutMs: 60_000,
+        // R3 hotfix: Flash is primary (sneller, goedkoper, scoorde 0.95 conf op Kooyman).
+        // Pro timeoutte 2x op 60s. Pro blijft als fallback voor edge cases.
+        modelOverride: "google/gemini-2.5-flash",
+        // PDF-parsing kan langer duren dan default 20s. 90s ruime marge.
+        timeoutMs: 90_000,
       });
     } catch (aiError: any) {
       const errorMsg = aiError?.message || String(aiError);
