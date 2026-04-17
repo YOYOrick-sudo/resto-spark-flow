@@ -16,7 +16,8 @@ import {
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste, Archive } from "lucide-react";
+import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -77,9 +78,10 @@ interface CopiedFrequentie {
 
 export function TemplatesTab() {
   const { context, currentLocation } = useUserContext();
-  const { data: templates, isLoading, saveTemplate, toggleActief } = useChecklistTemplates();
+  const { data: templates, isLoading, saveTemplate, toggleActief, archiveTemplate } = useChecklistTemplates();
   const { data: settings } = useKeukenSettings();
   const [selection, setSelection] = useState<Selection>(null);
+  const [archiveTarget, setArchiveTarget] = useState<ChecklistTemplate | null>(null);
 
   const isManager = context?.role === "owner" || context?.role === "manager";
   const locationId = currentLocation?.id ?? "";
