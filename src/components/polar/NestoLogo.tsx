@@ -58,6 +58,7 @@ export function NestoLogo({
         alt={alt}
         style={{ height, width: 'auto' }}
         draggable={false}
+        className="dark:brightness-0 dark:invert dark:opacity-90"
       />
     </span>
   );
