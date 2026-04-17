@@ -278,17 +278,26 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
   return (
     <div className="space-y-6">
       {/* Sticky header met acties */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur z-10 flex items-center justify-between py-3 -mt-3 border-b">
-        <h2 className="text-lg font-semibold">
-          {template ? "Template bewerken" : "Nieuwe template"}
-        </h2>
-        <div className="flex items-center gap-2">
-          <NestoButton variant="ghost" onClick={onCancel}>
-            Annuleren
-          </NestoButton>
-          <NestoButton onClick={handleSave} isLoading={isSaving}>
-            Opslaan
-          </NestoButton>
+      <div className="sticky top-0 z-10 -mx-1 px-1 bg-background/80 backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border">
+          <div className="min-w-0 flex items-center gap-2">
+            <h2 className="text-base font-semibold tracking-tight truncate">
+              {template ? naam.trim() || "Naamloze template" : "Nieuwe template"}
+            </h2>
+            {template && (
+              <NestoBadge variant={TYPE_BADGE_VARIANT[type] ?? "default"}>
+                {type}
+              </NestoBadge>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <NestoButton variant="ghost" size="sm" onClick={onCancel}>
+              Annuleren
+            </NestoButton>
+            <NestoButton size="sm" onClick={handleSave} isLoading={isSaving}>
+              Opslaan
+            </NestoButton>
+          </div>
         </div>
       </div>
 
