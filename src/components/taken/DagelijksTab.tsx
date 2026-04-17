@@ -232,25 +232,43 @@ export function DagelijksTab() {
           </header>
 
           <div className="grid gap-2">
-            {dagRuns.map(({ run, tijd, done, total, pct, freqLabel }) => (
+            {dagRuns.map(({ run, tijd, done, total, pct, freqLabel }) => {
+              const isArchived = !!run.template?.gearchiveerd_op;
+              return (
               <NestoCard
                 key={run.id}
-                className="cursor-pointer hover:border-primary/30 transition-colors"
+                className={cn(
+                  "cursor-pointer transition-colors",
+                  isArchived
+                    ? "bg-muted/30 hover:border-muted-foreground/30 opacity-80"
+                    : "hover:border-primary/30"
+                )}
                 onClick={() => navigate(`/taken/run/${run.id}`)}
               >
                 <NestoCardContent className="flex items-center gap-4 py-3.5">
                   {/* Tijd-kolom */}
-                  <div className="text-sm font-semibold tabular-nums text-muted-foreground w-14 flex-shrink-0">
+                  <div className={cn(
+                    "text-sm font-semibold tabular-nums w-14 flex-shrink-0",
+                    isArchived ? "text-muted-foreground/60" : "text-muted-foreground"
+                  )}>
                     {tijd}
                   </div>
 
                   {/* Naam + voortgang */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium truncate">
+                      <p className={cn(
+                        "font-medium truncate",
+                        isArchived && "text-muted-foreground/80"
+                      )}>
                         {run.template?.naam ?? "Checklist"}
                       </p>
-                      {freqLabel && (
+                      {isArchived && (
+                        <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          Gearchiveerd
+                        </span>
+                      )}
+                      {freqLabel && !isArchived && (
                         <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
                           <Repeat className="h-2.5 w-2.5" />
                           {freqLabel}
@@ -262,7 +280,9 @@ export function DagelijksTab() {
                         <div
                           className={cn(
                             "h-full rounded-full transition-all",
-                            run.status === "afgerond" ? "bg-success" : "bg-primary"
+                            isArchived
+                              ? "bg-muted-foreground/40"
+                              : run.status === "afgerond" ? "bg-success" : "bg-primary"
                           )}
                           style={{ width: `${pct}%` }}
                         />
@@ -282,7 +302,8 @@ export function DagelijksTab() {
                   </NestoBadge>
                 </NestoCardContent>
               </NestoCard>
-            ))}
+              );
+            })}
           </div>
         </section>
       ))}
