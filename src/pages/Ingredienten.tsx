@@ -13,13 +13,16 @@ import {
 } from "@/components/polar";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   useIngredienten,
   filterIngredienten,
   getVoorraadStatus,
+  getActieveLeveranciers,
   type IngredientRow,
   type IngredientenFilters,
 } from "@/hooks/useIngredienten";
+import { useLeveranciers } from "@/hooks/useLeveranciers";
 
 
 // ============================================================================
