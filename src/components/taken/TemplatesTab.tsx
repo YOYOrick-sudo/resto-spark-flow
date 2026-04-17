@@ -357,6 +357,43 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
         </div>
       </div>
 
+      {/* Frequentie */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Frequentie
+        </h3>
+        <FrequentieSelector
+          frequentie={frequentie}
+          config={frequentieConfig}
+          onChange={(f, c) => {
+            setFrequentie(f);
+            setFrequentieConfig(c);
+          }}
+        />
+      </div>
+
+      {/* Standaard tijd */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Standaard tijd
+        </h3>
+        <div className="flex items-end gap-3">
+          <div>
+            <input
+              type="time"
+              value={defaultTime}
+              onChange={(e) => setDefaultTime(e.target.value)}
+              className="h-10 w-32 rounded-button border-[1.5px] border-border bg-card px-3 text-sm tabular-nums focus:!border-primary focus:outline-none focus:ring-0"
+            />
+          </div>
+          {!defaultTime && (
+            <p className="text-xs text-muted-foreground pb-2">
+              Leeg = standaard tijd uit settings (nu: {fallbackTijd} voor type "{type}")
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Items */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -391,6 +428,7 @@ function TemplateEditor({ template, locationId, standaardTijden, onSave, onCance
                     <SortableItemRow
                       key={item.id}
                       item={item}
+                      locationId={locationId}
                       onUpdate={(patch) => updateItem(item.id, patch)}
                       onRemove={() => removeItem(item.id)}
                     />
