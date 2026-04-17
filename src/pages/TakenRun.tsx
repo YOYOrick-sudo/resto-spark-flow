@@ -76,6 +76,7 @@ export default function TakenRun() {
   const total = items.length;
   const done = items.filter(isItemDone).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const isComplete = pct === 100;
 
   const handleCheck = (item: ChecklistItem, checked: boolean) => {
     if (frozen) return;
@@ -148,67 +149,92 @@ export default function TakenRun() {
     isAfgerond ? "success" : run.status === "bezig" ? "warning" : "default";
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-6">
+    <div className="space-y-6 pb-24">
+      {/* Compact back-link (geen PageHeader op subpagina) */}
       <Link to="/taken"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3">
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ChevronLeft className="h-4 w-4" />
         Terug naar vandaag
       </Link>
 
-      {otherRuns.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap mb-5 text-xs">
-          <span className="text-muted-foreground">Vandaag ook:</span>
-          {otherRuns.map((r) => {
-            const tot = r.template?.items?.length ?? 0;
-            const dn = (r.responses ?? []).filter(
-              (x) => x.checked || x.temperatuur != null || x.notitie
-            ).length;
-            const isDone = r.status === "afgerond";
-            return (
-              <button key={r.id} onClick={() => navigate(`/taken/run/${r.id}`)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors hover:bg-accent",
-                  isDone ? "border-success/30 text-success" : "border-border text-foreground"
-                )}>
-                <span className="font-medium">{r.template?.naam}</span>
-                <span className="text-muted-foreground tabular-nums">{dn}/{tot}</span>
-              </button>
-            );
-          })}
+      {/* Voortgangs-blok — visual anchor */}
+      <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4 shadow-[0_1px_2px_rgb(0_0_0/0.02)]">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-h1 text-foreground truncate">{run.template?.naam}</h1>
+            <p className="text-body text-muted-foreground mt-0.5">
+              {new Date(run.datum).toLocaleDateString("nl-NL",
+                { weekday: "long", day: "numeric", month: "long" })}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {frozen ? (
+              <NestoBadge variant="default" className="gap-1">
+                <Lock className="h-3 w-3" /> Bevroren voor HACCP
+              </NestoBadge>
+            ) : (
+              <NestoBadge variant={statusVariant}>{statusLabel}</NestoBadge>
+            )}
+          </div>
         </div>
-      )}
 
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-semibold">{run.template?.naam}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {new Date(run.datum).toLocaleDateString("nl-NL",
-              { weekday: "long", day: "numeric", month: "long" })}
-          </p>
+        {/* Pill-progressbar + counter */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-[width,background-color] duration-300 ease-out",
+                isComplete ? "bg-success" : "bg-primary"
+              )}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="text-sm tabular-nums text-muted-foreground flex-shrink-0">
+            {done} van {total} · {pct}%
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          {frozen ? (
-            <NestoBadge variant="default" className="gap-1">
-              <Lock className="h-3 w-3" /> Bevroren voor HACCP
-            </NestoBadge>
-          ) : (
-            <NestoBadge variant={statusVariant}>{statusLabel}</NestoBadge>
-          )}
-        </div>
+
+        {/* "Vandaag ook" chips */}
+        {otherRuns.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap text-xs pt-1">
+            <span className="text-muted-foreground">Vandaag ook:</span>
+            {otherRuns.map((r) => {
+              const tot = r.template?.items?.length ?? 0;
+              const dn = (r.responses ?? []).filter(
+                (x) => x.checked || x.temperatuur != null || x.notitie
+              ).length;
+              const isDone = r.status === "afgerond";
+              return (
+                <button key={r.id} onClick={() => navigate(`/taken/run/${r.id}`)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors hover:bg-accent",
+                    isDone ? "border-success/30 text-success" : "border-border text-foreground"
+                  )}>
+                  <span className="font-medium">{r.template?.naam}</span>
+                  <span className="text-muted-foreground tabular-nums">{dn}/{tot}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden divide-y divide-border bg-card">
+      {/* Items lijst — leesbaar maar niet smal */}
+      <div className="max-w-4xl rounded-lg border border-border/60 bg-card divide-y divide-border/40 shadow-[0_1px_2px_rgb(0_0_0/0.02)] overflow-hidden">
         {items.map((item) => {
           const resp = responsesById.get(item.id);
           const isTemp = item.type === "temperatuur";
           const fotoUrls = item.foto_urls ?? [];
           const hasFotos = fotoUrls.length > 0;
+          const done = isItemDone(item);
 
           if (!isTemp) {
             return (
               <label key={item.id}
                 className={cn(
-                  "flex items-start gap-3 px-4 py-2.5 min-h-[48px] cursor-pointer hover:bg-accent/40 transition-colors",
+                  "flex items-start gap-3.5 px-5 py-3 min-h-[56px] cursor-pointer transition-colors duration-150",
+                  done ? "bg-success/[0.04] hover:bg-success/[0.06]" : "hover:bg-accent/40",
+                  "focus-within:bg-accent/30",
                   frozen && "cursor-not-allowed opacity-70"
                 )}>
                 <Checkbox
@@ -218,9 +244,17 @@ export default function TakenRun() {
                   className="h-5 w-5 flex-shrink-0 mt-0.5"
                 />
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium block truncate">{item.titel}</span>
+                  <span className={cn(
+                    "text-[15px] font-semibold block truncate transition-colors",
+                    done && "text-foreground/50 line-through"
+                  )}>
+                    {item.titel}
+                  </span>
                   {item.beschrijving?.trim() && (
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed whitespace-pre-line">
+                    <p className={cn(
+                      "text-[13px] mt-1 leading-relaxed whitespace-pre-line",
+                      done ? "text-foreground/40" : "text-foreground/70"
+                    )}>
                       {item.beschrijving}
                     </p>
                   )}
@@ -241,7 +275,7 @@ export default function TakenRun() {
                   </button>
                 )}
                 {item.vereist && (
-                  <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0 mt-1">
+                  <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0 mt-1.5">
                     Vereist
                   </span>
                 )}
@@ -250,11 +284,19 @@ export default function TakenRun() {
           }
 
           return (
-            <div key={item.id} className="px-4 py-3 hover:bg-accent/20 transition-colors">
+            <div key={item.id} className={cn(
+              "px-5 py-3.5 transition-colors duration-150",
+              done ? "bg-success/[0.04]" : "hover:bg-accent/20"
+            )}>
               <div className="flex items-start gap-3 flex-wrap">
                 <div className="flex-1 min-w-[180px]">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{item.titel}</span>
+                    <span className={cn(
+                      "text-[15px] font-semibold",
+                      done && "text-foreground/50"
+                    )}>
+                      {item.titel}
+                    </span>
                     {hasFotos && (
                       <button
                         type="button"
@@ -273,12 +315,12 @@ export default function TakenRun() {
                     )}
                   </div>
                   {item.beschrijving?.trim() && (
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed whitespace-pre-line">
+                    <p className="text-[13px] text-foreground/70 mt-1 leading-relaxed whitespace-pre-line">
                       {item.beschrijving}
                     </p>
                   )}
                   {(item.temp_min != null || item.temp_max != null) && (
-                    <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+                    <p className="text-xs text-muted-foreground mt-1 tabular-nums">
                       {item.temp_min ?? "—"}°C tot {item.temp_max ?? "—"}°C
                     </p>
                   )}
@@ -306,24 +348,20 @@ export default function TakenRun() {
         })}
       </div>
 
+      {/* Sticky footer — altijd zichtbaar, commit-moment */}
       {!frozen && (
-        <div className="sticky bottom-0 border-t border-border/50 bg-background/80 backdrop-blur-md px-4 py-3 mt-6 flex items-center gap-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">{done}/{total}</span>
-            {vereistOpen.length > 0 && (
-              <span className="text-xs text-warning flex-shrink-0">
-                {vereistOpen.length} vereist open
-              </span>
+        <div className="sticky bottom-0 -mx-8 lg:-mx-12 xl:-mx-16 border-t border-border/60 bg-card/95 backdrop-blur-md px-8 lg:px-12 xl:px-16 py-4 flex items-center justify-between gap-4">
+          <div className="text-sm text-muted-foreground">
+            {isComplete ? (
+              <span className="text-success font-medium">Alles klaar — afronden?</span>
+            ) : vereistOpen.length > 0 ? (
+              <span><span className="text-warning font-medium">{vereistOpen.length} vereist{vereistOpen.length === 1 ? "" : "e"} item{vereistOpen.length === 1 ? "" : "s"}</span> nog open</span>
+            ) : (
+              <span className="tabular-nums">{done} van {total} afgevinkt</span>
             )}
           </div>
           <NestoButton onClick={triggerAfronden} isLoading={afronden.isPending}
-            className="min-h-[40px] px-5">
+            className="min-h-[44px] px-6 font-semibold">
             <Check className="h-4 w-4 mr-2" />
             {isAfgerond ? "Opnieuw afronden" : "Afronden"}
           </NestoButton>

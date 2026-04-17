@@ -40,7 +40,7 @@ export function NestoOutlineButtonGroup({
             onClick={() => onChange(option.value)}
             disabled={option.disabled}
             className={cn(
-              "rounded-button font-medium transition-all duration-200",
+              "rounded-button font-medium transition-all duration-200 whitespace-nowrap",
               "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
               sizeClasses[size],
               isSelected

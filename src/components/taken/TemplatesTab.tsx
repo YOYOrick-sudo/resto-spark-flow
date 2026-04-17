@@ -101,7 +101,7 @@ export function TemplatesTab() {
       : null;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-8">
       {/* Linkerkolom — lijst */}
       <aside className="space-y-3">
         <NestoButton
@@ -430,7 +430,7 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         </button>
       </div>
 
-      {/* Basisvelden */}
+      {/* Basisvelden — Naam | Type */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-1.5 block">Naam</label>
@@ -451,15 +451,48 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
             options={TYPE_OPTIONS}
           />
         </div>
-        <div className="md:col-span-2">
-          <label className="text-sm font-medium mb-1.5 block">Beschrijving</label>
-          <NestoInput
-            value={beschrijving}
-            onChange={(e) => setBeschrijving(e.target.value)}
-            placeholder="Optioneel"
+      </div>
+
+      {/* Beschrijving — full width */}
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Beschrijving</label>
+        <NestoInput
+          value={beschrijving}
+          onChange={(e) => setBeschrijving(e.target.value)}
+          placeholder="Optioneel"
+        />
+      </div>
+
+      {/* Frequentie — full width */}
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Frequentie</label>
+        <FrequentieSelector
+          frequentie={frequentie}
+          config={frequentieConfig}
+          onChange={(f, c) => {
+            setFrequentie(f);
+            setFrequentieConfig(c);
+          }}
+        />
+      </div>
+
+      {/* Standaard tijd | Actief — 2-koloms ritme */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Standaard tijd</label>
+          <input
+            type="time"
+            value={defaultTime}
+            onChange={(e) => setDefaultTime(e.target.value)}
+            className="h-10 w-full rounded-button border-[1.5px] border-border bg-card px-3 text-sm tabular-nums focus:!border-primary focus:outline-none focus:ring-0"
           />
+          {!defaultTime && (
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Leeg = standaard uit settings (nu: {fallbackTijd} voor type "{type}")
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pb-2.5">
           <Switch
             checked={actief}
             onCheckedChange={(v) => {
@@ -471,49 +504,13 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         </div>
       </div>
 
-      {/* Frequentie */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Frequentie
-        </h3>
-        <FrequentieSelector
-          frequentie={frequentie}
-          config={frequentieConfig}
-          onChange={(f, c) => {
-            setFrequentie(f);
-            setFrequentieConfig(c);
-          }}
-        />
-      </div>
-
-      {/* Standaard tijd */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Standaard tijd
-        </h3>
-        <div className="flex items-end gap-3">
-          <div>
-            <input
-              type="time"
-              value={defaultTime}
-              onChange={(e) => setDefaultTime(e.target.value)}
-              className="h-10 w-32 rounded-button border-[1.5px] border-border bg-card px-3 text-sm tabular-nums focus:!border-primary focus:outline-none focus:ring-0"
-            />
-          </div>
-          {!defaultTime && (
-            <p className="text-xs text-muted-foreground pb-2">
-              Leeg = standaard tijd uit settings (nu: {fallbackTijd} voor type "{type}")
-            </p>
-          )}
-        </div>
-      </div>
-
       {/* Items */}
-      <div className="space-y-2">
+      <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Items ({items.length})
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">Items</h3>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {items.length} {items.length === 1 ? "taak" : "taken"}
+          </span>
         </div>
 
         {items.length === 0 ? (
@@ -527,7 +524,7 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
           </div>
         ) : (
           <>
-            <div className="bg-card border border-border rounded-lg overflow-hidden divide-y divide-border">
+            <div className="bg-card border border-border/60 rounded-lg overflow-hidden divide-y divide-border/40 shadow-[0_1px_2px_rgb(0_0_0/0.02)]">
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -555,7 +552,7 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
             <button
               type="button"
               onClick={addItem}
-              className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-primary/40 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border/60 hover:border-primary/40 hover:bg-accent/30 rounded-lg transition-colors"
             >
               <Plus className="h-4 w-4" /> Item toevoegen
             </button>
@@ -642,7 +639,7 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
 
   return (
     <div ref={setNodeRef} style={style} className="group">
-      <div className="grid grid-cols-[24px_1fr_140px_auto_28px_28px_28px] items-center gap-2 px-2 py-1.5 hover:bg-accent/30 transition-colors">
+      <div className="grid grid-cols-[28px_1fr_120px_72px_auto_28px_28px_28px] items-center gap-2.5 px-3 py-2 min-h-[44px] hover:bg-accent/30 transition-colors">
         {/* Drag handle */}
         <button
           {...attributes}
@@ -685,6 +682,10 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
           />
         </div>
 
+        {/* Frequentie-badge — gereserveerd voor toekomstige frequentie-per-item (V1.1) */}
+        <div className="flex items-center justify-center" aria-hidden="true">
+          <span className="text-[10px] text-muted-foreground/40 tabular-nums select-none">—</span>
+        </div>
         {/* Vereist + (temp inline indien nodig) */}
         <div className="flex items-center gap-3">
           {isTemp && (

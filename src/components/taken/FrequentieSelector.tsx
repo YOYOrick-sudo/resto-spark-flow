@@ -26,13 +26,13 @@ const MAANDEN = [
 ];
 
 const FREQ_OPTIONS = [
-  { value: "dagelijks", label: "Dagelijks" },
-  { value: "wekelijks", label: "Wekelijks" },
-  { value: "maandelijks", label: "Maandelijks" },
+  { value: "dagelijks", label: "Dag" },
+  { value: "wekelijks", label: "Week" },
+  { value: "maandelijks", label: "Maand" },
   { value: "kwartaal", label: "Kwartaal" },
   { value: "halfjaar", label: "Halfjaar" },
-  { value: "jaarlijks", label: "Jaarlijks" },
-  { value: "custom", label: "Custom" },
+  { value: "jaarlijks", label: "Jaar" },
+  { value: "custom", label: "Aangepast" },
 ];
 
 function ordinaal(n: number): string {
