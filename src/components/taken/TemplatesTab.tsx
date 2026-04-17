@@ -133,10 +133,10 @@ export function TemplatesTab() {
             const isActive = selection?.mode === "edit" && selection.id === t.id;
             const itemCount = Array.isArray(t.items) ? t.items.length : 0;
             return (
-              <button
+              <div
                 key={t.id}
                 onClick={() => setSelection({ mode: "edit", id: t.id })}
-                className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                className={`group w-full text-left p-3 rounded-lg border transition-colors cursor-pointer ${
                   isActive
                     ? "bg-accent border-primary/40"
                     : "bg-card border-border hover:bg-accent/50"
@@ -144,13 +144,33 @@ export function TemplatesTab() {
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <span className="font-medium truncate">{t.naam}</span>
-                  <Switch
-                    checked={t.actief}
-                    onCheckedChange={(v) =>
-                      toggleActief.mutate({ id: t.id, actief: v })
-                    }
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setArchiveTarget(t);
+                            }}
+                            className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Archiveren"
+                          >
+                            <Archive className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Archiveren</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Switch
+                      checked={t.actief}
+                      onCheckedChange={(v) =>
+                        toggleActief.mutate({ id: t.id, actief: v })
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <NestoBadge variant={TYPE_BADGE_VARIANT[t.type] ?? "default"}>
@@ -165,11 +185,34 @@ export function TemplatesTab() {
                     </span>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
       </aside>
+
+      {/* Archiveer-bevestiging */}
+      <ConfirmDialog
+        open={!!archiveTarget}
+        onOpenChange={(open) => !open && setArchiveTarget(null)}
+        title={archiveTarget ? `Template '${archiveTarget.naam}' archiveren?` : ""}
+        description="Deze template verschijnt niet meer in de lijst of op de tijdlijn. Bestaande runs en responses blijven bewaard. Je kunt gearchiveerde templates later herstellen."
+        confirmLabel="Archiveren"
+        cancelLabel="Annuleren"
+        onConfirm={() => {
+          if (!archiveTarget) return;
+          const targetId = archiveTarget.id;
+          archiveTemplate.mutate(targetId, {
+            onSuccess: () => {
+              if (selection?.mode === "edit" && selection.id === targetId) {
+                setSelection(null);
+              }
+              setArchiveTarget(null);
+            },
+          });
+        }}
+        isLoading={archiveTemplate.isPending}
+      />
 
       {/* Rechterkolom — editor / empty (eigen scroll-container) */}
       <section className="h-[calc(100vh-220px)] overflow-y-auto pr-1">
