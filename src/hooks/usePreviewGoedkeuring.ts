@@ -23,6 +23,7 @@ export interface NieuwIngredientPreview {
   regelId: string;
   naam: string;
   eenheid: string | null;
+  verpakkingLabel: string | null;
   prijs: number | null;
 }
 
