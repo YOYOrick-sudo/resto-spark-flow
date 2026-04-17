@@ -182,6 +182,9 @@ serve(async (req) => {
         // R3: Pro is accurater dan Flash voor documentparsing.
         // Kosten: ~€0.008 vs ~€0.001 per factuur — verwaarloosbaar.
         modelOverride: "google/gemini-2.5-pro",
+        // R3 fix: PDF-parsing kan langer duren dan default 20s. 60s biedt ruimte
+        // voor complexe facturen voordat we naar Flash fallback gaan.
+        timeoutMs: 60_000,
       });
     } catch (aiError: any) {
       const errorMsg = aiError?.message || String(aiError);
@@ -260,9 +263,12 @@ serve(async (req) => {
     }
 
     // --- Update factuur_uploads ---
+    // R3 fix: status='review' zodat UI de factuur in review-staat toont
+    // (anders blijft hij op 'verwerken' staan ondanks ai_parsing_status='completed').
     await supabase
       .from("factuur_uploads")
       .update({
+        status: "review",
         ai_parsing_status: "completed",
         ai_parsed_at: new Date().toISOString(),
         ai_confidence_overall: parsed.confidence_overall ?? null,
@@ -275,50 +281,106 @@ serve(async (req) => {
       })
       .eq("id", factuurId);
 
-    // --- Insert factuur_regels ---
+    // --- Insert factuur_regels (5-tier matching cascade) ---
     const regels = parsed.regels ?? [];
     const regelInserts = [];
 
     for (const regel of regels) {
-      // Try to match ingredient
       let ingredientId: string | null = null;
       let matchStatus = "unmatched";
       let matchConfidence: number | null = null;
 
-      if (regel.product_naam) {
-        // Exact match on ingredient name
-        const { data: exactIngredient } = await supabase
+      const artikelnr = regel.artikelnummer != null
+        ? String(regel.artikelnummer).trim() || null
+        : null;
+      const productNaam = regel.product_naam?.trim() || null;
+
+      // TIER 1: artikelnummer + leverancier via leveranciers_artikelen → 1.0
+      if (artikelnr && leverancierId) {
+        const { data } = await supabase
+          .from("leveranciers_artikelen")
+          .select("ingredient_id")
+          .eq("leverancier_id", leverancierId)
+          .eq("artikel_nummer", artikelnr)
+          .eq("is_actief", true)
+          .not("ingredient_id", "is", null)
+          .limit(1)
+          .maybeSingle();
+        if (data?.ingredient_id) {
+          ingredientId = data.ingredient_id;
+          matchStatus = "matched";
+          matchConfidence = 1.0;
+        }
+      }
+
+      // TIER 2: artikelnummer + leverancier via ingredient_aliassen → 0.98
+      if (!ingredientId && artikelnr && leverancierId) {
+        const { data } = await supabase
+          .from("ingredient_aliassen")
+          .select("ingredient_id, ingredienten!inner(location_id)")
+          .eq("artikelnummer", artikelnr)
+          .eq("leverancier_id", leverancierId)
+          .eq("ingredienten.location_id", locationId)
+          .limit(1)
+          .maybeSingle();
+        if (data?.ingredient_id) {
+          ingredientId = data.ingredient_id;
+          matchStatus = "matched";
+          matchConfidence = 0.98;
+        }
+      }
+
+      // TIER 3: alias-naam match → 0.95
+      if (!ingredientId && productNaam) {
+        const { data } = await supabase
+          .from("ingredient_aliassen")
+          .select("ingredient_id, ingredienten!inner(location_id)")
+          .ilike("alias_naam", productNaam)
+          .eq("ingredienten.location_id", locationId)
+          .limit(1)
+          .maybeSingle();
+        if (data?.ingredient_id) {
+          ingredientId = data.ingredient_id;
+          matchStatus = "matched";
+          matchConfidence = 0.95;
+        }
+      }
+
+      // TIER 4: exacte ingredient-naam (case-insensitive) → 0.9
+      if (!ingredientId && productNaam) {
+        const { data } = await supabase
           .from("ingredienten")
           .select("id")
           .eq("location_id", locationId)
-          .ilike("naam", regel.product_naam)
+          .ilike("naam", productNaam)
           .limit(1)
-          .single();
-
-        if (exactIngredient) {
-          ingredientId = exactIngredient.id;
+          .maybeSingle();
+        if (data) {
+          ingredientId = data.id;
           matchStatus = "matched";
-          matchConfidence = 1.0;
-        } else {
-          // Try alias match
-          const { data: aliasIngredient } = await supabase
-            .from("ingredient_aliassen")
-            .select("ingredient_id, ingredienten!inner(location_id)")
-            .ilike("alias_naam", regel.product_naam)
-            .limit(1)
-            .single();
+          matchConfidence = 0.9;
+        }
+      }
 
-          if (aliasIngredient) {
-            ingredientId = aliasIngredient.ingredient_id;
-            matchStatus = "matched";
-            matchConfidence = 0.9;
-          }
+      // TIER 5: fuzzy match via pg_trgm RPC → similarity (alleen > 0.6)
+      // UI toont automatisch "AI suggestie" badge bij confidence < 0.85
+      if (!ingredientId && productNaam) {
+        const { data: fuzzy, error: fuzzyErr } = await supabase.rpc(
+          "fuzzy_match_ingredient",
+          { p_location_id: locationId, p_naam: productNaam }
+        );
+        if (fuzzyErr) {
+          console.warn("[parse-factuur] fuzzy_match_ingredient failed:", fuzzyErr);
+        } else if (fuzzy?.length && fuzzy[0].similarity > 0.6) {
+          ingredientId = fuzzy[0].id;
+          matchStatus = "matched";
+          matchConfidence = fuzzy[0].similarity;
         }
       }
 
       regelInserts.push({
         factuur_id: factuurId,
-        product_naam_herkend: regel.product_naam ?? "Onbekend",
+        product_naam_herkend: productNaam ?? "Onbekend",
         hoeveelheid: regel.hoeveelheid ?? null,
         eenheid: regel.eenheid ?? null,
         prijs_per_eenheid: regel.prijs_per_eenheid ?? null,
@@ -328,7 +390,7 @@ serve(async (req) => {
         match_confidence: matchConfidence,
         ai_confidence: regel.confidence ?? null,
         ai_raw_naam: regel.product_naam ?? null,
-        ai_raw_artikelnummer: regel.artikelnummer ?? null,
+        ai_raw_artikelnummer: artikelnr,
         is_nieuw_ingredient: !ingredientId,
       });
     }
