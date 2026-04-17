@@ -19,6 +19,11 @@ export interface FactuurRegel {
   ai_category_hint: string | null;
   ai_suggested_eenheid: string | null;
   is_nieuw_ingredient: boolean | null;
+  // R3.5 — verpakking → basiseenheid
+  verpakking_hoeveelheid: number | null;
+  verpakking_eenheid: string | null;
+  prijs_per_basiseenheid: number | null;
+  ai_raw_verpakking_tekst: string | null;
   created_at: string;
   ingredient_naam?: string | null;
 }

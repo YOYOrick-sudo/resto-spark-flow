@@ -1312,6 +1312,7 @@ export type Database = {
           ai_confidence: number | null
           ai_raw_artikelnummer: string | null
           ai_raw_naam: string | null
+          ai_raw_verpakking_tekst: string | null
           ai_suggested_eenheid: string | null
           ai_suggested_naam: string | null
           created_at: string
@@ -1323,15 +1324,19 @@ export type Database = {
           is_nieuw_ingredient: boolean | null
           match_confidence: number | null
           match_status: string
+          prijs_per_basiseenheid: number | null
           prijs_per_eenheid: number | null
           product_naam_herkend: string
           totaal: number | null
+          verpakking_eenheid: string | null
+          verpakking_hoeveelheid: number | null
         }
         Insert: {
           ai_category_hint?: string | null
           ai_confidence?: number | null
           ai_raw_artikelnummer?: string | null
           ai_raw_naam?: string | null
+          ai_raw_verpakking_tekst?: string | null
           ai_suggested_eenheid?: string | null
           ai_suggested_naam?: string | null
           created_at?: string
@@ -1343,15 +1348,19 @@ export type Database = {
           is_nieuw_ingredient?: boolean | null
           match_confidence?: number | null
           match_status?: string
+          prijs_per_basiseenheid?: number | null
           prijs_per_eenheid?: number | null
           product_naam_herkend: string
           totaal?: number | null
+          verpakking_eenheid?: string | null
+          verpakking_hoeveelheid?: number | null
         }
         Update: {
           ai_category_hint?: string | null
           ai_confidence?: number | null
           ai_raw_artikelnummer?: string | null
           ai_raw_naam?: string | null
+          ai_raw_verpakking_tekst?: string | null
           ai_suggested_eenheid?: string | null
           ai_suggested_naam?: string | null
           created_at?: string
@@ -1363,9 +1372,12 @@ export type Database = {
           is_nieuw_ingredient?: boolean | null
           match_confidence?: number | null
           match_status?: string
+          prijs_per_basiseenheid?: number | null
           prijs_per_eenheid?: number | null
           product_naam_herkend?: string
           totaal?: number | null
+          verpakking_eenheid?: string | null
+          verpakking_hoeveelheid?: number | null
         }
         Relationships: [
           {

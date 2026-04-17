@@ -265,16 +265,20 @@ export function useFactuurMutations() {
       regelId: string;
       naam: string;
       categorie: string;       // NOT NULL in DB
-      eenheid: string;
-      kostprijs?: number;
+      eenheid: string;         // basiseenheid (kg/L/stuk/...)
+      kostprijs?: number;      // R3.5 — prijs per basiseenheid (berekend of overschreven)
       min_voorraad?: number;
       aliasNaam?: string;
       leverancierId?: string | null;
       artikelnummer?: string | null;
+      // R3.5 — verpakking-info voor leveranciers_artikelen
+      verpakkingHoeveelheid?: number | null;
+      verpakkingEenheid?: string | null;
+      prijsPerVerpakking?: number | null;
     }) => {
       if (!locId) throw new Error("Geen locatie");
 
-      // 1. Maak ingrediënt
+      // 1. Maak ingrediënt — kostprijs is altijd per basiseenheid
       const { data: ing, error: iErr } = await supabase
         .from("ingredienten")
         .insert({
@@ -315,8 +319,7 @@ export function useFactuurMutations() {
         }
       }
 
-      // 4. Upsert leveranciers_artikelen — direct beschikbaar in Leveranciers-tab
-      //    zonder te wachten op factuur-goedkeuring.
+      // 4. Upsert leveranciers_artikelen — R3.5: zowel verpakking-prijs als per-basiseenheid prijs.
       const artNr = vars.artikelnummer?.trim();
       if (vars.leverancierId && artNr) {
         const { error: laErr } = await supabase
@@ -327,7 +330,10 @@ export function useFactuurMutations() {
               artikel_nummer: artNr,
               ingredient_id: ing.id,
               artikel_naam: vars.naam,
-              prijs_per_eenheid: vars.kostprijs ?? null,
+              prijs_per_eenheid: vars.kostprijs ?? null,         // per basiseenheid (afgeleid)
+              prijs_per_verpakking: vars.prijsPerVerpakking ?? null,
+              verpakking_hoeveelheid: vars.verpakkingHoeveelheid ?? null,
+              verpakking_eenheid: vars.verpakkingEenheid ?? null,
               is_actief: true,
               laatst_gesynchroniseerd: new Date().toISOString(),
             },
