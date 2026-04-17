@@ -32,6 +32,7 @@ export default function TakenRun() {
   const { data: keukenSettings } = useKeukenSettings();
   const [tempInputs, setTempInputs] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [fotoDialogItem, setFotoDialogItem] = useState<ChecklistItem | null>(null);
 
   const run = useMemo(() => (runs ?? []).find((r) => r.id === runId), [runs, runId]);
 
@@ -200,6 +201,8 @@ export default function TakenRun() {
         {items.map((item) => {
           const resp = responsesById.get(item.id);
           const isTemp = item.type === "temperatuur";
+          const fotoUrls = item.foto_urls ?? [];
+          const hasFotos = fotoUrls.length > 0;
 
           if (!isTemp) {
             return (
@@ -215,6 +218,21 @@ export default function TakenRun() {
                   className="h-5 w-5 flex-shrink-0"
                 />
                 <span className="text-sm font-medium flex-1 truncate">{item.titel}</span>
+                {hasFotos && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setFotoDialogItem(item);
+                    }}
+                    className="text-muted-foreground hover:text-primary p-1 rounded transition-colors flex-shrink-0"
+                    aria-label={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"} bekijken`}
+                    title={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"}`}
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
+                )}
                 {item.vereist && (
                   <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0">
                     Vereist
@@ -230,6 +248,17 @@ export default function TakenRun() {
                 <div className="flex-1 min-w-[180px]">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{item.titel}</span>
+                    {hasFotos && (
+                      <button
+                        type="button"
+                        onClick={() => setFotoDialogItem(item)}
+                        className="text-muted-foreground hover:text-primary p-1 -m-1 rounded transition-colors"
+                        aria-label={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"} bekijken`}
+                        title={`${fotoUrls.length} referentiefoto${fotoUrls.length === 1 ? "" : "'s"}`}
+                      >
+                        <Camera className="h-4 w-4" />
+                      </button>
+                    )}
                     {item.vereist && (
                       <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
                         Vereist
