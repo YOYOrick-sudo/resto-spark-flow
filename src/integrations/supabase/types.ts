@@ -774,6 +774,7 @@ export type Database = {
           default_time: string | null
           frequentie: string
           frequentie_config: Json
+          gearchiveerd_op: string | null
           id: string
           items: Json
           location_id: string
@@ -790,6 +791,7 @@ export type Database = {
           default_time?: string | null
           frequentie?: string
           frequentie_config?: Json
+          gearchiveerd_op?: string | null
           id?: string
           items?: Json
           location_id: string
@@ -806,6 +808,7 @@ export type Database = {
           default_time?: string | null
           frequentie?: string
           frequentie_config?: Json
+          gearchiveerd_op?: string | null
           id?: string
           items?: Json
           location_id?: string
