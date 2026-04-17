@@ -72,7 +72,12 @@ export function useChecklistRuns(datum?: string) {
 
       return (runs ?? []).map((r: any) => ({
         ...r,
-        template: r.template ? { ...r.template, items: r.template.items as ChecklistItem[] } : undefined,
+        template: r.template ? {
+          ...r.template,
+          items: (typeof r.template.items === 'string'
+            ? JSON.parse(r.template.items)
+            : r.template.items) as ChecklistItem[]
+        } : undefined,
         responses: responseMap.get(r.id) ?? [],
       })) as ChecklistRun[];
     },

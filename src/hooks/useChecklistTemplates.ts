@@ -101,7 +101,7 @@ export function useChecklistTemplates() {
         naam: t.naam,
         type: t.type,
         beschrijving: t.beschrijving,
-        items: JSON.stringify(t.items),
+        items: t.items as any,
       }));
       const { error } = await supabase.from("checklist_templates").insert(rows);
       if (error) throw error;
@@ -120,7 +120,7 @@ export function useChecklistTemplates() {
         naam: input.naam,
         type: input.type,
         beschrijving: input.beschrijving || null,
-        items: JSON.stringify(input.items),
+        items: input.items as any,
         actief: input.actief ?? true,
       };
       if (input.id) {
