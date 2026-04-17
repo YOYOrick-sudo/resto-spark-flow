@@ -88,7 +88,7 @@ export default function IngredientenDetail() {
             <KostprijsTab ingredient={ingredient} />
           </NestoTabContent>
           <NestoTabContent value="leveranciers" activeValue={activeTab}>
-            <LeveranciersTab />
+            <LeveranciersTab ingredientId={ingredient.id} ingredientEenheid={ingredient.eenheid} />
           </NestoTabContent>
           <NestoTabContent value="allergenen" activeValue={activeTab}>
             <AllergenenTab ingredient={ingredient} />
