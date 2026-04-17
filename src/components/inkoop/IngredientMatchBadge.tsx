@@ -29,23 +29,30 @@ export interface NewIngredientPrefill {
   kostprijs?: number;
   aliasNaam: string;
   artikelnummer?: string | null;
+  categorie?: string;
 }
 
 export function IngredientMatchBadge({ regel, leverancierId, onOpenNewIngredient }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const { confirmMatch } = useFactuurMutations();
 
-  const conf = regel.ai_confidence ?? regel.match_confidence ?? 0;
+  // FIX 1: gebruik UITSLUITEND match_confidence voor de badge.
+  // ai_confidence is OCR-leesvertrouwen, geen match-vertrouwen — die mengen
+  // gaf misleidende "Onzekere match (95%)" labels op unmatched regels.
+  const conf = regel.match_confidence ?? 0;
   const isManual = regel.match_status === "manual";
   const isMatched = regel.match_status === "matched";
   const hasIngredient = !!regel.ingredient_id && !!regel.ingredient_naam;
 
   const prefill: NewIngredientPrefill = {
     naam: regel.ai_suggested_naam ?? regel.ai_raw_naam ?? regel.product_naam_herkend,
-    eenheid: regel.eenheid ?? "stuk",
+    // FIX 6: basiseenheid uit AI-hint (kg/L/stuk) i.p.v. leveranciers-verpakking (doos)
+    eenheid: regel.ai_suggested_eenheid ?? "stuk",
     kostprijs: regel.prijs_per_eenheid ?? undefined,
     aliasNaam: regel.product_naam_herkend,
     artikelnummer: regel.ai_raw_artikelnummer,
+    // FIX 5: categorie-hint uit AI (groenten/vlees/...) — undefined = laat modal default
+    categorie: regel.ai_category_hint ?? undefined,
   };
 
   // STATE 1 — Manual OR high-confidence matched (>0.85)
@@ -165,9 +172,12 @@ function Picker({
   embedded,
   floating,
 }: PickerProps) {
-  const { data: suggesties = [], isLoading } = useFuzzyMatchIngredient(
+  const { data: suggestiesRaw = [], isLoading } = useFuzzyMatchIngredient(
     regel.product_naam_herkend
   );
+  // FIX 2: alleen suggesties met similarity ≥ 0.6 tonen (consistent met
+  // backend cascade tier 5). Onder 0.6 = "Geen vergelijkbare gevonden".
+  const suggesties = suggestiesRaw.filter((s) => s.similarity >= 0.6);
   const { linkIngredientAlias } = useFactuurMutations();
 
   const handlePick = (id: string) => {
