@@ -179,12 +179,11 @@ serve(async (req) => {
         jsonMode: true,
         maxTokens: 4000,
         temperature: 0.2,
-        // R3: Pro is accurater dan Flash voor documentparsing.
-        // Kosten: ~€0.008 vs ~€0.001 per factuur — verwaarloosbaar.
-        modelOverride: "google/gemini-2.5-pro",
-        // R3 fix: PDF-parsing kan langer duren dan default 20s. 60s biedt ruimte
-        // voor complexe facturen voordat we naar Flash fallback gaan.
-        timeoutMs: 60_000,
+        // R3 hotfix: Flash is primary (sneller, goedkoper, scoorde 0.95 conf op Kooyman).
+        // Pro timeoutte 2x op 60s. Pro blijft als fallback voor edge cases.
+        modelOverride: "google/gemini-2.5-flash",
+        // PDF-parsing kan langer duren dan default 20s. 90s ruime marge.
+        timeoutMs: 90_000,
       });
     } catch (aiError: any) {
       const errorMsg = aiError?.message || String(aiError);
@@ -217,18 +216,47 @@ serve(async (req) => {
       });
     }
 
-    // --- Parse AI response ---
+    // --- Parse AI response (robust extractor) ---
+    console.log(
+      `[parse-factuur] AI response length=${aiResult.text.length}, first 500: ${aiResult.text.slice(0, 500)}`
+    );
+
+    const extractJSON = (text: string): any => {
+      let cleaned = text.trim();
+      // Strip markdown fences (```json ... ``` of ``` ... ```)
+      cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+      // Greedy fallback: eerste { tot laatste }
+      const firstBrace = cleaned.indexOf("{");
+      const lastBrace = cleaned.lastIndexOf("}");
+      if (firstBrace >= 0 && lastBrace > firstBrace) {
+        cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+      }
+      return JSON.parse(cleaned);
+    };
+
     let parsed: any;
     try {
-      parsed = JSON.parse(aiResult.text);
-    } catch {
-      // Try to extract JSON from markdown code block
-      const jsonMatch = aiResult.text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[1].trim());
-      } else {
-        throw new Error("Kon AI-response niet als JSON parsen");
-      }
+      parsed = extractJSON(aiResult.text);
+    } catch (parseErr: any) {
+      console.error(
+        "[parse-factuur] JSON parse failed. Raw (first 500):",
+        aiResult.text.slice(0, 500)
+      );
+      await supabase
+        .from("factuur_uploads")
+        .update({
+          ai_parsing_status: "failed",
+          ai_raw_response: {
+            error: "json_parse_failed",
+            parse_error: parseErr?.message ?? String(parseErr),
+            raw_preview: aiResult.text.slice(0, 1000),
+          },
+        })
+        .eq("id", factuurId);
+      return new Response(
+        JSON.stringify({ error: "AI response niet parseerbaar als JSON" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // --- Fuzzy match leverancier ---
@@ -243,7 +271,7 @@ serve(async (req) => {
         .eq("location_id", locationId)
         .ilike("naam", leverancierNaam)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (exactMatch) {
         leverancierId = exactMatch.id;
@@ -253,8 +281,9 @@ serve(async (req) => {
           .from("leverancier_aliassen")
           .select("leverancier_id, leveranciers!inner(location_id)")
           .ilike("alias_naam", leverancierNaam)
+          .eq("leveranciers.location_id", locationId)
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (aliasMatch) {
           leverancierId = aliasMatch.leverancier_id;
@@ -262,26 +291,7 @@ serve(async (req) => {
       }
     }
 
-    // --- Update factuur_uploads ---
-    // R3 fix: status='review' zodat UI de factuur in review-staat toont
-    // (anders blijft hij op 'verwerken' staan ondanks ai_parsing_status='completed').
-    await supabase
-      .from("factuur_uploads")
-      .update({
-        status: "review",
-        ai_parsing_status: "completed",
-        ai_parsed_at: new Date().toISOString(),
-        ai_confidence_overall: parsed.confidence_overall ?? null,
-        ai_raw_response: parsed,
-        leverancier_naam_herkend: leverancierNaam ?? null,
-        leverancier_id: leverancierId ?? factuur.leverancier_id,
-        factuurnummer: parsed.factuurnummer ?? factuur.factuurnummer,
-        factuurdatum: parsed.factuurdatum ?? factuur.factuurdatum,
-        totaalbedrag: parsed.totaalbedrag ?? factuur.totaalbedrag,
-      })
-      .eq("id", factuurId);
-
-    // --- Insert factuur_regels (5-tier matching cascade) ---
+    // --- Build factuur_regels with 5-tier matching cascade ---
     const regels = parsed.regels ?? [];
     const regelInserts = [];
 
@@ -395,15 +405,69 @@ serve(async (req) => {
       });
     }
 
-    if (regelInserts.length > 0) {
-      const { error: insertError } = await supabase
-        .from("factuur_regels")
-        .insert(regelInserts);
-
-      if (insertError) {
-        console.error("Error inserting factuur_regels:", insertError);
-      }
+    // --- Guard: AI returned 0 regels = failed (geen "completed" zonder regels) ---
+    if (regelInserts.length === 0) {
+      console.error("[parse-factuur] AI returned no regels");
+      await supabase
+        .from("factuur_uploads")
+        .update({
+          ai_parsing_status: "failed",
+          ai_raw_response: {
+            error: "ai_returned_no_regels",
+            parsed_data: parsed,
+          },
+        })
+        .eq("id", factuurId);
+      return new Response(
+        JSON.stringify({ error: "AI heeft geen factuurregels herkend" }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    // --- Insert factuur_regels ---
+    const { error: insertError } = await supabase
+      .from("factuur_regels")
+      .insert(regelInserts);
+
+    if (insertError) {
+      console.error("[parse-factuur] regel insert failed:", insertError);
+      await supabase
+        .from("factuur_uploads")
+        .update({
+          ai_parsing_status: "failed",
+          ai_raw_response: {
+            error: "regel_insert_failed",
+            db_error: insertError.message,
+            attempted_count: regelInserts.length,
+            parsed_data: parsed,
+          },
+        })
+        .eq("id", factuurId);
+      return new Response(
+        JSON.stringify({
+          error: "Regels konden niet opgeslagen worden",
+          details: insertError.message,
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // --- Pas NU status='review' + completed (alleen na succesvolle regel-insert) ---
+    await supabase
+      .from("factuur_uploads")
+      .update({
+        status: "review",
+        ai_parsing_status: "completed",
+        ai_parsed_at: new Date().toISOString(),
+        ai_confidence_overall: parsed.confidence_overall ?? null,
+        ai_raw_response: parsed,
+        leverancier_naam_herkend: leverancierNaam ?? null,
+        leverancier_id: leverancierId ?? factuur.leverancier_id,
+        factuurnummer: parsed.factuurnummer ?? factuur.factuurnummer,
+        factuurdatum: parsed.factuurdatum ?? factuur.factuurdatum,
+        totaalbedrag: parsed.totaalbedrag ?? factuur.totaalbedrag,
+      })
+      .eq("id", factuurId);
 
     return new Response(
       JSON.stringify({
