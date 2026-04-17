@@ -19,9 +19,9 @@ const iconHeightMap = {
 } as const;
 
 const wordmarkHeightMap = {
-  sm: 20,
-  md: 28,
-  lg: 36,
+  sm: 24,
+  md: 34,
+  lg: 42,
 } as const;
 
 const lockupHeightMap = {
