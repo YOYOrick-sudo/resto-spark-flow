@@ -386,9 +386,11 @@ export function useFactuurMutations() {
       const regels = ((factuur as any).factuur_regels ?? []) as any[];
       const leverancierId = (factuur as any).leverancier_id as string | null;
 
+      // R4b-1: skipped regels worden expliciet uitgesloten van voorraad/kostprijs-impact
       const matchedRegels = regels.filter(
         (r: any) =>
           r.ingredient_id &&
+          r.match_status !== "skipped" &&
           (r.match_status === "matched" || r.match_status === "manual")
       );
 
@@ -411,12 +413,14 @@ export function useFactuurMutations() {
       // R3: leer-loop — upsert artikelnummer→ingredient mapping zodat volgende
       // factuur van dezelfde leverancier direct via TIER 1 matcht (confidence 1.0).
       // R3.5 — uitgebreid met verpakking-velden + per-verpakking prijs
+      // R4b-1 — skipped regels expliciet uitsluiten
       if (leverancierId) {
         const upsertRows = regels
           .filter(
             (r: any) =>
               r.ingredient_id &&
               r.ai_raw_artikelnummer &&
+              r.match_status !== "skipped" &&
               (r.match_status === "matched" || r.match_status === "manual")
           )
           .map((r: any) => ({
@@ -433,9 +437,9 @@ export function useFactuurMutations() {
           }));
 
         if (upsertRows.length) {
-          // R3.5 hotfix B — dedup op (leverancier_id, artikel_nummer); LAATSTE wint
-          // Voorkomt Postgres 21000: "ON CONFLICT DO UPDATE command cannot affect row a second time"
-          const dedupMap = new Map<string, typeof upsertRows[0]>();
+      // R3.5 hotfix B — dedup op (leverancier_id, artikel_nummer); LAATSTE wint
+      // Voorkomt Postgres 21000: "ON CONFLICT DO UPDATE command cannot affect row a second time"
+      const dedupMap = new Map<string, (typeof upsertRows)[0]>();
           for (const row of upsertRows) {
             const key = `${row.leverancier_id}|${row.artikel_nummer}`;
             dedupMap.set(key, row);
