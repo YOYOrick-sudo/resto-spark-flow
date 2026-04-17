@@ -389,16 +389,18 @@ export function useFactuurMutations() {
       const matchedRegels = regels.filter(
         (r: any) =>
           r.ingredient_id &&
-          (r.match_status === "matched" || r.match_status === "manual") &&
-          r.prijs_per_eenheid != null
+          (r.match_status === "matched" || r.match_status === "manual")
       );
 
+      // R3.5 — kostprijs uit prijs_per_basiseenheid (fallback prijs_per_eenheid voor oude regels)
       let updated = 0;
       for (const regel of matchedRegels) {
+        const prijs = regel.prijs_per_basiseenheid ?? regel.prijs_per_eenheid;
+        if (prijs == null) continue;
         const { error } = await supabase
           .from("ingredienten")
           .update({
-            kostprijs: regel.prijs_per_eenheid,
+            kostprijs: prijs,
             kostprijs_bron: "factuur",
             kostprijs_laatst_bijgewerkt: new Date().toISOString(),
           })
@@ -408,6 +410,7 @@ export function useFactuurMutations() {
 
       // R3: leer-loop — upsert artikelnummer→ingredient mapping zodat volgende
       // factuur van dezelfde leverancier direct via TIER 1 matcht (confidence 1.0).
+      // R3.5 — uitgebreid met verpakking-velden + per-verpakking prijs
       if (leverancierId) {
         const upsertRows = regels
           .filter(
@@ -421,6 +424,10 @@ export function useFactuurMutations() {
             artikel_nummer: String(r.ai_raw_artikelnummer).trim(),
             ingredient_id: r.ingredient_id as string,
             artikel_naam: r.product_naam_herkend ?? "Onbekend",
+            prijs_per_eenheid: r.prijs_per_basiseenheid ?? r.prijs_per_eenheid ?? null,
+            prijs_per_verpakking: r.prijs_per_basiseenheid != null ? r.prijs_per_eenheid : null,
+            verpakking_hoeveelheid: r.verpakking_hoeveelheid ?? null,
+            verpakking_eenheid: r.verpakking_eenheid ?? null,
             is_actief: true,
             laatst_gesynchroniseerd: new Date().toISOString(),
           }));
