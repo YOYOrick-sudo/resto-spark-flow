@@ -3,6 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { nestoToast } from "@/lib/nestoToast";
 
+export type Frequentie =
+  | "dagelijks"
+  | "wekelijks"
+  | "maandelijks"
+  | "kwartaal"
+  | "halfjaar"
+  | "jaarlijks"
+  | "custom";
+
 export interface ChecklistItem {
   id: string;
   titel: string;
@@ -12,6 +21,7 @@ export interface ChecklistItem {
   temp_min: number | null;
   temp_max: number | null;
   frequentie: "dagelijks" | "wekelijks" | "maandelijks";
+  foto_urls?: string[];
 }
 
 export interface ChecklistTemplate {
@@ -23,6 +33,9 @@ export interface ChecklistTemplate {
   beschrijving: string | null;
   items: ChecklistItem[];
   actief: boolean;
+  frequentie: Frequentie;
+  frequentie_config: Record<string, any>;
+  default_time: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,12 +47,12 @@ function makeSeedTemplates(): Array<{ naam: string; type: string; beschrijving: 
       type: "opening",
       beschrijving: "Dagelijkse opening checklist",
       items: [
-        { id: crypto.randomUUID(), titel: "Handen wassen", type: "check", volgorde: 1, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Werkkleding aan", type: "check", volgorde: 2, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Koeling temperatuur check", type: "temperatuur", volgorde: 3, vereist: true, temp_min: 0, temp_max: 7, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Vriezer temperatuur check", type: "temperatuur", volgorde: 4, vereist: true, temp_min: -25, temp_max: -18, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Werkbladen schoonmaken", type: "check", volgorde: 5, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Mise en place controleren", type: "check", volgorde: 6, vereist: false, temp_min: null, temp_max: null, frequentie: "dagelijks" },
+        { id: crypto.randomUUID(), titel: "Handen wassen", type: "check", volgorde: 1, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Werkkleding aan", type: "check", volgorde: 2, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Koeling temperatuur check", type: "temperatuur", volgorde: 3, vereist: true, temp_min: 0, temp_max: 7, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Vriezer temperatuur check", type: "temperatuur", volgorde: 4, vereist: true, temp_min: -25, temp_max: -18, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Werkbladen schoonmaken", type: "check", volgorde: 5, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Mise en place controleren", type: "check", volgorde: 6, vereist: false, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
       ],
     },
     {
@@ -47,12 +60,12 @@ function makeSeedTemplates(): Array<{ naam: string; type: string; beschrijving: 
       type: "sluiting",
       beschrijving: "Dagelijkse sluiting checklist",
       items: [
-        { id: crypto.randomUUID(), titel: "Werkbladen reinigen", type: "check", volgorde: 1, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Vloer dweilen", type: "check", volgorde: 2, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Koeling temperatuur check", type: "temperatuur", volgorde: 3, vereist: true, temp_min: 0, temp_max: 7, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Afval verwijderen", type: "check", volgorde: 4, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Gas/apparatuur uit", type: "check", volgorde: 5, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks" },
-        { id: crypto.randomUUID(), titel: "Lichten uit", type: "check", volgorde: 6, vereist: false, temp_min: null, temp_max: null, frequentie: "dagelijks" },
+        { id: crypto.randomUUID(), titel: "Werkbladen reinigen", type: "check", volgorde: 1, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Vloer dweilen", type: "check", volgorde: 2, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Koeling temperatuur check", type: "temperatuur", volgorde: 3, vereist: true, temp_min: 0, temp_max: 7, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Afval verwijderen", type: "check", volgorde: 4, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Gas/apparatuur uit", type: "check", volgorde: 5, vereist: true, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Lichten uit", type: "check", volgorde: 6, vereist: false, temp_min: null, temp_max: null, frequentie: "dagelijks", foto_urls: [] },
       ],
     },
     {
@@ -60,11 +73,11 @@ function makeSeedTemplates(): Array<{ naam: string; type: string; beschrijving: 
       type: "schoonmaak",
       beschrijving: "Wekelijkse schoonmaaktaken",
       items: [
-        { id: crypto.randomUUID(), titel: "Afzuigkap reinigen", type: "check", volgorde: 1, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks" },
-        { id: crypto.randomUUID(), titel: "Koeling uitruimen en schoonmaken", type: "check", volgorde: 2, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks" },
-        { id: crypto.randomUUID(), titel: "Vriezer controleren", type: "check", volgorde: 3, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks" },
-        { id: crypto.randomUUID(), titel: "Oven reinigen", type: "check", volgorde: 4, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks" },
-        { id: crypto.randomUUID(), titel: "Vuilnisbakken desinfecteren", type: "check", volgorde: 5, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks" },
+        { id: crypto.randomUUID(), titel: "Afzuigkap reinigen", type: "check", volgorde: 1, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Koeling uitruimen en schoonmaken", type: "check", volgorde: 2, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Vriezer controleren", type: "check", volgorde: 3, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Oven reinigen", type: "check", volgorde: 4, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks", foto_urls: [] },
+        { id: crypto.randomUUID(), titel: "Vuilnisbakken desinfecteren", type: "check", volgorde: 5, vereist: true, temp_min: null, temp_max: null, frequentie: "wekelijks", foto_urls: [] },
       ],
     },
   ];
@@ -87,7 +100,10 @@ export function useChecklistTemplates() {
       if (error) throw error;
       return (data ?? []).map((d: any) => ({
         ...d,
-        items: (typeof d.items === 'string' ? JSON.parse(d.items) : d.items) as ChecklistItem[],
+        items: (typeof d.items === "string" ? JSON.parse(d.items) : d.items) as ChecklistItem[],
+        frequentie: (d.frequentie ?? "dagelijks") as Frequentie,
+        frequentie_config: (d.frequentie_config ?? {}) as Record<string, any>,
+        default_time: d.default_time ?? null,
       })) as ChecklistTemplate[];
     },
     enabled: !!locationId,
@@ -102,19 +118,31 @@ export function useChecklistTemplates() {
         type: t.type,
         beschrijving: t.beschrijving,
         items: t.items as any,
+        frequentie: "dagelijks",
+        frequentie_config: {} as any,
+        default_time: null,
       }));
       const { error } = await supabase.from("checklist_templates").insert(rows);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
-      
     },
     onError: () => nestoToast.error("Fout bij aanmaken templates"),
   });
 
   const saveTemplate = useMutation({
-    mutationFn: async (input: { id?: string; naam: string; type: string; beschrijving?: string; items: ChecklistItem[]; actief?: boolean }) => {
+    mutationFn: async (input: {
+      id?: string;
+      naam: string;
+      type: string;
+      beschrijving?: string;
+      items: ChecklistItem[];
+      actief?: boolean;
+      frequentie?: Frequentie;
+      frequentie_config?: Record<string, any>;
+      default_time?: string | null;
+    }) => {
       const payload = {
         location_id: locationId!,
         naam: input.naam,
@@ -122,6 +150,9 @@ export function useChecklistTemplates() {
         beschrijving: input.beschrijving || null,
         items: input.items as any,
         actief: input.actief ?? true,
+        frequentie: input.frequentie ?? "dagelijks",
+        frequentie_config: (input.frequentie_config ?? {}) as any,
+        default_time: input.default_time ?? null,
       };
       if (input.id) {
         const { error } = await supabase.from("checklist_templates").update(payload).eq("id", input.id);
@@ -133,7 +164,6 @@ export function useChecklistTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
-      
     },
     onError: () => nestoToast.error("Fout bij opslaan template"),
   });
