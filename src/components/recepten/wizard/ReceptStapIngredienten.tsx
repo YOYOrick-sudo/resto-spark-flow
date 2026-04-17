@@ -23,6 +23,7 @@ export function ReceptStapIngredienten() {
     search: "",
     categorie: "",
     voorraadStatus: "",
+    leverancierId: "",
     showArchived: false,
   });
 

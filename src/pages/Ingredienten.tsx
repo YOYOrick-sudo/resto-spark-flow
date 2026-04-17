@@ -13,13 +13,16 @@ import {
 } from "@/components/polar";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   useIngredienten,
   filterIngredienten,
   getVoorraadStatus,
+  getActieveLeveranciers,
   type IngredientRow,
   type IngredientenFilters,
 } from "@/hooks/useIngredienten";
+import { useLeveranciers } from "@/hooks/useLeveranciers";
 
 
 // ============================================================================
@@ -68,12 +71,31 @@ export default function Ingredienten() {
     search: "",
     categorie: "",
     voorraadStatus: "",
+    leverancierId: "",
     showArchived: false,
   });
 
-
   const { data, isLoading } = useIngredienten(filters);
+  const { data: leveranciers = [] } = useLeveranciers();
   const filtered = React.useMemo(() => filterIngredienten(data, filters), [data, filters]);
+
+  const leverancierOptions = React.useMemo(
+    () => [
+      { value: "", label: "Alle leveranciers" },
+      { value: "none", label: "Geen leverancier" },
+      ...leveranciers.map((l: any) => ({ value: l.id, label: l.naam })),
+    ],
+    [leveranciers]
+  );
+
+  const resetFilters = () =>
+    setFilters({
+      search: "",
+      categorie: "",
+      voorraadStatus: "",
+      leverancierId: "",
+      showArchived: false,
+    });
 
   // Table columns
   const columns: DataTableColumn<IngredientRow>[] = React.useMemo(
@@ -81,12 +103,23 @@ export default function Ingredienten() {
       {
         key: "naam",
         header: "Naam",
-        render: (item) => (
-          <div>
-            <p className="font-medium text-foreground">{item.naam}</p>
-            <p className="text-xs text-muted-foreground">{item.categorie}</p>
-          </div>
-        ),
+        render: (item) => {
+          const actieveLevs = getActieveLeveranciers(item);
+          const showGeenLevBadge =
+            actieveLevs.length === 0 &&
+            (item.kostprijs_bron || "").toLowerCase() === "handmatig";
+          return (
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-foreground">{item.naam}</p>
+                {showGeenLevBadge && (
+                  <NestoBadge variant="warning" size="sm">Geen leverancier</NestoBadge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{item.categorie}</p>
+            </div>
+          );
+        },
       },
       {
         key: "eenheid",
@@ -105,6 +138,39 @@ export default function Ingredienten() {
               </span>
               {bron && <NestoBadge variant={bron.variant} size="sm">{bron.label}</NestoBadge>}
             </div>
+          );
+        },
+      },
+      {
+        key: "leveranciers",
+        header: "Leveranciers",
+        render: (item) => {
+          const actieveLevs = getActieveLeveranciers(item);
+          if (actieveLevs.length === 0) {
+            return <span className="text-sm text-muted-foreground">— Geen leverancier</span>;
+          }
+          if (actieveLevs.length === 1) {
+            return <span className="text-sm text-foreground">{actieveLevs[0].naam}</span>;
+          }
+          const [first, ...rest] = actieveLevs;
+          return (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-sm text-foreground cursor-help">
+                    {first.naam}{" "}
+                    <span className="text-muted-foreground">+{rest.length}</span>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="flex flex-col gap-0.5">
+                    {rest.map((l) => (
+                      <span key={l.id} className="text-xs">{l.naam}</span>
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       },
@@ -206,6 +272,15 @@ export default function Ingredienten() {
             placeholder="Alle statussen"
           />
         </div>
+        <div className="w-[200px]">
+          <NestoSelect
+            value={filters.leverancierId}
+            onValueChange={(v) => setFilters((f) => ({ ...f, leverancierId: v }))}
+            options={leverancierOptions}
+            size="sm"
+            placeholder="Alle leveranciers"
+          />
+        </div>
         <div className="flex items-center gap-2">
           <Switch
             id="show-archived"
@@ -220,7 +295,7 @@ export default function Ingredienten() {
 
       {/* Table */}
       {isLoading ? (
-        <TableSkeleton rows={6} columns={5} />
+        <TableSkeleton rows={6} columns={6} />
       ) : filtered.length === 0 ? (
         <div className="rounded-card border border-border bg-card p-12">
           <EmptyState
@@ -230,7 +305,7 @@ export default function Ingredienten() {
             action={
               data?.length === 0
                 ? { label: "Nieuw ingrediënt", onClick: () => navigate("/voorraad/nieuw") }
-                : { label: "Filters wissen", onClick: () => setFilters({ search: "", categorie: "", voorraadStatus: "", showArchived: false }) }
+                : { label: "Filters wissen", onClick: resetFilters }
             }
           />
         </div>

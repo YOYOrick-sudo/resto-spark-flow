@@ -16,6 +16,12 @@ export interface IngredientAllergeenRow {
   };
 }
 
+export interface IngredientLeverancierRow {
+  is_actief: boolean;
+  laatst_gesynchroniseerd: string | null;
+  leveranciers: { id: string; naam: string } | null;
+}
+
 export interface IngredientRow {
   id: string;
   naam: string;
@@ -37,13 +43,22 @@ export interface IngredientRow {
   created_at: string;
   updated_at: string;
   ingredient_allergenen: IngredientAllergeenRow[];
+  leveranciers_artikelen: IngredientLeverancierRow[];
 }
 
 export interface IngredientenFilters {
   search: string;
   categorie: string;
   voorraadStatus: string;
+  leverancierId: string;
   showArchived: boolean;
+}
+
+export function getActieveLeveranciers(row: IngredientRow): { id: string; naam: string }[] {
+  return (row.leveranciers_artikelen ?? [])
+    .filter((la) => la.is_actief && la.leveranciers)
+    .sort((a, b) => (b.laatst_gesynchroniseerd ?? "").localeCompare(a.laatst_gesynchroniseerd ?? ""))
+    .map((la) => la.leveranciers!);
 }
 
 export function getVoorraadStatus(voorraad: number, minVoorraad: number) {
@@ -70,6 +85,11 @@ export function useIngredienten(filters: IngredientenFilters) {
             status,
             bron,
             allergenen(id, code, naam_nl, naam_en, sort_order)
+          ),
+          leveranciers_artikelen(
+            is_actief,
+            laatst_gesynchroniseerd,
+            leveranciers(id, naam)
           )
         `)
         .eq("location_id", locationId)
@@ -125,6 +145,14 @@ export function filterIngredienten(
   if (filters.voorraadStatus) {
     result = result.filter(
       (i) => getVoorraadStatus(i.voorraad, i.min_voorraad) === filters.voorraadStatus
+    );
+  }
+
+  if (filters.leverancierId === "none") {
+    result = result.filter((i) => getActieveLeveranciers(i).length === 0);
+  } else if (filters.leverancierId) {
+    result = result.filter((i) =>
+      getActieveLeveranciers(i).some((l) => l.id === filters.leverancierId)
     );
   }
 
