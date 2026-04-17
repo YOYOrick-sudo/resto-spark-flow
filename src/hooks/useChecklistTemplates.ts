@@ -188,10 +188,11 @@ export function useChecklistTemplates() {
       frequentie_config?: Record<string, any>;
       default_time?: string | null;
     }) => {
-      // Auto-detect modus: per_item zodra ≥1 item een eigen frequentie heeft
-      const modus = detectModus(input.items);
-
-      const payload = {
+      // C2e + freq-hybride: chef-aangemaakte templates zijn altijd 'gebundeld'.
+      // Per-item frequenties worden binnen de template-items zelf geconfigureerd
+      // en door generate_daily_checklist_runs() per item geëvalueerd.
+      // 'per_item'-modus is voorbehouden aan system-templates (handmatig geseed).
+      const basePayload = {
         location_id: locationId!,
         naam: input.naam,
         type: input.type,
@@ -201,21 +202,22 @@ export function useChecklistTemplates() {
         frequentie: input.frequentie ?? "dagelijks",
         frequentie_config: (input.frequentie_config ?? {}) as any,
         default_time: input.default_time ?? null,
-        modus,
       };
       if (input.id) {
+        // Update: laat 'modus' weg zodat bestaande waarde (incl. system 'per_item') behouden blijft
         const { data, error } = await supabase
           .from("checklist_templates")
-          .update(payload)
+          .update(basePayload)
           .eq("id", input.id)
           .select()
           .single();
         if (error) throw error;
         return data;
       } else {
+        // Insert: hardcoded 'gebundeld'
         const { data, error } = await supabase
           .from("checklist_templates")
-          .insert(payload)
+          .insert({ ...basePayload, modus: "gebundeld" })
           .select()
           .single();
         if (error) throw error;
