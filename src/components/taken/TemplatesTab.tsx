@@ -322,12 +322,12 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
     void performSave();
   }, 800);
 
-  // Auto-clear "saved" indicator na 2s, zodat hij niet permanent in beeld blijft
+  // Auto-clear "saved" indicator na 1.5s, zodat hij niet permanent in beeld blijft
   useEffect(() => {
     if (saveStatus !== "saved") return;
     const t = setTimeout(() => {
       setSaveStatus((s) => (s === "saved" ? "idle" : s));
-    }, 2000);
+    }, 1500);
     return () => clearTimeout(t);
   }, [saveStatus]);
 
