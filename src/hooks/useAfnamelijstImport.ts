@@ -257,7 +257,10 @@ export function useAfnamelijstImport(leverancierId: string) {
             } as any,
             { onConflict: "leverancier_id,ingredient_id" }
           );
-        if (error) console.error("Upsert error:", error);
+        if (error) {
+          console.error("[afnamelijst] leveranciers_artikelen upsert error:", error);
+          throw new Error(`Import mislukt voor "${m.artikel_naam}": ${error.message}`);
+        }
 
         if (options.updatePrices && m.prijs_per_verpakking != null) {
           const kostprijs =
