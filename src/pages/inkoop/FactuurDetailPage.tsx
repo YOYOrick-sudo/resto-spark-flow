@@ -167,8 +167,8 @@ export default function FactuurDetailPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-30 bg-background border-b border-border/50 px-6 py-3 flex items-center gap-4">
+      {/* Header (niet sticky) */}
+      <header className="bg-background border-b border-border/50 px-6 py-3 flex items-center gap-4">
         <button
           onClick={() => navigate("/inkoop")}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] -ml-2 px-2 rounded-md"
