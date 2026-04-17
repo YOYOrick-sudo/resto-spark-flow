@@ -46,7 +46,6 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
-      nestoToast.success("Factuur geüpload — AI leest mee...");
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -78,7 +77,6 @@ export function useFactuurMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
-      nestoToast.success("Leverancier gekoppeld — volgende factuur wordt auto-herkend");
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -194,7 +192,6 @@ export function useFactuurMutations() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
-      nestoToast.success("Ingrediënt gekoppeld — AI leert hiervan");
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -249,9 +246,8 @@ export function useFactuurMutations() {
       if (error) throw error;
       return { count: regelIds.length };
     },
-    onSuccess: (r) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
-      nestoToast.success(`${r.count} matches bevestigd`);
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -359,7 +355,6 @@ export function useFactuurMutations() {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["ingredienten"] });
       qc.invalidateQueries({ queryKey: ["leveranciers-artikelen"] });
-      nestoToast.success("Nieuw ingrediënt aangemaakt en gekoppeld");
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -454,11 +449,10 @@ export function useFactuurMutations() {
 
       return { updated };
     },
-    onSuccess: (result) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
       qc.invalidateQueries({ queryKey: ["ingredienten"] });
-      nestoToast.success(`Prijzen bijgewerkt voor ${result.updated} ingrediënten`);
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
@@ -474,7 +468,6 @@ export function useFactuurMutations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
-      nestoToast.success("Factuur afgewezen");
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
