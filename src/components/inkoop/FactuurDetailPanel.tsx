@@ -208,6 +208,164 @@ function DetailContent({ factuurId }: { factuurId: string }) {
   );
 }
 
+// ============================================================
+// Regels-sectie met bulk-bevestig + review-filter (R3)
+// ============================================================
+interface RegelsSectieProps {
+  factuur: ReturnType<typeof useFactuurDetail>["data"] extends infer T ? NonNullable<T> : never;
+  factuurId: string;
+  isEditable: boolean;
+  addOpen: boolean;
+  setAddOpen: (v: boolean) => void;
+  reviewMode: boolean;
+  setReviewMode: (v: boolean) => void;
+  onDeleteRegel: (id: string) => void;
+  onBulkConfirm: (ids: string[]) => void;
+  bulkPending: boolean;
+  onOpenNewIngredient: (regelId: string, prefill: NewIngredientPrefill) => void;
+}
+
+function FactuurRegelsSectie({
+  factuur,
+  factuurId,
+  isEditable,
+  addOpen,
+  setAddOpen,
+  reviewMode,
+  setReviewMode,
+  onDeleteRegel,
+  onBulkConfirm,
+  bulkPending,
+  onOpenNewIngredient,
+}: RegelsSectieProps) {
+  const { highConfMatched, onzekereRegels, visibleRegels } = useMemo(() => {
+    const regels = factuur.regels;
+    const high = regels.filter(
+      (r) => r.match_status === "matched" && (r.ai_confidence ?? r.match_confidence ?? 0) > 0.85
+    );
+    const onzeker = regels.filter((r) => {
+      const c = r.ai_confidence ?? r.match_confidence ?? 0;
+      return r.match_status === "unmatched" || (r.match_status === "matched" && c <= 0.85);
+    });
+    return {
+      highConfMatched: high,
+      onzekereRegels: onzeker,
+      visibleRegels: reviewMode ? onzeker : regels,
+    };
+  }, [factuur.regels, reviewMode]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Regels ({factuur.regels.length})
+        </h3>
+        <div className="flex items-center gap-3">
+          {isEditable && onzekereRegels.length > 0 && (
+            <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-muted-foreground hover:text-foreground">
+              <input
+                type="checkbox"
+                checked={reviewMode}
+                onChange={(e) => setReviewMode(e.target.checked)}
+                className="h-3 w-3"
+              />
+              Alleen onzekere ({onzekereRegels.length})
+            </label>
+          )}
+          {isEditable && !addOpen && (
+            <NestoButton variant="ghost" size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Toevoegen
+            </NestoButton>
+          )}
+        </div>
+      </div>
+
+      {isEditable && highConfMatched.length > 0 && (
+        <div className="mb-3 rounded-xl border border-success/30 bg-success-light/40 px-3 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs">
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+            <span>
+              <strong>{highConfMatched.length}</strong> regels met hoge zekerheid
+              klaar voor bevestiging
+            </span>
+          </div>
+          <NestoButton
+            variant="primary"
+            size="sm"
+            isLoading={bulkPending}
+            onClick={() => onBulkConfirm(highConfMatched.map((r) => r.id))}
+          >
+            Bevestig alle
+          </NestoButton>
+        </div>
+      )}
+
+      {addOpen && (
+        <div className="mb-3">
+          <FactuurRegelForm factuurId={factuurId} onDone={() => setAddOpen(false)} />
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {visibleRegels.map((r) => {
+          const conf = r.ai_confidence ?? r.match_confidence ?? 0;
+          const needsAttention =
+            r.match_status === "unmatched" ||
+            (r.match_status === "matched" && conf <= 0.85);
+          return (
+            <div
+              key={r.id}
+              className={`rounded-xl border p-3 space-y-2 ${
+                needsAttention
+                  ? "border-warning/40 bg-warning/5"
+                  : "border-border/30 bg-muted/30"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">
+                    {r.product_naam_herkend}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.hoeveelheid ?? "-"} {r.eenheid ?? ""} · €
+                    {r.prijs_per_eenheid?.toFixed(2) ?? "-"}/eh · €
+                    {r.totaal?.toFixed(2) ?? "-"}
+                  </p>
+                </div>
+                {isEditable && (
+                  <button
+                    onClick={() => onDeleteRegel(r.id)}
+                    className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted/50 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    aria-label="Verwijder regel"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {isEditable && (
+                <IngredientMatchBadge
+                  regel={r}
+                  leverancierId={factuur.leverancier_id}
+                  onOpenNewIngredient={onOpenNewIngredient}
+                />
+              )}
+            </div>
+          );
+        })}
+
+        {visibleRegels.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            {reviewMode
+              ? "Alle regels zijn afgehandeld 🎉"
+              : "Nog geen regels. Voeg ze handmatig toe."}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface FactuurDetailPanelProps {
   factuurId: string | null;
   onClose: () => void;
