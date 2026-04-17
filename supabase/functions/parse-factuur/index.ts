@@ -1,6 +1,13 @@
 // supabase/functions/parse-factuur/index.ts
 // Sprint D.6b — Factuur AI Parser (Gemini Vision)
 // Parst geüploade facturen via multimodal AI en slaat gestructureerde data op
+//
+// R3.5 — Verpakking → basiseenheid conversie
+// SOURCE OF TRUTH (kritiek!):
+//   - AI levert: prijs_per_eenheid (= prijs zoals op factuur, meestal per verpakking)
+//                + verpakking_aantal + verpakking_eenheid + basiseenheid_per_item
+//   - Nesto berekent ALTIJD ZELF: prijs_per_basiseenheid = prijs_per_eenheid / verpakking_aantal
+//   - Zelfs als AI ooit prijs_per_stuk teruggeeft → NEGEER. Eén bron voorkomt afronding-conflicten.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -26,11 +33,14 @@ Geef een JSON-object terug met exact deze structuur:
       "clean_ingredient_naam": "schone ingredient-naam zonder merk/verpakking, bv. 'Falafel' i.p.v. 'Falafel Party Pure Orient NINA BAKERY 2x1,5kg'",
       "category_hint": "exact één van: groenten, vlees, vis, zuivel, kruiden, olie, droog, overig — null als onzeker",
       "basiseenheid": "exact één van: kg, g, L, ml, stuk — de eenheid waarin dit ingredient in recepten gebruikt wordt (NIET de leveranciers-doos)",
+      "verpakking_aantal": 246,
+      "verpakking_eenheid": "doos",
+      "verpakking_raw": "6×41×18gr",
       "artikelnummer": "artikelnummer indien zichtbaar, anders null",
       "hoeveelheid": 10,
       "eenheid": "kg, liter, stuk, doos, etc. — zoals op de factuur staat",
-      "prijs_per_eenheid": 2.50,
-      "totaal": 25.00,
+      "prijs_per_eenheid": 64.57,
+      "totaal": 64.57,
       "confidence": 0.95
     }
   ],
@@ -53,7 +63,19 @@ EXTRA VELDEN — voor "Nieuw ingrediënt" suggesties:
 - category_hint: lower-case, exact uit lijst (groenten, vlees, vis, zuivel, kruiden, olie, droog, overig).
   Bij twijfel of onbekend: null. NIET gokken.
 - basiseenheid: kies de natuurlijke recept-eenheid, NIET de leveranciers-verpakking.
-  "Eieren 30st doos" → "stuk"; "Olie 5L jerrycan" → "L"; "Bloem 25kg zak" → "kg"; "Melk 6x1L" → "L".`;
+  "Eieren 30st doos" → "stuk"; "Olie 5L jerrycan" → "L"; "Bloem 25kg zak" → "kg"; "Melk 6x1L" → "L".
+
+VERPAKKING (KRITIEK voor correcte food cost):
+- verpakking_aantal: TOTAAL aantal basiseenheden in 1 verpakking.
+  "Gyoza 6×41×18gr 1 doos" → verpakking_aantal=246, basiseenheid=stuk (6×41=246 stuks)
+  "Frituurolie 2×5lt 1 doos" → verpakking_aantal=10, basiseenheid=L (2×5=10 liter)
+  "Falafel 2×1,5kg 1 doos" → verpakking_aantal=3, basiseenheid=kg (2×1,5=3 kg)
+  "Bloem 25kg 1 zak" → verpakking_aantal=25, basiseenheid=kg
+  "Tomaten 1 kg los" → verpakking_aantal=null (geen verpakking, los geleverd)
+- verpakking_eenheid: doos | pak | fles | krat | zak | jerrycan | null (null als los/per basiseenheid)
+- verpakking_raw: origineel tekstfragment uit productnaam, bv "6×41×18gr" of "2×5lt"
+- BELANGRIJK: prijs_per_eenheid blijft de prijs zoals letterlijk op factuur (= per doos/pak/etc).
+  Bereken NIET zelf de stuk-prijs; Nesto doet dat. Als verpakking onduidelijk: laat verpakking_aantal NULL.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -127,8 +149,6 @@ serve(async (req) => {
 
     // --- Download file from storage ---
     const filePath = factuur.bestand_url;
-    // bestand_url can be a full URL or a storage path
-    // Extract the path after /facturen/
     let storagePath = filePath;
     if (filePath.includes("/facturen/")) {
       storagePath = filePath.split("/facturen/").pop()!;
@@ -153,7 +173,7 @@ serve(async (req) => {
       });
     }
 
-    // Convert to base64 (chunked — voorkomt stack overflow op grote files)
+    // Convert to base64 (chunked)
     const arrayBuffer = await fileData.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     let binaryStr = "";
@@ -163,7 +183,6 @@ serve(async (req) => {
     }
     const base64 = btoa(binaryStr);
 
-    // Detect MIME van extensie → PDF gaat via documents[], images via images[]
     const ext = factuur.bestandsnaam.toLowerCase().split(".").pop() ?? "";
     const isPDF = ext === "pdf";
     const mimeType = isPDF
@@ -176,7 +195,7 @@ serve(async (req) => {
       `[parse-factuur] file=${factuur.bestandsnaam} ext=${ext} mime=${mimeType} bytes=${uint8Array.length} path=${isPDF ? "documents[]" : "images[]"}`
     );
 
-    // --- Call AI (Gemini Vision via callAI) ---
+    // --- Call AI ---
     let aiResult;
     try {
       aiResult = await callAI({
@@ -189,14 +208,9 @@ serve(async (req) => {
           ? { documents: [{ data: base64, mimeType: "application/pdf" }] }
           : { images: [base64] }),
         jsonMode: true,
-        // R3 fix: 12000 = veilige bovengrens voor 50+ regels met 7 hint-velden.
-        // Vorige 4000 truncated bij 28-regel Kooyman (output exact 4000).
         maxTokens: 12000,
         temperature: 0.2,
-        // R3 hotfix: Flash is primary (sneller, goedkoper, scoorde 0.95 conf op Kooyman).
-        // Pro timeoutte 2x op 60s. Pro blijft als fallback voor edge cases.
         modelOverride: "google/gemini-2.5-flash",
-        // PDF-parsing kan langer duren dan default 20s. 90s ruime marge.
         timeoutMs: 90_000,
       });
     } catch (aiError: any) {
@@ -210,7 +224,6 @@ serve(async (req) => {
         })
         .eq("id", factuurId);
 
-      // Rate limit / credits
       if (errorMsg.includes("429") || errorMsg.includes("rate")) {
         return new Response(JSON.stringify({ error: "AI rate limit bereikt, probeer later opnieuw" }), {
           status: 429,
@@ -230,23 +243,20 @@ serve(async (req) => {
       });
     }
 
-    // --- Parse AI response (robust extractor) ---
+    // --- Parse AI response ---
     console.log(
       `[parse-factuur] AI response length=${aiResult.text.length}, first 500: ${aiResult.text.slice(0, 500)}`
     );
 
-    // Defensieve guard: waarschuw bij 90% van maxTokens (10800/12000) — risico op truncatie
     if (aiResult.outputTokens && aiResult.outputTokens >= 10800) {
       console.warn(
-        `[parse-factuur] Output near maxTokens limit (${aiResult.outputTokens}/12000) — risk of truncation. Consider raising maxTokens.`
+        `[parse-factuur] Output near maxTokens limit (${aiResult.outputTokens}/12000) — risk of truncation.`
       );
     }
 
     const extractJSON = (text: string): any => {
       let cleaned = text.trim();
-      // Strip markdown fences (```json ... ``` of ``` ... ```)
       cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-      // Greedy fallback: eerste { tot laatste }
       const firstBrace = cleaned.indexOf("{");
       const lastBrace = cleaned.lastIndexOf("}");
       if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -285,7 +295,6 @@ serve(async (req) => {
     const leverancierNaam = parsed.leverancier_naam;
 
     if (!leverancierId && leverancierNaam) {
-      // Try exact match first
       const { data: exactMatch } = await supabase
         .from("leveranciers")
         .select("id")
@@ -297,7 +306,6 @@ serve(async (req) => {
       if (exactMatch) {
         leverancierId = exactMatch.id;
       } else {
-        // Try alias match
         const { data: aliasMatch } = await supabase
           .from("leverancier_aliassen")
           .select("leverancier_id, leveranciers!inner(location_id)")
@@ -377,7 +385,7 @@ serve(async (req) => {
         }
       }
 
-      // TIER 4: exacte ingredient-naam (case-insensitive) → 0.9
+      // TIER 4: exacte ingredient-naam → 0.9
       if (!ingredientId && productNaam) {
         const { data } = await supabase
           .from("ingredienten")
@@ -393,8 +401,7 @@ serve(async (req) => {
         }
       }
 
-      // TIER 5: fuzzy match via pg_trgm RPC → similarity (alleen > 0.6)
-      // UI toont automatisch "AI suggestie" badge bij confidence < 0.85
+      // TIER 5: fuzzy match
       if (!ingredientId && productNaam) {
         const { data: fuzzy, error: fuzzyErr } = await supabase.rpc(
           "fuzzy_match_ingredient",
@@ -409,23 +416,38 @@ serve(async (req) => {
         }
       }
 
-      // FIX 4/5/6: AI-hints voor "Nieuw ingrediënt" modal
-      // Whitelist categorie tegen toegestane lijst — anders null (geen vervuiling)
+      // Whitelist categorie + basiseenheid
       const allowedCategories = ["groenten","vlees","vis","zuivel","kruiden","olie","droog","overig"];
       const rawCategory = regel.category_hint?.toString().toLowerCase().trim();
       const categoryHint = rawCategory && allowedCategories.includes(rawCategory) ? rawCategory : null;
 
-      // Whitelist basiseenheid — anders null (modal valt terug op "stuk")
       const allowedEenheden = ["kg","g","L","ml","stuk"];
       const rawEenheid = regel.basiseenheid?.toString().trim();
       const basiseenheid = rawEenheid && allowedEenheden.includes(rawEenheid) ? rawEenheid : null;
+
+      // R3.5 — VERPAKKING-CONVERSIE (single source of truth)
+      // prijs_per_eenheid = wat AI las van factuur (per verpakking als verpakking aanwezig is)
+      // prijs_per_basiseenheid = ALTIJD afgeleid door Nesto, NOOIT van AI overgenomen.
+      // Reden: voorkomt afronding-conflicten tussen AI's stuk-prijs en factuur-totaal.
+      const allowedVerpakking = ["doos","pak","fles","krat","zak","jerrycan","bos"];
+      const rawVerpEenh = regel.verpakking_eenheid?.toString().toLowerCase().trim();
+      const verpakkingEenheid = rawVerpEenh && allowedVerpakking.includes(rawVerpEenh) ? rawVerpEenh : null;
+
+      const verpakkingHvh = typeof regel.verpakking_aantal === "number" && regel.verpakking_aantal > 0
+        ? regel.verpakking_aantal
+        : null;
+
+      const prijsOpFactuur = typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
+      const prijsPerBasiseenheid = (verpakkingHvh && prijsOpFactuur != null)
+        ? prijsOpFactuur / verpakkingHvh
+        : prijsOpFactuur; // geen verpakking → factuurprijs is al per basiseenheid
 
       regelInserts.push({
         factuur_id: factuurId,
         product_naam_herkend: productNaam ?? "Onbekend",
         hoeveelheid: regel.hoeveelheid ?? null,
         eenheid: regel.eenheid ?? null,
-        prijs_per_eenheid: regel.prijs_per_eenheid ?? null,
+        prijs_per_eenheid: prijsOpFactuur,
         totaal: regel.totaal ?? null,
         ingredient_id: ingredientId,
         match_status: matchStatus,
@@ -437,10 +459,15 @@ serve(async (req) => {
         ai_category_hint: categoryHint,
         ai_suggested_eenheid: basiseenheid,
         is_nieuw_ingredient: !ingredientId,
+        // R3.5 nieuwe kolommen
+        verpakking_hoeveelheid: verpakkingHvh,
+        verpakking_eenheid: verpakkingEenheid,
+        prijs_per_basiseenheid: prijsPerBasiseenheid,
+        ai_raw_verpakking_tekst: regel.verpakking_raw?.toString().trim() || null,
       });
     }
 
-    // --- Guard: AI returned 0 regels = failed (geen "completed" zonder regels) ---
+    // --- Guard: AI returned 0 regels = failed ---
     if (regelInserts.length === 0) {
       console.error("[parse-factuur] AI returned no regels");
       await supabase
@@ -487,7 +514,7 @@ serve(async (req) => {
       );
     }
 
-    // --- Pas NU status='review' + completed (alleen na succesvolle regel-insert) ---
+    // --- Pas NU status='review' + completed ---
     await supabase
       .from("factuur_uploads")
       .update({
