@@ -1,5 +1,6 @@
 import { NestoCard } from '@/components/polar/NestoCard';
 import { PhaseDurationBadge } from './PhaseDurationBadge';
+import { CandidateSourceBadge } from './CandidateSourceBadge';
 
 interface CandidateCardProps {
   candidate: {
@@ -11,6 +12,7 @@ interface CandidateCardProps {
     email: string;
     updated_at: string;
     status: string;
+    source?: string | null;
   };
   onClick?: () => void;
 }
@@ -28,6 +30,9 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
           </p>
         </div>
         <PhaseDurationBadge updatedAt={candidate.updated_at} />
+      </div>
+      <div className="mt-2 flex items-center justify-end">
+        <CandidateSourceBadge source={candidate.source} />
       </div>
     </NestoCard>
   );

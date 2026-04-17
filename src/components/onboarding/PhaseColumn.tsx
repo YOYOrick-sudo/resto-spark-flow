@@ -13,6 +13,7 @@ interface PhaseColumnProps {
     email: string;
     updated_at: string;
     status: string;
+    source?: string | null;
   }>;
   onCandidateClick?: (id: string) => void;
 }

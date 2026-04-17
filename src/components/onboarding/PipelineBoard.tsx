@@ -16,6 +16,7 @@ interface Candidate {
   updated_at: string;
   status: string;
   current_phase_id: string | null;
+  source?: string | null;
 }
 
 interface PipelineBoardProps {
