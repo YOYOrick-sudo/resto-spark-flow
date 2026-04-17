@@ -22,6 +22,8 @@ import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurRegelForm } from "@/components/inkoop/FactuurRegelForm";
 import { LeverancierMatchWidget } from "@/components/inkoop/LeverancierMatchWidget";
 import { BulkCreateIngredientsDialog } from "@/components/inkoop/BulkCreateIngredientsDialog";
+import { GoedkeurenPreviewModal } from "@/components/inkoop/GoedkeurenPreviewModal";
+import type { PreviewData } from "@/hooks/usePreviewGoedkeuring";
 import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
 import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterChips";
 import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
@@ -108,6 +110,7 @@ export default function FactuurDetailPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [chip, setChip] = useState<ChipId | null>(null);
   const [bulkCreateRegels, setBulkCreateRegels] = useState<FactuurRegel[] | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Local state voor editable factuurvelden (onBlur saves)
   const [factuurnummer, setFactuurnummer] = useState("");
@@ -175,9 +178,19 @@ export default function FactuurDetailPage() {
   const activeChip: ChipId = chip ?? "all";
 
   const handleGoedkeuren = () => {
-    goedkeuren.mutate(factuurId!, {
-      onSuccess: () => navigate("/inkoop"),
-    });
+    setPreviewOpen(true);
+  };
+
+  const handleConfirmGoedkeuren = (snapshot: PreviewData) => {
+    goedkeuren.mutate(
+      { id: factuurId!, snapshot },
+      {
+        onSuccess: () => {
+          setPreviewOpen(false);
+          navigate("/inkoop");
+        },
+      }
+    );
   };
 
   const handleAfwijzen = () => {
@@ -416,6 +429,21 @@ export default function FactuurDetailPage() {
         onClose={() => setBulkCreateRegels(null)}
         regels={bulkCreateRegels ?? []}
         leverancierId={factuur.leverancier_id}
+      />
+
+      <GoedkeurenPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        onConfirm={handleConfirmGoedkeuren}
+        isConfirming={goedkeuren.isPending}
+        factuur={{
+          factuurnummer: factuur.factuurnummer,
+          leverancierNaam:
+            (leveranciers ?? []).find((l: any) => l.id === factuur.leverancier_id)
+              ?.naam ?? factuur.leverancier_naam_herkend ?? null,
+          totaal: berekenTotaal,
+          regels: factuur.regels,
+        }}
       />
     </div>
   );
