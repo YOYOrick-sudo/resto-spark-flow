@@ -16,7 +16,8 @@ import {
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { nestoToast } from "@/lib/nestoToast";
@@ -566,6 +567,7 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
                       item={item}
                       locationId={locationId}
                       templateFrequentie={frequentie}
+                      isPerItemTemplate={isPerItem}
                       copiedFreq={copiedFreq}
                       onCopyFreq={() => handleCopyFreq(item)}
                       onPasteFreq={() => handlePasteFreq(item.id)}
@@ -621,6 +623,7 @@ interface SortableItemRowProps {
   item: ChecklistItem;
   locationId: string;
   templateFrequentie: Frequentie;
+  isPerItemTemplate: boolean;
   copiedFreq: CopiedFrequentie | null;
   onCopyFreq: () => void;
   onPasteFreq: () => void;
@@ -635,7 +638,7 @@ const QUICK_TEMPLATES: Array<{ label: string; value: string }> = [
   { label: "Aandachtspunt", value: "Let op: " },
 ];
 
-function SortableItemRow({ item, locationId, templateFrequentie, copiedFreq, onCopyFreq, onPasteFreq, onUpdate, onUpdateInstant, onRemove }: SortableItemRowProps) {
+function SortableItemRow({ item, locationId, templateFrequentie, isPerItemTemplate, copiedFreq, onCopyFreq, onPasteFreq, onUpdate, onUpdateInstant, onRemove }: SortableItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({ id: item.id });
 
@@ -714,7 +717,7 @@ function SortableItemRow({ item, locationId, templateFrequentie, copiedFreq, onC
           />
         </div>
 
-        {/* Frequentie-kolom (72px) — badge + copy of paste */}
+        {/* Frequentie-kolom (72px) — badge / copy / paste / waarschuwing */}
         <div className="flex items-center justify-center gap-1">
           {freqBadge ? (
             <>
@@ -734,6 +737,21 @@ function SortableItemRow({ item, locationId, templateFrequentie, copiedFreq, onC
                 <Copy className="h-2.5 w-2.5" />
               </button>
             </>
+          ) : isPerItemTemplate ? (
+            // EDGE CASE: in per_item-template heeft dit item geen eigen freq → verschijnt nergens
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-warning bg-warning/10 px-1.5 py-0.5 rounded whitespace-nowrap cursor-help">
+                    <AlertTriangle className="h-2.5 w-2.5" />
+                    Geen freq
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[220px] text-xs">
+                  Dit item verschijnt nergens. Stel een frequentie in (uitklappen → Eigen frequentie) of verwijder het.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : copiedFreq ? (
             <button
               type="button"

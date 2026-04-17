@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, Check, Lock, CheckSquare, Camera } from "lucide-react";
-import { useChecklistRuns, isRunFrozen } from "@/hooks/useChecklistRuns";
+import { ChevronLeft, Check, Lock, CheckSquare, Camera, AlertCircle } from "lucide-react";
+import { useChecklistRuns, isRunFrozen, getRunItems, getOverdueMap } from "@/hooks/useChecklistRuns";
+import { formatFrequentieKort, formatDatumKort } from "@/lib/frequentieFormat";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,9 +38,16 @@ export default function TakenRun() {
   const run = useMemo(() => (runs ?? []).find((r) => r.id === runId), [runs, runId]);
 
   const items = useMemo<ChecklistItem[]>(
-    () => (run?.template?.items ?? []).slice().sort((a, b) => a.volgorde - b.volgorde),
+    () => (run ? getRunItems(run) : []),
     [run]
   );
+
+  const overdueMap = useMemo(
+    () => (run ? getOverdueMap(run) : new Map<string, string>()),
+    [run]
+  );
+
+  const isPerItem = run?.template?.modus === "per_item";
 
   const responsesById = useMemo(() => {
     const m = new Map<string, any>();
