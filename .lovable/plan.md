@@ -1,57 +1,40 @@
 
 
-# Plan — Sidebar logo: wordmark uitgeklapt, ring-icon ingeklapt
+## Status: al gedaan in vorige loops ✅
 
-## Wat je wilt
-- **Sidebar uitgeklapt** → toon `shouf` wordmark (zwarte tekst), zelfde visuele grootte als waar voorheen "nesto" tekst stond.
-- **Sidebar ingeklapt** → toon de bordeaux ring-icon (`shouf-icon.png`).
+Alle drie de fixes zitten al in `src/components/taken/TemplatesTab.tsx` (505 regels). Hieronder per fix waar het zit:
 
-## Onderzoek nodig
-Eerst checken hoe de sidebar logo render-call eruit ziet en welke size momenteel gebruikt wordt — zodat de wordmark op exact dezelfde hoogte uitlijnt als de oude "nesto" tekst.
-
-Te lezen:
-- `src/components/layout/NestoSidebar.tsx` (of vergelijkbaar) — vinden waar `<NestoLogo>` staat en met welke props
-- `src/components/polar/NestoLogo.tsx` — huidige size-mapping (`md` = 26px lockup-hoogte, wordmark ongeknipt)
-
-## Wijziging
-
-### 1. Sidebar render-call aanpassen
-In de sidebar-component conditioneel renderen:
+### 1. Rechterkolom scrollbaar — regel 152
 ```tsx
-<NestoLogo
-  size="md"
-  showIcon={collapsed}
-  showWordmark={!collapsed}
-/>
+<section className="h-[calc(100vh-220px)] overflow-y-auto pr-1">
 ```
-- `collapsed=true` → alleen icon (ring) → past in smalle 56px-strip
-- `collapsed=false` → alleen wordmark (`shouf` tekst) → vult de header zoals voorheen
+Onafhankelijke scroll-container met sticky header (regel 281: `sticky top-0 z-10 ... bg-background/80 backdrop-blur-md`).
 
-### 2. `NestoLogo.tsx` size-tuning
-De huidige `heightMap` (`md=26px`) is afgestemd op het oude SVG-logo. De nieuwe `shouf` PNG-wordmark heeft andere proporties (breder, dikker letterbeeld). Mogelijk moet `md` voor wordmark omhoog naar **~22-24px** zodat de visuele body-hoogte van "shouf" overeenkomt met de oude "nesto" tekst (16-18px x-height).
+### 2. Compacte tabel-rijen — regel 412-501 (`SortableItemRow`)
+Grid `[24px_1fr_140px_auto_28px]` op één regel:
+- **24px** — drag handle (GripVertical, opacity-0 → group-hover:opacity-100)
+- **1fr** — borderless titel-input (focus reveal border)
+- **140px** — type-dropdown (NestoSelect)
+- **auto** — vereist-toggle + temp min/max inline (alleen bij `type === "temperatuur"`)
+- **28px** — delete (Trash2, hover-reveal)
 
-Voorstel: aparte hoogtes voor wordmark vs icon vs lockup:
-```ts
-const wordmarkHeightMap = { sm: 16, md: 22, lg: 28 };
-const iconHeightMap     = { sm: 20, md: 26, lg: 32 };
-const lockupHeightMap   = { sm: 22, md: 30, lg: 38 };
-```
+Cards weg, divide-y rijen in één container (regel 351: `bg-card border border-border rounded-lg overflow-hidden divide-y divide-border`).
 
-Exacte waardes finetunen na visuele check in preview.
+### 3. Drag-and-drop met dnd-kit — regel 217-262
+- `PointerSensor` met `activationConstraint: { distance: 4 }`
+- `DndContext` + `SortableContext` (verticalListSortingStrategy)
+- Modifiers: `restrictToVerticalAxis` + `restrictToParentElement`
+- `arrayMove` + automatische volgorde-renumber in `handleDragEnd`
+- Geen pijltjes meer
 
-## Bestandenoverzicht
+## Wat ik nu doe
 
-| # | Actie | Bestand |
-|---|---|---|
-| 1 | EDIT | `src/components/polar/NestoLogo.tsx` — aparte size-maps per modus |
-| 2 | EDIT | sidebar-component (waarschijnlijk `src/components/layout/NestoSidebar.tsx`) — `showIcon`/`showWordmark` koppelen aan `collapsed`-state |
+Niets te bouwen — code is compleet en consistent met `SortableShiftRow`-patroon. Geen file-edits.
 
-## Wat NIET verandert
-- Geen kleuren, geen tekst-strings, geen routes, geen DB
-- Lockup-modus (icon+wordmark) blijft beschikbaar voor andere plekken (login, 404)
-- Andere call-sites van `<NestoLogo />` blijven identiek werken
+**Gevraagd te doen door jou (kan ik niet zelf in plan-mode):**
+1. Open `/taken` → tab Templates → kies een template met 6+ items (de seed "Opening keuken" heeft er 6)
+2. Versleep een item via de GripVertical handle (verschijnt op hover) en sla op
+3. Voeg ~10 items toe en check of de rechterkolom netjes scrollt terwijl de Annuleren/Opslaan-header sticky blijft
 
-## Resultaat
-- Uitgeklapt: zwart `shouf` woord op crème sidebar-bg, zelfde optische gewicht als oude nesto-text
-- Ingeklapt: bordeaux ring-icon, gecentreerd in de smalle strip
+Als alles werkt → groen licht voor Sprint C1. Als er iets schuurt (bv. handle te smal op tablet, dropdown z-index issue) — meld het en ik fix gericht.
 
