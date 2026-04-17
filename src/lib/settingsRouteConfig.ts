@@ -186,6 +186,7 @@ export const onboardingConfig: SettingsModuleConfig = {
     { id: "team", label: "Team", path: "/instellingen/onboarding/team", description: "Team beheer en rollen", icon: Users },
     { id: "templates", label: "E-mailtemplates", path: "/instellingen/onboarding/templates", description: "E-mail templates voor kandidaten", icon: FileText },
     { id: "reminders", label: "Reminders", path: "/instellingen/onboarding/reminders", description: "Automatische herinneringen", icon: BellRing },
+    { id: "sollicitatiepagina", label: "Sollicitatiepagina", path: "/instellingen/onboarding/sollicitatiepagina", description: "Publieke werken-bij pagina configureren", icon: Globe },
   ],
 };
 

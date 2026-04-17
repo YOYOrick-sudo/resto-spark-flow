@@ -72,6 +72,7 @@ import SettingsOnboardingFasen from "./pages/settings/onboarding/SettingsOnboard
 import SettingsOnboardingTeam from "./pages/settings/onboarding/SettingsOnboardingTeam";
 import SettingsOnboardingTemplates from "./pages/settings/onboarding/SettingsOnboardingTemplates";
 import SettingsOnboardingReminders from "./pages/settings/onboarding/SettingsOnboardingReminders";
+import SettingsOnboardingSollicitatiepagina from "./pages/settings/onboarding/SettingsOnboardingSollicitatiepagina";
 
 // Communicatie settings detail pages
 import SettingsCommunicatieEmailOpmaak from "./pages/settings/communicatie/SettingsCommunicatieEmailOpmaak";
@@ -231,6 +232,7 @@ const App = () => (
                   <Route path="/instellingen/onboarding/team" element={<SettingsOnboardingTeam />} />
                   <Route path="/instellingen/onboarding/templates" element={<SettingsOnboardingTemplates />} />
                   <Route path="/instellingen/onboarding/reminders" element={<SettingsOnboardingReminders />} />
+                  <Route path="/instellingen/onboarding/sollicitatiepagina" element={<SettingsOnboardingSollicitatiepagina />} />
                   <Route path="/instellingen/communicatie" element={<SettingsCommunicatie />} />
                   <Route path="/instellingen/communicatie/email-opmaak" element={<SettingsCommunicatieEmailOpmaak />} />
                   <Route path="/instellingen/communicatie/branding" element={<SettingsCommunicatieBranding />} />
