@@ -101,7 +101,7 @@ export function TemplatesTab() {
       : null;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-8">
       {/* Linkerkolom — lijst */}
       <aside className="space-y-3">
         <NestoButton
@@ -430,7 +430,7 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         </button>
       </div>
 
-      {/* Basisvelden */}
+      {/* Basisvelden — Naam | Type */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-1.5 block">Naam</label>
@@ -451,15 +451,48 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
             options={TYPE_OPTIONS}
           />
         </div>
-        <div className="md:col-span-2">
-          <label className="text-sm font-medium mb-1.5 block">Beschrijving</label>
-          <NestoInput
-            value={beschrijving}
-            onChange={(e) => setBeschrijving(e.target.value)}
-            placeholder="Optioneel"
+      </div>
+
+      {/* Beschrijving — full width */}
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Beschrijving</label>
+        <NestoInput
+          value={beschrijving}
+          onChange={(e) => setBeschrijving(e.target.value)}
+          placeholder="Optioneel"
+        />
+      </div>
+
+      {/* Frequentie — full width */}
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Frequentie</label>
+        <FrequentieSelector
+          frequentie={frequentie}
+          config={frequentieConfig}
+          onChange={(f, c) => {
+            setFrequentie(f);
+            setFrequentieConfig(c);
+          }}
+        />
+      </div>
+
+      {/* Standaard tijd | Actief — 2-koloms ritme */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Standaard tijd</label>
+          <input
+            type="time"
+            value={defaultTime}
+            onChange={(e) => setDefaultTime(e.target.value)}
+            className="h-10 w-full rounded-button border-[1.5px] border-border bg-card px-3 text-sm tabular-nums focus:!border-primary focus:outline-none focus:ring-0"
           />
+          {!defaultTime && (
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Leeg = standaard uit settings (nu: {fallbackTijd} voor type "{type}")
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pb-2.5">
           <Switch
             checked={actief}
             onCheckedChange={(v) => {
@@ -471,49 +504,13 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         </div>
       </div>
 
-      {/* Frequentie */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Frequentie
-        </h3>
-        <FrequentieSelector
-          frequentie={frequentie}
-          config={frequentieConfig}
-          onChange={(f, c) => {
-            setFrequentie(f);
-            setFrequentieConfig(c);
-          }}
-        />
-      </div>
-
-      {/* Standaard tijd */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Standaard tijd
-        </h3>
-        <div className="flex items-end gap-3">
-          <div>
-            <input
-              type="time"
-              value={defaultTime}
-              onChange={(e) => setDefaultTime(e.target.value)}
-              className="h-10 w-32 rounded-button border-[1.5px] border-border bg-card px-3 text-sm tabular-nums focus:!border-primary focus:outline-none focus:ring-0"
-            />
-          </div>
-          {!defaultTime && (
-            <p className="text-xs text-muted-foreground pb-2">
-              Leeg = standaard tijd uit settings (nu: {fallbackTijd} voor type "{type}")
-            </p>
-          )}
-        </div>
-      </div>
-
       {/* Items */}
-      <div className="space-y-2">
+      <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Items ({items.length})
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">Items</h3>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {items.length} {items.length === 1 ? "taak" : "taken"}
+          </span>
         </div>
 
         {items.length === 0 ? (
