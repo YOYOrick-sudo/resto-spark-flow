@@ -1408,6 +1408,7 @@ export type Database = {
           created_at: string
           factuurdatum: string | null
           factuurnummer: string | null
+          file_hash: string | null
           goedgekeurd_door: string | null
           goedgekeurd_op: string | null
           id: string
@@ -1431,6 +1432,7 @@ export type Database = {
           created_at?: string
           factuurdatum?: string | null
           factuurnummer?: string | null
+          file_hash?: string | null
           goedgekeurd_door?: string | null
           goedgekeurd_op?: string | null
           id?: string
@@ -1454,6 +1456,7 @@ export type Database = {
           created_at?: string
           factuurdatum?: string | null
           factuurnummer?: string | null
+          file_hash?: string | null
           goedgekeurd_door?: string | null
           goedgekeurd_op?: string | null
           id?: string

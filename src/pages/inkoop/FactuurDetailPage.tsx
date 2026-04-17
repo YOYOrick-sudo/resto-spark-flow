@@ -10,19 +10,24 @@ import {
   dateToString,
 } from "@/components/polar";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useFactuurDetail } from "@/hooks/useFactuurDetail";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurRegelForm } from "@/components/inkoop/FactuurRegelForm";
 import { LeverancierMatchWidget } from "@/components/inkoop/LeverancierMatchWidget";
-import {
-  IngredientMatchBadge,
-  type NewIngredientPrefill,
-} from "@/components/inkoop/IngredientMatchBadge";
+import { type NewIngredientPrefill } from "@/components/inkoop/IngredientMatchBadge";
 import { NieuwIngredientFromFactuurModal } from "@/components/inkoop/NieuwIngredientFromFactuurModal";
-import { VerpakkingHint } from "@/components/inkoop/VerpakkingHint";
+import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
+import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterChips";
+import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Plus, MoreHorizontal } from "lucide-react";
 
 const STATUS_BADGES: Record<
   string,
@@ -100,7 +105,7 @@ export default function FactuurDetailPage() {
   const { data: leveranciers } = useLeveranciers();
 
   const [addOpen, setAddOpen] = useState(false);
-  const [reviewMode, setReviewMode] = useState(false);
+  const [chip, setChip] = useState<ChipId | null>(null);
   const [newIngState, setNewIngState] = useState<{
     regelId: string;
     prefill: NewIngredientPrefill;
@@ -117,26 +122,42 @@ export default function FactuurDetailPage() {
     }
   }, [factuur]);
 
-  const { highConfMatched, onzekereRegels, visibleRegels } = useMemo(() => {
+  const { highConfRegels, counts, smartDefaultChip } = useMemo(() => {
     const regels = factuur?.regels ?? [];
-    const high = regels.filter(
-      (r) =>
-        r.match_status === "matched" &&
-        (r.ai_confidence ?? r.match_confidence ?? 0) > 0.85
-    );
-    const onzeker = regels.filter((r) => {
-      const c = r.ai_confidence ?? r.match_confidence ?? 0;
-      return (
-        r.match_status === "unmatched" ||
-        (r.match_status === "matched" && c <= 0.85)
-      );
-    });
-    return {
-      highConfMatched: high,
-      onzekereRegels: onzeker,
-      visibleRegels: reviewMode ? onzeker : regels,
+
+    // Categoriseer alle regels
+    const cats = regels.map((r) => ({ r, cat: categoriseer(r) }));
+
+    const counts = {
+      all: regels.length,
+      nieuw: cats.filter((x) => x.cat === "geen").length,
+      onzeker: cats.filter((x) => x.cat === "ai" || x.cat === "geen").length,
+      gematcht: cats.filter((x) => x.cat === "perfect" || x.cat === "naam").length,
+      overig: cats.filter((x) => x.cat === "overig").length,
     };
-  }, [factuur?.regels, reviewMode]);
+
+    // High-conf voor bulk-bevestig: matched + (ai_confidence | match_confidence) >= 0.9
+    const highConf = regels.filter((r) => {
+      const c = r.match_confidence ?? r.ai_confidence ?? 0;
+      return r.match_status === "matched" && c >= 0.9;
+    });
+
+    // Smart default: als > 5 onzeker → "onzeker", anders "all"
+    const smart: ChipId = counts.onzeker > 5 ? "onzeker" : "all";
+
+    return {
+      highConfRegels: highConf,
+      counts,
+      smartDefaultChip: smart,
+    };
+  }, [factuur?.regels]);
+
+  // Set default chip pas wanneer factuur klaar is en chip nog niet gezet
+  useEffect(() => {
+    if (chip === null && factuur) {
+      setChip(smartDefaultChip);
+    }
+  }, [chip, factuur, smartDefaultChip]);
 
   if (isLoading || !factuur) {
     return (
@@ -153,6 +174,7 @@ export default function FactuurDetailPage() {
     label: l.naam,
   }));
   const berekenTotaal = factuur.regels.reduce((s, r) => s + (r.totaal ?? 0), 0);
+  const activeChip: ChipId = chip ?? "all";
 
   const handleGoedkeuren = () => {
     goedkeuren.mutate(factuurId!, {
@@ -168,7 +190,7 @@ export default function FactuurDetailPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header (niet sticky) */}
+      {/* Header (NIET sticky) */}
       <header className="bg-background border-b border-border/50 px-6 py-3 flex items-center gap-4">
         <button
           onClick={() => navigate("/inkoop")}
@@ -189,20 +211,40 @@ export default function FactuurDetailPage() {
           )}
         </div>
         <NestoBadge variant={badge.variant}>{badge.label}</NestoBadge>
+        {isEditable && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Meer acties"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={handleAfwijzen}
+                className="text-destructive focus:text-destructive"
+              >
+                Afwijzen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </header>
 
       {/* Content */}
       <main className="flex-1 max-w-screen-2xl mx-auto w-full px-6 py-6">
         <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_480px]">
-          {/* Linkerkolom: PDF preview */}
-          <div className="lg:sticky lg:top-20 lg:self-start">
+          {/* Linkerkolom: PDF preview (sticky desktop) */}
+          <div className="lg:sticky lg:top-6 lg:self-start">
             <FactuurPreview
               bestandUrl={factuur.bestand_url}
-              className="h-[60vh] lg:h-[calc(100vh-180px)]"
+              className="h-[60vh] lg:h-[calc(100vh-100px)]"
             />
           </div>
 
-          {/* Rechterkolom: data + regels */}
+          {/* Rechterkolom: data + regels (natuurlijke scroll) */}
           <div className="space-y-6 min-w-0">
             {/* AI Match Widget */}
             <LeverancierMatchWidget
@@ -283,152 +325,86 @@ export default function FactuurDetailPage() {
               </div>
             </div>
 
-            {/* Regels */}
-            <div>
-              <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Regels ({factuur.regels.length})
-                </h3>
-                <div className="flex items-center gap-3">
-                  {isEditable && onzekereRegels.length > 0 && (
-                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-muted-foreground hover:text-foreground">
-                      <input
-                        type="checkbox"
-                        checked={reviewMode}
-                        onChange={(e) => setReviewMode(e.target.checked)}
-                        className="h-3 w-3"
-                      />
-                      Alleen onzekere ({onzekereRegels.length})
-                    </label>
-                  )}
-                  {isEditable && !addOpen && (
-                    <NestoButton
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setAddOpen(true)}
-                    >
-                      <Plus className="h-3.5 w-3.5 mr-1" /> Toevoegen
-                    </NestoButton>
-                  )}
-                </div>
-              </div>
+            {/* Samenvatting-card */}
+            <RegelsSamenvattingCard
+              regels={factuur.regels}
+              totaal={berekenTotaal}
+              highConfRegels={highConfRegels}
+              isBulkPending={bulkConfirmHighConfidence.isPending}
+              isEditable={isEditable}
+              onBulkConfirm={() =>
+                bulkConfirmHighConfidence.mutate(highConfRegels.map((r) => r.id))
+              }
+            />
 
-              {addOpen && (
-                <div className="mb-3">
-                  <FactuurRegelForm
-                    factuurId={factuurId!}
-                    onDone={() => setAddOpen(false)}
-                  />
-                </div>
+            {/* Filter-chips + Toevoegen */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <RegelFilterChips
+                active={activeChip}
+                onChange={setChip}
+                counts={counts}
+              />
+              {isEditable && !addOpen && (
+                <NestoButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAddOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Regel toevoegen
+                </NestoButton>
               )}
-
-              <div className="space-y-2">
-                {visibleRegels.map((r) => {
-                  const conf = r.ai_confidence ?? r.match_confidence ?? 0;
-                  const needsAttention =
-                    r.match_status === "unmatched" ||
-                    (r.match_status === "matched" && conf <= 0.85);
-                  return (
-                    <div
-                      key={r.id}
-                      className={`rounded-xl border p-3 space-y-2 ${
-                        needsAttention
-                          ? "border-warning/40 bg-warning/5"
-                          : "border-border/30 bg-muted/30"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">
-                            {r.product_naam_herkend}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {r.hoeveelheid ?? "-"} {r.eenheid ?? ""} · €
-                            {r.prijs_per_eenheid?.toFixed(2) ?? "-"}/eh · €
-                            {r.totaal?.toFixed(2) ?? "-"}
-                          </p>
-                          <VerpakkingHint regel={r} />
-                        </div>
-                        {isEditable && (
-                          <button
-                            onClick={() => deleteRegel.mutate(r.id)}
-                            className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted/50 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                            aria-label="Verwijder regel"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-
-                      {isEditable && (
-                        <IngredientMatchBadge
-                          regel={r}
-                          leverancierId={factuur.leverancier_id}
-                          onOpenNewIngredient={(regelId, prefill) =>
-                            setNewIngState({ regelId, prefill })
-                          }
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-
-                {visibleRegels.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    {reviewMode
-                      ? "Alle regels zijn afgehandeld 🎉"
-                      : "Nog geen regels. Voeg ze handmatig toe."}
-                  </p>
-                )}
-              </div>
             </div>
+
+            {addOpen && (
+              <div>
+                <FactuurRegelForm
+                  factuurId={factuurId!}
+                  onDone={() => setAddOpen(false)}
+                />
+              </div>
+            )}
+
+            {/* Regel-secties */}
+            <RegelSecties
+              regels={factuur.regels}
+              filter={activeChip}
+              isEditable={isEditable}
+              leverancierId={factuur.leverancier_id}
+              onOpenNewIngredient={(regelId, prefill) =>
+                setNewIngState({ regelId, prefill })
+              }
+              onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
+            />
+
+            {factuur.regels.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Nog geen regels. Voeg ze handmatig toe.
+              </p>
+            )}
+
+            {/* Footer-knoppen INLINE (niet sticky) — alleen in review */}
+            {isEditable && (
+              <div className="pt-4 border-t border-border/50 flex items-center justify-end gap-2 flex-wrap">
+                <NestoButton
+                  variant="outline"
+                  onClick={handleAfwijzen}
+                  isLoading={afwijzen.isPending}
+                  className="text-destructive hover:text-destructive min-h-[44px]"
+                >
+                  Afwijzen
+                </NestoButton>
+                <NestoButton
+                  onClick={handleGoedkeuren}
+                  isLoading={goedkeuren.isPending}
+                  className="min-h-[44px]"
+                >
+                  Goedkeuren & prijzen bijwerken
+                </NestoButton>
+              </div>
+            )}
           </div>
         </div>
       </main>
-
-      {/* Sticky bottom action bar — alleen bij review */}
-      {isEditable && (
-        <footer className="sticky bottom-0 z-30 bg-background border-t border-border/50 px-6 py-3">
-          <div className="max-w-screen-2xl mx-auto flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              {highConfMatched.length > 0 && (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <NestoButton
-                    variant="outline"
-                    size="sm"
-                    isLoading={bulkConfirmHighConfidence.isPending}
-                    onClick={() =>
-                      bulkConfirmHighConfidence.mutate(
-                        highConfMatched.map((r) => r.id)
-                      )
-                    }
-                  >
-                    Bevestig {highConfMatched.length} high-confidence matches
-                  </NestoButton>
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <NestoButton
-                variant="outline"
-                onClick={handleAfwijzen}
-                isLoading={afwijzen.isPending}
-                className="text-destructive hover:text-destructive min-h-[44px]"
-              >
-                Afwijzen
-              </NestoButton>
-              <NestoButton
-                onClick={handleGoedkeuren}
-                isLoading={goedkeuren.isPending}
-                className="min-h-[44px]"
-              >
-                Goedkeuren & prijzen bijwerken
-              </NestoButton>
-            </div>
-          </div>
-        </footer>
-      )}
 
       <NieuwIngredientFromFactuurModal
         open={!!newIngState}

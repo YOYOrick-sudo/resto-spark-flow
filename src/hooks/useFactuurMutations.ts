@@ -11,7 +11,11 @@ export function useFactuurMutations() {
   const locId = currentLocation?.id;
 
   const uploadFactuur = useMutation({
-    mutationFn: async (values: { file: File; leverancierId?: string }) => {
+    mutationFn: async (values: {
+      file: File;
+      leverancierId?: string;
+      fileHash?: string;
+    }) => {
       if (!locId) throw new Error("Geen locatie");
 
       const ext = values.file.name.split(".").pop();
@@ -32,6 +36,7 @@ export function useFactuurMutations() {
           status: "verwerken" as const,
           leverancier_id: values.leverancierId ?? null,
           ai_parsing_status: "pending",
+          file_hash: values.fileHash ?? null,
         })
         .select("id")
         .single();
