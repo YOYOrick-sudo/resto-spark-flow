@@ -118,6 +118,7 @@ export function useChecklistTemplates() {
         .from("checklist_templates")
         .select("*")
         .eq("location_id", locationId!)
+        .is("gearchiveerd_op", null)
         .order("type")
         .order("naam");
       if (error) throw error;
@@ -216,5 +217,20 @@ export function useChecklistTemplates() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] }),
   });
 
-  return { ...query, seedTemplates, saveTemplate, toggleActief };
+  const archiveTemplate = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("checklist_templates")
+        .update({ gearchiveerd_op: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
+      nestoToast.success("Template gearchiveerd");
+    },
+    onError: () => nestoToast.error("Fout bij archiveren"),
+  });
+
+  return { ...query, seedTemplates, saveTemplate, toggleActief, archiveTemplate };
 }
