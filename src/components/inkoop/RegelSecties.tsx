@@ -12,7 +12,7 @@ import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import type { ChipId } from "./RegelFilterChips";
 
 const OVERIG_REGEX =
-  /bezorg|emballage|retour|statiegeld|toeslag|brandstof|milieu|pallet|deksel|beker|bestek|servet|rietje|draagtas|wegwerp|afhaal.*doos/i;
+  /bezorg|emballage|retour|statiegeld|toeslag|brandstof|milieu|pallet|deksel|beker|bestek|servet|rietje|draagtas|wegwerp|afhaal.*doos|kartonnen.{0,5}bak|vacuum.{0,5}zak|\bzak\b|\bzakken\b|\bbakje\b|\bbakjes\b|folie|disposable/i;
 
 export type SectieId = "perfect" | "naam" | "ai" | "geen" | "overig";
 

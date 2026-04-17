@@ -152,7 +152,7 @@ export function GoedkeurenPreviewModal({
   isConfirming,
   factuur,
 }: Props) {
-  const { data: preview, isLoading } = usePreviewGoedkeuring(open, factuur);
+  const { data: preview, isLoading, isError, error } = usePreviewGoedkeuring(open, factuur);
   const [acked, setAcked] = React.useState(false);
 
   React.useEffect(() => {
@@ -161,6 +161,21 @@ export function GoedkeurenPreviewModal({
 
   const heeftGroot = preview?.heeftGroteWijzigingen ?? false;
   const canConfirm = !isLoading && !!preview && (!heeftGroot || acked);
+
+  React.useEffect(() => {
+    if (open) {
+      console.log("[preview modal]", {
+        isLoading,
+        isError,
+        error,
+        hasPreview: !!preview,
+        heeftGroot,
+        acked,
+        canConfirm,
+        factuurRegels: factuur?.regels.length ?? 0,
+      });
+    }
+  }, [open, isLoading, isError, error, preview, heeftGroot, acked, canConfirm, factuur]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !isConfirming && onClose()}>
@@ -193,15 +208,15 @@ export function GoedkeurenPreviewModal({
                 title="Nieuwe ingrediënten"
                 count={preview.nieuweIngredienten.length}
               >
-                {preview.nieuweIngredienten.map((n) => (
+                {preview.nieuweIngredienten.map((n, idx) => (
                   <div
-                    key={n.regelId}
+                    key={`${n.regelId}-${idx}`}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{n.naam}</p>
                       <p className="text-xs text-muted-foreground">
-                        {n.eenheid ?? "—"}
+                        {n.verpakkingLabel ?? n.eenheid ?? "—"}
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground tabular-nums shrink-0">
@@ -222,8 +237,8 @@ export function GoedkeurenPreviewModal({
                 title="Kostprijs-wijzigingen"
                 count={preview.kostprijsWijzigingen.length}
               >
-                {preview.kostprijsWijzigingen.map((w) => (
-                  <PrijsRij key={w.ingredientId} w={w} />
+                {preview.kostprijsWijzigingen.map((w, idx) => (
+                  <PrijsRij key={`${w.ingredientId}-${idx}`} w={w} />
                 ))}
               </Sectie>
 
