@@ -1,28 +1,18 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, Check } from "lucide-react";
-import { useChecklistRuns } from "@/hooks/useChecklistRuns";
+import { ChevronLeft, Check, Lock, CheckSquare } from "lucide-react";
+import { useChecklistRuns, isRunFrozen } from "@/hooks/useChecklistRuns";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  NestoButton,
-  NestoCard,
-  NestoCardContent,
-  NestoBadge,
-  NestoInput,
-  Spinner,
-  EmptyState,
+  NestoButton, NestoBadge, NestoInput, Spinner, EmptyState, ConfirmDialog,
 } from "@/components/polar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { nestoToast } from "@/lib/nestoToast";
-import { CheckSquare } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { ChecklistItem } from "@/hooks/useChecklistTemplates";
 
-/**
- * Heuristiek: bepaal het type voor temperatuur_registraties
- * op basis van de titel van het checklist-item.
- */
 function afleidTempType(titel: string): string {
   const t = titel.toLowerCase();
   if (t.includes("vriezer") || t.includes("freezer")) return "vriezer";
@@ -37,17 +27,13 @@ export default function TakenRun() {
   const { currentLocation } = useUserContext();
   const { user } = useAuth();
   const { data: runs, isLoading, saveResponse, afronden } = useChecklistRuns();
+  const [tempInputs, setTempInputs] = useState<Record<string, string>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const run = useMemo(
-    () => (runs ?? []).find((r) => r.id === runId),
-    [runs, runId]
-  );
+  const run = useMemo(() => (runs ?? []).find((r) => r.id === runId), [runs, runId]);
 
   const items = useMemo<ChecklistItem[]>(
-    () =>
-      (run?.template?.items ?? [])
-        .slice()
-        .sort((a, b) => a.volgorde - b.volgorde),
+    () => (run?.template?.items ?? []).slice().sort((a, b) => a.volgorde - b.volgorde),
     [run]
   );
 
@@ -57,51 +43,45 @@ export default function TakenRun() {
     return m;
   }, [run]);
 
-  const [tempInputs, setTempInputs] = useState<Record<string, string>>({});
+  const otherRuns = useMemo(
+    () => (runs ?? []).filter((r) => r.id !== runId),
+    [runs, runId]
+  );
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Spinner />
-      </div>
-    );
+    return <div className="flex justify-center py-20"><Spinner /></div>;
   }
 
   if (!run) {
     return (
-      <EmptyState
-        icon={CheckSquare}
-        title="Checklist niet gevonden"
+      <EmptyState icon={CheckSquare} title="Checklist niet gevonden"
         description="Deze checklist bestaat niet of is van een andere dag."
-        action={{
-          label: "Terug naar vandaag",
-          onClick: () => navigate("/taken"),
-        }}
-      />
+        action={{ label: "Terug naar vandaag", onClick: () => navigate("/taken") }} />
     );
   }
 
-  const total = items.length;
-  const done = (run.responses ?? []).filter(
-    (r) => r.checked || r.temperatuur !== null || r.notitie
-  ).length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const frozen = isRunFrozen(run);
   const isAfgerond = run.status === "afgerond";
 
+  const isItemDone = (item: ChecklistItem) => {
+    const r = responsesById.get(item.id);
+    if (!r) return false;
+    return r.checked === true || r.temperatuur != null || (r.notitie && r.notitie.length > 0);
+  };
+  const vereistOpen = items.filter((it) => it.vereist && !isItemDone(it));
+  const total = items.length;
+  const done = items.filter(isItemDone).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
   const handleCheck = (item: ChecklistItem, checked: boolean) => {
+    if (frozen) return;
     saveResponse.mutate({
-      run_id: run.id,
-      item_id: item.id,
-      type: "check",
-      checked,
+      run_id: run.id, item_id: item.id, type: "check", checked,
     });
   };
 
-  /**
-   * Sequentiële flow: eerst response opslaan, dan dual-write naar
-   * temperatuur_registraties (HACCP-historie). Bij elke fout: zichtbare toast.
-   */
   const handleTemp = async (item: ChecklistItem) => {
+    if (frozen) return;
     const raw = tempInputs[item.id];
     const temp = parseFloat(raw);
     if (isNaN(temp)) {
@@ -112,41 +92,27 @@ export default function TakenRun() {
       (item.temp_min == null || temp >= item.temp_min) &&
       (item.temp_max == null || temp <= item.temp_max);
 
-    // Stap 1 — checklist response (await, geen fire-and-forget)
     try {
       await saveResponse.mutateAsync({
-        run_id: run.id,
-        item_id: item.id,
-        type: "temperatuur",
-        temperatuur: temp,
-        temp_in_range: inRange,
+        run_id: run.id, item_id: item.id, type: "temperatuur",
+        temperatuur: temp, temp_in_range: inRange,
       });
-    } catch (e) {
-      console.error("saveResponse faalde", e);
-      nestoToast.error("Opslaan mislukt — probeer opnieuw");
+    } catch {
       return;
     }
 
-    // Input wissen na succesvolle response
     setTempInputs((p) => {
       const { [item.id]: _omit, ...rest } = p;
       return rest;
     });
 
-    // Stap 2 — dual-write HACCP-historie
     try {
-      const { error } = await supabase
-        .from("temperatuur_registraties")
-        .insert({
-          location_id: currentLocation!.id,
-          locatie_naam: item.titel,
-          type: afleidTempType(item.titel),
-          temperatuur: temp,
-          in_range: inRange,
-          min_temp: item.temp_min ?? null,
-          max_temp: item.temp_max ?? null,
-          gemeten_door: user?.id ?? null,
-        });
+      const { error } = await supabase.from("temperatuur_registraties").insert({
+        location_id: currentLocation!.id, locatie_naam: item.titel,
+        type: afleidTempType(item.titel), temperatuur: temp, in_range: inRange,
+        min_temp: item.temp_min ?? null, max_temp: item.temp_max ?? null,
+        gemeten_door: user?.id ?? null,
+      });
       if (error) throw error;
     } catch (e) {
       console.error("Dual-write temperatuur_registraties faalde", e);
@@ -157,7 +123,13 @@ export default function TakenRun() {
     }
   };
 
-  const handleAfronden = () => {
+  const triggerAfronden = () => {
+    if (vereistOpen.length > 0) { setConfirmOpen(true); return; }
+    doAfronden();
+  };
+
+  const doAfronden = () => {
+    setConfirmOpen(false);
     afronden.mutate(run.id, {
       onSuccess: () => {
         nestoToast.success("Checklist afgerond");
@@ -166,145 +138,161 @@ export default function TakenRun() {
     });
   };
 
-  const statusLabel =
-    run.status === "afgerond"
-      ? "Afgerond"
-      : run.status === "bezig"
-        ? "Bezig"
-        : "Open";
+  const statusLabel = isAfgerond ? "Afgerond"
+    : run.status === "bezig" ? "Bezig" : "Open";
   const statusVariant: "success" | "warning" | "default" =
-    run.status === "afgerond"
-      ? "success"
-      : run.status === "bezig"
-        ? "warning"
-        : "default";
+    isAfgerond ? "success" : run.status === "bezig" ? "warning" : "default";
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-6">
-      <Link
-        to="/taken"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
-      >
+      <Link to="/taken"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3">
         <ChevronLeft className="h-4 w-4" />
         Terug naar vandaag
       </Link>
 
-      <div className="flex items-start justify-between mb-8">
+      {otherRuns.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap mb-5 text-xs">
+          <span className="text-muted-foreground">Vandaag ook:</span>
+          {otherRuns.map((r) => {
+            const tot = r.template?.items?.length ?? 0;
+            const dn = (r.responses ?? []).filter(
+              (x) => x.checked || x.temperatuur != null || x.notitie
+            ).length;
+            const isDone = r.status === "afgerond";
+            return (
+              <button key={r.id} onClick={() => navigate(`/taken/run/${r.id}`)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors hover:bg-accent",
+                  isDone ? "border-success/30 text-success" : "border-border text-foreground"
+                )}>
+                <span className="font-medium">{r.template?.naam}</span>
+                <span className="text-muted-foreground tabular-nums">{dn}/{tot}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex items-start justify-between mb-5">
         <div>
           <h1 className="text-2xl font-semibold">{run.template?.naam}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {new Date(run.datum).toLocaleDateString("nl-NL", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
+            {new Date(run.datum).toLocaleDateString("nl-NL",
+              { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
-        <NestoBadge variant={statusVariant}>{statusLabel}</NestoBadge>
+        <div className="flex items-center gap-2">
+          {frozen ? (
+            <NestoBadge variant="default" className="gap-1">
+              <Lock className="h-3 w-3" /> Bevroren voor HACCP
+            </NestoBadge>
+          ) : (
+            <NestoBadge variant={statusVariant}>{statusLabel}</NestoBadge>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="border border-border rounded-lg overflow-hidden divide-y divide-border bg-card">
         {items.map((item) => {
           const resp = responsesById.get(item.id);
           const isTemp = item.type === "temperatuur";
 
-          return (
-            <NestoCard key={item.id}>
-              <NestoCardContent className="py-5">
-                {!isTemp ? (
-                  <label className="flex items-start gap-4 cursor-pointer">
-                    <Checkbox
-                      checked={!!resp?.checked}
-                      onCheckedChange={(c) => handleCheck(item, !!c)}
-                      disabled={isAfgerond}
-                      className="mt-1 h-5 w-5"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium">{item.titel}</p>
-                      {item.vereist && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Vereist
-                        </p>
-                      )}
-                    </div>
-                  </label>
-                ) : (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="font-medium">{item.titel}</p>
-                      {(item.temp_min != null || item.temp_max != null) && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Bereik: {item.temp_min ?? "—"}°C tot{" "}
-                          {item.temp_max ?? "—"}°C
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <NestoInput
-                        type="number"
-                        step="0.1"
-                        placeholder={
-                          resp?.temperatuur != null
-                            ? `${resp.temperatuur}°C`
-                            : "Temp °C"
-                        }
-                        value={tempInputs[item.id] ?? ""}
-                        onChange={(e) =>
-                          setTempInputs((p) => ({
-                            ...p,
-                            [item.id]: e.target.value,
-                          }))
-                        }
-                        disabled={isAfgerond}
-                        className="max-w-[140px]"
-                      />
-                      <NestoButton
-                        size="sm"
-                        onClick={() => handleTemp(item)}
-                        disabled={isAfgerond || !tempInputs[item.id]}
-                      >
-                        Opslaan
-                      </NestoButton>
-                      {resp?.temperatuur != null && (
-                        <NestoBadge
-                          variant={resp.temp_in_range ? "success" : "error"}
-                        >
-                          {resp.temperatuur}°C{" "}
-                          {resp.temp_in_range ? "✓" : "buiten bereik"}
-                        </NestoBadge>
-                      )}
-                    </div>
-                  </div>
+          if (!isTemp) {
+            return (
+              <label key={item.id}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-2.5 min-h-[48px] cursor-pointer hover:bg-accent/40 transition-colors",
+                  frozen && "cursor-not-allowed opacity-70"
+                )}>
+                <Checkbox
+                  checked={!!resp?.checked}
+                  onCheckedChange={(c) => handleCheck(item, !!c)}
+                  disabled={frozen}
+                  className="h-5 w-5 flex-shrink-0"
+                />
+                <span className="text-sm font-medium flex-1 truncate">{item.titel}</span>
+                {item.vereist && (
+                  <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0">
+                    Vereist
+                  </span>
                 )}
-              </NestoCardContent>
-            </NestoCard>
+              </label>
+            );
+          }
+
+          return (
+            <div key={item.id} className="px-4 py-3 hover:bg-accent/20 transition-colors">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex-1 min-w-[180px]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{item.titel}</span>
+                    {item.vereist && (
+                      <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+                        Vereist
+                      </span>
+                    )}
+                  </div>
+                  {(item.temp_min != null || item.temp_max != null) && (
+                    <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+                      {item.temp_min ?? "—"}°C tot {item.temp_max ?? "—"}°C
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <NestoInput type="number" step="0.1"
+                    placeholder={resp?.temperatuur != null ? `${resp.temperatuur}°C` : "Temp °C"}
+                    value={tempInputs[item.id] ?? ""}
+                    onChange={(e) => setTempInputs((p) => ({ ...p, [item.id]: e.target.value }))}
+                    disabled={frozen}
+                    className="max-w-[110px] h-9" />
+                  <NestoButton size="sm" onClick={() => handleTemp(item)}
+                    disabled={frozen || !tempInputs[item.id]}>
+                    Opslaan
+                  </NestoButton>
+                  {resp?.temperatuur != null && (
+                    <NestoBadge variant={resp.temp_in_range ? "success" : "error"}>
+                      {resp.temperatuur}°C {resp.temp_in_range ? "✓" : "!"}
+                    </NestoBadge>
+                  )}
+                </div>
+              </div>
+            </div>
           );
         })}
       </div>
 
-      {!isAfgerond && (
+      {!frozen && (
         <div className="sticky bottom-0 border-t border-border/50 bg-background p-4 mt-6 flex items-center gap-4">
           <div className="flex items-center gap-3 flex-1">
             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden max-w-[300px]">
-              <div
-                className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${pct}%` }}
-              />
+              <div className="h-full bg-primary rounded-full transition-all"
+                style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {done}/{total}
-            </span>
+            <span className="text-sm text-muted-foreground tabular-nums">{done}/{total}</span>
+            {vereistOpen.length > 0 && (
+              <span className="text-xs text-warning">
+                {vereistOpen.length} vereist open
+              </span>
+            )}
           </div>
-          <NestoButton
-            onClick={handleAfronden}
-            isLoading={afronden.isPending}
-            className="min-h-[44px] px-6"
-          >
+          <NestoButton onClick={triggerAfronden} isLoading={afronden.isPending}
+            className="min-h-[44px] px-6">
             <Check className="h-4 w-4 mr-2" />
-            Afronden
+            {isAfgerond ? "Opnieuw afronden" : "Afronden"}
           </NestoButton>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Vereiste items nog open"
+        description={`Je hebt nog ${vereistOpen.length} vereist${vereistOpen.length === 1 ? "" : "e"} item${vereistOpen.length === 1 ? "" : "s"} open. Toch afronden?`}
+        confirmLabel="Toch afronden"
+        cancelLabel="Annuleren"
+        onConfirm={doAfronden}
+      />
     </div>
   );
 }
