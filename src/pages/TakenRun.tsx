@@ -237,6 +237,10 @@ export default function TakenRun() {
           const fotoUrls = item.foto_urls ?? [];
           const hasFotos = fotoUrls.length > 0;
           const done = isItemDone(item);
+          const overdueVan = overdueMap.get(item.id);
+          const itemFreqLabel = isPerItem
+            ? formatFrequentieKort(item.item_frequentie, item.item_frequentie_config)
+            : null;
 
           if (!isTemp) {
             return (
@@ -254,12 +258,25 @@ export default function TakenRun() {
                   className="h-5 w-5 flex-shrink-0 mt-0.5"
                 />
                 <div className="flex-1 min-w-0">
-                  <span className={cn(
-                    "text-sm font-medium block truncate transition-colors",
-                    done && "text-foreground/50 line-through"
-                  )}>
-                    {item.titel}
-                  </span>
+                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                    <span className={cn(
+                      "text-sm font-medium transition-colors",
+                      done && "text-foreground/50 line-through"
+                    )}>
+                      {item.titel}
+                    </span>
+                    {itemFreqLabel && (
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        · {itemFreqLabel}
+                      </span>
+                    )}
+                    {overdueVan && (
+                      <span className="inline-flex items-center gap-0.5 text-[11px] text-error tabular-nums">
+                        <AlertCircle className="h-3 w-3" />
+                        moest {formatDatumKort(overdueVan)}
+                      </span>
+                    )}
+                  </div>
                   {item.beschrijving?.trim() && (
                     <p className={cn(
                       "text-xs mt-1 leading-relaxed whitespace-pre-line",
