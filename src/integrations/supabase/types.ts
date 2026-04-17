@@ -768,6 +768,9 @@ export type Database = {
           beschrijving: string | null
           categorie: string | null
           created_at: string
+          default_time: string | null
+          frequentie: string
+          frequentie_config: Json
           id: string
           items: Json
           location_id: string
@@ -780,6 +783,9 @@ export type Database = {
           beschrijving?: string | null
           categorie?: string | null
           created_at?: string
+          default_time?: string | null
+          frequentie?: string
+          frequentie_config?: Json
           id?: string
           items?: Json
           location_id: string
@@ -792,6 +798,9 @@ export type Database = {
           beschrijving?: string | null
           categorie?: string | null
           created_at?: string
+          default_time?: string | null
+          frequentie?: string
+          frequentie_config?: Json
           id?: string
           items?: Json
           location_id?: string
@@ -7158,6 +7167,7 @@ export type Database = {
         Args: { p_location_id: string }
         Returns: string
       }
+      generate_daily_checklist_runs: { Args: never; Returns: undefined }
       get_attention_conversations: {
         Args: { p_location_id: string }
         Returns: {

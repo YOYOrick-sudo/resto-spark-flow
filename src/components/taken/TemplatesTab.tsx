@@ -3,8 +3,10 @@ import {
   useChecklistTemplates,
   type ChecklistTemplate,
   type ChecklistItem,
+  type Frequentie,
 } from "@/hooks/useChecklistTemplates";
 import { useUserContext } from "@/contexts/UserContext";
+import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import {
   NestoButton,
   NestoBadge,
@@ -17,6 +19,8 @@ import { Plus, Trash2, FileText, CheckSquare, GripVertical } from "lucide-react"
 import { Switch } from "@/components/ui/switch";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
+import { FrequentieSelector } from "./FrequentieSelector";
+import { ItemFotoUploader } from "./ItemFotoUploader";
 import {
   DndContext,
   PointerSensor,
@@ -62,11 +66,13 @@ const TYPE_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "pr
 type Selection = { mode: "edit"; id: string } | { mode: "new" } | null;
 
 export function TemplatesTab() {
-  const { context } = useUserContext();
+  const { context, currentLocation } = useUserContext();
   const { data: templates, isLoading, saveTemplate, toggleActief } = useChecklistTemplates();
+  const { data: settings } = useKeukenSettings();
   const [selection, setSelection] = useState<Selection>(null);
 
   const isManager = context?.role === "owner" || context?.role === "manager";
+  const locationId = currentLocation?.id ?? "";
 
   if (!isManager) {
     return (
@@ -161,6 +167,8 @@ export function TemplatesTab() {
           <TemplateEditor
             key="new"
             template={null}
+            locationId={locationId}
+            standaardTijden={settings?.standaard_tijden_per_type}
             onSave={async (data) => {
               await saveTemplate.mutateAsync(data);
               nestoToast.success("Template aangemaakt");
@@ -174,6 +182,8 @@ export function TemplatesTab() {
           <TemplateEditor
             key={selected.id}
             template={selected}
+            locationId={locationId}
+            standaardTijden={settings?.standaard_tijden_per_type}
             onSave={async (data) => {
               await saveTemplate.mutateAsync({ ...data, id: selected.id });
               nestoToast.success("Template opgeslagen");
@@ -191,22 +201,34 @@ export function TemplatesTab() {
 
 interface EditorProps {
   template: ChecklistTemplate | null;
+  locationId: string;
+  standaardTijden?: Record<string, string>;
   onSave: (data: {
     naam: string;
     type: string;
     beschrijving?: string;
     items: ChecklistItem[];
     actief?: boolean;
+    frequentie?: Frequentie;
+    frequentie_config?: Record<string, any>;
+    default_time?: string | null;
   }) => Promise<void>;
   onCancel: () => void;
   isSaving: boolean;
 }
 
-function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
+function TemplateEditor({ template, locationId, standaardTijden, onSave, onCancel, isSaving }: EditorProps) {
   const [naam, setNaam] = useState(template?.naam ?? "");
   const [type, setType] = useState(template?.type ?? "opening");
   const [beschrijving, setBeschrijving] = useState(template?.beschrijving ?? "");
   const [actief, setActief] = useState(template?.actief ?? true);
+  const [frequentie, setFrequentie] = useState<Frequentie>(template?.frequentie ?? "dagelijks");
+  const [frequentieConfig, setFrequentieConfig] = useState<Record<string, any>>(
+    template?.frequentie_config ?? {}
+  );
+  const [defaultTime, setDefaultTime] = useState<string>(
+    template?.default_time ? template.default_time.slice(0, 5) : ""
+  );
   const [items, setItems] = useState<ChecklistItem[]>(
     () =>
       (template?.items ?? [])
@@ -217,6 +239,8 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   );
+
+  const fallbackTijd = standaardTijden?.[type]?.slice(0, 5) ?? "—";
 
   const addItem = () => {
     setItems((prev) => [
@@ -230,6 +254,7 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
         temp_min: null,
         temp_max: null,
         frequentie: "dagelijks",
+        foto_urls: [],
       },
     ]);
   };
@@ -272,6 +297,9 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
       beschrijving: beschrijving.trim() || undefined,
       actief,
       items: items.map((it, i) => ({ ...it, volgorde: i + 1 })),
+      frequentie,
+      frequentie_config: frequentieConfig,
+      default_time: defaultTime ? `${defaultTime}:00` : null,
     });
   };
 
@@ -329,6 +357,43 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
         </div>
       </div>
 
+      {/* Frequentie */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Frequentie
+        </h3>
+        <FrequentieSelector
+          frequentie={frequentie}
+          config={frequentieConfig}
+          onChange={(f, c) => {
+            setFrequentie(f);
+            setFrequentieConfig(c);
+          }}
+        />
+      </div>
+
+      {/* Standaard tijd */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Standaard tijd
+        </h3>
+        <div className="flex items-end gap-3">
+          <div>
+            <input
+              type="time"
+              value={defaultTime}
+              onChange={(e) => setDefaultTime(e.target.value)}
+              className="h-10 w-32 rounded-button border-[1.5px] border-border bg-card px-3 text-sm tabular-nums focus:!border-primary focus:outline-none focus:ring-0"
+            />
+          </div>
+          {!defaultTime && (
+            <p className="text-xs text-muted-foreground pb-2">
+              Leeg = standaard tijd uit settings (nu: {fallbackTijd} voor type "{type}")
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Items */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -363,6 +428,7 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
                     <SortableItemRow
                       key={item.id}
                       item={item}
+                      locationId={locationId}
                       onUpdate={(patch) => updateItem(item.id, patch)}
                       onRemove={() => removeItem(item.id)}
                     />
@@ -389,11 +455,12 @@ function TemplateEditor({ template, onSave, onCancel, isSaving }: EditorProps) {
 
 interface SortableItemRowProps {
   item: ChecklistItem;
+  locationId: string;
   onUpdate: (patch: Partial<ChecklistItem>) => void;
   onRemove: () => void;
 }
 
-function SortableItemRow({ item, onUpdate, onRemove }: SortableItemRowProps) {
+function SortableItemRow({ item, locationId, onUpdate, onRemove }: SortableItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
@@ -408,12 +475,13 @@ function SortableItemRow({ item, onUpdate, onRemove }: SortableItemRowProps) {
   };
 
   const isTemp = item.type === "temperatuur";
+  const fotoUrls = item.foto_urls ?? [];
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="group grid grid-cols-[24px_1fr_140px_auto_28px] items-center gap-2 px-2 py-1.5 hover:bg-accent/30 transition-colors"
+      className="group grid grid-cols-[24px_1fr_140px_auto_28px_28px] items-center gap-2 px-2 py-1.5 hover:bg-accent/30 transition-colors"
     >
       {/* Drag handle */}
       <button
@@ -426,7 +494,7 @@ function SortableItemRow({ item, onUpdate, onRemove }: SortableItemRowProps) {
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
 
-      {/* Titel — borderless tot focus */}
+      {/* Titel */}
       <input
         type="text"
         value={item.titel}
@@ -487,6 +555,18 @@ function SortableItemRow({ item, onUpdate, onRemove }: SortableItemRowProps) {
           />
           <span>Vereist</span>
         </label>
+      </div>
+
+      {/* Foto-uploader */}
+      <div className={cn(fotoUrls.length === 0 && "opacity-0 group-hover:opacity-100 transition-opacity")}>
+        {locationId && (
+          <ItemFotoUploader
+            locationId={locationId}
+            itemId={item.id}
+            fotoUrls={fotoUrls}
+            onChange={(urls) => onUpdate({ foto_urls: urls })}
+          />
+        )}
       </div>
 
       {/* Delete */}
