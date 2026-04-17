@@ -163,8 +163,8 @@ export default function TakenRun() {
       <div className="max-w-4xl mx-auto rounded-lg border border-border/60 bg-card p-5 space-y-4 shadow-[0_1px_2px_rgb(0_0_0/0.02)]">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-h1 text-foreground truncate">{run.template?.naam}</h1>
-            <p className="text-body text-muted-foreground mt-0.5">
+            <h1 className="text-lg font-semibold text-foreground truncate">{run.template?.naam}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
               {new Date(run.datum).toLocaleDateString("nl-NL",
                 { weekday: "long", day: "numeric", month: "long" })}
             </p>
@@ -247,14 +247,14 @@ export default function TakenRun() {
                 />
                 <div className="flex-1 min-w-0">
                   <span className={cn(
-                    "text-[15px] font-semibold block truncate transition-colors",
+                    "text-sm font-medium block truncate transition-colors",
                     done && "text-foreground/50 line-through"
                   )}>
                     {item.titel}
                   </span>
                   {item.beschrijving?.trim() && (
                     <p className={cn(
-                      "text-[13px] mt-1 leading-relaxed whitespace-pre-line",
+                      "text-xs mt-1 leading-relaxed whitespace-pre-line",
                       done ? "text-foreground/40" : "text-foreground/70"
                     )}>
                       {item.beschrijving}
@@ -294,7 +294,7 @@ export default function TakenRun() {
                 <div className="flex-1 min-w-[180px]">
                   <div className="flex items-center gap-2">
                     <span className={cn(
-                      "text-[15px] font-semibold",
+                      "text-sm font-medium",
                       done && "text-foreground/50"
                     )}>
                       {item.titel}
@@ -317,7 +317,7 @@ export default function TakenRun() {
                     )}
                   </div>
                   {item.beschrijving?.trim() && (
-                    <p className="text-[13px] text-foreground/70 mt-1 leading-relaxed whitespace-pre-line">
+                    <p className="text-xs text-foreground/70 mt-1 leading-relaxed whitespace-pre-line">
                       {item.beschrijving}
                     </p>
                   )}
