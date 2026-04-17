@@ -154,7 +154,7 @@ export default function FactuurDetailPage() {
 
   // Set default chip pas wanneer factuur klaar is en chip nog niet gezet
   useEffect(() => {
-    if (chip === null && factuur) {
+    if (chip === null && factuur && factuur.regels.length > 0) {
       setChip(smartDefaultChip);
     }
   }, [chip, factuur, smartDefaultChip]);
