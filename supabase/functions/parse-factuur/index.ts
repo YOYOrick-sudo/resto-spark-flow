@@ -189,7 +189,9 @@ serve(async (req) => {
           ? { documents: [{ data: base64, mimeType: "application/pdf" }] }
           : { images: [base64] }),
         jsonMode: true,
-        maxTokens: 4000,
+        // R3 fix: 12000 = veilige bovengrens voor 50+ regels met 7 hint-velden.
+        // Vorige 4000 truncated bij 28-regel Kooyman (output exact 4000).
+        maxTokens: 12000,
         temperature: 0.2,
         // R3 hotfix: Flash is primary (sneller, goedkoper, scoorde 0.95 conf op Kooyman).
         // Pro timeoutte 2x op 60s. Pro blijft als fallback voor edge cases.
@@ -232,6 +234,13 @@ serve(async (req) => {
     console.log(
       `[parse-factuur] AI response length=${aiResult.text.length}, first 500: ${aiResult.text.slice(0, 500)}`
     );
+
+    // Defensieve guard: waarschuw bij 90% van maxTokens (10800/12000) — risico op truncatie
+    if (aiResult.outputTokens && aiResult.outputTokens >= 10800) {
+      console.warn(
+        `[parse-factuur] Output near maxTokens limit (${aiResult.outputTokens}/12000) — risk of truncation. Consider raising maxTokens.`
+      );
+    }
 
     const extractJSON = (text: string): any => {
       let cleaned = text.trim();
