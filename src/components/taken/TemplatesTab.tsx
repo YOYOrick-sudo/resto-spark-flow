@@ -603,8 +603,23 @@ interface SortableItemRowProps {
   onRemove: () => void;
 }
 
+const QUICK_TEMPLATES: Array<{ label: string; value: string }> = [
+  {
+    label: "Schoonmaakinstructie",
+    value: "Stappen:\n1. \n2. \n3. \n\nProduct: \nContacttijd: ",
+  },
+  {
+    label: "Dosering",
+    value: "Verhouding: \nHoeveelheid: ",
+  },
+  {
+    label: "Aandachtspunt",
+    value: "Let op: ",
+  },
+];
+
 function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove }: SortableItemRowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({ id: item.id });
 
   const style: React.CSSProperties = {
@@ -619,110 +634,169 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
 
   const isTemp = item.type === "temperatuur";
   const fotoUrls = item.foto_urls ?? [];
+  const beschrijving = item.beschrijving ?? "";
+  const hasBeschrijving = beschrijving.trim().length > 0;
+  const hasContent = hasBeschrijving || fotoUrls.length > 0;
+
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="group grid grid-cols-[24px_1fr_140px_auto_28px_28px] items-center gap-2 px-2 py-1.5 hover:bg-accent/30 transition-colors"
-    >
-      {/* Drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        type="button"
-        className="p-0.5 rounded cursor-grab active:cursor-grabbing hover:bg-muted touch-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-        aria-label="Versleep om te herschikken"
-      >
-        <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-      </button>
+    <div ref={setNodeRef} style={style} className="group">
+      <div className="grid grid-cols-[24px_1fr_140px_auto_28px_28px_28px] items-center gap-2 px-2 py-1.5 hover:bg-accent/30 transition-colors">
+        {/* Drag handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          type="button"
+          className="p-0.5 rounded cursor-grab active:cursor-grabbing hover:bg-muted touch-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="Versleep om te herschikken"
+        >
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
 
-      {/* Titel — debounced save (typing) */}
-      <input
-        type="text"
-        value={item.titel}
-        onChange={(e) => onUpdate({ titel: e.target.value })}
-        placeholder="Titel van het item"
-        className="h-8 px-2 text-sm bg-transparent border border-transparent rounded hover:bg-background focus:bg-background focus:border-border focus:outline-none focus:ring-1 focus:ring-ring transition-colors min-w-0"
-      />
-
-      {/* Type select — instant save */}
-      <div>
-        <NestoSelect
-          value={item.type}
-          onValueChange={(v) => onUpdateInstant({ type: v as ChecklistItem["type"] })}
-          options={ITEM_TYPE_OPTIONS}
-        />
-      </div>
-
-      {/* Vereist + (temp inline indien nodig) */}
-      <div className="flex items-center gap-3">
-        {isTemp && (
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              step="0.1"
-              value={item.temp_min ?? ""}
-              onChange={(e) =>
-                onUpdate({
-                  temp_min:
-                    e.target.value === "" ? null : parseFloat(e.target.value),
-                })
-              }
-              placeholder="Min"
-              className="h-8 w-16 px-2 text-sm tabular-nums bg-transparent border border-border rounded hover:bg-background focus:bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-              aria-label="Min temperatuur"
-            />
-            <span className="text-xs text-muted-foreground">–</span>
-            <input
-              type="number"
-              step="0.1"
-              value={item.temp_max ?? ""}
-              onChange={(e) =>
-                onUpdate({
-                  temp_max:
-                    e.target.value === "" ? null : parseFloat(e.target.value),
-                })
-              }
-              placeholder="Max"
-              className="h-8 w-16 px-2 text-sm tabular-nums bg-transparent border border-border rounded hover:bg-background focus:bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-              aria-label="Max temperatuur"
-            />
-            <span className="text-xs text-muted-foreground">°C</span>
-          </div>
-        )}
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-          <Switch
-            checked={!!item.vereist}
-            onCheckedChange={(v) => onUpdateInstant({ vereist: v })}
+        {/* Titel + (info-indicator als beschrijving aanwezig) */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <input
+            type="text"
+            value={item.titel}
+            onChange={(e) => onUpdate({ titel: e.target.value })}
+            placeholder="Titel van het item"
+            className="h-8 px-2 text-sm bg-transparent border border-transparent rounded hover:bg-background focus:bg-background focus:border-border focus:outline-none focus:ring-1 focus:ring-ring transition-colors min-w-0 flex-1"
           />
-          <span>Vereist</span>
-        </label>
-      </div>
+          {hasBeschrijving && !expanded && (
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="text-muted-foreground/70 hover:text-primary p-0.5 rounded transition-colors flex-shrink-0"
+              aria-label="Beschrijving aanwezig — klik om te zien"
+              title={beschrijving.length > 60 ? `${beschrijving.slice(0, 60)}…` : beschrijving}
+            >
+              <Info className="h-3 w-3" />
+            </button>
+          )}
+        </div>
 
-      {/* Foto-uploader (schrijft direct via eigen mutation, dirty-flag niet nodig) */}
-      <div className={cn(fotoUrls.length === 0 && "opacity-0 group-hover:opacity-100 transition-opacity")}>
-        {locationId && (
-          <ItemFotoUploader
-            locationId={locationId}
-            itemId={item.id}
-            fotoUrls={fotoUrls}
-            onChange={(urls) => onUpdateInstant({ foto_urls: urls })}
+        {/* Type select — instant save */}
+        <div>
+          <NestoSelect
+            value={item.type}
+            onValueChange={(v) => onUpdateInstant({ type: v as ChecklistItem["type"] })}
+            options={ITEM_TYPE_OPTIONS}
           />
-        )}
+        </div>
+
+        {/* Vereist + (temp inline indien nodig) */}
+        <div className="flex items-center gap-3">
+          {isTemp && (
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                step="0.1"
+                value={item.temp_min ?? ""}
+                onChange={(e) =>
+                  onUpdate({
+                    temp_min:
+                      e.target.value === "" ? null : parseFloat(e.target.value),
+                  })
+                }
+                placeholder="Min"
+                className="h-8 w-16 px-2 text-sm tabular-nums bg-transparent border border-border rounded hover:bg-background focus:bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                aria-label="Min temperatuur"
+              />
+              <span className="text-xs text-muted-foreground">–</span>
+              <input
+                type="number"
+                step="0.1"
+                value={item.temp_max ?? ""}
+                onChange={(e) =>
+                  onUpdate({
+                    temp_max:
+                      e.target.value === "" ? null : parseFloat(e.target.value),
+                  })
+                }
+                placeholder="Max"
+                className="h-8 w-16 px-2 text-sm tabular-nums bg-transparent border border-border rounded hover:bg-background focus:bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                aria-label="Max temperatuur"
+              />
+              <span className="text-xs text-muted-foreground">°C</span>
+            </div>
+          )}
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <Switch
+              checked={!!item.vereist}
+              onCheckedChange={(v) => onUpdateInstant({ vereist: v })}
+            />
+            <span>Vereist</span>
+          </label>
+        </div>
+
+        {/* Foto-uploader */}
+        <div className={cn(fotoUrls.length === 0 && "opacity-0 group-hover:opacity-100 transition-opacity")}>
+          {locationId && (
+            <ItemFotoUploader
+              locationId={locationId}
+              itemId={item.id}
+              fotoUrls={fotoUrls}
+              onChange={(urls) => onUpdateInstant({ foto_urls: urls })}
+            />
+          )}
+        </div>
+
+        {/* Expand chevron — altijd zichtbaar als content, anders alleen op hover */}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className={cn(
+            "p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all",
+            !hasContent && "opacity-0 group-hover:opacity-100"
+          )}
+          aria-label={expanded ? "Beschrijving inklappen" : "Beschrijving toevoegen"}
+          aria-expanded={expanded}
+        >
+          <ChevronRight
+            className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-90")}
+          />
+        </button>
+
+        {/* Delete */}
+        <button
+          type="button"
+          onClick={onRemove}
+          className={cn(
+            "p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+          )}
+          aria-label="Item verwijderen"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       </div>
 
-      {/* Delete */}
-      <button
-        type="button"
-        onClick={onRemove}
-        className={cn(
-          "p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-        )}
-        aria-label="Item verwijderen"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {/* Expanded paneel — beschrijving + chips */}
+      {expanded && (
+        <div className="px-2 pb-3 pt-1 ml-6 mr-9 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+          {beschrijving.length === 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_TEMPLATES.map((q) => (
+                <button
+                  key={q.label}
+                  type="button"
+                  onClick={() => onUpdate({ beschrijving: q.value })}
+                  className="text-xs px-2 py-1 rounded-full border border-border bg-muted/40 text-muted-foreground hover:bg-accent hover:text-foreground hover:border-primary/40 transition-colors"
+                >
+                  + {q.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <Textarea
+            value={beschrijving}
+            onChange={(e) => onUpdate({ beschrijving: e.target.value })}
+            placeholder="Extra instructies, hoe te doen, aandachtspunten…"
+            rows={3}
+            className="text-sm leading-relaxed"
+          />
+        </div>
+      )}
     </div>
   );
 }
