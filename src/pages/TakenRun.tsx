@@ -317,13 +317,24 @@ export default function TakenRun() {
             )}>
               <div className="flex items-start gap-3 flex-wrap">
                 <div className="flex-1 min-w-[180px]">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={cn(
                       "text-sm font-medium",
                       done && "text-foreground/50"
                     )}>
                       {item.titel}
                     </span>
+                    {itemFreqLabel && (
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        · {itemFreqLabel}
+                      </span>
+                    )}
+                    {overdueVan && (
+                      <span className="inline-flex items-center gap-0.5 text-[11px] text-error tabular-nums">
+                        <AlertCircle className="h-3 w-3" />
+                        moest {formatDatumKort(overdueVan)}
+                      </span>
+                    )}
                     {hasFotos && (
                       <button
                         type="button"
