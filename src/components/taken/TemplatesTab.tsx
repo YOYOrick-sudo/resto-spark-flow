@@ -66,11 +66,13 @@ const TYPE_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "pr
 type Selection = { mode: "edit"; id: string } | { mode: "new" } | null;
 
 export function TemplatesTab() {
-  const { context } = useUserContext();
+  const { context, currentLocation } = useUserContext();
   const { data: templates, isLoading, saveTemplate, toggleActief } = useChecklistTemplates();
+  const { data: settings } = useKeukenSettings();
   const [selection, setSelection] = useState<Selection>(null);
 
   const isManager = context?.role === "owner" || context?.role === "manager";
+  const locationId = currentLocation?.id ?? "";
 
   if (!isManager) {
     return (
