@@ -67,9 +67,15 @@ export interface ChecklistTemplate {
 }
 
 /**
- * Auto-detect de modus van een template op basis van zijn items.
- * Als minimaal 1 item een eigen frequentie heeft → 'per_item', anders 'gebundeld'.
- * Chef hoeft nooit handmatig modus te kiezen.
+ * Read-only helper: detecteert of een items-array per_item-frequenties bevat.
+ *
+ * NIET meer gebruikt in saveTemplate sinds C2e + freq-hybride sprint —
+ * chef-aangemaakte templates zijn altijd 'gebundeld' (met optionele per-item
+ * frequentie-override binnenin). 'per_item' is gereserveerd voor system-templates
+ * (Periodieke taken, Onderhoud) die handmatig geseed worden.
+ *
+ * Gereserveerd voor toekomstige modus-toggle UI in de template-editor, waarmee
+ * chef expliciet kan kiezen tussen gebundeld en per_item (TODO).
  */
 export function detectModus(items: ChecklistItem[]): TemplateModus {
   return items.some((it) => !!it.item_frequentie) ? "per_item" : "gebundeld";
