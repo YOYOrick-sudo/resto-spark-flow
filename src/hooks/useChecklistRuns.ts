@@ -52,6 +52,7 @@ export interface ChecklistRun {
     frequentie: string;
     frequentie_config: Record<string, any>;
     default_time: string | null;
+    gearchiveerd_op: string | null;
   };
   responses: ChecklistResponse[];
 }
@@ -119,7 +120,7 @@ export function useChecklistRuns(datum?: string) {
       const { data: runs, error } = await supabase
         .from("checklist_runs")
         .select(
-          `*, template:checklist_templates(id, naam, type, items, modus, frequentie, frequentie_config, default_time)`
+          `*, template:checklist_templates(id, naam, type, items, modus, frequentie, frequentie_config, default_time, gearchiveerd_op)`
         )
         .eq("location_id", locationId!)
         .eq("datum", today)
@@ -149,6 +150,7 @@ export function useChecklistRuns(datum?: string) {
             ? JSON.parse(r.template.items) : r.template.items) as ChecklistItem[],
           modus: (r.template.modus ?? "gebundeld") as TemplateModus,
           frequentie_config: r.template.frequentie_config ?? {},
+          gearchiveerd_op: r.template.gearchiveerd_op ?? null,
         } : undefined,
         items_snapshot: r.items_snapshot ?? null,
         responses: responseMap.get(r.id) ?? [],
