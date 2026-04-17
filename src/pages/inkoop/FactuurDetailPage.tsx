@@ -375,7 +375,10 @@ export default function FactuurDetailPage() {
               }
               onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
               onSkipAllOverig={(ids) => skipRegels.mutate(ids)}
-              onOpenBulkCreate={(regels) => setBulkCreateRegels(regels)}
+              onOpenBulkCreate={(regels) => {
+                console.log("[bulk] open in FactuurDetailPage", regels.length);
+                setBulkCreateRegels(regels);
+              }}
             />
 
             {factuur.regels.length === 0 && (

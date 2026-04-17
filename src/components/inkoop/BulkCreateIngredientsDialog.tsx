@@ -6,10 +6,19 @@
  * leveranciers_artikelen upserts te voorkomen.
  */
 import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Link } from "react-router-dom";
+import { Sparkles, ExternalLink } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
+import { normalizeIngredientNaam } from "@/lib/stringUtils";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 
 const CATEGORIE_OPTIONS = [
@@ -52,7 +61,13 @@ interface Props {
   leverancierId: string | null;
 }
 
-export function BulkCreateIngredientsDialog({ open, onClose, regels, leverancierId }: Props) {
+export function BulkCreateIngredientsDialog({
+  open,
+  onClose,
+  regels,
+  leverancierId,
+}: Props) {
+  console.log("[bulk] dialog render", { open, count: regels.length });
   const { bulkCreateIngredientsFromFactuur } = useFactuurMutations();
 
   const [rows, setRows] = React.useState<RowState[]>([]);
@@ -63,7 +78,9 @@ export function BulkCreateIngredientsDialog({ open, onClose, regels, leverancier
       regels.map((r) => ({
         regelId: r.id,
         checked: true,
-        naam: r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend,
+        naam: normalizeIngredientNaam(
+          r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
+        ),
         categorie: r.ai_category_hint ?? "overig",
         eenheid: r.ai_suggested_eenheid ?? "stuk",
         kostprijs: r.prijs_per_basiseenheid ?? r.prijs_per_eenheid ?? null,
@@ -87,7 +104,7 @@ export function BulkCreateIngredientsDialog({ open, onClose, regels, leverancier
       .filter((r) => r.checked && r.naam.trim().length > 0)
       .map((r) => ({
         regelId: r.regelId,
-        naam: r.naam.trim(),
+        naam: normalizeIngredientNaam(r.naam),
         categorie: r.categorie,
         eenheid: r.eenheid,
         kostprijs: r.kostprijs ?? undefined,
@@ -111,19 +128,21 @@ export function BulkCreateIngredientsDialog({ open, onClose, regels, leverancier
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-6">
+        <DialogHeader className="pb-3">
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <Sparkles className="h-5 w-5 text-primary" />
             Maak {regels.length} nieuwe ingrediënten aan
           </DialogTitle>
-          <p className="text-xs text-muted-foreground">
-            Vink ingrediënten uit die je niet wilt aanmaken. Pas naam/categorie/eenheid waar nodig.
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Vink ingrediënten uit die je niet wilt aanmaken. Pas naam, categorie of
+            eenheid aan waar nodig.
           </p>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto -mx-6 px-6 space-y-2">
           {/* Header row */}
-          <div className="grid grid-cols-[24px_minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_80px] gap-2 px-2 pb-1 border-b border-border/40 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background">
+          <div className="grid grid-cols-[24px_minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_80px] gap-3 px-3 pb-2 border-b border-border/40 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background z-10">
             <span />
             <span>Naam</span>
             <span>Categorie</span>
@@ -134,8 +153,10 @@ export function BulkCreateIngredientsDialog({ open, onClose, regels, leverancier
           {rows.map((r, idx) => (
             <div
               key={r.regelId}
-              className={`grid grid-cols-[24px_minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_80px] gap-2 px-2 py-1.5 rounded-lg items-center ${
-                r.checked ? "bg-card" : "bg-muted/30 opacity-60"
+              className={`grid grid-cols-[24px_minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_80px] gap-3 px-3 py-2.5 rounded-lg items-center transition-colors ${
+                r.checked
+                  ? "bg-card border border-border/40"
+                  : "bg-muted/30 opacity-60 border border-transparent"
               }`}
             >
               <Checkbox
@@ -167,18 +188,28 @@ export function BulkCreateIngredientsDialog({ open, onClose, regels, leverancier
           ))}
         </div>
 
-        <DialogFooter className="border-t border-border/50 pt-3">
-          <NestoButton variant="outline" onClick={onClose}>
-            Annuleren
-          </NestoButton>
-          <NestoButton
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={selectedCount === 0}
-            isLoading={bulkCreateIngredientsFromFactuur.isPending}
+        <DialogFooter className="border-t border-border/50 pt-4 sm:justify-between gap-2">
+          <Link
+            to="/ingredienten"
+            target="_blank"
+            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
           >
-            Maak {selectedCount} ingrediënten aan
-          </NestoButton>
+            <ExternalLink className="h-3 w-3" />
+            Bekijk bestaande ingrediënten
+          </Link>
+          <div className="flex gap-2">
+            <NestoButton variant="outline" onClick={onClose}>
+              Annuleren
+            </NestoButton>
+            <NestoButton
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={selectedCount === 0}
+              isLoading={bulkCreateIngredientsFromFactuur.isPending}
+            >
+              Maak {selectedCount} ingrediënten aan
+            </NestoButton>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
