@@ -35,7 +35,12 @@ import Taken from "./pages/Taken";
 import TakenRun from "./pages/TakenRun";
 import PanelDemo from "./pages/PanelDemo";
 import SettingsVoorkeuren from "./pages/SettingsVoorkeuren";
-import SettingsKeuken from "./pages/SettingsKeuken";
+import SettingsKeukenIndex from "./pages/settings/keuken/SettingsKeukenIndex";
+import SettingsKeukenInkoop from "./pages/settings/keuken/SettingsKeukenInkoop";
+import SettingsKeukenHaccp from "./pages/settings/keuken/SettingsKeukenHaccp";
+import SettingsKeukenCategorieen from "./pages/settings/keuken/SettingsKeukenCategorieen";
+import SettingsKeukenAssistent from "./pages/settings/keuken/SettingsKeukenAssistent";
+import SettingsKeukenTaken from "./pages/settings/keuken/SettingsKeukenTaken";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
 import BookingWidget from "./pages/BookingWidget";
@@ -210,7 +215,12 @@ const App = () => (
                   
                   {/* Settings */}
                   <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
-                  <Route path="/instellingen/keuken" element={<SettingsKeuken />} />
+                  <Route path="/instellingen/keuken" element={<SettingsKeukenIndex />} />
+                  <Route path="/instellingen/keuken/inkoop" element={<SettingsKeukenInkoop />} />
+                  <Route path="/instellingen/keuken/haccp" element={<SettingsKeukenHaccp />} />
+                  <Route path="/instellingen/keuken/categorieen" element={<SettingsKeukenCategorieen />} />
+                  <Route path="/instellingen/keuken/assistent" element={<SettingsKeukenAssistent />} />
+                  <Route path="/instellingen/keuken/taken" element={<SettingsKeukenTaken />} />
                   <Route path="/instellingen/keuken/medewerkers" element={<MedewerkersSettings />} />
                   <Route path="/instellingen/keuken/printer" element={<PrinterSettings />} />
                   <Route path="/instellingen/apparaten" element={<Suspense fallback={null}><SettingsApparaten /></Suspense>} />

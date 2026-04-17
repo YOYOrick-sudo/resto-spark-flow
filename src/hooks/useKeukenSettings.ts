@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { nestoToast } from "@/lib/nestoToast";
 
+export type StandaardTijdenPerType = {
+  opening: string;
+  tussentijds: string;
+  sluiting: string;
+  schoonmaak: string;
+  haccp: string;
+};
+
 export interface KeukenSettings {
   besteladvies_buffer_percentage: number | null;
   haccp_koeling_max: number | null;
@@ -15,6 +23,8 @@ export interface KeukenSettings {
   ai_bevoegdheden_keuken: AiBevoegdheden;
   assistent_min_waarde_verlopen: number;
   assistent_min_waarde_overschot: number;
+  haccp_freeze_tijd: string; // HH:MM:SS
+  standaard_tijden_per_type: StandaardTijdenPerType;
 }
 
 export interface AiBevoegdheden {
@@ -24,6 +34,14 @@ export interface AiBevoegdheden {
   voorraad_waarschuwingen: "zelfstandig" | "vraag_eerst" | "uit";
   haccp_waarschuwingen: "zelfstandig";
 }
+
+const DEFAULT_STANDAARD_TIJDEN: StandaardTijdenPerType = {
+  opening: "07:00",
+  tussentijds: "13:00",
+  sluiting: "22:00",
+  schoonmaak: "09:00",
+  haccp: "10:00",
+};
 
 const DEFAULTS: KeukenSettings = {
   besteladvies_buffer_percentage: 20,
@@ -43,6 +61,8 @@ const DEFAULTS: KeukenSettings = {
   },
   assistent_min_waarde_verlopen: 5,
   assistent_min_waarde_overschot: 10,
+  haccp_freeze_tijd: "03:00:00",
+  standaard_tijden_per_type: DEFAULT_STANDAARD_TIJDEN,
 };
 
 export function useKeukenSettings() {
@@ -54,7 +74,7 @@ export function useKeukenSettings() {
     queryFn: async (): Promise<KeukenSettings> => {
       const { data, error } = await supabase
         .from("locations")
-        .select("besteladvies_buffer_percentage, haccp_koeling_max, haccp_vriezer_max, haccp_kern_min, haccp_warmhouden_min, ingredient_categorieen, recept_categorieen, gerecht_categorieen, ai_bevoegdheden_keuken")
+        .select("besteladvies_buffer_percentage, haccp_koeling_max, haccp_vriezer_max, haccp_kern_min, haccp_warmhouden_min, ingredient_categorieen, recept_categorieen, gerecht_categorieen, ai_bevoegdheden_keuken, assistent_min_waarde_verlopen, assistent_min_waarde_overschot, haccp_freeze_tijd, standaard_tijden_per_type")
         .eq("id", locationId!)
         .single();
       if (error) throw error;
@@ -68,8 +88,13 @@ export function useKeukenSettings() {
         recept_categorieen: ((data as any).recept_categorieen ?? DEFAULTS.recept_categorieen) as string[],
         gerecht_categorieen: ((data as any).gerecht_categorieen ?? DEFAULTS.gerecht_categorieen) as string[],
         ai_bevoegdheden_keuken: ((data as any).ai_bevoegdheden_keuken ?? DEFAULTS.ai_bevoegdheden_keuken) as AiBevoegdheden,
-        assistent_min_waarde_verlopen: (data as any).assistent_min_waarde_verlopen ?? 5,
-        assistent_min_waarde_overschot: (data as any).assistent_min_waarde_overschot ?? 10,
+        assistent_min_waarde_verlopen: (data as any).assistent_min_waarde_verlopen ?? DEFAULTS.assistent_min_waarde_verlopen,
+        assistent_min_waarde_overschot: (data as any).assistent_min_waarde_overschot ?? DEFAULTS.assistent_min_waarde_overschot,
+        haccp_freeze_tijd: (data as any).haccp_freeze_tijd ?? DEFAULTS.haccp_freeze_tijd,
+        standaard_tijden_per_type: {
+          ...DEFAULT_STANDAARD_TIJDEN,
+          ...(((data as any).standaard_tijden_per_type ?? {}) as Partial<StandaardTijdenPerType>),
+        },
       };
     },
     enabled: !!locationId,
@@ -91,7 +116,6 @@ export function useUpdateKeukenSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["keuken-settings", locationId] });
-      
     },
     onError: () => {
       nestoToast.error("Fout bij opslaan instellingen");

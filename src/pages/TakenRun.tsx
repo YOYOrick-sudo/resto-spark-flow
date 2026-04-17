@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, Check, Lock, CheckSquare } from "lucide-react";
 import { useChecklistRuns, isRunFrozen } from "@/hooks/useChecklistRuns";
+import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
