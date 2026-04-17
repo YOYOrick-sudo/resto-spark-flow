@@ -334,10 +334,11 @@ export function useFactuurMutations() {
             { onConflict: "leverancier_id,artikel_nummer" }
           );
         if (laErr) {
-          console.warn(
+          console.error(
             "[createNewIngredientFromFactuur leveranciers_artikelen] upsert failed:",
             laErr
           );
+          throw new Error(`Leverancier-koppeling mislukt: ${laErr.message}`);
         }
       } else if (vars.leverancierId && !artNr) {
         console.warn(
@@ -423,7 +424,8 @@ export function useFactuurMutations() {
             .from("leveranciers_artikelen")
             .upsert(upsertRows, { onConflict: "leverancier_id,artikel_nummer" });
           if (upErr) {
-            console.warn("[goedkeuren] leveranciers_artikelen upsert failed:", upErr);
+            console.error("[goedkeuren] leveranciers_artikelen upsert failed:", upErr);
+            throw new Error(`Leveranciers-koppeling bij goedkeuren mislukt: ${upErr.message}`);
           }
         }
       }
