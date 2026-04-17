@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { nestoToast } from "@/lib/nestoToast";
-import type { ChecklistItem } from "./useChecklistTemplates";
+import type { ChecklistItem, TemplateModus } from "./useChecklistTemplates";
 
 export interface ChecklistResponse {
   id: string;
@@ -19,6 +19,13 @@ export interface ChecklistResponse {
   ingevuld_op: string | null;
 }
 
+/** Eén entry in run.items_snapshot */
+export interface SnapshotItem {
+  item_id: string;
+  /** YYYY-MM-DD: aanwezig betekent: dit item is overdue van die eerdere datum */
+  overdue_van?: string;
+}
+
 export interface ChecklistRun {
   id: string;
   location_id: string;
@@ -31,8 +38,49 @@ export interface ChecklistRun {
   gestart_op: string | null;
   afgerond_op: string | null;
   opmerkingen: string | null;
-  template?: { id: string; naam: string; type: string; items: ChecklistItem[] };
+  /**
+   * NULL = legacy / gebundeld → alle items uit template gelden voor deze run.
+   * Anders = expliciete lijst met item-ids (eventueel met overdue_van marker).
+   */
+  items_snapshot: SnapshotItem[] | null;
+  template?: {
+    id: string;
+    naam: string;
+    type: string;
+    items: ChecklistItem[];
+    modus: TemplateModus;
+    frequentie: string;
+    frequentie_config: Record<string, any>;
+    default_time: string | null;
+  };
   responses: ChecklistResponse[];
+}
+
+/**
+ * Bepaalt welke items daadwerkelijk in deze run horen, op basis van snapshot.
+ * - snapshot=null → alle template-items (legacy/gebundeld)
+ * - snapshot=[…] → alleen items waarvan id in snapshot zit, in template-volgorde
+ */
+export function getRunItems(run: ChecklistRun): ChecklistItem[] {
+  const all = run.template?.items ?? [];
+  if (!run.items_snapshot) return all.slice().sort((a, b) => a.volgorde - b.volgorde);
+  const idsInSnap = new Set(run.items_snapshot.map((s) => s.item_id));
+  return all
+    .filter((it) => idsInSnap.has(it.id))
+    .slice()
+    .sort((a, b) => a.volgorde - b.volgorde);
+}
+
+/**
+ * Verzamelt overdue-items in deze run. Geeft per item-id de oudste overdue-datum terug.
+ */
+export function getOverdueMap(run: ChecklistRun): Map<string, string> {
+  const map = new Map<string, string>();
+  if (!run.items_snapshot) return map;
+  for (const s of run.items_snapshot) {
+    if (s.overdue_van) map.set(s.item_id, s.overdue_van);
+  }
+  return map;
 }
 
 /**
@@ -70,7 +118,9 @@ export function useChecklistRuns(datum?: string) {
     queryFn: async () => {
       const { data: runs, error } = await supabase
         .from("checklist_runs")
-        .select(`*, template:checklist_templates(id, naam, type, items)`)
+        .select(
+          `*, template:checklist_templates(id, naam, type, items, modus, frequentie, frequentie_config, default_time)`
+        )
         .eq("location_id", locationId!)
         .eq("datum", today)
         .order("created_at");
@@ -97,7 +147,10 @@ export function useChecklistRuns(datum?: string) {
           ...r.template,
           items: (typeof r.template.items === "string"
             ? JSON.parse(r.template.items) : r.template.items) as ChecklistItem[],
+          modus: (r.template.modus ?? "gebundeld") as TemplateModus,
+          frequentie_config: r.template.frequentie_config ?? {},
         } : undefined,
+        items_snapshot: r.items_snapshot ?? null,
         responses: responseMap.get(r.id) ?? [],
       })) as ChecklistRun[];
     },
@@ -109,6 +162,7 @@ export function useChecklistRuns(datum?: string) {
       const rows = templateIds.map((tid) => ({
         location_id: locationId!, template_id: tid, datum: today, status: "open",
         gestart_door: user?.id ?? null, gestart_op: new Date().toISOString(),
+        items_snapshot: null, // handmatige start = alle items
       }));
       const { error } = await supabase.from("checklist_runs").insert(rows);
       if (error) throw error;

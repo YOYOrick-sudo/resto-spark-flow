@@ -16,13 +16,14 @@ import {
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, Loader2, X, ChevronRight, Info } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
 import { FrequentieSelector } from "./FrequentieSelector";
 import { ItemFotoUploader } from "./ItemFotoUploader";
+import { formatFrequentieKort } from "@/lib/frequentieFormat";
 import {
   DndContext,
   PointerSensor,
@@ -66,6 +67,12 @@ const TYPE_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "pr
 };
 
 type Selection = { mode: "edit"; id: string } | { mode: "new" } | null;
+
+/** Intern (niet OS-clipboard) gekopieerde frequentie */
+interface CopiedFrequentie {
+  frequentie: Frequentie;
+  config: Record<string, any>;
+}
 
 export function TemplatesTab() {
   const { context, currentLocation } = useUserContext();
@@ -149,6 +156,11 @@ export function TemplatesTab() {
                   <span className="text-xs text-muted-foreground">
                     {itemCount} items
                   </span>
+                  {t.modus === "per_item" && (
+                    <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                      mix
+                    </span>
+                  )}
                 </div>
               </button>
             );
@@ -233,14 +245,13 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         .sort((a, b) => a.volgorde - b.volgorde)
   );
 
+  // Intern clipboard voor frequentie copy/paste tussen items
+  const [copiedFreq, setCopiedFreq] = useState<CopiedFrequentie | null>(null);
+
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  // Houd huidige template-id bij — wordt gezet zodra een nieuwe template voor het eerst geinsert is.
   const [currentId, setCurrentId] = useState<string | undefined>(template?.id);
-  // Markeer of editor "vies" is (heeft pending wijzigingen vergeleken met laatst opgeslagen versie)
   const dirtyRef = useRef(false);
-  // Markeer of we al een initiële save voor een nieuwe template hebben gedaan (om dubbele inserts te voorkomen)
   const creatingRef = useRef(false);
-  // Voorkom dat de auto-save al triggert bij eerste mount (state-init zou anders direct als wijziging gezien worden)
   const mountedRef = useRef(false);
 
   const sensors = useSensors(
@@ -272,13 +283,11 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         items: overrides?.items ?? items,
       };
 
-      // Validatie: naam is vereist voor een save
       if (!eff.naam.trim()) {
         setSaveStatus("idle");
         return;
       }
 
-      // Voorkom dubbele inserts wanneer we nog bezig zijn een nieuwe template aan te maken
       if (!currentId && creatingRef.current) return;
 
       setSaveStatus("saving");
@@ -299,7 +308,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         const result: any = await saveTemplate(payload);
         if (!currentId) {
           creatingRef.current = false;
-          // Probeer id uit response te halen; anders laat parent eventueel weten via onCreated als die ooit komt
           const newId: string | undefined = result?.id ?? result?.[0]?.id;
           if (newId) {
             setCurrentId(newId);
@@ -322,7 +330,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
     void performSave();
   }, 800);
 
-  // Auto-clear "saved" indicator na 1.5s, zodat hij niet permanent in beeld blijft
   useEffect(() => {
     if (saveStatus !== "saved") return;
     const t = setTimeout(() => {
@@ -331,7 +338,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
     return () => clearTimeout(t);
   }, [saveStatus]);
 
-  // Markeer dirty + trigger debounced save bij elke statewijziging
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
@@ -341,7 +347,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
     debouncedSave();
   }, [naam, type, beschrijving, actief, frequentie, frequentieConfig, defaultTime, items, debouncedSave]);
 
-  // Instant save voor toggles (geen debounce — voelt direct aan)
   const saveNow = useCallback(
     (overrides?: Parameters<typeof performSave>[0]) => {
       debouncedSave.cancel();
@@ -363,7 +368,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         vereist: false,
         temp_min: null,
         temp_max: null,
-        frequentie: "dagelijks",
         foto_urls: [],
       },
     ]);
@@ -375,7 +379,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
     );
   };
 
-  // Voor toggles & andere instant-acties op items: muteer + sla direct op
   const updateItemInstant = (id: string, patch: Partial<ChecklistItem>) => {
     setItems((prev) => {
       const next = prev.map((it) => (it.id === id ? { ...it, ...patch } : it));
@@ -415,9 +418,29 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
     onCancel();
   };
 
+  // Copy/paste handlers — intern, niet OS clipboard
+  const handleCopyFreq = (item: ChecklistItem) => {
+    if (!item.item_frequentie) return;
+    setCopiedFreq({
+      frequentie: item.item_frequentie,
+      config: item.item_frequentie_config ?? {},
+    });
+    nestoToast.success("Frequentie gekopieerd");
+  };
+
+  const handlePasteFreq = (id: string) => {
+    if (!copiedFreq) return;
+    updateItemInstant(id, {
+      item_frequentie: copiedFreq.frequentie,
+      item_frequentie_config: copiedFreq.config,
+    });
+  };
+
+  // Auto-detect of template per_item is (≥1 item heeft eigen freq)
+  const isPerItem = items.some((it) => !!it.item_frequentie);
+
   return (
     <div className="space-y-6">
-      {/* Subtiele topbar — alleen status + sluiten, geen titel/badge */}
       <div className="flex items-center justify-end gap-1.5 -mb-2">
         <SaveStatusIndicator status={saveStatus} />
         <button
@@ -430,7 +453,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         </button>
       </div>
 
-      {/* Basisvelden — Naam | Type */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-1.5 block">Naam</label>
@@ -453,7 +475,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         </div>
       </div>
 
-      {/* Beschrijving — full width */}
       <div>
         <label className="text-sm font-medium mb-1.5 block">Beschrijving</label>
         <NestoInput
@@ -463,9 +484,15 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         />
       </div>
 
-      {/* Frequentie — full width */}
       <div>
-        <label className="text-sm font-medium mb-1.5 block">Frequentie</label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-sm font-medium">Frequentie</label>
+          {isPerItem && (
+            <span className="text-[11px] text-muted-foreground italic">
+              Wordt overschreven per item — sommige items hebben eigen frequentie
+            </span>
+          )}
+        </div>
         <FrequentieSelector
           frequentie={frequentie}
           config={frequentieConfig}
@@ -476,7 +503,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         />
       </div>
 
-      {/* Standaard tijd | Actief — 2-koloms ritme */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
         <div>
           <label className="text-sm font-medium mb-1.5 block">Standaard tijd</label>
@@ -504,7 +530,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
         </div>
       </div>
 
-      {/* Items */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Items</h3>
@@ -540,6 +565,10 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
                       key={item.id}
                       item={item}
                       locationId={locationId}
+                      templateFrequentie={frequentie}
+                      copiedFreq={copiedFreq}
+                      onCopyFreq={() => handleCopyFreq(item)}
+                      onPasteFreq={() => handlePasteFreq(item.id)}
                       onUpdate={(patch) => updateItem(item.id, patch)}
                       onUpdateInstant={(patch) => updateItemInstant(item.id, patch)}
                       onRemove={() => removeItem(item.id)}
@@ -562,8 +591,6 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
     </div>
   );
 }
-
-// ---- Status indicator ----
 
 function SaveStatusIndicator({ status }: { status: SaveStatus }) {
   if (status === "saving") {
@@ -590,32 +617,25 @@ function SaveStatusIndicator({ status }: { status: SaveStatus }) {
   return null;
 }
 
-// ---- Sortable row ----
-
 interface SortableItemRowProps {
   item: ChecklistItem;
   locationId: string;
+  templateFrequentie: Frequentie;
+  copiedFreq: CopiedFrequentie | null;
+  onCopyFreq: () => void;
+  onPasteFreq: () => void;
   onUpdate: (patch: Partial<ChecklistItem>) => void;
   onUpdateInstant: (patch: Partial<ChecklistItem>) => void;
   onRemove: () => void;
 }
 
 const QUICK_TEMPLATES: Array<{ label: string; value: string }> = [
-  {
-    label: "Schoonmaakinstructie",
-    value: "Stappen:\n1. \n2. \n3. \n\nProduct: \nContacttijd: ",
-  },
-  {
-    label: "Dosering",
-    value: "Verhouding: \nHoeveelheid: ",
-  },
-  {
-    label: "Aandachtspunt",
-    value: "Let op: ",
-  },
+  { label: "Schoonmaakinstructie", value: "Stappen:\n1. \n2. \n3. \n\nProduct: \nContacttijd: " },
+  { label: "Dosering", value: "Verhouding: \nHoeveelheid: " },
+  { label: "Aandachtspunt", value: "Let op: " },
 ];
 
-function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove }: SortableItemRowProps) {
+function SortableItemRow({ item, locationId, templateFrequentie, copiedFreq, onCopyFreq, onPasteFreq, onUpdate, onUpdateInstant, onRemove }: SortableItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({ id: item.id });
 
@@ -633,14 +653,28 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
   const fotoUrls = item.foto_urls ?? [];
   const beschrijving = item.beschrijving ?? "";
   const hasBeschrijving = beschrijving.trim().length > 0;
-  const hasContent = hasBeschrijving || fotoUrls.length > 0;
+  const hasOwnFreq = !!item.item_frequentie;
+  const hasContent = hasBeschrijving || fotoUrls.length > 0 || hasOwnFreq;
+  const freqBadge = hasOwnFreq
+    ? formatFrequentieKort(item.item_frequentie, item.item_frequentie_config)
+    : null;
 
   const [expanded, setExpanded] = useState(false);
+  const [freqMode, setFreqMode] = useState<"erft" | "eigen">(hasOwnFreq ? "eigen" : "erft");
+
+  const handleFreqModeChange = (mode: "erft" | "eigen") => {
+    setFreqMode(mode);
+    if (mode === "erft") {
+      onUpdateInstant({ item_frequentie: undefined, item_frequentie_config: undefined });
+    } else if (!item.item_frequentie) {
+      // Default: dagelijks bij eerste activatie
+      onUpdateInstant({ item_frequentie: "dagelijks", item_frequentie_config: {} });
+    }
+  };
 
   return (
     <div ref={setNodeRef} style={style} className="group">
       <div className="grid grid-cols-[28px_1fr_120px_72px_auto_28px_28px_28px] items-center gap-2.5 px-3 py-2 min-h-[44px] hover:bg-accent/30 transition-colors">
-        {/* Drag handle */}
         <button
           {...attributes}
           {...listeners}
@@ -651,7 +685,6 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
           <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
 
-        {/* Titel + (info-indicator als beschrijving aanwezig) */}
         <div className="flex items-center gap-1.5 min-w-0">
           <input
             type="text"
@@ -673,7 +706,6 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
           )}
         </div>
 
-        {/* Type select — instant save */}
         <div>
           <NestoSelect
             value={item.type}
@@ -682,11 +714,41 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
           />
         </div>
 
-        {/* Frequentie-badge — gereserveerd voor toekomstige frequentie-per-item (V1.1) */}
-        <div className="flex items-center justify-center" aria-hidden="true">
-          <span className="text-[10px] text-muted-foreground/40 tabular-nums select-none">—</span>
+        {/* Frequentie-kolom (72px) — badge + copy of paste */}
+        <div className="flex items-center justify-center gap-1">
+          {freqBadge ? (
+            <>
+              <span
+                className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded tabular-nums whitespace-nowrap"
+                title="Eigen frequentie van dit item"
+              >
+                {freqBadge}
+              </span>
+              <button
+                type="button"
+                onClick={onCopyFreq}
+                className="p-0.5 rounded text-muted-foreground/60 hover:text-primary hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Frequentie kopiëren"
+                title="Frequentie kopiëren"
+              >
+                <Copy className="h-2.5 w-2.5" />
+              </button>
+            </>
+          ) : copiedFreq ? (
+            <button
+              type="button"
+              onClick={onPasteFreq}
+              className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Gekopieerde frequentie plakken"
+            >
+              <ClipboardPaste className="h-2.5 w-2.5" />
+              Plak
+            </button>
+          ) : (
+            <span className="text-[10px] text-muted-foreground/40 tabular-nums select-none">—</span>
+          )}
         </div>
-        {/* Vereist + (temp inline indien nodig) */}
+
         <div className="flex items-center gap-3">
           {isTemp && (
             <div className="flex items-center gap-1">
@@ -696,8 +758,7 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
                 value={item.temp_min ?? ""}
                 onChange={(e) =>
                   onUpdate({
-                    temp_min:
-                      e.target.value === "" ? null : parseFloat(e.target.value),
+                    temp_min: e.target.value === "" ? null : parseFloat(e.target.value),
                   })
                 }
                 placeholder="Min"
@@ -711,8 +772,7 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
                 value={item.temp_max ?? ""}
                 onChange={(e) =>
                   onUpdate({
-                    temp_max:
-                      e.target.value === "" ? null : parseFloat(e.target.value),
+                    temp_max: e.target.value === "" ? null : parseFloat(e.target.value),
                   })
                 }
                 placeholder="Max"
@@ -731,7 +791,6 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
           </label>
         </div>
 
-        {/* Foto-uploader */}
         <div className={cn(fotoUrls.length === 0 && "opacity-0 group-hover:opacity-100 transition-opacity")}>
           {locationId && (
             <ItemFotoUploader
@@ -743,7 +802,6 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
           )}
         </div>
 
-        {/* Expand chevron — altijd zichtbaar als content, anders alleen op hover */}
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -751,7 +809,7 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
             "p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all",
             !hasContent && "opacity-0 group-hover:opacity-100"
           )}
-          aria-label={expanded ? "Beschrijving inklappen" : "Beschrijving toevoegen"}
+          aria-label={expanded ? "Inklappen" : "Uitklappen voor extra opties"}
           aria-expanded={expanded}
         >
           <ChevronRight
@@ -759,7 +817,6 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
           />
         </button>
 
-        {/* Delete */}
         <button
           type="button"
           onClick={onRemove}
@@ -772,30 +829,83 @@ function SortableItemRow({ item, locationId, onUpdate, onUpdateInstant, onRemove
         </button>
       </div>
 
-      {/* Expanded paneel — beschrijving + chips */}
+      {/* Expanded paneel — beschrijving + chips + frequentie-per-item */}
       {expanded && (
-        <div className="px-2 pb-3 pt-1 ml-6 mr-9 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
-          {beschrijving.length === 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_TEMPLATES.map((q) => (
-                <button
-                  key={q.label}
-                  type="button"
-                  onClick={() => onUpdate({ beschrijving: q.value })}
-                  className="text-xs px-2 py-1 rounded-full border border-border bg-muted/40 text-muted-foreground hover:bg-accent hover:text-foreground hover:border-primary/40 transition-colors"
-                >
-                  + {q.label}
-                </button>
-              ))}
+        <div className="px-2 pb-3 pt-1 ml-6 mr-9 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
+          {/* Beschrijving */}
+          <div className="space-y-2">
+            {beschrijving.length === 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_TEMPLATES.map((q) => (
+                  <button
+                    key={q.label}
+                    type="button"
+                    onClick={() => onUpdate({ beschrijving: q.value })}
+                    className="text-xs px-2 py-1 rounded-full border border-border bg-muted/40 text-muted-foreground hover:bg-accent hover:text-foreground hover:border-primary/40 transition-colors"
+                  >
+                    + {q.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Textarea
+              value={beschrijving}
+              onChange={(e) => onUpdate({ beschrijving: e.target.value })}
+              placeholder="Extra instructies, hoe te doen, aandachtspunten…"
+              rows={3}
+              className="text-sm leading-relaxed"
+            />
+          </div>
+
+          {/* Frequentie per item */}
+          <div className="space-y-2 pt-1 border-t border-border/40">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-2">
+              Frequentie van dit item
+            </p>
+            <div className="inline-flex rounded-button border border-border overflow-hidden">
+              {[
+                { v: "erft" as const, label: "Erft van template" },
+                { v: "eigen" as const, label: "Eigen frequentie" },
+              ].map((opt, i) => {
+                const active = freqMode === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => handleFreqModeChange(opt.v)}
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium transition",
+                      i > 0 && "border-l border-border",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "bg-card text-muted-foreground hover:bg-accent"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
             </div>
-          )}
-          <Textarea
-            value={beschrijving}
-            onChange={(e) => onUpdate({ beschrijving: e.target.value })}
-            placeholder="Extra instructies, hoe te doen, aandachtspunten…"
-            rows={3}
-            className="text-sm leading-relaxed"
-          />
+
+            {freqMode === "erft" ? (
+              <p className="text-xs text-muted-foreground italic">
+                Volgt template-frequentie:{" "}
+                <span className="font-medium text-foreground">{templateFrequentie}</span>
+              </p>
+            ) : (
+              <FrequentieSelector
+                compact
+                frequentie={item.item_frequentie ?? "dagelijks"}
+                config={item.item_frequentie_config ?? {}}
+                onChange={(f, c) =>
+                  onUpdateInstant({
+                    item_frequentie: f,
+                    item_frequentie_config: c,
+                  })
+                }
+              />
+            )}
+          </div>
         </div>
       )}
     </div>

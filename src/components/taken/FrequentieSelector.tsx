@@ -8,6 +8,11 @@ interface Props {
   frequentie: Frequentie;
   config: Record<string, any>;
   onChange: (f: Frequentie, c: Record<string, any>) => void;
+  /**
+   * Compactere weergave voor inline-gebruik in een item-expand-row.
+   * Kleinere chips, minder spacing, kortere labels.
+   */
+  compact?: boolean;
 }
 
 const WEEKDAGEN = [
@@ -57,12 +62,12 @@ function Hint({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function FrequentieSelector({ frequentie, config, onChange }: Props) {
+export function FrequentieSelector({ frequentie, config, onChange, compact = false }: Props) {
   const handleFreq = (v: string) => {
     const f = v as Frequentie;
     const defaults: Record<Frequentie, Record<string, any>> = {
       dagelijks: {},
-      wekelijks: { weekdagen: [1, 2, 3, 4, 5] },
+      wekelijks: { weekdagen: [1, 2, 3, 4, 5], interval_weken: 1 },
       maandelijks: { dag_van_maand: 1 },
       kwartaal: { dag: 1 },
       halfjaar: { maand: 1, dag: 1 },
@@ -73,6 +78,7 @@ export function FrequentieSelector({ frequentie, config, onChange }: Props) {
   };
 
   const weekdagen: number[] = Array.isArray(config.weekdagen) ? config.weekdagen : [];
+  const intervalWeken: number = Number(config.interval_weken) || 1;
 
   // Hint tekst per frequentie
   const renderHint = () => {
@@ -90,7 +96,17 @@ export function FrequentieSelector({ frequentie, config, onChange }: Props) {
           : namen.length === 1
           ? namen[0]
           : `${namen.slice(0, -1).join(", ")} en ${namen[namen.length - 1]}`;
-      return <Hint>Deze taak verschijnt op: {tekst}.</Hint>;
+      if (intervalWeken > 1) {
+        const startTekst = config.start_datum
+          ? `, vanaf ${formatDateNL(config.start_datum)}`
+          : "";
+        return (
+          <Hint>
+            Deze taak verschijnt elke {intervalWeken} weken op {tekst}{startTekst}.
+          </Hint>
+        );
+      }
+      return <Hint>Deze taak verschijnt elke week op: {tekst}.</Hint>;
     }
     if (frequentie === "maandelijks") {
       const dag = config.dag_van_maand ?? 1;
@@ -131,8 +147,12 @@ export function FrequentieSelector({ frequentie, config, onChange }: Props) {
     return null;
   };
 
+  const dagPilSize = compact
+    ? "px-2.5 py-1 text-xs"
+    : "px-3 py-1.5 text-sm";
+
   return (
-    <div className="space-y-3">
+    <div className={cn(compact ? "space-y-2" : "space-y-3")}>
       <NestoOutlineButtonGroup
         options={FREQ_OPTIONS}
         value={frequentie}
@@ -141,8 +161,9 @@ export function FrequentieSelector({ frequentie, config, onChange }: Props) {
       />
 
       {frequentie === "wekelijks" && (
-        <div>
-          <div className="flex gap-2 flex-wrap">
+        <div className="space-y-2">
+          {/* Weekdagen */}
+          <div className="flex gap-1.5 flex-wrap">
             {WEEKDAGEN.map((d) => {
               const active = weekdagen.includes(d.iso);
               return (
@@ -153,10 +174,11 @@ export function FrequentieSelector({ frequentie, config, onChange }: Props) {
                     const next = active
                       ? weekdagen.filter((x) => x !== d.iso)
                       : [...weekdagen, d.iso].sort((a, b) => a - b);
-                    onChange("wekelijks", { weekdagen: next });
+                    onChange("wekelijks", { ...config, weekdagen: next });
                   }}
                   className={cn(
-                    "rounded-button px-3 py-1.5 text-sm font-medium border transition",
+                    "rounded-button font-medium border transition",
+                    dagPilSize,
                     active
                       ? "bg-primary/10 border-primary/30 text-primary"
                       : "bg-card border-border text-muted-foreground hover:border-primary/50"
@@ -167,6 +189,58 @@ export function FrequentieSelector({ frequentie, config, onChange }: Props) {
               );
             })}
           </div>
+
+          {/* Bi-weekly toggle */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-button border border-border overflow-hidden">
+              {[
+                { v: 1, label: "Elke week" },
+                { v: 2, label: "Elke 2 weken" },
+              ].map((opt, i) => {
+                const active = intervalWeken === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => {
+                      const next: Record<string, any> = {
+                        ...config,
+                        interval_weken: opt.v,
+                      };
+                      if (opt.v > 1 && !next.start_datum) {
+                        next.start_datum = new Date().toISOString().slice(0, 10);
+                      }
+                      if (opt.v === 1) {
+                        delete next.start_datum;
+                      }
+                      onChange("wekelijks", next);
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium transition",
+                      i > 0 && "border-l border-border",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "bg-card text-muted-foreground hover:bg-accent"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {intervalWeken > 1 && (
+              <NestoDatePicker
+                label="Start op"
+                value={dateFromString(config.start_datum)}
+                onChange={(d) =>
+                  onChange("wekelijks", { ...config, start_datum: dateToString(d) })
+                }
+                className="min-w-[180px]"
+              />
+            )}
+          </div>
+
           {renderHint()}
         </div>
       )}
