@@ -571,33 +571,26 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
 function SaveStatusIndicator({ status }: { status: SaveStatus }) {
   if (status === "saving") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span className="inline-flex items-center justify-center h-6 w-6 text-muted-foreground" aria-label="Opslaan…" title="Opslaan…">
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        Opslaan…
       </span>
     );
   }
   if (status === "saved") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-success">
+      <span className="inline-flex items-center justify-center h-6 w-6 text-success animate-in fade-in" aria-label="Opgeslagen" title="Opgeslagen">
         <Check className="h-3.5 w-3.5" />
-        Opgeslagen
       </span>
     );
   }
   if (status === "error") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-error">
+      <span className="inline-flex items-center justify-center h-6 w-6 text-error" aria-label="Opslaan mislukt" title="Opslaan mislukt">
         <AlertCircle className="h-3.5 w-3.5" />
-        Opslaan mislukt
       </span>
     );
   }
-  return (
-    <span className="text-xs text-muted-foreground/70">
-      Wijzigingen worden automatisch opgeslagen
-    </span>
-  );
+  return null;
 }
 
 // ---- Sortable row ----
