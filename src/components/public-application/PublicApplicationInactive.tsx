@@ -12,8 +12,8 @@ export function PublicApplicationInactive({ branding }: PublicApplicationInactiv
 
   return (
     <div
-      className="min-h-screen bg-[#FAFAFA] flex items-center justify-center px-4 font-[Inter,sans-serif]"
-      style={{ ['--brand' as string]: brandColor }}
+      className="light min-h-screen bg-[#FAFAFA] flex items-center justify-center px-4 font-[Inter,sans-serif]"
+      style={{ ['--brand' as string]: brandColor, colorScheme: 'light' }}
     >
       <div className="max-w-md w-full text-center">
         {branding?.logo_url && (
