@@ -278,17 +278,13 @@ export function NieuwIngredientFromFactuurModal({
   );
 }
 
-function InfoRow({
-  label,
-  value,
-}: {
-  label: React.ReactNode;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-foreground text-right">{value}</span>
-    </div>
-  );
-}
+const InfoRow = React.forwardRef<
+  HTMLDivElement,
+  { label: React.ReactNode; value: React.ReactNode }
+>(({ label, value }, ref) => (
+  <div ref={ref} className="flex items-baseline justify-between gap-3 text-xs">
+    <span className="text-muted-foreground">{label}</span>
+    <span className="text-foreground text-right">{value}</span>
+  </div>
+));
+InfoRow.displayName = "InfoRow";

@@ -426,9 +426,18 @@ export function useFactuurMutations() {
           }));
 
         if (upsertRows.length) {
+          // R3.5 hotfix B — dedup op (leverancier_id, artikel_nummer); LAATSTE wint
+          // Voorkomt Postgres 21000: "ON CONFLICT DO UPDATE command cannot affect row a second time"
+          const dedupMap = new Map<string, typeof upsertRows[0]>();
+          for (const row of upsertRows) {
+            const key = `${row.leverancier_id}|${row.artikel_nummer}`;
+            dedupMap.set(key, row);
+          }
+          const deduped = Array.from(dedupMap.values());
+
           const { error: upErr } = await supabase
             .from("leveranciers_artikelen")
-            .upsert(upsertRows, { onConflict: "leverancier_id,artikel_nummer" });
+            .upsert(deduped, { onConflict: "leverancier_id,artikel_nummer" });
           if (upErr) {
             console.error("[goedkeuren] leveranciers_artikelen upsert failed:", upErr);
             throw new Error(`Leveranciers-koppeling bij goedkeuren mislukt: ${upErr.message}`);
