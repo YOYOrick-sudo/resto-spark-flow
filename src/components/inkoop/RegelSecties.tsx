@@ -1,14 +1,12 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, Trash2 } from "lucide-react";
+import { ChevronDown, Trash2, SkipForward, Sparkles } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  IngredientMatchBadge,
-  type NewIngredientPrefill,
-} from "@/components/inkoop/IngredientMatchBadge";
+import { NestoButton } from "@/components/polar/NestoButton";
+import { IngredientMatchBadge } from "@/components/inkoop/IngredientMatchBadge";
 import { VerpakkingHint } from "@/components/inkoop/VerpakkingHint";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import type { ChipId } from "./RegelFilterChips";
@@ -18,6 +16,8 @@ const OVERIG_REGEX = /bezorg|emballage|retour|statiegeld|toeslag|brandstof|milie
 export type SectieId = "perfect" | "naam" | "ai" | "geen" | "overig";
 
 export function categoriseer(r: FactuurRegel): SectieId {
+  // R4b-1: skipped regels horen visueel in 'overig'
+  if (r.match_status === "skipped") return "overig";
   if (OVERIG_REGEX.test(r.product_naam_herkend)) return "overig";
   if (r.match_status === "unmatched") return "geen";
   const c = r.match_confidence ?? 0;
@@ -51,8 +51,10 @@ interface Props {
   filter: ChipId;
   isEditable: boolean;
   leverancierId: string | null;
-  onOpenNewIngredient: (regelId: string, prefill: NewIngredientPrefill) => void;
+  leverancierNaam?: string | null;
   onDeleteRegel: (id: string) => void;
+  onSkipAllOverig: (ids: string[]) => void;
+  onOpenBulkCreate: (regels: FactuurRegel[]) => void;
 }
 
 export function RegelSecties({
@@ -60,8 +62,10 @@ export function RegelSecties({
   filter,
   isEditable,
   leverancierId,
-  onOpenNewIngredient,
+  leverancierNaam,
   onDeleteRegel,
+  onSkipAllOverig,
+  onOpenBulkCreate,
 }: Props) {
   const grouped = useMemo(() => {
     const map: Record<SectieId, FactuurRegel[]> = {
@@ -79,8 +83,6 @@ export function RegelSecties({
 
   const visibleSecties = CHIP_TO_SECTIES[filter];
 
-  // Open-state per sectie. Default = SECTIE_META.defaultOpen, tenzij filter actief
-  // is (dan altijd open zodat content zichtbaar is).
   const [openMap, setOpenMap] = useState<Record<SectieId, boolean>>(() => ({
     perfect: SECTIE_META.perfect.defaultOpen,
     naam: SECTIE_META.naam.defaultOpen,
@@ -95,9 +97,27 @@ export function RegelSecties({
         const items = grouped[id];
         if (items.length === 0) return null;
         const meta = SECTIE_META[id];
-        // Bij niet-"all" filter: forceer open
         const forcedOpen = filter !== "all";
         const isOpen = forcedOpen ? true : openMap[id];
+
+        // R4b-1: skip-overig kandidaten = niet al skipped
+        const skipKandidaten =
+          id === "overig"
+            ? items.filter((r) => r.match_status !== "skipped")
+            : [];
+        const showSkipKnop = id === "overig" && isEditable && skipKandidaten.length > 0;
+
+        // R4b-1: bulk-create kandidaten = unmatched met AI-naam
+        const bulkKandidaten =
+          id === "geen"
+            ? items.filter(
+                (r) =>
+                  r.match_status !== "skipped" &&
+                  (r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend)
+                    ?.trim().length > 0
+              )
+            : [];
+        const showBulkKnop = id === "geen" && isEditable && bulkKandidaten.length >= 3;
 
         return (
           <Collapsible
@@ -107,37 +127,69 @@ export function RegelSecties({
               !forcedOpen && setOpenMap((m) => ({ ...m, [id]: o }))
             }
           >
-            <CollapsibleTrigger
-              disabled={forcedOpen}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors text-left disabled:cursor-default disabled:hover:bg-muted/30"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm">{meta.emoji}</span>
-                <span className="text-sm font-medium">{meta.label}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  ({items.length})
-                </span>
-              </div>
-              {!forcedOpen && (
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform ${
-                    isOpen ? "rotate-180" : ""
-                  }`}
-                />
+            <div className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-muted/30">
+              <CollapsibleTrigger
+                disabled={forcedOpen}
+                className="flex-1 flex items-center justify-between gap-2 text-left disabled:cursor-default group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">{meta.emoji}</span>
+                  <span className="text-sm font-medium">{meta.label}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    ({items.length})
+                  </span>
+                </div>
+                {!forcedOpen && (
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                )}
+              </CollapsibleTrigger>
+              {showSkipKnop && (
+                <NestoButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSkipAllOverig(skipKandidaten.map((r) => r.id));
+                  }}
+                >
+                  <SkipForward className="h-3.5 w-3.5 mr-1" />
+                  Skip alle overig
+                </NestoButton>
               )}
-            </CollapsibleTrigger>
+              {showBulkKnop && (
+                <NestoButton
+                  variant="primary"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenBulkCreate(bulkKandidaten);
+                  }}
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                  Maak {bulkKandidaten.length} nieuwe ingrediënten
+                </NestoButton>
+              )}
+            </div>
 
             <CollapsibleContent className="pt-2 space-y-2">
               {items.map((r) => {
                 const conf = r.match_confidence ?? 0;
+                const isSkipped = r.match_status === "skipped";
                 const needsAttention =
-                  r.match_status === "unmatched" ||
-                  (r.match_status === "matched" && conf <= 0.85);
+                  !isSkipped &&
+                  (r.match_status === "unmatched" ||
+                    (r.match_status === "matched" && conf <= 0.85));
                 return (
                   <div
                     key={r.id}
                     className={`rounded-xl border p-3 space-y-2 ${
-                      needsAttention
+                      isSkipped
+                        ? "border-border/30 bg-muted/10 opacity-70"
+                        : needsAttention
                         ? "border-warning/40 bg-warning/5"
                         : "border-border/30 bg-muted/20"
                     }`}
@@ -169,9 +221,7 @@ export function RegelSecties({
                       <IngredientMatchBadge
                         regel={r}
                         leverancierId={leverancierId}
-                        onOpenNewIngredient={(regelId, prefill) =>
-                          onOpenNewIngredient(regelId, prefill)
-                        }
+                        leverancierNaam={leverancierNaam}
                       />
                     )}
                   </div>

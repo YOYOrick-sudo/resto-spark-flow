@@ -21,12 +21,12 @@ import { useFactuurMutations } from "@/hooks/useFactuurMutations";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurRegelForm } from "@/components/inkoop/FactuurRegelForm";
 import { LeverancierMatchWidget } from "@/components/inkoop/LeverancierMatchWidget";
-import { type NewIngredientPrefill } from "@/components/inkoop/IngredientMatchBadge";
-import { NieuwIngredientFromFactuurModal } from "@/components/inkoop/NieuwIngredientFromFactuurModal";
+import { BulkCreateIngredientsDialog } from "@/components/inkoop/BulkCreateIngredientsDialog";
 import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
 import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterChips";
 import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
 import { supabase } from "@/integrations/supabase/client";
+import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { ArrowLeft, Plus, MoreHorizontal } from "lucide-react";
 
 const STATUS_BADGES: Record<
@@ -101,15 +101,13 @@ export default function FactuurDetailPage() {
     goedkeuren,
     afwijzen,
     bulkConfirmHighConfidence,
+    skipRegels,
   } = useFactuurMutations();
   const { data: leveranciers } = useLeveranciers();
 
   const [addOpen, setAddOpen] = useState(false);
   const [chip, setChip] = useState<ChipId | null>(null);
-  const [newIngState, setNewIngState] = useState<{
-    regelId: string;
-    prefill: NewIngredientPrefill;
-  } | null>(null);
+  const [bulkCreateRegels, setBulkCreateRegels] = useState<FactuurRegel[] | null>(null);
 
   // Local state voor editable factuurvelden (onBlur saves)
   const [factuurnummer, setFactuurnummer] = useState("");
@@ -370,10 +368,14 @@ export default function FactuurDetailPage() {
               filter={activeChip}
               isEditable={isEditable}
               leverancierId={factuur.leverancier_id}
-              onOpenNewIngredient={(regelId, prefill) =>
-                setNewIngState({ regelId, prefill })
+              leverancierNaam={
+                (leveranciers ?? []).find(
+                  (l: any) => l.id === factuur.leverancier_id
+                )?.naam ?? factuur.leverancier_naam_herkend ?? null
               }
               onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
+              onSkipAllOverig={(ids) => skipRegels.mutate(ids)}
+              onOpenBulkCreate={(regels) => setBulkCreateRegels(regels)}
             />
 
             {factuur.regels.length === 0 && (
@@ -406,17 +408,11 @@ export default function FactuurDetailPage() {
         </div>
       </main>
 
-      <NieuwIngredientFromFactuurModal
-        open={!!newIngState}
-        onClose={() => setNewIngState(null)}
-        regelId={newIngState?.regelId ?? null}
-        prefill={newIngState?.prefill ?? null}
+      <BulkCreateIngredientsDialog
+        open={!!bulkCreateRegels}
+        onClose={() => setBulkCreateRegels(null)}
+        regels={bulkCreateRegels ?? []}
         leverancierId={factuur.leverancier_id}
-        leverancierNaam={
-          (leveranciers ?? []).find((l: any) => l.id === factuur.leverancier_id)?.naam ??
-          factuur.leverancier_naam_herkend ??
-          null
-        }
       />
     </div>
   );

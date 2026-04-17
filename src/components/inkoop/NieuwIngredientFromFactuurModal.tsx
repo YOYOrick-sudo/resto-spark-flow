@@ -1,6 +1,10 @@
 /**
  * NieuwIngredientFromFactuurModal — D.6b R3.5
  *
+ * @deprecated R4b-1: Vervangen door <NieuwIngredientInlineForm /> dat inline
+ * onder de regel-card rendert. Behouden voor backwards compat — niet meer
+ * gebruikt vanuit FactuurDetailPage.
+ *
  * R3.5 wijzigingen:
  *   - Nieuwe leveringsinfo-card bovenaan (verpakking → basiseenheid)
  *   - Kostprijs is read-only (afgeleid uit factuur), met "Overschrijf" knop
