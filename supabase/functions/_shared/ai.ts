@@ -43,8 +43,14 @@ interface BaseAIOptions {
   images?: string[];        // base64, voor multimodal (marketing-analyze-brand)
 
   // Override default primary model (bv. 'google/gemini-2.5-pro' voor documentparsing).
-  // Fallback blijft FALLBACK_MODEL bij failure.
+  // Bij modelOverride wordt fallback de "andere" van (DEFAULT, FALLBACK), niet altijd FALLBACK.
   modelOverride?: string;
+
+  // Bij true: geen tweede poging op een ander model bij failure.
+  skipFallback?: boolean;
+
+  // Documents (bv. PDFs) — verstuurd via Gemini OpenAI-compat als data:<mime>;base64
+  documents?: Array<{ data: string; mimeType: string }>;
 }
 
 export interface AICallOptions extends BaseAIOptions {
@@ -120,6 +126,18 @@ async function callWithFallback(
   const startTime = Date.now();
   const primaryModel = options.modelOverride ?? DEFAULT_MODEL;
 
+  // Fallback bepaling: als modelOverride gezet is, gebruik de "andere" van (DEFAULT, FALLBACK).
+  // Voorkomt dat een expliciet pro-call alsnog terugvalt op pro.
+  let fallbackModel: string | null;
+  if (options.skipFallback) {
+    fallbackModel = null;
+  } else if (options.modelOverride) {
+    fallbackModel =
+      options.modelOverride === FALLBACK_MODEL ? DEFAULT_MODEL : FALLBACK_MODEL;
+  } else {
+    fallbackModel = FALLBACK_MODEL;
+  }
+
   // 1. Primary model
   try {
     const result = await callGateway(primaryModel, options, withTools);
@@ -139,21 +157,39 @@ async function callWithFallback(
 
     return buildResponse(result, primaryModel, false, withTools);
   } catch (primaryError) {
+    // Geen fallback toegestaan → log + throw
+    if (!fallbackModel) {
+      const durationMs = Date.now() - startTime;
+      await logCall({
+        featureKey: options.featureKey,
+        organizationId: options.organizationId,
+        locationId: options.locationId,
+        model: primaryModel,
+        wasFallback: false,
+        durationMs,
+        success: false,
+        errorMessage: String(primaryError),
+      });
+      throw new Error(
+        `AI call failed for ${options.featureKey} (${primaryModel}, no fallback): ${String(primaryError)}`
+      );
+    }
+
     console.warn(
-      `[callAI] ${primaryModel} failed for ${options.featureKey}, trying ${FALLBACK_MODEL}:`,
+      `[callAI] ${primaryModel} failed for ${options.featureKey}, trying ${fallbackModel}:`,
       primaryError
     );
 
     // 2. Fallback model
     try {
-      const result = await callGateway(FALLBACK_MODEL, options, withTools);
+      const result = await callGateway(fallbackModel, options, withTools);
       const durationMs = Date.now() - startTime;
 
       await logCall({
         featureKey: options.featureKey,
         organizationId: options.organizationId,
         locationId: options.locationId,
-        model: FALLBACK_MODEL,
+        model: fallbackModel,
         wasFallback: true,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
@@ -161,7 +197,7 @@ async function callWithFallback(
         success: true,
       });
 
-      return buildResponse(result, FALLBACK_MODEL, true, withTools);
+      return buildResponse(result, fallbackModel, true, withTools);
     } catch (fallbackError) {
       // 3. Beide gefaald — log en throw
       const durationMs = Date.now() - startTime;
@@ -170,11 +206,11 @@ async function callWithFallback(
         featureKey: options.featureKey,
         organizationId: options.organizationId,
         locationId: options.locationId,
-        model: FALLBACK_MODEL,
+        model: fallbackModel,
         wasFallback: true,
         durationMs,
         success: false,
-        errorMessage: `Primary: ${String(primaryError)}\nFallback: ${String(fallbackError)}`,
+        errorMessage: `Primary (${primaryModel}): ${String(primaryError)}\nFallback (${fallbackModel}): ${String(fallbackError)}`,
       });
 
       throw new Error(`AI call failed for ${options.featureKey}: both models failed`);
@@ -234,13 +270,21 @@ async function callGateway(
     if (opts.systemPrompt) {
       messages.push({ role: "system", content: opts.systemPrompt });
     }
-    // User message — kan multimodal zijn (images)
-    if (opts.images?.length) {
+    // User message — kan multimodal zijn (images en/of documents)
+    if (opts.images?.length || opts.documents?.length) {
       const content: any[] = [{ type: "text", text: opts.prompt ?? "" }];
-      for (const img of opts.images) {
+      for (const img of opts.images ?? []) {
         content.push({
           type: "image_url",
           image_url: { url: `data:image/jpeg;base64,${img}` },
+        });
+      }
+      // Documents (PDFs etc.) via OpenAI-compat image_url met juiste MIME.
+      // Gemini OpenAI-compat accepteert application/pdf hier; bij failure → PDF→PNG conversie.
+      for (const doc of opts.documents ?? []) {
+        content.push({
+          type: "image_url",
+          image_url: { url: `data:${doc.mimeType};base64,${doc.data}` },
         });
       }
       messages.push({ role: "user", content });
