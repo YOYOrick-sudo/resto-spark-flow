@@ -43,16 +43,41 @@ export function ApplicationStep3Motivation({
           website_url: form.website_url, // honeypot
         },
       });
-      if (invErr) throw invErr;
+      console.log('[submit-application] response', { data, invErr });
+      if (invErr) {
+        // Probeer body uit FunctionsHttpError te halen
+        const ctx = (invErr as { context?: Response }).context;
+        if (ctx && typeof ctx.text === 'function') {
+          try {
+            const body = await ctx.text();
+            console.error('[submit-application] error body:', body);
+            try {
+              const parsed = JSON.parse(body);
+              if (parsed?.error) {
+                setError(messageFor(parsed.error) + ` (debug: ${parsed.error})`);
+                return;
+              }
+            } catch {
+              setError(`Er ging iets mis: ${body.slice(0, 200)}`);
+              return;
+            }
+          } catch (readErr) {
+            console.error('[submit-application] could not read error body', readErr);
+          }
+        }
+        setError(`Er ging iets mis: ${invErr.message ?? 'unknown'}`);
+        return;
+      }
       const errCode = (data as { error?: string })?.error;
       if (errCode) {
-        setError(messageFor(errCode));
+        setError(messageFor(errCode) + ` (debug: ${errCode})`);
         return;
       }
       onSuccess();
     } catch (e) {
-      setError('Er ging iets mis. Probeer het later opnieuw.');
-      console.error(e);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('[submit-application] caught', e);
+      setError(`Er ging iets mis: ${msg}`);
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +107,8 @@ export function ApplicationStep3Motivation({
           value={form.motivation}
           onChange={(e) => setForm({ ...form, motivation: e.target.value })}
           placeholder="Waarom wil je bij ons werken? Welke ervaring heb je?"
-          className="w-full p-3 rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 resize-none"
+          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+          className="w-full p-3 rounded-lg border border-gray-200 placeholder:text-gray-400 focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 resize-none"
         />
         <div className="text-xs text-gray-400 mt-1 text-right">
           {form.motivation.length}/{MAX}

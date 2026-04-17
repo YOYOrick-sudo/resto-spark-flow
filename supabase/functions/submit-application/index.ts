@@ -137,6 +137,11 @@ Deno.serve(async (req) => {
 
   // 6. Insert candidate
   const notes = buildNotes(payload);
+  console.log('[submit-application] inserting candidate', {
+    location_id: locationId,
+    email,
+    positions: payload.positions ?? [],
+  });
   const { data: candidate, error: candErr } = await supabaseAdmin
     .from('onboarding_candidates')
     .insert({
@@ -157,9 +162,18 @@ Deno.serve(async (req) => {
     .single();
 
   if (candErr || !candidate) {
-    console.error('[submit-application] Candidate insert failed', candErr);
-    return jsonResponse({ error: 'server_error' }, 500);
+    console.error('[submit-application] Candidate insert failed', {
+      message: candErr?.message,
+      details: candErr?.details,
+      hint: candErr?.hint,
+      code: candErr?.code,
+    });
+    return jsonResponse(
+      { error: 'server_error', stage: 'candidate_insert', detail: candErr?.message ?? 'unknown' },
+      500
+    );
   }
+  console.log('[submit-application] candidate created', candidate.id);
 
   // 7. Insert application record (audit trail)
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
@@ -186,10 +200,14 @@ Deno.serve(async (req) => {
     });
 
   if (appErr) {
-    // Niet fataal — kandidaat bestaat al
-    console.error('[submit-application] Application insert failed (non-fatal)', appErr);
+    console.error('[submit-application] Application insert failed (non-fatal)', {
+      message: appErr.message,
+      details: appErr.details,
+      hint: appErr.hint,
+      code: appErr.code,
+    });
   }
 
-  // GEEN candidate_id in response — voorkom UUID-lek naar publieke API
+  console.log('[submit-application] success', { candidate_id: candidate.id });
   return jsonResponse({ success: true }, 200);
 });

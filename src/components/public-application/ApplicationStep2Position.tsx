@@ -67,7 +67,8 @@ export function ApplicationStep2Position({
           <select
             value={form.hours_preference}
             onChange={(e) => setForm({ ...form, hours_preference: e.target.value })}
-            className="w-full h-12 px-3 rounded-lg border border-gray-200 bg-white text-gray-900 focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+            style={{ color: '#111827', backgroundColor: '#ffffff' }}
+            className="w-full h-12 px-3 rounded-lg border border-gray-200 focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
           >
             <option value="">— Kies —</option>
             {HOUR_OPTIONS.map((o) => (
@@ -87,7 +88,8 @@ export function ApplicationStep2Position({
             placeholder="Bijv. zo snel mogelijk, vanaf 1 mei…"
             value={form.availability_start}
             onChange={(e) => setForm({ ...form, availability_start: e.target.value })}
-            className="w-full h-12 px-3 rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+            style={{ color: '#111827', backgroundColor: '#ffffff' }}
+            className="w-full h-12 px-3 rounded-lg border border-gray-200 placeholder:text-gray-400 focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
           />
         </label>
       )}
