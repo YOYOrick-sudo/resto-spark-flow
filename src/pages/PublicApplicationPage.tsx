@@ -109,8 +109,8 @@ export default function PublicApplicationPage() {
 
   return (
     <div
-      className="min-h-screen bg-[#FAFAFA] font-[Inter,sans-serif]"
-      style={{ ['--brand' as string]: brandColor }}
+      className="light min-h-screen bg-[#FAFAFA] font-[Inter,sans-serif]"
+      style={{ ['--brand' as string]: brandColor, colorScheme: 'light' }}
     >
       <div className="max-w-xl mx-auto px-4 py-8 sm:py-12">
         {/* Header */}
