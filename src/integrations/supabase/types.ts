@@ -1415,6 +1415,7 @@ export type Database = {
           leverancier_id: string | null
           leverancier_naam_herkend: string | null
           location_id: string
+          preview_snapshot: Json | null
           ruwe_tekst: string | null
           status: string
           totaalbedrag: number | null
@@ -1439,6 +1440,7 @@ export type Database = {
           leverancier_id?: string | null
           leverancier_naam_herkend?: string | null
           location_id: string
+          preview_snapshot?: Json | null
           ruwe_tekst?: string | null
           status?: string
           totaalbedrag?: number | null
@@ -1463,6 +1465,7 @@ export type Database = {
           leverancier_id?: string | null
           leverancier_naam_herkend?: string | null
           location_id?: string
+          preview_snapshot?: Json | null
           ruwe_tekst?: string | null
           status?: string
           totaalbedrag?: number | null
@@ -7458,6 +7461,7 @@ export type Database = {
         | "marketing"
         | "settings"
         | "onboarding"
+        | "inkoop"
       onboarding_status:
         | "active"
         | "hired"
@@ -7649,6 +7653,7 @@ export const Constants = {
         "marketing",
         "settings",
         "onboarding",
+        "inkoop",
       ],
       onboarding_status: [
         "active",
