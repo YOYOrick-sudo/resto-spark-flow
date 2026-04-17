@@ -237,8 +237,8 @@ export function GoedkeurenPreviewModal({
                 title="Kostprijs-wijzigingen"
                 count={preview.kostprijsWijzigingen.length}
               >
-                {preview.kostprijsWijzigingen.map((w) => (
-                  <PrijsRij key={w.ingredientId} w={w} />
+                {preview.kostprijsWijzigingen.map((w, idx) => (
+                  <PrijsRij key={`${w.ingredientId}-${idx}`} w={w} />
                 ))}
               </Sectie>
 
