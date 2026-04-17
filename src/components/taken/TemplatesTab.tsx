@@ -16,7 +16,7 @@ import {
   Spinner,
   EmptyState,
 } from "@/components/polar";
-import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste, Archive, FolderPlus } from "lucide-react";
+import { Plus, Trash2, FileText, CheckSquare, GripVertical, Check, AlertCircle, AlertTriangle, Loader2, X, ChevronRight, Info, Copy, ClipboardPaste, Archive, FolderPlus, Lock } from "lucide-react";
 import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,6 +50,7 @@ const TYPE_OPTIONS = [
   { value: "sluiting", label: "Sluiting" },
   { value: "schoonmaak", label: "Schoonmaak" },
   { value: "haccp", label: "HACCP" },
+  { value: "onderhoud", label: "Onderhoud" },
 ];
 
 const ITEM_TYPE_OPTIONS = [
@@ -64,6 +65,7 @@ const TYPE_BADGE_VARIANT: Record<string, "default" | "success" | "warning" | "pr
   tussentijds: "warning",
   schoonmaak: "success",
   haccp: "warning",
+  onderhoud: "default",
 };
 
 type Selection = { mode: "edit"; id: string } | { mode: "new" } | null;
@@ -141,26 +143,40 @@ export function TemplatesTab() {
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-medium truncate">{t.naam}</span>
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {t.is_system && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Systeem-template</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    <span className="font-medium truncate">{t.naam}</span>
+                  </div>
                   <div className="flex items-center gap-1.5">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setArchiveTarget(t);
-                            }}
-                            className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                            aria-label="Archiveren"
-                          >
-                            <Archive className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">Archiveren</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    {!t.is_system && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setArchiveTarget(t);
+                              }}
+                              className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label="Archiveren"
+                            >
+                              <Archive className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Archiveren</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     <Switch
                       checked={t.actief}
                       onCheckedChange={(v) =>
