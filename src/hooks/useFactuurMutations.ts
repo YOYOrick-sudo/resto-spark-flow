@@ -364,6 +364,145 @@ export function useFactuurMutations() {
     onError: (e: Error) => nestoToast.error(e.message),
   });
 
+  /**
+   * R4b-1 — Skip een set regels: status='skipped'. Bij goedkeuring genegeerd
+   * voor voorraad/kostprijs en leveranciers_artikelen-leerlogica.
+   */
+  const skipRegels = useMutation({
+    mutationFn: async (regelIds: string[]) => {
+      if (!regelIds.length) return { count: 0 };
+      const { error } = await supabase
+        .from("factuur_regels")
+        .update({ match_status: "skipped" })
+        .in("id", regelIds);
+      if (error) throw error;
+      return { count: regelIds.length };
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+      if (res.count > 0) nestoToast.success(`${res.count} regel(s) overgeslagen`);
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
+  /**
+   * R4b-1 — Bulk: maak nieuwe ingrediënten aan vanuit unmatched regels.
+   * Sequentieel verwerkt (for-of) om race-conditions op
+   * leveranciers_artikelen upserts te vermijden. Errors worden verzameld;
+   * gedeeltelijke success wordt teruggegeven.
+   */
+  const bulkCreateIngredientsFromFactuur = useMutation({
+    mutationFn: async (
+      items: Array<{
+        regelId: string;
+        naam: string;
+        categorie: string;
+        eenheid: string;
+        kostprijs?: number;
+        aliasNaam?: string;
+        leverancierId?: string | null;
+        artikelnummer?: string | null;
+        verpakkingHoeveelheid?: number | null;
+        verpakkingEenheid?: string | null;
+        prijsPerVerpakking?: number | null;
+      }>
+    ) => {
+      if (!locId) throw new Error("Geen locatie");
+      let success = 0;
+      const errors: Array<{ naam: string; error: string }> = [];
+
+      for (const item of items) {
+        try {
+          // 1. INSERT ingrediënt
+          const { data: ing, error: iErr } = await supabase
+            .from("ingredienten")
+            .insert({
+              location_id: locId,
+              naam: item.naam,
+              categorie: item.categorie,
+              eenheid: item.eenheid,
+              kostprijs: item.kostprijs ?? null,
+              kostprijs_bron: item.kostprijs ? "factuur" : null,
+              kostprijs_laatst_bijgewerkt: item.kostprijs
+                ? new Date().toISOString()
+                : null,
+              min_voorraad: 0,
+            })
+            .select("id")
+            .single();
+          if (iErr) throw iErr;
+
+          // 2. UPDATE factuurregel
+          const { error: rErr } = await supabase
+            .from("factuur_regels")
+            .update({
+              ingredient_id: ing.id,
+              match_status: "manual",
+              is_nieuw_ingredient: true,
+            })
+            .eq("id", item.regelId);
+          if (rErr) throw rErr;
+
+          // 3. Alias (best-effort)
+          if (item.aliasNaam?.trim()) {
+            const { error: aErr } = await supabase.rpc("record_factuur_correction", {
+              p_ingredient_id: ing.id,
+              p_alias_naam: item.aliasNaam.trim(),
+              p_leverancier_id: item.leverancierId ?? null,
+              p_artikelnummer: item.artikelnummer ?? null,
+            });
+            if (aErr && (aErr as any).code !== "23505") {
+              console.warn("[bulk alias] failed:", aErr);
+            }
+          }
+
+          // 4. UPSERT leveranciers_artikelen
+          const artNr = item.artikelnummer?.trim();
+          if (item.leverancierId && artNr) {
+            const { error: laErr } = await supabase
+              .from("leveranciers_artikelen")
+              .upsert(
+                {
+                  leverancier_id: item.leverancierId,
+                  artikel_nummer: artNr,
+                  ingredient_id: ing.id,
+                  artikel_naam: item.naam,
+                  prijs_per_eenheid: item.kostprijs ?? null,
+                  prijs_per_verpakking: item.prijsPerVerpakking ?? null,
+                  verpakking_hoeveelheid: item.verpakkingHoeveelheid ?? null,
+                  verpakking_eenheid: item.verpakkingEenheid ?? null,
+                  is_actief: true,
+                  laatst_gesynchroniseerd: new Date().toISOString(),
+                },
+                { onConflict: "leverancier_id,artikel_nummer" }
+              );
+            if (laErr) throw laErr;
+          }
+
+          success++;
+        } catch (err: any) {
+          console.error(`[bulkCreate] failed for ${item.naam}:`, err);
+          errors.push({ naam: item.naam, error: err?.message ?? "Onbekend" });
+        }
+      }
+
+      return { success, errors };
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+      qc.invalidateQueries({ queryKey: ["ingredienten"] });
+      qc.invalidateQueries({ queryKey: ["leveranciers-artikelen"] });
+      if (res.errors.length === 0) {
+        nestoToast.success(`${res.success} ingrediënten aangemaakt`);
+      } else {
+        nestoToast.error(
+          `${res.success} aangemaakt, ${res.errors.length} gefaald. Bekijk console voor details.`
+        );
+      }
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
   const goedkeuren = useMutation({
     mutationFn: async (factuurId: string) => {
       const { data: factuur, error: fErr } = await supabase
@@ -493,6 +632,8 @@ export function useFactuurMutations() {
     confirmMatch,
     bulkConfirmHighConfidence,
     createNewIngredientFromFactuur,
+    skipRegels,
+    bulkCreateIngredientsFromFactuur,
     goedkeuren,
     afwijzen,
   };
