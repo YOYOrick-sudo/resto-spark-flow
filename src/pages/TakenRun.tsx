@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, Check, Lock, CheckSquare } from "lucide-react";
+import { ChevronLeft, Check, Lock, CheckSquare, Camera } from "lucide-react";
 import { useChecklistRuns, isRunFrozen } from "@/hooks/useChecklistRuns";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { useUserContext } from "@/contexts/UserContext";
@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
 import type { ChecklistItem } from "@/hooks/useChecklistTemplates";
+import { FotoReferentieDialog } from "@/components/taken/FotoReferentieDialog";
 
 function afleidTempType(titel: string): string {
   const t = titel.toLowerCase();
