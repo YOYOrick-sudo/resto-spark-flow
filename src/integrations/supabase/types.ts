@@ -7255,6 +7255,10 @@ export type Database = {
       }
     }
     Functions: {
+      _seed_default_onboarding_phases: {
+        Args: { p_location_id: string }
+        Returns: undefined
+      }
       advance_onboarding_phase: {
         Args: { _candidate_id: string; _user_id: string }
         Returns: Json
