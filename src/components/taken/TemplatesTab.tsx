@@ -664,52 +664,276 @@ function TemplateEditor({ template, locationId, standaardTijden, saveTemplate, o
             <p className="text-sm text-muted-foreground mb-3">
               Nog geen items — voeg taken toe die de kok bij elke run uitvoert.
             </p>
-            <NestoButton size="sm" variant="outline" onClick={addItem}>
+            <NestoButton size="sm" variant="outline" onClick={() => addItem()}>
               <Plus className="h-4 w-4 mr-1" /> Eerste item toevoegen
             </NestoButton>
           </div>
         ) : (
           <>
-            <div className="bg-card border border-border/60 rounded-lg overflow-hidden divide-y divide-border/40 shadow-[0_1px_2px_rgb(0_0_0/0.02)]">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={items.map((it) => it.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {items.map((item) => (
-                    <SortableItemRow
-                      key={item.id}
-                      item={item}
-                      locationId={locationId}
-                      templateFrequentie={frequentie}
-                      isPerItemTemplate={isPerItem}
-                      copiedFreq={copiedFreq}
-                      onCopyFreq={() => handleCopyFreq(item)}
-                      onPasteFreq={() => handlePasteFreq(item.id)}
-                      onUpdate={(patch) => updateItem(item.id, patch)}
-                      onUpdateInstant={(patch) => updateItemInstant(item.id, patch)}
-                      onRemove={() => removeItem(item.id)}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            </div>
-
-            <button
-              type="button"
-              onClick={addItem}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border/60 hover:border-primary/40 hover:bg-accent/30 rounded-lg transition-colors"
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              modifiers={[restrictToVerticalAxis]}
+              onDragEnd={handleDragEnd}
             >
-              <Plus className="h-4 w-4" /> Item toevoegen
-            </button>
+              <div className="space-y-3">
+                {groepen.map((groep) => {
+                  const showHeader = groepen.length > 1 || groep.naam !== DEFAULT_SECTIE;
+                  return (
+                    <SectieBlock
+                      key={groep.naam}
+                      naam={groep.naam}
+                      items={groep.items}
+                      showHeader={showHeader}
+                      existingNamen={sectieNamen}
+                      onRename={renameSectie}
+                      onDelete={() => deleteSectie(groep.naam)}
+                      onAddItem={() => addItem(groep.naam)}
+                      renderRow={(item) => (
+                        <SortableItemRow
+                          key={item.id}
+                          item={item}
+                          locationId={locationId}
+                          templateFrequentie={frequentie}
+                          isPerItemTemplate={isPerItem}
+                          copiedFreq={copiedFreq}
+                          onCopyFreq={() => handleCopyFreq(item)}
+                          onPasteFreq={() => handlePasteFreq(item.id)}
+                          onUpdate={(patch) => updateItem(item.id, patch)}
+                          onUpdateInstant={(patch) => updateItemInstant(item.id, patch)}
+                          onRemove={() => removeItem(item.id)}
+                        />
+                      )}
+                    />
+                  );
+                })}
+              </div>
+            </DndContext>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => addItem()}
+                className="flex-1 min-w-[200px] flex items-center justify-center gap-1.5 py-2.5 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border/60 hover:border-primary/40 hover:bg-accent/30 rounded-lg transition-colors"
+              >
+                <Plus className="h-4 w-4" /> Item toevoegen
+              </button>
+              <AddSectieButton existingNamen={sectieNamen} onAdd={addSectie} />
+            </div>
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// ---- Sectie-blok in editor ----
+
+interface SectieBlockProps {
+  naam: string;
+  items: ChecklistItem[];
+  showHeader: boolean;
+  existingNamen: string[];
+  onRename: (oude: string, nieuwe: string) => { ok: boolean; error?: string };
+  onDelete: () => void;
+  onAddItem: () => void;
+  renderRow: (item: ChecklistItem) => React.ReactNode;
+}
+
+function SectieBlock({ naam, items, showHeader, existingNamen, onRename, onDelete, onAddItem, renderRow }: SectieBlockProps) {
+  const [editValue, setEditValue] = useState(naam);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    setEditValue(naam);
+    setError(null);
+  }, [naam]);
+
+  const commitRename = () => {
+    if (editValue.trim() === naam) {
+      setError(null);
+      return;
+    }
+    const result = onRename(naam, editValue);
+    if (!result.ok) {
+      setError(result.error ?? "Naam ongeldig");
+      setTimeout(() => {
+        setEditValue(naam);
+        setError(null);
+      }, 2000);
+    } else {
+      setError(null);
+    }
+  };
+
+  const isDefault = naam === DEFAULT_SECTIE;
+
+  return (
+    <div className="bg-card border border-border/60 rounded-lg overflow-hidden shadow-[0_1px_2px_rgb(0_0_0/0.02)]">
+      {showHeader && (
+        <div className="group/sectie flex items-start justify-between gap-2 px-3 py-2 bg-muted/30 border-b border-border/40">
+          <div className="flex-1 min-w-0">
+            <input
+              type="text"
+              value={editValue}
+              onChange={(e) => {
+                setEditValue(e.target.value);
+                if (error) setError(null);
+              }}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLInputElement).blur();
+                } else if (e.key === "Escape") {
+                  setEditValue(naam);
+                  setError(null);
+                  (e.currentTarget as HTMLInputElement).blur();
+                }
+              }}
+              disabled={isDefault}
+              className={cn(
+                "h-7 px-2 text-xs font-semibold uppercase tracking-wider bg-transparent border border-transparent rounded",
+                "hover:bg-card focus:bg-card focus:border-border focus:outline-none focus:ring-1 focus:ring-ring transition-colors",
+                "w-full max-w-[280px]",
+                error && "border-error focus:border-error focus:ring-error/30",
+                isDefault && "cursor-default hover:bg-transparent"
+              )}
+            />
+            {error && <p className="text-[11px] text-error mt-0.5 ml-2">{error}</p>}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
+              {items.length} {items.length === 1 ? "item" : "items"}
+            </span>
+            {!isDefault && (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover/sectie:opacity-100 transition-opacity"
+                aria-label="Sectie verwijderen"
+                title="Sectie verwijderen (items gaan naar Algemeen)"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <SortableContext items={items.map((it) => it.id)} strategy={verticalListSortingStrategy}>
+        <div className="divide-y divide-border/40">{items.map(renderRow)}</div>
+      </SortableContext>
+
+      {showHeader && (
+        <button
+          type="button"
+          onClick={onAddItem}
+          className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-muted-foreground/70 hover:text-foreground hover:bg-accent/30 border-t border-border/40 transition-colors"
+        >
+          <Plus className="h-3 w-3" /> Item toevoegen aan {naam}
+        </button>
+      )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Sectie '${naam}' verwijderen?`}
+        description={`De ${items.length} item${items.length === 1 ? "" : "s"} in deze sectie blijven bestaan en worden verplaatst naar 'Algemeen'.`}
+        confirmLabel="Verwijderen"
+        cancelLabel="Annuleren"
+        onConfirm={() => {
+          onDelete();
+          setConfirmDelete(false);
+        }}
+      />
+    </div>
+  );
+}
+
+// ---- Knop "+ Sectie toevoegen" met inline input ----
+
+function AddSectieButton({ existingNamen, onAdd }: { existingNamen: string[]; onAdd: (naam: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  const commit = () => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setOpen(false);
+      setValue("");
+      return;
+    }
+    if (existingNamen.some((n) => sectieNamenGelijk(n, trimmed))) {
+      setError(`Sectie '${trimmed}' bestaat al`);
+      return;
+    }
+    onAdd(trimmed);
+    setValue("");
+    setError(null);
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex-1 min-w-[200px] flex items-center justify-center gap-1.5 py-2.5 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border/60 hover:border-primary/40 hover:bg-accent/30 rounded-lg transition-colors"
+      >
+        <FolderPlus className="h-4 w-4" /> Sectie toevoegen
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex-1 min-w-[200px] flex flex-col gap-1">
+      <div className="flex items-center gap-2 p-1 border border-primary/40 rounded-lg bg-card">
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (error) setError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            } else if (e.key === "Escape") {
+              setOpen(false);
+              setValue("");
+              setError(null);
+            }
+          }}
+          placeholder="bv. MEP-kant"
+          className="flex-1 h-8 px-2 text-sm bg-transparent border-none focus:outline-none focus:ring-0"
+        />
+        <NestoButton size="sm" onClick={commit} disabled={!value.trim()}>
+          Toevoegen
+        </NestoButton>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setValue("");
+            setError(null);
+          }}
+          className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+          aria-label="Annuleren"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {error && <p className="text-[11px] text-error ml-2">{error}</p>}
     </div>
   );
 }
