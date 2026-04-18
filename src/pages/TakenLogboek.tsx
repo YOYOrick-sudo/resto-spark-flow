@@ -77,9 +77,8 @@ export default function TakenLogboek() {
         subtitle="Audit-bewijs van afgeronde checklists"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Linker kolom: tabs + period switcher + kalender */}
-        <div className="lg:col-span-3 space-y-4">
+      {viewMode === "dag" ? (
+        <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
               <TabsList>
@@ -98,7 +97,7 @@ export default function TakenLogboek() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <div className="text-sm font-medium capitalize tabular-nums min-w-[160px] text-center">
+              <div className="text-sm font-medium capitalize tabular-nums min-w-[200px] text-center">
                 {periodLabel}
               </div>
               <button
@@ -119,42 +118,86 @@ export default function TakenLogboek() {
               <Spinner />
             </div>
           ) : (
-            <>
-              {viewMode === "jaar" && (
-                <LogboekYearGrid
-                  year={getYear(anchorDate)}
-                  byDate={byDate}
-                  onSelectMonth={(m) => { setAnchorDate(m); setViewMode("maand"); }}
-                />
-              )}
-              {viewMode === "maand" && (
-                <LogboekMonthGrid
-                  anchorDate={anchorDate}
-                  byDate={byDate}
-                  onSelectDate={(d) => setSelectedDate(d)}
-                />
-              )}
-              {viewMode === "week" && (
-                <LogboekWeekStrip
-                  anchorDate={anchorDate}
-                  byDate={byDate}
-                  onSelectDate={(d) => setSelectedDate(d)}
-                />
-              )}
-              {viewMode === "dag" && (
-                <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                  Detail wordt rechts getoond.
-                </div>
-              )}
-            </>
+            <div className="max-w-4xl">
+              <LogboekDagDetail date={anchorDate} bucket={effectiveBucket} />
+            </div>
           )}
         </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Linker kolom: tabs + period switcher + kalender */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+                <TabsList>
+                  <TabsTrigger value="jaar">Jaar</TabsTrigger>
+                  <TabsTrigger value="maand">Maand</TabsTrigger>
+                  <TabsTrigger value="week">Week</TabsTrigger>
+                  <TabsTrigger value="dag">Dag</TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-        {/* Rechter kolom: inline detail */}
-        <div className="lg:col-span-2 lg:sticky lg:top-6 lg:self-start">
-          <LogboekDagDetail date={effectiveDate} bucket={effectiveBucket} />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={navigatePrev}
+                  className="h-8 w-8 rounded-md border border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+                  aria-label="Vorige"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <div className="text-sm font-medium capitalize tabular-nums min-w-[160px] text-center">
+                  {periodLabel}
+                </div>
+                <button
+                  onClick={navigateNext}
+                  className="h-8 w-8 rounded-md border border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+                  aria-label="Volgende"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                {!isSameDay(anchorDate, today) && (
+                  <NestoButton variant="ghost" onClick={goToday}>Vandaag</NestoButton>
+                )}
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Spinner />
+              </div>
+            ) : (
+              <>
+                {viewMode === "jaar" && (
+                  <LogboekYearGrid
+                    year={getYear(anchorDate)}
+                    byDate={byDate}
+                    onSelectMonth={(m) => { setAnchorDate(m); setViewMode("maand"); }}
+                  />
+                )}
+                {viewMode === "maand" && (
+                  <LogboekMonthGrid
+                    anchorDate={anchorDate}
+                    byDate={byDate}
+                    onSelectDate={(d) => setSelectedDate(d)}
+                  />
+                )}
+                {viewMode === "week" && (
+                  <LogboekWeekStrip
+                    anchorDate={anchorDate}
+                    byDate={byDate}
+                    onSelectDate={(d) => setSelectedDate(d)}
+                  />
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Rechter kolom: inline detail */}
+          <div className="lg:col-span-2 lg:sticky lg:top-6 lg:self-start">
+            <LogboekDagDetail date={effectiveDate} bucket={effectiveBucket} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
