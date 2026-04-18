@@ -103,6 +103,14 @@ export const queryKeys = {
   /** Shift risk summary for a location + date */
   shiftRiskSummary: (locationId: string, date: string) =>
     ['shift-risk-summary', locationId, date] as const,
+
+  // ============================================
+  // FASE A1: Operating Hours
+  // ============================================
+
+  /** Operating hours schedule for a location over a date range */
+  operatingHours: (locationId: string, from: string, to: string, service?: string) =>
+    ['operating-hours', locationId, from, to, service ?? null] as const,
 } as const;
 
 export type QueryKeys = typeof queryKeys;
