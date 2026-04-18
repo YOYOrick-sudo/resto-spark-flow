@@ -63,7 +63,7 @@ export function useChecklistLogboek(range: { from: string; to: string }): UseChe
         .select(
           `*,
            template:checklist_templates!template_id(id, naam, type, items, modus, frequentie, frequentie_config, default_time, gearchiveerd_op),
-           afgerond_door_profile:profiles!afgerond_door(id, full_name)`
+           afgerond_door_profile:profiles!checklist_runs_afgerond_door_fkey(id, full_name)`
         )
         .eq("location_id", locationId!)
         .eq("status", "afgerond")
