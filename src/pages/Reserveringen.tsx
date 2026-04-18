@@ -75,8 +75,12 @@ export default function Reserveringen() {
 
   const { data: reservationsForDate = [], isLoading } = useReservations({ date: dateString });
   const { data: waitlistEntries = [] } = useWaitlistEntries(dateString);
+  const { data: openStatus } = useLocationOpenStatus(currentLocation?.id, dateString);
   const cancelWaitlist = useCancelWaitlistEntry();
   const inviteWaitlist = useInviteWaitlistEntry();
+
+  const isClosedDay = openStatus?.isClosed === true;
+  const closedLabel = openStatus?.label ?? "Gesloten";
 
   const filteredReservations = useMemo(() => {
     let result = reservationsForDate;
