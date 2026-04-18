@@ -259,17 +259,18 @@ export async function loadEngineData(
   const dow = new Date(targetDate + 'T12:00:00Z').getUTCDay();
   const isoDow = dow === 0 ? 7 : dow;
 
-  // Check location-wide closed exception
-  const { data: locClosed } = await supabase
-    .from('shift_exceptions')
-    .select('id')
-    .eq('location_id', req.location_id)
-    .is('shift_id', null)
-    .eq('exception_date', targetDate)
-    .eq('exception_type', 'closed')
-    .limit(1);
+  // Check location-wide closed status via centralized operating-hours RPC
+  // (replaces legacy shift_exceptions location-wide closed check)
+  const { data: isOpenData, error: isOpenErr } = await supabase.rpc('is_location_open', {
+    _location_id: req.location_id,
+    _at: `${targetDate}T12:00:00Z`,
+    _service: 'general',
+  });
+  if (isOpenErr) {
+    console.error('[availabilityEngine] is_location_open failed:', isOpenErr.message);
+  }
 
-  if (locClosed && locClosed.length > 0) {
+  if (isOpenData === false) {
     return {
       shifts: [],
       shiftTicketConfigs: new Map(),
