@@ -29,6 +29,13 @@ interface AiRespondInput {
   location_id: string;
 }
 
+interface OperatingHoursContext {
+  isOpenNow: boolean;
+  nextOpening: { date: string; open_time: string; label: string | null } | null;
+  schedule14d: OperatingDayRow[];
+  timezone: string;
+}
+
 interface Context {
   conversation: any;
   messages: any[];
@@ -39,6 +46,7 @@ interface Context {
   upcomingReservations: any[];
   locationId: string;
   organizationId: string;
+  operatingHours: OperatingHoursContext;
 }
 
 interface Intent {
