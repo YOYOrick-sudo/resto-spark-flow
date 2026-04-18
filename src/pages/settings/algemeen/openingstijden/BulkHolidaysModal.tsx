@@ -45,7 +45,15 @@ export default function BulkHolidaysModal({ open, onOpenChange, locationId }: Pr
     [existing]
   );
 
-  const holidays = useMemo(() => getDutchHolidaysForYear(year), [year]);
+  const holidays = useMemo(() => {
+    const all = getDutchHolidaysForYear(year);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    if (year !== currentYear) return all;
+    // For the current year, hide holidays that have already passed.
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return all.filter((h) => h.date >= startOfToday);
+  }, [year]);
 
   // selection per ISO date — keyed by year so resets on year change
   const [selection, setSelection] = useState<Record<string, boolean>>({});
