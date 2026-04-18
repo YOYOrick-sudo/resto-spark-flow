@@ -627,9 +627,6 @@ async function generateResponse(ctx: Context, intent: Intent, extraContext?: str
   const lastMessage = ctx.messages[ctx.messages.length - 1];
   const language = detectLanguage(lastMessage?.content || '');
   const systemPrompt = buildSystemPrompt(ctx, language);
-  // [TEMP DEBUG sprint C+D1] - verwijder na verificatie
-  const ohSection = systemPrompt.split('OPENINGSTIJDEN:')[1]?.split('KENNISBANK:')[0] ?? '<missing>';
-  console.log('[ai-respond DEBUG] OPENINGSTIJDEN section:\n' + ohSection);
 
   const conversationMessages = ctx.messages.map(m => ({
     role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
