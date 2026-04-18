@@ -17,6 +17,7 @@ export function SelectionStep() {
     availableDates, availableDatesLoading,
     setDate, setPartySize, setSelectedSlot, setSelectedTicket,
     loadAvailability, loadAvailableDates,
+    isDateClosed, findNextOpenDate, selectedDateClosed,
   } = useBooking();
 
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -84,7 +85,7 @@ export function SelectionStep() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets.length]);
 
-  // Load availability when date or party size changes
+  // Load availability when date or party size changes (closed-day skip handled in context)
   useEffect(() => {
     if (data.date && config) {
       loadAvailability(data.date, data.party_size);
@@ -97,6 +98,29 @@ export function SelectionStep() {
       loadAvailableDates(viewMonth.getFullYear(), viewMonth.getMonth() + 1, data.party_size);
     }
   }, [calendarMode, viewMonth, data.party_size, config, loadAvailableDates]);
+
+  // Suggest next open date when current is closed
+  const suggestedOpenDate = useMemo(() => {
+    if (!selectedDateClosed.closed || !data.date) return null;
+    return findNextOpenDate(data.date, 30);
+  }, [selectedDateClosed.closed, data.date, findNextOpenDate]);
+
+  const formatHumanDate = (iso: string) => {
+    const d = new Date(iso + 'T00:00:00');
+    return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES_FULL[d.getMonth()]}`;
+  };
+
+  const handleJumpToOpenDate = () => {
+    if (!suggestedOpenDate) return;
+    setDate(suggestedOpenDate);
+    // Scroll horizontal week-strip to it
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const target = new Date(suggestedOpenDate + 'T00:00:00');
+    const dayIndex = Math.round((target.getTime() - todayStart.getTime()) / 86_400_000);
+    setTimeout(() => {
+      scrollRef.current?.querySelector(`[data-day="${dayIndex}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }, 80);
+  };
 
   // Check if ticket is available for current selection
   const isTicketAvailable = useCallback((ticket: TicketInfo) => {
