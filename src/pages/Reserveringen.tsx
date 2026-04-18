@@ -189,25 +189,53 @@ export default function Reserveringen() {
             onDateChange={setSelectedDate}
           />
 
+          {isClosedDay && (
+            <NestoBadge variant="warning" size="lg" className="ml-2">
+              Gesloten — {closedLabel}
+            </NestoBadge>
+          )}
+
           <div className="flex-1" />
 
-          <NestoButton
-            variant="outline"
-            className="shrink-0"
-            onClick={() => setWalkInSheetOpen(true)}
-            leftIcon={<Footprints className="h-4 w-4" />}
-          >
-            Walk-in
-          </NestoButton>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className={cn(isClosedDay && "cursor-not-allowed")}>
+                  <NestoButton
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={() => setWalkInSheetOpen(true)}
+                    leftIcon={<Footprints className="h-4 w-4" />}
+                    disabled={isClosedDay}
+                  >
+                    Walk-in
+                  </NestoButton>
+                </span>
+              </TooltipTrigger>
+              {isClosedDay && (
+                <TooltipContent>Gesloten op deze datum</TooltipContent>
+              )}
+            </Tooltip>
 
-          <NestoButton
-            variant="primary"
-            className="shrink-0"
-            onClick={() => setCreateSheetOpen(true)}
-            leftIcon={<Plus className="h-4 w-4" />}
-          >
-            Reservering
-          </NestoButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className={cn(isClosedDay && "cursor-not-allowed")}>
+                  <NestoButton
+                    variant="primary"
+                    className="shrink-0"
+                    onClick={() => setCreateSheetOpen(true)}
+                    leftIcon={<Plus className="h-4 w-4" />}
+                    disabled={isClosedDay}
+                  >
+                    Reservering
+                  </NestoButton>
+                </span>
+              </TooltipTrigger>
+              {isClosedDay && (
+                <TooltipContent>Gesloten op deze datum</TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <ReservationFilters
