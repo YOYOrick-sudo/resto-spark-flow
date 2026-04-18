@@ -10,7 +10,7 @@ import {
   type OperatingException,
 } from "@/hooks/useOperatingHoursSettings";
 import ExceptionModal from "./ExceptionModal";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import BulkHolidaysModal from "./BulkHolidaysModal";
 
 interface Props {
   locationId: string | undefined;
