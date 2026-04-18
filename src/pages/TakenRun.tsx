@@ -269,16 +269,18 @@ export default function TakenRun() {
                 <label
                   key={item.id}
                   className={cn(
-                    "flex items-start gap-3.5 px-5 py-3 min-h-[56px] cursor-pointer transition-colors duration-150",
+                    "flex items-start gap-3.5 px-5 py-3 min-h-[56px] transition-colors duration-150",
+                    isLocked ? "cursor-not-allowed" : "cursor-pointer",
                     itemDone ? "bg-success/[0.04] hover:bg-success/[0.06]" : "hover:bg-accent/40",
                     "focus-within:bg-accent/30",
-                    frozen && "cursor-not-allowed opacity-70"
+                    frozen && "opacity-70",
+                    isRemoved && "bg-muted/30 opacity-90"
                   )}
                 >
                   <Checkbox
                     checked={!!resp?.checked}
                     onCheckedChange={(c) => handleCheck(item, !!c)}
-                    disabled={frozen}
+                    disabled={isLocked}
                     className="h-5 w-5 flex-shrink-0 mt-0.5"
                   />
                   <div className="flex-1 min-w-0">
@@ -286,12 +288,18 @@ export default function TakenRun() {
                       <span
                         className={cn(
                           "text-sm font-medium transition-colors",
-                          itemDone && "text-foreground/50 line-through"
+                          itemDone && "text-foreground/50 line-through",
+                          isRemoved && "italic text-muted-foreground"
                         )}
                       >
                         {item.titel}
                       </span>
-                      {itemFreqLabel && (
+                      {isRemoved && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[10px] font-medium text-amber-700 uppercase tracking-wider">
+                          Verwijderd uit template
+                        </span>
+                      )}
+                      {itemFreqLabel && !isRemoved && (
                         <span className="text-[11px] text-muted-foreground tabular-nums">
                           · {itemFreqLabel}
                         </span>
@@ -314,7 +322,7 @@ export default function TakenRun() {
                       </p>
                     )}
                   </div>
-                  {hasFotos && (
+                  {hasFotos && !isRemoved && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -329,7 +337,7 @@ export default function TakenRun() {
                       <Camera className="h-4 w-4" />
                     </button>
                   )}
-                  {item.vereist && (
+                  {item.vereist && !isRemoved && (
                     <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0 mt-1.5">
                       Vereist
                     </span>
