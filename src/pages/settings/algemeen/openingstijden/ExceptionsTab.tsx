@@ -29,6 +29,7 @@ export default function ExceptionsTab({ locationId, readOnly }: Props) {
   const { data: exceptions = [], isLoading } = useExceptions(locationId);
   const remove = useDeleteException(locationId);
   const [modalOpen, setModalOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<OperatingException | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
