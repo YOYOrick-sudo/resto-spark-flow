@@ -114,8 +114,19 @@ export function LogboekMonthGrid({ anchorDate, byDate, onSelectDate }: LogboekMo
               )}
 
               {!isFuture && !isClosed && bucket && bucket.runs.length > 0 && (
-                <div className="mt-2 text-[11px] text-muted-foreground">
-                  {bucket.runs.length} run{bucket.runs.length === 1 ? "" : "s"}
+                <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] text-muted-foreground">
+                    {bucket.runs.length} run{bucket.runs.length === 1 ? "" : "s"}
+                  </span>
+                  {(() => {
+                    const pct = getDayCompletion(bucket);
+                    if (pct === null) return null;
+                    return (
+                      <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", completionBadgeClass(pct))}>
+                        {pct}%
+                      </span>
+                    );
+                  })()}
                 </div>
               )}
             </button>
