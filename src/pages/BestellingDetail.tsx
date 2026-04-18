@@ -153,7 +153,24 @@ export default function BestellingDetail() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      nestoToast.success("Bestelling verzonden", `E-mail verstuurd naar ${data?.email ?? leverancier?.email}`);
+      // Methode-specifieke feedback (geen silent failures)
+      const status = data?.status;
+      if (status === "email") {
+        nestoToast.success("Bestelling verzonden", `E-mail verstuurd naar ${data?.email ?? leverancier?.email}`);
+      } else if (status === "manual") {
+        const c = data?.leverancier_contact ?? {};
+        const contactBits = [c.telefoon, c.email].filter(Boolean).join(" · ");
+        nestoToast.success(
+          "Gemarkeerd als verzonden",
+          `Neem handmatig contact op${contactBits ? ` — ${contactBits}` : ""}.`,
+        );
+      } else if (status === "api_not_implemented" || status === "portal_not_implemented") {
+        nestoToast.error(data?.message ?? "Bestelmethode nog niet beschikbaar");
+        setSendDialogOpen(false);
+        return;
+      } else {
+        nestoToast.success("Verzonden");
+      }
       setSendDialogOpen(false);
       refetch();
     } catch (e: any) {
@@ -190,9 +207,27 @@ export default function BestellingDetail() {
     );
   }
 
-  const statusInfo = STATUS_BADGES[bestelling.status] ?? STATUS_BADGES.concept;
-  const isConcept = bestelling.status === "concept";
-  const hasLeverancierEmail = !!leverancier?.email;
+  const bestelmethode: BestelMethode = ((bestelling as any).bestelmethode ?? "email") as BestelMethode;
+  const methodeMeta = BESTELMETHODE_META[bestelmethode];
+
+  // Verzend-knop logica per methode
+  const sendButtonLabel =
+    bestelmethode === "email"
+      ? "Bestelling verzenden"
+      : bestelmethode === "handmatig"
+      ? "Markeer als verzonden"
+      : "Niet beschikbaar";
+  const sendDisabledReason =
+    bestelmethode === "api"
+      ? "API-koppeling is nog niet beschikbaar — wijzig de bestelmethode naar 'E-mail' of 'Handmatig'"
+      : bestelmethode === "portal"
+      ? "Portal-upload is nog niet beschikbaar — wijzig de bestelmethode naar 'E-mail' of 'Handmatig'"
+      : !hasLeverancierEmail && bestelmethode === "email"
+      ? "Leverancier heeft geen e-mailadres"
+      : regels.length === 0
+      ? "Voeg minimaal één bestelregel toe"
+      : null;
+  const canSend = sendDisabledReason === null;
 
   return (
     <div className="space-y-6 max-w-[900px] mx-auto">
@@ -213,8 +248,20 @@ export default function BestellingDetail() {
             {leverancier?.contactpersoon && <span>· {leverancier.contactpersoon}</span>}
           </div>
         </div>
-        <NestoBadge variant={statusInfo.variant}>{statusInfo.label}</NestoBadge>
+        <div className="flex items-center gap-2">
+          <BestelmethodeBadge methode={bestelmethode} />
+          <NestoBadge variant={statusInfo.variant}>{statusInfo.label}</NestoBadge>
+        </div>
       </div>
+
+      {/* Bestelmethode sectie (alleen concept) */}
+      {isConcept && (
+        <BestelmethodeSection
+          bestellingId={bestelling.id}
+          waarde={bestelmethode}
+          onChanged={refetch}
+        />
+      )}
 
       {/* Leverdatum */}
       {isConcept && (
