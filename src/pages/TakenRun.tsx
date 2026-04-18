@@ -246,18 +246,20 @@ export default function TakenRun() {
       {/* Items lijst — gegroepeerd per sectie */}
       <div className="max-w-4xl mx-auto rounded-lg border border-border/60 bg-card shadow-[0_1px_2px_rgb(0_0_0/0.02)] overflow-hidden">
         {(() => {
-          const groepen = groupItemsBySectie(items);
+          const groepen = groupItemsBySectie(liveItems);
           // Sectie-headers tonen we alleen als er meerdere secties zijn, óf als
           // de enige sectie een expliciete naam heeft (niet "Algemeen" default).
           const showHeaders = groepen.length > 1 || (groepen[0] && groepen[0].naam !== "Algemeen");
 
-          const renderItem = (item: ChecklistItem) => {
+          const renderItem = (item: RunItem) => {
             const resp = responsesById.get(item.id);
             const isTemp = item.type === "temperatuur";
             const fotoUrls = item.foto_urls ?? [];
             const hasFotos = fotoUrls.length > 0;
             const itemDone = isItemDone(item);
             const overdueVan = overdueMap.get(item.id);
+            const isRemoved = item._removed === true;
+            const isLocked = frozen || isRemoved;
             const itemFreqLabel = isPerItem
               ? formatFrequentieKort(item.item_frequentie, item.item_frequentie_config)
               : null;
