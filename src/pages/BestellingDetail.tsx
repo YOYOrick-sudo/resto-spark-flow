@@ -462,18 +462,13 @@ export default function BestellingDetail() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span>
-                    <NestoButton
-                      onClick={() => setSendDialogOpen(true)}
-                      disabled={!hasLeverancierEmail || regels.length === 0}
-                    >
-                      <Send className="h-4 w-4 mr-1.5" /> Bestelling verzenden
+                    <NestoButton onClick={() => setSendDialogOpen(true)} disabled={!canSend}>
+                      <Send className="h-4 w-4 mr-1.5" /> {sendButtonLabel}
                     </NestoButton>
                   </span>
                 </TooltipTrigger>
-                {!hasLeverancierEmail && (
-                  <TooltipContent>
-                    <p>Leverancier heeft geen e-mailadres</p>
-                  </TooltipContent>
+                {sendDisabledReason && (
+                  <TooltipContent><p>{sendDisabledReason}</p></TooltipContent>
                 )}
               </Tooltip>
             </TooltipProvider>
@@ -482,20 +477,33 @@ export default function BestellingDetail() {
       </div>
 
       {/* Send confirmation dialog */}
-      <NestoModal
-        open={sendDialogOpen}
-        onOpenChange={setSendDialogOpen}
-        title="Bestelling verzenden"
-        size="sm"
-      >
+      <NestoModal open={sendDialogOpen} onOpenChange={setSendDialogOpen} title={sendButtonLabel} size="sm">
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            De bestelling wordt per e-mail verzonden naar <strong>{leverancier?.email}</strong>.
-          </p>
+          {bestelmethode === "email" && (
+            <p className="text-sm text-muted-foreground">
+              De bestelling wordt per e-mail verzonden naar <strong>{leverancier?.email}</strong>.
+            </p>
+          )}
+          {bestelmethode === "handmatig" && (
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>De bestelling wordt gemarkeerd als verzonden zonder e-mail. Neem zelf contact op:</p>
+              <div className="rounded-button border border-border bg-muted/30 p-3 space-y-1">
+                {leverancier?.telefoon && (
+                  <div className="flex items-center gap-2 text-foreground"><Phone className="h-3.5 w-3.5" /> {leverancier.telefoon}</div>
+                )}
+                {leverancier?.email && (
+                  <div className="flex items-center gap-2 text-foreground"><Mail className="h-3.5 w-3.5" /> {leverancier.email}</div>
+                )}
+                {!leverancier?.telefoon && !leverancier?.email && (
+                  <p className="text-xs">Geen contactgegevens bij leverancier ingevuld.</p>
+                )}
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <NestoButton variant="outline" onClick={() => setSendDialogOpen(false)}>Annuleren</NestoButton>
             <NestoButton onClick={handleSendOrder} isLoading={isSending}>
-              <Send className="h-4 w-4 mr-1.5" /> Verzenden
+              <Send className="h-4 w-4 mr-1.5" /> {bestelmethode === "handmatig" ? "Markeer als verzonden" : "Verzenden"}
             </NestoButton>
           </div>
         </div>
