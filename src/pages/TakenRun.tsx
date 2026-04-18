@@ -298,7 +298,7 @@ export default function TakenRun() {
                       </span>
                       {isRemoved && (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[10px] font-medium text-amber-700 uppercase tracking-wider">
-                          Verwijderd uit template
+                          Gearchiveerd
                         </span>
                       )}
                       {itemFreqLabel && !isRemoved && (
@@ -371,7 +371,7 @@ export default function TakenRun() {
                       </span>
                       {isRemoved && (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[10px] font-medium text-amber-700 uppercase tracking-wider">
-                          Verwijderd uit template
+                          Gearchiveerd
                         </span>
                       )}
                       {itemFreqLabel && !isRemoved && (
@@ -449,7 +449,7 @@ export default function TakenRun() {
                 {removedItems.length > 0 && (
                   <div className="border-t border-amber-200/70 bg-amber-50/30">
                     <div className="px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-700/80">
-                      Audit — verwijderd door chef (alleen-lezen)
+                      Gearchiveerde taken
                     </div>
                     <div className="divide-y divide-border/40">
                       {removedItems.map(renderItem)}
@@ -479,7 +479,7 @@ export default function TakenRun() {
               {removedItems.length > 0 && (
                 <div className="border-t border-amber-200/70 bg-amber-50/30">
                   <div className="px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-700/80">
-                    Audit — verwijderd door chef (alleen-lezen)
+                    Gearchiveerde taken
                   </div>
                   <div className="divide-y divide-border/40">
                     {removedItems.map(renderItem)}
