@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callAI, callAIWithTools, resolveOrgId } from '../_shared/ai.ts';
+import { isOpenAt, getSchedule, type OperatingDayRow } from '../_shared/operating-hours.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +29,13 @@ interface AiRespondInput {
   location_id: string;
 }
 
+interface OperatingHoursContext {
+  isOpenNow: boolean;
+  nextOpening: { date: string; open_time: string; label: string | null } | null;
+  schedule14d: OperatingDayRow[];
+  timezone: string;
+}
+
 interface Context {
   conversation: any;
   messages: any[];
@@ -38,6 +46,7 @@ interface Context {
   upcomingReservations: any[];
   locationId: string;
   organizationId: string;
+  operatingHours: OperatingHoursContext;
 }
 
 interface Intent {
@@ -82,7 +91,7 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
       .eq('conversation_id', input.conversation_id)
       .order('created_at', { ascending: false }).limit(10),
     supabase.from('messaging_config').select('*').eq('location_id', input.location_id).maybeSingle(),
-    supabase.from('locations').select('name, tone_of_voice, guest_greeting, description_short')
+    supabase.from('locations').select('name, tone_of_voice, guest_greeting, description_short, timezone')
       .eq('id', input.location_id).single(),
     supabase.from('knowledge_base').select('category, question, answer')
       .eq('location_id', input.location_id).eq('is_active', true),
@@ -109,6 +118,27 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
 
   const organizationId = await resolveOrgId(input.location_id);
 
+  // Operating hours context (14d schedule + isOpenNow)
+  const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
+  const in14dIso = new Date(now.getTime() + 14 * 86400000).toISOString().slice(0, 10);
+  const [isOpenNow, schedule14d] = await Promise.all([
+    isOpenAt(supabase, input.location_id, now.toISOString(), 'general'),
+    getSchedule(supabase, input.location_id, todayIso, in14dIso, 'general'),
+  ]);
+
+  // Bereken eerstvolgende opening (eerste !is_closed met open_time in de toekomst)
+  const nowHHMM = now.toTimeString().slice(0, 5);
+  let nextOpening: OperatingHoursContext['nextOpening'] = null;
+  for (const row of schedule14d) {
+    if (row.is_closed || !row.open_time) continue;
+    const isFuture = row.date > todayIso || (row.date === todayIso && row.open_time.slice(0, 5) > nowHHMM);
+    if (isFuture) {
+      nextOpening = { date: row.date, open_time: row.open_time.slice(0, 5), label: row.label };
+      break;
+    }
+  }
+
   return {
     conversation,
     messages: (msgsRes.data || []).reverse(),
@@ -119,6 +149,12 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
     upcomingReservations,
     locationId: input.location_id,
     organizationId,
+    operatingHours: {
+      isOpenNow,
+      nextOpening,
+      schedule14d,
+      timezone: (brandRes.data as any)?.timezone || 'Europe/Amsterdam',
+    },
   };
 }
 
@@ -478,6 +514,51 @@ function getSystemPromptTone(tone: string | null): string {
   }
 }
 
+// TODO: timezone-aware day-boundaries bij multi-land support (gebruik locations.timezone).
+// Nu: server-tijd (UTC) = Nederland-day binnen ~2u marge. Edge case 23:45 CET kan
+// "vandaag" verkeerd labelen. Acceptabel voor MVP / Pura Vida (NL-only).
+function formatOperatingHours(oh: OperatingHoursContext, language: 'nl' | 'en'): string {
+  const dayNamesNl = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+  const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const days = language === 'en' ? dayNamesEn : dayNamesNl;
+
+  const status = oh.isOpenNow
+    ? (language === 'en' ? 'Currently OPEN.' : 'Op dit moment GEOPEND.')
+    : (language === 'en' ? 'Currently CLOSED.' : 'Op dit moment GESLOTEN.');
+
+  const lines: string[] = [];
+  for (const row of oh.schedule14d) {
+    const d = new Date(row.date + 'T00:00:00Z');
+    const dn = days[d.getUTCDay()];
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    if (row.is_closed || !row.open_time || !row.close_time) {
+      const closedWord = language === 'en' ? 'closed' : 'gesloten';
+      lines.push(`  ${dn} ${dd}-${mm}: ${closedWord}${row.label ? ` (${row.label})` : ''}`);
+    } else {
+      lines.push(`  ${dn} ${dd}-${mm}: ${row.open_time.slice(0, 5)}–${row.close_time.slice(0, 5)}${row.label ? ` (${row.label})` : ''}`);
+    }
+  }
+
+  let nextLine = '';
+  if (oh.nextOpening) {
+    const d = new Date(oh.nextOpening.date + 'T00:00:00Z');
+    const dn = days[d.getUTCDay()];
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    nextLine = language === 'en'
+      ? `Next opening: ${dn} ${dd}-${mm} at ${oh.nextOpening.open_time}${oh.nextOpening.label ? ` (${oh.nextOpening.label})` : ''}.`
+      : `Eerstvolgende opening: ${dn} ${dd}-${mm} om ${oh.nextOpening.open_time}${oh.nextOpening.label ? ` (${oh.nextOpening.label})` : ''}.`;
+  }
+
+  const header = language === 'en' ? 'OPENING HOURS:' : 'OPENINGSTIJDEN:';
+  const usage = language === 'en'
+    ? 'Use this exact data to answer hours-related questions. Never invent times.'
+    : 'Gebruik deze exacte data om openingstijden-vragen te beantwoorden. Verzin nooit tijden.';
+
+  return `${header}\n- ${status}\n${nextLine ? `- ${nextLine}\n` : ''}- ${language === 'en' ? 'Next 14 days' : 'Komende 14 dagen'}:\n${lines.join('\n')}\n${usage}`;
+}
+
 function buildDietInfo(customer: any): string {
   if (!customer?.dietary_preferences) return '';
   const prefs = customer.dietary_preferences;
@@ -513,6 +594,8 @@ ${ctx.customer.total_visits > 5 ? 'Dit is een vaste gast.' : ''}` : '';
       ).join('\n')}\nGebruik deze info als de gast vraagt over een bestaande reservering. Benoem de specifieke reservering bij wijzigings- of annuleringsverzoeken.`
     : '';
 
+  const operatingHoursSection = formatOperatingHours(ctx.operatingHours, language);
+
   return `Je bent een medewerker van ${ctx.branding.name || 'het restaurant'}.
 ${ctx.branding.description_short ? `Over het restaurant: ${ctx.branding.description_short}` : ''}
 
@@ -531,6 +614,8 @@ REGELS:
 
 ${customerInfo}
 ${reservationSection}
+
+${operatingHoursSection}
 
 KENNISBANK:
 ${kbSection}`;
