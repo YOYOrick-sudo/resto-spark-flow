@@ -98,6 +98,19 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
     };
   }, [taskDate, isClosedOnDate, findNextOpenDate]);
 
+  /**
+   * Wikkel een create-actie: als de doel-datum gesloten valt, vraag confirm.
+   * Dankzij auto-skip in getSmartDate komt dit pad in praktijk alleen nog
+   * voor wanneer chef expliciet op een dichte dag staat in MepTaken.
+   */
+  function runWithClosedCheck(date: string, run: () => void) {
+    const info = isClosedOnDate(date);
+    if (info.closed) {
+      setPendingAction({ run, date, label: info.label });
+    } else {
+      run();
+    }
+  }
 
   const autoSaveFavoriet = (input: {
     title: string;
