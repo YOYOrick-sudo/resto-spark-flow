@@ -1703,9 +1703,21 @@ const inkoopProvider: SignalProvider = {
 const providers: SignalProvider[] = [configProvider, onboardingProvider, noShowRiskProvider, marketingProvider, waitlistProvider, pacingProvider, mollieProvider, messagingProvider, inkoopProvider];
 
 async function processLocation(locationId: string, orgId: string) {
-  const results = { created: 0, resolved: 0, skipped: 0 };
+  const results = { created: 0, resolved: 0, skipped: 0, suppressed_closed_day: 0 };
 
-  // 1. Auto-resolve stale signals
+  // Sectie 3: bepaal of locatie vandaag open is (12:00 lokaal als referentie-tijd).
+  // Used to suppress planning-bound signals on closed days.
+  // Fail-open via isOpenAt helper: bij DB-fout blijven we evalueren als "open".
+  const noonTodayUtc = new Date();
+  noonTodayUtc.setUTCHours(12, 0, 0, 0);
+  const isOpenToday = await isOpenAt(
+    supabaseAdmin as any,
+    locationId,
+    noonTodayUtc.toISOString(),
+    'general',
+  );
+
+  // 1. Auto-resolve stale signals (loopt áltijd — closed-day mag stale opruimen)
   for (const provider of providers) {
     const staleTypes = await provider.resolveStale(locationId);
 
@@ -1727,6 +1739,12 @@ async function processLocation(locationId: string, orgId: string) {
     const drafts = await provider.evaluate(locationId, orgId);
 
     for (const draft of drafts) {
+      // Sectie 3: planning suppressor — closed-day skipt day-bound signal_types
+      if (!isOpenToday && PLANNING_SIGNAL_TYPES.has(draft.signal_type)) {
+        results.suppressed_closed_day++;
+        continue;
+      }
+
       const { data: existing } = await supabaseAdmin
         .from('signals')
         .select('id')
@@ -1786,6 +1804,8 @@ async function processLocation(locationId: string, orgId: string) {
       }
     }
   }
+
+  console.log(`[evaluate-signals] location=${locationId} open=${isOpenToday} created=${results.created} resolved=${results.resolved} skipped=${results.skipped} suppressed_closed_day=${results.suppressed_closed_day}`);
 
   return results;
 }
