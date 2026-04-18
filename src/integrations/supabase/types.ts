@@ -7610,6 +7610,10 @@ export type Database = {
         Args: { _table_a_id: string; _table_b_id: string }
         Returns: undefined
       }
+      sync_run_with_template: {
+        Args: { today?: string; tpl_id: string }
+        Returns: undefined
+      }
       transition_reservation_status: {
         Args: {
           _actor_id?: string
