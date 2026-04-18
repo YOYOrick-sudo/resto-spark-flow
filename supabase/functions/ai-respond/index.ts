@@ -126,6 +126,13 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
     isOpenAt(supabase, input.location_id, now.toISOString(), 'general'),
     getSchedule(supabase, input.location_id, todayIso, in14dIso, 'general'),
   ]);
+  // TEMP DEBUG (verwijder na bewijs RPC service-role-fix werkt)
+  console.log('[ai-respond][debug] operating-hours fetch:', JSON.stringify({
+    location_id: input.location_id,
+    isOpenNow,
+    schedule14d_rows: schedule14d.length,
+    schedule14d_sample: schedule14d.slice(0, 3),
+  }));
 
   // Bereken eerstvolgende opening (eerste !is_closed met open_time in de toekomst)
   const nowHHMM = now.toTimeString().slice(0, 5);
