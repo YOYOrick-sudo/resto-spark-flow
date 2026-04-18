@@ -4,10 +4,12 @@ import { nl } from "date-fns/locale";
 import { PageHeader } from "@/components/polar";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
-import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles, Trash2, UtensilsCrossed, AlertTriangle } from "lucide-react";
 import { useMepTasks, useMepTasksWeek, type MepTask } from "@/hooks/useMepTasks";
 import { useCancelMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { useMepIngredientStock } from "@/hooks/useMepIngredientStock";
+import { useUserContext } from "@/contexts/UserContext";
+import { useLocationScheduleRange } from "@/hooks/useLocationScheduleRange";
 import { MepQuickAdd } from "@/components/mep/MepQuickAdd";
 import { MepWeekView } from "@/components/mep/MepWeekView";
 import { MepCompletionModal } from "@/components/mep/MepCompletionModal";
@@ -38,6 +40,9 @@ export default function MepTaken() {
   const [wasteOpen, setWasteOpen] = useState(false);
   const [personeelOpen, setPersoneelOpen] = useState(false);
 
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, view); } catch {}
   }, [view]);
@@ -55,6 +60,10 @@ export default function MepTaken() {
   const weekStartStr = format(startOfWeek(new Date(selectedDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEndStr = format(endOfWeek(new Date(selectedDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const { data: weekTasks = [], isLoading: weekLoading } = useMepTasksWeek(weekStartStr, weekEndStr);
+
+  // Operating-hours check (combi-hook, 1 RPC, gedeelde cache met QuickAdd)
+  const { isClosedOnDate } = useLocationScheduleRange(locationId, selectedDate, 30);
+  const closedInfo = isClosedOnDate(selectedDate);
 
   // Ingredient stock for priority scoring
   const { data: ingredientStock } = useMepIngredientStock(dayTasks, false);
@@ -175,6 +184,20 @@ export default function MepTaken() {
         </NestoButton>
       </div>
 
+      {closedInfo.closed && (
+        <div className="flex gap-3 rounded-card border border-[hsl(38_92%_50%/0.3)] bg-[hsl(48_96%_53%/0.08)] p-3 text-sm">
+          <AlertTriangle className="h-4 w-4 mt-0.5 text-[hsl(38_92%_50%)] flex-shrink-0" />
+          <div className="flex-1 space-y-0.5">
+            <p className="font-medium text-foreground">
+              Locatie gesloten op deze dag{closedInfo.label ? ` — ${closedInfo.label}` : ""}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              Bestaande taken blijven zichtbaar. Nieuwe taken vragen bevestiging.
+            </p>
+          </div>
+        </div>
+      )}
+
       {view === "week" ? (
         <MepWeekView
           tasks={weekTasks}
@@ -192,7 +215,12 @@ export default function MepTaken() {
         />
       ) : (
         <>
-          <MepQuickAdd taskDate={selectedDate} dayTasks={dayTasks} />
+          <MepQuickAdd
+            taskDate={selectedDate}
+            dayTasks={dayTasks}
+            isClosedOnSelectedDate={closedInfo.closed}
+            closedLabel={closedInfo.label}
+          />
 
           <MepCategoryView
               dayTasks={sortedDayTasks}

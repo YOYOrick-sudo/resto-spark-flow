@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { NestoInput } from "@/components/polar/NestoInput";
-import { Search } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useCreateMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { MepQuickAddDropdown } from "./MepQuickAddDropdown";
 import { SnellePrepModal } from "./SnellePrepModal";
+import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
 import { addDays, format } from "date-fns";
+import { nl } from "date-fns/locale";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
+import { useLocationScheduleRange } from "@/hooks/useLocationScheduleRange";
 import { useMepFavorieten, useAddMepFavoriet, useRemoveMepFavoriet } from "@/hooks/useMepFavorieten";
 import type { MepTask } from "@/hooks/useMepTasks";
 import type { HalffabricaatSearchResult } from "@/hooks/useHalffabricaatSearch";
@@ -19,11 +22,14 @@ import type { MepFavoriet } from "@/hooks/useMepFavorieten";
 interface MepQuickAddProps {
   taskDate: string;
   dayTasks: MepTask[];
+  isClosedOnSelectedDate?: boolean;
+  closedLabel?: string | null;
 }
 
-export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
+export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closedLabel }: MepQuickAddProps) {
   const [search, setSearch] = useState("");
   const [prepIngredient, setPrepIngredient] = useState<IngredientResult | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ run: () => void; date: string; label: string | null } | null>(null);
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
 
@@ -35,6 +41,9 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
   const addFavoriet = useAddMepFavoriet();
   const removeFavoriet = useRemoveMepFavoriet();
 
+  // Hergebruik dezelfde combi-hook (zelfde queryKey args = gedeelde cache met MepTaken)
+  const { isClosedOnDate } = useLocationScheduleRange(locationId, taskDate, 30);
+
   const isPending = createTask.isPending || updateTask.isPending;
   const isLoading = hfLoading || igLoading;
 
@@ -44,6 +53,16 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
     return isToday && now.getHours() >= 17
       ? format(addDays(now, 1), "yyyy-MM-dd")
       : taskDate;
+  }
+
+  // Wikkel een create-actie: als smartDate gesloten valt, vraag confirm; anders direct uit.
+  function runWithClosedCheck(date: string, run: () => void) {
+    const info = isClosedOnDate(date);
+    if (info.closed) {
+      setPendingAction({ run, date, label: info.label });
+    } else {
+      run();
+    }
   }
 
   const autoSaveFavoriet = (input: {
@@ -90,20 +109,22 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
     }
 
     const title = item.naam;
-    createTask.mutate({
-      title,
-      category: item.categorie || "halffabricaat",
-      task_date: smartDate,
-      recept_id: item.id,
-      methode_id: methode?.id ?? null,
-      units: 1,
-      prioriteit: "Normaal",
-    });
-    autoSaveFavoriet({
-      title,
-      category: item.categorie || "halffabricaat",
-      recept_id: item.id,
-      methode_id: methode?.id,
+    runWithClosedCheck(smartDate, () => {
+      createTask.mutate({
+        title,
+        category: item.categorie || "halffabricaat",
+        task_date: smartDate,
+        recept_id: item.id,
+        methode_id: methode?.id ?? null,
+        units: 1,
+        prioriteit: "Normaal",
+      });
+      autoSaveFavoriet({
+        title,
+        category: item.categorie || "halffabricaat",
+        recept_id: item.id,
+        methode_id: methode?.id,
+      });
     });
     setSearch("");
   };
@@ -139,14 +160,16 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
       }
     }
 
-    createTask.mutate({
-      title,
-      category: "Overig",
-      task_date: smartDate,
-      units: 1,
-      prioriteit: "Normaal",
+    runWithClosedCheck(smartDate, () => {
+      createTask.mutate({
+        title,
+        category: "Overig",
+        task_date: smartDate,
+        units: 1,
+        prioriteit: "Normaal",
+      });
+      autoSaveFavoriet({ title, category: "Overig" });
     });
-    autoSaveFavoriet({ title, category: "Overig" });
     setSearch("");
   };
 
@@ -181,14 +204,17 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
         }
       }
 
-      createTask.mutate({
-        title: fav.title,
-        category: fav.category,
-        task_date: getSmartDate(),
-        recept_id: fav.recept_id,
-        methode_id: fav.methode_id ?? null,
-        units: 1,
-        prioriteit: "Normaal",
+      const finalDate = getSmartDate();
+      runWithClosedCheck(finalDate, () => {
+        createTask.mutate({
+          title: fav.title,
+          category: fav.category,
+          task_date: finalDate,
+          recept_id: fav.recept_id,
+          methode_id: fav.methode_id ?? null,
+          units: 1,
+          prioriteit: "Normaal",
+        });
       });
     } else {
       const smartDate = getSmartDate();
@@ -213,12 +239,14 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
         }
       }
 
-      createTask.mutate({
-        title: fav.title,
-        category: fav.category,
-        task_date: smartDate,
-        units: 1,
-        prioriteit: "Normaal",
+      runWithClosedCheck(smartDate, () => {
+        createTask.mutate({
+          title: fav.title,
+          category: fav.category,
+          task_date: smartDate,
+          units: 1,
+          prioriteit: "Normaal",
+        });
       });
     }
     setSearch("");
@@ -230,10 +258,20 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
     <div className="space-y-2">
       <div className="relative">
         <NestoInput
-          placeholder="Zoek halffabricaat, ingrediënt of voeg taak toe..."
+          placeholder={
+            isClosedOnSelectedDate
+              ? `Locatie gesloten${closedLabel ? ` (${closedLabel})` : ""} — taak toch toevoegen?`
+              : "Zoek halffabricaat, ingrediënt of voeg taak toe..."
+          }
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search className="h-4 w-4" />}
+          leftIcon={
+            isClosedOnSelectedDate ? (
+              <AlertTriangle className="h-4 w-4 text-[hsl(38_92%_50%)]" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )
+          }
         />
         {showDropdown && (
           <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto">
@@ -262,6 +300,23 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
           taskDate={getSmartDate()}
         />
       )}
+
+      <ConfirmDialog
+        open={!!pendingAction}
+        onOpenChange={(open) => { if (!open) setPendingAction(null); }}
+        title="Locatie gesloten op deze datum"
+        description={
+          pendingAction
+            ? `Op ${format(new Date(pendingAction.date), "EEEE d MMMM", { locale: nl })} is de locatie gesloten${pendingAction.label ? ` (${pendingAction.label})` : ""}. Weet je zeker dat je hier een taak wilt plannen?`
+            : ""
+        }
+        confirmLabel="Toch toevoegen"
+        cancelLabel="Annuleren"
+        onConfirm={() => {
+          pendingAction?.run();
+          setPendingAction(null);
+        }}
+      />
     </div>
   );
 }
