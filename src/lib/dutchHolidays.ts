@@ -56,6 +56,49 @@ function getHolidaysForYear(year: number): Holiday[] {
   return holidays;
 }
 
+export interface DutchHoliday {
+  /** YYYY-MM-DD (no timezone shift) */
+  iso: string;
+  date: Date;
+  name: string;
+  /** True if officially a national day off this year (lustrum logic for Bevrijdingsdag) */
+  defaultSelected: boolean;
+}
+
+function toIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Returns the full list of Dutch holidays for the given year, sorted by date.
+ * Bevrijdingsdag is always included; defaultSelected=true only on lustrum years.
+ */
+export function getDutchHolidaysForYear(year: number): DutchHoliday[] {
+  const easter = getEasterSunday(year);
+  const isLustrum = year % 5 === 0;
+
+  const list: DutchHoliday[] = [
+    { date: new Date(year, 0, 1), name: 'Nieuwjaar', defaultSelected: true },
+    { date: addDays(easter, -2), name: 'Goede Vrijdag', defaultSelected: true },
+    { date: easter, name: '1e Paasdag', defaultSelected: true },
+    { date: addDays(easter, 1), name: '2e Paasdag', defaultSelected: true },
+    { date: new Date(year, 3, 27), name: 'Koningsdag', defaultSelected: true },
+    { date: new Date(year, 4, 5), name: 'Bevrijdingsdag', defaultSelected: isLustrum },
+    { date: addDays(easter, 39), name: 'Hemelvaart', defaultSelected: true },
+    { date: addDays(easter, 49), name: '1e Pinksterdag', defaultSelected: true },
+    { date: addDays(easter, 50), name: '2e Pinksterdag', defaultSelected: true },
+    { date: new Date(year, 11, 25), name: '1e Kerstdag', defaultSelected: true },
+    { date: new Date(year, 11, 26), name: '2e Kerstdag', defaultSelected: true },
+  ];
+
+  return list
+    .map((h) => ({ ...h, iso: toIso(h.date) }))
+    .sort((a, b) => a.iso.localeCompare(b.iso));
+}
+
 export function getHolidaysForMonth(year: number, month: number): Holiday[] {
   return getHolidaysForYear(year).filter(
     (h) => h.date.getFullYear() === year && h.date.getMonth() === month
