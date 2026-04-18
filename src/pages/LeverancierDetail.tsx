@@ -10,6 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { useLeverancierDetail } from "@/hooks/useLeverancierDetail";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
 import { InlineArtikelForm } from "@/components/inkoop/InlineArtikelForm";
+import { BestelmethodeSelector } from "@/components/inkoop/BestelmethodeSelector";
+import { BestelmethodeBadge, type BestelMethode } from "@/components/inkoop/BestelmethodeBadge";
+import { nestoToast } from "@/lib/nestoToast";
 
 const typeOptions = [
   { value: "wholesaler", label: "Wholesaler" },
@@ -127,26 +130,30 @@ export default function LeverancierDetail() {
             </div>
           </div>
 
-          {/* Koppeling type */}
+          {/* Standaard bestelmethode */}
           <div className="rounded-xl border border-border/50 bg-card p-5 space-y-3">
-            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Koppeling
-            </h2>
-            <NestoSelect
-              value={(lev as any).koppeling_type ?? "handmatig"}
-              onValueChange={(v) =>
-                mutations.updateLeverancier.mutate({ id: lev.id, koppeling_type: v })
+            <div className="flex items-center justify-between">
+              <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Standaard bestelmethode
+              </h2>
+              <BestelmethodeBadge methode={((lev as any).bestelmethode_default ?? "email") as BestelMethode} size="sm" />
+            </div>
+            <BestelmethodeSelector
+              value={((lev as any).bestelmethode_default ?? "email") as BestelMethode}
+              onChange={(v) =>
+                mutations.updateLeverancier.mutate(
+                  { id: lev.id, bestelmethode_default: v } as any,
+                  {
+                    onError: (e: any) =>
+                      nestoToast.error(
+                        e?.message?.includes("Niet bevoegd")
+                          ? "Niet bevoegd om de bestelmethode te wijzigen"
+                          : "Wijziging mislukt",
+                      ),
+                  },
+                )
               }
-              options={[
-                { value: "handmatig", label: "Handmatig" },
-                { value: "api", label: "API koppeling (binnenkort)" },
-              ]}
             />
-            <p className="text-xs text-muted-foreground">
-              {((lev as any).koppeling_type ?? "handmatig") === "handmatig"
-                ? "Prijzen worden bijgewerkt via factuur-upload of email forward"
-                : "Binnenkort beschikbaar"}
-            </p>
           </div>
 
           {/* Notities */}

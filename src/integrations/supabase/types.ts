@@ -485,6 +485,7 @@ export type Database = {
         Row: {
           aangemaakt_door: string | null
           besteldatum: string | null
+          bestelmethode: Database["public"]["Enums"]["bestel_methode"]
           bestelnummer: string | null
           created_at: string
           id: string
@@ -501,6 +502,7 @@ export type Database = {
         Insert: {
           aangemaakt_door?: string | null
           besteldatum?: string | null
+          bestelmethode?: Database["public"]["Enums"]["bestel_methode"]
           bestelnummer?: string | null
           created_at?: string
           id?: string
@@ -517,6 +519,7 @@ export type Database = {
         Update: {
           aangemaakt_door?: string | null
           besteldatum?: string | null
+          bestelmethode?: Database["public"]["Enums"]["bestel_methode"]
           bestelnummer?: string | null
           created_at?: string
           id?: string
@@ -2195,6 +2198,7 @@ export type Database = {
       leveranciers: {
         Row: {
           api_type: string | null
+          bestelmethode_default: Database["public"]["Enums"]["bestel_methode"]
           contactpersoon: string | null
           created_at: string
           email: string | null
@@ -2211,6 +2215,7 @@ export type Database = {
         }
         Insert: {
           api_type?: string | null
+          bestelmethode_default?: Database["public"]["Enums"]["bestel_methode"]
           contactpersoon?: string | null
           created_at?: string
           email?: string | null
@@ -2227,6 +2232,7 @@ export type Database = {
         }
         Update: {
           api_type?: string | null
+          bestelmethode_default?: Database["public"]["Enums"]["bestel_methode"]
           contactpersoon?: string | null
           created_at?: string
           email?: string | null
@@ -7785,6 +7791,7 @@ export type Database = {
         | "transfer.cancelled"
         | "device.paired"
         | "device.deactivated"
+      bestel_methode: "email" | "api" | "portal" | "handmatig"
       device_role_enum:
         | "kitchen_station"
         | "service_station"
@@ -7976,6 +7983,7 @@ export const Constants = {
         "device.paired",
         "device.deactivated",
       ],
+      bestel_methode: ["email", "api", "portal", "handmatig"],
       device_role_enum: [
         "kitchen_station",
         "service_station",

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trash2, Send, Plus, X } from "lucide-react";
+import { ArrowLeft, Trash2, Send, Plus, X, AlertTriangle, Phone, Mail } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoBadge } from "@/components/polar/NestoBadge";
@@ -11,10 +11,12 @@ import { useBestelling } from "@/hooks/useBestellingen";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useLocationScheduleRange } from "@/hooks/useLocationScheduleRange";
+import { useCanEditBestelmethode } from "@/hooks/useCanEditBestelmethode";
+import { BestelmethodeBadge, type BestelMethode, BESTELMETHODE_META } from "@/components/inkoop/BestelmethodeBadge";
+import { BestelmethodeSelector } from "@/components/inkoop/BestelmethodeSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
-import { AlertTriangle } from "lucide-react";
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "warning" | "error" | "outline" }> = {
   concept: { label: "Concept", variant: "warning" },
@@ -151,7 +153,24 @@ export default function BestellingDetail() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      nestoToast.success("Bestelling verzonden", `E-mail verstuurd naar ${data?.email ?? leverancier?.email}`);
+      // Methode-specifieke feedback (geen silent failures)
+      const status = data?.status;
+      if (status === "email") {
+        nestoToast.success("Bestelling verzonden", `E-mail verstuurd naar ${data?.email ?? leverancier?.email}`);
+      } else if (status === "manual") {
+        const c = data?.leverancier_contact ?? {};
+        const contactBits = [c.telefoon, c.email].filter(Boolean).join(" · ");
+        nestoToast.success(
+          "Gemarkeerd als verzonden",
+          `Neem handmatig contact op${contactBits ? ` — ${contactBits}` : ""}.`,
+        );
+      } else if (status === "api_not_implemented" || status === "portal_not_implemented") {
+        nestoToast.error(data?.message ?? "Bestelmethode nog niet beschikbaar");
+        setSendDialogOpen(false);
+        return;
+      } else {
+        nestoToast.success("Verzonden");
+      }
       setSendDialogOpen(false);
       refetch();
     } catch (e: any) {
@@ -191,6 +210,27 @@ export default function BestellingDetail() {
   const statusInfo = STATUS_BADGES[bestelling.status] ?? STATUS_BADGES.concept;
   const isConcept = bestelling.status === "concept";
   const hasLeverancierEmail = !!leverancier?.email;
+  const bestelmethode: BestelMethode = ((bestelling as any).bestelmethode ?? "email") as BestelMethode;
+  const methodeMeta = BESTELMETHODE_META[bestelmethode];
+
+  // Verzend-knop logica per methode
+  const sendButtonLabel =
+    bestelmethode === "email"
+      ? "Bestelling verzenden"
+      : bestelmethode === "handmatig"
+      ? "Markeer als verzonden"
+      : "Niet beschikbaar";
+  const sendDisabledReason =
+    bestelmethode === "api"
+      ? "API-koppeling is nog niet beschikbaar — wijzig de bestelmethode naar 'E-mail' of 'Handmatig'"
+      : bestelmethode === "portal"
+      ? "Portal-upload is nog niet beschikbaar — wijzig de bestelmethode naar 'E-mail' of 'Handmatig'"
+      : !hasLeverancierEmail && bestelmethode === "email"
+      ? "Leverancier heeft geen e-mailadres"
+      : regels.length === 0
+      ? "Voeg minimaal één bestelregel toe"
+      : null;
+  const canSend = sendDisabledReason === null;
 
   return (
     <div className="space-y-6 max-w-[900px] mx-auto">
@@ -211,8 +251,40 @@ export default function BestellingDetail() {
             {leverancier?.contactpersoon && <span>· {leverancier.contactpersoon}</span>}
           </div>
         </div>
-        <NestoBadge variant={statusInfo.variant}>{statusInfo.label}</NestoBadge>
+        <div className="flex items-center gap-2">
+          <BestelmethodeBadge methode={bestelmethode} />
+          <NestoBadge variant={statusInfo.variant}>{statusInfo.label}</NestoBadge>
+        </div>
       </div>
+
+      {/* Bestelmethode sectie (alleen concept) */}
+      {isConcept && (
+        <div className="rounded-xl border border-border/50 bg-card p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Bestelmethode
+            </h2>
+            <BestelmethodeBadge methode={bestelmethode} size="sm" />
+          </div>
+          <BestelmethodeSelector
+            value={bestelmethode}
+            onChange={(v) =>
+              mutations.updateBestelling.mutate(
+                { id: bestelling.id, bestelmethode: v } as any,
+                {
+                  onSuccess: () => refetch(),
+                  onError: (e: any) =>
+                    nestoToast.error(
+                      e?.message?.includes("Niet bevoegd")
+                        ? "Niet bevoegd om bestelmethode te wijzigen"
+                        : "Wijziging mislukt",
+                    ),
+                },
+              )
+            }
+          />
+        </div>
+      )}
 
       {/* Leverdatum */}
       {isConcept && (
@@ -390,18 +462,13 @@ export default function BestellingDetail() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span>
-                    <NestoButton
-                      onClick={() => setSendDialogOpen(true)}
-                      disabled={!hasLeverancierEmail || regels.length === 0}
-                    >
-                      <Send className="h-4 w-4 mr-1.5" /> Bestelling verzenden
+                    <NestoButton onClick={() => setSendDialogOpen(true)} disabled={!canSend}>
+                      <Send className="h-4 w-4 mr-1.5" /> {sendButtonLabel}
                     </NestoButton>
                   </span>
                 </TooltipTrigger>
-                {!hasLeverancierEmail && (
-                  <TooltipContent>
-                    <p>Leverancier heeft geen e-mailadres</p>
-                  </TooltipContent>
+                {sendDisabledReason && (
+                  <TooltipContent><p>{sendDisabledReason}</p></TooltipContent>
                 )}
               </Tooltip>
             </TooltipProvider>
@@ -410,20 +477,33 @@ export default function BestellingDetail() {
       </div>
 
       {/* Send confirmation dialog */}
-      <NestoModal
-        open={sendDialogOpen}
-        onOpenChange={setSendDialogOpen}
-        title="Bestelling verzenden"
-        size="sm"
-      >
+      <NestoModal open={sendDialogOpen} onOpenChange={setSendDialogOpen} title={sendButtonLabel} size="sm">
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            De bestelling wordt per e-mail verzonden naar <strong>{leverancier?.email}</strong>.
-          </p>
+          {bestelmethode === "email" && (
+            <p className="text-sm text-muted-foreground">
+              De bestelling wordt per e-mail verzonden naar <strong>{leverancier?.email}</strong>.
+            </p>
+          )}
+          {bestelmethode === "handmatig" && (
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>De bestelling wordt gemarkeerd als verzonden zonder e-mail. Neem zelf contact op:</p>
+              <div className="rounded-button border border-border bg-muted/30 p-3 space-y-1">
+                {leverancier?.telefoon && (
+                  <div className="flex items-center gap-2 text-foreground"><Phone className="h-3.5 w-3.5" /> {leverancier.telefoon}</div>
+                )}
+                {leverancier?.email && (
+                  <div className="flex items-center gap-2 text-foreground"><Mail className="h-3.5 w-3.5" /> {leverancier.email}</div>
+                )}
+                {!leverancier?.telefoon && !leverancier?.email && (
+                  <p className="text-xs">Geen contactgegevens bij leverancier ingevuld.</p>
+                )}
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <NestoButton variant="outline" onClick={() => setSendDialogOpen(false)}>Annuleren</NestoButton>
             <NestoButton onClick={handleSendOrder} isLoading={isSending}>
-              <Send className="h-4 w-4 mr-1.5" /> Verzenden
+              <Send className="h-4 w-4 mr-1.5" /> {bestelmethode === "handmatig" ? "Markeer als verzonden" : "Verzenden"}
             </NestoButton>
           </div>
         </div>
