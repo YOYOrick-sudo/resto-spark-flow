@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, Check, Lock, CheckSquare, Camera, AlertCircle } from "lucide-react";
-import { useChecklistRuns, isRunFrozen, getRunItems, getOverdueMap } from "@/hooks/useChecklistRuns";
+import { useChecklistRuns, isRunFrozen, getRunItems, getOverdueMap, type RunItem } from "@/hooks/useChecklistRuns";
 import { formatFrequentieKort, formatDatumKort } from "@/lib/frequentieFormat";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { useUserContext } from "@/contexts/UserContext";
@@ -39,10 +39,22 @@ export default function TakenRun() {
 
   const run = useMemo(() => (runs ?? []).find((r) => r.id === runId), [runs, runId]);
 
-  const items = useMemo<ChecklistItem[]>(
+  const items = useMemo<RunItem[]>(
     () => (run ? getRunItems(run) : []),
     [run]
   );
+
+  // Splits live vs verwijderd. Verwijderde items komen onderaan in een
+  // aparte audit-sectie; ze blijven leesbaar maar zijn niet meer bewerkbaar.
+  const { liveItems, removedItems } = useMemo(() => {
+    const live: RunItem[] = [];
+    const removed: RunItem[] = [];
+    for (const it of items) {
+      if (it._removed) removed.push(it);
+      else live.push(it);
+    }
+    return { liveItems: live, removedItems: removed };
+  }, [items]);
 
   const overdueMap = useMemo(
     () => (run ? getOverdueMap(run) : new Map<string, string>()),
