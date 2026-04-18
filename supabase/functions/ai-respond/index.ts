@@ -994,6 +994,10 @@ Deno.serve(async (req: Request) => {
         const kbAnswer = searchKnowledgeBase(content, ctx.knowledgeBase);
         if (kbAnswer) {
           responseText = await generateResponse(ctx, intent, `Antwoord uit kennisbank: ${kbAnswer}`);
+        } else if (intent.subtype === 'hours') {
+          // Openingstijden-vragen worden beantwoord uit de OPENINGSTIJDEN-sectie
+          // van het system prompt (14d schedule + isOpenNow + nextOpening), nooit uit KB.
+          responseText = await generateResponse(ctx, intent, 'De gast vraagt naar openingstijden. Beantwoord dit met de exacte data uit de OPENINGSTIJDEN-sectie hierboven. Verzin nooit tijden.');
         } else {
           responseText = await handleUnknownFaq(ctx, content);
         }
