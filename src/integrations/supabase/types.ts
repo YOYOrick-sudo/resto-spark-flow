@@ -7352,15 +7352,6 @@ export type Database = {
       }
     }
     Functions: {
-      __test_bestelmethode_security__: {
-        Args: {
-          _bestelling_id: string
-          _kitchen_candidate_uid: string
-          _location_id: string
-          _owner_uid: string
-        }
-        Returns: Json
-      }
       _seed_default_onboarding_phases: {
         Args: { p_location_id: string }
         Returns: undefined
