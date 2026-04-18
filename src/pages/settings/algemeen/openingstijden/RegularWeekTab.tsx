@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Loader2, Check, AlertCircle } from "lucide-react";
+import { Trash2, Loader2, Check, AlertCircle } from "lucide-react";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { nestoToast } from "@/lib/nestoToast";
 import {
   useRegularHours,
-  useInsertHourSlot,
-  useUpdateHourSlot,
+  useUpsertDayHours,
   useDeleteHourSlot,
   toTimeInput,
   toTimeDb,
