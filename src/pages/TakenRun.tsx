@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, Check, Lock, CheckSquare, Camera, AlertCircle } from "lucide-react";
-import { useChecklistRuns, isRunFrozen, getRunItems, getOverdueMap } from "@/hooks/useChecklistRuns";
+import { useChecklistRuns, isRunFrozen, getRunItems, getOverdueMap, type RunItem } from "@/hooks/useChecklistRuns";
 import { formatFrequentieKort, formatDatumKort } from "@/lib/frequentieFormat";
 import { useKeukenSettings } from "@/hooks/useKeukenSettings";
 import { useUserContext } from "@/contexts/UserContext";
@@ -39,10 +39,22 @@ export default function TakenRun() {
 
   const run = useMemo(() => (runs ?? []).find((r) => r.id === runId), [runs, runId]);
 
-  const items = useMemo<ChecklistItem[]>(
+  const items = useMemo<RunItem[]>(
     () => (run ? getRunItems(run) : []),
     [run]
   );
+
+  // Splits live vs verwijderd. Verwijderde items komen onderaan in een
+  // aparte audit-sectie; ze blijven leesbaar maar zijn niet meer bewerkbaar.
+  const { liveItems, removedItems } = useMemo(() => {
+    const live: RunItem[] = [];
+    const removed: RunItem[] = [];
+    for (const it of items) {
+      if (it._removed) removed.push(it);
+      else live.push(it);
+    }
+    return { liveItems: live, removedItems: removed };
+  }, [items]);
 
   const overdueMap = useMemo(
     () => (run ? getOverdueMap(run) : new Map<string, string>()),
@@ -82,9 +94,11 @@ export default function TakenRun() {
     if (!r) return false;
     return r.checked === true || r.temperatuur != null || (r.notitie && r.notitie.length > 0);
   };
-  const vereistOpen = items.filter((it) => it.vereist && !isItemDone(it));
-  const total = items.length;
-  const done = items.filter(isItemDone).length;
+  // Voortgang & vereiste items: alleen op live-items (verwijderde items zijn
+  // alleen-lezen audit-bewijs en mogen voortgang niet beïnvloeden).
+  const vereistOpen = liveItems.filter((it) => it.vereist && !isItemDone(it));
+  const total = liveItems.length;
+  const done = liveItems.filter(isItemDone).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const isComplete = pct === 100;
 
@@ -234,18 +248,20 @@ export default function TakenRun() {
       {/* Items lijst — gegroepeerd per sectie */}
       <div className="max-w-4xl mx-auto rounded-lg border border-border/60 bg-card shadow-[0_1px_2px_rgb(0_0_0/0.02)] overflow-hidden">
         {(() => {
-          const groepen = groupItemsBySectie(items);
+          const groepen = groupItemsBySectie(liveItems);
           // Sectie-headers tonen we alleen als er meerdere secties zijn, óf als
           // de enige sectie een expliciete naam heeft (niet "Algemeen" default).
           const showHeaders = groepen.length > 1 || (groepen[0] && groepen[0].naam !== "Algemeen");
 
-          const renderItem = (item: ChecklistItem) => {
+          const renderItem = (item: RunItem) => {
             const resp = responsesById.get(item.id);
             const isTemp = item.type === "temperatuur";
             const fotoUrls = item.foto_urls ?? [];
             const hasFotos = fotoUrls.length > 0;
             const itemDone = isItemDone(item);
             const overdueVan = overdueMap.get(item.id);
+            const isRemoved = item._removed === true;
+            const isLocked = frozen || isRemoved;
             const itemFreqLabel = isPerItem
               ? formatFrequentieKort(item.item_frequentie, item.item_frequentie_config)
               : null;
@@ -255,16 +271,18 @@ export default function TakenRun() {
                 <label
                   key={item.id}
                   className={cn(
-                    "flex items-start gap-3.5 px-5 py-3 min-h-[56px] cursor-pointer transition-colors duration-150",
+                    "flex items-start gap-3.5 px-5 py-3 min-h-[56px] transition-colors duration-150",
+                    isLocked ? "cursor-not-allowed" : "cursor-pointer",
                     itemDone ? "bg-success/[0.04] hover:bg-success/[0.06]" : "hover:bg-accent/40",
                     "focus-within:bg-accent/30",
-                    frozen && "cursor-not-allowed opacity-70"
+                    frozen && "opacity-70",
+                    isRemoved && "bg-muted/30 opacity-90"
                   )}
                 >
                   <Checkbox
                     checked={!!resp?.checked}
                     onCheckedChange={(c) => handleCheck(item, !!c)}
-                    disabled={frozen}
+                    disabled={isLocked}
                     className="h-5 w-5 flex-shrink-0 mt-0.5"
                   />
                   <div className="flex-1 min-w-0">
@@ -272,12 +290,18 @@ export default function TakenRun() {
                       <span
                         className={cn(
                           "text-sm font-medium transition-colors",
-                          itemDone && "text-foreground/50 line-through"
+                          itemDone && "text-foreground/50 line-through",
+                          isRemoved && "italic text-muted-foreground"
                         )}
                       >
                         {item.titel}
                       </span>
-                      {itemFreqLabel && (
+                      {isRemoved && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[10px] font-medium text-amber-700 uppercase tracking-wider">
+                          Verwijderd uit template
+                        </span>
+                      )}
+                      {itemFreqLabel && !isRemoved && (
                         <span className="text-[11px] text-muted-foreground tabular-nums">
                           · {itemFreqLabel}
                         </span>
@@ -300,7 +324,7 @@ export default function TakenRun() {
                       </p>
                     )}
                   </div>
-                  {hasFotos && (
+                  {hasFotos && !isRemoved && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -315,7 +339,7 @@ export default function TakenRun() {
                       <Camera className="h-4 w-4" />
                     </button>
                   )}
-                  {item.vereist && (
+                  {item.vereist && !isRemoved && (
                     <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider flex-shrink-0 mt-1.5">
                       Vereist
                     </span>
@@ -329,16 +353,28 @@ export default function TakenRun() {
                 key={item.id}
                 className={cn(
                   "px-5 py-3.5 transition-colors duration-150",
-                  itemDone ? "bg-success/[0.04]" : "hover:bg-accent/20"
+                  itemDone ? "bg-success/[0.04]" : "hover:bg-accent/20",
+                  isRemoved && "bg-muted/30 opacity-90"
                 )}
               >
                 <div className="flex items-start gap-3 flex-wrap">
                   <div className="flex-1 min-w-[180px]">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={cn("text-sm font-medium", itemDone && "text-foreground/50")}>
+                      <span
+                        className={cn(
+                          "text-sm font-medium",
+                          itemDone && "text-foreground/50",
+                          isRemoved && "italic text-muted-foreground"
+                        )}
+                      >
                         {item.titel}
                       </span>
-                      {itemFreqLabel && (
+                      {isRemoved && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[10px] font-medium text-amber-700 uppercase tracking-wider">
+                          Verwijderd uit template
+                        </span>
+                      )}
+                      {itemFreqLabel && !isRemoved && (
                         <span className="text-[11px] text-muted-foreground tabular-nums">
                           · {itemFreqLabel}
                         </span>
@@ -349,7 +385,7 @@ export default function TakenRun() {
                           moest {formatDatumKort(overdueVan)}
                         </span>
                       )}
-                      {hasFotos && (
+                      {hasFotos && !isRemoved && (
                         <button
                           type="button"
                           onClick={() => setFotoDialogItem(item)}
@@ -360,7 +396,7 @@ export default function TakenRun() {
                           <Camera className="h-4 w-4" />
                         </button>
                       )}
-                      {item.vereist && (
+                      {item.vereist && !isRemoved && (
                         <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
                           Vereist
                         </span>
@@ -371,25 +407,29 @@ export default function TakenRun() {
                         {item.beschrijving}
                       </p>
                     )}
-                    {(item.temp_min != null || item.temp_max != null) && (
+                    {(item.temp_min != null || item.temp_max != null) && !isRemoved && (
                       <p className="text-xs text-muted-foreground mt-1 tabular-nums">
                         {item.temp_min ?? "—"}°C tot {item.temp_max ?? "—"}°C
                       </p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <NestoInput
-                      type="number"
-                      step="0.1"
-                      placeholder={resp?.temperatuur != null ? `${resp.temperatuur}°C` : "Temp °C"}
-                      value={tempInputs[item.id] ?? ""}
-                      onChange={(e) => setTempInputs((p) => ({ ...p, [item.id]: e.target.value }))}
-                      disabled={frozen}
-                      className="max-w-[110px] h-9"
-                    />
-                    <NestoButton size="sm" onClick={() => handleTemp(item)} disabled={frozen || !tempInputs[item.id]}>
-                      Opslaan
-                    </NestoButton>
+                    {!isRemoved && (
+                      <>
+                        <NestoInput
+                          type="number"
+                          step="0.1"
+                          placeholder={resp?.temperatuur != null ? `${resp.temperatuur}°C` : "Temp °C"}
+                          value={tempInputs[item.id] ?? ""}
+                          onChange={(e) => setTempInputs((p) => ({ ...p, [item.id]: e.target.value }))}
+                          disabled={isLocked}
+                          className="max-w-[110px] h-9"
+                        />
+                        <NestoButton size="sm" onClick={() => handleTemp(item)} disabled={isLocked || !tempInputs[item.id]}>
+                          Opslaan
+                        </NestoButton>
+                      </>
+                    )}
                     {resp?.temperatuur != null && (
                       <NestoBadge variant={resp.temp_in_range ? "success" : "error"}>
                         {resp.temperatuur}°C {resp.temp_in_range ? "✓" : "!"}
@@ -403,23 +443,51 @@ export default function TakenRun() {
 
           if (!showHeaders) {
             // Geen secties → render als platte lijst (oude gedrag)
-            return <div className="divide-y divide-border/40">{groepen[0]?.items.map(renderItem)}</div>;
+            return (
+              <>
+                <div className="divide-y divide-border/40">{groepen[0]?.items.map(renderItem)}</div>
+                {removedItems.length > 0 && (
+                  <div className="border-t border-amber-200/70 bg-amber-50/30">
+                    <div className="px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-700/80">
+                      Audit — verwijderd door chef (alleen-lezen)
+                    </div>
+                    <div className="divide-y divide-border/40">
+                      {removedItems.map(renderItem)}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
           }
 
-          return groepen.map((groep, idx) => {
-            const groepDone = groep.items.filter(isItemDone).length;
-            return (
-              <SectieGroup
-                key={groep.naam}
-                naam={groep.naam}
-                done={groepDone}
-                total={groep.items.length}
-                isFirst={idx === 0}
-              >
-                {groep.items.map(renderItem)}
-              </SectieGroup>
-            );
-          });
+          return (
+            <>
+              {groepen.map((groep, idx) => {
+                const groepDone = groep.items.filter(isItemDone).length;
+                return (
+                  <SectieGroup
+                    key={groep.naam}
+                    naam={groep.naam}
+                    done={groepDone}
+                    total={groep.items.length}
+                    isFirst={idx === 0}
+                  >
+                    {groep.items.map(renderItem)}
+                  </SectieGroup>
+                );
+              })}
+              {removedItems.length > 0 && (
+                <div className="border-t border-amber-200/70 bg-amber-50/30">
+                  <div className="px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-700/80">
+                    Audit — verwijderd door chef (alleen-lezen)
+                  </div>
+                  <div className="divide-y divide-border/40">
+                    {removedItems.map(renderItem)}
+                  </div>
+                </div>
+              )}
+            </>
+          );
         })()}
       </div>
 

@@ -203,6 +203,7 @@ export function useChecklistTemplates() {
         frequentie_config: (input.frequentie_config ?? {}) as any,
         default_time: input.default_time ?? null,
       };
+      let saved: any;
       if (input.id) {
         // Update: laat 'modus' weg zodat bestaande waarde (incl. system 'per_item') behouden blijft
         const { data, error } = await supabase
@@ -212,7 +213,7 @@ export function useChecklistTemplates() {
           .select()
           .single();
         if (error) throw error;
-        return data;
+        saved = data;
       } else {
         // Insert: hardcoded 'gebundeld'
         const { data, error } = await supabase
@@ -221,11 +222,34 @@ export function useChecklistTemplates() {
           .select()
           .single();
         if (error) throw error;
-        return data;
+        saved = data;
       }
+
+      // Realtime sync: items_snapshot van vandaag's run bijwerken volgens
+      // de huidige template-state. Faalt deze stap, dan blijft de save staan
+      // — chef krijgt alleen een waarschuwing dat een refresh nodig is.
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const { error: rpcErr } = await supabase.rpc("sync_run_with_template", {
+          tpl_id: saved.id,
+          today,
+        });
+        if (rpcErr) {
+          console.error("sync_run_with_template RPC error", rpcErr);
+          nestoToast.warning(
+            "Template opgeslagen, run-sync mislukt",
+            "Vernieuw /taken om de huidige run bij te werken."
+          );
+        }
+      } catch (e) {
+        console.error("sync_run_with_template threw", e);
+      }
+
+      return saved;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-templates", locationId] });
+      queryClient.invalidateQueries({ queryKey: ["checklist-runs", locationId] });
     },
     onError: () => nestoToast.error("Fout bij opslaan template"),
   });

@@ -24,6 +24,18 @@ export interface SnapshotItem {
   item_id: string;
   /** YYYY-MM-DD: aanwezig betekent: dit item is overdue van die eerdere datum */
   overdue_van?: string;
+  /**
+   * Wordt gevuld door sync_run_with_template zodra een item uit de template is
+   * verwijderd terwijl er al een response op zit. Bewaart titel/type lokaal in
+   * de snapshot zodat de run-UI het item kan blijven renderen voor HACCP-audit.
+   */
+  removed_item?: {
+    titel: string;
+    type: string;
+    vereist?: boolean;
+    min_temp?: number | null;
+    max_temp?: number | null;
+  };
 }
 
 export interface ChecklistRun {
@@ -58,18 +70,47 @@ export interface ChecklistRun {
 }
 
 /**
+ * RunItem = ChecklistItem met optionele _removed-marker. Items met _removed=true
+ * zijn afkomstig uit snapshot.removed_item: ze zaten ooit in de template, hebben
+ * een afgevinkte response, maar zijn ondertussen door de chef uit de template
+ * verwijderd. Voor HACCP-audit blijven ze zichtbaar (read-only, badge in UI).
+ */
+export type RunItem = ChecklistItem & { _removed?: true };
+
+/**
  * Bepaalt welke items daadwerkelijk in deze run horen, op basis van snapshot.
  * - snapshot=null → alle template-items (legacy/gebundeld)
- * - snapshot=[…] → alleen items waarvan id in snapshot zit, in template-volgorde
+ * - snapshot=[…] → items uit template (in volgorde) + verwijderde items onderaan
  */
-export function getRunItems(run: ChecklistRun): ChecklistItem[] {
+export function getRunItems(run: ChecklistRun): RunItem[] {
   const all = run.template?.items ?? [];
   if (!run.items_snapshot) return all.slice().sort((a, b) => a.volgorde - b.volgorde);
-  const idsInSnap = new Set(run.items_snapshot.map((s) => s.item_id));
-  return all
-    .filter((it) => idsInSnap.has(it.id))
-    .slice()
-    .sort((a, b) => a.volgorde - b.volgorde);
+
+  const byId = new Map(all.map((i) => [i.id, i]));
+  const live: RunItem[] = [];
+  const removed: RunItem[] = [];
+
+  for (const s of run.items_snapshot) {
+    const fromTpl = byId.get(s.item_id);
+    if (fromTpl) {
+      live.push(fromTpl);
+    } else if (s.removed_item) {
+      removed.push({
+        id: s.item_id,
+        titel: s.removed_item.titel,
+        type: s.removed_item.type as ChecklistItem["type"],
+        volgorde: 999_999,
+        vereist: s.removed_item.vereist ?? false,
+        temp_min: s.removed_item.min_temp ?? null,
+        temp_max: s.removed_item.max_temp ?? null,
+        foto_urls: [],
+        _removed: true,
+      });
+    }
+  }
+
+  live.sort((a, b) => a.volgorde - b.volgorde);
+  return [...live, ...removed];
 }
 
 /**
