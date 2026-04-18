@@ -91,7 +91,7 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
       .eq('conversation_id', input.conversation_id)
       .order('created_at', { ascending: false }).limit(10),
     supabase.from('messaging_config').select('*').eq('location_id', input.location_id).maybeSingle(),
-    supabase.from('locations').select('name, tone_of_voice, guest_greeting, description_short')
+    supabase.from('locations').select('name, tone_of_voice, guest_greeting, description_short, timezone')
       .eq('id', input.location_id).single(),
     supabase.from('knowledge_base').select('category, question, answer')
       .eq('location_id', input.location_id).eq('is_active', true),
@@ -118,6 +118,27 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
 
   const organizationId = await resolveOrgId(input.location_id);
 
+  // Operating hours context (14d schedule + isOpenNow)
+  const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
+  const in14dIso = new Date(now.getTime() + 14 * 86400000).toISOString().slice(0, 10);
+  const [isOpenNow, schedule14d] = await Promise.all([
+    isOpenAt(supabase, input.location_id, now.toISOString(), 'general'),
+    getSchedule(supabase, input.location_id, todayIso, in14dIso, 'general'),
+  ]);
+
+  // Bereken eerstvolgende opening (eerste !is_closed met open_time in de toekomst)
+  const nowHHMM = now.toTimeString().slice(0, 5);
+  let nextOpening: OperatingHoursContext['nextOpening'] = null;
+  for (const row of schedule14d) {
+    if (row.is_closed || !row.open_time) continue;
+    const isFuture = row.date > todayIso || (row.date === todayIso && row.open_time.slice(0, 5) > nowHHMM);
+    if (isFuture) {
+      nextOpening = { date: row.date, open_time: row.open_time.slice(0, 5), label: row.label };
+      break;
+    }
+  }
+
   return {
     conversation,
     messages: (msgsRes.data || []).reverse(),
@@ -128,6 +149,12 @@ async function loadContext(input: AiRespondInput): Promise<Context> {
     upcomingReservations,
     locationId: input.location_id,
     organizationId,
+    operatingHours: {
+      isOpenNow,
+      nextOpening,
+      schedule14d,
+      timezone: (brandRes.data as any)?.timezone || 'Europe/Amsterdam',
+    },
   };
 }
 
