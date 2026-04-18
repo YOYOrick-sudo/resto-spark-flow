@@ -7431,6 +7431,10 @@ export type Database = {
         Returns: string
       }
       generate_daily_checklist_runs: { Args: never; Returns: undefined }
+      generate_daily_checklist_runs_for_date: {
+        Args: { _target_date: string }
+        Returns: undefined
+      }
       generate_unique_slug: { Args: { _base_name: string }; Returns: string }
       get_attention_conversations: {
         Args: { p_location_id: string }
