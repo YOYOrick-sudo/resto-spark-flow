@@ -94,9 +94,11 @@ export default function TakenRun() {
     if (!r) return false;
     return r.checked === true || r.temperatuur != null || (r.notitie && r.notitie.length > 0);
   };
-  const vereistOpen = items.filter((it) => it.vereist && !isItemDone(it));
-  const total = items.length;
-  const done = items.filter(isItemDone).length;
+  // Voortgang & vereiste items: alleen op live-items (verwijderde items zijn
+  // alleen-lezen audit-bewijs en mogen voortgang niet beïnvloeden).
+  const vereistOpen = liveItems.filter((it) => it.vereist && !isItemDone(it));
+  const total = liveItems.length;
+  const done = liveItems.filter(isItemDone).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const isComplete = pct === 100;
 
