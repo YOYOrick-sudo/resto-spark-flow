@@ -3,6 +3,8 @@ import { NestoPanel, NestoButton, NestoSelect } from "@/components/polar";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { BestelmethodeSelector } from "@/components/inkoop/BestelmethodeSelector";
+import type { BestelMethode } from "@/components/inkoop/BestelmethodeBadge";
 
 const typeOptions = [
   { value: "wholesaler", label: "Wholesaler" },
@@ -25,6 +27,7 @@ export function LeverancierDetailPanel({ mode, onClose, onCreated }: Props) {
   const [telefoon, setTelefoon] = useState("");
   const [klantnummer, setKlantnummer] = useState("");
   const [notities, setNotities] = useState("");
+  const [bestelmethode, setBestelmethode] = useState<BestelMethode>("email");
 
   if (!mode) return null;
 
@@ -39,7 +42,8 @@ export function LeverancierDetailPanel({ mode, onClose, onCreated }: Props) {
         telefoon: telefoon || undefined,
         klantnummer: klantnummer || undefined,
         notities: notities || undefined,
-      },
+        bestelmethode_default: bestelmethode,
+      } as any,
       {
         onSuccess: (data) => {
           onCreated(data.id);
@@ -88,6 +92,13 @@ export function LeverancierDetailPanel({ mode, onClose, onCreated }: Props) {
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Notities</label>
               <Textarea value={notities} onChange={(e) => setNotities(e.target.value)} placeholder="Optionele notities..." rows={2} />
+            </div>
+
+            <div className="border-t border-border/50 pt-4" />
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Standaard bestelmethode</label>
+              <BestelmethodeSelector value={bestelmethode} onChange={setBestelmethode} />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
