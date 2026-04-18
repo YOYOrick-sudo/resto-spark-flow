@@ -24,16 +24,15 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export default function RegularWeekTab({ locationId, readOnly }: Props) {
   const { data: slots = [], isLoading } = useRegularHours(locationId);
-  const insert = useInsertHourSlot(locationId);
-  const update = useUpdateHourSlot(locationId);
+  const upsert = useUpsertDayHours(locationId);
   const remove = useDeleteHourSlot(locationId);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
-  const slotsByDay = useMemo(() => {
-    const map = new Map<number, RegularHourSlot[]>();
-    for (let d = 1; d <= 7; d++) map.set(d, []);
+  // Single-slot policy: only the first slot per day (lowest sort_order) is shown.
+  const slotByDay = useMemo(() => {
+    const map = new Map<number, RegularHourSlot>();
     for (const s of slots) {
-      map.get(s.day_of_week)?.push(s);
+      if (!map.has(s.day_of_week)) map.set(s.day_of_week, s);
     }
     return map;
   }, [slots]);
@@ -43,11 +42,11 @@ export default function RegularWeekTab({ locationId, readOnly }: Props) {
     setTimeout(() => setSaveStatus("idle"), 1500);
   };
 
-  const debouncedUpdate = useDebouncedCallback(
-    (id: string, open_time: string, close_time: string) => {
+  const debouncedUpsert = useDebouncedCallback(
+    (day_of_week: number, open_time: string, close_time: string) => {
       setSaveStatus("saving");
-      update.mutate(
-        { id, open_time: toTimeDb(open_time), close_time: toTimeDb(close_time) },
+      upsert.mutate(
+        { day_of_week, open_time: toTimeDb(open_time), close_time: toTimeDb(close_time) },
         {
           onSuccess: flashSaved,
           onError: (e: any) => {
@@ -60,20 +59,10 @@ export default function RegularWeekTab({ locationId, readOnly }: Props) {
     800
   );
 
-  const handleAddSlot = (day: number) => {
-    const existing = slotsByDay.get(day) ?? [];
-    const nextSort = existing.length === 0 ? 0 : Math.max(...existing.map((s) => s.sort_order)) + 1;
-    setSaveStatus("saving");
-    insert.mutate(
-      { day_of_week: day, open_time: "12:00:00", close_time: "14:00:00", sort_order: nextSort },
-      { onSuccess: flashSaved, onError: () => setSaveStatus("error") }
-    );
-  };
-
   const handleOpenDay = (day: number) => {
     setSaveStatus("saving");
-    insert.mutate(
-      { day_of_week: day, open_time: "09:00:00", close_time: "23:00:00", sort_order: 0 },
+    upsert.mutate(
+      { day_of_week: day, open_time: "09:00:00", close_time: "23:00:00" },
       { onSuccess: flashSaved, onError: () => setSaveStatus("error") }
     );
   };
