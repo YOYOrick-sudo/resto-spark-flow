@@ -158,6 +158,31 @@ async function handleAvailability(body: Record<string, unknown>) {
   }
 
   const admin = getAdminClient();
+
+  // Pre-check: is location open on this date? (saves engine roundtrip if closed)
+  const { data: openCheck, error: openErr } = await admin.rpc('is_location_open', {
+    _location_id: location_id,
+    _at: `${date}T12:00:00+00:00`,
+    _service: 'general',
+  });
+
+  if (!openErr && openCheck === false) {
+    // Location is closed. Look up the label from exceptions.
+    const { data: exception } = await admin
+      .from('location_operating_exceptions')
+      .select('label')
+      .eq('location_id', location_id)
+      .eq('date', date)
+      .eq('is_closed', true)
+      .maybeSingle();
+
+    return jsonResponse({
+      shifts: [],
+      is_closed: true,
+      closed_label: exception?.label ?? null,
+    });
+  }
+
   const req: AvailabilityRequest = {
     location_id,
     date,
@@ -169,7 +194,46 @@ async function handleAvailability(body: Record<string, unknown>) {
   const engineData = await loadEngineData(admin, req);
   const result = checkAvailabilityEngine(engineData, req);
 
-  return jsonResponse(result);
+  return jsonResponse({ ...result, is_closed: false, closed_label: null });
+}
+
+// ============================================
+// Route: POST /schedule
+// Returns 90-day schedule map for closed-day greying.
+// Cached for ~60min on the client.
+// ============================================
+async function handleSchedule(body: Record<string, unknown>) {
+  const { location_id, days } = body as { location_id?: string; days?: number };
+  if (!location_id) return errorResponse('Missing location_id', 400);
+
+  const horizon = Math.min(Math.max(days ?? 90, 1), 180);
+  const today = new Date();
+  const from = today.toISOString().slice(0, 10);
+  const toDate = new Date(today.getTime() + horizon * 86_400_000);
+  const to = toDate.toISOString().slice(0, 10);
+
+  const admin = getAdminClient();
+  const { data, error } = await admin.rpc('get_operating_schedule', {
+    _location_id: location_id,
+    _from: from,
+    _to: to,
+    _service: 'general',
+  });
+
+  if (error) {
+    console.error('[public-booking-api] /schedule failed:', error.message);
+    // Fail open: empty schedule = nothing closed → widget still works
+    return jsonResponse({ from, to, days: horizon, schedule: [] });
+  }
+
+  // Compact response: only the bits the widget needs
+  const schedule = (data ?? []).map((row: { date: string; is_closed: boolean; label: string | null }) => ({
+    date: row.date,
+    is_closed: row.is_closed,
+    label: row.label,
+  }));
+
+  return jsonResponse({ from, to, days: horizon, schedule });
 }
 
 // ============================================
@@ -1292,6 +1356,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       if (route === 'availability') return await handleAvailability(body);
       if (route === 'availability/month') return await handleAvailabilityMonth(body);
+      if (route === 'schedule') return await handleSchedule(body);
       if (route === 'guest-lookup') return await handleGuestLookup(body, clientIp);
       if (route === 'book') return await handleBook(body, clientIp, req);
       if (route === 'manage') return await handleManagePost(body);
