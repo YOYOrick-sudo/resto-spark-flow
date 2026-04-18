@@ -17,6 +17,7 @@ export function SelectionStep() {
     availableDates, availableDatesLoading,
     setDate, setPartySize, setSelectedSlot, setSelectedTicket,
     loadAvailability, loadAvailableDates,
+    isDateClosed, findNextOpenDate, selectedDateClosed,
   } = useBooking();
 
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -84,7 +85,7 @@ export function SelectionStep() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets.length]);
 
-  // Load availability when date or party size changes
+  // Load availability when date or party size changes (closed-day skip handled in context)
   useEffect(() => {
     if (data.date && config) {
       loadAvailability(data.date, data.party_size);
@@ -97,6 +98,29 @@ export function SelectionStep() {
       loadAvailableDates(viewMonth.getFullYear(), viewMonth.getMonth() + 1, data.party_size);
     }
   }, [calendarMode, viewMonth, data.party_size, config, loadAvailableDates]);
+
+  // Suggest next open date when current is closed
+  const suggestedOpenDate = useMemo(() => {
+    if (!selectedDateClosed.closed || !data.date) return null;
+    return findNextOpenDate(data.date, 30);
+  }, [selectedDateClosed.closed, data.date, findNextOpenDate]);
+
+  const formatHumanDate = (iso: string) => {
+    const d = new Date(iso + 'T00:00:00');
+    return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES_FULL[d.getMonth()]}`;
+  };
+
+  const handleJumpToOpenDate = () => {
+    if (!suggestedOpenDate) return;
+    setDate(suggestedOpenDate);
+    // Scroll horizontal week-strip to it
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const target = new Date(suggestedOpenDate + 'T00:00:00');
+    const dayIndex = Math.round((target.getTime() - todayStart.getTime()) / 86_400_000);
+    setTimeout(() => {
+      scrollRef.current?.querySelector(`[data-day="${dayIndex}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }, 80);
+  };
 
   // Check if ticket is available for current selection
   const isTicketAvailable = useCallback((ticket: TicketInfo) => {
@@ -261,20 +285,26 @@ export function SelectionStep() {
                     >
                       {dates.map((d, i) => {
                         const isSelected = selectedDayIndex === i;
+                        const iso = formatDateStr(d);
+                        const closed = isDateClosed(iso);
                         return (
                           <button
                             key={i}
                             data-day={i}
                             onClick={() => handleDateSelect(i)}
-                            className={`flex flex-col items-center min-w-[50px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center ${
+                            disabled={closed.closed && !isSelected}
+                            title={closed.closed ? `Gesloten${closed.label ? ' — ' + closed.label : ''}` : undefined}
+                            className={`flex flex-col items-center min-w-[50px] py-2.5 px-2 rounded-2xl transition-all duration-200 text-center relative ${
                               isSelected
                                 ? 'text-white'
+                                : closed.closed
+                                ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
                                 : 'bg-white text-gray-600 hover:bg-gray-50 hover:-translate-y-0.5'
                             }`}
-                            style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: `0 4px 14px color-mix(in srgb, var(--widget-primary) 35%, transparent)` } : { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+                            style={isSelected ? { backgroundColor: 'var(--widget-primary)', boxShadow: `0 4px 14px color-mix(in srgb, var(--widget-primary) 35%, transparent)` } : closed.closed ? undefined : { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
                           >
                             <span className="text-[10px] uppercase font-medium opacity-70">{DAY_NAMES[d.getDay()]}</span>
-                            <span className="text-base font-bold">{d.getDate()}</span>
+                            <span className={`text-base font-bold ${closed.closed && !isSelected ? 'line-through decoration-gray-300' : ''}`}>{d.getDate()}</span>
                             <span className="text-[10px] opacity-70">{MONTH_NAMES[d.getMonth()]}</span>
                           </button>
                         );
@@ -315,19 +345,25 @@ export function SelectionStep() {
                           {cells.map((cell, idx) => {
                             if (!cell.inMonth) return <div key={`e-${idx}`} className="h-10" />;
                             const isSelected = selectedDayIndex === cell.dayIndex;
+                            const iso = formatDateStr(cell.date);
+                            const closed = isDateClosed(iso);
+                            const cellDisabled = cell.disabled || closed.closed;
                             return (
                               <button
                                 key={idx}
-                                disabled={cell.disabled}
-                                onClick={() => !cell.disabled && handleCalendarDayClick(cell.date)}
+                                disabled={cellDisabled}
+                                onClick={() => !cellDisabled && handleCalendarDayClick(cell.date)}
+                                title={closed.closed ? `Gesloten${closed.label ? ' — ' + closed.label : ''}` : undefined}
                                 className={`h-10 w-full rounded-2xl text-sm font-semibold flex flex-col items-center justify-center transition-all duration-200 ${
-                                  cell.disabled
-                                    ? 'text-gray-300 cursor-not-allowed'
+                                  cellDisabled
+                                    ? closed.closed
+                                      ? 'text-gray-300 line-through cursor-not-allowed'
+                                      : 'text-gray-300 cursor-not-allowed'
                                     : isSelected
                                     ? 'text-white shadow-md'
                                     : 'text-gray-700 hover:bg-gray-100'
                                 }`}
-                                style={isSelected && !cell.disabled ? { backgroundColor: 'var(--widget-primary)' } : undefined}
+                                style={isSelected && !cellDisabled ? { backgroundColor: 'var(--widget-primary)' } : undefined}
                               >
                                 <span>{cell.date.getDate()}</span>
                               </button>
@@ -372,7 +408,34 @@ export function SelectionStep() {
                 <Clock className="w-4 h-4 text-gray-400" />
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tijd</span>
               </div>
-              {availabilityLoading ? (
+              {selectedDateClosed.closed ? (
+                <div
+                  className="rounded-2xl px-4 py-4 space-y-3"
+                  style={{ background: 'linear-gradient(135deg, rgba(239,68,68,0.06), rgba(245,158,11,0.06))', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.15)' }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 shrink-0 rounded-full bg-red-50 flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-red-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800">
+                        Gesloten op deze datum
+                        {selectedDateClosed.label ? <span className="text-gray-500 font-medium"> — {selectedDateClosed.label}</span> : null}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">Kies een andere datum om beschikbaarheid te zien.</p>
+                    </div>
+                  </div>
+                  {suggestedOpenDate && (
+                    <button
+                      onClick={handleJumpToOpenDate}
+                      className="w-full h-10 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                      style={{ backgroundColor: 'var(--widget-primary)', boxShadow: `0 2px 10px color-mix(in srgb, var(--widget-primary) 30%, transparent)` }}
+                    >
+                      Kies {formatHumanDate(suggestedOpenDate)} →
+                    </button>
+                  )}
+                </div>
+              ) : availabilityLoading ? (
                 <div className="flex items-center justify-center py-6">
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                 </div>

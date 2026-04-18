@@ -42,6 +42,23 @@ export interface ShiftResult {
 
 export interface AvailabilityResponse {
   shifts: ShiftResult[];
+  /** True when the location is closed on the requested date (e.g. holiday). */
+  is_closed?: boolean;
+  /** Human-readable label of the closure (e.g. "Koningsdag"). */
+  closed_label?: string | null;
+}
+
+export interface ScheduleDay {
+  date: string;        // YYYY-MM-DD
+  is_closed: boolean;
+  label: string | null;
+}
+
+export interface ScheduleResponse {
+  from: string;
+  to: string;
+  days: number;
+  schedule: ScheduleDay[];
 }
 
 // ============================================
