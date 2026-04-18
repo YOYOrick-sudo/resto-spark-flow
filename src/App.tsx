@@ -35,6 +35,8 @@ import Taken from "./pages/Taken";
 import TakenRun from "./pages/TakenRun";
 import PanelDemo from "./pages/PanelDemo";
 import SettingsVoorkeuren from "./pages/SettingsVoorkeuren";
+import SettingsAlgemeenIndex from "./pages/settings/algemeen/SettingsAlgemeenIndex";
+import OpeningHoursPage from "./pages/settings/algemeen/openingstijden/OpeningHoursPage";
 import SettingsKeukenIndex from "./pages/settings/keuken/SettingsKeukenIndex";
 import SettingsKeukenInkoop from "./pages/settings/keuken/SettingsKeukenInkoop";
 import SettingsKeukenHaccp from "./pages/settings/keuken/SettingsKeukenHaccp";
@@ -218,6 +220,8 @@ const App = () => (
                   
                   {/* Settings */}
                   <Route path="/instellingen/voorkeuren" element={<SettingsVoorkeuren />} />
+                  <Route path="/instellingen/algemeen" element={<SettingsAlgemeenIndex />} />
+                  <Route path="/instellingen/algemeen/openingstijden" element={<OpeningHoursPage />} />
                   <Route path="/instellingen/keuken" element={<SettingsKeukenIndex />} />
                   <Route path="/instellingen/keuken/inkoop" element={<SettingsKeukenInkoop />} />
                   <Route path="/instellingen/keuken/haccp" element={<SettingsKeukenHaccp />} />
