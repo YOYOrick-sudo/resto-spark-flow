@@ -207,6 +207,9 @@ export default function BestellingDetail() {
     );
   }
 
+  const statusInfo = STATUS_BADGES[bestelling.status] ?? STATUS_BADGES.concept;
+  const isConcept = bestelling.status === "concept";
+  const hasLeverancierEmail = !!leverancier?.email;
   const bestelmethode: BestelMethode = ((bestelling as any).bestelmethode ?? "email") as BestelMethode;
   const methodeMeta = BESTELMETHODE_META[bestelmethode];
 
