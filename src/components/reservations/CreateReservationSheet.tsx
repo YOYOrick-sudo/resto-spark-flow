@@ -699,6 +699,18 @@ export function WalkInSheet({ open, onClose }: { open: boolean; onClose: () => v
 
   const handleSubmit = async () => {
     if (!locationId) return;
+
+    // Defensive: re-check location open at submit time (race protection)
+    const { data: isOpen, error: openErr } = await supabase.rpc('is_location_open', {
+      _location_id: locationId,
+      _at: new Date().toISOString(),
+      _service: 'general',
+    });
+    if (!openErr && isOpen === false) {
+      nestoToast.error('Locatie is gesloten — walk-in geblokkeerd');
+      return;
+    }
+
     if (!currentShift) {
       nestoToast.error('Geen actieve shift op dit moment');
       return;
