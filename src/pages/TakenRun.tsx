@@ -351,16 +351,28 @@ export default function TakenRun() {
                 key={item.id}
                 className={cn(
                   "px-5 py-3.5 transition-colors duration-150",
-                  itemDone ? "bg-success/[0.04]" : "hover:bg-accent/20"
+                  itemDone ? "bg-success/[0.04]" : "hover:bg-accent/20",
+                  isRemoved && "bg-muted/30 opacity-90"
                 )}
               >
                 <div className="flex items-start gap-3 flex-wrap">
                   <div className="flex-1 min-w-[180px]">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={cn("text-sm font-medium", itemDone && "text-foreground/50")}>
+                      <span
+                        className={cn(
+                          "text-sm font-medium",
+                          itemDone && "text-foreground/50",
+                          isRemoved && "italic text-muted-foreground"
+                        )}
+                      >
                         {item.titel}
                       </span>
-                      {itemFreqLabel && (
+                      {isRemoved && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[10px] font-medium text-amber-700 uppercase tracking-wider">
+                          Verwijderd uit template
+                        </span>
+                      )}
+                      {itemFreqLabel && !isRemoved && (
                         <span className="text-[11px] text-muted-foreground tabular-nums">
                           · {itemFreqLabel}
                         </span>
@@ -371,7 +383,7 @@ export default function TakenRun() {
                           moest {formatDatumKort(overdueVan)}
                         </span>
                       )}
-                      {hasFotos && (
+                      {hasFotos && !isRemoved && (
                         <button
                           type="button"
                           onClick={() => setFotoDialogItem(item)}
@@ -382,7 +394,7 @@ export default function TakenRun() {
                           <Camera className="h-4 w-4" />
                         </button>
                       )}
-                      {item.vereist && (
+                      {item.vereist && !isRemoved && (
                         <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
                           Vereist
                         </span>
@@ -393,25 +405,29 @@ export default function TakenRun() {
                         {item.beschrijving}
                       </p>
                     )}
-                    {(item.temp_min != null || item.temp_max != null) && (
+                    {(item.temp_min != null || item.temp_max != null) && !isRemoved && (
                       <p className="text-xs text-muted-foreground mt-1 tabular-nums">
                         {item.temp_min ?? "—"}°C tot {item.temp_max ?? "—"}°C
                       </p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <NestoInput
-                      type="number"
-                      step="0.1"
-                      placeholder={resp?.temperatuur != null ? `${resp.temperatuur}°C` : "Temp °C"}
-                      value={tempInputs[item.id] ?? ""}
-                      onChange={(e) => setTempInputs((p) => ({ ...p, [item.id]: e.target.value }))}
-                      disabled={frozen}
-                      className="max-w-[110px] h-9"
-                    />
-                    <NestoButton size="sm" onClick={() => handleTemp(item)} disabled={frozen || !tempInputs[item.id]}>
-                      Opslaan
-                    </NestoButton>
+                    {!isRemoved && (
+                      <>
+                        <NestoInput
+                          type="number"
+                          step="0.1"
+                          placeholder={resp?.temperatuur != null ? `${resp.temperatuur}°C` : "Temp °C"}
+                          value={tempInputs[item.id] ?? ""}
+                          onChange={(e) => setTempInputs((p) => ({ ...p, [item.id]: e.target.value }))}
+                          disabled={isLocked}
+                          className="max-w-[110px] h-9"
+                        />
+                        <NestoButton size="sm" onClick={() => handleTemp(item)} disabled={isLocked || !tempInputs[item.id]}>
+                          Opslaan
+                        </NestoButton>
+                      </>
+                    )}
                     {resp?.temperatuur != null && (
                       <NestoBadge variant={resp.temp_in_range ? "success" : "error"}>
                         {resp.temperatuur}°C {resp.temp_in_range ? "✓" : "!"}
@@ -425,23 +441,51 @@ export default function TakenRun() {
 
           if (!showHeaders) {
             // Geen secties → render als platte lijst (oude gedrag)
-            return <div className="divide-y divide-border/40">{groepen[0]?.items.map(renderItem)}</div>;
+            return (
+              <>
+                <div className="divide-y divide-border/40">{groepen[0]?.items.map(renderItem)}</div>
+                {removedItems.length > 0 && (
+                  <div className="border-t border-amber-200/70 bg-amber-50/30">
+                    <div className="px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-700/80">
+                      Audit — verwijderd door chef (alleen-lezen)
+                    </div>
+                    <div className="divide-y divide-border/40">
+                      {removedItems.map(renderItem)}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
           }
 
-          return groepen.map((groep, idx) => {
-            const groepDone = groep.items.filter(isItemDone).length;
-            return (
-              <SectieGroup
-                key={groep.naam}
-                naam={groep.naam}
-                done={groepDone}
-                total={groep.items.length}
-                isFirst={idx === 0}
-              >
-                {groep.items.map(renderItem)}
-              </SectieGroup>
-            );
-          });
+          return (
+            <>
+              {groepen.map((groep, idx) => {
+                const groepDone = groep.items.filter(isItemDone).length;
+                return (
+                  <SectieGroup
+                    key={groep.naam}
+                    naam={groep.naam}
+                    done={groepDone}
+                    total={groep.items.length}
+                    isFirst={idx === 0}
+                  >
+                    {groep.items.map(renderItem)}
+                  </SectieGroup>
+                );
+              })}
+              {removedItems.length > 0 && (
+                <div className="border-t border-amber-200/70 bg-amber-50/30">
+                  <div className="px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-amber-700/80">
+                    Audit — verwijderd door chef (alleen-lezen)
+                  </div>
+                  <div className="divide-y divide-border/40">
+                    {removedItems.map(renderItem)}
+                  </div>
+                </div>
+              )}
+            </>
+          );
         })()}
       </div>
 
