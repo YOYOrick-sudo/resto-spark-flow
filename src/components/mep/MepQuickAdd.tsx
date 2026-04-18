@@ -42,28 +42,62 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
   const removeFavoriet = useRemoveMepFavoriet();
 
   // Hergebruik dezelfde combi-hook (zelfde queryKey args = gedeelde cache met MepTaken)
-  const { isClosedOnDate } = useLocationScheduleRange(locationId, taskDate, 30);
+  const { isClosedOnDate, findNextOpenDate } = useLocationScheduleRange(locationId, taskDate, 30);
 
   const isPending = createTask.isPending || updateTask.isPending;
   const isLoading = hfLoading || igLoading;
 
+  /**
+   * Smart-date logica:
+   * - IMPLICIET (vandaag na 17u → morgen): auto-skip gesloten dagen.
+   *   Voorkomt dat een taak op een dichte dag landt en morgen als overdue verschijnt.
+   * - EXPLICIET (chef staat zelf op een dichte dag in MepTaken): GEEN skip.
+   *   ConfirmDialog in runWithClosedCheck triggert dan, want chef weet wat 'ie doet.
+   * - 40d-alles-dicht edge: findNextOpenDate=null → laat initialDate staan,
+   *   ConfirmDialog vangt 'm alsnog (geen silent failure).
+   */
   function getSmartDate(): string {
     const now = new Date();
-    const isToday = taskDate === format(now, "yyyy-MM-dd");
-    return isToday && now.getHours() >= 17
+    const todayStr = format(now, "yyyy-MM-dd");
+    const isToday = taskDate === todayStr;
+    const isAfterCutoff = isToday && now.getHours() >= 17;
+    const initialDate = isAfterCutoff
       ? format(addDays(now, 1), "yyyy-MM-dd")
       : taskDate;
+
+    if (isAfterCutoff && isClosedOnDate(initialDate).closed) {
+      const nextOpen = findNextOpenDate(initialDate);
+      if (nextOpen) return nextOpen.date;
+    }
+    return initialDate;
   }
 
-  // Wikkel een create-actie: als smartDate gesloten valt, vraag confirm; anders direct uit.
-  function runWithClosedCheck(date: string, run: () => void) {
-    const info = isClosedOnDate(date);
-    if (info.closed) {
-      setPendingAction({ run, date, label: info.label });
-    } else {
-      run();
-    }
-  }
+  /**
+   * Info-chip data: alleen tonen als auto-skip de smart-date heeft verschoven.
+   * Zo ziet de chef "Gepland voor woensdag 22 april (dinsdag was Koningsdag)"
+   * wanneer 'ie maandag 20:00 een taak toevoegt en dinsdag dicht is.
+   */
+  const shiftInfo = useMemo(() => {
+    const now = new Date();
+    const todayStr = format(now, "yyyy-MM-dd");
+    const isToday = taskDate === todayStr;
+    const isAfterCutoff = isToday && now.getHours() >= 17;
+    if (!isAfterCutoff) return null;
+
+    const wouldBeDate = format(addDays(now, 1), "yyyy-MM-dd");
+    const closedInfo = isClosedOnDate(wouldBeDate);
+    if (!closedInfo.closed) return null;
+
+    const nextOpen = findNextOpenDate(wouldBeDate);
+    if (!nextOpen || nextOpen.date === wouldBeDate) return null;
+
+    return {
+      shiftedTo: nextOpen.date,
+      skippedDate: wouldBeDate,
+      skippedLabel: closedInfo.label,
+    };
+  }, [taskDate, isClosedOnDate, findNextOpenDate]);
+
 
   const autoSaveFavoriet = (input: {
     title: string;
