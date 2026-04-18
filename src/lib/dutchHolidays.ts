@@ -80,7 +80,7 @@ export function getDutchHolidaysForYear(year: number): DutchHoliday[] {
   const easter = getEasterSunday(year);
   const isLustrum = year % 5 === 0;
 
-  const list: DutchHoliday[] = [
+  const list: Array<Omit<DutchHoliday, 'iso'>> = [
     { date: new Date(year, 0, 1), name: 'Nieuwjaar', defaultSelected: true },
     { date: addDays(easter, -2), name: 'Goede Vrijdag', defaultSelected: true },
     { date: easter, name: '1e Paasdag', defaultSelected: true },
@@ -95,7 +95,7 @@ export function getDutchHolidaysForYear(year: number): DutchHoliday[] {
   ];
 
   return list
-    .map((h) => ({ ...h, iso: toIso(h.date) }))
+    .map<DutchHoliday>((h) => ({ ...h, iso: toIso(h.date) }))
     .sort((a, b) => a.iso.localeCompare(b.iso));
 }
 
