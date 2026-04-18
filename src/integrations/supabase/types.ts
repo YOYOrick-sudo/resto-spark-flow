@@ -2358,6 +2358,97 @@ export type Database = {
           },
         ]
       }
+      location_operating_exceptions: {
+        Row: {
+          close_time: string | null
+          created_at: string
+          exception_date: string
+          exception_type: Database["public"]["Enums"]["operating_exception_type"]
+          id: string
+          label: string | null
+          location_id: string
+          open_time: string | null
+          service_type: string
+          source: string
+        }
+        Insert: {
+          close_time?: string | null
+          created_at?: string
+          exception_date: string
+          exception_type: Database["public"]["Enums"]["operating_exception_type"]
+          id?: string
+          label?: string | null
+          location_id: string
+          open_time?: string | null
+          service_type?: string
+          source?: string
+        }
+        Update: {
+          close_time?: string | null
+          created_at?: string
+          exception_date?: string
+          exception_type?: Database["public"]["Enums"]["operating_exception_type"]
+          id?: string
+          label?: string | null
+          location_id?: string
+          open_time?: string | null
+          service_type?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_operating_exceptions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_operating_hours: {
+        Row: {
+          close_time: string
+          created_at: string
+          day_of_week: number
+          id: string
+          location_id: string
+          open_time: string
+          service_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          close_time: string
+          created_at?: string
+          day_of_week: number
+          id?: string
+          location_id: string
+          open_time: string
+          service_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          close_time?: string
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          location_id?: string
+          open_time?: string
+          service_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_operating_hours_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_subscriptions: {
         Row: {
           created_at: string
@@ -7429,6 +7520,32 @@ export type Database = {
         Args: { _location_id: string }
         Returns: number
       }
+      get_operating_hours: {
+        Args: { _date: string; _location_id: string; _service?: string }
+        Returns: {
+          close_time: string
+          exception_type: string
+          label: string
+          open_time: string
+        }[]
+      }
+      get_operating_schedule: {
+        Args: {
+          _from: string
+          _location_id: string
+          _service?: string
+          _to: string
+        }
+        Returns: {
+          close_time: string
+          date: string
+          is_closed: boolean
+          label: string
+          open_time: string
+          service_type: string
+          source: string
+        }[]
+      }
       get_overdue_items: {
         Args: { today: string; tpl_id: string }
         Returns: Json
@@ -7509,6 +7626,10 @@ export type Database = {
       }
       is_frequentie_due: {
         Args: { check_date: string; config: Json; freq: string }
+        Returns: boolean
+      }
+      is_location_open: {
+        Args: { _at?: string; _location_id: string; _service?: string }
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
@@ -7691,6 +7812,7 @@ export type Database = {
         | "withdrawn"
         | "no_response"
         | "expired"
+      operating_exception_type: "closed" | "modified" | "extra"
       platform_role: "platform_admin" | "support"
       reservation_channel:
         | "widget"
@@ -7885,6 +8007,7 @@ export const Constants = {
         "no_response",
         "expired",
       ],
+      operating_exception_type: ["closed", "modified", "extra"],
       platform_role: ["platform_admin", "support"],
       reservation_channel: [
         "widget",
