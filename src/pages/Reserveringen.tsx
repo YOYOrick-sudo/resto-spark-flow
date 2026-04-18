@@ -15,6 +15,9 @@ import { ReservationGridView } from "@/components/reserveringen/ReservationGridV
 import { ReservationFooter } from "@/components/reserveringen/ReservationFooter";
 import { DayNotePopover } from "@/components/reserveringen/DayNotePopover";
 import { useWaitlistEntries, useCancelWaitlistEntry, useInviteWaitlistEntry } from "@/hooks/useWaitlistEntries";
+import { useLocationOpenStatus } from "@/hooks/useLocationOpenStatus";
+import { NestoBadge } from "@/components/polar/NestoBadge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUserContext } from "@/contexts/UserContext";
 import {
   ReservationFilters,
