@@ -10,7 +10,7 @@ import {
   type OperatingException,
 } from "@/hooks/useOperatingHoursSettings";
 import ExceptionModal from "./ExceptionModal";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import BulkHolidaysModal from "./BulkHolidaysModal";
 
 interface Props {
   locationId: string | undefined;
@@ -29,6 +29,7 @@ export default function ExceptionsTab({ locationId, readOnly }: Props) {
   const { data: exceptions = [], isLoading } = useExceptions(locationId);
   const remove = useDeleteException(locationId);
   const [modalOpen, setModalOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<OperatingException | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -77,18 +78,11 @@ export default function ExceptionsTab({ locationId, readOnly }: Props) {
             <Plus className="h-4 w-4 mr-1" /> Nieuwe afwijking
           </NestoButton>
         )}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <NestoButton size="sm" variant="outline" disabled>
-                  Bulk feestdagen 2026
-                </NestoButton>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Binnenkort</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {!readOnly && (
+          <NestoButton size="sm" variant="outline" onClick={() => setBulkOpen(true)}>
+            Bulk feestdagen
+          </NestoButton>
+        )}
       </div>
 
       <NestoCard className="p-5">
@@ -136,6 +130,12 @@ export default function ExceptionsTab({ locationId, readOnly }: Props) {
         onOpenChange={setModalOpen}
         locationId={locationId}
         editing={editing}
+      />
+
+      <BulkHolidaysModal
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        locationId={locationId}
       />
     </div>
   );

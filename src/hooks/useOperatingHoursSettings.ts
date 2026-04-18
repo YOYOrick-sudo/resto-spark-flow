@@ -58,6 +58,63 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>, locationId: string
   qc.invalidateQueries({ queryKey: ["operating-hours-day", locationId], exact: false });
 }
 
+/**
+ * Upserts a single hour slot for a given day. Ensures only one slot per day
+ * by patching an existing record (lowest sort_order) or inserting a new one.
+ * Idempotent — safe against double-clicks / race conditions.
+ */
+export function useUpsertDayHours(locationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      day_of_week: number;
+      open_time: string;
+      close_time: string;
+    }) => {
+      if (!locationId) throw new Error("No location");
+
+      const { data: existing, error: fetchErr } = await supabase
+        .from("location_operating_hours")
+        .select("id")
+        .eq("location_id", locationId)
+        .eq("service_type", SERVICE)
+        .eq("day_of_week", input.day_of_week)
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+
+      if (existing) {
+        const { data, error } = await supabase
+          .from("location_operating_hours")
+          .update({ open_time: input.open_time, close_time: input.close_time })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data as RegularHourSlot;
+      }
+
+      const { data, error } = await supabase
+        .from("location_operating_hours")
+        .insert({
+          location_id: locationId,
+          service_type: SERVICE,
+          day_of_week: input.day_of_week,
+          open_time: input.open_time,
+          close_time: input.close_time,
+          sort_order: 0,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as RegularHourSlot;
+    },
+    onSuccess: () => locationId && invalidateAll(qc, locationId),
+  });
+}
+
+/** @deprecated Use useUpsertDayHours instead. Retained for backwards compat. */
 export function useInsertHourSlot(locationId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
@@ -228,6 +285,45 @@ export function useDeleteException(locationId: string | undefined) {
         .eq("id", id);
       if (error) throw error;
       return id;
+    },
+    onSuccess: () => locationId && invalidateAll(qc, locationId),
+  });
+}
+
+/**
+ * Bulk-insert exceptions (used by the holiday template import).
+ * Caller should filter out dates that already exist before calling.
+ */
+export function useBulkInsertExceptions(locationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      items: Array<{
+        exception_date: string;
+        exception_type: OperatingExceptionType;
+        open_time?: string | null;
+        close_time?: string | null;
+        label?: string | null;
+      }>
+    ) => {
+      if (!locationId) throw new Error("No location");
+      if (items.length === 0) return [];
+      const payloads = items.map((i) => ({
+        location_id: locationId,
+        service_type: SERVICE,
+        exception_date: i.exception_date,
+        exception_type: i.exception_type,
+        open_time: i.exception_type === "closed" ? null : i.open_time ?? null,
+        close_time: i.exception_type === "closed" ? null : i.close_time ?? null,
+        label: i.label ?? null,
+        source: "holiday_template",
+      }));
+      const { data, error } = await supabase
+        .from("location_operating_exceptions")
+        .insert(payloads)
+        .select();
+      if (error) throw error;
+      return (data ?? []) as OperatingException[];
     },
     onSuccess: () => locationId && invalidateAll(qc, locationId),
   });
