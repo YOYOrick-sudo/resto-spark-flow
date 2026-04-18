@@ -26,9 +26,10 @@ interface MepQuickAddProps {
   closedLabel?: string | null;
 }
 
-export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
+export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closedLabel }: MepQuickAddProps) {
   const [search, setSearch] = useState("");
   const [prepIngredient, setPrepIngredient] = useState<IngredientResult | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ run: () => void; date: string; label: string | null } | null>(null);
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
 
@@ -40,6 +41,9 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
   const addFavoriet = useAddMepFavoriet();
   const removeFavoriet = useRemoveMepFavoriet();
 
+  // Hergebruik dezelfde combi-hook (zelfde queryKey args = gedeelde cache met MepTaken)
+  const { isClosedOnDate } = useLocationScheduleRange(locationId, taskDate, 30);
+
   const isPending = createTask.isPending || updateTask.isPending;
   const isLoading = hfLoading || igLoading;
 
@@ -49,6 +53,16 @@ export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
     return isToday && now.getHours() >= 17
       ? format(addDays(now, 1), "yyyy-MM-dd")
       : taskDate;
+  }
+
+  // Wikkel een create-actie: als smartDate gesloten valt, vraag confirm; anders direct uit.
+  function runWithClosedCheck(date: string, run: () => void) {
+    const info = isClosedOnDate(date);
+    if (info.closed) {
+      setPendingAction({ run, date, label: info.label });
+    } else {
+      run();
+    }
   }
 
   const autoSaveFavoriet = (input: {
