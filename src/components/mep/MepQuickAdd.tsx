@@ -303,6 +303,20 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
 
   return (
     <div className="space-y-2">
+      {shiftInfo && (
+        <div className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+          <CalendarClock className="h-3 w-3 flex-shrink-0" />
+          <span>
+            Gepland voor{" "}
+            <span className="font-medium text-foreground">
+              {format(new Date(shiftInfo.shiftedTo), "EEEE d MMMM", { locale: nl })}
+            </span>
+            {" — "}
+            {format(new Date(shiftInfo.skippedDate), "EEEE", { locale: nl })} was
+            {shiftInfo.skippedLabel ? ` ${shiftInfo.skippedLabel}` : " gesloten"}
+          </span>
+        </div>
+      )}
       <div className="relative">
         <NestoInput
           placeholder={
