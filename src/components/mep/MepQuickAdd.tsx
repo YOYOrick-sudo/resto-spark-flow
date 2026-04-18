@@ -109,20 +109,22 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
     }
 
     const title = item.naam;
-    createTask.mutate({
-      title,
-      category: item.categorie || "halffabricaat",
-      task_date: smartDate,
-      recept_id: item.id,
-      methode_id: methode?.id ?? null,
-      units: 1,
-      prioriteit: "Normaal",
-    });
-    autoSaveFavoriet({
-      title,
-      category: item.categorie || "halffabricaat",
-      recept_id: item.id,
-      methode_id: methode?.id,
+    runWithClosedCheck(smartDate, () => {
+      createTask.mutate({
+        title,
+        category: item.categorie || "halffabricaat",
+        task_date: smartDate,
+        recept_id: item.id,
+        methode_id: methode?.id ?? null,
+        units: 1,
+        prioriteit: "Normaal",
+      });
+      autoSaveFavoriet({
+        title,
+        category: item.categorie || "halffabricaat",
+        recept_id: item.id,
+        methode_id: methode?.id,
+      });
     });
     setSearch("");
   };
