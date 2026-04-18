@@ -301,9 +301,50 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
     setData(prev => ({ ...prev, selectedTicket: ticket, selectedSlot: null, selectedShift: null }));
   }, []);
 
-  // Load availability for a specific date
+  // Helper: is a given date closed per cached schedule?
+  const isDateClosed = useCallback(
+    (date: string): { closed: boolean; label: string | null } => {
+      const entry = scheduleMap.get(date);
+      if (!entry) return { closed: false, label: null };
+      return { closed: entry.is_closed, label: entry.label };
+    },
+    [scheduleMap]
+  );
+
+  // Helper: nearest open date within lookahead window (default 30 days)
+  const findNextOpenDate = useCallback(
+    (fromDate: string, lookaheadDays: number = 30): string | null => {
+      const start = new Date(fromDate + 'T00:00:00');
+      for (let i = 1; i <= lookaheadDays; i++) {
+        const d = new Date(start.getTime() + i * 86_400_000);
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const entry = scheduleMap.get(iso);
+        // No entry = treat as open (fail-open). Closed = skip.
+        if (!entry || !entry.is_closed) return iso;
+      }
+      return null;
+    },
+    [scheduleMap]
+  );
+
+  // Selected date closed state (derived)
+  const selectedDateClosed = useMemo(
+    () => (data.date ? isDateClosed(data.date) : { closed: false, label: null }),
+    [data.date, isDateClosed]
+  );
+
+  // Load availability for a specific date — skips closed dates client-side (saves a roundtrip)
   const loadAvailability = useCallback(async (date: string, partySize: number) => {
     if (!config) return;
+
+    // Closed-day short-circuit: client-side skip, no network call
+    const closed = scheduleMap.get(date);
+    if (closed?.is_closed) {
+      setAvailableShifts([]);
+      setAvailabilityLoading(false);
+      return;
+    }
+
     setAvailabilityLoading(true);
     try {
       const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-booking-api/availability`;
@@ -322,12 +363,21 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Failed to load availability');
       setAvailableShifts(result.shifts ?? []);
+
+      // If the server reports closed (race-condition with stale cache), patch it in
+      if (result.is_closed) {
+        setScheduleMap(prev => {
+          const next = new Map(prev);
+          next.set(date, { is_closed: true, label: result.closed_label ?? null });
+          return next;
+        });
+      }
     } catch {
       setAvailableShifts([]);
     } finally {
       setAvailabilityLoading(false);
     }
-  }, [config]);
+  }, [config, scheduleMap]);
 
   // Load available dates for a month
   const loadAvailableDates = useCallback(async (year: number, month: number, partySize: number) => {
@@ -463,6 +513,7 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
         availableShifts, availabilityLoading,
         availableDates, availableDatesLoading,
         loadAvailability, loadAvailableDates,
+        scheduleMap, isDateClosed, findNextOpenDate, selectedDateClosed,
       }}
     >
       {children}
