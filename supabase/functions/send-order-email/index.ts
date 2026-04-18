@@ -147,6 +147,13 @@ Deno.serve(async (req) => {
       </div>
     `;
 
+    // Dry-run: return rendered HTML without sending (for tests/QA)
+    if (dry_run) {
+      return new Response(JSON.stringify({ dry_run: true, to: leverancier.email, subject: `Bestelling ${bestelling.bestelnummer || ""} — ${locationName}`, html, closureWarning }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Send via Resend
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
