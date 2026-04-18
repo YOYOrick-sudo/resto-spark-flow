@@ -29,6 +29,18 @@ function getCompletionStatus(bucket: DayBucket | undefined): "all" | "partial" |
   return all ? "all" : "partial";
 }
 
+function getDayCompletion(bucket: DayBucket | undefined): number | null {
+  if (!bucket || bucket.isClosed || bucket.runs.length === 0) return null;
+  const done = bucket.runs.filter((r) => !!r.afgerond_op).length;
+  return Math.round((done / bucket.runs.length) * 100);
+}
+
+function completionBadgeClass(pct: number): string {
+  if (pct >= 80) return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  if (pct >= 40) return "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+  return "bg-muted text-muted-foreground";
+}
+
 export function LogboekMonthGrid({ anchorDate, byDate, onSelectDate }: LogboekMonthGridProps) {
   const today = startOfToday();
 
@@ -102,8 +114,19 @@ export function LogboekMonthGrid({ anchorDate, byDate, onSelectDate }: LogboekMo
               )}
 
               {!isFuture && !isClosed && bucket && bucket.runs.length > 0 && (
-                <div className="mt-2 text-[11px] text-muted-foreground">
-                  {bucket.runs.length} run{bucket.runs.length === 1 ? "" : "s"}
+                <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] text-muted-foreground">
+                    {bucket.runs.length} run{bucket.runs.length === 1 ? "" : "s"}
+                  </span>
+                  {(() => {
+                    const pct = getDayCompletion(bucket);
+                    if (pct === null) return null;
+                    return (
+                      <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", completionBadgeClass(pct))}>
+                        {pct}%
+                      </span>
+                    );
+                  })()}
                 </div>
               )}
             </button>

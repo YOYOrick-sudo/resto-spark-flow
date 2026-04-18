@@ -53,8 +53,26 @@ export function LogboekWeekStrip({ anchorDate, byDate, onSelectDate }: LogboekWe
               )}
             </div>
             {!isFuture && !isClosed && b && (
-              <div className="mt-1 text-[11px] text-muted-foreground">
-                {b.runs.length} run{b.runs.length === 1 ? "" : "s"}
+              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] text-muted-foreground">
+                  {b.runs.length} run{b.runs.length === 1 ? "" : "s"}
+                </span>
+                {(() => {
+                  if (b.runs.length === 0) return null;
+                  const done = b.runs.filter((r) => !!r.afgerond_op).length;
+                  const pct = Math.round((done / b.runs.length) * 100);
+                  const cls =
+                    pct >= 80
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : pct >= 40
+                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                      : "bg-muted text-muted-foreground";
+                  return (
+                    <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", cls)}>
+                      {pct}%
+                    </span>
+                  );
+                })()}
               </div>
             )}
           </button>
