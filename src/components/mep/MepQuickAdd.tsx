@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { NestoInput } from "@/components/polar/NestoInput";
-import { Search } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
 import { useHalffabricaatSearch } from "@/hooks/useHalffabricaatSearch";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useCreateMepTask, useUpdateMepTask } from "@/hooks/useMepMutations";
 import { MepQuickAddDropdown } from "./MepQuickAddDropdown";
 import { SnellePrepModal } from "./SnellePrepModal";
+import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
 import { addDays, format } from "date-fns";
+import { nl } from "date-fns/locale";
 import { nestoToast } from "@/lib/nestoToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
+import { useLocationScheduleRange } from "@/hooks/useLocationScheduleRange";
 import { useMepFavorieten, useAddMepFavoriet, useRemoveMepFavoriet } from "@/hooks/useMepFavorieten";
 import type { MepTask } from "@/hooks/useMepTasks";
 import type { HalffabricaatSearchResult } from "@/hooks/useHalffabricaatSearch";
@@ -19,6 +22,8 @@ import type { MepFavoriet } from "@/hooks/useMepFavorieten";
 interface MepQuickAddProps {
   taskDate: string;
   dayTasks: MepTask[];
+  isClosedOnSelectedDate?: boolean;
+  closedLabel?: string | null;
 }
 
 export function MepQuickAdd({ taskDate, dayTasks }: MepQuickAddProps) {
