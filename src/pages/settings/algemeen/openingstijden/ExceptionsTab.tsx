@@ -78,18 +78,11 @@ export default function ExceptionsTab({ locationId, readOnly }: Props) {
             <Plus className="h-4 w-4 mr-1" /> Nieuwe afwijking
           </NestoButton>
         )}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <NestoButton size="sm" variant="outline" disabled>
-                  Bulk feestdagen 2026
-                </NestoButton>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Binnenkort</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {!readOnly && (
+          <NestoButton size="sm" variant="outline" onClick={() => setBulkOpen(true)}>
+            Bulk feestdagen
+          </NestoButton>
+        )}
       </div>
 
       <NestoCard className="p-5">
