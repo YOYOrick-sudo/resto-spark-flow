@@ -239,12 +239,14 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
         }
       }
 
-      createTask.mutate({
-        title: fav.title,
-        category: fav.category,
-        task_date: smartDate,
-        units: 1,
-        prioriteit: "Normaal",
+      runWithClosedCheck(smartDate, () => {
+        createTask.mutate({
+          title: fav.title,
+          category: fav.category,
+          task_date: smartDate,
+          units: 1,
+          prioriteit: "Normaal",
+        });
       });
     }
     setSearch("");
