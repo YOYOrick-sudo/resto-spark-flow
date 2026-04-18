@@ -92,8 +92,8 @@ export default function RegularWeekTab({ locationId, readOnly }: Props) {
 
       <div className="space-y-3">
         {Array.from({ length: 7 }, (_, i) => i + 1).map((day) => {
-          const daySlots = slotsByDay.get(day) ?? [];
-          const isClosed = daySlots.length === 0;
+          const slot = slotByDay.get(day);
+          const isClosed = !slot;
 
           return (
             <div key={day} className="grid grid-cols-[120px_1fr] gap-3 items-start py-2 border-b border-border last:border-0">
@@ -109,26 +109,12 @@ export default function RegularWeekTab({ locationId, readOnly }: Props) {
                     )}
                   </div>
                 ) : (
-                  <>
-                    {daySlots.map((slot) => (
-                      <SlotRow
-                        key={slot.id}
-                        slot={slot}
-                        readOnly={readOnly}
-                        onChange={debouncedUpdate}
-                        onDelete={handleDelete}
-                      />
-                    ))}
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        onClick={() => handleAddSlot(day)}
-                        className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        <Plus className="h-3 w-3" /> Tijdvak toevoegen
-                      </button>
-                    )}
-                  </>
+                  <SlotRow
+                    slot={slot}
+                    readOnly={readOnly}
+                    onChange={(_id, o, c) => debouncedUpsert(day, o, c)}
+                    onDelete={handleDelete}
+                  />
                 )}
               </div>
             </div>
