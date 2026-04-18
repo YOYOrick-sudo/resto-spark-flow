@@ -262,6 +262,19 @@ export function CreateReservationSheet({ open, onClose, defaultDate }: CreateRes
 
   const handleSubmit = async () => {
     if (!locationId || !shiftId || !ticketId) return;
+
+    // Defensive: re-check location open at submit time (race protection)
+    const reservationDate = format(date, 'yyyy-MM-dd');
+    const { data: isOpen, error: openErr } = await supabase.rpc('is_location_open', {
+      _location_id: locationId,
+      _at: `${reservationDate}T${startTime}:00Z`,
+      _service: 'general',
+    });
+    if (!openErr && isOpen === false) {
+      nestoToast.error('Locatie is gesloten op deze datum — reservering geblokkeerd');
+      return;
+    }
+
     try {
       const result = await createReservation.mutateAsync({
         location_id: locationId,
