@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
-import { ChevronDown, ChevronRight, Lock, CheckCircle2, Thermometer, Camera, StickyNote } from "lucide-react";
-import { NestoPanel } from "@/components/polar/NestoPanel";
+import { ChevronDown, ChevronRight, Lock, CheckCircle2, Thermometer, Camera, StickyNote, CalendarDays } from "lucide-react";
 import { NestoBadge } from "@/components/polar";
 import { cn } from "@/lib/utils";
 import type { DayBucket, AfgerondeRun } from "@/hooks/useChecklistLogboek";
 import type { ChecklistItem } from "@/hooks/useChecklistTemplates";
 import type { RunItem } from "@/hooks/useChecklistRuns";
 
-interface LogboekDagPanelProps {
-  open: boolean;
-  onClose: () => void;
+interface LogboekDagDetailProps {
   date: Date | null;
   bucket: DayBucket | undefined;
 }
@@ -47,14 +44,14 @@ function getRunItemsForLogboek(run: AfgerondeRun): RunItem[] {
 }
 
 function RunCard({ run }: { run: AfgerondeRun }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const items = getRunItemsForLogboek(run);
   const responses = new Map(run.responses.map((r) => [r.item_id, r]));
   const completedCount = items.filter((i) => {
     const r = responses.get(i.id);
     return r && (r.checked === true || r.temperatuur !== null);
   }).length;
-  const naam = run.afgerond_door_profile?.full_name ?? "—";
+  const naam = run.afgerond_door_profile?.name ?? "—";
   const tijd = run.afgerond_op ? format(new Date(run.afgerond_op), "HH:mm") : "—";
 
   return (
@@ -132,39 +129,43 @@ function RunCard({ run }: { run: AfgerondeRun }) {
   );
 }
 
-export function LogboekDagPanel({ open, onClose, date, bucket }: LogboekDagPanelProps) {
-  if (!date) return null;
+export function LogboekDagDetail({ date, bucket }: LogboekDagDetailProps) {
+  if (!date) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border/50 bg-muted/20 p-8 text-center">
+        <CalendarDays className="h-6 w-6 text-muted-foreground/60 mx-auto mb-2" />
+        <div className="text-sm text-muted-foreground">Selecteer een dag in de kalender</div>
+      </div>
+    );
+  }
+
   const title = format(date, "EEEE d MMMM yyyy", { locale: nl });
 
   return (
-    <NestoPanel open={open} onClose={onClose} title="Logboek">
-      {(titleRef) => (
-        <div className="p-5 space-y-4">
-          <h2 ref={titleRef} className="text-lg font-semibold capitalize">{title}</h2>
+    <div className="rounded-2xl border border-border/50 bg-card p-5 space-y-4">
+      <h2 className="text-base font-semibold capitalize">{title}</h2>
 
-          {bucket?.isClosed ? (
-            <div className="rounded-lg border border-border bg-muted/40 p-4 flex items-start gap-3">
-              <Lock className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
-                <div className="text-sm font-medium">Locatie gesloten op deze dag</div>
-                {bucket.closedLabel && (
-                  <div className="text-[12px] text-muted-foreground mt-0.5">{bucket.closedLabel}</div>
-                )}
-              </div>
-            </div>
-          ) : !bucket || bucket.runs.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Geen afgeronde runs op deze dag.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {bucket.runs.map((run) => (
-                <RunCard key={run.id} run={run} />
-              ))}
-            </div>
-          )}
+      {bucket?.isClosed ? (
+        <div className="rounded-lg border border-border bg-muted/40 p-4 flex items-start gap-3">
+          <Lock className="h-5 w-5 text-muted-foreground mt-0.5" />
+          <div>
+            <div className="text-sm font-medium">Locatie gesloten op deze dag</div>
+            {bucket.closedLabel && (
+              <div className="text-[12px] text-muted-foreground mt-0.5">{bucket.closedLabel}</div>
+            )}
+          </div>
+        </div>
+      ) : !bucket || bucket.runs.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          Geen afgeronde runs op deze dag.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {bucket.runs.map((run) => (
+            <RunCard key={run.id} run={run} />
+          ))}
         </div>
       )}
-    </NestoPanel>
+    </div>
   );
 }
