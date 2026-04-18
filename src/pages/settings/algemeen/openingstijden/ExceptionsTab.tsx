@@ -131,6 +131,12 @@ export default function ExceptionsTab({ locationId, readOnly }: Props) {
         locationId={locationId}
         editing={editing}
       />
+
+      <BulkHolidaysModal
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        locationId={locationId}
+      />
     </div>
   );
 }
