@@ -594,6 +594,8 @@ ${ctx.customer.total_visits > 5 ? 'Dit is een vaste gast.' : ''}` : '';
       ).join('\n')}\nGebruik deze info als de gast vraagt over een bestaande reservering. Benoem de specifieke reservering bij wijzigings- of annuleringsverzoeken.`
     : '';
 
+  const operatingHoursSection = formatOperatingHours(ctx.operatingHours, language);
+
   return `Je bent een medewerker van ${ctx.branding.name || 'het restaurant'}.
 ${ctx.branding.description_short ? `Over het restaurant: ${ctx.branding.description_short}` : ''}
 
