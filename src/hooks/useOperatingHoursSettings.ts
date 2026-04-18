@@ -290,6 +290,45 @@ export function useDeleteException(locationId: string | undefined) {
   });
 }
 
+/**
+ * Bulk-insert exceptions (used by the holiday template import).
+ * Caller should filter out dates that already exist before calling.
+ */
+export function useBulkInsertExceptions(locationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      items: Array<{
+        exception_date: string;
+        exception_type: OperatingExceptionType;
+        open_time?: string | null;
+        close_time?: string | null;
+        label?: string | null;
+      }>
+    ) => {
+      if (!locationId) throw new Error("No location");
+      if (items.length === 0) return [];
+      const payloads = items.map((i) => ({
+        location_id: locationId,
+        service_type: SERVICE,
+        exception_date: i.exception_date,
+        exception_type: i.exception_type,
+        open_time: i.exception_type === "closed" ? null : i.open_time ?? null,
+        close_time: i.exception_type === "closed" ? null : i.close_time ?? null,
+        label: i.label ?? null,
+        source: "holiday_template",
+      }));
+      const { data, error } = await supabase
+        .from("location_operating_exceptions")
+        .insert(payloads)
+        .select();
+      if (error) throw error;
+      return (data ?? []) as OperatingException[];
+    },
+    onSuccess: () => locationId && invalidateAll(qc, locationId),
+  });
+}
+
 // ============ Helpers ============
 
 export const DAY_LABELS: Record<number, string> = {
