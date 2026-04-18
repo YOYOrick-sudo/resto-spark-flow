@@ -232,57 +232,73 @@ export function DagelijksTab() {
           </header>
 
           <div className="grid gap-2">
-            {dagRuns.map(({ run, tijd, done, total, pct, freqLabel }) => (
-              <NestoCard
-                key={run.id}
-                className="cursor-pointer hover:border-primary/30 transition-colors"
-                onClick={() => navigate(`/taken/run/${run.id}`)}
-              >
-                <NestoCardContent className="flex items-center gap-4 py-3.5">
-                  {/* Tijd-kolom */}
-                  <div className="text-sm font-semibold tabular-nums text-muted-foreground w-14 flex-shrink-0">
-                    {tijd}
-                  </div>
-
-                  {/* Naam + voortgang */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium truncate">
-                        {run.template?.naam ?? "Checklist"}
-                      </p>
-                      {freqLabel && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
-                          <Repeat className="h-2.5 w-2.5" />
-                          {freqLabel}
-                        </span>
-                      )}
+            {dagRuns.map(({ run, tijd, done, total, pct, freqLabel }) => {
+              const isArchived = !!run.template?.gearchiveerd_op;
+              return (
+                <NestoCard
+                  key={run.id}
+                  className={cn(
+                    "cursor-pointer transition-colors",
+                    isArchived
+                      ? "bg-muted/30 hover:border-muted-foreground/30 opacity-80"
+                      : "hover:border-primary/30"
+                  )}
+                  onClick={() => navigate(`/taken/run/${run.id}`)}
+                >
+                  <NestoCardContent className="flex items-center gap-4 py-3.5">
+                    {/* Tijd-kolom */}
+                    <div className="text-sm font-semibold tabular-nums text-muted-foreground w-14 flex-shrink-0">
+                      {tijd}
                     </div>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[200px]">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            run.status === "afgerond" ? "bg-success" : "bg-primary"
-                          )}
-                          style={{ width: `${pct}%` }}
-                        />
+
+                    {/* Naam + voortgang */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={cn(
+                          "font-medium truncate",
+                          isArchived && "text-muted-foreground/80"
+                        )}>
+                          {run.template?.naam ?? "Checklist"}
+                        </p>
+                        {isArchived && (
+                          <span className="text-[11px] text-muted-foreground italic">
+                            Gearchiveerd
+                          </span>
+                        )}
+                        {freqLabel && !isArchived && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                            <Repeat className="h-2.5 w-2.5" />
+                            {freqLabel}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {done}/{total}
-                      </span>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[200px]">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              run.status === "afgerond" ? "bg-success" : "bg-primary"
+                            )}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {done}/{total}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <NestoBadge variant={STATUS_VARIANT[run.status] ?? "default"}>
-                    {run.status === "open"
-                      ? "Open"
-                      : run.status === "bezig"
-                      ? "Bezig"
-                      : "Afgerond"}
-                  </NestoBadge>
-                </NestoCardContent>
-              </NestoCard>
-            ))}
+                    <NestoBadge variant={STATUS_VARIANT[run.status] ?? "default"}>
+                      {run.status === "open"
+                        ? "Open"
+                        : run.status === "bezig"
+                        ? "Bezig"
+                        : "Afgerond"}
+                    </NestoBadge>
+                  </NestoCardContent>
+                </NestoCard>
+              );
+            })}
           </div>
         </section>
       ))}
