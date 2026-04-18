@@ -259,11 +259,31 @@ export default function BestellingDetail() {
 
       {/* Bestelmethode sectie (alleen concept) */}
       {isConcept && (
-        <BestelmethodeSection
-          bestellingId={bestelling.id}
-          waarde={bestelmethode}
-          onChanged={refetch}
-        />
+        <div className="rounded-xl border border-border/50 bg-card p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Bestelmethode
+            </h2>
+            <BestelmethodeBadge methode={bestelmethode} size="sm" />
+          </div>
+          <BestelmethodeSelector
+            value={bestelmethode}
+            onChange={(v) =>
+              mutations.updateBestelling.mutate(
+                { id: bestelling.id, bestelmethode: v } as any,
+                {
+                  onSuccess: () => refetch(),
+                  onError: (e: any) =>
+                    nestoToast.error(
+                      e?.message?.includes("Niet bevoegd")
+                        ? "Niet bevoegd om bestelmethode te wijzigen"
+                        : "Wijziging mislukt",
+                    ),
+                },
+              )
+            }
+          />
+        </div>
       )}
 
       {/* Leverdatum */}
