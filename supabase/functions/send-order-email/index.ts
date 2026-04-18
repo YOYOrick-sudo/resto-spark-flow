@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { bestelling_id } = await req.json();
+    const { bestelling_id, dry_run } = await req.json();
     if (!bestelling_id) {
       return new Response(JSON.stringify({ error: "bestelling_id verplicht" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -58,6 +58,42 @@ Deno.serve(async (req) => {
       .eq("id", bestelling.location_id)
       .single();
 
+    // Check operating-hours: is verwachte_leverdatum a closed day?
+    let closureWarning: { date: string; label: string | null; nextDate: string | null; nextTime: string | null } | null = null;
+    if (bestelling.verwachte_leverdatum) {
+      const fromDate = bestelling.verwachte_leverdatum;
+      const toDateObj = new Date(`${fromDate}T00:00:00`);
+      toDateObj.setDate(toDateObj.getDate() + 30);
+      const toDate = toDateObj.toISOString().slice(0, 10);
+
+      const { data: schedule, error: schedErr } = await supabase.rpc("get_operating_schedule", {
+        _location_id: bestelling.location_id,
+        _from: fromDate,
+        _to: toDate,
+        _service: "general",
+      });
+
+      if (!schedErr && schedule) {
+        const rows = schedule as Array<{ date: string; open_time: string | null; is_closed: boolean; label: string | null }>;
+        const sameDay = rows.filter((r) => r.date === fromDate);
+        const dayClosed = sameDay.length > 0 && sameDay.every((r) => r.is_closed);
+        if (dayClosed) {
+          const labelRow = sameDay.find((r) => r.label) ?? sameDay[0];
+          // find next open day after fromDate
+          const sortedDates = Array.from(new Set(rows.map((r) => r.date))).sort();
+          let nextDate: string | null = null;
+          let nextTime: string | null = null;
+          for (const d of sortedDates) {
+            if (d <= fromDate) continue;
+            const dayRows = rows.filter((r) => r.date === d);
+            const openRow = dayRows.find((r) => !r.is_closed);
+            if (openRow) { nextDate = d; nextTime = openRow.open_time; break; }
+          }
+          closureWarning = { date: fromDate, label: labelRow?.label ?? null, nextDate, nextTime };
+        }
+      }
+    }
+
     // Build email HTML
     const regels = (bestelling.bestelregels as any[]) ?? [];
     const regelsHtml = regels
@@ -71,6 +107,22 @@ Deno.serve(async (req) => {
       .join("");
 
     const locationName = location?.name ?? "Restaurant";
+
+    const formatDateNL = (iso: string) => {
+      const d = new Date(`${iso}T00:00:00`);
+      return d.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" });
+    };
+
+    const closureHtml = closureWarning
+      ? `<div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;margin:16px 0;font-size:14px;border-radius:4px">
+          <strong>⚠ Let op:</strong> wij zijn gesloten op <strong>${formatDateNL(closureWarning.date)}</strong>${closureWarning.label ? ` (${closureWarning.label})` : ""}.
+          ${
+            closureWarning.nextDate
+              ? `Graag leveren op <strong>${formatDateNL(closureWarning.nextDate)}</strong>${closureWarning.nextTime ? ` vanaf ${closureWarning.nextTime.slice(0, 5)}` : ""}.`
+              : `Neem contact met ons op voor een alternatieve leverdatum.`
+          }
+        </div>`
+      : "";
 
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
@@ -86,13 +138,21 @@ Deno.serve(async (req) => {
           </thead>
           <tbody>${regelsHtml}</tbody>
         </table>
-        ${bestelling.verwachte_leverdatum ? `<p style="margin-top:20px;font-size:14px"><strong>Verwachte levering:</strong> ${bestelling.verwachte_leverdatum}</p>` : ""}
+        ${closureHtml}
+        ${bestelling.verwachte_leverdatum ? `<p style="margin-top:20px;font-size:14px"><strong>Verwachte levering:</strong> ${formatDateNL(bestelling.verwachte_leverdatum)}</p>` : ""}
         ${bestelling.notities ? `<p style="font-size:14px"><strong>Notities:</strong> ${bestelling.notities}</p>` : ""}
         <hr style="border:none;border-top:1px solid #ddd;margin:20px 0"/>
         <p style="font-size:14px">Met vriendelijke groet,<br/>${locationName}</p>
         <p style="color:#999;font-size:12px;margin-top:30px">Verstuurd via Nesto</p>
       </div>
     `;
+
+    // Dry-run: return rendered HTML without sending (for tests/QA)
+    if (dry_run) {
+      return new Response(JSON.stringify({ dry_run: true, to: leverancier.email, subject: `Bestelling ${bestelling.bestelnummer || ""} — ${locationName}`, html, closureWarning }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Send via Resend
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");

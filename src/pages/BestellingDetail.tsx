@@ -10,9 +10,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useBestelling } from "@/hooks/useBestellingen";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
+import { useLocationScheduleRange } from "@/hooks/useLocationScheduleRange";
 import { supabase } from "@/integrations/supabase/client";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
+import { AlertTriangle } from "lucide-react";
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "warning" | "error" | "outline" }> = {
   concept: { label: "Concept", variant: "warning" },
@@ -214,15 +216,11 @@ export default function BestellingDetail() {
 
       {/* Leverdatum */}
       {isConcept && (
-        <div>
-          <label className="text-sm font-medium text-foreground block mb-1.5">Verwachte leverdatum</label>
-          <input
-            type="date"
-            value={verwachteLeverdatum}
-            onChange={(e) => updateLeverdatum(e.target.value)}
-            className="h-11 rounded-button border-[1.5px] border-border bg-card px-3 text-sm text-foreground focus:!border-primary focus:outline-none focus:ring-0"
-          />
-        </div>
+        <LeverdatumSection
+          locationId={bestelling.location_id}
+          value={verwachteLeverdatum}
+          onChange={updateLeverdatum}
+        />
       )}
 
       {/* Bestelregels */}
@@ -450,4 +448,67 @@ export default function BestellingDetail() {
       </NestoModal>
     </div>
   );
+}
+
+function LeverdatumSection({
+  locationId,
+  value,
+  onChange,
+}: {
+  locationId: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const fromDate = value || today;
+  const { isClosedOnDate, findNextOpenDate } = useLocationScheduleRange(locationId, fromDate, 30);
+
+  const closedInfo = value ? isClosedOnDate(value) : { closed: false, label: null };
+  const nextOpen = closedInfo.closed && value ? findNextOpenDate(value) : null;
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium text-foreground block mb-1.5">Verwachte leverdatum</label>
+      <input
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-11 rounded-button border-[1.5px] border-border bg-card px-3 text-sm text-foreground focus:!border-primary focus:outline-none focus:ring-0"
+      />
+      {closedInfo.closed && value && (
+        <div className="flex gap-3 rounded-card border border-[hsl(38_92%_50%/0.3)] bg-[hsl(48_96%_53%/0.08)] p-3 text-sm">
+          <AlertTriangle className="h-4 w-4 mt-0.5 text-[hsl(38_92%_50%)] flex-shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <p className="font-medium text-foreground">
+              Leverdatum valt op gesloten dag{closedInfo.label ? ` — ${closedInfo.label}` : ""}
+            </p>
+            {nextOpen ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-muted-foreground">
+                  Suggestie: <strong className="text-foreground">{formatDateNL(nextOpen.date)}</strong>
+                  {nextOpen.openTime ? ` (open vanaf ${nextOpen.openTime.slice(0, 5)})` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onChange(nextOpen.date)}
+                  className="text-xs px-2.5 py-1 rounded-button border border-border hover:bg-accent/50 font-medium text-foreground transition-colors"
+                >
+                  Pas aan naar {formatDateNL(nextOpen.date)}
+                </button>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                Geen open dag gevonden binnen 30 dagen. Bestelling kan toch verzonden worden — leverancier krijgt automatisch een waarschuwing in de e-mail.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatDateNL(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
 }
