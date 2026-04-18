@@ -12,7 +12,7 @@ import { useChecklistLogboek } from "@/hooks/useChecklistLogboek";
 import { LogboekMonthGrid } from "@/components/taken/LogboekMonthGrid";
 import { LogboekYearGrid } from "@/components/taken/LogboekYearGrid";
 import { LogboekWeekStrip } from "@/components/taken/LogboekWeekStrip";
-import { LogboekDagPanel } from "@/components/taken/LogboekDagPanel";
+import { LogboekDagDetail } from "@/components/taken/LogboekDagDetail";
 
 type ViewMode = "jaar" | "maand" | "week" | "dag";
 
@@ -21,7 +21,7 @@ export default function TakenLogboek() {
   const today = startOfToday();
   const [viewMode, setViewMode] = useState<ViewMode>("maand");
   const [anchorDate, setAnchorDate] = useState<Date>(today);
-  const [panelDate, setPanelDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(today);
 
   const range = useMemo(() => {
     let from: Date, to: Date;
@@ -34,10 +34,8 @@ export default function TakenLogboek() {
 
   const { byDate, isLoading } = useChecklistLogboek(range);
 
-  // Voor dag-view: gebruik anchorDate direct als panel-datum
-  const panelOpen = panelDate !== null || viewMode === "dag";
-  const effectivePanelDate = panelDate ?? (viewMode === "dag" ? anchorDate : null);
-  const effectiveBucket = effectivePanelDate ? byDate.get(format(effectivePanelDate, "yyyy-MM-dd")) : undefined;
+  const effectiveDate = viewMode === "dag" ? anchorDate : selectedDate;
+  const effectiveBucket = effectiveDate ? byDate.get(format(effectiveDate, "yyyy-MM-dd")) : undefined;
 
   function navigatePrev() {
     if (viewMode === "jaar") setAnchorDate(addYears(anchorDate, -1));
@@ -51,7 +49,7 @@ export default function TakenLogboek() {
     else if (viewMode === "week") setAnchorDate(addWeeks(anchorDate, 1));
     else setAnchorDate(addDays(anchorDate, 1));
   }
-  function goToday() { setAnchorDate(today); }
+  function goToday() { setAnchorDate(today); setSelectedDate(today); }
 
   const periodLabel = useMemo(() => {
     if (viewMode === "jaar") return format(anchorDate, "yyyy");
@@ -79,84 +77,84 @@ export default function TakenLogboek() {
         subtitle="Audit-bewijs van afgeronde checklists"
       />
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-          <TabsList>
-            <TabsTrigger value="jaar">Jaar</TabsTrigger>
-            <TabsTrigger value="maand">Maand</TabsTrigger>
-            <TabsTrigger value="week">Week</TabsTrigger>
-            <TabsTrigger value="dag">Dag</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Linker kolom: tabs + period switcher + kalender */}
+        <div className="lg:col-span-3 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+              <TabsList>
+                <TabsTrigger value="jaar">Jaar</TabsTrigger>
+                <TabsTrigger value="maand">Maand</TabsTrigger>
+                <TabsTrigger value="week">Week</TabsTrigger>
+                <TabsTrigger value="dag">Dag</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={navigatePrev}
-            className="h-8 w-8 rounded-md border border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
-            aria-label="Vorige"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <div className="text-sm font-medium capitalize tabular-nums min-w-[180px] text-center">
-            {periodLabel}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={navigatePrev}
+                className="h-8 w-8 rounded-md border border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+                aria-label="Vorige"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="text-sm font-medium capitalize tabular-nums min-w-[160px] text-center">
+                {periodLabel}
+              </div>
+              <button
+                onClick={navigateNext}
+                className="h-8 w-8 rounded-md border border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+                aria-label="Volgende"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              {!isSameDay(anchorDate, today) && (
+                <NestoButton variant="ghost" onClick={goToday}>Vandaag</NestoButton>
+              )}
+            </div>
           </div>
-          <button
-            onClick={navigateNext}
-            className="h-8 w-8 rounded-md border border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
-            aria-label="Volgende"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          {!isSameDay(anchorDate, today) && (
-            <NestoButton variant="ghost" onClick={goToday}>Vandaag</NestoButton>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Spinner />
+            </div>
+          ) : (
+            <>
+              {viewMode === "jaar" && (
+                <LogboekYearGrid
+                  year={getYear(anchorDate)}
+                  byDate={byDate}
+                  onSelectMonth={(m) => { setAnchorDate(m); setViewMode("maand"); }}
+                />
+              )}
+              {viewMode === "maand" && (
+                <LogboekMonthGrid
+                  anchorDate={anchorDate}
+                  byDate={byDate}
+                  onSelectDate={(d) => setSelectedDate(d)}
+                />
+              )}
+              {viewMode === "week" && (
+                <LogboekWeekStrip
+                  anchorDate={anchorDate}
+                  byDate={byDate}
+                  onSelectDate={(d) => setSelectedDate(d)}
+                />
+              )}
+              {viewMode === "dag" && (
+                <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  Detail wordt rechts getoond.
+                </div>
+              )}
+            </>
           )}
+        </div>
+
+        {/* Rechter kolom: inline detail */}
+        <div className="lg:col-span-2 lg:sticky lg:top-6 lg:self-start">
+          <LogboekDagDetail date={effectiveDate} bucket={effectiveBucket} />
         </div>
       </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Spinner />
-        </div>
-      ) : (
-        <>
-          {viewMode === "jaar" && (
-            <LogboekYearGrid
-              year={getYear(anchorDate)}
-              byDate={byDate}
-              onSelectMonth={(m) => { setAnchorDate(m); setViewMode("maand"); }}
-            />
-          )}
-          {viewMode === "maand" && (
-            <LogboekMonthGrid
-              anchorDate={anchorDate}
-              byDate={byDate}
-              onSelectDate={(d) => setPanelDate(d)}
-            />
-          )}
-          {viewMode === "week" && (
-            <LogboekWeekStrip
-              anchorDate={anchorDate}
-              byDate={byDate}
-              onSelectDate={(d) => setPanelDate(d)}
-            />
-          )}
-          {viewMode === "dag" && (
-            <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Bekijk de details in het zijpaneel.
-            </div>
-          )}
-        </>
-      )}
-
-      <LogboekDagPanel
-        open={panelOpen}
-        onClose={() => {
-          setPanelDate(null);
-          if (viewMode === "dag") setViewMode("maand");
-        }}
-        date={effectivePanelDate}
-        bucket={effectiveBucket}
-      />
     </div>
   );
 }
