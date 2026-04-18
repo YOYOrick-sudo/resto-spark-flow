@@ -615,6 +615,8 @@ REGELS:
 ${customerInfo}
 ${reservationSection}
 
+${operatingHoursSection}
+
 KENNISBANK:
 ${kbSection}`;
 }
