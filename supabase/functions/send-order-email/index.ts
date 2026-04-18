@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { bestelling_id } = await req.json();
+    const { bestelling_id, dry_run } = await req.json();
     if (!bestelling_id) {
       return new Response(JSON.stringify({ error: "bestelling_id verplicht" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
