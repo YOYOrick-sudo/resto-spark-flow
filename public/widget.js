@@ -305,6 +305,8 @@
     document.body.appendChild(btn);
 
     // ─── Preload logic ───
+    // PERFORMANCE: preload immediately on script load (desktop) so iframe is
+    // already booting while user is browsing. Click → instant render.
     var preloadedIframe = null;
     var iframeLoaded = false;
     var hiddenContainer = null;
@@ -314,12 +316,18 @@
       hiddenContainer = document.createElement('div');
       hiddenContainer.style.cssText = 'position:fixed;top:0;left:-9999px;width:420px;height:100vh;opacity:0;pointer-events:none;z-index:-1';
       preloadedIframe = createIframe('flex:1;height:100%');
+      preloadedIframe.removeAttribute('loading'); // we want it eager when preloading
       preloadedIframe.addEventListener('load', function () { iframeLoaded = true; });
       hiddenContainer.appendChild(preloadedIframe);
       document.body.appendChild(hiddenContainer);
     }
 
     if (!mobile) {
+      // Eager preload on desktop — user will likely click within seconds.
+      // Defer to idle to avoid blocking page paint.
+      var schedule = window.requestIdleCallback || function (cb) { return setTimeout(cb, 600); };
+      schedule(function () { preloadIframe(); }, { timeout: 1500 });
+      // Also re-trigger on hover (no-op if already preloaded)
       btn.addEventListener('mouseenter', preloadIframe);
     }
 
