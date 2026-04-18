@@ -204,14 +204,17 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
         }
       }
 
-      createTask.mutate({
-        title: fav.title,
-        category: fav.category,
-        task_date: getSmartDate(),
-        recept_id: fav.recept_id,
-        methode_id: fav.methode_id ?? null,
-        units: 1,
-        prioriteit: "Normaal",
+      const finalDate = getSmartDate();
+      runWithClosedCheck(finalDate, () => {
+        createTask.mutate({
+          title: fav.title,
+          category: fav.category,
+          task_date: finalDate,
+          recept_id: fav.recept_id,
+          methode_id: fav.methode_id ?? null,
+          units: 1,
+          prioriteit: "Normaal",
+        });
       });
     } else {
       const smartDate = getSmartDate();
