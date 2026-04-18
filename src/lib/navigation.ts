@@ -37,6 +37,7 @@ export const ROUTE_MAP: Record<string, string> = {
   'marketing-reviews': '/marketing/reviews',
   'marketing-popup': '/marketing/popup',
   'analytics': '/analytics',
+  'settings-algemeen': '/instellingen/algemeen',
   'settings-voorkeuren': '/instellingen/voorkeuren',
   'settings-keuken': '/instellingen/keuken',
   'settings-reserveringen': '/instellingen/reserveringen',
@@ -150,6 +151,7 @@ export const menuItems: MenuItem[] = [
     expandable: true,
     section: 'BEHEER',
     subItems: [
+      { id: 'settings-algemeen', label: 'Algemeen', path: '/instellingen/algemeen' },
       { id: 'settings-voorkeuren', label: 'Voorkeuren', path: '/instellingen/voorkeuren' },
       { id: 'settings-keuken', label: 'Keuken', path: '/instellingen/keuken' },
       { id: 'settings-reserveringen', label: 'Reserveringen', path: '/instellingen/reserveringen' },

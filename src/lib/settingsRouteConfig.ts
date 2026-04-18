@@ -29,6 +29,7 @@ import {
   Thermometer,
   ClipboardCheck,
   Printer,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 
@@ -231,7 +232,24 @@ export const keukenConfig: SettingsModuleConfig = {
   ],
 };
 
+export const algemeenConfig: SettingsModuleConfig = {
+  id: "algemeen",
+  label: "Algemeen",
+  basePath: "/instellingen/algemeen",
+  description: "Algemene instellingen voor deze locatie",
+  sections: [
+    {
+      id: "openingstijden",
+      label: "Openingstijden",
+      path: "/instellingen/algemeen/openingstijden",
+      description: "Reguliere week en bijzondere dagen",
+      icon: CalendarClock,
+    },
+  ],
+};
+
 export const settingsModules: SettingsModuleConfig[] = [
+  algemeenConfig,
   reserveringenConfig,
   marketingConfig,
   onboardingConfig,
