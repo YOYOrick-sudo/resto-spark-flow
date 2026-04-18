@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callAI, callAIWithTools, resolveOrgId } from '../_shared/ai.ts';
+import { isOpenAt, getSchedule, type OperatingDayRow } from '../_shared/operating-hours.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
