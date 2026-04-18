@@ -18,13 +18,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      SERVICE_ROLE_KEY,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Fetch bestelling + leverancier + regels
+    // dry_run security guard: alleen toegestaan vanuit service-role context (test/QA).
+    // Browser-clients sturen anon/user JWT → dry_run wordt genegeerd om misbruik te voorkomen.
+    let dryRunAllowed = false;
+    if (dry_run) {
+      const authHeader = req.headers.get("Authorization") ?? "";
+      const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+      dryRunAllowed = token === SERVICE_ROLE_KEY;
+      if (!dryRunAllowed) {
+        console.warn("dry_run requested zonder service-role; wordt genegeerd");
+      }
+    }
+
+    // Fetch bestelling + leverancier + regels (incl. bestelmethode)
     const { data: bestelling, error: bErr } = await supabase
       .from("bestellingen")
       .select(`
@@ -36,7 +49,7 @@ Deno.serve(async (req) => {
       .single();
     if (bErr) throw bErr;
 
-    // Fix 4: dubbel-verzend guard
+    // Dubbel-verzend guard
     if (bestelling.status === "verzonden") {
       return new Response(
         JSON.stringify({ error: "Bestelling is al verzonden" }),
@@ -45,18 +58,76 @@ Deno.serve(async (req) => {
     }
 
     const leverancier = bestelling.leveranciers as any;
-    if (!leverancier?.email) {
-      return new Response(JSON.stringify({ error: "Leverancier heeft geen e-mailadres" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const bestelmethode: string = bestelling.bestelmethode ?? "email";
 
-    // Fetch location info
+    // Fetch location info (gebruikt door e-mail én bij handmatig-fallback)
     const { data: location } = await supabase
       .from("locations")
       .select("name")
       .eq("id", bestelling.location_id)
       .single();
+    const locationName = location?.name ?? "Restaurant";
+
+    // ── SWITCH op bestelmethode ────────────────────────────────────────────────
+    if (bestelmethode === "api") {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: "api_not_implemented",
+          message: "API-integratie nog niet geconfigureerd. Neem handmatig contact op, of wijzig de bestelmethode naar 'E-mail'.",
+          action: "manual_contact_required",
+          leverancier_contact: {
+            naam: leverancier?.naam,
+            email: leverancier?.email,
+            telefoon: leverancier?.telefoon,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (bestelmethode === "portal") {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: "portal_not_implemented",
+          message: "Portal-upload komt later. Exporteer bestelregels handmatig.",
+          action: "manual_export_required",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (bestelmethode === "handmatig") {
+      // Markeer als verzonden zonder e-mail te versturen.
+      await supabase.from("bestellingen").update({
+        status: "verzonden",
+        besteldatum: new Date().toISOString().split("T")[0],
+        laatst_verzonden: new Date().toISOString(),
+      } as any).eq("id", bestelling_id);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: "manual",
+          message: `Bestelling gemarkeerd als verzonden. Neem handmatig contact op met ${leverancier?.naam ?? "de leverancier"}.`,
+          action: "marked_sent_no_notification",
+          leverancier_contact: {
+            naam: leverancier?.naam,
+            email: leverancier?.email,
+            telefoon: leverancier?.telefoon,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── bestelmethode === 'email' (default flow) ──────────────────────────────
+    if (!leverancier?.email) {
+      return new Response(JSON.stringify({ error: "Leverancier heeft geen e-mailadres" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check operating-hours: is verwachte_leverdatum a closed day?
     let closureWarning: { date: string; label: string | null; nextDate: string | null; nextTime: string | null } | null = null;
@@ -79,7 +150,6 @@ Deno.serve(async (req) => {
         const dayClosed = sameDay.length > 0 && sameDay.every((r) => r.is_closed);
         if (dayClosed) {
           const labelRow = sameDay.find((r) => r.label) ?? sameDay[0];
-          // find next open day after fromDate
           const sortedDates = Array.from(new Set(rows.map((r) => r.date))).sort();
           let nextDate: string | null = null;
           let nextTime: string | null = null;
@@ -105,8 +175,6 @@ Deno.serve(async (req) => {
           </tr>`
       )
       .join("");
-
-    const locationName = location?.name ?? "Restaurant";
 
     const formatDateNL = (iso: string) => {
       const d = new Date(`${iso}T00:00:00`);
@@ -147,8 +215,8 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    // Dry-run: return rendered HTML without sending (for tests/QA)
-    if (dry_run) {
+    // Dry-run: alleen wanneer service-role detected
+    if (dryRunAllowed) {
       return new Response(JSON.stringify({ dry_run: true, to: leverancier.email, subject: `Bestelling ${bestelling.bestelnummer || ""} — ${locationName}`, html, closureWarning }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -191,7 +259,7 @@ Deno.serve(async (req) => {
       laatst_verzonden: new Date().toISOString(),
     } as any).eq("id", bestelling_id);
 
-    return new Response(JSON.stringify({ success: true, email: leverancier.email }), {
+    return new Response(JSON.stringify({ success: true, status: "email", email: leverancier.email }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
