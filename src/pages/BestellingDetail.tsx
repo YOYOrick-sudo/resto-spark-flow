@@ -10,9 +10,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useBestelling } from "@/hooks/useBestellingen";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
+import { useLocationScheduleRange } from "@/hooks/useLocationScheduleRange";
 import { supabase } from "@/integrations/supabase/client";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
+import { AlertTriangle } from "lucide-react";
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "warning" | "error" | "outline" }> = {
   concept: { label: "Concept", variant: "warning" },
