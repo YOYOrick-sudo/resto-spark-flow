@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { isOpenAt } from '../_shared/operating-hours.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,28 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
+
+// ============================================
+// PLANNING SUPPRESSOR (Sectie 3)
+// ============================================
+//
+// Whitelist van signal_types die "vandaag-afhankelijk" zijn: ze veronderstellen
+// dat de locatie vandaag operationeel is. Op een closed-day (regulier dicht óf
+// exception zoals Koningsdag) zou het aanmaken van deze signalen alleen ruis
+// produceren ("X gasten op wachtlijst vandaag" terwijl de zaak dicht is).
+//
+// Niet day-bound signalen (config-issues, marketing-trends, mollie-status,
+// whatsapp-deliverability, inkoop-facturen, prijsveranderingen) blijven ALTIJD
+// evalueren — die zijn niet afhankelijk van openingstijden.
+//
+// Conservatief gekozen op basis van bestaande signal_types in deze function.
+// Voeg hier nieuwe day-bound types toe wanneer ze geïntroduceerd worden.
+const PLANNING_SIGNAL_TYPES: ReadonlySet<string> = new Set([
+  'overdue_tasks',                  // onboarding to-dos voor vandaag
+  'waitlist_pending_today',         // wachtlijst voor vandaag
+  'high_risk_reservations_today',   // no-show insight voor vandaag
+  'pacing_capacity_warning',        // shift-pacing voor vandaag
+]);
 
 // ============================================
 // PROVIDER INTERFACE
