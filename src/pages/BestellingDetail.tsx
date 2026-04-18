@@ -216,15 +216,11 @@ export default function BestellingDetail() {
 
       {/* Leverdatum */}
       {isConcept && (
-        <div>
-          <label className="text-sm font-medium text-foreground block mb-1.5">Verwachte leverdatum</label>
-          <input
-            type="date"
-            value={verwachteLeverdatum}
-            onChange={(e) => updateLeverdatum(e.target.value)}
-            className="h-11 rounded-button border-[1.5px] border-border bg-card px-3 text-sm text-foreground focus:!border-primary focus:outline-none focus:ring-0"
-          />
-        </div>
+        <LeverdatumSection
+          locationId={bestelling.location_id}
+          value={verwachteLeverdatum}
+          onChange={updateLeverdatum}
+        />
       )}
 
       {/* Bestelregels */}
