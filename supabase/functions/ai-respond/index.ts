@@ -514,6 +514,51 @@ function getSystemPromptTone(tone: string | null): string {
   }
 }
 
+// TODO: timezone-aware day-boundaries bij multi-land support (gebruik locations.timezone).
+// Nu: server-tijd (UTC) = Nederland-day binnen ~2u marge. Edge case 23:45 CET kan
+// "vandaag" verkeerd labelen. Acceptabel voor MVP / Pura Vida (NL-only).
+function formatOperatingHours(oh: OperatingHoursContext, language: 'nl' | 'en'): string {
+  const dayNamesNl = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+  const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const days = language === 'en' ? dayNamesEn : dayNamesNl;
+
+  const status = oh.isOpenNow
+    ? (language === 'en' ? 'Currently OPEN.' : 'Op dit moment GEOPEND.')
+    : (language === 'en' ? 'Currently CLOSED.' : 'Op dit moment GESLOTEN.');
+
+  const lines: string[] = [];
+  for (const row of oh.schedule14d) {
+    const d = new Date(row.date + 'T00:00:00Z');
+    const dn = days[d.getUTCDay()];
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    if (row.is_closed || !row.open_time || !row.close_time) {
+      const closedWord = language === 'en' ? 'closed' : 'gesloten';
+      lines.push(`  ${dn} ${dd}-${mm}: ${closedWord}${row.label ? ` (${row.label})` : ''}`);
+    } else {
+      lines.push(`  ${dn} ${dd}-${mm}: ${row.open_time.slice(0, 5)}–${row.close_time.slice(0, 5)}${row.label ? ` (${row.label})` : ''}`);
+    }
+  }
+
+  let nextLine = '';
+  if (oh.nextOpening) {
+    const d = new Date(oh.nextOpening.date + 'T00:00:00Z');
+    const dn = days[d.getUTCDay()];
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    nextLine = language === 'en'
+      ? `Next opening: ${dn} ${dd}-${mm} at ${oh.nextOpening.open_time}${oh.nextOpening.label ? ` (${oh.nextOpening.label})` : ''}.`
+      : `Eerstvolgende opening: ${dn} ${dd}-${mm} om ${oh.nextOpening.open_time}${oh.nextOpening.label ? ` (${oh.nextOpening.label})` : ''}.`;
+  }
+
+  const header = language === 'en' ? 'OPENING HOURS:' : 'OPENINGSTIJDEN:';
+  const usage = language === 'en'
+    ? 'Use this exact data to answer hours-related questions. Never invent times.'
+    : 'Gebruik deze exacte data om openingstijden-vragen te beantwoorden. Verzin nooit tijden.';
+
+  return `${header}\n- ${status}\n${nextLine ? `- ${nextLine}\n` : ''}- ${language === 'en' ? 'Next 14 days' : 'Komende 14 dagen'}:\n${lines.join('\n')}\n${usage}`;
+}
+
 function buildDietInfo(customer: any): string {
   if (!customer?.dietary_preferences) return '';
   const prefs = customer.dietary_preferences;
