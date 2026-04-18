@@ -172,8 +172,8 @@ async function handleAvailability(body: Record<string, unknown>) {
       .from('location_operating_exceptions')
       .select('label')
       .eq('location_id', location_id)
-      .eq('date', date)
-      .eq('is_closed', true)
+      .eq('exception_date', date)
+      .eq('exception_type', 'closed')
       .maybeSingle();
 
     return jsonResponse({
