@@ -40,6 +40,9 @@ export default function MepTaken() {
   const [wasteOpen, setWasteOpen] = useState(false);
   const [personeelOpen, setPersoneelOpen] = useState(false);
 
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, view); } catch {}
   }, [view]);
@@ -57,6 +60,10 @@ export default function MepTaken() {
   const weekStartStr = format(startOfWeek(new Date(selectedDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEndStr = format(endOfWeek(new Date(selectedDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const { data: weekTasks = [], isLoading: weekLoading } = useMepTasksWeek(weekStartStr, weekEndStr);
+
+  // Operating-hours check (combi-hook, 1 RPC, gedeelde cache met QuickAdd)
+  const { isClosedOnDate } = useLocationScheduleRange(locationId, selectedDate, 30);
+  const closedInfo = isClosedOnDate(selectedDate);
 
   // Ingredient stock for priority scoring
   const { data: ingredientStock } = useMepIngredientStock(dayTasks, false);
