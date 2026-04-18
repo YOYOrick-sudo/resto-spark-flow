@@ -258,10 +258,20 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
     <div className="space-y-2">
       <div className="relative">
         <NestoInput
-          placeholder="Zoek halffabricaat, ingrediënt of voeg taak toe..."
+          placeholder={
+            isClosedOnSelectedDate
+              ? `Locatie gesloten${closedLabel ? ` (${closedLabel})` : ""} — taak toch toevoegen?`
+              : "Zoek halffabricaat, ingrediënt of voeg taak toe..."
+          }
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search className="h-4 w-4" />}
+          leftIcon={
+            isClosedOnSelectedDate ? (
+              <AlertTriangle className="h-4 w-4 text-[hsl(38_92%_50%)]" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )
+          }
         />
         {showDropdown && (
           <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto">
@@ -290,6 +300,23 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
           taskDate={getSmartDate()}
         />
       )}
+
+      <ConfirmDialog
+        open={!!pendingAction}
+        onOpenChange={(open) => { if (!open) setPendingAction(null); }}
+        title="Locatie gesloten op deze datum"
+        description={
+          pendingAction
+            ? `Op ${format(new Date(pendingAction.date), "EEEE d MMMM", { locale: nl })} is de locatie gesloten${pendingAction.label ? ` (${pendingAction.label})` : ""}. Weet je zeker dat je hier een taak wilt plannen?`
+            : ""
+        }
+        confirmLabel="Toch toevoegen"
+        cancelLabel="Annuleren"
+        onConfirm={() => {
+          pendingAction?.run();
+          setPendingAction(null);
+        }}
+      />
     </div>
   );
 }
