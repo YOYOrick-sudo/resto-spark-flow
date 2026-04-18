@@ -95,7 +95,7 @@ export function LogboekMonthGrid({ anchorDate, byDate, onSelectDate }: LogboekMo
                 )}
               </div>
 
-              {!isFuture && isClosed && (
+              {isClosed && (
                 <div className="mt-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
                   Gesloten{bucket?.closedLabel ? ` · ${bucket.closedLabel}` : ""}
                 </div>
