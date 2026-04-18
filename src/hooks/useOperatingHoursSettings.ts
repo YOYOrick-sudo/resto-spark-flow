@@ -58,6 +58,63 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>, locationId: string
   qc.invalidateQueries({ queryKey: ["operating-hours-day", locationId], exact: false });
 }
 
+/**
+ * Upserts a single hour slot for a given day. Ensures only one slot per day
+ * by patching an existing record (lowest sort_order) or inserting a new one.
+ * Idempotent — safe against double-clicks / race conditions.
+ */
+export function useUpsertDayHours(locationId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      day_of_week: number;
+      open_time: string;
+      close_time: string;
+    }) => {
+      if (!locationId) throw new Error("No location");
+
+      const { data: existing, error: fetchErr } = await supabase
+        .from("location_operating_hours")
+        .select("id")
+        .eq("location_id", locationId)
+        .eq("service_type", SERVICE)
+        .eq("day_of_week", input.day_of_week)
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+
+      if (existing) {
+        const { data, error } = await supabase
+          .from("location_operating_hours")
+          .update({ open_time: input.open_time, close_time: input.close_time })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data as RegularHourSlot;
+      }
+
+      const { data, error } = await supabase
+        .from("location_operating_hours")
+        .insert({
+          location_id: locationId,
+          service_type: SERVICE,
+          day_of_week: input.day_of_week,
+          open_time: input.open_time,
+          close_time: input.close_time,
+          sort_order: 0,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as RegularHourSlot;
+    },
+    onSuccess: () => locationId && invalidateAll(qc, locationId),
+  });
+}
+
+/** @deprecated Use useUpsertDayHours instead. Retained for backwards compat. */
 export function useInsertHourSlot(locationId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
