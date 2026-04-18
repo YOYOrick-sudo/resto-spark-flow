@@ -160,14 +160,16 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
       }
     }
 
-    createTask.mutate({
-      title,
-      category: "Overig",
-      task_date: smartDate,
-      units: 1,
-      prioriteit: "Normaal",
+    runWithClosedCheck(smartDate, () => {
+      createTask.mutate({
+        title,
+        category: "Overig",
+        task_date: smartDate,
+        units: 1,
+        prioriteit: "Normaal",
+      });
+      autoSaveFavoriet({ title, category: "Overig" });
     });
-    autoSaveFavoriet({ title, category: "Overig" });
     setSearch("");
   };
 
