@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trash2, Send, Plus, X } from "lucide-react";
+import { ArrowLeft, Trash2, Send, Plus, X, AlertTriangle, Phone, Mail } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
 import { NestoBadge } from "@/components/polar/NestoBadge";
@@ -11,10 +11,12 @@ import { useBestelling } from "@/hooks/useBestellingen";
 import { useVoorraadInkoopMutations } from "@/hooks/useVoorraadInkoopMutations";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
 import { useLocationScheduleRange } from "@/hooks/useLocationScheduleRange";
+import { useCanEditBestelmethode } from "@/hooks/useCanEditBestelmethode";
+import { BestelmethodeBadge, type BestelMethode, BESTELMETHODE_META } from "@/components/inkoop/BestelmethodeBadge";
+import { BestelmethodeSelector } from "@/components/inkoop/BestelmethodeSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { nestoToast } from "@/lib/nestoToast";
 import { cn } from "@/lib/utils";
-import { AlertTriangle } from "lucide-react";
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "warning" | "error" | "outline" }> = {
   concept: { label: "Concept", variant: "warning" },
