@@ -11,7 +11,8 @@ import {
   type AiBevoegdheden,
 } from "@/hooks/useKeukenSettings";
 import { nestoToast } from "@/lib/nestoToast";
-import { InputWithSuffix, SectionHeader } from "./_shared";
+import { InputWithSuffix } from "./_shared";
+import { SettingsCardHeader } from "@/components/settings";
 
 const AUTONOMY_OPTIONS = [
   { value: "zelfstandig", label: "Zelfstandig" },
@@ -80,8 +81,8 @@ export default function SettingsKeukenAssistent() {
               <div className="flex justify-center py-10"><Spinner /></div>
             ) : (
               <>
-                <SectionHeader
-                  title="BEVOEGDHEDEN"
+                <SettingsCardHeader
+                  title="Bevoegdheden"
                   description="Bepaal hoeveel autonomie de Assistent krijgt voor keuken-gerelateerde taken."
                 />
                 <div className="space-y-1">
@@ -132,8 +133,8 @@ export default function SettingsKeukenAssistent() {
               <div className="flex justify-center py-10"><Spinner /></div>
             ) : (
               <>
-                <SectionHeader
-                  title="MELDINGEN"
+                <SettingsCardHeader
+                  title="Meldingen"
                   description="Drempelwaarden voor wanneer de Assistent keuken-meldingen toont."
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

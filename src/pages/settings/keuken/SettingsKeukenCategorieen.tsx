@@ -4,7 +4,8 @@ import { NestoCard, NestoCardContent, NestoButton, Spinner } from "@/components/
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useKeukenSettings, useUpdateKeukenSettings } from "@/hooks/useKeukenSettings";
 import { nestoToast } from "@/lib/nestoToast";
-import { CategoryManager, SectionHeader } from "./_shared";
+import { CategoryManager } from "./_shared";
+import { SettingsCardHeader } from "@/components/settings";
 
 export default function SettingsKeukenCategorieen() {
   const { data: settings, isLoading } = useKeukenSettings();
@@ -52,8 +53,8 @@ export default function SettingsKeukenCategorieen() {
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : (
             <>
-              <SectionHeader
-                title="CATEGORIEËN"
+              <SettingsCardHeader
+                title="Categorieën"
                 description="Voeg toe of verwijder naar behoefte. Pillen verschijnen in dropdowns bij aanmaken/bewerken."
               />
               <div className="space-y-6">
