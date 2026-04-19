@@ -7644,6 +7644,20 @@ export type Database = {
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       is_platform_user: { Args: { _user_id: string }; Returns: boolean }
+      koppel_extra_leverancier: {
+        Args: {
+          p_artikel_naam: string
+          p_artikel_nummer?: string
+          p_ean_code?: string
+          p_ingredient_id: string
+          p_leverancier_id: string
+          p_prijs_per_eenheid?: number
+          p_prijs_per_verpakking?: number
+          p_verpakking_eenheid?: string
+          p_verpakking_hoeveelheid?: number
+        }
+        Returns: string
+      }
       list_segment_customers: {
         Args: {
           _filter_rules?: Json
