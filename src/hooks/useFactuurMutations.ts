@@ -466,19 +466,10 @@ export function useFactuurMutations() {
           }
 
           // 4. UPSERT leveranciers_artikelen
-          // R4b-3: deactiveer ALLE bestaande koppelingen voor deze (leverancier, ingredient)
-          // vóór upsert — zelfde reden als createNewIngredientFromFactuur.
+          // R4b-3 FIX: GEEN pre-deactivate op (leverancier, ingredient). Onconflict
+          // op (leverancier_id, artikel_nummer) is voldoende; multi-leverancier blijft intact.
           const artNr = item.artikelnummer?.trim();
           if (item.leverancierId && artNr) {
-            const { error: deactErr } = await supabase
-              .from("leveranciers_artikelen")
-              .update({ is_actief: false })
-              .eq("leverancier_id", item.leverancierId)
-              .eq("ingredient_id", ing.id);
-            if (deactErr) {
-              console.warn("[bulkCreate] deactivate existing failed:", deactErr);
-            }
-
             const { error: laErr } = await supabase
               .from("leveranciers_artikelen")
               .upsert(
