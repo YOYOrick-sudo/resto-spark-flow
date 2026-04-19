@@ -217,6 +217,19 @@ export function NieuwIngredientInlineForm({
             onChange={(e) => setNaam(e.target.value)}
             placeholder="bijv. Kipfilet"
           />
+          {duplicate && !duplicateAcknowledged && (
+            <button
+              type="button"
+              onClick={() => setDuplicateDialogOpen(true)}
+              className="mt-1.5 w-full flex items-start gap-1.5 text-left text-[10px] text-warning bg-warning/10 hover:bg-warning/15 rounded px-2 py-1.5 transition-colors"
+            >
+              <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+              <span>
+                Bestaat al: <span className="font-semibold">{duplicate.naam}</span>{" "}
+                · klik om te koppelen of variant te maken
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
