@@ -1,3 +1,24 @@
+/**
+ * SETTINGS LAYOUT PRINCIPLE
+ * ─────────────────────────
+ * Toekomstige settings-pagina's zijn automatisch consistent zolang ze:
+ *   1. SettingsDetailLayout als shell gebruiken
+ *   2. SettingsCardHeader voor alle card-headers gebruiken
+ *      (vervangt 4 historische varianten — text-lg / text-sm / text-base / [11px] uppercase)
+ *   3. SettingsSaveIndicator voor save-feedback gebruiken
+ *      (nestoToast alleen voor create / delete / bulk / send)
+ *   4. De edit-flow beslisregel volgen
+ *      ≤ 2 secties of ≤ 6 velden  → Slide-in Sheet (NestoPanel, 460px)
+ *      3+ secties of 7+ velden    → Detail-pagina (eigen route)
+ *      Bulk / single-action       → Dialog
+ *      Snelle key-value edit      → Inline
+ *
+ * Typografie-hiërarchie:
+ *   H1  pagina-titel    text-2xl   font-semibold   (DEZE component)
+ *   H2  card-header     text-base  font-semibold   (SettingsCardHeader)
+ *   H3  sectie-label    text-[11px] font-medium uppercase tracking-wider text-muted-foreground
+ */
+
 import { Link } from "react-router-dom";
 import {
   Breadcrumb,
@@ -17,6 +38,8 @@ interface SettingsDetailLayoutProps {
   title: React.ReactNode;
   description?: string;
   breadcrumbs: BreadcrumbItemType[];
+  /** Optional save-state indicator rendered to the left of `actions` in the title row. */
+  saveIndicator?: React.ReactNode;
   actions?: React.ReactNode;
   aside?: React.ReactNode;
   children: React.ReactNode;
@@ -26,6 +49,7 @@ export function SettingsDetailLayout({
   title,
   description,
   breadcrumbs,
+  saveIndicator,
   actions,
   aside,
   children,
@@ -62,13 +86,18 @@ export function SettingsDetailLayout({
 
       {/* Header - Full width */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">{title}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold leading-tight">{title}</h1>
           {description && (
             <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
           )}
         </div>
-        {actions && <div className="flex-shrink-0">{actions}</div>}
+        {(saveIndicator || actions) && (
+          <div className="flex flex-shrink-0 items-center gap-3">
+            {saveIndicator}
+            {actions}
+          </div>
+        )}
       </div>
 
       {/* Content + Aside Grid */}
