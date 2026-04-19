@@ -315,95 +315,97 @@ export default function SettingsReserveringenWidget() {
 
             <EmbedModeSelector value={embedMode} onChange={setEmbedMode} />
 
-            {/* Mode-specifieke configuratie */}
-            {embedMode === 'button' && (
-              <div className={sectionDivider}>
-                <h4 className={sectionHeader}>Knopconfiguratie</h4>
-                <div className="bg-secondary/50 rounded-card p-4 space-y-4">
-                  <NestoInput
-                    label="Knoptekst"
-                    value={buttonLabel}
-                    onChange={e => setButtonLabel(e.target.value)}
-                    placeholder="Reserveer"
-                  />
-                  <NestoSelect
-                    label="Positie"
-                    value={buttonPosition}
-                    onValueChange={setButtonPosition}
-                    options={positionOptions}
-                  />
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Pulse indicator</p>
-                      <p className="text-xs text-muted-foreground">Groene dot die beschikbaarheid aangeeft</p>
+            <div className="mt-6 divide-y divide-border/50">
+              {/* Mode-specifieke configuratie */}
+              {embedMode === 'button' && (
+                <div className="pb-5">
+                  <SettingsSectionLabel className="mb-4">Knopconfiguratie</SettingsSectionLabel>
+                  <div className="space-y-4">
+                    <NestoInput
+                      label="Knoptekst"
+                      value={buttonLabel}
+                      onChange={e => setButtonLabel(e.target.value)}
+                      placeholder="Reserveer"
+                    />
+                    <NestoSelect
+                      label="Positie"
+                      value={buttonPosition}
+                      onValueChange={setButtonPosition}
+                      options={positionOptions}
+                    />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Pulse indicator</p>
+                        <p className="text-xs text-muted-foreground">Groene dot die beschikbaarheid aangeeft</p>
+                      </div>
+                      <Switch checked={local.widget_button_pulse} onCheckedChange={v => updateField('widget_button_pulse', v)} />
                     </div>
-                    <Switch checked={local.widget_button_pulse} onCheckedChange={v => updateField('widget_button_pulse', v)} />
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {embedMode === 'inline' && (
-              <div className={sectionDivider}>
-                <h4 className={sectionHeader}>Container</h4>
-                <div className="bg-secondary/50 rounded-card-sm p-4">
-                  <p className="text-xs text-muted-foreground">
-                    Plaats een <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono">&lt;div id="nesto-booking"&gt;&lt;/div&gt;</code> op je website waar de widget moet verschijnen.
-                  </p>
+              {embedMode === 'inline' && (
+                <div className="pb-5">
+                  <SettingsSectionLabel className="mb-4">Container</SettingsSectionLabel>
+                  <div className="bg-muted/30 border border-border/40 rounded-md p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Plaats een <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono">&lt;div id="nesto-booking"&gt;&lt;/div&gt;</code> op je website waar de widget moet verschijnen.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {embedMode === 'link' && (
-              <div className={sectionDivider}>
-                <h4 className={sectionHeader}>Widget URL</h4>
-                <div className="bg-secondary/50 rounded-card-sm p-4 flex items-center justify-between gap-3">
-                  <p className="text-sm font-mono truncate min-w-0">{baseUrl}/book/{local.location_slug}</p>
-                  <a
-                    href={`${baseUrl}/book/${local.location_slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                  >
-                    Open <ExternalLink className="h-3 w-3" />
-                  </a>
+              {embedMode === 'link' && (
+                <div className="pb-5">
+                  <SettingsSectionLabel className="mb-4">Widget URL</SettingsSectionLabel>
+                  <div className="bg-muted/30 border border-border/40 rounded-md p-3 flex items-center justify-between gap-3">
+                    <p className="text-sm font-mono truncate min-w-0">{baseUrl}/book/{local.location_slug}</p>
+                    <a
+                      href={`${baseUrl}/book/${local.location_slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                      Open <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
                 </div>
+              )}
+
+              {/* Test je integratie */}
+              <div className="py-5">
+                <SettingsSectionLabel className="mb-4">Test je integratie</SettingsSectionLabel>
+                <WidgetLivePreview
+                  mode={embedMode}
+                  slug={local.location_slug}
+                  color={local.widget_primary_color}
+                  accentColor={local.widget_accent_color}
+                  buttonLabel={buttonLabel}
+                  buttonPosition={buttonPosition}
+                  baseUrl={baseUrl}
+                  logoUrl={local.widget_logo_url}
+                  restaurantName={restaurantName}
+                />
               </div>
-            )}
 
-            {/* Test je integratie */}
-            <div className={sectionDivider}>
-              <h4 className={sectionHeader}>Test je integratie</h4>
-              <WidgetLivePreview
-                mode={embedMode}
-                slug={local.location_slug}
-                color={local.widget_primary_color}
-                accentColor={local.widget_accent_color}
-                buttonLabel={buttonLabel}
-                buttonPosition={buttonPosition}
-                baseUrl={baseUrl}
-                logoUrl={local.widget_logo_url}
-                restaurantName={restaurantName}
-              />
-            </div>
-
-            {/* Installatiecode */}
-            <div className={sectionDivider}>
-              <h4 className={sectionHeader}>
-                {embedMode === 'link' ? 'Widget URL' : 'Installatiecode'}
-              </h4>
-              <EmbedCodePreview
-                mode={embedMode}
-                slug={local.location_slug}
-                color={local.widget_primary_color}
-                accentColor={local.widget_accent_color}
-                buttonLabel={buttonLabel}
-                buttonPosition={buttonPosition}
-                baseUrl={baseUrl}
-                pulse={local.widget_button_pulse}
-                logoUrl={local.widget_logo_url}
-                restaurantName={restaurantName}
-              />
+              {/* Installatiecode */}
+              <div className="pt-5">
+                <SettingsSectionLabel className="mb-4">
+                  {embedMode === 'link' ? 'Widget URL' : 'Installatiecode'}
+                </SettingsSectionLabel>
+                <EmbedCodePreview
+                  mode={embedMode}
+                  slug={local.location_slug}
+                  color={local.widget_primary_color}
+                  accentColor={local.widget_accent_color}
+                  buttonLabel={buttonLabel}
+                  buttonPosition={buttonPosition}
+                  baseUrl={baseUrl}
+                  pulse={local.widget_button_pulse}
+                  logoUrl={local.widget_logo_url}
+                  restaurantName={restaurantName}
+                />
+              </div>
             </div>
           </NestoCard>
         )}
