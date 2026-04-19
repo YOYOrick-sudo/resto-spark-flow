@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDetailLayout";
 import {
   NestoButton,
   NestoBadge,
@@ -62,19 +63,19 @@ export default function SettingsApparaten() {
   const codeDevice = devices?.find((d) => d.id === showCodeFor);
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Apparaten</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Beheer iPads, kiosks en andere gekoppelde apparaten.
-          </p>
-        </div>
+    <SettingsDetailLayout
+      title="Apparaten"
+      description="Beheer iPads, kiosks en andere gekoppelde apparaten."
+      breadcrumbs={[
+        { label: "Instellingen", path: "/instellingen/voorkeuren" },
+        { label: "Apparaten" },
+      ]}
+      actions={
         <NestoButton onClick={() => setAddOpen(true)}>
           <Plus className="h-4 w-4 mr-1.5" /> Apparaat toevoegen
         </NestoButton>
-      </div>
-
+      }
+    >
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Spinner />
@@ -247,6 +248,6 @@ export default function SettingsApparaten() {
           ) : null
         }
       </NestoPanel>
-    </div>
+    </SettingsDetailLayout>
   );
 }

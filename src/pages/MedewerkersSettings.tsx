@@ -1,10 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { NestoButton, NestoInput, Spinner } from "@/components/polar";
+import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDetailLayout";
+import { NestoButton, NestoCard, NestoInput, Spinner } from "@/components/polar";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Check, X } from "lucide-react";
 import {
@@ -66,33 +62,24 @@ export default function MedewerkersSettings() {
   };
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/instellingen/voorkeuren">Instellingen</Link></BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/instellingen/keuken">Keuken</Link></BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>Medewerkers</BreadcrumbPage></BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="max-w-[720px] mx-auto">
-        <div className="flex items-center justify-between pb-6">
-          <div>
-            <h1 className="text-h1 text-foreground">Medewerkers</h1>
-            <p className="text-body text-muted-foreground mt-1">
-              Keukenmedewerkers verschijnen op labels, bij MEP taken en HACCP registraties.
-            </p>
-          </div>
-          <NestoButton onClick={() => { setShowForm(true); setEditId(null); setNaam(""); setRol("Kok"); setEmail(""); }}>
-            <Plus className="h-4 w-4 mr-1" />
-            Nieuw
-          </NestoButton>
-        </div>
-
+    <SettingsDetailLayout
+      title="Medewerkers"
+      description="Keukenmedewerkers verschijnen op labels, bij MEP taken en HACCP registraties."
+      breadcrumbs={[
+        { label: "Instellingen", path: "/instellingen/voorkeuren" },
+        { label: "Keuken", path: "/instellingen/keuken" },
+        { label: "Medewerkers" },
+      ]}
+      actions={
+        <NestoButton onClick={() => { setShowForm(true); setEditId(null); setNaam(""); setRol("Kok"); setEmail(""); }}>
+          <Plus className="h-4 w-4 mr-1" />
+          Nieuw
+        </NestoButton>
+      }
+    >
+      <div className="space-y-4">
         {/* Filter */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2">
           {(["actief", "inactief", "alle"] as Filter[]).map((f) => (
             <button
               key={f}
@@ -110,7 +97,7 @@ export default function MedewerkersSettings() {
 
         {/* New medewerker form */}
         {showForm && !editId && (
-          <div className="bg-card border border-border rounded-lg p-4 mb-4 space-y-3">
+          <NestoCard className="p-4 space-y-3">
             <div className="grid grid-cols-3 gap-3">
               <NestoInput placeholder="Naam *" value={naam} onChange={(e) => setNaam(e.target.value)} />
               <Select value={rol} onValueChange={setRol}>
@@ -127,7 +114,7 @@ export default function MedewerkersSettings() {
                 <Check className="h-3.5 w-3.5 mr-1" />Toevoegen
               </NestoButton>
             </div>
-          </div>
+          </NestoCard>
         )}
 
         {isLoading ? (
@@ -137,7 +124,7 @@ export default function MedewerkersSettings() {
             {filter === "actief" ? "Nog geen medewerkers. Voeg er een toe!" : "Geen medewerkers gevonden."}
           </div>
         ) : (
-          <div className="border border-border rounded-lg overflow-hidden">
+          <NestoCard className="overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -197,9 +184,9 @@ export default function MedewerkersSettings() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </NestoCard>
         )}
       </div>
-    </div>
+    </SettingsDetailLayout>
   );
 }
