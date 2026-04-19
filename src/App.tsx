@@ -133,6 +133,7 @@ import {
   SettingsReserveringenTickets,
   SettingsReserveringenTicketDetail,
   SettingsReserveringenBeleid,
+  SettingsReserveringenBeleidDetail,
   SettingsReserveringenWidget,
   SettingsReserveringenWachtlijst,
 } from "./pages/settings/reserveringen";
@@ -273,6 +274,8 @@ const App = () => (
                   <Route path="/instellingen/reserveringen/tickets/nieuw" element={<SettingsReserveringenTicketDetail />} />
                   <Route path="/instellingen/reserveringen/tickets/:id" element={<SettingsReserveringenTicketDetail />} />
                   <Route path="/instellingen/reserveringen/beleid" element={<SettingsReserveringenBeleid />} />
+                  <Route path="/instellingen/reserveringen/beleid/nieuw" element={<SettingsReserveringenBeleidDetail />} />
+                  <Route path="/instellingen/reserveringen/beleid/:id" element={<SettingsReserveringenBeleidDetail />} />
                   <Route path="/instellingen/reserveringen/shift-tijden" element={<SettingsReserveringenShiftTijden />} />
                   <Route path="/instellingen/reserveringen/notificaties" element={<SettingsReserveringenNotificaties />} />
                   <Route path="/instellingen/reserveringen/widget" element={<SettingsReserveringenWidget />} />
