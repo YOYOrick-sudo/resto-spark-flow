@@ -5,7 +5,7 @@ import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useKeukenSettings, useUpdateKeukenSettings } from "@/hooks/useKeukenSettings";
 import { nestoToast } from "@/lib/nestoToast";
 import { InputWithSuffix } from "./_shared";
-import { SettingsCardHeader } from "@/components/settings";
+import { SettingsCardHeader, SettingsSaveIndicator, type SaveState } from "@/components/settings";
 
 export default function SettingsKeukenHaccp() {
   const { data: settings, isLoading } = useKeukenSettings();
@@ -15,6 +15,7 @@ export default function SettingsKeukenHaccp() {
   const [vriezerMax, setVriezerMax] = useState("");
   const [kernMin, setKernMin] = useState("");
   const [warmhoudenMin, setWarmhoudenMin] = useState("");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
 
   useEffect(() => {
     if (settings) {
@@ -36,13 +37,19 @@ export default function SettingsKeukenHaccp() {
   }, [settings, koelingMax, vriezerMax, kernMin, warmhoudenMin]);
 
   const handleSave = async () => {
-    await updateSettings.mutateAsync({
-      haccp_koeling_max: parseFloat(koelingMax) || 7,
-      haccp_vriezer_max: parseFloat(vriezerMax) || -18,
-      haccp_kern_min: parseFloat(kernMin) || 75,
-      haccp_warmhouden_min: parseFloat(warmhoudenMin) || 60,
-    });
-    nestoToast.success("Temperatuur-grenzen opgeslagen");
+    setSaveState("saving");
+    try {
+      await updateSettings.mutateAsync({
+        haccp_koeling_max: parseFloat(koelingMax) || 7,
+        haccp_vriezer_max: parseFloat(vriezerMax) || -18,
+        haccp_kern_min: parseFloat(kernMin) || 75,
+        haccp_warmhouden_min: parseFloat(warmhoudenMin) || 60,
+      });
+      setSaveState("saved");
+    } catch (e) {
+      setSaveState("error");
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
+    }
   };
 
   return (
@@ -67,7 +74,7 @@ export default function SettingsKeukenHaccp() {
                 <InputWithSuffix label="Kern minimum" value={kernMin} onChange={setKernMin} suffix="°C" step="0.1" />
                 <InputWithSuffix label="Warmhouden minimum" value={warmhoudenMin} onChange={setWarmhoudenMin} suffix="°C" step="0.1" />
               </div>
-              <div className="border-t border-border/50 pt-5 mt-6">
+              <div className="border-t border-border/50 pt-5 mt-6 flex items-center gap-3">
                 <NestoButton
                   onClick={handleSave}
                   disabled={!isDirty}
@@ -76,6 +83,11 @@ export default function SettingsKeukenHaccp() {
                 >
                   Opslaan
                 </NestoButton>
+                <SettingsSaveIndicator
+                  state={saveState}
+                  variant="inline-button"
+                  onAutoFade={() => setSaveState("idle")}
+                />
               </div>
             </>
           )}

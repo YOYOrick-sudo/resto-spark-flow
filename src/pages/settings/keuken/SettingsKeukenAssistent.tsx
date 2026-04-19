@@ -12,7 +12,11 @@ import {
 } from "@/hooks/useKeukenSettings";
 import { nestoToast } from "@/lib/nestoToast";
 import { InputWithSuffix } from "./_shared";
-import { SettingsCardHeader } from "@/components/settings";
+import {
+  SettingsCardHeader,
+  SettingsSaveIndicator,
+  type SaveState,
+} from "@/components/settings";
 
 const AUTONOMY_OPTIONS = [
   { value: "zelfstandig", label: "Zelfstandig" },
@@ -27,6 +31,27 @@ const AI_TASKS: { key: keyof Omit<AiBevoegdheden, "haccp_waarschuwingen">; label
   { key: "voorraad_waarschuwingen", label: "Voorraad waarschuwingen" },
 ];
 
+/**
+ * SettingsKeukenAssistent — DUAL save-indicator pattern
+ * ─────────────────────────────────────────────────────
+ * Deze pagina bevat twee fundamenteel verschillende save-flows:
+ *
+ *  1. AI-Bevoegdheden (NestoSelect dropdowns) → INSTANT-SAVE bij wijziging
+ *     → geen Opslaan-knop, dus geen ankerpunt voor inline-button indicator
+ *     → variant: "title-bar" via SettingsDetailLayout's `saveIndicator` slot
+ *     → state: `aiSaveState`
+ *
+ *  2. Drempelwaarden (€-velden) → CLICK-TO-SAVE met expliciete Opslaan-knop
+ *     → indicator hoort visueel naast de actie-trigger
+ *     → variant: "inline-button" naast <NestoButton>
+ *     → state: `drempelsSaveState`
+ *
+ * Beide states zijn onafhankelijk; de varianten verschillen visueel in
+ * positie en grootte zodat ze niet conflicteren als ze gelijktijdig actief
+ * zouden zijn (zeldzaam — gebruiker doet of-of).
+ *
+ * Pattern-regel: zie SettingsSaveIndicator JSDoc.
+ */
 export default function SettingsKeukenAssistent() {
   const { data: settings, isLoading } = useKeukenSettings();
   const updateSettings = useUpdateKeukenSettings();
@@ -35,6 +60,10 @@ export default function SettingsKeukenAssistent() {
   const [aiBevoegdheden, setAiBevoegdheden] = useState<AiBevoegdheden | null>(null);
   const [verlopen, setVerlopen] = useState("");
   const [overschot, setOverschot] = useState("");
+
+  // Twee onafhankelijke save-states (zie file-header comment).
+  const [aiSaveState, setAiSaveState] = useState<SaveState>("idle");
+  const [drempelsSaveState, setDrempelsSaveState] = useState<SaveState>("idle");
 
   useEffect(() => {
     if (settings) {
@@ -52,19 +81,32 @@ export default function SettingsKeukenAssistent() {
     );
   }, [settings, verlopen, overschot]);
 
-  const handleAiChange = (key: keyof AiBevoegdheden, value: string) => {
+  const handleAiChange = async (key: keyof AiBevoegdheden, value: string) => {
     if (key === "haccp_waarschuwingen") return;
     const next = { ...aiBevoegdheden!, [key]: value } as AiBevoegdheden;
     setAiBevoegdheden(next);
-    updateAi.mutate(next);
+    setAiSaveState("saving");
+    try {
+      await updateAi.mutateAsync(next);
+      setAiSaveState("saved");
+    } catch (e) {
+      setAiSaveState("error");
+      nestoToast.error("Bevoegdheid niet opgeslagen", e instanceof Error ? e.message : undefined);
+    }
   };
 
   const handleSaveDrempels = async () => {
-    await updateSettings.mutateAsync({
-      assistent_min_waarde_verlopen: parseFloat(verlopen) || 5,
-      assistent_min_waarde_overschot: parseFloat(overschot) || 10,
-    });
-    nestoToast.success("Drempelwaarden opgeslagen");
+    setDrempelsSaveState("saving");
+    try {
+      await updateSettings.mutateAsync({
+        assistent_min_waarde_verlopen: parseFloat(verlopen) || 5,
+        assistent_min_waarde_overschot: parseFloat(overschot) || 10,
+      });
+      setDrempelsSaveState("saved");
+    } catch (e) {
+      setDrempelsSaveState("error");
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
+    }
   };
 
   return (
@@ -72,9 +114,17 @@ export default function SettingsKeukenAssistent() {
       title="Assistent"
       description="Bevoegdheden en drempelwaarden voor de keuken-assistent."
       breadcrumbs={buildBreadcrumbs("keuken", "assistent")}
+      saveIndicator={
+        // Title-bar indicator → autosave-flow (toggles/dropdowns zonder Opslaan-knop)
+        <SettingsSaveIndicator
+          state={aiSaveState}
+          variant="title-bar"
+          onAutoFade={() => setAiSaveState("idle")}
+        />
+      }
     >
       <div className="space-y-6">
-        {/* Bevoegdheden */}
+        {/* Bevoegdheden — instant-save bij dropdown-wijziging */}
         <NestoCard>
           <NestoCardContent>
             {isLoading ? (
@@ -126,7 +176,7 @@ export default function SettingsKeukenAssistent() {
           </NestoCardContent>
         </NestoCard>
 
-        {/* Drempelwaarden */}
+        {/* Drempelwaarden — click-to-save met inline-button indicator */}
         <NestoCard>
           <NestoCardContent>
             {isLoading ? (
@@ -155,7 +205,7 @@ export default function SettingsKeukenAssistent() {
                     helpText="Overstocked items onder deze waarde worden niet gemeld"
                   />
                 </div>
-                <div className="border-t border-border/50 pt-5 mt-6">
+                <div className="border-t border-border/50 pt-5 mt-6 flex items-center gap-3">
                   <NestoButton
                     onClick={handleSaveDrempels}
                     disabled={!drempelsDirty}
@@ -164,6 +214,11 @@ export default function SettingsKeukenAssistent() {
                   >
                     Opslaan
                   </NestoButton>
+                  <SettingsSaveIndicator
+                    state={drempelsSaveState}
+                    variant="inline-button"
+                    onAutoFade={() => setDrempelsSaveState("idle")}
+                  />
                 </div>
               </>
             )}

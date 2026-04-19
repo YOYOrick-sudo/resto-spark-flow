@@ -10,7 +10,12 @@ import {
 import { useChecklistTemplates } from "@/hooks/useChecklistTemplates";
 import { nestoToast } from "@/lib/nestoToast";
 import { TemplatesTab } from "@/components/taken/TemplatesTab";
-import { SettingsCardHeader, SettingsSectionLabel } from "@/components/settings";
+import {
+  SettingsCardHeader,
+  SettingsSectionLabel,
+  SettingsSaveIndicator,
+  type SaveState,
+} from "@/components/settings";
 
 const TYPE_LABELS: Record<keyof StandaardTijdenPerType, string> = {
   opening: "Opening",
@@ -43,6 +48,7 @@ export default function SettingsKeukenTaken() {
 
   // ---- HACCP-bevriestijd ----
   const [freezeTime, setFreezeTime] = useState("03:00");
+  const [freezeSaveState, setFreezeSaveState] = useState<SaveState>("idle");
   useEffect(() => {
     if (settings) setFreezeTime(toHm(settings.haccp_freeze_tijd, "03:00"));
   }, [settings]);
@@ -53,14 +59,21 @@ export default function SettingsKeukenTaken() {
   }, [settings, freezeTime]);
 
   const handleSaveFreeze = async () => {
-    await updateSettings.mutateAsync({
-      haccp_freeze_tijd: `${freezeTime}:00`,
-    });
-    nestoToast.success("HACCP-bevriestijd opgeslagen");
+    setFreezeSaveState("saving");
+    try {
+      await updateSettings.mutateAsync({
+        haccp_freeze_tijd: `${freezeTime}:00`,
+      });
+      setFreezeSaveState("saved");
+    } catch (e) {
+      setFreezeSaveState("error");
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
+    }
   };
 
   // ---- Standaard-tijden per type ----
   const [tijden, setTijden] = useState<StandaardTijdenPerType | null>(null);
+  const [tijdenSaveState, setTijdenSaveState] = useState<SaveState>("idle");
   useEffect(() => {
     if (settings) {
       setTijden({
@@ -82,10 +95,16 @@ export default function SettingsKeukenTaken() {
 
   const handleSaveTijden = async () => {
     if (!tijden) return;
-    await updateSettings.mutateAsync({
-      standaard_tijden_per_type: tijden,
-    });
-    nestoToast.success("Standaard-tijden opgeslagen");
+    setTijdenSaveState("saving");
+    try {
+      await updateSettings.mutateAsync({
+        standaard_tijden_per_type: tijden,
+      });
+      setTijdenSaveState("saved");
+    } catch (e) {
+      setTijdenSaveState("error");
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
+    }
   };
 
   // ---- Seed ----
@@ -133,7 +152,7 @@ export default function SettingsKeukenTaken() {
                     Na deze tijd kunnen runs van de vorige dag niet meer worden aangepast (HACCP-compliance).
                   </p>
                 </div>
-                <div className="border-t border-border/50 pt-5 mt-6">
+                <div className="border-t border-border/50 pt-5 mt-6 flex items-center gap-3">
                   <NestoButton
                     onClick={handleSaveFreeze}
                     disabled={!freezeDirty}
@@ -142,6 +161,11 @@ export default function SettingsKeukenTaken() {
                   >
                     Opslaan
                   </NestoButton>
+                  <SettingsSaveIndicator
+                    state={freezeSaveState}
+                    variant="inline-button"
+                    onAutoFade={() => setFreezeSaveState("idle")}
+                  />
                 </div>
               </>
             )}
@@ -179,7 +203,7 @@ export default function SettingsKeukenTaken() {
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-border/50 pt-5 mt-6">
+                <div className="border-t border-border/50 pt-5 mt-6 flex items-center gap-3">
                   <NestoButton
                     onClick={handleSaveTijden}
                     disabled={!tijdenDirty}
@@ -188,13 +212,18 @@ export default function SettingsKeukenTaken() {
                   >
                     Opslaan
                   </NestoButton>
+                  <SettingsSaveIndicator
+                    state={tijdenSaveState}
+                    variant="inline-button"
+                    onAutoFade={() => setTijdenSaveState("idle")}
+                  />
                 </div>
               </>
             )}
           </NestoCardContent>
         </NestoCard>
 
-        {/* SECTIE 4 — Seed */}
+        {/* SECTIE 4 — Seed (create-actie → nestoToast blijft via hook) */}
         {showSeed && (
           <NestoCard>
             <NestoCardContent>

@@ -5,7 +5,7 @@ import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useKeukenSettings, useUpdateKeukenSettings } from "@/hooks/useKeukenSettings";
 import { nestoToast } from "@/lib/nestoToast";
 import { CategoryManager } from "./_shared";
-import { SettingsCardHeader } from "@/components/settings";
+import { SettingsCardHeader, SettingsSaveIndicator, type SaveState } from "@/components/settings";
 
 export default function SettingsKeukenCategorieen() {
   const { data: settings, isLoading } = useKeukenSettings();
@@ -14,6 +14,7 @@ export default function SettingsKeukenCategorieen() {
   const [ingredientCats, setIngredientCats] = useState<string[]>([]);
   const [receptCats, setReceptCats] = useState<string[]>([]);
   const [gerechtCats, setGerechtCats] = useState<string[]>([]);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
 
   useEffect(() => {
     if (settings) {
@@ -33,12 +34,18 @@ export default function SettingsKeukenCategorieen() {
   }, [settings, ingredientCats, receptCats, gerechtCats]);
 
   const handleSave = async () => {
-    await updateSettings.mutateAsync({
-      ingredient_categorieen: ingredientCats,
-      recept_categorieen: receptCats,
-      gerecht_categorieen: gerechtCats,
-    });
-    nestoToast.success("Categorieën opgeslagen");
+    setSaveState("saving");
+    try {
+      await updateSettings.mutateAsync({
+        ingredient_categorieen: ingredientCats,
+        recept_categorieen: receptCats,
+        gerecht_categorieen: gerechtCats,
+      });
+      setSaveState("saved");
+    } catch (e) {
+      setSaveState("error");
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
+    }
   };
 
   return (
@@ -77,7 +84,7 @@ export default function SettingsKeukenCategorieen() {
                   onRemove={(idx) => setGerechtCats((prev) => prev.filter((_, i) => i !== idx))}
                 />
               </div>
-              <div className="border-t border-border/50 pt-5 mt-6">
+              <div className="border-t border-border/50 pt-5 mt-6 flex items-center gap-3">
                 <NestoButton
                   onClick={handleSave}
                   disabled={!isDirty}
@@ -86,6 +93,11 @@ export default function SettingsKeukenCategorieen() {
                 >
                   Opslaan
                 </NestoButton>
+                <SettingsSaveIndicator
+                  state={saveState}
+                  variant="inline-button"
+                  onAutoFade={() => setSaveState("idle")}
+                />
               </div>
             </>
           )}
