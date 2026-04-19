@@ -610,22 +610,10 @@ export function useFactuurMutations() {
           }
           const deduped = Array.from(dedupMap.values());
 
-          // R4b-3: deactiveer ALLE bestaande koppelingen voor elke (leverancier, ingredient)
-          // combinatie die we straks gaan upserten. Voorkomt duplicate is_actief=true
-          // wanneer eenzelfde ingrediënt eerder onder een ander artikelnummer was gekoppeld.
-          const uniekeIngredientIds = Array.from(
-            new Set(deduped.map((r) => r.ingredient_id))
-          );
-          if (uniekeIngredientIds.length > 0) {
-            const { error: deactErr } = await supabase
-              .from("leveranciers_artikelen")
-              .update({ is_actief: false })
-              .eq("leverancier_id", leverancierId)
-              .in("ingredient_id", uniekeIngredientIds);
-            if (deactErr) {
-              console.warn("[goedkeuren] deactivate existing failed:", deactErr);
-            }
-          }
+          // R4b-3 FIX: GEEN deactivate-vóór-upsert op (leverancier, ingredient_id).
+          // Dat zou multi-leverancier breken (her-upload Kooyman zou Sligro deactiveren).
+          // Onconflict (leverancier_id, artikel_nummer) volstaat — die scope is correct
+          // voor "zelfde artikel opnieuw geleverd door zelfde leverancier".
 
           const { error: upErr } = await supabase
             .from("leveranciers_artikelen")
