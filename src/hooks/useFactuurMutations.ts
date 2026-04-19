@@ -726,6 +726,85 @@ export function useFactuurMutations() {
     onError: (e: Error) => nestoToast.error(e.message),
   });
 
+  /**
+   * R4b-3 — Batch-variant van koppelExtraLeverancier voor BulkCreateIngredientsDialog.
+   * Verwerkt items sequentieel om race-conditions op upserts te vermijden.
+   * Toont GEEN eigen toast (caller bouwt aggregated success-summary).
+   */
+  const bulkKoppelExtraLeveranciers = useMutation({
+    mutationFn: async (
+      items: Array<{
+        regelId: string;
+        ingredientId: string;
+        leverancierId: string;
+        artikelNaam: string;
+        artikelNummer?: string | null;
+        verpakkingHoeveelheid?: number | null;
+        verpakkingEenheid?: string | null;
+        prijsPerVerpakking?: number | null;
+        prijsPerEenheid?: number | null;
+        aliasNaam?: string | null;
+      }>
+    ) => {
+      let success = 0;
+      const errors: Array<{ naam: string; error: string }> = [];
+
+      for (const item of items) {
+        try {
+          const { error } = await supabase.rpc("koppel_extra_leverancier", {
+            p_ingredient_id: item.ingredientId,
+            p_leverancier_id: item.leverancierId,
+            p_artikel_naam: item.artikelNaam,
+            p_artikel_nummer: item.artikelNummer ?? null,
+            p_ean_code: null,
+            p_verpakking_hoeveelheid: item.verpakkingHoeveelheid ?? null,
+            p_verpakking_eenheid: item.verpakkingEenheid ?? null,
+            p_prijs_per_verpakking: item.prijsPerVerpakking ?? null,
+            p_prijs_per_eenheid: item.prijsPerEenheid ?? null,
+          });
+          if (error) throw error;
+
+          // Koppel factuurregel aan bestaand ingrediënt
+          const { error: rErr } = await supabase
+            .from("factuur_regels")
+            .update({
+              ingredient_id: item.ingredientId,
+              match_status: "manual",
+              is_nieuw_ingredient: false,
+            })
+            .eq("id", item.regelId);
+          if (rErr) throw rErr;
+
+          // Best-effort alias
+          if (item.aliasNaam?.trim()) {
+            const { error: aErr } = await supabase.rpc("record_factuur_correction", {
+              p_ingredient_id: item.ingredientId,
+              p_alias_naam: item.aliasNaam.trim(),
+              p_leverancier_id: item.leverancierId,
+              p_artikelnummer: item.artikelNummer ?? null,
+            });
+            if (aErr && (aErr as any).code !== "23505") {
+              console.warn("[bulkKoppel alias] failed:", aErr);
+            }
+          }
+
+          success++;
+        } catch (err: any) {
+          console.error(`[bulkKoppel] failed for ${item.artikelNaam}:`, err);
+          errors.push({ naam: item.artikelNaam, error: err?.message ?? "Onbekend" });
+        }
+      }
+
+      return { success, errors };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+      qc.invalidateQueries({ queryKey: ["ingredienten"] });
+      qc.invalidateQueries({ queryKey: ["leveranciers-artikelen"] });
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
   return {
     uploadFactuur,
     updateFactuur,
@@ -743,5 +822,6 @@ export function useFactuurMutations() {
     goedkeuren,
     afwijzen,
     koppelExtraLeverancier,
+    bulkKoppelExtraLeveranciers,
   };
 }
