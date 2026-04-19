@@ -91,7 +91,7 @@ export default function SettingsKeukenAssistent() {
       setAiSaveState("saved");
     } catch (e) {
       setAiSaveState("error");
-      nestoToast.error("Bevoegdheid niet opgeslagen", { description: e instanceof Error ? e.message : undefined });
+      nestoToast.error("Bevoegdheid niet opgeslagen", e instanceof Error ? e.message : undefined);
     }
   };
 
@@ -105,7 +105,7 @@ export default function SettingsKeukenAssistent() {
       setDrempelsSaveState("saved");
     } catch (e) {
       setDrempelsSaveState("error");
-      nestoToast.error("Opslaan mislukt", { description: e instanceof Error ? e.message : undefined });
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
     }
   };
 

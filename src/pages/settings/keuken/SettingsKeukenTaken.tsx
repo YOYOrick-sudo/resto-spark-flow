@@ -67,7 +67,7 @@ export default function SettingsKeukenTaken() {
       setFreezeSaveState("saved");
     } catch (e) {
       setFreezeSaveState("error");
-      nestoToast.error("Opslaan mislukt", { description: e instanceof Error ? e.message : undefined });
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
     }
   };
 
@@ -103,7 +103,7 @@ export default function SettingsKeukenTaken() {
       setTijdenSaveState("saved");
     } catch (e) {
       setTijdenSaveState("error");
-      nestoToast.error("Opslaan mislukt", { description: e instanceof Error ? e.message : undefined });
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
     }
   };
 

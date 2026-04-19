@@ -44,7 +44,7 @@ export default function SettingsKeukenCategorieen() {
       setSaveState("saved");
     } catch (e) {
       setSaveState("error");
-      nestoToast.error("Opslaan mislukt", { description: e instanceof Error ? e.message : undefined });
+      nestoToast.error("Opslaan mislukt", e instanceof Error ? e.message : undefined);
     }
   };
 
