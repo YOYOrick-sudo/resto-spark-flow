@@ -324,23 +324,12 @@ export function useFactuurMutations() {
       }
 
       // 4. Upsert leveranciers_artikelen — R3.5: zowel verpakking-prijs als per-basiseenheid prijs.
-      // R4b-3: deactiveer ALLE bestaande koppelingen voor deze (leverancier, ingredient)
-      // combinatie vóór upsert. Voorkomt duplicate is_actief=true rijen wanneer dezelfde
-      // leverancier hetzelfde ingrediënt onder een nieuw artikelnummer levert.
+      // R4b-3 FIX: GEEN pre-deactivate meer op (leverancier, ingredient). Dat brak
+      // multi-leverancier (her-upload Kooyman zou Sligro-koppeling deactiveren).
+      // Onconflict op (leverancier_id, artikel_nummer) handelt re-upload van
+      // ZELFDE artikel correct af. Andere leveranciers blijven onaangeroerd.
       const artNr = vars.artikelnummer?.trim();
       if (vars.leverancierId && artNr) {
-        const { error: deactErr } = await supabase
-          .from("leveranciers_artikelen")
-          .update({ is_actief: false })
-          .eq("leverancier_id", vars.leverancierId)
-          .eq("ingredient_id", ing.id);
-        if (deactErr) {
-          console.warn(
-            "[createNewIngredientFromFactuur] deactivate existing failed:",
-            deactErr
-          );
-        }
-
         const { error: laErr } = await supabase
           .from("leveranciers_artikelen")
           .upsert(
