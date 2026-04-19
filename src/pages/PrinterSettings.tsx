@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Printer, GripVertical } from "lucide-react";
+import { SettingsCardHeader } from "@/components/settings";
 
 const SPEED_OPTIONS = [
   { value: "2", label: "2 ips" },
@@ -28,16 +29,8 @@ const BREADCRUMBS = [
   { label: "Printer & Labels" },
 ];
 
-function CardHeader({ title, description }: { title: string; description?: string }) {
-  return (
-    <div className="mb-5">
-      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
-        {title}
-      </h3>
-      {description && <p className="text-sm text-muted-foreground">{description}</p>}
-    </div>
-  );
-}
+// Note: PrinterSettings used a local 11px-uppercase CardHeader (H3 styling).
+// Migrated to SettingsCardHeader (H2: text-base font-semibold) for consistency.
 
 export default function PrinterSettings() {
   const { data: config, isLoading: configLoading } = usePrinterConfig();
@@ -179,8 +172,8 @@ export default function PrinterSettings() {
       <div className="space-y-6">
         {/* Card 1: Printer verbinding */}
         <NestoCard className="p-6">
-          <CardHeader
-            title="PRINTER VERBINDING"
+          <SettingsCardHeader
+            title="Printer verbinding"
             description="Verbind je Raspberry Pi print bridge met de Zebra printer."
           />
           <div className="space-y-4">
@@ -205,8 +198,8 @@ export default function PrinterSettings() {
 
         {/* Card 2: Label afmetingen + Save/Test */}
         <NestoCard className="p-6">
-          <CardHeader
-            title="LABEL AFMETINGEN"
+          <SettingsCardHeader
+            title="Label afmetingen"
             description="Stel de afmetingen en kwaliteit van je labels in."
           />
           <div className="grid grid-cols-2 gap-4">
@@ -246,8 +239,8 @@ export default function PrinterSettings() {
 
         {/* Card 3: Label templates */}
         <NestoCard className="p-6">
-          <CardHeader
-            title="LABEL TEMPLATES"
+          <SettingsCardHeader
+            title="Label templates"
             description="Beheer welke velden op je labels verschijnen."
           />
           {templates.length === 0 ? (

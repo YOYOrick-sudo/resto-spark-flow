@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
@@ -7,6 +6,7 @@ import { useUserContext } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nestoToast } from '@/lib/nestoToast';
+import { SettingsCardHeader } from '@/components/settings';
 
 const TASK_GROUPS = [
   {
@@ -103,10 +103,7 @@ export function PermissionsTab() {
 
       {TASK_GROUPS.map((group) => (
         <NestoCard key={group.label} className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="h-4 w-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold text-foreground">{group.label}</h3>
-          </div>
+          <SettingsCardHeader icon={<Shield />} title={group.label} />
           <div className="space-y-4">
             {group.tasks.map((task) => (
               <div key={task.key} className="flex items-center justify-between">

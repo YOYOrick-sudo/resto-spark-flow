@@ -4,7 +4,8 @@ import { NestoCard, NestoCardContent, NestoButton, Spinner } from "@/components/
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useKeukenSettings, useUpdateKeukenSettings } from "@/hooks/useKeukenSettings";
 import { nestoToast } from "@/lib/nestoToast";
-import { InputWithSuffix, SectionHeader } from "./_shared";
+import { InputWithSuffix } from "./_shared";
+import { SettingsCardHeader } from "@/components/settings";
 
 export default function SettingsKeukenHaccp() {
   const { data: settings, isLoading } = useKeukenSettings();
@@ -56,8 +57,8 @@ export default function SettingsKeukenHaccp() {
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : (
             <>
-              <SectionHeader
-                title="TEMPERATUURGRENZEN"
+              <SettingsCardHeader
+                title="Temperatuurgrenzen"
                 description="Waarden buiten deze grenzen worden rood gemarkeerd en vereisen actie."
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

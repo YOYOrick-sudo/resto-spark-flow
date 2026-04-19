@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { FieldHelp } from '@/components/polar/FieldHelp';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
-import { Check, Trash2, Upload } from 'lucide-react';
+import { Trash2, Upload } from 'lucide-react';
 import { ConfirmDialog } from '@/components/polar/ConfirmDialog';
 import { useLocationBranding, useUpdateLocationBranding } from '@/hooks/useLocationBranding';
 import { useBrandAssetUpload } from '@/hooks/useBrandAssetUpload';
@@ -14,6 +14,7 @@ import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { getTonePreviewText } from '@/utils/branding';
 import { nestoToast } from '@/lib/nestoToast';
 import { cn } from '@/lib/utils';
+import { SettingsCardHeader, SettingsSaveIndicator } from '@/components/settings';
 
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 
@@ -105,18 +106,20 @@ export function BrandingTab() {
 
   return (
     <NestoCard className="p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-1.5">
-          <h3 className="text-sm font-semibold">Restaurant branding</h3>
+      <SettingsCardHeader
+        title="Restaurant branding"
+        helpText={
           <FieldHelp>
             <p className="text-muted-foreground">Logo, kleuren en tone of voice die overal in het platform worden gebruikt — emails, widget, en straks de AI-assistent.</p>
           </FieldHelp>
-        </div>
-        <span className={cn('flex items-center gap-1 text-xs text-primary transition-opacity duration-200', saved ? 'opacity-100' : 'opacity-0')}>
-          <Check className="h-3 w-3" />
-          Opgeslagen
-        </span>
-      </div>
+        }
+        saveIndicator={
+          <SettingsSaveIndicator
+            state={updateBranding.isPending ? 'saving' : saved ? 'saved' : 'idle'}
+            variant="title-bar"
+          />
+        }
+      />
 
       <div className="bg-secondary/50 rounded-card p-4 space-y-5">
         {/* Logo */}

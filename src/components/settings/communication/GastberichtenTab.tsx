@@ -23,6 +23,7 @@ import { useReservationSettings, useUpsertReservationSettings } from '@/hooks/us
 import { useUserContext } from '@/contexts/UserContext';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { NestoModal } from '@/components/polar/NestoModal';
+import { SettingsCardHeader } from '@/components/settings';
 
 interface LocalTemplate {
   subject: string;
@@ -138,13 +139,15 @@ export function GastberichtenTab() {
     <div className="space-y-6">
       {/* Transactional Templates */}
       <NestoCard className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Mail className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">Transactionele berichten</h3>
-          <FieldHelp>
-            <p className="text-muted-foreground">Automatische emails die worden verstuurd bij boekingen, annuleringen en wachtlijst-acties.</p>
-          </FieldHelp>
-        </div>
+        <SettingsCardHeader
+          icon={<Mail />}
+          title="Transactionele berichten"
+          helpText={
+            <FieldHelp>
+              <p className="text-muted-foreground">Automatische emails die worden verstuurd bij boekingen, annuleringen en wachtlijst-acties.</p>
+            </FieldHelp>
+          }
+        />
 
         <div className="space-y-2">
           {transactionalKeys.map(key => (
@@ -165,13 +168,15 @@ export function GastberichtenTab() {
 
       {/* Reminder Templates + Settings */}
       <NestoCard className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Bell className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">Herinneringen & herbevestiging</h3>
-          <FieldHelp>
-            <p className="text-muted-foreground">Automatische herinneringen en herbevestigingsverzoeken voor gasten.</p>
-          </FieldHelp>
-        </div>
+        <SettingsCardHeader
+          icon={<Bell />}
+          title="Herinneringen & herbevestiging"
+          helpText={
+            <FieldHelp>
+              <p className="text-muted-foreground">Automatische herinneringen en herbevestigingsverzoeken voor gasten.</p>
+            </FieldHelp>
+          }
+        />
 
         {/* Settings toggles */}
         <div className="bg-secondary/50 rounded-card p-4 space-y-4 mb-4">
@@ -234,7 +239,7 @@ export function GastberichtenTab() {
 
       {/* Merge fields reference */}
       <NestoCard className="p-6">
-        <h3 className="text-sm font-semibold mb-3">Beschikbare merge fields</h3>
+        <SettingsCardHeader title="Beschikbare merge fields" />
         <div className="flex flex-wrap gap-2">
           {MERGE_FIELDS.map(f => (
             <code key={f.key} className="text-xs bg-secondary px-2 py-1 rounded-md font-mono">

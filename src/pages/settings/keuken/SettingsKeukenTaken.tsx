@@ -10,7 +10,7 @@ import {
 import { useChecklistTemplates } from "@/hooks/useChecklistTemplates";
 import { nestoToast } from "@/lib/nestoToast";
 import { TemplatesTab } from "@/components/taken/TemplatesTab";
-import { SectionHeader } from "./_shared";
+import { SettingsCardHeader, SettingsSectionLabel } from "@/components/settings";
 
 const TYPE_LABELS: Record<keyof StandaardTijdenPerType, string> = {
   opening: "Opening",
@@ -101,10 +101,10 @@ export default function SettingsKeukenTaken() {
       <div className="space-y-6">
         {/* SECTIE 1 — Templates (geen card-wrapper voor extra editor-breedte) */}
         <div className="space-y-4">
-          <SectionHeader
-            title="TEMPLATES"
-            description="Beheer checklist-templates die dagelijks of periodiek door de keuken worden uitgevoerd."
-          />
+          <SettingsSectionLabel>TEMPLATES</SettingsSectionLabel>
+          <p className="text-sm text-muted-foreground -mt-3">
+            Beheer checklist-templates die dagelijks of periodiek door de keuken worden uitgevoerd.
+          </p>
           <TemplatesTab />
         </div>
 
@@ -115,8 +115,8 @@ export default function SettingsKeukenTaken() {
               <div className="flex justify-center py-10"><Spinner /></div>
             ) : (
               <>
-                <SectionHeader
-                  title="HACCP-BEVRIESTIJD"
+                <SettingsCardHeader
+                  title="HACCP-bevriestijd"
                   description="Tijdstip waarop runs van de vorige dag definitief worden vergrendeld voor HACCP-historie."
                 />
                 <div className="max-w-xs">
@@ -155,8 +155,8 @@ export default function SettingsKeukenTaken() {
               <div className="flex justify-center py-10"><Spinner /></div>
             ) : (
               <>
-                <SectionHeader
-                  title="STANDAARD-TIJDEN PER TYPE"
+                <SettingsCardHeader
+                  title="Standaard-tijden per type"
                   description="Wordt gebruikt als suggestie bij nieuwe templates en voor sortering op de tijdlijn."
                 />
                 <div className="border border-border rounded-lg overflow-hidden divide-y divide-border bg-card">
@@ -198,8 +198,8 @@ export default function SettingsKeukenTaken() {
         {showSeed && (
           <NestoCard>
             <NestoCardContent>
-              <SectionHeader
-                title="STANDAARD TEMPLATES"
+              <SettingsCardHeader
+                title="Standaard templates"
                 description="Maakt 3 starter-templates aan: Opening, Sluiting, Schoonmaak wekelijks."
               />
               <NestoButton

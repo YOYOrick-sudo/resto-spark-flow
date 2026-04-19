@@ -3,19 +3,12 @@ import { NestoButton } from "@/components/polar";
 import { Plus, X } from "lucide-react";
 
 /**
- * Section header used across keuken settings subpages.
- * Compact uppercase label + descriptive subtitle.
+ * Shared input + category-management primitives for keuken settings subpages.
+ *
+ * Note: the legacy `SectionHeader` component was removed in Fase 2 (typografie-sweep).
+ * Use `SettingsCardHeader` (H2) or `SettingsSectionLabel` (H3) from
+ * `@/components/settings` instead.
  */
-export function SectionHeader({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mb-5">
-      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">
-        {title}
-      </h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </div>
-  );
-}
 
 /**
  * Numeric input with a fixed suffix (e.g. %, °C, €).

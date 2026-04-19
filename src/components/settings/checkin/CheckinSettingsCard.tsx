@@ -4,9 +4,10 @@ import { NestoInput } from "@/components/polar/NestoInput";
 import { FieldHelp } from "@/components/polar/FieldHelp";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Check, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useReservationSettings, useUpsertReservationSettings, defaultReservationSettings } from "@/hooks/useReservationSettings";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
+import { SettingsCardHeader, SettingsSaveIndicator } from "@/components/settings";
 
 interface CheckinSettingsCardProps {
   locationId: string | undefined;
@@ -86,32 +87,21 @@ export function CheckinSettingsCard({ locationId }: CheckinSettingsCardProps) {
 
   return (
     <NestoCard className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h3 className="text-lg font-medium">Check-in & No-show</h3>
-            <FieldHelp>
-              <p className="text-muted-foreground">Regels voor wanneer gasten mogen inchecken en wanneer een no-show automatisch wordt gemarkeerd.</p>
-            </FieldHelp>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Regels voor inchecken en automatische no-show markering.
-          </p>
-        </div>
-        <div className="h-5 min-w-20 flex items-center justify-end">
-          {isPending ? (
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Opslaan...
-            </span>
-          ) : showSaved ? (
-            <span className="text-xs text-success flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              Opgeslagen
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <SettingsCardHeader
+        title="Check-in & No-show"
+        description="Regels voor inchecken en automatische no-show markering."
+        helpText={
+          <FieldHelp>
+            <p className="text-muted-foreground">Regels voor wanneer gasten mogen inchecken en wanneer een no-show automatisch wordt gemarkeerd.</p>
+          </FieldHelp>
+        }
+        saveIndicator={
+          <SettingsSaveIndicator
+            state={isPending ? "saving" : showSaved ? "saved" : "idle"}
+            variant="title-bar"
+          />
+        }
+      />
 
       <div className="space-y-6">
         {/* Check-in window */}

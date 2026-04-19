@@ -4,7 +4,8 @@ import { NestoCard, NestoCardContent, NestoButton, Spinner } from "@/components/
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useKeukenSettings, useUpdateKeukenSettings } from "@/hooks/useKeukenSettings";
 import { nestoToast } from "@/lib/nestoToast";
-import { InputWithSuffix, SectionHeader } from "./_shared";
+import { InputWithSuffix } from "./_shared";
+import { SettingsCardHeader } from "@/components/settings";
 
 export default function SettingsKeukenInkoop() {
   const { data: settings, isLoading } = useKeukenSettings();
@@ -40,8 +41,8 @@ export default function SettingsKeukenInkoop() {
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : (
             <>
-              <SectionHeader
-                title="BESTELADVIES"
+              <SettingsCardHeader
+                title="Besteladvies"
                 description="Configureer hoe ruim het besteladvies wordt berekend."
               />
               <div className="max-w-md">

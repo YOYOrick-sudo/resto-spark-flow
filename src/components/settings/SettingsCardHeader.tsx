@@ -29,6 +29,8 @@ interface SettingsCardHeaderProps {
   helpText?: React.ReactNode;
   actions?: React.ReactNode;
   saveIndicator?: React.ReactNode;
+  /** Optional Lucide icon (or any node) rendered left of the title. */
+  icon?: React.ReactNode;
   /** Override default mb-4 spacing under header. */
   className?: string;
   /** Render as a different heading level if needed for SEO/a11y. Defaults to h2. */
@@ -41,6 +43,7 @@ export function SettingsCardHeader({
   helpText,
   actions,
   saveIndicator,
+  icon,
   className,
   as: Heading = "h2",
 }: SettingsCardHeaderProps) {
@@ -51,6 +54,11 @@ export function SettingsCardHeader({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
+            {icon && (
+              <span className="flex-shrink-0 text-muted-foreground [&>svg]:h-4 [&>svg]:w-4">
+                {icon}
+              </span>
+            )}
             <Heading className="text-base font-semibold text-foreground leading-tight">
               {title}
             </Heading>
