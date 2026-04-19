@@ -324,23 +324,12 @@ export function useFactuurMutations() {
       }
 
       // 4. Upsert leveranciers_artikelen — R3.5: zowel verpakking-prijs als per-basiseenheid prijs.
-      // R4b-3: deactiveer ALLE bestaande koppelingen voor deze (leverancier, ingredient)
-      // combinatie vóór upsert. Voorkomt duplicate is_actief=true rijen wanneer dezelfde
-      // leverancier hetzelfde ingrediënt onder een nieuw artikelnummer levert.
+      // R4b-3 FIX: GEEN pre-deactivate meer op (leverancier, ingredient). Dat brak
+      // multi-leverancier (her-upload Kooyman zou Sligro-koppeling deactiveren).
+      // Onconflict op (leverancier_id, artikel_nummer) handelt re-upload van
+      // ZELFDE artikel correct af. Andere leveranciers blijven onaangeroerd.
       const artNr = vars.artikelnummer?.trim();
       if (vars.leverancierId && artNr) {
-        const { error: deactErr } = await supabase
-          .from("leveranciers_artikelen")
-          .update({ is_actief: false })
-          .eq("leverancier_id", vars.leverancierId)
-          .eq("ingredient_id", ing.id);
-        if (deactErr) {
-          console.warn(
-            "[createNewIngredientFromFactuur] deactivate existing failed:",
-            deactErr
-          );
-        }
-
         const { error: laErr } = await supabase
           .from("leveranciers_artikelen")
           .upsert(
@@ -477,19 +466,10 @@ export function useFactuurMutations() {
           }
 
           // 4. UPSERT leveranciers_artikelen
-          // R4b-3: deactiveer ALLE bestaande koppelingen voor deze (leverancier, ingredient)
-          // vóór upsert — zelfde reden als createNewIngredientFromFactuur.
+          // R4b-3 FIX: GEEN pre-deactivate op (leverancier, ingredient). Onconflict
+          // op (leverancier_id, artikel_nummer) is voldoende; multi-leverancier blijft intact.
           const artNr = item.artikelnummer?.trim();
           if (item.leverancierId && artNr) {
-            const { error: deactErr } = await supabase
-              .from("leveranciers_artikelen")
-              .update({ is_actief: false })
-              .eq("leverancier_id", item.leverancierId)
-              .eq("ingredient_id", ing.id);
-            if (deactErr) {
-              console.warn("[bulkCreate] deactivate existing failed:", deactErr);
-            }
-
             const { error: laErr } = await supabase
               .from("leveranciers_artikelen")
               .upsert(
@@ -630,22 +610,10 @@ export function useFactuurMutations() {
           }
           const deduped = Array.from(dedupMap.values());
 
-          // R4b-3: deactiveer ALLE bestaande koppelingen voor elke (leverancier, ingredient)
-          // combinatie die we straks gaan upserten. Voorkomt duplicate is_actief=true
-          // wanneer eenzelfde ingrediënt eerder onder een ander artikelnummer was gekoppeld.
-          const uniekeIngredientIds = Array.from(
-            new Set(deduped.map((r) => r.ingredient_id))
-          );
-          if (uniekeIngredientIds.length > 0) {
-            const { error: deactErr } = await supabase
-              .from("leveranciers_artikelen")
-              .update({ is_actief: false })
-              .eq("leverancier_id", leverancierId)
-              .in("ingredient_id", uniekeIngredientIds);
-            if (deactErr) {
-              console.warn("[goedkeuren] deactivate existing failed:", deactErr);
-            }
-          }
+          // R4b-3 FIX: GEEN deactivate-vóór-upsert op (leverancier, ingredient_id).
+          // Dat zou multi-leverancier breken (her-upload Kooyman zou Sligro deactiveren).
+          // Onconflict (leverancier_id, artikel_nummer) volstaat — die scope is correct
+          // voor "zelfde artikel opnieuw geleverd door zelfde leverancier".
 
           const { error: upErr } = await supabase
             .from("leveranciers_artikelen")
@@ -682,6 +650,82 @@ export function useFactuurMutations() {
     onError: (e: Error) => nestoToast.error(e.message),
   });
 
+  // ============================================================
+  // R4b-3 — Multi-leverancier mutations
+  // ============================================================
+
+  /**
+   * Koppel een nieuwe leverancier aan een BESTAAND ingredient zonder bestaande
+   * actieve koppelingen te deactiveren. Roept de `koppel_extra_leverancier` RPC
+   * aan; trigger zorgt voor automatische kostprijs-recalc (MIN actief).
+   *
+   * Optioneel: koppel meteen factuurregel + sla alias op.
+   */
+  const koppelExtraLeverancier = useMutation({
+    mutationFn: async (vars: {
+      ingredientId: string;
+      leverancierId: string;
+      artikelNaam: string;
+      artikelNummer?: string | null;
+      eanCode?: string | null;
+      verpakkingHoeveelheid?: number | null;
+      verpakkingEenheid?: string | null;
+      prijsPerVerpakking?: number | null;
+      prijsPerEenheid?: number | null;
+      // Optioneel — wanneer aangeroepen vanuit factuur-context:
+      regelId?: string | null;
+      aliasNaam?: string | null;
+    }) => {
+      const { data: artikelId, error } = await supabase.rpc("koppel_extra_leverancier", {
+        p_ingredient_id: vars.ingredientId,
+        p_leverancier_id: vars.leverancierId,
+        p_artikel_naam: vars.artikelNaam,
+        p_artikel_nummer: vars.artikelNummer ?? null,
+        p_ean_code: vars.eanCode ?? null,
+        p_verpakking_hoeveelheid: vars.verpakkingHoeveelheid ?? null,
+        p_verpakking_eenheid: vars.verpakkingEenheid ?? null,
+        p_prijs_per_verpakking: vars.prijsPerVerpakking ?? null,
+        p_prijs_per_eenheid: vars.prijsPerEenheid ?? null,
+      });
+      if (error) throw error;
+
+      // Optioneel: koppel factuurregel
+      if (vars.regelId) {
+        const { error: rErr } = await supabase
+          .from("factuur_regels")
+          .update({
+            ingredient_id: vars.ingredientId,
+            match_status: "manual",
+            is_nieuw_ingredient: false,
+          })
+          .eq("id", vars.regelId);
+        if (rErr) throw rErr;
+      }
+
+      // Optioneel: alias-leerlogica
+      if (vars.aliasNaam?.trim()) {
+        const { error: aErr } = await supabase.rpc("record_factuur_correction", {
+          p_ingredient_id: vars.ingredientId,
+          p_alias_naam: vars.aliasNaam.trim(),
+          p_leverancier_id: vars.leverancierId,
+          p_artikelnummer: vars.artikelNummer ?? null,
+        });
+        if (aErr && (aErr as any).code !== "23505") {
+          console.warn("[koppelExtraLeverancier alias] failed:", aErr);
+        }
+      }
+
+      return artikelId as string;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ingredienten"] });
+      qc.invalidateQueries({ queryKey: ["ingredient"] });
+      qc.invalidateQueries({ queryKey: ["leveranciers-artikelen"] });
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
   return {
     uploadFactuur,
     updateFactuur,
@@ -698,5 +742,6 @@ export function useFactuurMutations() {
     bulkCreateIngredientsFromFactuur,
     goedkeuren,
     afwijzen,
+    koppelExtraLeverancier,
   };
 }

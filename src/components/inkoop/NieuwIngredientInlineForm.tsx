@@ -1,15 +1,21 @@
 /**
- * NieuwIngredientInlineForm — D.6b R4b-1
+ * NieuwIngredientInlineForm — D.6b R4b-1 + R4b-3
  *
  * Inline variant van NieuwIngredientFromFactuurModal: zelfde velden, zelfde
  * mutation, maar rendert binnen de regel-card i.p.v. als modal-dialog.
  * Gebruiker kan meerdere tegelijk openhebben, blijft scroll-context behouden.
+ *
+ * R4b-3: debounced duplicate-naam check (500ms). Bij hit verschijnt
+ * DuplicateIngredientChoiceDialog met "koppel extra leverancier" of
+ * "maak variant" pad.
  */
 import * as React from "react";
 import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
+import { useDuplicateIngredientCheck } from "@/hooks/useDuplicateIngredientCheck";
+import { DuplicateIngredientChoiceDialog } from "./DuplicateIngredientChoiceDialog";
 import type { NewIngredientPrefill } from "./IngredientMatchBadge";
-import { Lock, AlertCircle, X } from "lucide-react";
+import { Lock, AlertCircle, X, AlertTriangle } from "lucide-react";
 
 const CATEGORIE_OPTIONS = [
   { value: "groenten", label: "Groenten" },
@@ -52,7 +58,7 @@ export function NieuwIngredientInlineForm({
   onClose,
   onSuccess,
 }: Props) {
-  const { createNewIngredientFromFactuur } = useFactuurMutations();
+  const { createNewIngredientFromFactuur, koppelExtraLeverancier } = useFactuurMutations();
 
   const [naam, setNaam] = React.useState(prefill.naam);
   const [categorie, setCategorie] = React.useState(prefill.categorie ?? "overig");
@@ -63,6 +69,11 @@ export function NieuwIngredientInlineForm({
   );
   const [kostprijsOverridden, setKostprijsOverridden] = React.useState(false);
   const [minVoorraad, setMinVoorraad] = React.useState("");
+
+  // R4b-3 — debounced duplicate-check
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = React.useState(false);
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = React.useState(false);
+  const { duplicate } = useDuplicateIngredientCheck(naam, !duplicateAcknowledged);
 
   const canSave = naam.trim().length > 0 && categorie && eenheid;
   const berekendePrijs = prefill.prijsPerBasiseenheid ?? null;
@@ -75,11 +86,25 @@ export function NieuwIngredientInlineForm({
   const heeftVerpakking =
     !!prefill.verpakkingHoeveelheid && !!prefill.verpakkingEenheid;
 
+  // Reset acknowledgement bij naam-wijziging
+  React.useEffect(() => {
+    setDuplicateAcknowledged(false);
+  }, [naam]);
+
   const handleSave = () => {
+    // R4b-3: blokkeer aanmaak als duplicaat (en niet erkend) — open dialog
+    if (duplicate && !duplicateAcknowledged) {
+      setDuplicateDialogOpen(true);
+      return;
+    }
+    doCreate(naam.trim());
+  };
+
+  const doCreate = (uiteindelijkeNaam: string) => {
     createNewIngredientFromFactuur.mutate(
       {
         regelId,
-        naam: naam.trim(),
+        naam: uiteindelijkeNaam,
         categorie,
         eenheid,
         kostprijs: kostprijs ? parseFloat(kostprijs) : undefined,
@@ -91,8 +116,40 @@ export function NieuwIngredientInlineForm({
         verpakkingEenheid: prefill.verpakkingEenheid ?? null,
         prijsPerVerpakking: prefill.prijsPerVerpakking ?? null,
       },
-      { onSuccess: () => onSuccess(naam.trim()) }
+      { onSuccess: () => onSuccess(uiteindelijkeNaam) }
     );
+  };
+
+  const handleKoppelExtra = (bestaandIngredientId: string) => {
+    if (!leverancierId) return;
+    koppelExtraLeverancier.mutate(
+      {
+        ingredientId: bestaandIngredientId,
+        leverancierId,
+        artikelNaam: naam.trim(),
+        artikelNummer: prefill.artikelnummer ?? null,
+        verpakkingHoeveelheid: prefill.verpakkingHoeveelheid ?? null,
+        verpakkingEenheid: prefill.verpakkingEenheid ?? null,
+        prijsPerVerpakking: prefill.prijsPerVerpakking ?? null,
+        prijsPerEenheid: kostprijs ? parseFloat(kostprijs) : null,
+        regelId,
+        aliasNaam: prefill.aliasNaam,
+      },
+      {
+        onSuccess: () => {
+          setDuplicateDialogOpen(false);
+          onSuccess(naam.trim());
+        },
+      }
+    );
+  };
+
+  const handleMaakVariant = (nieuweNaam: string) => {
+    setNaam(nieuweNaam);
+    setDuplicateAcknowledged(true);
+    setDuplicateDialogOpen(false);
+    // Geef React 1 frame om naam-state door te zetten, dan opslaan
+    setTimeout(() => doCreate(nieuweNaam), 0);
   };
 
   return (
@@ -160,6 +217,19 @@ export function NieuwIngredientInlineForm({
             onChange={(e) => setNaam(e.target.value)}
             placeholder="bijv. Kipfilet"
           />
+          {duplicate && !duplicateAcknowledged && (
+            <button
+              type="button"
+              onClick={() => setDuplicateDialogOpen(true)}
+              className="mt-1.5 w-full flex items-start gap-1.5 text-left text-[10px] text-warning bg-warning/10 hover:bg-warning/15 rounded px-2 py-1.5 transition-colors"
+            >
+              <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+              <span>
+                Bestaat al: <span className="font-semibold">{duplicate.naam}</span>{" "}
+                · klik om te koppelen of variant te maken
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -245,6 +315,22 @@ export function NieuwIngredientInlineForm({
           Aanmaken & koppelen
         </NestoButton>
       </div>
+
+      {/* R4b-3 — Duplicate keuze-dialog */}
+      <DuplicateIngredientChoiceDialog
+        open={duplicateDialogOpen}
+        onOpenChange={setDuplicateDialogOpen}
+        duplicate={duplicate}
+        origineleNaam={naam.trim()}
+        leverancierNaam={leverancierNaam}
+        variantContext={{
+          verpakkingHoeveelheid: prefill.verpakkingHoeveelheid,
+          verpakkingEenheid: prefill.verpakkingEenheid,
+        }}
+        onKoppelExtra={handleKoppelExtra}
+        onMaakVariant={handleMaakVariant}
+        isSubmitting={koppelExtraLeverancier.isPending || createNewIngredientFromFactuur.isPending}
+      />
     </div>
   );
 }
