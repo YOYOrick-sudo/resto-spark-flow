@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Shield, ChevronRight, Archive, Loader2, Plus } from "lucide-react";
 import { usePolicySets, useArchivePolicySet, useRestorePolicySet } from "@/hooks/usePolicySets";
 import { PolicySetCard } from "./PolicySetCard";
-import { PolicySetDetailSheet } from "./PolicySetDetailSheet";
 import { EmptyState } from "@/components/polar/EmptyState";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { ConfirmDialog } from "@/components/polar/ConfirmDialog";
@@ -28,8 +27,6 @@ export function PolicySetsSection({ locationId }: PolicySetsSectionProps) {
   const { mutate: archivePolicy, isPending: isArchiving } = useArchivePolicySet(locationId);
   const { mutate: restorePolicy } = useRestorePolicySet(locationId);
 
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
 
   // Archive confirmation state
@@ -43,13 +40,11 @@ export function PolicySetsSection({ locationId }: PolicySetsSectionProps) {
   const archivedPolicySets = data?.archivedPolicySets ?? [];
 
   const handleAdd = () => {
-    setEditingId(null);
-    setSheetOpen(true);
+    navigate("/instellingen/reserveringen/beleid/nieuw");
   };
 
   const handleEdit = (id: string) => {
-    setEditingId(id);
-    setSheetOpen(true);
+    navigate(`/instellingen/reserveringen/beleid/${id}`);
   };
 
   const handleArchiveAttempt = (id: string) => {
@@ -141,14 +136,6 @@ export function PolicySetsSection({ locationId }: PolicySetsSectionProps) {
           </CollapsibleContent>
         </Collapsible>
       )}
-
-      {/* Detail Sheet */}
-      <PolicySetDetailSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        locationId={locationId}
-        policySetId={editingId}
-      />
 
       {/* Archive Confirm Dialog */}
       <ConfirmDialog
