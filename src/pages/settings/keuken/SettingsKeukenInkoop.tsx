@@ -5,13 +5,14 @@ import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
 import { useKeukenSettings, useUpdateKeukenSettings } from "@/hooks/useKeukenSettings";
 import { nestoToast } from "@/lib/nestoToast";
 import { InputWithSuffix } from "./_shared";
-import { SettingsCardHeader } from "@/components/settings";
+import { SettingsCardHeader, SettingsSaveIndicator, type SaveState } from "@/components/settings";
 
 export default function SettingsKeukenInkoop() {
   const { data: settings, isLoading } = useKeukenSettings();
   const updateSettings = useUpdateKeukenSettings();
 
   const [buffer, setBuffer] = useState("");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
 
   useEffect(() => {
     if (settings) setBuffer(String(settings.besteladvies_buffer_percentage ?? 20));
@@ -23,10 +24,16 @@ export default function SettingsKeukenInkoop() {
   }, [settings, buffer]);
 
   const handleSave = async () => {
-    await updateSettings.mutateAsync({
-      besteladvies_buffer_percentage: parseFloat(buffer) || 20,
-    });
-    nestoToast.success("Instellingen opgeslagen");
+    setSaveState("saving");
+    try {
+      await updateSettings.mutateAsync({
+        besteladvies_buffer_percentage: parseFloat(buffer) || 20,
+      });
+      setSaveState("saved");
+    } catch (e) {
+      setSaveState("error");
+      nestoToast.error("Opslaan mislukt", { description: e instanceof Error ? e.message : undefined });
+    }
   };
 
   return (
@@ -55,7 +62,7 @@ export default function SettingsKeukenInkoop() {
                   step="1"
                 />
               </div>
-              <div className="border-t border-border/50 pt-5 mt-6">
+              <div className="border-t border-border/50 pt-5 mt-6 flex items-center gap-3">
                 <NestoButton
                   onClick={handleSave}
                   disabled={!isDirty}
@@ -64,6 +71,11 @@ export default function SettingsKeukenInkoop() {
                 >
                   Opslaan
                 </NestoButton>
+                <SettingsSaveIndicator
+                  state={saveState}
+                  variant="inline-button"
+                  onAutoFade={() => setSaveState("idle")}
+                />
               </div>
             </>
           )}

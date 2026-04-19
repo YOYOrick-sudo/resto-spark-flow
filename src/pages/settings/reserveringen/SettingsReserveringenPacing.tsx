@@ -17,6 +17,7 @@ import {
   mockTables,
 } from "@/data/pacingMockData";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
+import { SettingsSaveIndicator, type SaveState } from "@/components/settings";
 
 export default function SettingsReserveringenPacing() {
   const [settings, setSettings] = useState({
@@ -28,6 +29,7 @@ export default function SettingsReserveringenPacing() {
       mockPacingSettings.shiftOverrides?.dinner ||
       mockPacingSettings.defaultLimitPerQuarter,
   });
+  const [saveState, setSaveState] = useState<SaveState>("idle");
 
   const seatCapacity = mockTables
     .filter((t) => t.isActive)
@@ -91,15 +93,21 @@ export default function SettingsReserveringenPacing() {
     );
   }
 
-  const handleSave = () => {
-    updatePacingSettings({
-      defaultLimitPerQuarter: settings.defaultLimitPerQuarter,
-      shiftOverrides: {
-        lunch: settings.lunchLimit,
-        dinner: settings.dinnerLimit,
-      },
-    });
-    
+  const handleSave = async () => {
+    setSaveState("saving");
+    try {
+      updatePacingSettings({
+        defaultLimitPerQuarter: settings.defaultLimitPerQuarter,
+        shiftOverrides: {
+          lunch: settings.lunchLimit,
+          dinner: settings.dinnerLimit,
+        },
+      });
+      setSaveState("saved");
+    } catch (e) {
+      setSaveState("error");
+      nestoToast.error("Opslaan mislukt", { description: e instanceof Error ? e.message : undefined });
+    }
   };
 
   const breadcrumbs = buildBreadcrumbs("reserveringen", "pacing");
@@ -125,7 +133,16 @@ export default function SettingsReserveringenPacing() {
       }
       description="Stel in hoeveel gasten je per kwartier wilt ontvangen."
       breadcrumbs={breadcrumbs}
-      actions={<NestoButton onClick={handleSave}>Opslaan</NestoButton>}
+      actions={
+        <div className="flex items-center gap-3">
+          <NestoButton onClick={handleSave}>Opslaan</NestoButton>
+          <SettingsSaveIndicator
+            state={saveState}
+            variant="inline-button"
+            onAutoFade={() => setSaveState("idle")}
+          />
+        </div>
+      }
       aside={
         <SettingsInsightPanel
           insights={insights}
