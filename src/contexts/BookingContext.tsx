@@ -302,16 +302,26 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
   }, []);
 
   // Helper: is a given date closed per cached schedule?
+  // FAIL-CLOSED: dagen zonder entry (bijv. dow=3 zonder location_operating_hours
+  // record) worden als gesloten behandeld. Dit aligneert met de RPC
+  // `is_location_open` (server-side fail-closed) en voorkomt dat de widget
+  // klikbare datums toont waarop er feitelijk geen openingstijden zijn.
+  // Pattern hergebruikt uit `useLocationScheduleRange.isClosedOnDate`.
+  // Wachten tot schedule geladen is voorkomt false-positive close-flag.
   const isDateClosed = useCallback(
     (date: string): { closed: boolean; label: string | null } => {
+      // Schedule nog niet geladen → niets als gesloten markeren (anders flikkert
+      // de hele kalender even uit). Zodra map gevuld is treedt fail-closed in.
+      if (scheduleMap.size === 0) return { closed: false, label: null };
       const entry = scheduleMap.get(date);
-      if (!entry) return { closed: false, label: null };
+      if (!entry) return { closed: true, label: null };
       return { closed: entry.is_closed, label: entry.label };
     },
     [scheduleMap]
   );
 
-  // Helper: nearest open date within lookahead window (default 30 days)
+  // Helper: nearest open date within lookahead window (default 30 days).
+  // FAIL-CLOSED: dagen zonder entry worden geskipt (geen openingstijden = dicht).
   const findNextOpenDate = useCallback(
     (fromDate: string, lookaheadDays: number = 30): string | null => {
       const start = new Date(fromDate + 'T00:00:00');
@@ -319,8 +329,8 @@ export function BookingProvider({ slug, children }: BookingProviderProps) {
         const d = new Date(start.getTime() + i * 86_400_000);
         const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const entry = scheduleMap.get(iso);
-        // No entry = treat as open (fail-open). Closed = skip.
-        if (!entry || !entry.is_closed) return iso;
+        // Geen entry → dicht. Entry met is_closed=true → dicht. Skip beide.
+        if (entry && !entry.is_closed) return iso;
       }
       return null;
     },
