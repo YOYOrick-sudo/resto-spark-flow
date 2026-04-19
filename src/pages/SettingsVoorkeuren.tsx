@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { PageHeader, EmptyState } from "@/components/polar";
-import { Settings, Database, Loader2, CheckCircle2, Trash2 } from "lucide-react";
+import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDetailLayout";
+import { Database, Loader2, CheckCircle2, Trash2 } from "lucide-react";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { useUserContext } from "@/contexts/UserContext";
@@ -57,13 +57,20 @@ export default function SettingsVoorkeuren() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Voorkeuren" subtitle="Algemene app voorkeuren en instellingen." />
-
+    <SettingsDetailLayout
+      title="Voorkeuren"
+      description="Algemene app voorkeuren en instellingen."
+      breadcrumbs={[
+        { label: "Instellingen", path: "/instellingen/voorkeuren" },
+        { label: "Voorkeuren" },
+      ]}
+    >
       <NestoCard className="p-5 space-y-3">
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Ontwikkelaar</h3>
+          <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+            Ontwikkelaar
+          </h3>
         </div>
         <p className="text-sm text-muted-foreground">
           Vul het systeem met realistische testdata (leveranciers, ingrediënten, recepten, gerechten, MEP taken en voorraad).
@@ -93,12 +100,6 @@ export default function SettingsVoorkeuren() {
           )}
         </div>
       </NestoCard>
-
-      <EmptyState
-        icon={Settings}
-        title="Configuratie volgt binnenkort"
-        description="Deze instellingen worden in een volgende versie beschikbaar."
-      />
-    </div>
+    </SettingsDetailLayout>
   );
 }
