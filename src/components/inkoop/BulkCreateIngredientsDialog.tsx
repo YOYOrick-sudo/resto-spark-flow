@@ -278,9 +278,9 @@ export function BulkCreateIngredientsDialog({
             eenheid aan waar nodig.
           </p>
           {aantalDuplicates > 0 && (
-            <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-900 dark:text-amber-200">
+            <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-2.5 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-xs text-foreground">
                 <span className="font-medium">{aantalDuplicates}</span> ingrediënt
                 {aantalDuplicates === 1 ? "" : "en"} bestaan al. Kies per rij of je ze
                 koppelt aan het bestaande ingrediënt of als variant aanmaakt.
@@ -309,7 +309,7 @@ export function BulkCreateIngredientsDialog({
                 className={`grid grid-cols-[24px_minmax(0,2fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.3fr)_72px] gap-2 px-3 py-2.5 rounded-lg items-center transition-colors ${
                   r.checked
                     ? isDup
-                      ? "bg-amber-500/5 border border-amber-500/30"
+                      ? "bg-primary/5 border border-primary/30"
                       : "bg-card border border-border/40"
                     : "bg-muted/30 opacity-60 border border-transparent"
                 }`}
@@ -326,7 +326,7 @@ export function BulkCreateIngredientsDialog({
                     className="h-8 text-xs"
                   />
                   {isDup && (
-                    <p className="text-[10px] text-amber-700 dark:text-amber-300 flex items-center gap-1 px-0.5">
+                    <p className="text-[10px] text-primary flex items-center gap-1 px-0.5">
                       <AlertTriangle className="h-2.5 w-2.5" />
                       Bestaat al ({r.duplicate!.eenheid})
                     </p>
