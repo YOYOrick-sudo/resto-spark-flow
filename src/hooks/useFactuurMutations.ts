@@ -650,6 +650,82 @@ export function useFactuurMutations() {
     onError: (e: Error) => nestoToast.error(e.message),
   });
 
+  // ============================================================
+  // R4b-3 — Multi-leverancier mutations
+  // ============================================================
+
+  /**
+   * Koppel een nieuwe leverancier aan een BESTAAND ingredient zonder bestaande
+   * actieve koppelingen te deactiveren. Roept de `koppel_extra_leverancier` RPC
+   * aan; trigger zorgt voor automatische kostprijs-recalc (MIN actief).
+   *
+   * Optioneel: koppel meteen factuurregel + sla alias op.
+   */
+  const koppelExtraLeverancier = useMutation({
+    mutationFn: async (vars: {
+      ingredientId: string;
+      leverancierId: string;
+      artikelNaam: string;
+      artikelNummer?: string | null;
+      eanCode?: string | null;
+      verpakkingHoeveelheid?: number | null;
+      verpakkingEenheid?: string | null;
+      prijsPerVerpakking?: number | null;
+      prijsPerEenheid?: number | null;
+      // Optioneel — wanneer aangeroepen vanuit factuur-context:
+      regelId?: string | null;
+      aliasNaam?: string | null;
+    }) => {
+      const { data: artikelId, error } = await supabase.rpc("koppel_extra_leverancier", {
+        p_ingredient_id: vars.ingredientId,
+        p_leverancier_id: vars.leverancierId,
+        p_artikel_naam: vars.artikelNaam,
+        p_artikel_nummer: vars.artikelNummer ?? null,
+        p_ean_code: vars.eanCode ?? null,
+        p_verpakking_hoeveelheid: vars.verpakkingHoeveelheid ?? null,
+        p_verpakking_eenheid: vars.verpakkingEenheid ?? null,
+        p_prijs_per_verpakking: vars.prijsPerVerpakking ?? null,
+        p_prijs_per_eenheid: vars.prijsPerEenheid ?? null,
+      });
+      if (error) throw error;
+
+      // Optioneel: koppel factuurregel
+      if (vars.regelId) {
+        const { error: rErr } = await supabase
+          .from("factuur_regels")
+          .update({
+            ingredient_id: vars.ingredientId,
+            match_status: "manual",
+            is_nieuw_ingredient: false,
+          })
+          .eq("id", vars.regelId);
+        if (rErr) throw rErr;
+      }
+
+      // Optioneel: alias-leerlogica
+      if (vars.aliasNaam?.trim()) {
+        const { error: aErr } = await supabase.rpc("record_factuur_correction", {
+          p_ingredient_id: vars.ingredientId,
+          p_alias_naam: vars.aliasNaam.trim(),
+          p_leverancier_id: vars.leverancierId,
+          p_artikelnummer: vars.artikelNummer ?? null,
+        });
+        if (aErr && (aErr as any).code !== "23505") {
+          console.warn("[koppelExtraLeverancier alias] failed:", aErr);
+        }
+      }
+
+      return artikelId as string;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ingredienten"] });
+      qc.invalidateQueries({ queryKey: ["ingredient"] });
+      qc.invalidateQueries({ queryKey: ["leveranciers-artikelen"] });
+      qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+    },
+    onError: (e: Error) => nestoToast.error(e.message),
+  });
+
   return {
     uploadFactuur,
     updateFactuur,
@@ -666,5 +742,6 @@ export function useFactuurMutations() {
     bulkCreateIngredientsFromFactuur,
     goedkeuren,
     afwijzen,
+    koppelExtraLeverancier,
   };
 }
