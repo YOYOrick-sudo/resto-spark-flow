@@ -1,11 +1,10 @@
 
-De gebruiker vraagt een grote feature: multi-leverancier support voor ingrediënten met duplicate-naam detectie en keuze-dialog. Ik moet eerst goed onderzoeken wat er bestaat voordat ik plan.
+De gebruiker geeft 3 correcties op het eerder goedgekeurde plan en zegt "ga bouwen". Maar ik zit in PLAN MODE (read-only). Ik moet de correcties verwerken in een verfijnd plan en dan wachten op de mode-switch.
 
-Laat me onderzoeken:
-1. Huidige `ingredienten` schema + `leveranciers_artikelen` schema + constraints
-2. Bestaande factuur-flow (`useFactuurMutations`)
-3. Bestaande forms (`NieuwIngredientInlineForm`, `BulkCreateIngredientsDialog`)
-4. Bestaande IngredientDetail pagina (let op: pad in opdracht is `/src/pages/IngredientDetail.tsx` maar in zichtbare files is het `IngredientenDetail.tsx`)
-5. `LeveranciersTab` is al multi-leverancier-aware (zag het al in context met "Goedkoopste" badge!)
+Laat me eerst de 3 correctiepunten verifiëren met read-only tools voordat ik het finale plan presenteer:
 
-Ik ga eerst exploreren, daarna plan presenteren.
+1. Werkelijke `kostprijs_bron` CHECK-constraint waarden
+2. Bestaande embedded-filter pattern in `useIngredient`  
+3. Scope van deactivate-vóór-upsert in `useFactuurMutations` (regels 332-342, 484-491, 639-648)
+
+Ik ga dit nu checken via Supabase + file reads, dan finaal plan presenteren met de correcties verwerkt.
