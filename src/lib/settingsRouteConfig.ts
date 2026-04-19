@@ -226,7 +226,22 @@ export const keukenConfig: SettingsModuleConfig = {
     { id: "haccp", label: "HACCP Temperatuur", path: "/instellingen/keuken/haccp", description: "Temperatuurgrenzen koeling, vriezer en kerntemperatuur", icon: Thermometer },
     { id: "categorieen", label: "Categorieën", path: "/instellingen/keuken/categorieen", description: "Ingrediënt-, recept- en gerechtcategorieën", icon: LayoutGrid },
     { id: "assistent", label: "Assistent", path: "/instellingen/keuken/assistent", description: "Autonomie en meldingsdrempels van de keuken-assistent", icon: Bot },
-    { id: "taken", label: "Taken & HACCP", path: "/instellingen/keuken/taken", description: "Checklist-templates, bevriestijd en standaard-tijden", icon: ClipboardCheck },
+    {
+      id: "taken",
+      label: "Taken & HACCP",
+      path: "/instellingen/keuken/taken",
+      description: "Checklist-templates, bevriestijd en standaard-tijden",
+      icon: ClipboardCheck,
+      subsections: [
+        {
+          id: "templates",
+          label: "Templates",
+          path: "/instellingen/keuken/taken/templates",
+          description: "Beheer checklist-templates",
+          icon: FileText,
+        },
+      ],
+    },
     { id: "medewerkers", label: "Medewerkers", path: "/instellingen/keuken/medewerkers", description: "Koks, sous-chefs en labels", icon: Users },
     { id: "printer", label: "Printer & Labels", path: "/instellingen/keuken/printer", description: "Zebra-printer en label-templates", icon: Printer },
   ],
