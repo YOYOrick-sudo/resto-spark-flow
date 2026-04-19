@@ -1,15 +1,21 @@
 /**
- * NieuwIngredientInlineForm — D.6b R4b-1
+ * NieuwIngredientInlineForm — D.6b R4b-1 + R4b-3
  *
  * Inline variant van NieuwIngredientFromFactuurModal: zelfde velden, zelfde
  * mutation, maar rendert binnen de regel-card i.p.v. als modal-dialog.
  * Gebruiker kan meerdere tegelijk openhebben, blijft scroll-context behouden.
+ *
+ * R4b-3: debounced duplicate-naam check (500ms). Bij hit verschijnt
+ * DuplicateIngredientChoiceDialog met "koppel extra leverancier" of
+ * "maak variant" pad.
  */
 import * as React from "react";
 import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
+import { useDuplicateIngredientCheck } from "@/hooks/useDuplicateIngredientCheck";
+import { DuplicateIngredientChoiceDialog } from "./DuplicateIngredientChoiceDialog";
 import type { NewIngredientPrefill } from "./IngredientMatchBadge";
-import { Lock, AlertCircle, X } from "lucide-react";
+import { Lock, AlertCircle, X, AlertTriangle } from "lucide-react";
 
 const CATEGORIE_OPTIONS = [
   { value: "groenten", label: "Groenten" },
