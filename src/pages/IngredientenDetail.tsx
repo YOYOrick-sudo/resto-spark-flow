@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useIngredient } from "@/hooks/useIngredient";
 import { getVoorraadStatus } from "@/hooks/useIngredienten";
+import { useLeveranciersArtikelen } from "@/hooks/useLeveranciersArtikelen";
 import {
   NestoTabs, NestoTabContent, NestoButton, NestoBadge, Spinner,
 } from "@/components/polar";
@@ -32,7 +33,23 @@ export default function IngredientenDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: ingredient, isLoading, error } = useIngredient(id ?? null);
+  const { data: artikelen } = useLeveranciersArtikelen(id ?? null);
   const [activeTab, setActiveTab] = useState("algemeen");
+
+  // R4b-3 — multi-leverancier context voor sidebar
+  const actieveArtikelen = useMemo(
+    () => (artikelen ?? []).filter((a) => a.is_actief),
+    [artikelen]
+  );
+  const kostprijsContext = useMemo(() => {
+    const n = actieveArtikelen.length;
+    if (n === 0) return null;
+    if (n === 1) {
+      const naam = actieveArtikelen[0].leveranciers?.naam;
+      return naam ? `Via ${naam}` : null;
+    }
+    return `Goedkoopste van ${n} leveranciers`;
+  }, [actieveArtikelen]);
 
   const allergeenPills = useMemo(() => {
     if (!ingredient?.ingredient_allergenen) return [];
@@ -128,6 +145,9 @@ export default function IngredientenDetail() {
               </span>
               <span className="text-xs text-muted-foreground ml-1">per {ingredient.eenheid}</span>
             </div>
+            {kostprijsContext && (
+              <p className="text-xs text-muted-foreground">{kostprijsContext}</p>
+            )}
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card p-5 space-y-2">
