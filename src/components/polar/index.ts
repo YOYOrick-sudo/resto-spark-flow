@@ -89,9 +89,6 @@ export type {
   PageSkeletonProps,
 } from "./LoadingStates";
 
-export { SettingsPageLayout } from "./SettingsPageLayout";
-export type { SettingsPageLayoutProps, SettingsSection } from "./SettingsPageLayout";
-
 export { TitleHelp, TitleHelpTip } from "./TitleHelp";
 export type { TitleHelpProps, TitleHelpTipProps } from "./TitleHelp";
 
