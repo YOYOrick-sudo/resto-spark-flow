@@ -315,6 +315,22 @@ export function NieuwIngredientInlineForm({
           Aanmaken & koppelen
         </NestoButton>
       </div>
+
+      {/* R4b-3 — Duplicate keuze-dialog */}
+      <DuplicateIngredientChoiceDialog
+        open={duplicateDialogOpen}
+        onOpenChange={setDuplicateDialogOpen}
+        duplicate={duplicate}
+        origineleNaam={naam.trim()}
+        leverancierNaam={leverancierNaam}
+        variantContext={{
+          verpakkingHoeveelheid: prefill.verpakkingHoeveelheid,
+          verpakkingEenheid: prefill.verpakkingEenheid,
+        }}
+        onKoppelExtra={handleKoppelExtra}
+        onMaakVariant={handleMaakVariant}
+        isSubmitting={koppelExtraLeverancier.isPending || createNewIngredientFromFactuur.isPending}
+      />
     </div>
   );
 }
