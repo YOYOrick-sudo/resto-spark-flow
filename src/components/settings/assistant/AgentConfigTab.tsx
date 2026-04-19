@@ -11,6 +11,7 @@ import { useUserContext } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nestoToast } from '@/lib/nestoToast';
+import { SettingsCardHeader } from '@/components/settings';
 
 interface MessagingConfig {
   ai_agent_enabled: boolean;
@@ -118,16 +119,13 @@ export function AgentConfigTab() {
     <div className="space-y-6">
       {/* Main toggle */}
       <NestoCard className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Bot className="h-5 w-5 text-primary" />
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">AI Assistent</h3>
-              <p className="text-xs text-muted-foreground">
-                De Assistent beantwoordt automatisch veelgestelde vragen en helpt gasten met reserveringen.
-              </p>
-            </div>
-          </div>
+        <div className="flex items-start justify-between gap-4">
+          <SettingsCardHeader
+            icon={<Bot />}
+            title="AI Assistent"
+            description="De Assistent beantwoordt automatisch veelgestelde vragen en helpt gasten met reserveringen."
+            className="mb-0 flex-1"
+          />
           <Switch
             checked={local.ai_agent_enabled}
             onCheckedChange={(v) => updateField('ai_agent_enabled', v)}
@@ -137,10 +135,7 @@ export function AgentConfigTab() {
 
       {/* Active window */}
       <NestoCard className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Actief venster</h3>
-        </div>
+        <SettingsCardHeader icon={<Clock />} title="Actief venster" />
         <div className="bg-secondary/50 rounded-card p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -179,7 +174,7 @@ export function AgentConfigTab() {
 
       {/* Automatic actions */}
       <NestoCard className="p-6">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Automatische acties</h3>
+        <SettingsCardHeader title="Automatische acties" />
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -223,13 +218,11 @@ export function AgentConfigTab() {
 
       {/* Languages */}
       <NestoCard className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Globe className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Talen</h3>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          De Assistent detecteert automatisch de taal van de gast en antwoordt in dezelfde taal.
-        </p>
+        <SettingsCardHeader
+          icon={<Globe />}
+          title="Talen"
+          description="De Assistent detecteert automatisch de taal van de gast en antwoordt in dezelfde taal."
+        />
         <div className="flex flex-wrap gap-2">
           {LANGUAGE_OPTIONS.map((lang) => {
             const active = local.languages.includes(lang.value);

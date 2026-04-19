@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { MessageSquare, Copy, Check, Send, Wifi, WifiOff } from 'lucide-react';
+import { MessageSquare, Copy, Check, Wifi } from 'lucide-react';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoButton } from '@/components/polar/NestoButton';
-import { NestoBadge } from '@/components/polar/NestoBadge';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,7 @@ import { useUserContext } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nestoToast } from '@/lib/nestoToast';
+import { SettingsCardHeader } from '@/components/settings';
 
 export function WhatsAppTab() {
   const { currentLocation } = useUserContext();
@@ -109,8 +109,8 @@ export function WhatsAppTab() {
     return (
       <div className="space-y-4">
         <NestoCard className="p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Stap 1: 360dialog account</h3>
-          <p className="text-sm text-muted-foreground mb-3">
+          <SettingsCardHeader title="Stap 1: 360dialog account" />
+          <p className="text-sm text-muted-foreground">
             Ga naar de{' '}
             <a href="https://hub.360dialog.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">
               360dialog Hub
@@ -120,7 +120,7 @@ export function WhatsAppTab() {
         </NestoCard>
 
         <NestoCard className="p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Stap 2: API key invoeren</h3>
+          <SettingsCardHeader title="Stap 2: API key invoeren" />
           <div className="space-y-3">
             <div>
               <Label className="text-sm mb-1.5">API Key</Label>
@@ -136,10 +136,10 @@ export function WhatsAppTab() {
         </NestoCard>
 
         <NestoCard className="p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Stap 3: Webhook URL instellen</h3>
-          <p className="text-sm text-muted-foreground mb-3">
-            Kopieer deze URL en plak deze in de 360dialog Hub als webhook URL.
-          </p>
+          <SettingsCardHeader
+            title="Stap 3: Webhook URL instellen"
+            description="Kopieer deze URL en plak deze in de 360dialog Hub als webhook URL."
+          />
           <div className="flex items-center gap-2">
             <Input
               value={webhookUrl}
@@ -168,23 +168,24 @@ export function WhatsAppTab() {
   // Connected state
   return (
     <NestoCard className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">WhatsApp Business</h3>
-            <div className="flex items-center gap-2 mt-0.5">
+      <div className="flex items-start justify-between gap-4">
+        <SettingsCardHeader
+          icon={<MessageSquare />}
+          title="WhatsApp Business"
+          description={
+            <span className="flex items-center gap-1.5">
               <Wifi className="h-3 w-3 text-primary" />
-              <span className="text-xs text-primary font-medium">Verbonden</span>
-            </div>
-          </div>
-        </div>
+              <span className="text-primary font-medium">Verbonden</span>
+            </span>
+          }
+          className="mb-0 flex-1"
+        />
         <Switch
           checked={config?.whatsapp_enabled ?? false}
           onCheckedChange={(v) => toggleWhatsApp.mutate(v)}
         />
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground mt-4">
         WhatsApp is verbonden via 360dialog. Schakel de toggle uit om berichten tijdelijk te pauzeren.
       </p>
     </NestoCard>
