@@ -1,11 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
-  BreadcrumbPage, BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { NestoButton, NestoInput, Spinner } from "@/components/polar";
+import { NestoButton, NestoCard, NestoInput, Spinner } from "@/components/polar";
 import { Switch } from "@/components/ui/switch";
+import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDetailLayout";
 import { PrinterStatus } from "@/components/labels/PrinterStatus";
 import { LabelPreview } from "@/components/labels/LabelPreview";
 import { usePrinterConfig, useUpsertPrinterConfig } from "@/hooks/usePrinterConfig";
@@ -26,11 +22,19 @@ const SPEED_OPTIONS = [
   { value: "6", label: "6 ips" },
 ];
 
-function SectionHeader({ title, description }: { title: string; description: string }) {
+const BREADCRUMBS = [
+  { label: "Instellingen", path: "/instellingen/voorkeuren" },
+  { label: "Keuken", path: "/instellingen/keuken" },
+  { label: "Printer & Labels" },
+];
+
+function CardHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-5">
-      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">{title}</h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
+      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
+        {title}
+      </h3>
+      {description && <p className="text-sm text-muted-foreground">{description}</p>}
     </div>
   );
 }
@@ -128,7 +132,6 @@ export default function PrinterSettings() {
   };
 
   const handleSetDefault = (templateId: string) => {
-    // Unset all others, set this one
     for (const t of templates) {
       if (t.id === templateId) {
         updateTemplate.mutate({ id: t.id, is_default: true });
@@ -140,45 +143,46 @@ export default function PrinterSettings() {
 
   const isLoading = configLoading || templatesLoading;
 
+  const aside = selectedTemplate ? (
+    <div className="sticky top-4">
+      <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2 block">
+        Live preview
+      </label>
+      <LabelPreview
+        zpl={previewZpl}
+        widthMm={parseInt(breedte) || 60}
+        heightMm={parseInt(hoogte) || 40}
+      />
+    </div>
+  ) : undefined;
+
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Breadcrumb><BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/instellingen/voorkeuren">Instellingen</Link></BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink asChild><Link to="/instellingen/keuken">Keuken</Link></BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>Printer & Labels</BreadcrumbPage></BreadcrumbItem>
-        </BreadcrumbList></Breadcrumb>
+      <SettingsDetailLayout
+        title="Printer & Labels"
+        description="Configureer je Zebra labelprinter en label templates."
+        breadcrumbs={BREADCRUMBS}
+      >
         <div className="flex justify-center py-20"><Spinner /></div>
-      </div>
+      </SettingsDetailLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb><BreadcrumbList>
-        <BreadcrumbItem><BreadcrumbLink asChild><Link to="/instellingen/voorkeuren">Instellingen</Link></BreadcrumbLink></BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem><BreadcrumbLink asChild><Link to="/instellingen/keuken">Keuken</Link></BreadcrumbLink></BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem><BreadcrumbPage>Printer & Labels</BreadcrumbPage></BreadcrumbItem>
-      </BreadcrumbList></Breadcrumb>
-
-      <div className="max-w-[720px] mx-auto">
-        <div className="pb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-h1 text-foreground">Printer & Labels</h1>
-              <p className="text-body text-muted-foreground mt-1">Configureer je Zebra labelprinter en label templates.</p>
-            </div>
-            <PrinterStatus config={config ?? null} />
-          </div>
-        </div>
-
-        {/* Section 1: Printer verbinding */}
-        <div>
-          <SectionHeader title="PRINTER VERBINDING" description="Verbind je Raspberry Pi print bridge met de Zebra printer." />
+    <SettingsDetailLayout
+      title="Printer & Labels"
+      description="Configureer je Zebra labelprinter en label templates."
+      breadcrumbs={BREADCRUMBS}
+      actions={<PrinterStatus config={config ?? null} />}
+      aside={aside}
+    >
+      <div className="space-y-6">
+        {/* Card 1: Printer verbinding */}
+        <NestoCard className="p-6">
+          <CardHeader
+            title="PRINTER VERBINDING"
+            description="Verbind je Raspberry Pi print bridge met de Zebra printer."
+          />
           <div className="space-y-4">
             <NestoInput label="Printer naam" value={naam} onChange={(e) => setNaam(e.target.value)} />
             <NestoInput
@@ -187,32 +191,36 @@ export default function PrinterSettings() {
               onChange={(e) => setBridgeUrl(e.target.value)}
               placeholder="http://192.168.1.50:3001"
             />
-            <p className="text-xs text-muted-foreground -mt-2">Het IP-adres van je Raspberry Pi, bijv. http://192.168.1.50:3001</p>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Het IP-adres van je Raspberry Pi, bijv. http://192.168.1.50:3001
+            </p>
             <div className="grid grid-cols-2 gap-4">
-              <NestoInput label="Printer IP" value={printerIp} onChange={(e) => setPrinterIp(e.target.value)} placeholder="192.168.1.100" />
-              <NestoInput label="Printer poort" type="number" value={printerPort} onChange={(e) => setPrinterPort(e.target.value)} />
+              <NestoInput label="Printer IP" value={printerIp}
+                onChange={(e) => setPrinterIp(e.target.value)} placeholder="192.168.1.100" />
+              <NestoInput label="Printer poort" type="number" value={printerPort}
+                onChange={(e) => setPrinterPort(e.target.value)} />
             </div>
           </div>
-        </div>
+        </NestoCard>
 
-        {/* Section 2: Label afmetingen */}
-        <div className="border-t border-border/50 pt-6 mt-6">
-          <SectionHeader title="LABEL AFMETINGEN" description="Stel de afmetingen en kwaliteit van je labels in." />
+        {/* Card 2: Label afmetingen + Save/Test */}
+        <NestoCard className="p-6">
+          <CardHeader
+            title="LABEL AFMETINGEN"
+            description="Stel de afmetingen en kwaliteit van je labels in."
+          />
           <div className="grid grid-cols-2 gap-4">
-            <NestoInput label="Breedte (mm)" type="number" value={breedte} onChange={(e) => setBreedte(e.target.value)} />
-            <NestoInput label="Hoogte (mm)" type="number" value={hoogte} onChange={(e) => setHoogte(e.target.value)} />
+            <NestoInput label="Breedte (mm)" type="number" value={breedte}
+              onChange={(e) => setBreedte(e.target.value)} />
+            <NestoInput label="Hoogte (mm)" type="number" value={hoogte}
+              onChange={(e) => setHoogte(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Darkness (0-30)</label>
-              <input
-                type="range"
-                min={0}
-                max={30}
-                value={darkness}
+              <input type="range" min={0} max={30} value={darkness}
                 onChange={(e) => setDarkness(e.target.value)}
-                className="w-full accent-primary"
-              />
+                className="w-full accent-primary" />
               <p className="text-xs text-muted-foreground text-right">{darkness}</p>
             </div>
             <div>
@@ -220,92 +228,71 @@ export default function PrinterSettings() {
               <Select value={speed} onValueChange={setSpeed}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {SPEED_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  {SPEED_OPTIONS.map((o) =>
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
-        </div>
+          <div className="flex gap-3 mt-6 pt-6 border-t border-border/50">
+            <NestoButton onClick={handleSaveConfig} isLoading={upsertConfig.isPending}>
+              Opslaan
+            </NestoButton>
+            <NestoButton variant="outline" onClick={handleTestPrint} disabled={!config}>
+              <Printer className="h-4 w-4 mr-1.5" />Testprint
+            </NestoButton>
+          </div>
+        </NestoCard>
 
-        {/* Save + Test */}
-        <div className="border-t border-border/50 pt-6 mt-6 flex gap-3">
-          <NestoButton onClick={handleSaveConfig} isLoading={upsertConfig.isPending}>Opslaan</NestoButton>
-          <NestoButton variant="outline" onClick={handleTestPrint} disabled={!config}>
-            <Printer className="h-4 w-4 mr-1.5" />Testprint
-          </NestoButton>
-        </div>
-
-        {/* Section 3: Label templates */}
-        <div className="border-t border-border/50 pt-6 mt-6">
-          <SectionHeader title="LABEL TEMPLATES" description="Beheer welke velden op je labels verschijnen." />
-
+        {/* Card 3: Label templates */}
+        <NestoCard className="p-6">
+          <CardHeader
+            title="LABEL TEMPLATES"
+            description="Beheer welke velden op je labels verschijnen."
+          />
           {templates.length === 0 ? (
             <p className="text-sm text-muted-foreground">Geen templates gevonden.</p>
           ) : (
             <div className="space-y-4">
-              {/* Template tabs */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTemplateId(t.id)}
+                  <button key={t.id} onClick={() => setSelectedTemplateId(t.id)}
                     className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                       selectedTemplateId === t.id
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-card text-muted-foreground border-border hover:border-primary/50"
-                    }`}
-                  >
+                    }`}>
                     {t.naam} {t.is_default ? "★" : ""}
                   </button>
                 ))}
               </div>
 
               {selectedTemplate && (
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Fields toggles */}
-                  <div className="space-y-2">
-                    {selectedTemplate.velden.map((v, i) => (
-                      <div key={v.veld} className="flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40" />
-                          <span className="text-sm">{v.label}</span>
-                          <span className="text-[11px] text-muted-foreground">({v.veld})</span>
-                        </div>
-                        <Switch
-                          checked={v.actief}
-                          onCheckedChange={() => handleToggleVeld(selectedTemplate.id, i)}
-                        />
+                <div className="space-y-2">
+                  {selectedTemplate.velden.map((v, i) => (
+                    <div key={v.veld}
+                      className="flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40" />
+                        <span className="text-sm">{v.label}</span>
+                        <span className="text-[11px] text-muted-foreground">({v.veld})</span>
                       </div>
-                    ))}
-                    {!selectedTemplate.is_default && (
-                      <NestoButton
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSetDefault(selectedTemplate.id)}
-                        className="mt-2"
-                      >
-                        Maak standaard
-                      </NestoButton>
-                    )}
-                  </div>
-
-                  {/* Live preview */}
-                  <div>
-                    <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">Preview</label>
-                    <LabelPreview
-                      zpl={previewZpl}
-                      widthMm={parseInt(breedte) || 60}
-                      heightMm={parseInt(hoogte) || 40}
-                    />
-                  </div>
+                      <Switch checked={v.actief}
+                        onCheckedChange={() => handleToggleVeld(selectedTemplate.id, i)} />
+                    </div>
+                  ))}
+                  {!selectedTemplate.is_default && (
+                    <NestoButton variant="outline" size="sm"
+                      onClick={() => handleSetDefault(selectedTemplate.id)} className="mt-2">
+                      Maak standaard
+                    </NestoButton>
+                  )}
                 </div>
               )}
             </div>
           )}
-        </div>
-
-        <div className="pb-8" />
+        </NestoCard>
       </div>
-    </div>
+    </SettingsDetailLayout>
   );
 }
