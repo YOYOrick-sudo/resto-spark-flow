@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronRight, FileText } from "lucide-react";
 import { SettingsDetailLayout } from "@/components/settings/layouts/SettingsDetailLayout";
 import { NestoCard, NestoCardContent, NestoButton, Spinner } from "@/components/polar";
 import { buildBreadcrumbs } from "@/lib/settingsRouteConfig";
@@ -9,10 +11,8 @@ import {
 } from "@/hooks/useKeukenSettings";
 import { useChecklistTemplates } from "@/hooks/useChecklistTemplates";
 import { nestoToast } from "@/lib/nestoToast";
-import { TemplatesTab } from "@/components/taken/TemplatesTab";
 import {
   SettingsCardHeader,
-  SettingsSectionLabel,
   SettingsSaveIndicator,
   type SaveState,
 } from "@/components/settings";
@@ -42,9 +42,10 @@ function toHm(value: string | null | undefined, fallback: string): string {
 }
 
 export default function SettingsKeukenTaken() {
+  const navigate = useNavigate();
   const { data: settings, isLoading } = useKeukenSettings();
   const updateSettings = useUpdateKeukenSettings();
-  const { data: templates, seedTemplates } = useChecklistTemplates();
+  const { data: templates } = useChecklistTemplates();
 
   // ---- HACCP-bevriestijd ----
   const [freezeTime, setFreezeTime] = useState("03:00");
@@ -107,9 +108,12 @@ export default function SettingsKeukenTaken() {
     }
   };
 
-  // ---- Seed ----
+  // ---- Templates entry-card meta ----
   const templateCount = templates?.length ?? 0;
-  const showSeed = !templates || templateCount === 0;
+  const templatesDescription =
+    templateCount === 0
+      ? "Nog geen templates. Klik om te starten."
+      : `${templateCount} ${templateCount === 1 ? "template" : "templates"}`;
 
   return (
     <SettingsDetailLayout
@@ -118,14 +122,28 @@ export default function SettingsKeukenTaken() {
       breadcrumbs={buildBreadcrumbs("keuken", "taken")}
     >
       <div className="space-y-6">
-        {/* SECTIE 1 — Templates (geen card-wrapper voor extra editor-breedte) */}
-        <div className="space-y-4">
-          <SettingsSectionLabel>TEMPLATES</SettingsSectionLabel>
-          <p className="text-sm text-muted-foreground -mt-3">
-            Beheer checklist-templates die dagelijks of periodiek door de keuken worden uitgevoerd.
-          </p>
-          <TemplatesTab />
-        </div>
+        {/* SECTIE 1 — Templates entry-card → subpagina */}
+        <NestoCard
+          hoverable
+          onClick={() => navigate("/instellingen/keuken/taken/templates")}
+        >
+          <NestoCardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="flex-shrink-0 h-10 w-10 rounded-button bg-muted flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-foreground">Templates</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {templatesDescription}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            </div>
+          </NestoCardContent>
+        </NestoCard>
 
         {/* SECTIE 2 — HACCP-bevriestijd */}
         <NestoCard>
@@ -223,24 +241,7 @@ export default function SettingsKeukenTaken() {
           </NestoCardContent>
         </NestoCard>
 
-        {/* SECTIE 4 — Seed (create-actie → nestoToast blijft via hook) */}
-        {showSeed && (
-          <NestoCard>
-            <NestoCardContent>
-              <SettingsCardHeader
-                title="Standaard templates"
-                description="Maakt 3 starter-templates aan: Opening, Sluiting, Schoonmaak wekelijks."
-              />
-              <NestoButton
-                onClick={() => seedTemplates.mutate()}
-                isLoading={seedTemplates.isPending}
-                className="min-h-[44px]"
-              >
-                Standaard templates aanmaken
-              </NestoButton>
-            </NestoCardContent>
-          </NestoCard>
-        )}
+        {/* SECTIE 4 (Seed) verhuisd naar /keuken/taken/templates — daar logischer als EmptyState-CTA */}
       </div>
     </SettingsDetailLayout>
   );

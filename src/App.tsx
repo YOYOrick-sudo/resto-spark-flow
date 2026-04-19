@@ -44,6 +44,7 @@ import SettingsKeukenHaccp from "./pages/settings/keuken/SettingsKeukenHaccp";
 import SettingsKeukenCategorieen from "./pages/settings/keuken/SettingsKeukenCategorieen";
 import SettingsKeukenAssistent from "./pages/settings/keuken/SettingsKeukenAssistent";
 import SettingsKeukenTaken from "./pages/settings/keuken/SettingsKeukenTaken";
+import SettingsKeukenTakenTemplates from "./pages/settings/keuken/SettingsKeukenTakenTemplates";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
 import BookingWidget from "./pages/BookingWidget";
@@ -231,6 +232,7 @@ const App = () => (
                   <Route path="/instellingen/keuken/categorieen" element={<SettingsKeukenCategorieen />} />
                   <Route path="/instellingen/keuken/assistent" element={<SettingsKeukenAssistent />} />
                   <Route path="/instellingen/keuken/taken" element={<SettingsKeukenTaken />} />
+                  <Route path="/instellingen/keuken/taken/templates" element={<SettingsKeukenTakenTemplates />} />
                   <Route path="/instellingen/keuken/medewerkers" element={<MedewerkersSettings />} />
                   <Route path="/instellingen/keuken/printer" element={<PrinterSettings />} />
                   <Route path="/instellingen/apparaten" element={<Suspense fallback={null}><SettingsApparaten /></Suspense>} />
