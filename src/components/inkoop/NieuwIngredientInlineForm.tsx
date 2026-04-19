@@ -58,7 +58,7 @@ export function NieuwIngredientInlineForm({
   onClose,
   onSuccess,
 }: Props) {
-  const { createNewIngredientFromFactuur } = useFactuurMutations();
+  const { createNewIngredientFromFactuur, koppelExtraLeverancier } = useFactuurMutations();
 
   const [naam, setNaam] = React.useState(prefill.naam);
   const [categorie, setCategorie] = React.useState(prefill.categorie ?? "overig");
@@ -69,6 +69,11 @@ export function NieuwIngredientInlineForm({
   );
   const [kostprijsOverridden, setKostprijsOverridden] = React.useState(false);
   const [minVoorraad, setMinVoorraad] = React.useState("");
+
+  // R4b-3 — debounced duplicate-check
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = React.useState(false);
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = React.useState(false);
+  const { duplicate } = useDuplicateIngredientCheck(naam, !duplicateAcknowledged);
 
   const canSave = naam.trim().length > 0 && categorie && eenheid;
   const berekendePrijs = prefill.prijsPerBasiseenheid ?? null;
@@ -81,11 +86,25 @@ export function NieuwIngredientInlineForm({
   const heeftVerpakking =
     !!prefill.verpakkingHoeveelheid && !!prefill.verpakkingEenheid;
 
+  // Reset acknowledgement bij naam-wijziging
+  React.useEffect(() => {
+    setDuplicateAcknowledged(false);
+  }, [naam]);
+
   const handleSave = () => {
+    // R4b-3: blokkeer aanmaak als duplicaat (en niet erkend) — open dialog
+    if (duplicate && !duplicateAcknowledged) {
+      setDuplicateDialogOpen(true);
+      return;
+    }
+    doCreate(naam.trim());
+  };
+
+  const doCreate = (uiteindelijkeNaam: string) => {
     createNewIngredientFromFactuur.mutate(
       {
         regelId,
-        naam: naam.trim(),
+        naam: uiteindelijkeNaam,
         categorie,
         eenheid,
         kostprijs: kostprijs ? parseFloat(kostprijs) : undefined,
@@ -97,8 +116,40 @@ export function NieuwIngredientInlineForm({
         verpakkingEenheid: prefill.verpakkingEenheid ?? null,
         prijsPerVerpakking: prefill.prijsPerVerpakking ?? null,
       },
-      { onSuccess: () => onSuccess(naam.trim()) }
+      { onSuccess: () => onSuccess(uiteindelijkeNaam) }
     );
+  };
+
+  const handleKoppelExtra = (bestaandIngredientId: string) => {
+    if (!leverancierId) return;
+    koppelExtraLeverancier.mutate(
+      {
+        ingredientId: bestaandIngredientId,
+        leverancierId,
+        artikelNaam: naam.trim(),
+        artikelNummer: prefill.artikelnummer ?? null,
+        verpakkingHoeveelheid: prefill.verpakkingHoeveelheid ?? null,
+        verpakkingEenheid: prefill.verpakkingEenheid ?? null,
+        prijsPerVerpakking: prefill.prijsPerVerpakking ?? null,
+        prijsPerEenheid: kostprijs ? parseFloat(kostprijs) : null,
+        regelId,
+        aliasNaam: prefill.aliasNaam,
+      },
+      {
+        onSuccess: () => {
+          setDuplicateDialogOpen(false);
+          onSuccess(naam.trim());
+        },
+      }
+    );
+  };
+
+  const handleMaakVariant = (nieuweNaam: string) => {
+    setNaam(nieuweNaam);
+    setDuplicateAcknowledged(true);
+    setDuplicateDialogOpen(false);
+    // Geef React 1 frame om naam-state door te zetten, dan opslaan
+    setTimeout(() => doCreate(nieuweNaam), 0);
   };
 
   return (
