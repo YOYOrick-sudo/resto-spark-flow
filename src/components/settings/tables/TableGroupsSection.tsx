@@ -7,6 +7,7 @@ import { TableGroupModal } from "./TableGroupModal";
 import { useTableGroups, useRestoreTableGroup } from "@/hooks/useTableGroups";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronRight, Plus, Loader2, Archive } from "lucide-react";
+import { SettingsCardHeader } from "@/components/settings";
 import type { TableGroup } from "@/types/reservations";
 
 interface TableGroupsSectionProps {
@@ -58,23 +59,21 @@ export function TableGroupsSection({ locationId }: TableGroupsSectionProps) {
 
   return (
     <NestoCard className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h3 className="text-lg font-medium">Tafelcombinaties</h3>
-            <FieldHelp>
-              <p className="text-muted-foreground">Combineer tafels zodat het systeem ze automatisch kan samenvoegen voor grotere gezelschappen.</p>
-            </FieldHelp>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Groepeer tafels die samen geboekt kunnen worden.
-          </p>
-        </div>
-        <NestoButton onClick={handleAdd} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Nieuwe Groep
-        </NestoButton>
-      </div>
+      <SettingsCardHeader
+        title="Tafelcombinaties"
+        description="Groepeer tafels die samen geboekt kunnen worden."
+        helpText={
+          <FieldHelp>
+            <p className="text-muted-foreground">Combineer tafels zodat het systeem ze automatisch kan samenvoegen voor grotere gezelschappen.</p>
+          </FieldHelp>
+        }
+        actions={
+          <NestoButton onClick={handleAdd} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Nieuwe Groep
+          </NestoButton>
+        }
+      />
 
       {/* Active Groups */}
       <div className="grid gap-3">
