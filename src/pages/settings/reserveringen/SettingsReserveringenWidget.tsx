@@ -23,7 +23,7 @@ import { Check, ExternalLink } from 'lucide-react';
 import { TitleHelp } from '@/components/polar/TitleHelp';
 import { FieldHelp } from '@/components/polar/FieldHelp';
 import { useUserContext } from '@/contexts/UserContext';
-import { SettingsCardHeader } from '@/components/settings';
+import { SettingsCardHeader, SettingsSectionLabel } from '@/components/settings';
 
 const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex);
 const isValidSlug = (slug: string) => /^[a-z0-9-]+$/.test(slug);
@@ -51,9 +51,6 @@ const PRESET_COLORS = [
   '#06B6D4', '#3B82F6', '#A855F7', '#1F2937',
 ];
 
-
-const sectionHeader = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4";
-const sectionDivider = "border-t border-border pt-6 mt-6";
 
 const buildHelp = (text: string) => (
   <FieldHelp>
@@ -180,9 +177,9 @@ export default function SettingsReserveringenWidget() {
         {/* Card 1: Configuratie */}
         <NestoCard className="p-6">
           <SettingsCardHeader title="Configuratie" description="Widget status en basisinstellingen." helpText={buildHelp("Schakel de widget in en stel de basis-URL en gastervaring in.")} />
-          <div className="space-y-4">
+          <div className="divide-y divide-border/50">
             {/* Groep A: Status & identiteit */}
-            <div className="bg-secondary/50 rounded-card p-4 space-y-4">
+            <div className="pb-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Widget inschakelen</p>
@@ -204,7 +201,7 @@ export default function SettingsReserveringenWidget() {
             </div>
 
             {/* Groep B: Gastervaring */}
-            <div className="bg-secondary/50 rounded-card p-4 space-y-4">
+            <div className="py-5 space-y-4">
               <div className="w-full">
                 <label className="mb-2 block text-label text-muted-foreground">Welkomsttekst</label>
                 <Textarea
@@ -225,7 +222,7 @@ export default function SettingsReserveringenWidget() {
             </div>
 
             {/* Redirect URL — standalone (optioneel/advanced) */}
-            <div>
+            <div className="pt-5">
               <NestoInput
                 label="Redirect URL na boeking"
                 value={local.widget_success_redirect_url}
@@ -243,7 +240,7 @@ export default function SettingsReserveringenWidget() {
           <div className="divide-y divide-border/50">
             {/* Widget stijl selector */}
             <div className="pb-5">
-              <h4 className={sectionHeader}>Stijl</h4>
+              <SettingsSectionLabel className="mb-4">Stijl</SettingsSectionLabel>
               <div className="grid grid-cols-3 gap-2">
                 {([
                   { value: 'auto' as const, label: 'Auto', desc: 'Op basis van aantal tickets' },
