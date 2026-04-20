@@ -9,8 +9,10 @@ import {
   DataTable,
   EmptyState,
   TableSkeleton,
+  ModuleSubNav,
   type DataTableColumn,
 } from "@/components/polar";
+import { KEUKEN_SUBNAV } from "@/lib/moduleSubNav";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -233,6 +235,8 @@ export default function Ingredienten() {
           },
         ]}
       />
+
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">

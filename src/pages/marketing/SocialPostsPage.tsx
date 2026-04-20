@@ -4,6 +4,8 @@ import { Plus, Trash2, Settings, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { PLATFORM_COLORS } from '@/lib/platformColors';
 import { NestoTabs } from '@/components/polar/NestoTabs';
@@ -129,6 +131,7 @@ export default function SocialPostsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Social Posts" />
+        <ModuleSubNav items={MARKETING_SUBNAV} />
         <EmptyState
           title="Geen social accounts gekoppeld"
           description="Koppel Instagram, Facebook of Google Business in de marketing instellingen."
@@ -175,6 +178,8 @@ export default function SocialPostsPage() {
           </NestoButton>
         }
       />
+
+      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {showOnboardingCard && (
         <InfoAlert

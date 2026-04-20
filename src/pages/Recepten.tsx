@@ -8,7 +8,9 @@ import {
   NestoBadge,
   DataTable,
   Spinner,
+  ModuleSubNav,
 } from "@/components/polar";
+import { KEUKEN_SUBNAV } from "@/lib/moduleSubNav";
 import { Switch } from "@/components/ui/switch";
 import { BookOpen, Plus } from "lucide-react";
 import { useRecepten, filterRecepten, ReceptRow, ReceptenFilters } from "@/hooks/useRecepten";
@@ -118,6 +120,8 @@ export default function Recepten() {
           </NestoButton>
         }
       />
+
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">

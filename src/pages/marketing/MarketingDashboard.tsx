@@ -3,6 +3,8 @@ import { AlertTriangle, Zap, Users, Euro } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoTable, type Column } from '@/components/polar/NestoTable';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { NestoButton } from '@/components/polar/NestoButton';
@@ -71,6 +73,7 @@ export default function MarketingDashboard() {
   return (
     <div className="space-y-8">
       <PageHeader title="Marketing" subtitle="Overzicht van je marketing prestaties" />
+      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {/* Weekplan Card */}
       <WeekplanCard weekplan={weekplan} isLoading={intelligenceLoading} />

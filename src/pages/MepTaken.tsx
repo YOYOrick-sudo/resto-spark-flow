@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, addDays, subDays, startOfWeek, endOfWeek } from "date-fns";
 import { nl } from "date-fns/locale";
-import { PageHeader } from "@/components/polar";
+import { PageHeader, ModuleSubNav } from "@/components/polar";
+import { KEUKEN_SUBNAV } from "@/lib/moduleSubNav";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import { ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, Sparkles, Trash2, UtensilsCrossed, AlertTriangle } from "lucide-react";
@@ -166,6 +167,8 @@ export default function MepTaken() {
           </div>
         }
       />
+
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
 
       {/* Date navigation */}
       <div className="flex items-center gap-3">
