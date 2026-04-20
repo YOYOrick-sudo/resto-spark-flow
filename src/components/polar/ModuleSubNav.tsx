@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSidebarState } from "@/contexts/SidebarStateContext";
 
 export interface ModuleSubNavItem {
   path: string;
@@ -14,15 +15,22 @@ export interface ModuleSubNavProps {
 }
 
 /**
- * Horizontale tab-navigatie binnen een module. Werkt identiek bij collapsed
- * en expanded sidebar. Active state matcht exact OF startsWith voor sub-routes
- * (bv. /voorraad/123 highlight "Ingrediënten").
+ * Horizontale tab-navigatie binnen een module. Active state matcht exact OF
+ * startsWith voor sub-routes (bv. /voorraad/123 highlight "Ingrediënten").
+ *
+ * Wordt verborgen wanneer de hoofd-sidebar expanded is — in dat geval toont
+ * de sidebar al alle sub-items inline en zou de sub-nav dubbele navigatie
+ * opleveren.
  *
  * Fade-edges worden gerealiseerd met een wrapper + gradient overlays (geen
  * CSS mask) voor maximale Safari iOS compatibiliteit.
  */
 export function ModuleSubNav({ items, className }: ModuleSubNavProps) {
   const { pathname } = useLocation();
+  const { collapsed } = useSidebarState();
+
+  // Verberg sub-nav wanneer sidebar uitgeklapt is (sidebar toont al sub-items).
+  if (!collapsed) return null;
 
   // Sorteer paden van langst naar kortst voor exacte match-prioriteit.
   // Een sub-route als /kaartbeheer/menus mag niet ook /kaartbeheer activeren.
@@ -33,14 +41,14 @@ export function ModuleSubNav({ items, className }: ModuleSubNavProps) {
 
   return (
     <div className={cn("relative -mx-2", className)}>
-      {/* Fade-edges via gradient overlays (Safari iOS 14+ veilig) */}
+      {/* Fade-edges moeten pagina-bg matchen (bg-card = wit), anders tonen ze als grijs vlak */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-background to-transparent"
+        className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-card to-transparent"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-background to-transparent"
+        className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-card to-transparent"
       />
 
       <nav

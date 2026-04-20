@@ -94,11 +94,11 @@ export const menuItems: MenuItem[] = [
     section: 'OPERATIE',
     subItems: [
       { id: 'kitchen-mep', label: 'MEP Taken', path: '/mep' },
+      { id: 'kitchen-taken', label: 'Taken & HACCP', path: '/taken' },
       { id: 'kitchen-recipes', label: 'Halffabricaten', path: '/recepten' },
       { id: 'kitchen-voorraad', label: 'Ingrediënten', path: '/voorraad' },
       { id: 'kitchen-orders', label: 'Voorraad & Inkoop', path: '/inkoop' },
       { id: 'kitchen-transfers', label: 'Interne Bestellingen', path: '/interne-bestellingen' },
-      { id: 'kitchen-taken', label: 'Taken & HACCP', path: '/taken' },
     ],
   },
   {
