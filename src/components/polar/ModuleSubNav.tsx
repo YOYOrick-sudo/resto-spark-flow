@@ -75,11 +75,11 @@ export function ModuleSubNav({ items, className }: ModuleSubNavProps) {
               role="tab"
               aria-selected={isActive}
               className={cn(
-                "relative flex items-center gap-2 px-4 min-h-[44px] text-sm font-medium whitespace-nowrap rounded-md transition-colors",
+                "relative flex items-center gap-2 px-4 min-h-[44px] text-sm font-medium whitespace-nowrap transition-colors [-webkit-tap-highlight-color:transparent]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               {Icon ? <Icon className="h-4 w-4" aria-hidden /> : null}
