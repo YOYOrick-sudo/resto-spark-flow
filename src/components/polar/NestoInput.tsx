@@ -34,6 +34,7 @@ const NestoInput = React.forwardRef<HTMLInputElement, NestoInputProps>(
             type={type}
             className={cn(
               "flex h-10 w-full rounded-button border-[1.5px] border-border bg-card px-3 py-2.5 text-body text-foreground transition-colors",
+              "touch:h-11",
               "placeholder:text-muted-foreground",
               "focus:!border-primary focus:outline-none focus:ring-0",
               "disabled:cursor-not-allowed disabled:opacity-50",

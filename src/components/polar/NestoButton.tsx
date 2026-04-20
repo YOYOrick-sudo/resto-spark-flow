@@ -21,10 +21,10 @@ const buttonVariants = cva(
           "border border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground rounded-button",
       },
       size: {
-        default: "h-10 px-5 py-2.5 text-sm",
-        sm: "h-8 px-3 py-2 text-xs",
+        default: "h-10 px-5 py-2.5 text-sm touch:h-11",
+        sm: "h-8 px-3 py-2 text-xs touch:h-11 touch:px-4 touch:text-sm",
         lg: "h-12 px-6 py-3 text-base",
-        icon: "h-10 w-10",
+        icon: "h-10 w-10 touch:h-11 touch:w-11",
       },
     },
     defaultVariants: {
