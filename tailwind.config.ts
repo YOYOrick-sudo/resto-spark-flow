@@ -12,6 +12,19 @@ export default {
         "2xl": "1400px",
       },
     },
+    screens: {
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
+      // Touch-target variant: detects coarse pointers (iPad, kitchen tablets).
+      // Used to scale tap-targets to ≥44px (Apple HIG) without affecting desktop UX.
+      // Known limitation: iPad with Magic Keyboard + trackpad reports `pointer: fine`
+      // → touch-targets stay desktop-sized. Pura Vida iPad is wall-mounted touch-only,
+      // so this is acceptable. A future explicit "kitchen mode" toggle can override.
+      touch: { raw: "(pointer: coarse)" },
+    },
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
