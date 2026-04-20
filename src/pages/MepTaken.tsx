@@ -105,6 +105,8 @@ export default function MepTaken() {
 
   return (
     <div className="space-y-6">
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
+
       <PageHeader
         title="MEP Taken"
         actions={
@@ -166,8 +168,6 @@ export default function MepTaken() {
           </div>
         }
       />
-
-      <ModuleSubNav items={KEUKEN_SUBNAV} />
 
       {/* Date navigation */}
       <div className="flex items-center gap-3">

@@ -207,9 +207,9 @@ export default function ReviewsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Reviews" subtitle="Beheer en beantwoord je reviews" />
-
       <ModuleSubNav items={MARKETING_SUBNAV} />
+
+      <PageHeader title="Reviews" subtitle="Beheer en beantwoord je reviews" />
 
       {/* Stats */}
       {stats && (

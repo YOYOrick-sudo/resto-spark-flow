@@ -81,6 +81,8 @@ export default function ContactsPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <ModuleSubNav items={MARKETING_SUBNAV} />
+
       <PageHeader
         title="Gasten"
         subtitle="Alle gasten die marketing communicatie ontvangen."
@@ -89,8 +91,6 @@ export default function ContactsPage() {
           { label: 'Importeer', onClick: () => setImportOpen(true), variant: 'outline', icon: Upload },
         ]}
       />
-
-      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

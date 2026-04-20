@@ -130,8 +130,8 @@ export default function SocialPostsPage() {
   if (allDisconnected) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Social Posts" />
         <ModuleSubNav items={MARKETING_SUBNAV} />
+        <PageHeader title="Social Posts" />
         <EmptyState
           title="Geen social accounts gekoppeld"
           description="Koppel Instagram, Facebook of Google Business in de marketing instellingen."
@@ -169,6 +169,8 @@ export default function SocialPostsPage() {
 
   return (
     <div className="space-y-6">
+      <ModuleSubNav items={MARKETING_SUBNAV} />
+
       <PageHeader
         title="Social Posts"
         actions={
@@ -178,8 +180,6 @@ export default function SocialPostsPage() {
           </NestoButton>
         }
       />
-
-      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {showOnboardingCard && (
         <InfoAlert

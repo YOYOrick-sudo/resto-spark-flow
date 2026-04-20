@@ -138,6 +138,7 @@ export default function PopupPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <ModuleSubNav items={MARKETING_SUBNAV} />
       <PageHeader
         title="Website Popup"
         actions={
@@ -147,7 +148,6 @@ export default function PopupPage() {
           </NestoButton>
         }
       />
-      <ModuleSubNav items={MARKETING_SUBNAV} />
       {/* AI Suggestion */}
       {suggestion && <PopupSuggestionCard suggestion={suggestion} targetPopupId={selectedId ?? undefined} />}
 
