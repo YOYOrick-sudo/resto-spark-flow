@@ -44,20 +44,9 @@ export function FacturenTab() {
   });
   const { data: leveranciers } = useLeveranciers();
 
-  // Realtime: live status-updates terwijl AI factuur leest
-  useEffect(() => {
-    const channel = supabase
-      .channel("factuur-uploads-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "factuur_uploads" },
-        () => qc.invalidateQueries({ queryKey: ["factuur-uploads"] })
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [qc]);
+  // Realtime: useFactuurUploads subscribet zelf op Broadcast-channel
+  // `inkoop:{locationId}` event `factuur.status` en invalideert de query.
+  // Geen lokale subscription meer nodig.
 
   const leverancierOptions = [
     { value: "", label: "Alle leveranciers" },
