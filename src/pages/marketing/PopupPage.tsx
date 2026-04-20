@@ -13,6 +13,8 @@ import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { Check, Globe, ExternalLink, Link as LinkIcon, CalendarIcon, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { usePopupConfigs, usePopupConfig, useCreatePopup, useUpdatePopupConfig, useDeletePopup, PopupType } from '@/hooks/usePopupConfig';
 import { useMarketingBrandKit } from '@/hooks/useMarketingBrandKit';
@@ -135,6 +137,7 @@ export default function PopupPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <ModuleSubNav items={MARKETING_SUBNAV} />
       {/* AI Suggestion */}
       {suggestion && <PopupSuggestionCard suggestion={suggestion} targetPopupId={selectedId ?? undefined} />}
 

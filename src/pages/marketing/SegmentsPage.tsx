@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Users, Trash2, Calendar } from 'lucide-react';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoCard } from '@/components/polar/NestoCard';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { NestoButton } from '@/components/polar/NestoButton';
@@ -67,6 +69,8 @@ export default function SegmentsPage() {
           <NestoButton onClick={openCreate}>Nieuwe doelgroep</NestoButton>
         }
       />
+
+      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

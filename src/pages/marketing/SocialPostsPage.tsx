@@ -4,6 +4,8 @@ import { Plus, Trash2, Settings, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { PLATFORM_COLORS } from '@/lib/platformColors';
 import { NestoTabs } from '@/components/polar/NestoTabs';
@@ -176,6 +178,8 @@ export default function SocialPostsPage() {
           </NestoButton>
         }
       />
+
+      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {showOnboardingCard && (
         <InfoAlert

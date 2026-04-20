@@ -3,6 +3,8 @@ import { Star, MessageSquare, CheckCircle2, Sparkles, Loader2, Copy, Send, Info 
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { NestoButton } from '@/components/polar/NestoButton';

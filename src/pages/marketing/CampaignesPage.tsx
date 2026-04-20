@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { useMarketingCampaigns, useDeleteCampaign } from '@/hooks/useMarketingCampaigns';
@@ -59,6 +61,8 @@ export default function CampaignesPage() {
           },
         ]}
       />
+
+      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {isLoading ? (
         <div className="animate-pulse space-y-3">

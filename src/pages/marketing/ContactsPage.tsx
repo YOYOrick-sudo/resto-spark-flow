@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { StatCard } from '@/components/polar/StatCard';
 import { NestoTable, type Column } from '@/components/polar/NestoTable';
 import { NestoSelect } from '@/components/polar/NestoSelect';

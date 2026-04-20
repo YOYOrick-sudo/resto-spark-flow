@@ -4,6 +4,8 @@ import { nl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/polar/PageHeader';
+import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { useMarketingSocialPosts, groupPostsByDay } from '@/hooks/useMarketingSocialPosts';
 import { CalendarGrid } from '@/components/marketing/calendar/CalendarGrid';
