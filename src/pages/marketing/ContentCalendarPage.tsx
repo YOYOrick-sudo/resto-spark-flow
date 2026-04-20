@@ -102,7 +102,11 @@ export default function ContentCalendarPage() {
         }
       />
 
-      <div className="flex-1 flex gap-6 p-6 pt-0 min-h-0">
+      <div className="px-6 pt-2">
+        <ModuleSubNav items={MARKETING_SUBNAV} />
+      </div>
+
+      <div className="flex-1 flex gap-6 p-6 pt-4 min-h-0">
         {/* Calendar grid */}
         <div className="flex-1 min-w-0">
           {viewMode === 'month' ? (
