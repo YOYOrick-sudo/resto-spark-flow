@@ -80,12 +80,11 @@ export default function ContactsPage() {
   ];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6">
       <ModuleSubNav items={MARKETING_SUBNAV} />
 
       <PageHeader
         title="Gasten"
-        subtitle="Alle gasten die marketing communicatie ontvangen."
         actions={[
           { label: 'Exporteer', onClick: handleExport, variant: 'outline', icon: Download },
           { label: 'Importeer', onClick: () => setImportOpen(true), variant: 'outline', icon: Upload },
@@ -132,7 +131,7 @@ export default function ContactsPage() {
           description={search || selectedSegmentId ? 'Pas je filters aan.' : 'Er zijn nog geen gasten in je bestand.'}
         />
       ) : (
-        <div className="overflow-x-auto -mx-6 px-6">
+        <div className="overflow-x-auto">
           <NestoTable
             columns={columns}
             data={contacts as (MarketingContact & Record<string, unknown>)[]}

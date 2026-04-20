@@ -128,7 +128,7 @@ export default function PopupPage() {
   const previewUrl = `/popup-preview?slug=${slug}${selectedId ? `&popup_id=${selectedId}` : ''}`;
 
   if (isLoading) return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <CardSkeleton lines={6} />
     </div>
   );
@@ -137,7 +137,7 @@ export default function PopupPage() {
   const activeTickets = ticketsData?.visibleTickets?.filter(t => t.status === 'active') ?? [];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
       <ModuleSubNav items={MARKETING_SUBNAV} />
       <PageHeader
         title="Website Popup"

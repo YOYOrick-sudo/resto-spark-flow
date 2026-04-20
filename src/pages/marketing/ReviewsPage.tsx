@@ -85,7 +85,7 @@ export default function ReviewsPage() {
 
   if (!canView) {
     return (
-      <div className="w-full max-w-5xl mx-auto py-12">
+      <div className="space-y-6 py-12">
         <EmptyState title="Geen toegang" description="Je hebt geen rechten om reviews te bekijken." />
       </div>
     );
@@ -209,7 +209,7 @@ export default function ReviewsPage() {
     <div className="space-y-6">
       <ModuleSubNav items={MARKETING_SUBNAV} />
 
-      <PageHeader title="Reviews" subtitle="Beheer en beantwoord je reviews" />
+      <PageHeader title="Reviews" />
 
       {/* Stats */}
       {stats && (

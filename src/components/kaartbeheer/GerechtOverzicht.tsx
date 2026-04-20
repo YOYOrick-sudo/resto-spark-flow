@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { PageHeader, SearchBar, NestoSelect, NestoBadge, Spinner, EmptyState, NestoButton } from "@/components/polar";
+import { SearchBar, NestoSelect, NestoBadge, Spinner, EmptyState } from "@/components/polar";
 import { AllergeenPills } from "@/components/polar/AllergeenPills";
 import { Switch } from "@/components/ui/switch";
 import { useGerechten, filterGerechten, type GerechtenFilters } from "@/hooks/useGerechten";
@@ -31,16 +31,6 @@ export function GerechtOverzicht() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Gerechten"
-        subtitle="Beheer je menukaart en food cost."
-        actions={
-          <NestoButton leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigate("/kaartbeheer/nieuw")}>
-            Nieuw gerecht
-          </NestoButton>
-        }
-      />
-
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex-1 min-w-[200px]">

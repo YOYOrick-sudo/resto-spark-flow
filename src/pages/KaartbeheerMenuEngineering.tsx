@@ -6,7 +6,7 @@ export default function KaartbeheerMenuEngineering() {
   return (
     <div className="space-y-6">
       <ModuleSubNav items={KAARTBEHEER_SUBNAV} />
-      <PageHeader title="Menu Engineering" subtitle="Analyseer de prestaties van je menukaart." />
+      <PageHeader title="Menu Engineering" />
       <EmptyState
         icon={BarChart3}
         title="Menu Engineering"

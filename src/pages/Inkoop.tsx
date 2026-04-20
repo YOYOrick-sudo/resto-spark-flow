@@ -25,7 +25,6 @@ export default function Inkoop() {
 
       <PageHeader
         title="Voorraad & Inkoop"
-        subtitle="Besteladvies, bestellingen, facturen en orderhistorie."
         actions={
           <NestoButton
             variant="outline"
