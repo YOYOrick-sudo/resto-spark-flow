@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   NestoButton,
-  NestoSelect,
   NestoBadge,
   Spinner,
   NestoDatePicker,
@@ -21,6 +20,7 @@ import { useFactuurMutations } from "@/hooks/useFactuurMutations";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurRegelForm } from "@/components/inkoop/FactuurRegelForm";
 import { LeverancierMatchWidget } from "@/components/inkoop/LeverancierMatchWidget";
+import { LeverancierSelectCombobox } from "@/components/inkoop/LeverancierSelectCombobox";
 import { BulkCreateIngredientsDialog } from "@/components/inkoop/BulkCreateIngredientsDialog";
 import { GoedkeurenPreviewModal } from "@/components/inkoop/GoedkeurenPreviewModal";
 import type { PreviewData } from "@/hooks/usePreviewGoedkeuring";
@@ -170,10 +170,6 @@ export default function FactuurDetailPage() {
 
   const badge = STATUS_BADGES[factuur.status] ?? STATUS_BADGES.review;
   const isEditable = factuur.status === "review";
-  const leverancierOptions = (leveranciers ?? []).map((l: any) => ({
-    value: l.id,
-    label: l.naam,
-  }));
   const berekenTotaal = factuur.regels.reduce((s, r) => s + (r.totaal ?? 0), 0);
   const activeChip: ChipId = chip ?? "all";
 
@@ -277,14 +273,16 @@ export default function FactuurDetailPage() {
               <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Factuurgegevens
               </h3>
-              <NestoSelect
-                label="Leverancier"
-                value={factuur.leverancier_id ?? ""}
-                onValueChange={(v) =>
+              <LeverancierSelectCombobox
+                value={factuur.leverancier_id}
+                onChange={(v) =>
                   updateFactuur.mutate({ id: factuurId!, leverancier_id: v })
                 }
-                options={leverancierOptions}
+                leveranciers={leveranciers ?? []}
                 disabled={!isEditable}
+                prefillNewName={
+                  !factuur.leverancier_id ? factuur.leverancier_naam_herkend : null
+                }
               />
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">

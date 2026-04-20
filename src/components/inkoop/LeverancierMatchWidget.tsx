@@ -1,8 +1,7 @@
-import { Sparkles, Check, AlertCircle, Loader2, Plus } from "lucide-react";
+import { Sparkles, Check, AlertCircle, Loader2 } from "lucide-react";
 import { NestoButton, NestoBadge } from "@/components/polar";
 import { useFuzzyMatchLeverancier } from "@/hooks/useFuzzyMatchLeverancier";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
-import { useNavigate } from "react-router-dom";
 
 interface Props {
   factuurId: string;
@@ -27,7 +26,6 @@ export function LeverancierMatchWidget({
   aiConfidence,
   rawResponse,
 }: Props) {
-  const navigate = useNavigate();
   const { linkLeverancierAlias, updateFactuur } = useFactuurMutations();
   const { data: suggesties = [], isLoading: suggestiesLoading } = useFuzzyMatchLeverancier(
     !huidigeLeverancierId ? herkendNaam : null
@@ -117,15 +115,20 @@ export function LeverancierMatchWidget({
   const aiLeverancierData =
     rawResponse?.leverancier?.naam ?? rawResponse?.leverancier_naam ?? herkendNaam ?? "";
 
+  // Geen suggesties + geen AI-naam → laat de combobox onder dit panel het werk doen
+  if (!aiLeverancierData && suggesties.length === 0 && !suggestiesLoading) {
+    return null;
+  }
+
   return (
-    <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-3">
+    <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+        <AlertCircle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium">Geen leverancier gekoppeld</p>
           {aiLeverancierData && (
             <p className="text-xs text-muted-foreground mt-0.5">
-              AI las: <strong>"{aiLeverancierData}"</strong> — geen exacte match in jouw lijst.
+              AI las: <strong>"{aiLeverancierData}"</strong>. Kies hieronder of maak nieuw.
             </p>
           )}
         </div>
@@ -159,22 +162,6 @@ export function LeverancierMatchWidget({
           ))}
         </div>
       ) : null}
-
-      <NestoButton
-        variant="outline"
-        size="sm"
-        className="w-full min-h-[44px]"
-        onClick={() =>
-          navigate(
-            `/voorraad?tab=leveranciers&prefill=${encodeURIComponent(
-              JSON.stringify({ naam: aiLeverancierData })
-            )}`
-          )
-        }
-      >
-        <Plus className="h-3.5 w-3.5 mr-1.5" />
-        Nieuwe leverancier aanmaken
-      </NestoButton>
     </div>
   );
 }

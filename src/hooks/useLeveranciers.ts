@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
+import { nestoToast } from "@/lib/nestoToast";
 
 export function useLeveranciers() {
   const { currentLocation } = useUserContext();
@@ -21,5 +22,43 @@ export function useLeveranciers() {
       }));
     },
     enabled: !!locationId,
+  });
+}
+
+export interface CreateLeverancierInput {
+  naam: string;
+  type?: "wholesaler" | "lokaal" | "overig";
+  email?: string | null;
+}
+
+export function useCreateLeverancier() {
+  const qc = useQueryClient();
+  const { currentLocation } = useUserContext();
+  const locationId = currentLocation?.id;
+
+  return useMutation({
+    mutationFn: async (input: CreateLeverancierInput) => {
+      if (!locationId) throw new Error("Geen locatie geselecteerd");
+      const { data, error } = await supabase
+        .from("leveranciers")
+        .insert({
+          location_id: locationId,
+          naam: input.naam.trim(),
+          type: input.type ?? "wholesaler",
+          email: input.email?.trim() || null,
+          is_actief: true,
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (lev) => {
+      qc.invalidateQueries({ queryKey: ["leveranciers", locationId] });
+      nestoToast.success("Leverancier aangemaakt", lev.naam);
+    },
+    onError: (err: any) => {
+      nestoToast.error("Aanmaken mislukt", err?.message ?? "Onbekende fout");
+    },
   });
 }
