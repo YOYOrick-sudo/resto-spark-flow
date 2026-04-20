@@ -543,8 +543,9 @@ function LeverdatumSection({
   const fromDate = value || today;
   const { isClosedOnDate, findNextOpenDate } = useLocationScheduleRange(locationId, fromDate, 30);
 
-  const closedInfo = value ? isClosedOnDate(value) : { closed: false, label: null };
-  const nextOpen = closedInfo.closed && value ? findNextOpenDate(value) : null;
+  const closedInfo = value ? isClosedOnDate(value) : { closed: false, label: null, unknown: false };
+  const showClosed = closedInfo.closed && !closedInfo.unknown && !!value;
+  const nextOpen = showClosed ? findNextOpenDate(value!) : null;
 
   return (
     <div className="space-y-2">
@@ -555,7 +556,7 @@ function LeverdatumSection({
         onChange={(e) => onChange(e.target.value)}
         className="h-11 rounded-button border-[1.5px] border-border bg-card px-3 text-sm text-foreground focus:!border-primary focus:outline-none focus:ring-0"
       />
-      {closedInfo.closed && value && (
+      {showClosed && (
         <div className="flex gap-3 rounded-card border border-[hsl(38_92%_50%/0.3)] bg-[hsl(48_96%_53%/0.08)] p-3 text-sm">
           <AlertTriangle className="h-4 w-4 mt-0.5 text-[hsl(38_92%_50%)] flex-shrink-0" />
           <div className="flex-1 space-y-1.5">

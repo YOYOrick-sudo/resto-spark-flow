@@ -65,7 +65,8 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
       ? format(addDays(now, 1), "yyyy-MM-dd")
       : taskDate;
 
-    if (isAfterCutoff && isClosedOnDate(initialDate).closed) {
+    const closedCheck = isClosedOnDate(initialDate);
+    if (isAfterCutoff && closedCheck.closed && !closedCheck.unknown) {
       const nextOpen = findNextOpenDate(initialDate);
       if (nextOpen) return nextOpen.date;
     }
@@ -86,7 +87,7 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
 
     const wouldBeDate = format(addDays(now, 1), "yyyy-MM-dd");
     const closedInfo = isClosedOnDate(wouldBeDate);
-    if (!closedInfo.closed) return null;
+    if (!closedInfo.closed || closedInfo.unknown) return null;
 
     const nextOpen = findNextOpenDate(wouldBeDate);
     if (!nextOpen || nextOpen.date === wouldBeDate) return null;
@@ -105,7 +106,10 @@ export function MepQuickAdd({ taskDate, dayTasks, isClosedOnSelectedDate, closed
    */
   function runWithClosedCheck(date: string, run: () => void) {
     const info = isClosedOnDate(date);
-    if (info.closed) {
+    // Skip de confirm-dialog als we (nog) niet zeker weten of de dag dicht is
+    // (data niet geladen of buiten window). Anders flitst er een onterechte
+    // "gesloten dag"-bevestiging tijdens dag-navigatie.
+    if (info.closed && !info.unknown) {
       setPendingAction({ run, date, label: info.label });
     } else {
       run();
