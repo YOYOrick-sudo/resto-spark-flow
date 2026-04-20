@@ -2,6 +2,19 @@
 // Sprint D.6b — Factuur AI Parser (Gemini Vision)
 // Parst geüploade facturen via multimodal AI en slaat gestructureerde data op
 //
+// === BACKGROUND PROCESSING (Sprint factuur-async) ===
+// Handler valideert + downloadt + returnt direct 202. Echte AI-call + matching
+// loopt in EdgeRuntime.waitUntil() zodat exec-budget tot ~400s mag duren
+// (handler-cap is 150s). UI luistert via Broadcast op channel
+// `inkoop:{locationId}` met event-type `factuur.status` voor live updates.
+//
+// Smart model-routing op pagina-aantal (pdf-lib):
+//   ≤4 pagina's → Flash-first (snel, cheap), Pro-fallback bij truncation
+//   >4 pagina's → direct Pro (hogere capaciteit), geen Flash-poging
+//
+// Race-guard: ai_parsing_status='processing' check vóór AI-call voorkomt
+// dubbele invoke (bv. retry-knop dubbel-klik) en dubbele AI-kosten.
+//
 // R3.5 — Verpakking → basiseenheid conversie
 // SOURCE OF TRUTH (kritiek!):
 //   - AI levert: prijs_per_eenheid (= prijs zoals op factuur, meestal per verpakking)
@@ -11,13 +24,21 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, resolveOrgId } from "../_shared/ai.ts";
+import { PDFDocument } from "npm:pdf-lib@1.17.1";
+import { callAI } from "../_shared/ai.ts";
+
+// EdgeRuntime is door Supabase geïnjecteerd in productie maar niet getypeerd
+declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Threshold voor smart-routing — boven 4 pagina's gaat Flash bijna altijd
+// truncaten (gebaseerd op Kooyman-test: 6 pagina's hit 24k tokens precies).
+const PAGE_THRESHOLD_FOR_PRO = 4;
 
 const SYSTEM_PROMPT = `Je bent een factuur-parser voor de horeca. Analyseer de factuurafbeelding en extraheer alle informatie.
 
@@ -104,6 +125,33 @@ EXTRA VELDEN — voor "Nieuw ingrediënt" suggesties:
 VERPAKKING — zie de WERKENDE VOORBEELDEN bovenaan deze prompt. Vul altijd verpakking_raw in als origineel tekstfragment.
 verpakking_eenheid mag zijn: doos | pak | fles | krat | zak | jerrycan | bak | bos | null.`;
 
+// =====================================================
+// Broadcast helper — channel `inkoop:{locationId}`,
+// event-type expliciet gescoped: `factuur.status`.
+// Faalt silent — broadcast is best-effort, mag parse niet breken.
+// =====================================================
+async function broadcastFactuurStatus(
+  supabase: ReturnType<typeof createClient>,
+  locationId: string,
+  payload: {
+    factuurId: string;
+    aiParsingStatus: string;
+    status?: string;
+  }
+) {
+  try {
+    const channel = supabase.channel(`inkoop:${locationId}`);
+    await channel.send({
+      type: "broadcast",
+      event: "factuur.status",
+      payload,
+    });
+    await supabase.removeChannel(channel);
+  } catch (err) {
+    console.warn("[parse-factuur] broadcast failed:", err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -159,7 +207,7 @@ serve(async (req) => {
     }
 
     const locationId = factuur.location_id;
-    const organizationId = factuur.locations?.organization_id;
+    const organizationId = (factuur as any).locations?.organization_id;
 
     if (!organizationId) {
       return new Response(JSON.stringify({ error: "Kan organisatie niet bepalen" }), {
@@ -168,13 +216,69 @@ serve(async (req) => {
       });
     }
 
-    // --- Update status to processing ---
-    await supabase
+    // --- Race-guard: voorkom dubbele AI-kosten ---
+    // Als parse al loopt (processing), of net afgerond (completed), return 200/409.
+    if (factuur.ai_parsing_status === "processing") {
+      console.log(`[parse-factuur] race-guard: ${factuurId} is al processing, skip.`);
+      return new Response(
+        JSON.stringify({
+          accepted: false,
+          factuurId,
+          reason: "already_processing",
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    if (factuur.ai_parsing_status === "completed") {
+      console.log(`[parse-factuur] race-guard: ${factuurId} al completed, skip.`);
+      return new Response(
+        JSON.stringify({
+          accepted: false,
+          factuurId,
+          reason: "already_completed",
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // --- Atomic claim: zet status='processing' alleen als nog 'pending' of 'failed' ---
+    // Voorkomt race tussen twee gelijktijdige invokes — slechts één wint.
+    const { data: claimed, error: claimErr } = await supabase
       .from("factuur_uploads")
       .update({ ai_parsing_status: "processing" })
-      .eq("id", factuurId);
+      .eq("id", factuurId)
+      .in("ai_parsing_status", ["pending", "failed"])
+      .select("id")
+      .maybeSingle();
 
-    // --- Download file from storage ---
+    if (claimErr) {
+      console.error("[parse-factuur] claim failed:", claimErr);
+      return new Response(
+        JSON.stringify({ error: "Kon factuur niet claimen" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!claimed) {
+      console.log(`[parse-factuur] race lost on ${factuurId}, andere invoke wint.`);
+      return new Response(
+        JSON.stringify({ accepted: false, factuurId, reason: "race_lost" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Broadcast: processing started
+    await broadcastFactuurStatus(supabase, locationId, {
+      factuurId,
+      aiParsingStatus: "processing",
+    });
+
+    // --- Download file from storage (in handler — snel, telt mee in 150s budget) ---
     const filePath = factuur.bestand_url;
     let storagePath = filePath;
     if (filePath.includes("/facturen/")) {
@@ -193,7 +297,10 @@ serve(async (req) => {
           ai_raw_response: { error: `Download failed: ${downloadError?.message}` },
         })
         .eq("id", factuurId);
-
+      await broadcastFactuurStatus(supabase, locationId, {
+        factuurId,
+        aiParsingStatus: "failed",
+      });
       return new Response(JSON.stringify({ error: "Bestand niet gevonden in storage" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -218,426 +325,61 @@ serve(async (req) => {
         ? "image/png"
         : "image/jpeg";
 
+    // --- Page count voor smart routing (alleen PDFs) ---
+    let pageCount: number | null = null;
+    if (isPDF) {
+      try {
+        const pdfDoc = await PDFDocument.load(uint8Array, { ignoreEncryption: true });
+        pageCount = pdfDoc.getPageCount();
+      } catch (e) {
+        console.warn("[parse-factuur] pdf-lib page-count failed, fall back to Flash-first:", e);
+      }
+    }
+
     console.log(
-      `[parse-factuur] file=${factuur.bestandsnaam} ext=${ext} mime=${mimeType} bytes=${uint8Array.length} path=${isPDF ? "documents[]" : "images[]"}`
+      `[parse-factuur] file=${factuur.bestandsnaam} ext=${ext} mime=${mimeType} ` +
+        `bytes=${uint8Array.length} pages=${pageCount ?? "n/a"} ` +
+        `path=${isPDF ? "documents[]" : "images[]"}`
     );
 
-    // --- Call AI ---
-    let aiResult;
-    try {
-      aiResult = await callAI({
-        featureKey: "factuur_parse",
-        organizationId,
-        locationId,
-        systemPrompt: SYSTEM_PROMPT,
-        prompt: "Analyseer deze factuur en extraheer alle productregels en metadata.",
-        ...(isPDF
-          ? { documents: [{ data: base64, mimeType: "application/pdf" }] }
-          : { images: [base64] }),
-        jsonMode: true,
-        maxTokens: 24000,
-        temperature: 0.2,
-        modelOverride: "google/gemini-2.5-flash",
-        timeoutMs: 90_000,
-      });
-    } catch (aiError: any) {
-      const errorMsg = aiError?.message || String(aiError);
+    // --- Schedule background processing en return 202 direct ---
+    const processPromise = processInvoice({
+      supabase,
+      factuurId,
+      locationId,
+      organizationId,
+      factuur,
+      base64,
+      isPDF,
+      pageCount,
+    });
 
-      await supabase
-        .from("factuur_uploads")
-        .update({
-          ai_parsing_status: "failed",
-          ai_raw_response: { error: errorMsg },
-        })
-        .eq("id", factuurId);
-
-      if (errorMsg.includes("429") || errorMsg.includes("rate")) {
-        return new Response(JSON.stringify({ error: "AI rate limit bereikt, probeer later opnieuw" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (errorMsg.includes("402") || errorMsg.includes("credit")) {
-        return new Response(JSON.stringify({ error: "AI credits op, neem contact op met support" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Truncation / JSON-invalid na fallback-cascade (Flash + Pro beide gefaald)
-      // → user-friendly NL melding. UI toont "AI kon factuur niet lezen" fallback.
-      if (errorMsg.includes("AI_TRUNCATED") || errorMsg.includes("AI_JSON_INVALID")) {
-        return new Response(
-          JSON.stringify({
-            error: "Factuur te groot of complex voor AI — overweeg splitsen of vul handmatig in",
-            details: errorMsg,
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      return new Response(JSON.stringify({ error: "AI parsing mislukt", details: errorMsg }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // --- Parse AI response ---
-    console.log(
-      `[parse-factuur] AI response length=${aiResult.text.length}, first 500: ${aiResult.text.slice(0, 500)}`
-    );
-
-    if (aiResult.outputTokens && aiResult.outputTokens >= 21600) {
-      console.warn(
-        `[parse-factuur] Output near maxTokens limit (${aiResult.outputTokens}/24000) — risk of truncation.`
+    // Production: EdgeRuntime.waitUntil houdt de runtime-instance levend
+    // tot de promise klaar is (max ~400s). In lokale dev is EdgeRuntime
+    // undefined → fire-and-forget zonder await (acceptabel voor dev).
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      EdgeRuntime.waitUntil(processPromise);
+    } else {
+      // Dev fallback — log errors, niet blokkeren
+      processPromise.catch((e) =>
+        console.error("[parse-factuur] background process failed:", e)
       );
     }
-
-    const extractJSON = (text: string): any => {
-      let cleaned = text.trim();
-      cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-      const firstBrace = cleaned.indexOf("{");
-      const lastBrace = cleaned.lastIndexOf("}");
-      if (firstBrace >= 0 && lastBrace > firstBrace) {
-        cleaned = cleaned.slice(firstBrace, lastBrace + 1);
-      }
-      return JSON.parse(cleaned);
-    };
-
-    let parsed: any;
-    try {
-      parsed = extractJSON(aiResult.text);
-    } catch (parseErr: any) {
-      console.error(
-        "[parse-factuur] JSON parse failed. Raw (first 500):",
-        aiResult.text.slice(0, 500)
-      );
-      await supabase
-        .from("factuur_uploads")
-        .update({
-          ai_parsing_status: "failed",
-          ai_raw_response: {
-            error: "json_parse_failed",
-            parse_error: parseErr?.message ?? String(parseErr),
-            raw_preview: aiResult.text.slice(0, 1000),
-          },
-        })
-        .eq("id", factuurId);
-      return new Response(
-        JSON.stringify({ error: "AI response niet parseerbaar als JSON" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // --- Fuzzy match leverancier ---
-    // Cascade: 1) exact ILIKE  2) alias ILIKE  3) fuzzy_match_leverancier RPC (>=0.5)
-    let leverancierId = factuur.leverancier_id;
-    let fuzzyKandidaten: Array<{ id: string; naam: string; similarity: number }> = [];
-    const leverancierNaam = parsed.leverancier_naam;
-
-    if (!leverancierId && leverancierNaam) {
-      const { data: exactMatch } = await supabase
-        .from("leveranciers")
-        .select("id")
-        .eq("location_id", locationId)
-        .ilike("naam", leverancierNaam)
-        .limit(1)
-        .maybeSingle();
-
-      if (exactMatch) {
-        leverancierId = exactMatch.id;
-      } else {
-        const { data: aliasMatch } = await supabase
-          .from("leverancier_aliassen")
-          .select("leverancier_id, leveranciers!inner(location_id)")
-          .ilike("alias_naam", leverancierNaam)
-          .eq("leveranciers.location_id", locationId)
-          .limit(1)
-          .maybeSingle();
-
-        if (aliasMatch) {
-          leverancierId = aliasMatch.leverancier_id;
-        } else {
-          // Tier 3 — fuzzy via pg_trgm RPC (location-scoped, threshold 0.5)
-          const { data: fuzzyData, error: fuzzyErr } = await supabase.rpc(
-            "fuzzy_match_leverancier",
-            { p_location_id: locationId, p_naam: leverancierNaam }
-          );
-          if (fuzzyErr) {
-            console.warn("[parse-factuur] fuzzy_match_leverancier failed:", fuzzyErr.message);
-          } else if (Array.isArray(fuzzyData)) {
-            fuzzyKandidaten = fuzzyData
-              .filter((r: any) => Number(r.similarity) >= 0.5)
-              .slice(0, 3)
-              .map((r: any) => ({
-                id: r.id,
-                naam: r.naam,
-                similarity: Number(r.similarity),
-              }));
-          }
-        }
-      }
-    }
-
-    // --- Build factuur_regels with 5-tier matching cascade ---
-    const regels = parsed.regels ?? [];
-    const regelInserts = [];
-
-    for (const regel of regels) {
-      let ingredientId: string | null = null;
-      let matchStatus = "unmatched";
-      let matchConfidence: number | null = null;
-      let tier1Cache: {
-        verpakking_hoeveelheid: number | null;
-        verpakking_eenheid: string | null;
-      } | null = null;
-
-      const artikelnr = regel.artikelnummer != null
-        ? String(regel.artikelnummer).trim() || null
-        : null;
-      const productNaam = regel.product_naam?.trim() || null;
-
-      // TIER 1: artikelnummer + leverancier via leveranciers_artikelen → 1.0
-      if (artikelnr && leverancierId) {
-        const { data } = await supabase
-          .from("leveranciers_artikelen")
-          .select("ingredient_id, verpakking_hoeveelheid, verpakking_eenheid")
-          .eq("leverancier_id", leverancierId)
-          .eq("artikel_nummer", artikelnr)
-          .eq("is_actief", true)
-          .not("ingredient_id", "is", null)
-          .limit(1)
-          .maybeSingle();
-        if (data?.ingredient_id) {
-          ingredientId = data.ingredient_id;
-          matchStatus = "matched";
-          matchConfidence = 1.0;
-          tier1Cache = {
-            verpakking_hoeveelheid: data.verpakking_hoeveelheid as number | null,
-            verpakking_eenheid: data.verpakking_eenheid as string | null,
-          };
-        }
-      }
-
-      // TIER 2: artikelnummer + leverancier via ingredient_aliassen → 0.98
-      if (!ingredientId && artikelnr && leverancierId) {
-        const { data } = await supabase
-          .from("ingredient_aliassen")
-          .select("ingredient_id, ingredienten!inner(location_id)")
-          .eq("artikelnummer", artikelnr)
-          .eq("leverancier_id", leverancierId)
-          .eq("ingredienten.location_id", locationId)
-          .limit(1)
-          .maybeSingle();
-        if (data?.ingredient_id) {
-          ingredientId = data.ingredient_id;
-          matchStatus = "matched";
-          matchConfidence = 0.98;
-        }
-      }
-
-      // TIER 3: alias-naam match → 0.95
-      if (!ingredientId && productNaam) {
-        const { data } = await supabase
-          .from("ingredient_aliassen")
-          .select("ingredient_id, ingredienten!inner(location_id)")
-          .ilike("alias_naam", productNaam)
-          .eq("ingredienten.location_id", locationId)
-          .limit(1)
-          .maybeSingle();
-        if (data?.ingredient_id) {
-          ingredientId = data.ingredient_id;
-          matchStatus = "matched";
-          matchConfidence = 0.95;
-        }
-      }
-
-      // TIER 4: exacte ingredient-naam → 0.9
-      if (!ingredientId && productNaam) {
-        const { data } = await supabase
-          .from("ingredienten")
-          .select("id")
-          .eq("location_id", locationId)
-          .ilike("naam", productNaam)
-          .limit(1)
-          .maybeSingle();
-        if (data) {
-          ingredientId = data.id;
-          matchStatus = "matched";
-          matchConfidence = 0.9;
-        }
-      }
-
-      // TIER 5: fuzzy match
-      if (!ingredientId && productNaam) {
-        const { data: fuzzy, error: fuzzyErr } = await supabase.rpc(
-          "fuzzy_match_ingredient",
-          { p_location_id: locationId, p_naam: productNaam }
-        );
-        if (fuzzyErr) {
-          console.warn("[parse-factuur] fuzzy_match_ingredient failed:", fuzzyErr);
-        } else if (fuzzy?.length && fuzzy[0].similarity > 0.6) {
-          ingredientId = fuzzy[0].id;
-          matchStatus = "matched";
-          matchConfidence = fuzzy[0].similarity;
-        }
-      }
-
-      // Whitelist categorie + basiseenheid
-      const allowedCategories = ["groenten","vlees","vis","zuivel","kruiden","olie","droog","overig"];
-      const rawCategory = regel.category_hint?.toString().toLowerCase().trim();
-      const categoryHint = rawCategory && allowedCategories.includes(rawCategory) ? rawCategory : null;
-
-      const allowedEenheden = ["kg","g","L","ml","stuk"];
-      const rawEenheid = regel.basiseenheid?.toString().trim();
-      const basiseenheid = rawEenheid && allowedEenheden.includes(rawEenheid) ? rawEenheid : null;
-
-      // R3.5 — VERPAKKING-CONVERSIE (single source of truth)
-      // prijs_per_eenheid = wat AI las van factuur (per verpakking als verpakking aanwezig is)
-      // prijs_per_basiseenheid = ALTIJD afgeleid door Nesto, NOOIT van AI overgenomen.
-      // Reden: voorkomt afronding-conflicten tussen AI's stuk-prijs en factuur-totaal.
-      const allowedVerpakking = ["doos","pak","fles","krat","zak","jerrycan","bos"];
-      const rawVerpEenh = regel.verpakking_eenheid?.toString().toLowerCase().trim();
-      const aiVerpakkingEenheid = rawVerpEenh && allowedVerpakking.includes(rawVerpEenh) ? rawVerpEenh : null;
-
-      const aiVerpakkingHvh = typeof regel.verpakking_aantal === "number" && regel.verpakking_aantal > 0
-        ? regel.verpakking_aantal
-        : null;
-
-      // D.6b quick fix — Cache override: bij Tier 1 match én cache gevuld → gebruik cache, NEGEER AI
-      const cacheHasPackaging =
-        tier1Cache?.verpakking_hoeveelheid != null && tier1Cache?.verpakking_eenheid != null;
-      const usedCachedPackaging = cacheHasPackaging;
-
-      const verpakkingHvh = cacheHasPackaging
-        ? Number(tier1Cache!.verpakking_hoeveelheid)
-        : aiVerpakkingHvh;
-      const verpakkingEenheid = cacheHasPackaging
-        ? tier1Cache!.verpakking_eenheid
-        : aiVerpakkingEenheid;
-
-      const prijsOpFactuur = typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
-      const prijsPerBasiseenheid = (verpakkingHvh && prijsOpFactuur != null)
-        ? prijsOpFactuur / verpakkingHvh
-        : prijsOpFactuur; // geen verpakking → factuurprijs is al per basiseenheid
-
-      console.log(
-        `[parse-factuur] regel "${productNaam}" tier=${matchConfidence ?? 'none'} ` +
-        `cached_packaging_used=${usedCachedPackaging} ` +
-        `verpakking=${verpakkingHvh}×${verpakkingEenheid} ` +
-        `(ai=${aiVerpakkingHvh}×${aiVerpakkingEenheid})`
-      );
-
-      regelInserts.push({
-        factuur_id: factuurId,
-        product_naam_herkend: productNaam ?? "Onbekend",
-        hoeveelheid: regel.hoeveelheid ?? null,
-        eenheid: regel.eenheid ?? null,
-        prijs_per_eenheid: prijsOpFactuur,
-        totaal: regel.totaal ?? null,
-        ingredient_id: ingredientId,
-        match_status: matchStatus,
-        match_confidence: matchConfidence,
-        ai_confidence: regel.confidence ?? null,
-        ai_raw_naam: regel.product_naam ?? null,
-        ai_raw_artikelnummer: artikelnr,
-        ai_suggested_naam: regel.clean_ingredient_naam?.toString().trim() || null,
-        ai_category_hint: categoryHint,
-        ai_suggested_eenheid: basiseenheid,
-        is_nieuw_ingredient: !ingredientId,
-        // R3.5 nieuwe kolommen
-        verpakking_hoeveelheid: verpakkingHvh,
-        verpakking_eenheid: verpakkingEenheid,
-        prijs_per_basiseenheid: prijsPerBasiseenheid,
-        ai_raw_verpakking_tekst: regel.verpakking_raw?.toString().trim() || null,
-      });
-    }
-
-    // --- Guard: AI returned 0 regels = failed ---
-    if (regelInserts.length === 0) {
-      console.error("[parse-factuur] AI returned no regels");
-      await supabase
-        .from("factuur_uploads")
-        .update({
-          ai_parsing_status: "failed",
-          ai_raw_response: {
-            error: "ai_returned_no_regels",
-            parsed_data: parsed,
-          },
-        })
-        .eq("id", factuurId);
-      return new Response(
-        JSON.stringify({ error: "AI heeft geen factuurregels herkend" }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // --- Insert factuur_regels ---
-    const { error: insertError } = await supabase
-      .from("factuur_regels")
-      .insert(regelInserts);
-
-    if (insertError) {
-      console.error("[parse-factuur] regel insert failed:", insertError);
-      await supabase
-        .from("factuur_uploads")
-        .update({
-          ai_parsing_status: "failed",
-          ai_raw_response: {
-            error: "regel_insert_failed",
-            db_error: insertError.message,
-            attempted_count: regelInserts.length,
-            parsed_data: parsed,
-          },
-        })
-        .eq("id", factuurId);
-      return new Response(
-        JSON.stringify({
-          error: "Regels konden niet opgeslagen worden",
-          details: insertError.message,
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // --- Pas NU status='review' + completed ---
-    await supabase
-      .from("factuur_uploads")
-      .update({
-        status: "review",
-        ai_parsing_status: "completed",
-        ai_parsed_at: new Date().toISOString(),
-        ai_confidence_overall: parsed.confidence_overall ?? null,
-        ai_raw_response: parsed,
-        leverancier_naam_herkend: leverancierNaam ?? null,
-        leverancier_id: leverancierId ?? factuur.leverancier_id,
-        fuzzy_kandidaten: fuzzyKandidaten,
-        factuurnummer: parsed.factuurnummer ?? factuur.factuurnummer,
-        factuurdatum: parsed.factuurdatum ?? factuur.factuurdatum,
-        totaalbedrag: parsed.totaalbedrag ?? factuur.totaalbedrag,
-      })
-      .eq("id", factuurId);
 
     return new Response(
       JSON.stringify({
-        success: true,
+        accepted: true,
         factuurId,
-        leverancier_herkend: leverancierNaam,
-        leverancier_matched: !!leverancierId,
-        regels_count: regelInserts.length,
-        confidence_overall: parsed.confidence_overall,
-        model: aiResult.model,
-        cost_eur: aiResult.costEur,
+        pages: pageCount,
+        routedTo: pickModel(pageCount),
       }),
       {
-        status: 200,
+        status: 202,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (err: any) {
-    console.error("parse-factuur error:", err);
+    console.error("parse-factuur handler error:", err);
     return new Response(
       JSON.stringify({ error: err.message ?? "Onbekende fout" }),
       {
@@ -647,3 +389,432 @@ serve(async (req) => {
     );
   }
 });
+
+// =====================================================
+// Smart model selectie — bepaalt primary model.
+// pages onbekend (image of pdf-lib failure) → Flash-first (huidige flow).
+// =====================================================
+function pickModel(pageCount: number | null): string {
+  if (pageCount != null && pageCount > PAGE_THRESHOLD_FOR_PRO) {
+    return "google/gemini-2.5-pro";
+  }
+  return "google/gemini-2.5-flash";
+}
+
+// =====================================================
+// Background processor — draait in EdgeRuntime.waitUntil()
+// Mag tot ~400s duren. Update status + broadcast bij elke transitie.
+// =====================================================
+interface ProcessParams {
+  supabase: ReturnType<typeof createClient>;
+  factuurId: string;
+  locationId: string;
+  organizationId: string;
+  factuur: any;
+  base64: string;
+  isPDF: boolean;
+  pageCount: number | null;
+}
+
+async function processInvoice(params: ProcessParams) {
+  const {
+    supabase,
+    factuurId,
+    locationId,
+    organizationId,
+    factuur,
+    base64,
+    isPDF,
+    pageCount,
+  } = params;
+
+  const primaryModel = pickModel(pageCount);
+  // Pro krijgt meer headroom (factuur is groot), Flash krijgt 48k.
+  const maxTokens = primaryModel === "google/gemini-2.5-pro" ? 60000 : 48000;
+  // Pro is langzaam bij grote PDFs — 5 min budget.
+  const timeoutMs = primaryModel === "google/gemini-2.5-pro" ? 300_000 : 120_000;
+
+  console.log(
+    `[parse-factuur] background start factuurId=${factuurId} ` +
+      `model=${primaryModel} maxTokens=${maxTokens} timeoutMs=${timeoutMs}`
+  );
+
+  // --- Call AI ---
+  let aiResult;
+  try {
+    aiResult = await callAI({
+      featureKey: "factuur_parse",
+      organizationId,
+      locationId,
+      systemPrompt: SYSTEM_PROMPT,
+      prompt: "Analyseer deze factuur en extraheer alle productregels en metadata.",
+      ...(isPDF
+        ? { documents: [{ data: base64, mimeType: "application/pdf" }] }
+        : { images: [base64] }),
+      jsonMode: true,
+      maxTokens,
+      temperature: 0.2,
+      modelOverride: primaryModel,
+      timeoutMs,
+    });
+  } catch (aiError: any) {
+    const errorMsg = aiError?.message || String(aiError);
+    console.error(`[parse-factuur] AI call failed for ${factuurId}:`, errorMsg);
+
+    await supabase
+      .from("factuur_uploads")
+      .update({
+        ai_parsing_status: "failed",
+        ai_raw_response: { error: errorMsg },
+      })
+      .eq("id", factuurId);
+
+    await broadcastFactuurStatus(supabase, locationId, {
+      factuurId,
+      aiParsingStatus: "failed",
+    });
+    return;
+  }
+
+  // --- Parse AI response ---
+  console.log(
+    `[parse-factuur] ${factuurId} AI response length=${aiResult.text.length}, ` +
+      `model=${aiResult.model}, fallback=${aiResult.wasFallback}, ` +
+      `outputTokens=${aiResult.outputTokens}`
+  );
+
+  if (aiResult.outputTokens && aiResult.outputTokens >= maxTokens * 0.9) {
+    console.warn(
+      `[parse-factuur] Output near maxTokens limit (${aiResult.outputTokens}/${maxTokens}) — risk of truncation.`
+    );
+  }
+
+  const extractJSON = (text: string): any => {
+    let cleaned = text.trim();
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+    return JSON.parse(cleaned);
+  };
+
+  let parsed: any;
+  try {
+    parsed = extractJSON(aiResult.text);
+  } catch (parseErr: any) {
+    console.error(
+      `[parse-factuur] ${factuurId} JSON parse failed. Raw (first 500):`,
+      aiResult.text.slice(0, 500)
+    );
+    await supabase
+      .from("factuur_uploads")
+      .update({
+        ai_parsing_status: "failed",
+        ai_raw_response: {
+          error: "json_parse_failed",
+          parse_error: parseErr?.message ?? String(parseErr),
+          raw_preview: aiResult.text.slice(0, 1000),
+        },
+      })
+      .eq("id", factuurId);
+    await broadcastFactuurStatus(supabase, locationId, {
+      factuurId,
+      aiParsingStatus: "failed",
+    });
+    return;
+  }
+
+  // --- Fuzzy match leverancier ---
+  let leverancierId = factuur.leverancier_id;
+  let fuzzyKandidaten: Array<{ id: string; naam: string; similarity: number }> = [];
+  const leverancierNaam = parsed.leverancier_naam;
+
+  if (!leverancierId && leverancierNaam) {
+    const { data: exactMatch } = await supabase
+      .from("leveranciers")
+      .select("id")
+      .eq("location_id", locationId)
+      .ilike("naam", leverancierNaam)
+      .limit(1)
+      .maybeSingle();
+
+    if (exactMatch) {
+      leverancierId = exactMatch.id;
+    } else {
+      const { data: aliasMatch } = await supabase
+        .from("leverancier_aliassen")
+        .select("leverancier_id, leveranciers!inner(location_id)")
+        .ilike("alias_naam", leverancierNaam)
+        .eq("leveranciers.location_id", locationId)
+        .limit(1)
+        .maybeSingle();
+
+      if (aliasMatch) {
+        leverancierId = (aliasMatch as any).leverancier_id;
+      } else {
+        const { data: fuzzyData, error: fuzzyErr } = await supabase.rpc(
+          "fuzzy_match_leverancier",
+          { p_location_id: locationId, p_naam: leverancierNaam }
+        );
+        if (fuzzyErr) {
+          console.warn("[parse-factuur] fuzzy_match_leverancier failed:", fuzzyErr.message);
+        } else if (Array.isArray(fuzzyData)) {
+          fuzzyKandidaten = fuzzyData
+            .filter((r: any) => Number(r.similarity) >= 0.5)
+            .slice(0, 3)
+            .map((r: any) => ({
+              id: r.id,
+              naam: r.naam,
+              similarity: Number(r.similarity),
+            }));
+        }
+      }
+    }
+  }
+
+  // --- Build factuur_regels with 5-tier matching cascade ---
+  const regels = parsed.regels ?? [];
+  const regelInserts = [];
+
+  for (const regel of regels) {
+    let ingredientId: string | null = null;
+    let matchStatus = "unmatched";
+    let matchConfidence: number | null = null;
+    let tier1Cache: {
+      verpakking_hoeveelheid: number | null;
+      verpakking_eenheid: string | null;
+    } | null = null;
+
+    const artikelnr = regel.artikelnummer != null
+      ? String(regel.artikelnummer).trim() || null
+      : null;
+    const productNaam = regel.product_naam?.trim() || null;
+
+    // TIER 1: artikelnummer + leverancier via leveranciers_artikelen → 1.0
+    if (artikelnr && leverancierId) {
+      const { data } = await supabase
+        .from("leveranciers_artikelen")
+        .select("ingredient_id, verpakking_hoeveelheid, verpakking_eenheid")
+        .eq("leverancier_id", leverancierId)
+        .eq("artikel_nummer", artikelnr)
+        .eq("is_actief", true)
+        .not("ingredient_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      if ((data as any)?.ingredient_id) {
+        ingredientId = (data as any).ingredient_id;
+        matchStatus = "matched";
+        matchConfidence = 1.0;
+        tier1Cache = {
+          verpakking_hoeveelheid: (data as any).verpakking_hoeveelheid ?? null,
+          verpakking_eenheid: (data as any).verpakking_eenheid ?? null,
+        };
+      }
+    }
+
+    // TIER 2: artikelnummer + leverancier via ingredient_aliassen → 0.98
+    if (!ingredientId && artikelnr && leverancierId) {
+      const { data } = await supabase
+        .from("ingredient_aliassen")
+        .select("ingredient_id, ingredienten!inner(location_id)")
+        .eq("artikelnummer", artikelnr)
+        .eq("leverancier_id", leverancierId)
+        .eq("ingredienten.location_id", locationId)
+        .limit(1)
+        .maybeSingle();
+      if ((data as any)?.ingredient_id) {
+        ingredientId = (data as any).ingredient_id;
+        matchStatus = "matched";
+        matchConfidence = 0.98;
+      }
+    }
+
+    // TIER 3: alias-naam match → 0.95
+    if (!ingredientId && productNaam) {
+      const { data } = await supabase
+        .from("ingredient_aliassen")
+        .select("ingredient_id, ingredienten!inner(location_id)")
+        .ilike("alias_naam", productNaam)
+        .eq("ingredienten.location_id", locationId)
+        .limit(1)
+        .maybeSingle();
+      if ((data as any)?.ingredient_id) {
+        ingredientId = (data as any).ingredient_id;
+        matchStatus = "matched";
+        matchConfidence = 0.95;
+      }
+    }
+
+    // TIER 4: exacte ingredient-naam → 0.9
+    if (!ingredientId && productNaam) {
+      const { data } = await supabase
+        .from("ingredienten")
+        .select("id")
+        .eq("location_id", locationId)
+        .ilike("naam", productNaam)
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        ingredientId = (data as any).id;
+        matchStatus = "matched";
+        matchConfidence = 0.9;
+      }
+    }
+
+    // TIER 5: fuzzy match
+    if (!ingredientId && productNaam) {
+      const { data: fuzzy, error: fuzzyErr } = await supabase.rpc(
+        "fuzzy_match_ingredient",
+        { p_location_id: locationId, p_naam: productNaam }
+      );
+      if (fuzzyErr) {
+        console.warn("[parse-factuur] fuzzy_match_ingredient failed:", fuzzyErr);
+      } else if ((fuzzy as any)?.length && (fuzzy as any)[0].similarity > 0.6) {
+        ingredientId = (fuzzy as any)[0].id;
+        matchStatus = "matched";
+        matchConfidence = (fuzzy as any)[0].similarity;
+      }
+    }
+
+    // Whitelist categorie + basiseenheid
+    const allowedCategories = ["groenten","vlees","vis","zuivel","kruiden","olie","droog","overig"];
+    const rawCategory = regel.category_hint?.toString().toLowerCase().trim();
+    const categoryHint = rawCategory && allowedCategories.includes(rawCategory) ? rawCategory : null;
+
+    const allowedEenheden = ["kg","g","L","ml","stuk"];
+    const rawEenheid = regel.basiseenheid?.toString().trim();
+    const basiseenheid = rawEenheid && allowedEenheden.includes(rawEenheid) ? rawEenheid : null;
+
+    // R3.5 — VERPAKKING-CONVERSIE (single source of truth)
+    const allowedVerpakking = ["doos","pak","fles","krat","zak","jerrycan","bos"];
+    const rawVerpEenh = regel.verpakking_eenheid?.toString().toLowerCase().trim();
+    const aiVerpakkingEenheid = rawVerpEenh && allowedVerpakking.includes(rawVerpEenh) ? rawVerpEenh : null;
+
+    const aiVerpakkingHvh = typeof regel.verpakking_aantal === "number" && regel.verpakking_aantal > 0
+      ? regel.verpakking_aantal
+      : null;
+
+    const cacheHasPackaging =
+      tier1Cache?.verpakking_hoeveelheid != null && tier1Cache?.verpakking_eenheid != null;
+    const usedCachedPackaging = cacheHasPackaging;
+
+    const verpakkingHvh = cacheHasPackaging
+      ? Number(tier1Cache!.verpakking_hoeveelheid)
+      : aiVerpakkingHvh;
+    const verpakkingEenheid = cacheHasPackaging
+      ? tier1Cache!.verpakking_eenheid
+      : aiVerpakkingEenheid;
+
+    const prijsOpFactuur = typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
+    const prijsPerBasiseenheid = (verpakkingHvh && prijsOpFactuur != null)
+      ? prijsOpFactuur / verpakkingHvh
+      : prijsOpFactuur;
+
+    console.log(
+      `[parse-factuur] regel "${productNaam}" tier=${matchConfidence ?? 'none'} ` +
+      `cached_packaging_used=${usedCachedPackaging} ` +
+      `verpakking=${verpakkingHvh}×${verpakkingEenheid} ` +
+      `(ai=${aiVerpakkingHvh}×${aiVerpakkingEenheid})`
+    );
+
+    regelInserts.push({
+      factuur_id: factuurId,
+      product_naam_herkend: productNaam ?? "Onbekend",
+      hoeveelheid: regel.hoeveelheid ?? null,
+      eenheid: regel.eenheid ?? null,
+      prijs_per_eenheid: prijsOpFactuur,
+      totaal: regel.totaal ?? null,
+      ingredient_id: ingredientId,
+      match_status: matchStatus,
+      match_confidence: matchConfidence,
+      ai_confidence: regel.confidence ?? null,
+      ai_raw_naam: regel.product_naam ?? null,
+      ai_raw_artikelnummer: artikelnr,
+      ai_suggested_naam: regel.clean_ingredient_naam?.toString().trim() || null,
+      ai_category_hint: categoryHint,
+      ai_suggested_eenheid: basiseenheid,
+      is_nieuw_ingredient: !ingredientId,
+      verpakking_hoeveelheid: verpakkingHvh,
+      verpakking_eenheid: verpakkingEenheid,
+      prijs_per_basiseenheid: prijsPerBasiseenheid,
+      ai_raw_verpakking_tekst: regel.verpakking_raw?.toString().trim() || null,
+    });
+  }
+
+  // --- Guard: AI returned 0 regels = failed ---
+  if (regelInserts.length === 0) {
+    console.error(`[parse-factuur] ${factuurId} AI returned no regels`);
+    await supabase
+      .from("factuur_uploads")
+      .update({
+        ai_parsing_status: "failed",
+        ai_raw_response: {
+          error: "ai_returned_no_regels",
+          parsed_data: parsed,
+        },
+      })
+      .eq("id", factuurId);
+    await broadcastFactuurStatus(supabase, locationId, {
+      factuurId,
+      aiParsingStatus: "failed",
+    });
+    return;
+  }
+
+  // --- Insert factuur_regels ---
+  const { error: insertError } = await supabase
+    .from("factuur_regels")
+    .insert(regelInserts);
+
+  if (insertError) {
+    console.error(`[parse-factuur] ${factuurId} regel insert failed:`, insertError);
+    await supabase
+      .from("factuur_uploads")
+      .update({
+        ai_parsing_status: "failed",
+        ai_raw_response: {
+          error: "regel_insert_failed",
+          db_error: insertError.message,
+          attempted_count: regelInserts.length,
+          parsed_data: parsed,
+        },
+      })
+      .eq("id", factuurId);
+    await broadcastFactuurStatus(supabase, locationId, {
+      factuurId,
+      aiParsingStatus: "failed",
+    });
+    return;
+  }
+
+  // --- Mark completed ---
+  await supabase
+    .from("factuur_uploads")
+    .update({
+      status: "review",
+      ai_parsing_status: "completed",
+      ai_parsed_at: new Date().toISOString(),
+      ai_confidence_overall: parsed.confidence_overall ?? null,
+      ai_raw_response: parsed,
+      leverancier_naam_herkend: leverancierNaam ?? null,
+      leverancier_id: leverancierId ?? factuur.leverancier_id,
+      fuzzy_kandidaten: fuzzyKandidaten,
+      factuurnummer: parsed.factuurnummer ?? factuur.factuurnummer,
+      factuurdatum: parsed.factuurdatum ?? factuur.factuurdatum,
+      totaalbedrag: parsed.totaalbedrag ?? factuur.totaalbedrag,
+    })
+    .eq("id", factuurId);
+
+  await broadcastFactuurStatus(supabase, locationId, {
+    factuurId,
+    aiParsingStatus: "completed",
+    status: "review",
+  });
+
+  console.log(
+    `[parse-factuur] ${factuurId} done — regels=${regelInserts.length}, ` +
+      `model=${aiResult.model}, fallback=${aiResult.wasFallback}, cost=€${aiResult.costEur}`
+  );
+}

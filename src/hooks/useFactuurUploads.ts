@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 
@@ -28,6 +29,24 @@ export interface FactuurUploadRow {
 export function useFactuurUploads(filters?: { status?: string; leverancierId?: string }) {
   const { currentLocation } = useUserContext();
   const locationId = currentLocation?.id;
+  const qc = useQueryClient();
+
+  // Realtime via Broadcast op collectief inkoop-channel.
+  // Event `factuur.status` = status-wijziging tijdens AI-parse (pending→processing→completed/failed).
+  // Later: `pakbon.received`, `bestelling.verzonden` op hetzelfde channel.
+  useEffect(() => {
+    if (!locationId) return;
+    const channel = supabase
+      .channel(`inkoop:${locationId}`)
+      .on("broadcast", { event: "factuur.status" }, () => {
+        qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
+        qc.invalidateQueries({ queryKey: ["factuur-detail"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [locationId, qc]);
 
   return useQuery({
     queryKey: ["factuur-uploads", locationId, filters],

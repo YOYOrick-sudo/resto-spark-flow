@@ -1648,6 +1648,36 @@ const inkoopProvider: SignalProvider = {
       });
     }
 
+    // 3b. inkoop_factuur_klaar_voor_review — AI parse completed, wacht op goedkeuring
+    const { data: klaarVoorReview } = await supabaseAdmin
+      .from('factuur_uploads')
+      .select('id, bestandsnaam, leverancier_naam_herkend, ai_parsed_at')
+      .eq('location_id', locationId)
+      .eq('ai_parsing_status', 'completed')
+      .eq('status', 'review')
+      .is('goedgekeurd_op', null)
+      .gte('ai_parsed_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+    for (const f of klaarVoorReview ?? []) {
+      const lev = (f as any).leverancier_naam_herkend ?? 'onbekende leverancier';
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'inkoop',
+        signal_type: 'inkoop_factuur_klaar_voor_review',
+        kind: 'signal',
+        severity: 'info',
+        title: `Factuur klaar voor goedkeuring`,
+        message: `${(f as any).bestandsnaam} (${lev}) — controleer en keur goed.`,
+        action_path: `/inkoop/factuur/${(f as any).id}`,
+        dedup_key: `inkoop_factuur_klaar_voor_review:${(f as any).id}`,
+        actionable: true,
+        priority: 60,
+        cooldown_hours: 24,
+        payload: { factuur_id: (f as any).id, bestandsnaam: (f as any).bestandsnaam },
+      });
+    }
+
     // 4. inkoop_nieuwe_leverancier_ontdekt — herkend maar niet gekoppeld, dedupe op naam
     const { data: nieuweLev } = await supabaseAdmin
       .from('factuur_uploads')
@@ -1693,6 +1723,7 @@ const inkoopProvider: SignalProvider = {
         'inkoop_factuur_goedgekeurd',
         'inkoop_prijsverandering_groot',
         'inkoop_factuur_parsing_gefaald',
+        'inkoop_factuur_klaar_voor_review',
         'inkoop_nieuwe_leverancier_ontdekt',
       ];
     }

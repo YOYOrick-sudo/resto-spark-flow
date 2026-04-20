@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { NestoSelect, NestoBadge, Spinner, EmptyState } from "@/components/polar";
 import { useFactuurUploads } from "@/hooks/useFactuurUploads";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurUploadZone } from "./FactuurUploadZone";
-import { supabase } from "@/integrations/supabase/client";
 import { FileText, Lightbulb, Sparkles } from "lucide-react";
 
 const STATUS_OPTIONS = [
@@ -23,9 +21,11 @@ const STATUS_BADGES: Record<string, { variant: "default" | "warning" | "success"
   afgewezen: { variant: "error", label: "Afgewezen" },
 };
 
+// Mapping onderscheidt "In wachtrij" (pending — net geüpload, nog niet opgepakt)
+// van "Verwerken..." (processing — AI is actief bezig). Helpt chef inschatten.
 const AI_BADGES: Record<string, { variant: "default" | "warning" | "success" | "error"; label: string }> = {
-  pending: { variant: "default", label: "AI wacht" },
-  processing: { variant: "warning", label: "AI leest..." },
+  pending: { variant: "default", label: "In wachtrij" },
+  processing: { variant: "warning", label: "Verwerken..." },
   completed: { variant: "success", label: "AI klaar" },
   failed: { variant: "error", label: "AI gefaald" },
 };
@@ -34,7 +34,6 @@ export function FacturenTab() {
   const [statusFilter, setStatusFilter] = useState("");
   const [leverancierFilter, setLeverancierFilter] = useState("");
   const navigate = useNavigate();
-  const qc = useQueryClient();
 
   const { data: facturen, isLoading } = useFactuurUploads({
     status: statusFilter || undefined,
@@ -42,20 +41,9 @@ export function FacturenTab() {
   });
   const { data: leveranciers } = useLeveranciers();
 
-  // Realtime: live status-updates terwijl AI factuur leest
-  useEffect(() => {
-    const channel = supabase
-      .channel("factuur-uploads-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "factuur_uploads" },
-        () => qc.invalidateQueries({ queryKey: ["factuur-uploads"] })
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [qc]);
+  // Realtime: useFactuurUploads subscribet zelf op Broadcast-channel
+  // `inkoop:{locationId}` event `factuur.status` en invalideert de query.
+  // Geen lokale subscription meer nodig.
 
   const leverancierOptions = [
     { value: "", label: "Alle leveranciers" },
