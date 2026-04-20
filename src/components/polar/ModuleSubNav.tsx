@@ -44,7 +44,7 @@ export function ModuleSubNav({ items, className }: ModuleSubNavProps) {
       />
 
       <nav
-        className="flex items-center gap-1 overflow-x-auto px-2 scrollbar-none"
+        className="flex items-center gap-1 overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
         aria-label="Module navigatie"
       >
