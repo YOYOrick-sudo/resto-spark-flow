@@ -184,7 +184,7 @@ export default function MepTaken() {
         </NestoButton>
       </div>
 
-      {closedInfo.closed && (
+      {closedInfo.closed && !closedInfo.unknown && (
         <div className="flex gap-3 rounded-card border border-[hsl(38_92%_50%/0.3)] bg-[hsl(48_96%_53%/0.08)] p-3 text-sm">
           <AlertTriangle className="h-4 w-4 mt-0.5 text-[hsl(38_92%_50%)] flex-shrink-0" />
           <div className="flex-1 space-y-0.5">
@@ -218,7 +218,7 @@ export default function MepTaken() {
           <MepQuickAdd
             taskDate={selectedDate}
             dayTasks={dayTasks}
-            isClosedOnSelectedDate={closedInfo.closed}
+            isClosedOnSelectedDate={closedInfo.closed && !closedInfo.unknown}
             closedLabel={closedInfo.label}
           />
 
