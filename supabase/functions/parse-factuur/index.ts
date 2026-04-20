@@ -235,7 +235,7 @@ serve(async (req) => {
           ? { documents: [{ data: base64, mimeType: "application/pdf" }] }
           : { images: [base64] }),
         jsonMode: true,
-        maxTokens: 12000,
+        maxTokens: 24000,
         temperature: 0.2,
         modelOverride: "google/gemini-2.5-flash",
         timeoutMs: 90_000,
@@ -263,6 +263,20 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      // Truncation / JSON-invalid na fallback-cascade (Flash + Pro beide gefaald)
+      // → user-friendly NL melding. UI toont "AI kon factuur niet lezen" fallback.
+      if (errorMsg.includes("AI_TRUNCATED") || errorMsg.includes("AI_JSON_INVALID")) {
+        return new Response(
+          JSON.stringify({
+            error: "Factuur te groot of complex voor AI — overweeg splitsen of vul handmatig in",
+            details: errorMsg,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
 
       return new Response(JSON.stringify({ error: "AI parsing mislukt", details: errorMsg }), {
         status: 500,
@@ -275,9 +289,9 @@ serve(async (req) => {
       `[parse-factuur] AI response length=${aiResult.text.length}, first 500: ${aiResult.text.slice(0, 500)}`
     );
 
-    if (aiResult.outputTokens && aiResult.outputTokens >= 10800) {
+    if (aiResult.outputTokens && aiResult.outputTokens >= 21600) {
       console.warn(
-        `[parse-factuur] Output near maxTokens limit (${aiResult.outputTokens}/12000) — risk of truncation.`
+        `[parse-factuur] Output near maxTokens limit (${aiResult.outputTokens}/24000) — risk of truncation.`
       );
     }
 
