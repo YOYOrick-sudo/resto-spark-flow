@@ -129,6 +129,7 @@ export default function SocialPostsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Social Posts" />
+        <ModuleSubNav items={MARKETING_SUBNAV} />
         <EmptyState
           title="Geen social accounts gekoppeld"
           description="Koppel Instagram, Facebook of Google Business in de marketing instellingen."
