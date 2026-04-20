@@ -131,10 +131,10 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="p-1 rounded-md transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 touch:p-2.5 touch:min-h-11 touch:min-w-11 touch:flex touch:items-center touch:justify-center"
                 aria-label="Sidebar inklappen"
               >
-                <PanelLeft size={18} strokeWidth={2} className="text-foreground" />
+                <PanelLeft size={18} strokeWidth={2} className="text-foreground touch:size-6" />
               </button>
             </div>
           </div>
@@ -182,8 +182,8 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                     {showSectionLabel && <div className="pt-3" />}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center justify-center py-1.5 opacity-40 cursor-default">
-                          <Icon size={16} className="text-muted-foreground" />
+                        <div className="flex items-center justify-center py-1.5 opacity-40 cursor-default touch:min-h-11">
+                          <Icon size={16} className="text-muted-foreground touch:size-6" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="right" sideOffset={8}>Binnenkort beschikbaar</TooltipContent>
@@ -202,13 +202,14 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                         onClick={() => path && handleNavigation(path)}
                         className={cn(
                           'w-full flex items-center justify-center py-1.5 rounded-lg transition-colors duration-200',
+                          'touch:min-h-11',
                           'border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
                           isItemActive
                             ? 'bg-card border-border text-foreground'
                             : 'border-transparent text-muted-foreground hover:text-foreground'
                         )}
                       >
-                        <Icon size={16} className={cn("flex-shrink-0", isItemActive && "text-primary")} />
+                        <Icon size={16} className={cn("flex-shrink-0 touch:size-6", isItemActive && "text-primary")} />
                         {item.id === 'assistent' && signalCount > 0 && (
                           <span className="absolute -top-0.5 -right-0.5">
                             <NestoBadge variant="warning" size="sm">{signalCount}</NestoBadge>
@@ -361,10 +362,10 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors touch:p-2.5 touch:min-h-11 touch:min-w-11 touch:flex touch:items-center touch:justify-center"
                 aria-label="Sidebar uitklappen"
               >
-                <PanelLeft size={16} className="text-muted-foreground" />
+                <PanelLeft size={16} className="text-muted-foreground touch:size-6" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={8}>Sidebar uitklappen</TooltipContent>

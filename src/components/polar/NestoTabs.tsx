@@ -36,6 +36,7 @@ export function NestoTabs({
               disabled={tab.disabled}
               className={cn(
                 "relative flex items-center gap-2 pb-3 text-body font-medium transition-colors",
+                "touch:min-h-11 touch:pt-2",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 isActive
                   ? "text-primary"
