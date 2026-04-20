@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import shoufIcon from '@/assets/shouf-icon.png';
+import shoufIcon from '@/assets/shouf-icon-dark.png';
 import shoufLockup from '@/assets/shouf-lockup.png';
 import shoufWordmark from '@/assets/shouf-wordmark.png';
 
