@@ -29,7 +29,7 @@ import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterCh
 import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
-import { ArrowLeft, Plus, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Plus, MoreHorizontal, Copy, ArrowRight } from "lucide-react";
 
 const STATUS_BADGES: Record<
   string,
@@ -242,6 +242,39 @@ export default function FactuurDetailPage() {
 
       {/* Content */}
       <main className="flex-1 max-w-screen-2xl mx-auto w-full px-6 py-6">
+        {/* Duplicate banner — toon wanneer factuur is gemarkeerd als duplicaat */}
+        {(() => {
+          const raw = (factuur as any).ai_raw_response;
+          if (raw?.error !== "duplicate_upload") return null;
+          const origId = raw.original_factuur_id as string | undefined;
+          const origLabel =
+            raw.original_factuurnummer ||
+            raw.original_bestandsnaam ||
+            (origId ? `factuur ${origId.slice(0, 8)}` : "originele factuur");
+          return (
+            <div className="mb-6 flex items-start gap-3 rounded-xl border border-border/50 bg-muted/30 p-4">
+              <Copy className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Duplicaat van {origLabel}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Deze factuur is gelijk aan een andere upload die al verwerkt
+                  wordt. Open de originele factuur om de regels te bekijken.
+                </p>
+              </div>
+              {origId && (
+                <NestoButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/inkoop/facturen/${origId}`)}
+                  className="shrink-0"
+                >
+                  Ga naar originele factuur
+                  <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </NestoButton>
+              )}
+            </div>
+          );
+        })()}
         <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_480px]">
           {/* Linkerkolom: PDF preview (sticky desktop) */}
           <div className="lg:sticky lg:top-6 lg:self-start">
