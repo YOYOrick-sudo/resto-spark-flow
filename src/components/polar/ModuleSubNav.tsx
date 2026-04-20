@@ -18,9 +18,14 @@ export interface ModuleSubNavProps {
  * Horizontale tab-navigatie binnen een module. Active state matcht exact OF
  * startsWith voor sub-routes (bv. /voorraad/123 highlight "Ingrediënten").
  *
- * CONVENTION: ModuleSubNav rendert ALTIJD direct onder PageHeader, vóór de
- * content. Niet boven PageHeader plaatsen — titel-eerst-dan-tabs is de
- * standaard hiërarchie (eerst "waar ben ik", dan "waar binnen deze module").
+ * CONVENTION: ModuleSubNav rendert ALTIJD bovenaan de pagina, vóór de PageHeader.
+ * Hiërarchie: ModuleSubNav (module-scope tabs) → PageHeader (tab-scope titel +
+ * acties) → content. Reden: acties zoals "+ Nieuw" horen bij de huidige tab,
+ * niet bij de hele module. GitHub/Shopify pattern.
+ *
+ * Eigen bottom-margin (mb-8 md:mb-10) zorgt voor 32-40px scheiding zonder dat
+ * expanded-sidebar mode lege ruimte krijgt — bij expanded returnt component
+ * null en is er geen DOM, dus geen marge.
  *
  * Wordt verborgen wanneer de hoofd-sidebar expanded is — in dat geval toont
  * de sidebar al alle sub-items inline en zou de sub-nav dubbele navigatie
@@ -44,7 +49,7 @@ export function ModuleSubNav({ items, className }: ModuleSubNavProps) {
   );
 
   return (
-    <div className={cn("relative -mx-2", className)}>
+    <div className={cn("relative -mx-2 mb-8 md:mb-10", className)}>
       {/* Fade-edges moeten pagina-bg matchen (bg-card = wit), anders tonen ze als grijs vlak */}
       <div
         aria-hidden

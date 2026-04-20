@@ -50,6 +50,8 @@ export default function CampaignesPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <ModuleSubNav items={MARKETING_SUBNAV} />
+
       <PageHeader
         title="Campagnes"
         subtitle="E-mail campagnes aanmaken en versturen"
@@ -61,8 +63,6 @@ export default function CampaignesPage() {
           },
         ]}
       />
-
-      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {isLoading ? (
         <div className="animate-pulse space-y-3">

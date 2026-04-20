@@ -21,6 +21,8 @@ export default function Inkoop() {
 
   return (
     <div className="space-y-6">
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
+
       <PageHeader
         title="Voorraad & Inkoop"
         subtitle="Besteladvies, bestellingen, facturen en orderhistorie."
@@ -34,8 +36,6 @@ export default function Inkoop() {
           </NestoButton>
         }
       />
-
-      <ModuleSubNav items={KEUKEN_SUBNAV} />
 
       <NestoTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 

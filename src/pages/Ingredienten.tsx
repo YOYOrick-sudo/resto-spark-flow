@@ -224,6 +224,8 @@ export default function Ingredienten() {
 
   return (
     <div className="space-y-6">
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
+
       <PageHeader
         title="Ingrediënten"
         subtitle={`${filtered.length} ingrediënt${filtered.length !== 1 ? "en" : ""}`}
@@ -235,8 +237,6 @@ export default function Ingredienten() {
           },
         ]}
       />
-
-      <ModuleSubNav items={KEUKEN_SUBNAV} />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">

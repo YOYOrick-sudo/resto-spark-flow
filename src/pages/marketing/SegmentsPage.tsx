@@ -62,6 +62,8 @@ export default function SegmentsPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <ModuleSubNav items={MARKETING_SUBNAV} />
+
       <PageHeader
         title="Doelgroepen"
         subtitle="Maak groepen van gasten voor gerichte campagnes."
@@ -69,8 +71,6 @@ export default function SegmentsPage() {
           <NestoButton onClick={openCreate}>Nieuwe doelgroep</NestoButton>
         }
       />
-
-      <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

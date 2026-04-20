@@ -107,6 +107,8 @@ export default function Recepten() {
 
   return (
     <div className="space-y-6">
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
+
       <PageHeader
         title="Halffabricaten"
         help={{
@@ -122,8 +124,6 @@ export default function Recepten() {
           </NestoButton>
         }
       />
-
-      <ModuleSubNav items={KEUKEN_SUBNAV} />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
