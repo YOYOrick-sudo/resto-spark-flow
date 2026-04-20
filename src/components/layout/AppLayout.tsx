@@ -4,6 +4,7 @@ import { CommandPalette } from './CommandPalette';
 import { Menu, X } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { NestoLogo } from '@/components/polar/NestoLogo';
+import { SidebarStateProvider } from '@/contexts/SidebarStateContext';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -43,6 +44,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
     }, []);
 
     return (
+      <SidebarStateProvider collapsed={sidebarCollapsed}>
       <div ref={ref} className="h-screen flex w-full bg-card overflow-hidden">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground focus:rounded-button">
           Ga naar inhoud
@@ -103,6 +105,7 @@ export const AppLayout = forwardRef<HTMLDivElement, AppLayoutProps>(
           </div>
         </main>
       </div>
+      </SidebarStateProvider>
     );
   }
 );

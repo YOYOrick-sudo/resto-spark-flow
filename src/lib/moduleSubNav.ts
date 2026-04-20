@@ -24,10 +24,10 @@ import type { ModuleSubNavItem } from "@/components/polar/ModuleSubNav";
 
 export const KEUKEN_SUBNAV: ModuleSubNavItem[] = [
   { path: "/mep", label: "MEP", icon: ChefHat },
-  { path: "/voorraad", label: "Ingrediënten", icon: Carrot },
-  { path: "/recepten", label: "Halffabricaten", icon: BookOpen },
-  { path: "/inkoop", label: "Voorraad & Inkoop", icon: Package },
   { path: "/taken", label: "Taken & HACCP", icon: Thermometer },
+  { path: "/recepten", label: "Halffabricaten", icon: BookOpen },
+  { path: "/voorraad", label: "Ingrediënten", icon: Carrot },
+  { path: "/inkoop", label: "Voorraad & Inkoop", icon: Package },
 ];
 
 export const KAARTBEHEER_SUBNAV: ModuleSubNavItem[] = [
