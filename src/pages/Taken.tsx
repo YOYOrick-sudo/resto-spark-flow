@@ -10,7 +10,14 @@ export default function Taken() {
     <div className="space-y-6">
       <PageHeader
         title="Taken & HACCP"
-        subtitle="Dagelijkse checklists en temperatuurcontrole. Templates beheer je via Instellingen → Keuken → Taken & HACCP."
+        help={{
+          content:
+            "Dagelijkse checklists en temperatuurcontrole. Templates beheer je via Instellingen → Keuken → Taken & HACCP.",
+          action: {
+            label: "Naar instellingen",
+            href: "/instellingen/keuken/haccp",
+          },
+        }}
         actions={[
           {
             label: "Logboek",

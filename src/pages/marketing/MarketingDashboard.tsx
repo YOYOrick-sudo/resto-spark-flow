@@ -72,7 +72,7 @@ export default function MarketingDashboard() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Marketing" subtitle="Overzicht van je marketing prestaties" />
+      <PageHeader title="Marketing" />
       <ModuleSubNav items={MARKETING_SUBNAV} />
 
       {/* Weekplan Card */}

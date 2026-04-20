@@ -11,7 +11,7 @@ import { NestoSelect } from '@/components/polar/NestoSelect';
 import { NestoOutlineButtonGroup } from '@/components/polar/NestoOutlineButtonGroup';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
-import { Check, Globe, ExternalLink, Link as LinkIcon, CalendarIcon, RefreshCw, Plus, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, Link as LinkIcon, CalendarIcon, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
 import { PageHeader } from '@/components/polar/PageHeader';
