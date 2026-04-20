@@ -1,6 +1,30 @@
 // supabase/functions/_shared/ai.ts
 // Centrale AI-helper voor alle Nesto Edge Functions
 // Sprint D.0.2 — callAI, callAIWithTools, resolveOrgId
+//
+// =====================================================
+// ERROR PREFIX CONTRACT (v hotfix output-truncation)
+// =====================================================
+// callGateway() throwt errors met gestandaardiseerde prefixes zodat
+// callers (Edge Functions, UI-laag) en monitoring (ai_logs.error_message)
+// consistent kunnen filteren. callWithFallback() vangt deze throws op
+// en triggert automatisch fallback naar het andere model.
+//
+//   "AI_TRUNCATED: <reason>"     → response is afgekapt (finish_reason=length
+//                                  of output_tokens >= 95% van maxTokens).
+//                                  Fallback naar Pro probeert hogere capaciteit.
+//
+//   "AI_JSON_INVALID: <parseErr>" → jsonMode=true gevraagd, maar response is
+//                                   geen valide JSON (zelfs niet na markdown-
+//                                   fence stripping). Fallback krijgt 2e kans.
+//
+//   "Gateway error <status>: ..." → upstream HTTP fail (429, 402, 500, ...).
+//                                   Bestaande logica voor rate-limit / credits.
+//
+// Bij DUBBELE fail (primary + fallback) bubbelt de gecombineerde error
+// naar de caller met "AI call failed for <feature>: both models failed".
+// Edge Functions detecteren via errorMsg.includes("AI_TRUNCATED") etc.
+// =====================================================
 
 import { supabaseAdmin } from "./supabaseAdmin.ts";
 
