@@ -18,6 +18,10 @@ export interface ModuleSubNavProps {
  * Horizontale tab-navigatie binnen een module. Active state matcht exact OF
  * startsWith voor sub-routes (bv. /voorraad/123 highlight "Ingrediënten").
  *
+ * CONVENTION: ModuleSubNav rendert ALTIJD direct onder PageHeader, vóór de
+ * content. Niet boven PageHeader plaatsen — titel-eerst-dan-tabs is de
+ * standaard hiërarchie (eerst "waar ben ik", dan "waar binnen deze module").
+ *
  * Wordt verborgen wanneer de hoofd-sidebar expanded is — in dat geval toont
  * de sidebar al alle sub-items inline en zou de sub-nav dubbele navigatie
  * opleveren.

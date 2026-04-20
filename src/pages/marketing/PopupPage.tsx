@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/polar/EmptyState';
 import { Check, Globe, ExternalLink, Link as LinkIcon, CalendarIcon, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { NestoButton } from '@/components/polar/NestoButton';
 import { ModuleSubNav } from '@/components/polar/ModuleSubNav';
+import { PageHeader } from '@/components/polar/PageHeader';
 import { MARKETING_SUBNAV } from '@/lib/moduleSubNav';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 import { usePopupConfigs, usePopupConfig, useCreatePopup, useUpdatePopupConfig, useDeletePopup, PopupType } from '@/hooks/usePopupConfig';
@@ -137,21 +138,18 @@ export default function PopupPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <PageHeader
+        title="Website Popup"
+        actions={
+          <NestoButton onClick={handleCreate} isLoading={createPopup.isPending} className="gap-1.5" size="sm">
+            <Plus className="h-3.5 w-3.5" />
+            Nieuwe popup
+          </NestoButton>
+        }
+      />
       <ModuleSubNav items={MARKETING_SUBNAV} />
       {/* AI Suggestion */}
       {suggestion && <PopupSuggestionCard suggestion={suggestion} targetPopupId={selectedId ?? undefined} />}
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Globe className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-bold text-foreground">Website Popup</h1>
-        </div>
-        <NestoButton onClick={handleCreate} isLoading={createPopup.isPending} className="gap-1.5" size="sm">
-          <Plus className="h-3.5 w-3.5" />
-          Nieuwe popup
-        </NestoButton>
-      </div>
 
       {/* Popup list */}
       {popups && popups.length > 0 ? (
