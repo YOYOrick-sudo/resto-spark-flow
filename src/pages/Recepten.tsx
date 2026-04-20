@@ -109,7 +109,9 @@ export default function Recepten() {
     <div className="space-y-6">
       <PageHeader
         title="Halffabricaten"
-        subtitle="Je sauzen, bouillons, marinades en andere bereidingen."
+        help={{
+          content: "Je sauzen, bouillons, marinades en andere bereidingen.",
+        }}
         actions={
           <NestoButton
             leftIcon={<Plus className="h-4 w-4" />}

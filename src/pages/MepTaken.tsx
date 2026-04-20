@@ -107,7 +107,6 @@ export default function MepTaken() {
     <div className="space-y-6">
       <PageHeader
         title="MEP Taken"
-        subtitle="Mise-en-place taken voor de keuken."
         actions={
           <div className="flex items-center gap-2">
             {totalCount > 0 && (
