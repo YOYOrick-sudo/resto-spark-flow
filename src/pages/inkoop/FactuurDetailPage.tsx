@@ -283,6 +283,7 @@ export default function FactuurDetailPage() {
                 prefillNewName={
                   !factuur.leverancier_id ? factuur.leverancier_naam_herkend : null
                 }
+                fuzzyKandidaten={factuur.fuzzy_kandidaten ?? []}
               />
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">

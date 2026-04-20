@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Sparkles } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -12,10 +12,17 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { QuickCreateLeverancierDialog } from "./QuickCreateLeverancierDialog";
+import { useUserContext } from "@/contexts/UserContext";
 
 interface Leverancier {
   id: string;
   naam: string;
+}
+
+export interface FuzzyKandidaat {
+  id: string;
+  naam: string;
+  similarity: number;
 }
 
 interface Props {
@@ -25,7 +32,12 @@ interface Props {
   disabled?: boolean;
   prefillNewName?: string | null;
   label?: string;
+  /** Fuzzy match-suggesties uit parse-factuur (similarity >= 0.5). Max 3. */
+  fuzzyKandidaten?: FuzzyKandidaat[];
 }
+
+// Rollen die nieuwe leveranciers mogen aanmaken (komt overeen met RLS).
+const CAN_CREATE_ROLES: Array<string> = ["owner", "manager"];
 
 export function LeverancierSelectCombobox({
   value,
@@ -34,15 +46,30 @@ export function LeverancierSelectCombobox({
   disabled,
   prefillNewName,
   label = "Leverancier",
+  fuzzyKandidaten = [],
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const { context } = useUserContext();
+
+  const canCreate = useMemo(() => {
+    if (!context) return false;
+    if (context.is_platform_admin) return true;
+    return context.role ? CAN_CREATE_ROLES.includes(context.role) : false;
+  }, [context]);
 
   const selected = useMemo(
     () => leveranciers.find((l) => l.id === value) ?? null,
     [leveranciers, value]
   );
+
+  // Filter fuzzy-kandidaten: alleen tonen als (a) geen waarde geselecteerd
+  // en (b) niet al exact in leveranciers-lijst aanwezig (hierdoor zou anders dubbeling ontstaan).
+  const fuzzyToShow = useMemo(() => {
+    if (value || !fuzzyKandidaten?.length) return [];
+    return fuzzyKandidaten.slice(0, 3);
+  }, [value, fuzzyKandidaten]);
 
   // Pre-fill query met AI-naam als geen waarde geselecteerd is en popover opent
   useEffect(() => {
@@ -55,13 +82,12 @@ export function LeverancierSelectCombobox({
   const exactMatch = leveranciers.find(
     (l) => l.naam.toLowerCase() === trimmedQuery.toLowerCase()
   );
-  const showCreate = trimmedQuery.length > 0 && !exactMatch;
+  const showCreate = canCreate && trimmedQuery.length > 0 && !exactMatch;
 
   const handleCreated = (lev: { id: string; naam: string }) => {
     onChange(lev.id);
     setOpen(false);
     setQuery("");
-    // Focus terug naar de pagina (trigger button blur is automatisch via popover sluit)
   };
 
   return (
@@ -82,8 +108,11 @@ export function LeverancierSelectCombobox({
                 !selected && "text-muted-foreground"
               )}
             >
-              <span className="truncate">
+              <span className="truncate flex items-center gap-2">
                 {selected?.naam ?? "Selecteer of maak nieuwe leverancier..."}
+                {!selected && fuzzyToShow.length > 0 && (
+                  <Sparkles className="h-3 w-3 text-primary" aria-label="Suggesties beschikbaar" />
+                )}
               </span>
               <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 ml-2 opacity-50" />
             </button>
@@ -102,32 +131,57 @@ export function LeverancierSelectCombobox({
                 <CommandEmpty>
                   {trimmedQuery ? "Geen leveranciers gevonden." : "Begin met typen..."}
                 </CommandEmpty>
-                {leveranciers.length > 0 && (
-                  <CommandGroup>
-                    {leveranciers.map((l) => (
+
+                {/* Fuzzy-suggesties (alleen bij geen selectie) */}
+                {fuzzyToShow.length > 0 && (
+                  <CommandGroup heading="Lijkt op herkende naam">
+                    {fuzzyToShow.map((k) => (
                       <CommandItem
-                        key={l.id}
-                        value={l.naam}
+                        key={`fuzzy-${k.id}`}
+                        value={`__fuzzy__${k.naam}`}
                         onSelect={() => {
-                          onChange(l.id);
+                          onChange(k.id);
                           setOpen(false);
                           setQuery("");
                         }}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-3.5 w-3.5",
-                            value === l.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <span className="truncate">{l.naam}</span>
+                        <Sparkles className="mr-2 h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="truncate">{k.naam}</span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
                 )}
+
+                {leveranciers.length > 0 && (
+                  <>
+                    {fuzzyToShow.length > 0 && <CommandSeparator />}
+                    <CommandGroup heading={fuzzyToShow.length > 0 ? "Alle leveranciers" : undefined}>
+                      {leveranciers.map((l) => (
+                        <CommandItem
+                          key={l.id}
+                          value={l.naam}
+                          onSelect={() => {
+                            onChange(l.id);
+                            setOpen(false);
+                            setQuery("");
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-3.5 w-3.5",
+                              value === l.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="truncate">{l.naam}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </>
+                )}
+
                 {showCreate && (
                   <>
-                    {leveranciers.length > 0 && <CommandSeparator />}
+                    {(leveranciers.length > 0 || fuzzyToShow.length > 0) && <CommandSeparator />}
                     <CommandGroup>
                       <CommandItem
                         value={`__create__${trimmedQuery}`}
@@ -145,18 +199,26 @@ export function LeverancierSelectCombobox({
                     </CommandGroup>
                   </>
                 )}
+
+                {!canCreate && trimmedQuery.length > 0 && !exactMatch && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground border-t">
+                    Vraag een manager om "{trimmedQuery}" als nieuwe leverancier toe te voegen.
+                  </div>
+                )}
               </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
       </div>
 
-      <QuickCreateLeverancierDialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        initialNaam={trimmedQuery}
-        onCreated={handleCreated}
-      />
+      {canCreate && (
+        <QuickCreateLeverancierDialog
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          initialNaam={trimmedQuery}
+          onCreated={handleCreated}
+        />
+      )}
     </>
   );
 }
