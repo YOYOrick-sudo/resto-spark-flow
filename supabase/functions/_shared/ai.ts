@@ -357,6 +357,7 @@ async function callGateway(
 
     const data = await response.json();
     const message = data.choices?.[0]?.message ?? {};
+    const finishReason = data.choices?.[0]?.finish_reason ?? null;
     const usage = data.usage ?? {};
 
     // Parse tool calls indien aanwezig
@@ -368,15 +369,78 @@ async function callGateway(
         : {},
     }));
 
+    const inputTokens = usage.prompt_tokens ?? 0;
+    const outputTokens = usage.completion_tokens ?? 0;
+    const maxTokens = opts.maxTokens ?? 1000;
+    const textContent: string = message.content ?? "";
+
+    // === TRUNCATION DETECTIE ===
+    // Hard signal: finish_reason=length (Gemini MAX_TOKENS via OpenAI-compat)
+    if (finishReason === "length") {
+      throw new Error(
+        `AI_TRUNCATED: finish_reason=length (output_tokens=${outputTokens}, maxTokens=${maxTokens})`
+      );
+    }
+    // Soft signal: ≥95% van budget gebruikt — gateway rapporteert finish_reason
+    // soms niet bij Gemini-via-compat, dus extra check.
+    if (outputTokens > 0 && outputTokens >= maxTokens * 0.95) {
+      throw new Error(
+        `AI_TRUNCATED: near-max tokens (output_tokens=${outputTokens}/${maxTokens}, ratio=${(outputTokens / maxTokens).toFixed(2)})`
+      );
+    }
+
+    // Soft warning bij ≥90% — log-only, geen throw (monitoring optie a)
+    if (outputTokens > 0 && outputTokens >= maxTokens * 0.9) {
+      console.warn(
+        `[callAI] near-max output tokens for ${opts.featureKey}: ${outputTokens}/${maxTokens} (${((outputTokens / maxTokens) * 100).toFixed(0)}%)`
+      );
+    }
+
+    // === JSON VALIDATIE ===
+    // Bij jsonMode=true: validate dat response parseerbaar is (tolerant voor
+    // markdown fences ```json ... ```). Bij fail → fallback krijgt 2e kans.
+    // Caller's eigen extractJSON() blijft als safety net.
+    if ((opts as AICallOptions).jsonMode && !withTools && textContent) {
+      const parseAttempt = tryParseJSON(textContent);
+      if (!parseAttempt.ok) {
+        throw new Error(`AI_JSON_INVALID: ${parseAttempt.error}`);
+      }
+    }
+
     return {
-      text: message.content ?? "",
+      text: textContent,
       toolCalls,
-      inputTokens: usage.prompt_tokens ?? 0,
-      outputTokens: usage.completion_tokens ?? 0,
+      inputTokens,
+      outputTokens,
     };
   } catch (err) {
     clearTimeout(timeout);
     throw err;
+  }
+}
+
+// =====================================================
+// JSON parse helper — tolerant voor markdown fences
+// Dupliceert extractJSON() uit consumers (bv. parse-factuur) zodat de
+// validatie binnen callGateway dezelfde tolerantie heeft. Voorkomt
+// vals-positieve fallbacks op valide JSON met ```json ... ``` wrapping.
+// =====================================================
+
+function tryParseJSON(text: string): { ok: true } | { ok: false; error: string } {
+  try {
+    let cleaned = text.trim();
+    // Strip markdown code fences (```json ... ``` of ``` ... ```)
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    // Brace-extract: pak alles tussen eerste { en laatste }
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+    JSON.parse(cleaned);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
