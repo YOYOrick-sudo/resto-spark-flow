@@ -278,6 +278,69 @@ serve(async (req) => {
       aiParsingStatus: "processing",
     });
 
+    // --- file_hash race-guard: voorkom dubbele Pro-calls bij snel-meermaals upload ---
+    // Soft guard: bij infrastructure-error doorgaan met parse (liever 2× parse dan geen parse).
+    if (factuur.file_hash) {
+      try {
+        const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: dup, error: dupErr } = await supabase
+          .from("factuur_uploads")
+          .select("id, factuurnummer, bestandsnaam")
+          .eq("location_id", locationId)
+          .eq("file_hash", factuur.file_hash)
+          .eq("ai_parsing_status", "processing")
+          .neq("id", factuurId)
+          .gte("created_at", tenMinAgo)
+          .limit(1)
+          .maybeSingle();
+
+        if (dupErr) {
+          console.warn(
+            `[parse-factuur] file_hash dup-check failed (soft, doorgaan met parse):`,
+            dupErr.message
+          );
+        } else if (dup) {
+          console.log(
+            `[parse-factuur] duplicate detected ${factuurId} → original ${dup.id}, mark failed.`
+          );
+          await supabase
+            .from("factuur_uploads")
+            .update({
+              ai_parsing_status: "failed",
+              ai_raw_response: {
+                error: "duplicate_upload",
+                message: `Zelfde factuur wordt al verwerkt (id=${dup.id})`,
+                original_factuur_id: dup.id,
+                original_factuurnummer: (dup as any).factuurnummer ?? null,
+                original_bestandsnaam: (dup as any).bestandsnaam ?? null,
+              },
+            })
+            .eq("id", factuurId);
+          await broadcastFactuurStatus(supabase, locationId, {
+            factuurId,
+            aiParsingStatus: "failed",
+          });
+          return new Response(
+            JSON.stringify({
+              accepted: false,
+              factuurId,
+              reason: "duplicate_upload",
+              originalFactuurId: dup.id,
+            }),
+            {
+              status: 409,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+      } catch (guardErr: any) {
+        console.warn(
+          `[parse-factuur] file_hash dup-check threw (soft, doorgaan met parse):`,
+          guardErr?.message ?? String(guardErr)
+        );
+      }
+    }
+
     // --- Download file from storage (in handler — snel, telt mee in 150s budget) ---
     const filePath = factuur.bestand_url;
     let storagePath = filePath;
@@ -417,6 +480,50 @@ interface ProcessParams {
 }
 
 async function processInvoice(params: ProcessParams) {
+  const {
+    supabase,
+    factuurId,
+    locationId,
+  } = params;
+
+  try {
+    await processInvoiceInner(params);
+  } catch (err: any) {
+    // Defense-in-depth: outer catch vangt onverwachte runtime-fouten die
+    // de inner blocks missen (crash in fuzzy-match, supabase-throw, etc.).
+    // Inner catches blijven hun eigen specifieke error-handling doen — dit
+    // is alleen een vangnet zodat ai_parsing_status NOOIT op 'processing'
+    // blijft hangen (geen zombie-rows meer).
+    console.error(
+      `[parse-factuur] processInvoice unhandled error for ${factuurId}:`,
+      err
+    );
+    try {
+      await supabase
+        .from("factuur_uploads")
+        .update({
+          ai_parsing_status: "failed",
+          ai_raw_response: {
+            error: "unhandled_error",
+            message: err?.message ?? String(err),
+            stack: err?.stack?.slice(0, 500) ?? null,
+          },
+        })
+        .eq("id", factuurId);
+      await broadcastFactuurStatus(supabase, locationId, {
+        factuurId,
+        aiParsingStatus: "failed",
+      });
+    } catch (cleanupErr) {
+      console.error(
+        `[parse-factuur] outer-catch cleanup ALSO failed for ${factuurId}:`,
+        cleanupErr
+      );
+    }
+  }
+}
+
+async function processInvoiceInner(params: ProcessParams) {
   const {
     supabase,
     factuurId,

@@ -4,7 +4,7 @@ import { NestoSelect, NestoBadge, Spinner, EmptyState } from "@/components/polar
 import { useFactuurUploads } from "@/hooks/useFactuurUploads";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurUploadZone } from "./FactuurUploadZone";
-import { FileText, Lightbulb, Sparkles } from "lucide-react";
+import { FileText, Lightbulb, Sparkles, Copy } from "lucide-react";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Alle statussen" },
@@ -23,11 +23,14 @@ const STATUS_BADGES: Record<string, { variant: "default" | "warning" | "success"
 
 // Mapping onderscheidt "In wachtrij" (pending — net geüpload, nog niet opgepakt)
 // van "Verwerken..." (processing — AI is actief bezig). Helpt chef inschatten.
+// "duplicate" is een sub-variant van failed (ai_raw_response.error === 'duplicate_upload')
+// en wordt apart bepaald in de render-loop op basis van de error-code.
 const AI_BADGES: Record<string, { variant: "default" | "warning" | "success" | "error"; label: string }> = {
   pending: { variant: "default", label: "In wachtrij" },
   processing: { variant: "warning", label: "Verwerken..." },
   completed: { variant: "success", label: "AI klaar" },
   failed: { variant: "error", label: "AI gefaald" },
+  duplicate: { variant: "default", label: "Duplicaat" },
 };
 
 export function FacturenTab() {
@@ -102,9 +105,19 @@ export function FacturenTab() {
         <div className="space-y-2">
           {facturen.map((f) => {
             const badge = STATUS_BADGES[f.status] ?? STATUS_BADGES.review;
-            const aiBadge = f.ai_parsing_status
-              ? AI_BADGES[f.ai_parsing_status]
-              : null;
+            // Detect duplicate sub-state: failed + ai_raw_response.error === 'duplicate_upload'
+            const isDuplicate =
+              f.ai_parsing_status === "failed" &&
+              (f.ai_raw_response as any)?.error === "duplicate_upload";
+            const aiBadge = isDuplicate
+              ? AI_BADGES.duplicate
+              : f.ai_parsing_status
+                ? AI_BADGES[f.ai_parsing_status]
+                : null;
+            const aiBadgeIcon = isDuplicate ? Copy : Sparkles;
+            const aiBadgeTitle = isDuplicate
+              ? "Deze factuur wordt al verwerkt in een andere upload"
+              : undefined;
             return (
               <div
                 key={f.id}
@@ -122,8 +135,16 @@ export function FacturenTab() {
                   </p>
                 </div>
                 {aiBadge && (
-                  <NestoBadge variant={aiBadge.variant} size="sm" className="gap-1">
-                    <Sparkles className="h-3 w-3" />
+                  <NestoBadge
+                    variant={aiBadge.variant}
+                    size="sm"
+                    className="gap-1"
+                    title={aiBadgeTitle}
+                  >
+                    {(() => {
+                      const Icon = aiBadgeIcon;
+                      return <Icon className="h-3 w-3" />;
+                    })()}
                     {aiBadge.label}
                   </NestoBadge>
                 )}
