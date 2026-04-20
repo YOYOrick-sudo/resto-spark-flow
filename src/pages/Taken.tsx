@@ -8,6 +8,7 @@ export default function Taken() {
   const navigate = useNavigate();
   return (
     <div className="space-y-6">
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
       <PageHeader
         title="Taken & HACCP"
         help={{
@@ -27,7 +28,6 @@ export default function Taken() {
           },
         ]}
       />
-      <ModuleSubNav items={KEUKEN_SUBNAV} />
       <DagelijksTab />
     </div>
   );

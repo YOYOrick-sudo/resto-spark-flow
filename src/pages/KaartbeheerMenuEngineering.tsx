@@ -5,8 +5,8 @@ import { BarChart3 } from "lucide-react";
 export default function KaartbeheerMenuEngineering() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Menu Engineering" subtitle="Analyseer de prestaties van je menukaart." />
       <ModuleSubNav items={KAARTBEHEER_SUBNAV} />
+      <PageHeader title="Menu Engineering" subtitle="Analyseer de prestaties van je menukaart." />
       <EmptyState
         icon={BarChart3}
         title="Menu Engineering"

@@ -5,8 +5,8 @@ import { GerechtOverzicht } from "@/components/kaartbeheer/GerechtOverzicht";
 export default function Kaartbeheer() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Gerechten" />
       <ModuleSubNav items={KAARTBEHEER_SUBNAV} />
+      <PageHeader title="Gerechten" />
       <GerechtOverzicht />
     </div>
   );
