@@ -599,6 +599,7 @@ serve(async (req) => {
         ai_raw_response: parsed,
         leverancier_naam_herkend: leverancierNaam ?? null,
         leverancier_id: leverancierId ?? factuur.leverancier_id,
+        fuzzy_kandidaten: fuzzyKandidaten,
         factuurnummer: parsed.factuurnummer ?? factuur.factuurnummer,
         factuurdatum: parsed.factuurdatum ?? factuur.factuurdatum,
         totaalbedrag: parsed.totaalbedrag ?? factuur.totaalbedrag,
