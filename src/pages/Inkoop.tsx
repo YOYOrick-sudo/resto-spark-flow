@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { PageHeader, NestoTabs, NestoTabContent, NestoButton } from "@/components/polar";
+import { PageHeader, NestoTabs, NestoTabContent, NestoButton, ModuleSubNav } from "@/components/polar";
+import { KEUKEN_SUBNAV } from "@/lib/moduleSubNav";
 import { BesteladviesTab } from "@/components/inkoop/BesteladviesTab";
 import { BestellijstenTab } from "@/components/inkoop/BestellijstenTab";
 import { OrderhistorieTab } from "@/components/inkoop/OrderhistorieTab";
@@ -33,6 +34,8 @@ export default function Inkoop() {
           </NestoButton>
         }
       />
+
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
 
       <NestoTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 

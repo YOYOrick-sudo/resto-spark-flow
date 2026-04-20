@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { History } from "lucide-react";
-import { PageHeader } from "@/components/polar";
+import { PageHeader, ModuleSubNav } from "@/components/polar";
+import { KEUKEN_SUBNAV } from "@/lib/moduleSubNav";
 import { DagelijksTab } from "@/components/taken/DagelijksTab";
 
 export default function Taken() {
@@ -19,6 +20,7 @@ export default function Taken() {
           },
         ]}
       />
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
       <DagelijksTab />
     </div>
   );

@@ -1,10 +1,12 @@
-import { PageHeader, EmptyState } from "@/components/polar";
+import { PageHeader, EmptyState, ModuleSubNav } from "@/components/polar";
+import { KAARTBEHEER_SUBNAV } from "@/lib/moduleSubNav";
 import { BookOpen } from "lucide-react";
 
 export default function KaartbeheerMenus() {
   return (
     <div className="space-y-6">
       <PageHeader title="Menu's" subtitle="Stel menu's samen voor je restaurant." />
+      <ModuleSubNav items={KAARTBEHEER_SUBNAV} />
       <EmptyState
         icon={BookOpen}
         title="Menu's"

@@ -37,6 +37,9 @@ export type { NestoBadgeProps } from "./NestoBadge";
 export { PageHeader } from "./PageHeader";
 export type { PageHeaderProps } from "./PageHeader";
 
+export { ModuleSubNav } from "./ModuleSubNav";
+export type { ModuleSubNavProps, ModuleSubNavItem } from "./ModuleSubNav";
+
 export { DetailPageLayout } from "./DetailPageLayout";
 export type { DetailPageLayoutProps } from "./DetailPageLayout";
 
