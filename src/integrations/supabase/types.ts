@@ -1433,6 +1433,7 @@ export type Database = {
           factuurdatum: string | null
           factuurnummer: string | null
           file_hash: string | null
+          fuzzy_kandidaten: Json
           goedgekeurd_door: string | null
           goedgekeurd_op: string | null
           id: string
@@ -1458,6 +1459,7 @@ export type Database = {
           factuurdatum?: string | null
           factuurnummer?: string | null
           file_hash?: string | null
+          fuzzy_kandidaten?: Json
           goedgekeurd_door?: string | null
           goedgekeurd_op?: string | null
           id?: string
@@ -1483,6 +1485,7 @@ export type Database = {
           factuurdatum?: string | null
           factuurnummer?: string | null
           file_hash?: string | null
+          fuzzy_kandidaten?: Json
           goedgekeurd_door?: string | null
           goedgekeurd_op?: string | null
           id?: string

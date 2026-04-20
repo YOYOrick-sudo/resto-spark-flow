@@ -318,7 +318,9 @@ serve(async (req) => {
     }
 
     // --- Fuzzy match leverancier ---
+    // Cascade: 1) exact ILIKE  2) alias ILIKE  3) fuzzy_match_leverancier RPC (>=0.5)
     let leverancierId = factuur.leverancier_id;
+    let fuzzyKandidaten: Array<{ id: string; naam: string; similarity: number }> = [];
     const leverancierNaam = parsed.leverancier_naam;
 
     if (!leverancierId && leverancierNaam) {
@@ -343,6 +345,24 @@ serve(async (req) => {
 
         if (aliasMatch) {
           leverancierId = aliasMatch.leverancier_id;
+        } else {
+          // Tier 3 — fuzzy via pg_trgm RPC (location-scoped, threshold 0.5)
+          const { data: fuzzyData, error: fuzzyErr } = await supabase.rpc(
+            "fuzzy_match_leverancier",
+            { p_location_id: locationId, p_naam: leverancierNaam }
+          );
+          if (fuzzyErr) {
+            console.warn("[parse-factuur] fuzzy_match_leverancier failed:", fuzzyErr.message);
+          } else if (Array.isArray(fuzzyData)) {
+            fuzzyKandidaten = fuzzyData
+              .filter((r: any) => Number(r.similarity) >= 0.5)
+              .slice(0, 3)
+              .map((r: any) => ({
+                id: r.id,
+                naam: r.naam,
+                similarity: Number(r.similarity),
+              }));
+          }
         }
       }
     }
@@ -579,6 +599,7 @@ serve(async (req) => {
         ai_raw_response: parsed,
         leverancier_naam_herkend: leverancierNaam ?? null,
         leverancier_id: leverancierId ?? factuur.leverancier_id,
+        fuzzy_kandidaten: fuzzyKandidaten,
         factuurnummer: parsed.factuurnummer ?? factuur.factuurnummer,
         factuurdatum: parsed.factuurdatum ?? factuur.factuurdatum,
         totaalbedrag: parsed.totaalbedrag ?? factuur.totaalbedrag,
