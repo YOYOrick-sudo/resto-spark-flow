@@ -273,14 +273,16 @@ export default function FactuurDetailPage() {
               <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Factuurgegevens
               </h3>
-              <NestoSelect
-                label="Leverancier"
-                value={factuur.leverancier_id ?? ""}
-                onValueChange={(v) =>
+              <LeverancierSelectCombobox
+                value={factuur.leverancier_id}
+                onChange={(v) =>
                   updateFactuur.mutate({ id: factuurId!, leverancier_id: v })
                 }
-                options={leverancierOptions}
+                leveranciers={leveranciers ?? []}
                 disabled={!isEditable}
+                prefillNewName={
+                  !factuur.leverancier_id ? factuur.leverancier_naam_herkend : null
+                }
               />
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">
