@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { NestoSelect, NestoBadge, Spinner, EmptyState } from "@/components/polar";
 import { useFactuurUploads } from "@/hooks/useFactuurUploads";
 import { useLeveranciers } from "@/hooks/useLeveranciers";
 import { FactuurUploadZone } from "./FactuurUploadZone";
-import { supabase } from "@/integrations/supabase/client";
 import { FileText, Lightbulb, Sparkles } from "lucide-react";
 
 const STATUS_OPTIONS = [
