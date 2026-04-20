@@ -42,19 +42,18 @@ export default function CampaignesPage() {
 
   if (!canManage) {
     return (
-      <div className="p-6">
+      <div className="space-y-6">
         <EmptyState title="Geen toegang" description="Je hebt geen rechten om campagnes te beheren." />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <ModuleSubNav items={MARKETING_SUBNAV} />
 
       <PageHeader
         title="Campagnes"
-        subtitle="E-mail campagnes aanmaken en versturen"
         actions={[
           {
             label: 'Nieuwe campagne',
