@@ -1723,6 +1723,7 @@ const inkoopProvider: SignalProvider = {
         'inkoop_factuur_goedgekeurd',
         'inkoop_prijsverandering_groot',
         'inkoop_factuur_parsing_gefaald',
+        'inkoop_factuur_klaar_voor_review',
         'inkoop_nieuwe_leverancier_ontdekt',
       ];
     }
