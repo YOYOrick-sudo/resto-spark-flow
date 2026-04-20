@@ -1,47 +1,69 @@
 
-User approved Option A. Switching to default mode to implement.
 
-## Build steps
+## Huidige code (ModuleSubNav.tsx, regel 89-105)
 
-**1. `tailwind.config.ts`**
-Add to `screens`:
-```ts
-screens: { 'touch': { raw: '(pointer: coarse)' } }
+```tsx
+className={cn(
+  "relative flex items-center gap-2 px-4 min-h-[44px] text-sm font-medium whitespace-nowrap rounded-md transition-colors",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  isActive
+    ? "text-primary"
+    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+)}
 ```
 
-**2. `src/components/layout/NestoSidebar.tsx`**
-- Collapsed item-buttons: add `touch:min-h-11 touch:min-w-11`
-- Icons inside collapsed items: `touch:size-6` (24px from 20px)
-- Header collapse-toggle + footer toggle: `touch:min-h-11 touch:min-w-11`
-- Verify active-state background (`bg-accent` / `bg-primary/10`) extends to full button container — already uses `w-full` so highlight scales naturally with `min-h-11`. No extra change needed.
+Active = `text-primary` + onderlijn-spanne (regel 109-114, `bg-primary`).
+Hover (non-active) = `hover:text-foreground hover:bg-accent/50` ← veroorzaakt de pill + flash.
 
-**3. `src/components/polar/NestoButton.tsx`**
-In `cva` size variants:
-- `default`: `h-10 ... touch:h-11`
-- `sm`: `h-8 ... touch:h-11 touch:px-4`
-- `icon`: `h-10 w-10 touch:h-11 touch:w-11`
-- `lg`: already 48px, no change
+## Fix
 
-**4. `src/components/polar/NestoInput.tsx`**
-Input element: add `touch:h-11`
+**Eén className-wijziging op regel 95:**
 
-**5. `src/components/polar/NestoTabs.tsx`**
-Tab `<button>`: add `touch:min-h-11` (currently only `pb-3`)
+```diff
+- : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
++ : "text-muted-foreground hover:text-foreground"
+```
 
-## Active-state verification (point 1)
-Collapsed sidebar items render highlight via `w-full bg-accent` on the button itself, not the icon. Adding `touch:min-h-11` enlarges the same button → highlight scales with it. Active-state remains visible and proportional. No tweaks needed.
+Verwijder ook `rounded-md` (regel 91) — niet meer nodig zonder bg-pill, en voorkomt visuele suggestie van een button-shape. Active onderlijn (regel 109-114, `absolute left-3 right-3 -bottom-px h-0.5 bg-primary rounded-full`) blijft ongewijzigd.
 
-## Magic Keyboard note (point 2)
-Noted as known limitation. Out-of-scope for this sprint — will not add user-preference toggle. Pura Vida iPad is wall-mounted touch-only, so no impact for them.
+`transition-colors` blijft staan: het animeert nu alleen `color`, geen `background-color` → geen flash meer bij snelle muisbeweging.
 
-## Verification after build
-1. DevTools → toggle "CSS media features" → `pointer: coarse` → sidebar/buttons/inputs/tabs grow to 44px
-2. Toggle off → desktop heights restored (28/32/40px)
-3. Active sidebar item highlight remains visible in both modes
-4. `npx tsc --noEmit` green
+**Nieuwe classNames (regel 89-96):**
+```tsx
+className={cn(
+  "relative flex items-center gap-2 px-4 min-h-[44px] text-sm font-medium whitespace-nowrap transition-colors",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  isActive
+    ? "text-primary"
+    : "text-muted-foreground hover:text-foreground"
+)}
+```
 
-## Deliverables
-- Diff of tailwind.config.ts
-- Diff of 4 components (NestoSidebar, NestoButton, NestoInput, NestoTabs)
-- DevTools verification description (pointer toggle behaviour)
-- TypeScript-clean confirmation
+## Tokens (geen hex)
+
+We gebruiken bestaande semantische tokens — `text-muted-foreground` (default), `text-foreground` (hover), `text-primary` (active). Geen `text-gray-600/900` of `text-teal-600` hardcoden — die respecteren dark-mode niet en breken de design-token conventie van het project.
+
+## iPad / touch
+
+Voor iPad-tap-highlight: standaard browser-tap-highlight kan een korte flash geven. Optioneel `[-webkit-tap-highlight-color:transparent]` toevoegen aan de NavLink className. **Voorstel:** wel toevoegen — past bij touch-only context (Pura Vida iPad aan de muur).
+
+## Verificatie
+
+1. Hover over `/voorraad` tab: tekst gaat van muted naar foreground, géén grijze pill achter de tab
+2. Snelle muisbeweging over alle tabs: geen background-flash (alleen color-transition)
+3. Active tab (`/voorraad`): teal onderlijn blijft zichtbaar, tekst blijft `text-primary`
+4. Tab via Tab-key navigeren: focus-ring blijft werken (`focus-visible:ring-2`)
+5. iPad tap: geen blauwe/grijze tap-highlight flash
+6. Dark mode: hover gaat van muted naar foreground, beide tokens werken automatisch
+7. `npx tsc --noEmit` groen (alleen className-wijziging, geen type-impact)
+
+## Te wijzigen bestand
+
+- `src/components/polar/ModuleSubNav.tsx` — regel 91 (verwijder `rounded-md`), regel 95 (verwijder `hover:bg-accent/50`), optioneel regel 90 (`[-webkit-tap-highlight-color:transparent]` toevoegen)
+
+## Out of scope
+
+- Geen wijzigingen aan andere componenten (sidebar, NestoButton, ViewToggle, etc.) — die houden hun eigen hover-patroon
+- Geen wijziging aan active-state onderlijn of kleur
+- Geen wijziging aan fade-edges of overflow-scroll gedrag
+
