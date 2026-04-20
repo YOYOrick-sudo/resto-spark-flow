@@ -28,6 +28,12 @@ export interface FactuurRegel {
   ingredient_naam?: string | null;
 }
 
+export interface FuzzyKandidaat {
+  id: string;
+  naam: string;
+  similarity: number;
+}
+
 export interface FactuurDetail {
   id: string;
   location_id: string;
@@ -47,6 +53,7 @@ export interface FactuurDetail {
   ai_parsed_at: string | null;
   ai_confidence_overall: number | null;
   ai_raw_response: any;
+  fuzzy_kandidaten: FuzzyKandidaat[];
   leverancier_naam?: string;
   regels: FactuurRegel[];
 }
@@ -70,6 +77,7 @@ export function useFactuurDetail(id: string | null) {
       return {
         ...data,
         leverancier_naam: (data as any).leveranciers?.naam ?? "Onbekend",
+        fuzzy_kandidaten: ((data as any).fuzzy_kandidaten ?? []) as FuzzyKandidaat[],
         regels,
       } as FactuurDetail;
     },
