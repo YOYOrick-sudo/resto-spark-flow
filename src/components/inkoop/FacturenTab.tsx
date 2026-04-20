@@ -23,9 +23,11 @@ const STATUS_BADGES: Record<string, { variant: "default" | "warning" | "success"
   afgewezen: { variant: "error", label: "Afgewezen" },
 };
 
+// Mapping onderscheidt "In wachtrij" (pending — net geüpload, nog niet opgepakt)
+// van "Verwerken..." (processing — AI is actief bezig). Helpt chef inschatten.
 const AI_BADGES: Record<string, { variant: "default" | "warning" | "success" | "error"; label: string }> = {
-  pending: { variant: "default", label: "AI wacht" },
-  processing: { variant: "warning", label: "AI leest..." },
+  pending: { variant: "default", label: "In wachtrij" },
+  processing: { variant: "warning", label: "Verwerken..." },
   completed: { variant: "success", label: "AI klaar" },
   failed: { variant: "error", label: "AI gefaald" },
 };
