@@ -31,6 +31,10 @@ export default function ContentCalendarPage() {
 
   return (
     <div className="flex flex-col h-full">
+      <div className="px-6 pt-6">
+        <ModuleSubNav items={MARKETING_SUBNAV} />
+      </div>
+
       <PageHeader
         title="Content Kalender"
         className="border-b-0"
@@ -101,10 +105,6 @@ export default function ContentCalendarPage() {
           </div>
         }
       />
-
-      <div className="px-6 pt-2">
-        <ModuleSubNav items={MARKETING_SUBNAV} />
-      </div>
 
       <div className="flex-1 flex gap-6 p-6 pt-4 min-h-0">
         {/* Calendar grid */}
