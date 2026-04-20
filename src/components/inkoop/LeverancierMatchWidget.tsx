@@ -1,8 +1,7 @@
-import { Sparkles, Check, AlertCircle, Loader2, Plus } from "lucide-react";
+import { Sparkles, Check, AlertCircle, Loader2 } from "lucide-react";
 import { NestoButton, NestoBadge } from "@/components/polar";
 import { useFuzzyMatchLeverancier } from "@/hooks/useFuzzyMatchLeverancier";
 import { useFactuurMutations } from "@/hooks/useFactuurMutations";
-import { useNavigate } from "react-router-dom";
 
 interface Props {
   factuurId: string;
@@ -27,7 +26,6 @@ export function LeverancierMatchWidget({
   aiConfidence,
   rawResponse,
 }: Props) {
-  const navigate = useNavigate();
   const { linkLeverancierAlias, updateFactuur } = useFactuurMutations();
   const { data: suggesties = [], isLoading: suggestiesLoading } = useFuzzyMatchLeverancier(
     !huidigeLeverancierId ? herkendNaam : null
