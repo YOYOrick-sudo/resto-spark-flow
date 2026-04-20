@@ -34,7 +34,6 @@ export function FacturenTab() {
   const [statusFilter, setStatusFilter] = useState("");
   const [leverancierFilter, setLeverancierFilter] = useState("");
   const navigate = useNavigate();
-  const qc = useQueryClient();
 
   const { data: facturen, isLoading } = useFactuurUploads({
     status: statusFilter || undefined,
