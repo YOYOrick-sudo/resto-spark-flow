@@ -26,6 +26,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { callAI } from "../_shared/ai.ts";
+import { extractTextPerPage, type TextExtractStats } from "../_shared/pdf-text.ts";
+import {
+  detectLeverancier,
+  parseFactuur as parseFactuurText,
+  thresholdForSlug,
+  type ParserResult as TextParserResult,
+} from "../_shared/factuur-parsers/index.ts";
 
 // EdgeRuntime is door Supabase geïnjecteerd in productie maar niet getypeerd
 declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
@@ -413,6 +420,7 @@ serve(async (req) => {
       organizationId,
       factuur,
       base64,
+      uint8Array,
       isPDF,
       pageCount,
     });
@@ -475,6 +483,7 @@ interface ProcessParams {
   organizationId: string;
   factuur: any;
   base64: string;
+  uint8Array: Uint8Array;
   isPDF: boolean;
   pageCount: number | null;
 }
@@ -531,9 +540,80 @@ async function processInvoiceInner(params: ProcessParams) {
     organizationId,
     factuur,
     base64,
+    uint8Array,
     isPDF,
     pageCount,
   } = params;
+
+  // ===========================================================
+  // SPRINT: Slimme factuur-AI Stap 1 — text-extractie pre-flight
+  // -----------------------------------------------------------
+  // Probeer eerst gratis text-extract + leverancier-parser. Resultaat
+  // wordt OPGESLAGEN als preview (text_pad_preview) + diagnostiek
+  // (text_extract_stats) in ai_raw_response. De échte regel-insert
+  // blijft via de bestaande multimodal flow lopen — Stap 2 zal het
+  // text-pad als primaire bron gaan gebruiken.
+  // ===========================================================
+  let textPadPreview: TextParserResult | null = null;
+  let textExtractStats: TextExtractStats | null = null;
+  let textParseMethod: "text_preview" | "multimodal" | "text_then_multimodal" =
+    "multimodal";
+  let textParseConfidence: number | null = null;
+  let textLeverancierSlug: "kooyman" | "bidfood" | "generic" | null = null;
+  let textThresholdApplied: number | null = null;
+
+  if (isPDF) {
+    try {
+      const extract = await extractTextPerPage(uint8Array);
+      textExtractStats = extract.stats;
+
+      if (extract.pages != null) {
+        // Niet-scan PDF → parser draaien
+        const slug = detectLeverancier(extract.pages[0] ?? "");
+        textLeverancierSlug = slug;
+        const threshold = thresholdForSlug(slug);
+        textThresholdApplied = threshold;
+
+        const parserResult = parseFactuurText(extract.pages, slug);
+        textParseConfidence = parserResult.confidence;
+        textPadPreview = parserResult;
+
+        if (parserResult.confidence >= threshold) {
+          textParseMethod = "text_preview";
+          console.log(
+            `[parse-factuur] ${factuurId} text-pad PASS — slug=${slug} ` +
+              `confidence=${parserResult.confidence} regels=${parserResult.regels.length}`
+          );
+        } else {
+          textParseMethod = "text_then_multimodal";
+          // Toevoeging B uit sprint: monitoring-warning voor parser-tuning
+          console.warn(
+            `[parse-factuur] text-pad fallback`,
+            JSON.stringify({
+              factuurId,
+              leverancierSlug: slug,
+              confidence: parserResult.confidence,
+              threshold,
+              regels: parserResult.regels.length,
+            })
+          );
+        }
+      } else {
+        // Scan-PDF → géén parser, géén preview
+        textParseMethod = "multimodal";
+        console.log(
+          `[parse-factuur] ${factuurId} scan-PDF detected — avg=${extract.stats.avg_chars_per_content_page} chars/page`
+        );
+      }
+    } catch (e: any) {
+      // Pre-flight mag NOOIT de hele flow breken — log en val terug op multimodal
+      console.warn(
+        `[parse-factuur] ${factuurId} text-extract pre-flight failed:`,
+        e?.message ?? String(e)
+      );
+      textParseMethod = "multimodal";
+    }
+  }
 
   const primaryModel = pickModel(pageCount);
   // Pro krijgt meer headroom (factuur is groot), Flash krijgt 48k.
@@ -543,8 +623,53 @@ async function processInvoiceInner(params: ProcessParams) {
 
   console.log(
     `[parse-factuur] background start factuurId=${factuurId} ` +
-      `model=${primaryModel} maxTokens=${maxTokens} timeoutMs=${timeoutMs}`
+      `model=${primaryModel} maxTokens=${maxTokens} timeoutMs=${timeoutMs} ` +
+      `parseMethod=${textParseMethod} parseConfidence=${textParseConfidence ?? "n/a"}`
   );
+
+  // ===========================================================
+  // Helper: verrijk ai_raw_response met text-pad diagnostiek.
+  // -----------------------------------------------------------
+  // Áltijd uitvoeren bij elke update van ai_raw_response binnen
+  // processInvoiceInner — zo zien we via SQL ook bij failures wat
+  // de text-parser gevonden heeft (toevoeging clarification:
+  // text_pad_preview ook bij text_then_multimodal opslaan).
+  //
+  // Scan-PDFs (stats.scan_detected=true): text_pad_preview blijft
+  // weg (parser draaide niet) — alleen stats worden opgeslagen.
+  // ===========================================================
+  const enrichRaw = (base: Record<string, any>): Record<string, any> => {
+    const enriched: Record<string, any> = { ...base };
+    if (textExtractStats) {
+      enriched.text_extract_stats = {
+        ...textExtractStats,
+        leverancier_slug_detected: textLeverancierSlug,
+        parser_confidence: textParseConfidence,
+        threshold_applied: textThresholdApplied,
+        meets_threshold: textParseMethod === "text_preview",
+      };
+    }
+    // Preview opslaan zodra parser draaide — dus ook bij text_then_multimodal
+    // (clarification user). Niet bij scan-PDF (textPadPreview = null).
+    if (textPadPreview) {
+      enriched.text_pad_preview = {
+        leverancier_naam_raw: textPadPreview.leverancier_naam_raw,
+        factuurnummer: textPadPreview.factuurnummer,
+        factuurdatum: textPadPreview.factuurdatum,
+        totaalbedrag: textPadPreview.totaalbedrag,
+        confidence: textPadPreview.confidence,
+        candidate_rows_per_page: textPadPreview.candidate_rows_per_page,
+        regels: textPadPreview.regels,
+      };
+    }
+    return enriched;
+  };
+
+  // Top-level kolommen die bij elke update meegaan
+  const parseMethodFields = {
+    parse_method: textParseMethod,
+    parse_confidence: textParseConfidence,
+  };
 
   // --- Call AI ---
   let aiResult;
@@ -572,7 +697,8 @@ async function processInvoiceInner(params: ProcessParams) {
       .from("factuur_uploads")
       .update({
         ai_parsing_status: "failed",
-        ai_raw_response: { error: errorMsg },
+        ai_raw_response: enrichRaw({ error: errorMsg }),
+        ...parseMethodFields,
       })
       .eq("id", factuurId);
 
@@ -619,11 +745,12 @@ async function processInvoiceInner(params: ProcessParams) {
       .from("factuur_uploads")
       .update({
         ai_parsing_status: "failed",
-        ai_raw_response: {
+        ai_raw_response: enrichRaw({
           error: "json_parse_failed",
           parse_error: parseErr?.message ?? String(parseErr),
           raw_preview: aiResult.text.slice(0, 1000),
-        },
+        }),
+        ...parseMethodFields,
       })
       .eq("id", factuurId);
     await broadcastFactuurStatus(supabase, locationId, {
@@ -857,10 +984,11 @@ async function processInvoiceInner(params: ProcessParams) {
       .from("factuur_uploads")
       .update({
         ai_parsing_status: "failed",
-        ai_raw_response: {
+        ai_raw_response: enrichRaw({
           error: "ai_returned_no_regels",
           parsed_data: parsed,
-        },
+        }),
+        ...parseMethodFields,
       })
       .eq("id", factuurId);
     await broadcastFactuurStatus(supabase, locationId, {
@@ -881,12 +1009,13 @@ async function processInvoiceInner(params: ProcessParams) {
       .from("factuur_uploads")
       .update({
         ai_parsing_status: "failed",
-        ai_raw_response: {
+        ai_raw_response: enrichRaw({
           error: "regel_insert_failed",
           db_error: insertError.message,
           attempted_count: regelInserts.length,
           parsed_data: parsed,
-        },
+        }),
+        ...parseMethodFields,
       })
       .eq("id", factuurId);
     await broadcastFactuurStatus(supabase, locationId, {
@@ -904,13 +1033,14 @@ async function processInvoiceInner(params: ProcessParams) {
       ai_parsing_status: "completed",
       ai_parsed_at: new Date().toISOString(),
       ai_confidence_overall: parsed.confidence_overall ?? null,
-      ai_raw_response: parsed,
+      ai_raw_response: enrichRaw(parsed),
       leverancier_naam_herkend: leverancierNaam ?? null,
       leverancier_id: leverancierId ?? factuur.leverancier_id,
       fuzzy_kandidaten: fuzzyKandidaten,
       factuurnummer: parsed.factuurnummer ?? factuur.factuurnummer,
       factuurdatum: parsed.factuurdatum ?? factuur.factuurdatum,
       totaalbedrag: parsed.totaalbedrag ?? factuur.totaalbedrag,
+      ...parseMethodFields,
     })
     .eq("id", factuurId);
 

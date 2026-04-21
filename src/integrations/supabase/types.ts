@@ -1440,6 +1440,8 @@ export type Database = {
           leverancier_id: string | null
           leverancier_naam_herkend: string | null
           location_id: string
+          parse_confidence: number | null
+          parse_method: string
           preview_snapshot: Json | null
           ruwe_tekst: string | null
           status: string
@@ -1466,6 +1468,8 @@ export type Database = {
           leverancier_id?: string | null
           leverancier_naam_herkend?: string | null
           location_id: string
+          parse_confidence?: number | null
+          parse_method?: string
           preview_snapshot?: Json | null
           ruwe_tekst?: string | null
           status?: string
@@ -1492,6 +1496,8 @@ export type Database = {
           leverancier_id?: string | null
           leverancier_naam_herkend?: string | null
           location_id?: string
+          parse_confidence?: number | null
+          parse_method?: string
           preview_snapshot?: Json | null
           ruwe_tekst?: string | null
           status?: string
