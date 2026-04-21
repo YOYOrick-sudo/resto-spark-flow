@@ -556,6 +556,8 @@ async function processInvoiceInner(params: ProcessParams) {
   // ===========================================================
   let textPadPreview: TextParserResult | null = null;
   let textExtractStats: TextExtractStats | null = null;
+  // TIJDELIJK DEBUG — ruwe text-extract output om parser-bug te diagnosticeren
+  let pdfExtractedTextDebug: Record<string, any> | null = null;
   let textParseMethod: "text_preview" | "multimodal" | "text_then_multimodal" =
     "multimodal";
   let textParseConfidence: number | null = null;
@@ -566,6 +568,17 @@ async function processInvoiceInner(params: ProcessParams) {
     try {
       const extract = await extractTextPerPage(uint8Array);
       textExtractStats = extract.stats;
+
+      // TIJDELIJK DEBUG — ruwe text dump zodat we via SQL kunnen zien wat parser krijgt
+      if (extract.pages != null) {
+        pdfExtractedTextDebug = {
+          pages_count: extract.pages.length,
+          page_1_first_2000_chars: extract.pages[0]?.slice(0, 2000) ?? null,
+          page_2_first_500_chars: extract.pages[1]?.slice(0, 500) ?? null,
+          line_count_per_page: extract.pages.map((p) => p.split(/\r?\n/).length),
+          total_chars_per_page: extract.pages.map((p) => p.length),
+        };
+      }
 
       if (extract.pages != null) {
         // Niet-scan PDF → parser draaien
@@ -661,6 +674,10 @@ async function processInvoiceInner(params: ProcessParams) {
         candidate_rows_per_page: textPadPreview.candidate_rows_per_page,
         regels: textPadPreview.regels,
       };
+    }
+    // TIJDELIJK DEBUG
+    if (pdfExtractedTextDebug) {
+      enriched.pdf_extracted_text_debug = pdfExtractedTextDebug;
     }
     return enriched;
   };
