@@ -4,14 +4,22 @@
 
 import type { ParsedRegel, ParserResult } from "./types.ts";
 
-const ARTNR_RE = /\b(\d{6,8})\b/;
+// Bidfood artikelnummers komen voor als puur cijfers (6-8) of dotted (14.55.46).
+const ARTNR_RE = /\b(\d{2,3}\.\d{2,3}\.\d{2,3}|\d{6,8})\b/;
 const AMOUNT_TAIL_RE = /([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})\s*$/;
 const TWO_AMOUNTS_TAIL_RE =
   /([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})\s+([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})\s*$/;
 const QTY_UNIT_RE = /\b(\d+(?:[.,]\d+)?)\s*(ds|do|st|stuk|stuks|kg|g|gr|l|lt|liter|ml|krt|krat|bk|bak|pak|pk|fles|fl|zak|col|coll)\b/i;
 
+// Bidfood regel-staart kan bevatten:
+//   - btw-letter "V" / "L" / "H" (verlaagd / laag / hoog)
+//   - btw-percentage "9%" / "21%"
+//   - grootboeknummer (3-5 cijfers, bv "4001")
+// Eerst btw-suffix strippen vóór amount matching.
+const TAIL_NOISE_RE = /(?:\s+\d{1,2}%(?:\s+[A-Z])?|\s+[A-Z]|\s+\d{3,5})\s*$/;
+
 const BLACKLIST_RE =
-  /\b(subtotaal|totaal incl|totaal excl|btw|emballage|statiegeld|korting|leveringskosten|transport|toeslag|fust|saldo|pagina|page|factuurnr|factuurdatum|klantnr|klant nr|debiteur|bestelnummer)\b/i;
+  /\b(subtotaal|totaal incl|totaal excl|btw|emballage|statiegeld|korting|leveringskosten|transport|toeslag|fust|rolcontainer|tussenlegger|saldo|pagina|page|factuurnr|factuurdatum|klantnr|klant nr|debiteur|bestelnummer)\b/i;
 
 const FACTUURNR_RE = /factuur(?:nummer|nr\.?)\s*[:\s]+\s*([A-Z0-9\-\/]{4,20})/i;
 const DATE_RE =
@@ -70,12 +78,21 @@ export function parseBidfood(pages: string[]): ParserResult {
     let pageCandidates = 0;
 
     for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (!line || line.length < 10) continue;
-      if (BLACKLIST_RE.test(line)) continue;
+      const original = rawLine.trim();
+      if (!original || original.length < 10) continue;
+      if (BLACKLIST_RE.test(original)) continue;
 
-      const artnrMatch = line.match(ARTNR_RE);
+      const artnrMatch = original.match(ARTNR_RE);
       if (!artnrMatch) continue;
+
+      // Strip Bidfood-staart-noise (btw-letter, percentage, grootboeknummer)
+      // herhaaldelijk: een regel kan meerdere suffixes hebben (bv "9% L 4001").
+      let line = original;
+      for (let i = 0; i < 3; i++) {
+        const stripped = line.replace(TAIL_NOISE_RE, "").trimEnd();
+        if (stripped === line) break;
+        line = stripped;
+      }
 
       const twoAmt = line.match(TWO_AMOUNTS_TAIL_RE);
       const oneAmt = !twoAmt ? line.match(AMOUNT_TAIL_RE) : null;
