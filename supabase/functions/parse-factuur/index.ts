@@ -223,6 +223,43 @@ serve(async (req) => {
       });
     }
 
+    // --- FIX 4: Stale-guard — ruim zombies >20min op die nog niet echt gestart zijn ---
+    // parse_method IS NULL of 'text_preview' = nog geen AI-call gedaan → veilig om te cleanen.
+    // Actieve 'text'/'multimodal'/'text_then_multimodal' blijven ongemoeid (kunnen legitiem 5-8 min duren).
+    try {
+      const twentyMinAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+      const { data: zombies, error: zombieErr } = await supabase
+        .from("factuur_uploads")
+        .update({
+          ai_parsing_status: "failed",
+          ai_raw_response: {
+            error: "stale_processing_auto_cleanup",
+            cleaned_at: new Date().toISOString(),
+            threshold_minutes: 20,
+          },
+        })
+        .eq("location_id", locationId)
+        .eq("ai_parsing_status", "processing")
+        .lt("created_at", twentyMinAgo)
+        .or("parse_method.is.null,parse_method.eq.text_preview")
+        .select("id");
+      if (zombieErr) {
+        console.warn(
+          `[parse-factuur] stale-guard query failed (soft):`,
+          zombieErr.message
+        );
+      } else if (zombies && zombies.length > 0) {
+        console.warn(
+          `[parse-factuur] stale-guard cleaned ${zombies.length} zombie(s) for location ${locationId}`
+        );
+      }
+    } catch (staleErr: any) {
+      console.warn(
+        `[parse-factuur] stale-guard threw (soft, doorgaan):`,
+        staleErr?.message ?? String(staleErr)
+      );
+    }
+
     // --- Race-guard: voorkom dubbele AI-kosten ---
     // Als parse al loopt (processing), of net afgerond (completed), return 200/409.
     if (factuur.ai_parsing_status === "processing") {
