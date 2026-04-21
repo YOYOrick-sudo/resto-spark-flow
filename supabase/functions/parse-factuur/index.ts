@@ -33,7 +33,17 @@ import {
   thresholdForSlug,
   type ParserResult as TextParserResult,
 } from "../_shared/factuur-parsers/index.ts";
-import { chooseVerpakking, cleanIngredientNaam, cleanProductNaamPrefix } from "../_shared/factuur-parsers/shared.ts";
+import { chooseVerpakking, cleanIngredientNaam, cleanProductNaamPrefix, cleanBidfoodProductNaam } from "../_shared/factuur-parsers/shared.ts";
+
+// FIX 2 — Whitelist voor verpakking_eenheid: alleen basiseenheden mogen DB in.
+// Tokens als "krat"/"doos"/"zak" zijn verpakking-vorm, geen meet-eenheid.
+const VERPAKKING_EENHEID_WHITELIST = new Set(["L", "kg", "stuk"]);
+function safeVerpakking(hvh: number | null, eenheid: string | null): { hvh: number | null; eenheid: string | null } {
+  if (eenheid && VERPAKKING_EENHEID_WHITELIST.has(eenheid)) {
+    return { hvh, eenheid };
+  }
+  return { hvh: null, eenheid: null };
+}
 
 // EdgeRuntime is door Supabase geïnjecteerd in productie maar niet getypeerd
 declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
