@@ -121,33 +121,104 @@ export function BulkCreateIngredientsDialog({
 
   const [rows, setRows] = React.useState<RowState[]>([]);
 
-  // Initialiseer rijen bij open
+  // Initialiseer rijen bij open — R4b-4: dedup op clean_naam (PRIMARY) of leverancier+artikelnr (SECONDARY)
   React.useEffect(() => {
     if (!open) return;
-    setRows(
-      regels.map((r) => {
-        const naam = normalizeIngredientNaam(
-          r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
-        );
-        return {
-          regelId: r.id,
-          checked: true,
-          naam,
-          origineleNaam: naam,
-          categorie: r.ai_category_hint ?? "overig",
-          eenheid: r.ai_suggested_eenheid ?? "stuk",
-          kostprijs: r.prijs_per_basiseenheid ?? r.prijs_per_eenheid ?? null,
-          aliasNaam: r.product_naam_herkend,
-          artikelnummer: r.ai_raw_artikelnummer,
-          verpakkingHoeveelheid: r.verpakking_hoeveelheid,
-          verpakkingEenheid: r.verpakking_eenheid,
-          prijsPerVerpakking: r.prijs_per_eenheid,
-          actie: "nieuw",
-          duplicate: null,
-        };
-      })
-    );
-  }, [open, regels]);
+
+    // Stap 1: groepeer regels
+    const groups = new Map<string, FactuurRegel[]>();
+    for (const r of regels) {
+      const cleanNaam = normalizeIngredientNaam(
+        r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
+      );
+      let key: string;
+      if (cleanNaam.trim().length > 0) {
+        key = `naam:${cleanNaam.toLowerCase().trim()}`;
+      } else if (leverancierId && r.ai_raw_artikelnummer?.trim()) {
+        key = `artnr:${leverancierId}:${r.ai_raw_artikelnummer.trim()}`;
+      } else {
+        key = `regel:${r.id}`; // unieke fallback → geen groepering
+      }
+      const arr = groups.get(key) ?? [];
+      arr.push(r);
+      groups.set(key, arr);
+    }
+
+    // Stap 2: bouw RowState per groep
+    const newRows: RowState[] = [];
+    for (const [, regelsInGroep] of groups) {
+      // Kies "primaire" regel = regel met laagste prijs_per_basiseenheid (defensief).
+      // Reden: bij verschillen binnen groep is laagste prijs de zekerste schatting voor
+      // kostprijs (overschat zelden). Bij identieke prijzen maakt keuze niet uit.
+      const prijzen = regelsInGroep
+        .map((x) => x.prijs_per_basiseenheid ?? x.prijs_per_eenheid ?? null)
+        .filter((p): p is number => p != null && p > 0);
+
+      // R4b-4 monitoring: waarschuw bij significante prijsdivergentie binnen groep
+      if (prijzen.length >= 2) {
+        const min = Math.min(...prijzen);
+        const max = Math.max(...prijzen);
+        if (min > 0 && (max - min) / min > PRIJS_VARIANCE_WARN_PCT) {
+          const cleanNaam = normalizeIngredientNaam(
+            regelsInGroep[0].ai_suggested_naam ??
+              regelsInGroep[0].ai_raw_naam ??
+              regelsInGroep[0].product_naam_herkend
+          );
+          console.warn(
+            `[BulkCreateDialog] Prijsdivergentie >${(PRIJS_VARIANCE_WARN_PCT * 100).toFixed(0)}% binnen groep "${cleanNaam}":`,
+            {
+              regelIds: regelsInGroep.map((x) => x.id),
+              prijzen,
+              min,
+              max,
+              spreadPct: (((max - min) / min) * 100).toFixed(1) + "%",
+              gekozenKostprijs: min,
+              hint: "Verschillende verpakkingen of OCR-fout? Controleer voor aanmaak.",
+            }
+          );
+        }
+      }
+
+      const primair =
+        regelsInGroep.length === 1
+          ? regelsInGroep[0]
+          : regelsInGroep.reduce((best, cur) => {
+              const bp = best.prijs_per_basiseenheid ?? best.prijs_per_eenheid ?? Infinity;
+              const cp = cur.prijs_per_basiseenheid ?? cur.prijs_per_eenheid ?? Infinity;
+              return cp < bp ? cur : best;
+            });
+
+      const naam = normalizeIngredientNaam(
+        primair.ai_suggested_naam ?? primair.ai_raw_naam ?? primair.product_naam_herkend
+      );
+      const categorie =
+        mostCommon(regelsInGroep.map((x) => x.ai_category_hint ?? null)) ?? "overig";
+      const eenheid =
+        mostCommon(regelsInGroep.map((x) => x.ai_suggested_eenheid ?? null)) ?? "stuk";
+      const extraRegelIds = regelsInGroep.filter((x) => x.id !== primair.id).map((x) => x.id);
+
+      newRows.push({
+        regelId: primair.id,
+        extraRegelIds,
+        groupSize: regelsInGroep.length,
+        checked: true,
+        naam,
+        origineleNaam: naam,
+        categorie,
+        eenheid,
+        kostprijs: primair.prijs_per_basiseenheid ?? primair.prijs_per_eenheid ?? null,
+        aliasNaam: primair.product_naam_herkend,
+        artikelnummer: primair.ai_raw_artikelnummer,
+        verpakkingHoeveelheid: primair.verpakking_hoeveelheid,
+        verpakkingEenheid: primair.verpakking_eenheid,
+        prijsPerVerpakking: primair.prijs_per_eenheid,
+        actie: "nieuw",
+        duplicate: null,
+      });
+    }
+
+    setRows(newRows);
+  }, [open, regels, leverancierId]);
 
   // Pre-check duplicaten voor alle namen tegelijk
   const allNamen = React.useMemo(() => rows.map((r) => r.origineleNaam), [rows]);
