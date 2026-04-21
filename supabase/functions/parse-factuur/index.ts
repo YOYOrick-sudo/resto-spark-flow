@@ -26,6 +26,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { callAI } from "../_shared/ai.ts";
+import { extractTextPerPage, type TextExtractStats } from "../_shared/pdf-text.ts";
+import {
+  detectLeverancier,
+  parseFactuur as parseFactuurText,
+  thresholdForSlug,
+  type ParserResult as TextParserResult,
+} from "../_shared/factuur-parsers/index.ts";
 
 // EdgeRuntime is door Supabase geïnjecteerd in productie maar niet getypeerd
 declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
