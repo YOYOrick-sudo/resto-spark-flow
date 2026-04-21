@@ -12,6 +12,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
+import { normalizeIngredientNaam } from "@/lib/stringUtils";
 
 export type PrijsSeverity = "groot" | "middel" | "klein";
 
@@ -30,6 +31,8 @@ export interface NieuwIngredientPreview {
   eenheid: string | null;
   verpakkingLabel: string | null;
   prijs: number | null;
+  /** Aantal regels in deze groep (FIX 4 dedup). 1 = niet gegroepeerd. */
+  count: number;
 }
 
 export interface SkippedRegelPreview {
@@ -48,6 +51,47 @@ export interface PreviewData {
   nieuweKoppelingen: number;
   skippedRegels: SkippedRegelPreview[];
   heeftGroteWijzigingen: boolean;
+}
+
+/**
+ * FIX 4 — Groepeer nieuwe-ingredient regels op clean_naam (PRIMARY) of
+ * leverancier+artnr (SECONDARY). Spiegelt logica van BulkCreateIngredientsDialog.
+ * Per groep wordt de "primaire" regel gekozen (laagste prijs_per_basiseenheid).
+ */
+export function groupNewIngredients(
+  regels: FactuurRegel[]
+): Array<{ primair: FactuurRegel; count: number }> {
+  const groups = new Map<string, FactuurRegel[]>();
+  for (const r of regels) {
+    const cleanNaam = normalizeIngredientNaam(
+      r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
+    );
+    let key: string;
+    if (cleanNaam.trim().length > 0) {
+      key = `naam:${cleanNaam.toLowerCase().trim()}`;
+    } else if (r.ai_raw_artikelnummer?.trim()) {
+      key = `artnr:${r.ai_raw_artikelnummer.trim()}`;
+    } else {
+      key = `regel:${r.id}`;
+    }
+    const arr = groups.get(key) ?? [];
+    arr.push(r);
+    groups.set(key, arr);
+  }
+
+  const out: Array<{ primair: FactuurRegel; count: number }> = [];
+  for (const [, regelsInGroep] of groups) {
+    const primair =
+      regelsInGroep.length === 1
+        ? regelsInGroep[0]
+        : regelsInGroep.reduce((best, cur) => {
+            const bp = best.prijs_per_basiseenheid ?? best.prijs_per_eenheid ?? Infinity;
+            const cp = cur.prijs_per_basiseenheid ?? cur.prijs_per_eenheid ?? Infinity;
+            return cp < bp ? cur : best;
+          });
+    out.push({ primair, count: regelsInGroep.length });
+  }
+  return out;
 }
 
 interface FactuurForPreview {
