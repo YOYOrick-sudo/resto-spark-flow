@@ -33,7 +33,7 @@ import {
   thresholdForSlug,
   type ParserResult as TextParserResult,
 } from "../_shared/factuur-parsers/index.ts";
-import { chooseVerpakking, cleanIngredientNaam } from "../_shared/factuur-parsers/shared.ts";
+import { chooseVerpakking, cleanIngredientNaam, cleanProductNaamPrefix } from "../_shared/factuur-parsers/shared.ts";
 
 // EdgeRuntime is door Supabase geïnjecteerd in productie maar niet getypeerd
 declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
@@ -1117,7 +1117,7 @@ async function processInvoiceInner(params: ProcessParams) {
 
     regelInserts.push({
       factuur_id: factuurId,
-      product_naam_herkend: productNaam ?? "Onbekend",
+      product_naam_herkend: cleanProductNaamPrefix(productNaam ?? "") || "Onbekend",
       hoeveelheid: regel.hoeveelheid ?? null,
       eenheid: regel.eenheid ?? null,
       prijs_per_eenheid: prijsOpFactuur,
@@ -1654,7 +1654,7 @@ Output STRIKT als JSON:
 
     return {
       factuur_id: factuurId,
-      product_naam_herkend: regel.product_naam?.trim() || "Onbekend",
+      product_naam_herkend: cleanProductNaamPrefix(regel.product_naam?.trim() ?? "") || "Onbekend",
       hoeveelheid: regel.hoeveelheid ?? null,
       eenheid: regel.eenheid ?? null,
       prijs_per_eenheid: prijsOpFactuur,
