@@ -32,6 +32,11 @@ const DATE_RE =
 const TOTAAL_RE =
   /(?:totaal\s+(?:te\s+betalen|incl(?:usief|\.?)\s*btw)|factuurbedrag|te\s+voldoen)\s*[:\s€]*\s*([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})/is;
 
+// Bidfood-specifiek: "FACTUURBEDRAG" header staat los van bedrag (BTW-tabel ertussen).
+// Pak het LAATSTE bedrag dat NA "FACTUURBEDRAG" voorkomt — dat is het totaal-incl-btw.
+const BIDFOOD_FACTUURBEDRAG_RE = /FACTUURBEDRAG/gi;
+const ANY_AMOUNT_RE = /([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})/g;
+
 function parseAmount(s: string): number | null {
   if (!s) return null;
   const cleaned = s.replace(/[\s\u00a0]/g, "");
