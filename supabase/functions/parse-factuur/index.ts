@@ -226,31 +226,56 @@ serve(async (req) => {
     // --- FIX 4: Stale-guard — ruim zombies >20min op die nog niet echt gestart zijn ---
     // parse_method IS NULL of 'text_preview' = nog geen AI-call gedaan → veilig om te cleanen.
     // Actieve 'text'/'multimodal'/'text_then_multimodal' blijven ongemoeid (kunnen legitiem 5-8 min duren).
+    // Aanpak 1: gesplitst in 2 queries (PostgREST .or() na meerdere .eq() faalt met
+    // "column parse_method does not exist" — bekende quirk in filter-parsing).
     try {
       const twentyMinAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString();
-      const { data: zombies, error: zombieErr } = await supabase
+      const cleanupPayload = {
+        ai_parsing_status: "failed" as const,
+        ai_raw_response: {
+          error: "stale_processing_auto_cleanup",
+          cleaned_at: new Date().toISOString(),
+          threshold_minutes: 20,
+        },
+      };
+
+      // Tak 1: parse_method IS NULL (nog nooit gestart)
+      const { data: zombiesNull, error: zombieNullErr } = await supabase
         .from("factuur_uploads")
-        .update({
-          ai_parsing_status: "failed",
-          ai_raw_response: {
-            error: "stale_processing_auto_cleanup",
-            cleaned_at: new Date().toISOString(),
-            threshold_minutes: 20,
-          },
-        })
+        .update(cleanupPayload)
         .eq("location_id", locationId)
         .eq("ai_parsing_status", "processing")
+        .is("parse_method", null)
         .lt("created_at", twentyMinAgo)
-        .or("parse_method.is.null,parse_method.eq.text_preview")
         .select("id");
-      if (zombieErr) {
+      if (zombieNullErr) {
         console.warn(
-          `[parse-factuur] stale-guard query failed (soft):`,
-          zombieErr.message
+          `[parse-factuur] stale-guard (null) failed (soft):`,
+          zombieNullErr.message
         );
-      } else if (zombies && zombies.length > 0) {
+      } else if (zombiesNull && zombiesNull.length > 0) {
         console.warn(
-          `[parse-factuur] stale-guard cleaned ${zombies.length} zombie(s) for location ${locationId}`
+          `[parse-factuur] stale-guard cleaned ${zombiesNull.length} zombie(s) (parse_method=null) for location ${locationId}`
+        );
+      }
+
+      // Tak 2: parse_method = 'text_preview' (alleen PDF-extract gehad, geen AI-call)
+      const { data: zombiesPrev, error: zombiePrevErr } = await supabase
+        .from("factuur_uploads")
+        .update(cleanupPayload)
+        .eq("location_id", locationId)
+        .eq("ai_parsing_status", "processing")
+        .eq("parse_method", "text_preview")
+        .lt("created_at", twentyMinAgo)
+        .select("id");
+      if (zombiePrevErr) {
+        console.warn(
+          `[parse-factuur] stale-guard (text_preview) failed (soft):`,
+          zombiePrevErr.message
+        );
+      } else if (zombiesPrev && zombiesPrev.length > 0) {
+        console.warn(
+          `[parse-factuur] stale-guard cleaned ${zombiesPrev.length} zombie(s) (parse_method=text_preview) for location ${locationId}`
         );
       }
     } catch (staleErr: any) {
