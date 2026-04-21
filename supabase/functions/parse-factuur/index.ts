@@ -223,6 +223,43 @@ serve(async (req) => {
       });
     }
 
+    // --- FIX 4: Stale-guard — ruim zombies >20min op die nog niet echt gestart zijn ---
+    // parse_method IS NULL of 'text_preview' = nog geen AI-call gedaan → veilig om te cleanen.
+    // Actieve 'text'/'multimodal'/'text_then_multimodal' blijven ongemoeid (kunnen legitiem 5-8 min duren).
+    try {
+      const twentyMinAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+      const { data: zombies, error: zombieErr } = await supabase
+        .from("factuur_uploads")
+        .update({
+          ai_parsing_status: "failed",
+          ai_raw_response: {
+            error: "stale_processing_auto_cleanup",
+            cleaned_at: new Date().toISOString(),
+            threshold_minutes: 20,
+          },
+        })
+        .eq("location_id", locationId)
+        .eq("ai_parsing_status", "processing")
+        .lt("created_at", twentyMinAgo)
+        .or("parse_method.is.null,parse_method.eq.text_preview")
+        .select("id");
+      if (zombieErr) {
+        console.warn(
+          `[parse-factuur] stale-guard query failed (soft):`,
+          zombieErr.message
+        );
+      } else if (zombies && zombies.length > 0) {
+        console.warn(
+          `[parse-factuur] stale-guard cleaned ${zombies.length} zombie(s) for location ${locationId}`
+        );
+      }
+    } catch (staleErr: any) {
+      console.warn(
+        `[parse-factuur] stale-guard threw (soft, doorgaan):`,
+        staleErr?.message ?? String(staleErr)
+      );
+    }
+
     // --- Race-guard: voorkom dubbele AI-kosten ---
     // Als parse al loopt (processing), of net afgerond (completed), return 200/409.
     if (factuur.ai_parsing_status === "processing") {
@@ -1488,6 +1525,60 @@ Output STRIKT als JSON:
     }
   }
 
+  // ---------- 4b. FIX 1: FK-validatie — filter ingredient_ids die niet (meer) bestaan ----------
+  // Vangt drie scenarios: Tier-1 naar ondertussen verwijderd/gearchiveerd ingr.,
+  // Ronde 2 AI-hallucinatie, én cross-location leaks (location_id filter).
+  const candidateIds = Array.from(
+    new Set(
+      matches
+        .map((m) => m.ingredientId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    )
+  );
+
+  if (candidateIds.length > 0) {
+    const { data: validRows, error: validErr } = await supabase
+      .from("ingredienten")
+      .select("id")
+      .eq("location_id", locationId)
+      .eq("is_archived", false)
+      .in("id", candidateIds);
+
+    if (validErr) {
+      console.warn(
+        `[parse-factuur][textPath] ${factuurId} FK-validatie query failed — alle matches conservatief resetten:`,
+        validErr.message
+      );
+      for (const m of matches) {
+        if (m.ingredientId) {
+          m.ingredientId = null;
+          m.matchStatus = "unmatched";
+          m.matchConfidence = null;
+        }
+      }
+    } else {
+      const validIds = new Set<string>();
+      for (const row of (validRows ?? []) as any[]) validIds.add(row.id);
+      let invalidCount = 0;
+      const invalidIds: string[] = [];
+      for (const m of matches) {
+        if (m.ingredientId && !validIds.has(m.ingredientId)) {
+          invalidIds.push(m.ingredientId);
+          m.ingredientId = null;
+          m.matchStatus = "unmatched";
+          m.matchConfidence = null;
+          invalidCount++;
+        }
+      }
+      if (invalidCount > 0) {
+        console.warn(
+          `[parse-factuur][textPath] ${factuurId} ${invalidCount} invalid ingredient_ids detected — resetting to unmatched. Sample:`,
+          invalidIds.slice(0, 5)
+        );
+      }
+    }
+  }
+
   // ---------- 5+6. Bouw rows + bulk insert ----------
   const regelInserts = parsedData.regels.map((regel, idx) => {
     const m = matches[idx];
@@ -1546,8 +1637,42 @@ Output STRIKT als JSON:
     .insert(regelInserts);
 
   if (insertError) {
-    // DB-fail → throw zodat caller terugvalt op multimodal
-    throw new Error(`textPath insert failed: ${insertError.message}`);
+    // FIX 2: Fail-fast — markeer failed, broadcast, en return. GEEN throw (triggert multimodal).
+    const sampleIds = regelInserts
+      .map((r) => r.ingredient_id)
+      .filter(Boolean)
+      .slice(0, 10);
+    console.error(
+      `[parse-factuur][textPath] ${factuurId} bulk insert failed — marking failed (no multimodal fallback):`,
+      insertError.message,
+      "sample_ingredient_ids=", sampleIds,
+      "regels_count=", regelInserts.length
+    );
+
+    await supabase
+      .from("factuur_uploads")
+      .update({
+        ai_parsing_status: "failed",
+        ai_raw_response: enrichRaw({
+          source: "text_path",
+          error: "text_path_insert_failed",
+          db_error_detail: insertError.message,
+          db_error_code: (insertError as any).code ?? null,
+          regels_attempted: regelInserts.length,
+          round2_suggestions: round2Suggestions,
+          round2_error: round2Error,
+        }),
+        parse_method: "text",
+        parse_confidence: textParseConfidence,
+      })
+      .eq("id", factuurId);
+
+    await broadcastFactuurStatus(supabase, locationId, {
+      factuurId,
+      aiParsingStatus: "failed",
+    });
+
+    return; // NIET throwen — multimodal fallback is overkill voor DB bug
   }
 
   // ---------- 7. Update header ----------
