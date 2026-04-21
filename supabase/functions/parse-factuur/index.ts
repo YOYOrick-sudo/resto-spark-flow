@@ -671,6 +671,42 @@ async function processInvoiceInner(params: ProcessParams) {
     parse_confidence: textParseConfidence,
   };
 
+  // ===========================================================
+  // SPRINT Stap 1 — Persist text-pad preview DIRECT na pre-flight.
+  // -----------------------------------------------------------
+  // Reden: als de multimodal AI-call hangt of de runtime hard wordt
+  // gekilled (Pro op grote facturen), draait geen enkele latere
+  // update meer en blijft DB leeg. Door hier al te schrijven is
+  // text_extract_stats + text_pad_preview altijd zichtbaar via SQL,
+  // ongeacht wat er hierna met multimodal gebeurt.
+  //
+  // Latere updates (failure/completion) gebruiken enrichRaw() met
+  // verse base-objecten en re-injecteren de text-velden vanuit dezelfde
+  // closure-vars, dus geen overschrijf-risico.
+  // ===========================================================
+  try {
+    await supabase
+      .from("factuur_uploads")
+      .update({
+        ai_raw_response: enrichRaw(
+          (factuur.ai_raw_response as Record<string, any>) ?? {}
+        ),
+        ...parseMethodFields,
+      })
+      .eq("id", factuurId);
+    console.log(
+      `[parse-factuur] ${factuurId} pre-flight persisted — ` +
+        `parseMethod=${textParseMethod} confidence=${textParseConfidence ?? "n/a"} ` +
+        `previewRegels=${textPadPreview?.regels.length ?? 0}`
+    );
+  } catch (persistErr: any) {
+    // Niet-fataal: latere updates re-injecteren de data alsnog via enrichRaw.
+    console.warn(
+      `[parse-factuur] ${factuurId} pre-flight persist failed (non-fatal):`,
+      persistErr?.message ?? String(persistErr)
+    );
+  }
+
   // --- Call AI ---
   let aiResult;
   try {
