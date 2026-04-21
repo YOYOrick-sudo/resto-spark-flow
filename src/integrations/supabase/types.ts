@@ -1348,6 +1348,7 @@ export type Database = {
           is_nieuw_ingredient: boolean | null
           match_confidence: number | null
           match_status: string
+          ordernr: string | null
           prijs_per_basiseenheid: number | null
           prijs_per_eenheid: number | null
           product_naam_herkend: string
@@ -1372,6 +1373,7 @@ export type Database = {
           is_nieuw_ingredient?: boolean | null
           match_confidence?: number | null
           match_status?: string
+          ordernr?: string | null
           prijs_per_basiseenheid?: number | null
           prijs_per_eenheid?: number | null
           product_naam_herkend: string
@@ -1396,6 +1398,7 @@ export type Database = {
           is_nieuw_ingredient?: boolean | null
           match_confidence?: number | null
           match_status?: string
+          ordernr?: string | null
           prijs_per_basiseenheid?: number | null
           prijs_per_eenheid?: number | null
           product_naam_herkend?: string

@@ -724,6 +724,40 @@ async function processInvoiceInner(params: ProcessParams) {
     );
   }
 
+  // ===========================================================
+  // SPRINT Stap 2 — TEXT PAD als primaire insert-flow
+  // -----------------------------------------------------------
+  // Bij text-pad SUCCES (meetsThreshold=true) skippen we multimodal
+  // volledig en doen de échte regel-insert via runTextPath().
+  // Bij failure binnen runTextPath (bv. DB-error op bulk insert)
+  // vallen we terug op de bestaande multimodal flow met
+  // parse_method='text_then_multimodal'.
+  // Ronde 2 AI-failures worden BINNEN runTextPath gracefully
+  // afgevangen en throwen NIET (degradation: regels blijven unmatched).
+  // ===========================================================
+  if (textParseMethod === "text_preview" && textPadPreview) {
+    try {
+      await runTextPath({
+        supabase,
+        factuurId,
+        locationId,
+        organizationId,
+        factuur,
+        parsedData: textPadPreview,
+        textParseConfidence,
+        enrichRaw,
+      });
+      return; // Skip multimodal volledig
+    } catch (textPathErr: any) {
+      console.warn(
+        `[parse-factuur] ${factuurId} text-path failed, falling back to multimodal:`,
+        textPathErr?.message ?? String(textPathErr)
+      );
+      textParseMethod = "text_then_multimodal";
+      // val door naar bestaande multimodal flow
+    }
+  }
+
   // --- Call AI ---
   let aiResult;
   try {
@@ -1106,5 +1140,415 @@ async function processInvoiceInner(params: ProcessParams) {
   console.log(
     `[parse-factuur] ${factuurId} done — regels=${regelInserts.length}, ` +
       `model=${aiResult.model}, fallback=${aiResult.wasFallback}, cost=€${aiResult.costEur}`
+  );
+}
+
+// =====================================================
+// SPRINT Stap 2 — runTextPath
+// -----------------------------------------------------------
+// Échte insert-flow gebaseerd op text-pad parser-resultaat.
+// Skipt multimodal volledig bij succes. Stappen:
+//   1. Leverancier-resolve (exact → alias → fuzzy)
+//   2. Bulk Tier-1 lookup (artikelnummer × leverancier)
+//   3. Per-regel matching (Tier 1 hit / unmatched)
+//   4. Ronde 2 — Flash AI semantic match voor unmatched (graceful)
+//   5. Prijs/verpakking-berekening (cache aanwezig → /verpakking_hvh)
+//   6. Bulk insert factuur_regels
+//   7. Update header (status='review', parse_method='text')
+//   8. Broadcast completed
+//
+// Bij DB-error op bulk insert → throw → caller valt terug op multimodal.
+// Bij Ronde 2 AI failure → log + ga verder zonder matches (geen throw).
+// =====================================================
+
+interface RunTextPathParams {
+  supabase: ReturnType<typeof createClient>;
+  factuurId: string;
+  locationId: string;
+  organizationId: string;
+  factuur: any;
+  parsedData: TextParserResult;
+  textParseConfidence: number | null;
+  enrichRaw: (base: Record<string, any>) => Record<string, any>;
+}
+
+async function runTextPath(params: RunTextPathParams): Promise<void> {
+  const {
+    supabase,
+    factuurId,
+    locationId,
+    organizationId,
+    factuur,
+    parsedData,
+    textParseConfidence,
+    enrichRaw,
+  } = params;
+
+  const startMs = Date.now();
+  console.log(
+    `[parse-factuur][textPath] ${factuurId} start — regels=${parsedData.regels.length} ` +
+      `leverancier_raw=${parsedData.leverancier_naam_raw}`
+  );
+
+  // ---------- 1. Leverancier-resolve ----------
+  let leverancierId: string | null = factuur.leverancier_id ?? null;
+  let fuzzyKandidaten: Array<{ id: string; naam: string; similarity: number }> = [];
+  const leverancierNaam = parsedData.leverancier_naam_raw;
+
+  if (!leverancierId && leverancierNaam) {
+    const { data: exactMatch } = await supabase
+      .from("leveranciers")
+      .select("id")
+      .eq("location_id", locationId)
+      .ilike("naam", leverancierNaam)
+      .limit(1)
+      .maybeSingle();
+
+    if (exactMatch) {
+      leverancierId = (exactMatch as any).id;
+    } else {
+      const { data: aliasMatch } = await supabase
+        .from("leverancier_aliassen")
+        .select("leverancier_id, leveranciers!inner(location_id)")
+        .ilike("alias_naam", leverancierNaam)
+        .eq("leveranciers.location_id", locationId)
+        .limit(1)
+        .maybeSingle();
+
+      if (aliasMatch) {
+        leverancierId = (aliasMatch as any).leverancier_id;
+      } else {
+        const { data: fuzzyData, error: fuzzyErr } = await supabase.rpc(
+          "fuzzy_match_leverancier",
+          { p_location_id: locationId, p_naam: leverancierNaam }
+        );
+        if (fuzzyErr) {
+          console.warn(
+            "[parse-factuur][textPath] fuzzy_match_leverancier failed:",
+            fuzzyErr.message
+          );
+        } else if (Array.isArray(fuzzyData)) {
+          fuzzyKandidaten = fuzzyData
+            .filter((r: any) => Number(r.similarity) >= 0.5)
+            .slice(0, 3)
+            .map((r: any) => ({
+              id: r.id,
+              naam: r.naam,
+              similarity: Number(r.similarity),
+            }));
+        }
+      }
+    }
+  }
+
+  // ---------- 2. Bulk Tier-1 lookup ----------
+  type Tier1Entry = {
+    ingredient_id: string;
+    verpakking_hoeveelheid: number | null;
+    verpakking_eenheid: string | null;
+  };
+  const tier1Map = new Map<string, Tier1Entry>();
+
+  const artnrs = Array.from(
+    new Set(
+      parsedData.regels
+        .map((r) => (r.artikelnummer != null ? String(r.artikelnummer).trim() : ""))
+        .filter((s) => s.length > 0)
+    )
+  );
+
+  if (leverancierId && artnrs.length > 0) {
+    const { data: bulk, error: bulkErr } = await supabase
+      .from("leveranciers_artikelen")
+      .select("artikel_nummer, ingredient_id, verpakking_hoeveelheid, verpakking_eenheid")
+      .eq("leverancier_id", leverancierId)
+      .eq("is_actief", true)
+      .not("ingredient_id", "is", null)
+      .in("artikel_nummer", artnrs);
+
+    if (bulkErr) {
+      console.warn(
+        `[parse-factuur][textPath] ${factuurId} bulk Tier-1 lookup failed:`,
+        bulkErr.message
+      );
+    } else if (bulk) {
+      for (const row of bulk as any[]) {
+        if (row.artikel_nummer && row.ingredient_id) {
+          tier1Map.set(String(row.artikel_nummer), {
+            ingredient_id: row.ingredient_id,
+            verpakking_hoeveelheid: row.verpakking_hoeveelheid ?? null,
+            verpakking_eenheid: row.verpakking_eenheid ?? null,
+          });
+        }
+      }
+    }
+  }
+
+  console.log(
+    `[parse-factuur][textPath] ${factuurId} Tier-1: ${tier1Map.size}/${artnrs.length} artnrs gematched`
+  );
+
+  // ---------- 3. Per-regel matching ----------
+  type RowMatch = {
+    idx: number;
+    ingredientId: string | null;
+    matchStatus: "matched" | "unmatched";
+    matchConfidence: number | null;
+    tier1Cache: Tier1Entry | null;
+  };
+  const matches: RowMatch[] = parsedData.regels.map((regel, idx) => {
+    const artnr =
+      regel.artikelnummer != null ? String(regel.artikelnummer).trim() : "";
+    const cache = artnr ? tier1Map.get(artnr) : undefined;
+    if (cache) {
+      return {
+        idx,
+        ingredientId: cache.ingredient_id,
+        matchStatus: "matched",
+        matchConfidence: 1.0,
+        tier1Cache: cache,
+      };
+    }
+    return {
+      idx,
+      ingredientId: null,
+      matchStatus: "unmatched",
+      matchConfidence: null,
+      tier1Cache: null,
+    };
+  });
+
+  // ---------- 4. Ronde 2 — Flash semantic match (graceful) ----------
+  const unmatched = matches.filter((m) => m.matchStatus === "unmatched");
+  let round2Suggestions: any[] = [];
+  let round2Error: string | null = null;
+
+  if (unmatched.length > 0) {
+    try {
+      const { data: kandidaten, error: kandErr } = await supabase
+        .from("ingredienten")
+        .select("id, naam, categorie")
+        .eq("location_id", locationId)
+        .eq("is_archived", false)
+        .limit(500);
+
+      if (kandErr) throw new Error(`kandidaten query: ${kandErr.message}`);
+
+      if (!kandidaten || kandidaten.length === 0) {
+        console.log(
+          `[parse-factuur][textPath] ${factuurId} Ronde 2 skipped — geen ingrediënten in locatie`
+        );
+      } else {
+        const unmatchedInput = unmatched.map((m) => ({
+          idx: m.idx,
+          raw_naam: parsedData.regels[m.idx].product_naam,
+          raw_artnr: parsedData.regels[m.idx].artikelnummer,
+        }));
+        const candidatesInput = (kandidaten as any[]).map((k) => ({
+          id: k.id,
+          naam: k.naam,
+          categorie: k.categorie,
+        }));
+
+        const round2SystemPrompt = `Je matcht onbekende factuur-regels tegen bestaande ingrediënten in de keuken-database.
+
+Voor elke regel in "unmatched", zoek de BESTE match in "candidates".
+Geef confidence 0.0-1.0:
+- 0.95+: vrijwel zeker zelfde product (bv. "TOMATEN CHERRY" vs "Cherrytomaten")
+- 0.85-0.94: zeer waarschijnlijk match (zelfde categorie, vergelijkbare naam)
+- 0.6-0.84: mogelijk match maar onzeker
+- <0.6 of geen kandidaat: ingredient_id=null
+
+Negeer merknamen en verpakking. Focus op het product zelf.
+
+Output STRIKT als JSON:
+{ "matches": [{ "idx": 0, "ingredient_id": "uuid-of-null", "confidence": 0.92, "reason": "korte uitleg" }] }`;
+
+        const round2Prompt = JSON.stringify({
+          unmatched: unmatchedInput,
+          candidates: candidatesInput,
+        });
+
+        const aiRes = await callAI({
+          featureKey: "factuur_round2_match",
+          organizationId,
+          locationId,
+          systemPrompt: round2SystemPrompt,
+          prompt: round2Prompt,
+          jsonMode: true,
+          maxTokens: 8000,
+          temperature: 0.1,
+          modelOverride: "google/gemini-2.5-flash",
+          skipFallback: true,
+          timeoutMs: 60_000,
+        });
+
+        // Parse JSON tolerant
+        let parsed: any;
+        try {
+          let cleaned = aiRes.text.trim();
+          cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+          const fb = cleaned.indexOf("{");
+          const lb = cleaned.lastIndexOf("}");
+          if (fb >= 0 && lb > fb) cleaned = cleaned.slice(fb, lb + 1);
+          parsed = JSON.parse(cleaned);
+        } catch (parseErr: any) {
+          throw new Error(`json parse: ${parseErr?.message ?? parseErr}`);
+        }
+
+        const matchList = Array.isArray(parsed?.matches) ? parsed.matches : [];
+        round2Suggestions = matchList;
+
+        // Apply matches
+        for (const m of matchList) {
+          const idx = typeof m.idx === "number" ? m.idx : null;
+          const conf = typeof m.confidence === "number" ? m.confidence : 0;
+          const ingId = typeof m.ingredient_id === "string" ? m.ingredient_id : null;
+          if (idx == null || !ingId) continue;
+          if (conf < 0.85) continue;
+          const target = matches[idx];
+          if (!target || target.matchStatus === "matched") continue;
+          target.ingredientId = ingId;
+          target.matchStatus = "matched";
+          target.matchConfidence = conf;
+        }
+
+        const autoLinked = matchList.filter(
+          (m: any) =>
+            typeof m.confidence === "number" &&
+            m.confidence >= 0.85 &&
+            typeof m.ingredient_id === "string"
+        ).length;
+
+        console.log(
+          `[parse-factuur][textPath] ${factuurId} Ronde 2 success — ` +
+            `unmatched=${unmatched.length} suggesties=${matchList.length} auto-linked=${autoLinked} ` +
+            `tokens=${aiRes.outputTokens} cost=€${aiRes.costEur}`
+        );
+      }
+    } catch (round2Err: any) {
+      // GRACEFUL DEGRADATION — geen throw
+      round2Error = round2Err?.message ?? String(round2Err);
+      console.warn(
+        `[parse-factuur][textPath] ${factuurId} Ronde 2 failed (graceful):`,
+        round2Error
+      );
+    }
+  }
+
+  // ---------- 5+6. Bouw rows + bulk insert ----------
+  const regelInserts = parsedData.regels.map((regel, idx) => {
+    const m = matches[idx];
+    const cache = m.tier1Cache;
+    const cacheHasPackaging =
+      cache?.verpakking_hoeveelheid != null && cache?.verpakking_eenheid != null;
+
+    const verpakkingHvh = cacheHasPackaging
+      ? Number(cache!.verpakking_hoeveelheid)
+      : null;
+    const verpakkingEenheid = cacheHasPackaging ? cache!.verpakking_eenheid : null;
+
+    const prijsOpFactuur =
+      typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
+    const prijsPerBasiseenheid =
+      verpakkingHvh && prijsOpFactuur != null
+        ? prijsOpFactuur / verpakkingHvh
+        : prijsOpFactuur;
+
+    const artnr =
+      regel.artikelnummer != null ? String(regel.artikelnummer).trim() || null : null;
+
+    return {
+      factuur_id: factuurId,
+      product_naam_herkend: regel.product_naam?.trim() || "Onbekend",
+      hoeveelheid: regel.hoeveelheid ?? null,
+      eenheid: regel.eenheid ?? null,
+      prijs_per_eenheid: prijsOpFactuur,
+      totaal: regel.totaal ?? null,
+      ingredient_id: m.ingredientId,
+      match_status: m.matchStatus,
+      match_confidence: m.matchConfidence,
+      ai_confidence: textParseConfidence,
+      ai_raw_naam: regel.product_naam ?? null,
+      ai_raw_artikelnummer: artnr,
+      ai_suggested_naam: null,
+      ai_category_hint: null,
+      ai_suggested_eenheid: null,
+      is_nieuw_ingredient: !m.ingredientId,
+      verpakking_hoeveelheid: verpakkingHvh,
+      verpakking_eenheid: verpakkingEenheid,
+      prijs_per_basiseenheid: prijsPerBasiseenheid,
+      ai_raw_verpakking_tekst: null,
+      ordernr: regel.ordernr ?? null,
+    };
+  });
+
+  if (regelInserts.length === 0) {
+    throw new Error("textPath: 0 regels in parsedData");
+  }
+
+  const { error: insertError } = await supabase
+    .from("factuur_regels")
+    .insert(regelInserts);
+
+  if (insertError) {
+    // DB-fail → throw zodat caller terugvalt op multimodal
+    throw new Error(`textPath insert failed: ${insertError.message}`);
+  }
+
+  // ---------- 7. Update header ----------
+  const matchedCount = matches.filter((m) => m.matchStatus === "matched").length;
+  const tier1MatchCount = matches.filter(
+    (m) => m.matchStatus === "matched" && m.tier1Cache != null
+  ).length;
+  const { error: headerErr } = await supabase
+    .from("factuur_uploads")
+    .update({
+      status: "review",
+      ai_parsing_status: "completed",
+      ai_parsed_at: new Date().toISOString(),
+      ai_confidence_overall: parsedData.confidence ?? null,
+      ai_raw_response: enrichRaw({
+        source: "text_path",
+        round2_suggestions: round2Suggestions,
+        round2_error: round2Error,
+        text_path_stats: {
+          total_regels: parsedData.regels.length,
+          tier1_matched: tier1MatchCount,
+          round2_matched: matchedCount - tier1MatchCount,
+          final_unmatched: parsedData.regels.length - matchedCount,
+          duration_ms: Date.now() - startMs,
+        },
+      }),
+      leverancier_naam_herkend: leverancierNaam ?? null,
+      leverancier_id: leverancierId ?? factuur.leverancier_id,
+      fuzzy_kandidaten: fuzzyKandidaten,
+      factuurnummer: parsedData.factuurnummer ?? factuur.factuurnummer,
+      factuurdatum: parsedData.factuurdatum ?? factuur.factuurdatum,
+      totaalbedrag: parsedData.totaalbedrag ?? factuur.totaalbedrag,
+      parse_method: "text",
+      parse_confidence: textParseConfidence,
+    })
+    .eq("id", factuurId);
+
+  if (headerErr) {
+    // Regels al ingevoegd → niet throwen (anders multimodal duplicate inserts).
+    console.error(
+      `[parse-factuur][textPath] ${factuurId} header update failed (regels al ingevoegd):`,
+      headerErr.message
+    );
+  }
+
+  // ---------- 8. Broadcast ----------
+  await broadcastFactuurStatus(supabase, locationId, {
+    factuurId,
+    aiParsingStatus: "completed",
+    status: "review",
+  });
+
+  console.log(
+    `[parse-factuur][textPath] ${factuurId} done — regels=${regelInserts.length} ` +
+      `tier1=${tier1MatchCount} matched_total=${matchedCount} ` +
+      `round2_err=${round2Error ? "yes" : "no"} duration=${Date.now() - startMs}ms`
   );
 }
