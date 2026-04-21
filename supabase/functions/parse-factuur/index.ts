@@ -573,8 +573,8 @@ async function processInvoiceInner(params: ProcessParams) {
       if (extract.pages != null) {
         pdfExtractedTextDebug = {
           pages_count: extract.pages.length,
-          page_1_first_2000_chars: extract.pages[0]?.slice(0, 2000) ?? null,
-          page_2_first_500_chars: extract.pages[1]?.slice(0, 500) ?? null,
+          page_1_first_2000_chars: extract.pages[0]?.slice(0, 3000) ?? null,
+          page_2_first_500_chars: extract.pages[1]?.slice(0, 2000) ?? null,
           line_count_per_page: extract.pages.map((p) => p.split(/\r?\n/).length),
           total_chars_per_page: extract.pages.map((p) => p.length),
         };
