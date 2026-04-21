@@ -1101,8 +1101,10 @@ async function processInvoiceInner(params: ProcessParams) {
       aiEenheid: aiVerpakkingEenheid,
       ruweNaam: regel.product_naam ?? null,
     });
-    const verpakkingHvh = chosen.hoeveelheid;
-    const verpakkingEenheid = chosen.eenheid;
+    // FIX 2 — Whitelist verpakking_eenheid (alleen L/kg/stuk DB in)
+    const safeMm = safeVerpakking(chosen.hoeveelheid, chosen.eenheid);
+    const verpakkingHvh = safeMm.hvh;
+    const verpakkingEenheid = safeMm.eenheid;
     const usedCachedPackaging = chosen.bron === "cache";
 
     const prijsOpFactuur = typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
