@@ -144,3 +144,23 @@ export function cleanIngredientNaam(ruw: string): string {
 
   return s;
 }
+
+/**
+ * FIX 3-bis — Strip leading qty + verpakking-token + ordernr uit ruwe productnaam.
+ * Bedoeld voor de text-path mapping (o.a. Kooyman) waar ai_raw_naam patterns bevat
+ * zoals "1,00 blik 782534 Olijfolie ..." of "2,00 doos 12345 Bier ...".
+ *
+ * Behoudt ai_raw_naam intact (audit-trail); alleen product_naam_herkend wordt opgeschoond.
+ */
+export function cleanProductNaamPrefix(naam: string): string {
+  if (!naam) return naam;
+  let s = naam;
+  // Leading qty + verpakking-token (bv. "1,00 blik ", "2 doos ", "1,00 fles ")
+  s = s.replace(
+    /^\s*\d+(?:[,.]\d+)?\s+(stuk|blik|doos|fles|pak|can|tray|emmer|bak|zak|krat|rol|krimp|overdoos)s?\s+/i,
+    ""
+  );
+  // Leading 5-6 cijfer ordernr/artikelnummer (Kooyman-pattern)
+  s = s.replace(/^\s*(\d{5,6})\s+/, "");
+  return s.replace(/\s+/g, " ").trim();
+}
