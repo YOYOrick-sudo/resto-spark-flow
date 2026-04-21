@@ -17,6 +17,9 @@ export interface VerpakkingExtract {
   bron_eenheid: string | null;
 }
 
+// FIX A — Multi-level multipack (bv. "4×6×33cl" tray bier, "2×24×33cl" frisdrank)
+const MULTI_LEVEL_MP_RE =
+  /(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+(?:[,.]\d+)?)\s*(ltr|lt|l|cl|ml|kg|gr|g|st|stuks)\b/i;
 const MULTIPACK_RE =
   /(\d+)\s*[x×]\s*(\d+(?:[,.]\d+)?)\s*(ltr|lt|l|cl|ml|kg|gr|g|st|stuks)\b/i;
 const SINGLE_RE =
@@ -59,6 +62,24 @@ function toBase(waarde: number, eenheid: string): {
  */
 export function extractVerpakking(naam: string): VerpakkingExtract {
   if (!naam) return { hoeveelheid: null, eenheid: null, bron_eenheid: null };
+
+  // FIX A — Multi-level multipack EERST checken (anders pakt single alleen "6×33cl")
+  const mlmp = naam.match(MULTI_LEVEL_MP_RE);
+  if (mlmp) {
+    const outer = parseInt(mlmp[1], 10);
+    const inner = parseInt(mlmp[2], 10);
+    const perStuk = toNumber(mlmp[3]);
+    const ruweEenheid = mlmp[4].toLowerCase();
+    const totaalAantal = outer * inner;
+
+    // cl/ml multipack → ALTIJD stuks (zelfde regel als single multipack FIX 1)
+    if (ruweEenheid === "cl" || ruweEenheid === "ml") {
+      return { hoeveelheid: totaalAantal, eenheid: "stuk", bron_eenheid: ruweEenheid };
+    }
+    // ltr/l/kg/g/gr → totaal in basiseenheid; st/stuks → aantal × per stuk
+    const base = toBase(totaalAantal * perStuk, ruweEenheid);
+    return { hoeveelheid: base.hoeveelheid, eenheid: base.eenheid, bron_eenheid: ruweEenheid };
+  }
 
   const mp = naam.match(MULTIPACK_RE);
   if (mp) {
@@ -178,8 +199,17 @@ export function cleanProductNaamPrefix(naam: string): string {
 export function cleanBidfoodProductNaam(rauw: string): string {
   if (!rauw) return rauw;
   let s = rauw;
-  // Trailing prijzen + optionele BTW-codes
-  s = s.replace(/\s+\d+[,.]\d{2}(\s+\d+[,.]\d{2})*(\s+(KR|L|H|T|K|N|V))?\s*$/i, "");
+
+  // FIX B — Iteratief strippen: pak telkens trailing "X,XX" of BTW-code (KR/L/H/T/K/N/V/VLN/VV).
+  // Bidfood prijst-blok kan "10,00 20,35 KR 40,70 L" zijn; één regex-cycle pakt dat niet.
+  const TRAILING_PRICE_OR_CODE = /\s+(\d+[,.]\d{2}|KR|L|H|T|K|N|V|VLN|VV)\s*$/i;
+  let prev = "";
+  let safety = 20;
+  while (s !== prev && safety-- > 0) {
+    prev = s;
+    s = s.replace(TRAILING_PRICE_OR_CODE, "");
+  }
+
   // Leading kolom-structuur "24 FL ", "12 BL ", "6 KR " etc.
   s = s.replace(/^\s*\d+\s+(FL|BL|KR|DS|ST|PK|ZK|TR|EM|BAK|DO|CN|COL)\s+/i, "");
   return s.replace(/\s+/g, " ").trim();
