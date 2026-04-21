@@ -1318,10 +1318,19 @@ async function runTextPath(params: RunTextPathParams): Promise<void> {
     };
   });
 
-  // ---------- 4. Ronde 2 — Flash semantic match (graceful) ----------
+  // ---------- 4. Ronde 2 — Flash semantic match + clean_naam/category/eenheid (graceful) ----------
+  const ALLOWED_CATEGORIES = new Set([
+    "groenten", "vlees", "vis", "zuivel", "kruiden", "olie", "droog", "overig",
+  ]);
+  const ALLOWED_EENHEDEN = new Set(["kg", "g", "L", "ml", "stuk"]);
+
   const unmatched = matches.filter((m) => m.matchStatus === "unmatched");
   let round2Suggestions: any[] = [];
   let round2Error: string | null = null;
+  const suggestionsByIdx = new Map<
+    number,
+    { clean_naam: string | null; category_hint: string | null; basiseenheid: string | null }
+  >();
 
   if (unmatched.length > 0) {
     try {
@@ -1350,10 +1359,11 @@ async function runTextPath(params: RunTextPathParams): Promise<void> {
           categorie: k.categorie,
         }));
 
-        const round2SystemPrompt = `Je matcht onbekende factuur-regels tegen bestaande ingrediënten in de keuken-database.
+        const round2SystemPrompt = `Je matcht onbekende factuur-regels tegen bestaande ingrediënten in de keuken-database EN je verrijkt elke regel met schone metadata.
 
-Voor elke regel in "unmatched", zoek de BESTE match in "candidates".
-Geef confidence 0.0-1.0:
+Voor elke regel in "unmatched":
+
+A) MATCH tegen "candidates" met confidence 0.0-1.0:
 - 0.95+: vrijwel zeker zelfde product (bv. "TOMATEN CHERRY" vs "Cherrytomaten")
 - 0.85-0.94: zeer waarschijnlijk match (zelfde categorie, vergelijkbare naam)
 - 0.6-0.84: mogelijk match maar onzeker
@@ -1361,8 +1371,28 @@ Geef confidence 0.0-1.0:
 
 Negeer merknamen en verpakking. Focus op het product zelf.
 
+B) Geef voor ELKE regel (OOK als ingredient_id=null) ALTIJD ook:
+
+1. clean_naam: product-naam zonder merk/gewicht/verpakking/BTW-group
+   Voorbeelden:
+   - 'Corona Extra 24×35,5cl (H) Bier' → 'Corona Extra'
+   - 'Lampolie FARMLIGHT 6×1ltr (H) Onkosten' → 'Lampolie FARMLIGHT'
+   - 'Slagroom DEBIC 2ltr (L) Keuken' → 'Slagroom'
+   - 'Griekse Yoghurt 10% APOSTELS PROTO 5kg' → 'Griekse Yoghurt'
+   - "Brouwerij 't IJ - Natte blik bio. MOORTGAT 12x33cl" → "Brouwerij 't IJ Natte Blik Bio"
+
+2. category_hint: exact één van: groenten, vlees, vis, zuivel, kruiden, olie, droog, overig. null bij onzeker.
+
+3. basiseenheid: exact één van: kg, g, L, ml, stuk.
+   Dit is de natuurlijke recept-eenheid, NIET de verpakking.
+   Voorbeelden:
+   - 'Olie 5L jerrycan' → 'L'
+   - 'Bloem 25kg zak' → 'kg'
+   - 'Eieren 30st doos' → 'stuk'
+   - 'Corona 24x35,5cl' → 'stuk' (bier per flesje)
+
 Output STRIKT als JSON:
-{ "matches": [{ "idx": 0, "ingredient_id": "uuid-of-null", "confidence": 0.92, "reason": "korte uitleg" }] }`;
+{ "matches": [{ "idx": 0, "ingredient_id": "uuid-of-null", "confidence": 0.92, "reason": "korte uitleg", "clean_naam": "Corona Extra", "category_hint": "overig", "basiseenheid": "stuk" }] }`;
 
         const round2Prompt = JSON.stringify({
           unmatched: unmatchedInput,
@@ -1376,7 +1406,7 @@ Output STRIKT als JSON:
           systemPrompt: round2SystemPrompt,
           prompt: round2Prompt,
           jsonMode: true,
-          maxTokens: 8000,
+          maxTokens: 24000,
           temperature: 0.1,
           modelOverride: "google/gemini-2.5-flash",
           skipFallback: true,
@@ -1399,12 +1429,34 @@ Output STRIKT als JSON:
         const matchList = Array.isArray(parsed?.matches) ? parsed.matches : [];
         round2Suggestions = matchList;
 
-        // Apply matches
+        // Apply matches + verzamel suggesties per idx (clean_naam/category/eenheid)
         for (const m of matchList) {
           const idx = typeof m.idx === "number" ? m.idx : null;
+          if (idx == null) continue;
+
+          // Suggesties altijd opslaan (ook bij null match), met whitelist-validatie
+          const cleanNaam =
+            typeof m.clean_naam === "string" && m.clean_naam.trim()
+              ? m.clean_naam.trim()
+              : null;
+          const catHint =
+            typeof m.category_hint === "string" && ALLOWED_CATEGORIES.has(m.category_hint)
+              ? m.category_hint
+              : null;
+          const eenheid =
+            typeof m.basiseenheid === "string" && ALLOWED_EENHEDEN.has(m.basiseenheid)
+              ? m.basiseenheid
+              : null;
+          suggestionsByIdx.set(idx, {
+            clean_naam: cleanNaam,
+            category_hint: catHint,
+            basiseenheid: eenheid,
+          });
+
+          // Auto-link bij voldoende confidence
           const conf = typeof m.confidence === "number" ? m.confidence : 0;
           const ingId = typeof m.ingredient_id === "string" ? m.ingredient_id : null;
-          if (idx == null || !ingId) continue;
+          if (!ingId) continue;
           if (conf < 0.85) continue;
           const target = matches[idx];
           if (!target || target.matchStatus === "matched") continue;
