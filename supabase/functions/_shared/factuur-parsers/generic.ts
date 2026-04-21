@@ -19,10 +19,10 @@ const BLACKLIST_RE =
 const FACTUURNR_RE = /factuur(?:nummer|nr\.?)\s*[:\s]+\s*([A-Z0-9\-\/]{4,20})/i;
 const DATE_RE =
   /(\d{1,2})[-\/\.\s](\d{1,2}|jan|feb|mrt|apr|mei|jun|jul|aug|sep|okt|nov|dec)[-\/\.\s](\d{2,4})/i;
-// Strikter: alleen "totaal te betalen / totaal incl btw / factuurbedrag / te voldoen"
-// — voorkomt match op kolom-header "Totaal".
+// Strikter: alleen "totaal te betalen / totaal incl(usief) btw / factuurbedrag / te voldoen"
+// /s flag zodat \s* over newlines matcht (label en bedrag op verschillende regels).
 const TOTAAL_RE =
-  /(?:totaal\s+(?:te\s+betalen|incl\.?\s*btw)|factuurbedrag|te\s+voldoen)\s*[:\s€]+\s*([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})/i;
+  /(?:totaal\s+(?:te\s+betalen|incl(?:usief|\.?)\s*btw)|factuurbedrag|te\s+voldoen)\s*[:\s€]*\s*([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})/is;
 
 function parseAmount(s: string): number | null {
   if (!s) return null;
