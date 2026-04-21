@@ -65,12 +65,14 @@ export function extractVerpakking(naam: string): VerpakkingExtract {
     const aantal = parseInt(mp[1], 10);
     const perStuk = toNumber(mp[2]);
     const ruweEenheid = mp[3].toLowerCase();
-    const base = toBase(aantal * perStuk, ruweEenheid);
 
-    // Heuristiek: kleine flesjes (cl/ml en totaal < 2L) → stuks ipv L
-    if ((ruweEenheid === "cl" || ruweEenheid === "ml") && base.hoeveelheid < 2) {
+    // FIX 1 — cl/ml multipack ALTIJD stuks (flesjes/blikjes zijn telbaar, ook bij >2L totaal).
+    // Reden: bier/drank prijs/L is misleidend; prijs/stuk = werkelijke verkoop-eenheid.
+    if (ruweEenheid === "cl" || ruweEenheid === "ml") {
       return { hoeveelheid: aantal, eenheid: "stuk", bron_eenheid: ruweEenheid };
     }
+    // ltr/l/kg/g/gr → totaal in basiseenheid; st/stuks → aantal × per stuk
+    const base = toBase(aantal * perStuk, ruweEenheid);
     return { hoeveelheid: base.hoeveelheid, eenheid: base.eenheid, bron_eenheid: ruweEenheid };
   }
 
@@ -162,5 +164,23 @@ export function cleanProductNaamPrefix(naam: string): string {
   );
   // Leading 5-6 cijfer ordernr/artikelnummer (Kooyman-pattern)
   s = s.replace(/^\s*(\d{5,6})\s+/, "");
+  return s.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * FIX 2 (Bidfood) — Strip Bidfood-specifieke ruis uit ruwe productnaam.
+ * Bidfood-formaat: "24 FL FRITZ KOLA 20CL 10,00 20,35 KR 40,70 L"
+ *   - Leading "<aantal> <kolom-token>" (FL/BL/KR/DS/ST/PK/ZK/TR/EM/BAK/DO/CN/COL)
+ *   - Trailing prijzen: één of meer "X,XX" bedragen, evt. gevolgd door BTW-letter (KR/L/H/T/K/N/V)
+ *
+ * Behoudt productnaam + verpakking-notatie (bv. "20CL") zodat extractVerpakking() blijft werken.
+ */
+export function cleanBidfoodProductNaam(rauw: string): string {
+  if (!rauw) return rauw;
+  let s = rauw;
+  // Trailing prijzen + optionele BTW-codes
+  s = s.replace(/\s+\d+[,.]\d{2}(\s+\d+[,.]\d{2})*(\s+(KR|L|H|T|K|N|V))?\s*$/i, "");
+  // Leading kolom-structuur "24 FL ", "12 BL ", "6 KR " etc.
+  s = s.replace(/^\s*\d+\s+(FL|BL|KR|DS|ST|PK|ZK|TR|EM|BAK|DO|CN|COL)\s+/i, "");
   return s.replace(/\s+/g, " ").trim();
 }
