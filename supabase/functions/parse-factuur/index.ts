@@ -627,6 +627,50 @@ async function processInvoiceInner(params: ProcessParams) {
       `parseMethod=${textParseMethod} parseConfidence=${textParseConfidence ?? "n/a"}`
   );
 
+  // ===========================================================
+  // Helper: verrijk ai_raw_response met text-pad diagnostiek.
+  // -----------------------------------------------------------
+  // Áltijd uitvoeren bij elke update van ai_raw_response binnen
+  // processInvoiceInner — zo zien we via SQL ook bij failures wat
+  // de text-parser gevonden heeft (toevoeging clarification:
+  // text_pad_preview ook bij text_then_multimodal opslaan).
+  //
+  // Scan-PDFs (stats.scan_detected=true): text_pad_preview blijft
+  // weg (parser draaide niet) — alleen stats worden opgeslagen.
+  // ===========================================================
+  const enrichRaw = (base: Record<string, any>): Record<string, any> => {
+    const enriched: Record<string, any> = { ...base };
+    if (textExtractStats) {
+      enriched.text_extract_stats = {
+        ...textExtractStats,
+        leverancier_slug_detected: textLeverancierSlug,
+        parser_confidence: textParseConfidence,
+        threshold_applied: textThresholdApplied,
+        meets_threshold: textParseMethod === "text_preview",
+      };
+    }
+    // Preview opslaan zodra parser draaide — dus ook bij text_then_multimodal
+    // (clarification user). Niet bij scan-PDF (textPadPreview = null).
+    if (textPadPreview) {
+      enriched.text_pad_preview = {
+        leverancier_naam_raw: textPadPreview.leverancier_naam_raw,
+        factuurnummer: textPadPreview.factuurnummer,
+        factuurdatum: textPadPreview.factuurdatum,
+        totaalbedrag: textPadPreview.totaalbedrag,
+        confidence: textPadPreview.confidence,
+        candidate_rows_per_page: textPadPreview.candidate_rows_per_page,
+        regels: textPadPreview.regels,
+      };
+    }
+    return enriched;
+  };
+
+  // Top-level kolommen die bij elke update meegaan
+  const parseMethodFields = {
+    parse_method: textParseMethod,
+    parse_confidence: textParseConfidence,
+  };
+
   // --- Call AI ---
   let aiResult;
   try {
