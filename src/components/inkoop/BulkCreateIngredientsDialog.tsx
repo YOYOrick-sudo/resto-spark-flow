@@ -14,7 +14,7 @@
  */
 import * as React from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, ExternalLink, AlertTriangle, Link2, Plus } from "lucide-react";
+import { Sparkles, ExternalLink, AlertTriangle, Link2, Plus, Layers } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +60,11 @@ type Actie = "nieuw" | "koppel" | "variant";
 
 interface RowState {
   regelId: string;
+  /** R4b-4 — extra factuur_regels die in dezelfde dedup-groep vallen.
+   *  Worden bij submit allemaal gekoppeld aan hetzelfde nieuwe/bestaande ingrediënt. */
+  extraRegelIds: string[];
+  /** R4b-4 — aantal regels in deze groep (incl. primaire) voor "Nx op factuur" badge */
+  groupSize: number;
   checked: boolean;
   naam: string;
   origineleNaam: string; // Wat de chef oorspronkelijk zag, voor duplicate-key
@@ -74,6 +79,28 @@ interface RowState {
   // R4b-3
   actie: Actie;
   duplicate: DuplicateIngredient | null;
+}
+
+/** R4b-4 — Drempel boven welke we waarschuwen voor prijsdivergentie binnen een groep.
+ *  >5% verschil tussen min/max suggereert verschillende verpakkingen of typfout. */
+const PRIJS_VARIANCE_WARN_PCT = 0.05;
+
+/** R4b-4 — Helper: pak meest voorkomende waarde uit array (eerste bij gelijkspel). */
+function mostCommon<T>(values: Array<T | null | undefined>): T | undefined {
+  const counts = new Map<T, number>();
+  for (const v of values) {
+    if (v == null) continue;
+    counts.set(v, (counts.get(v) ?? 0) + 1);
+  }
+  let best: T | undefined;
+  let bestCount = 0;
+  for (const [v, c] of counts) {
+    if (c > bestCount) {
+      best = v;
+      bestCount = c;
+    }
+  }
+  return best;
 }
 
 interface Props {
