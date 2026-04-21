@@ -697,7 +697,8 @@ async function processInvoiceInner(params: ProcessParams) {
       .from("factuur_uploads")
       .update({
         ai_parsing_status: "failed",
-        ai_raw_response: { error: errorMsg },
+        ai_raw_response: enrichRaw({ error: errorMsg }),
+        ...parseMethodFields,
       })
       .eq("id", factuurId);
 
@@ -744,11 +745,12 @@ async function processInvoiceInner(params: ProcessParams) {
       .from("factuur_uploads")
       .update({
         ai_parsing_status: "failed",
-        ai_raw_response: {
+        ai_raw_response: enrichRaw({
           error: "json_parse_failed",
           parse_error: parseErr?.message ?? String(parseErr),
           raw_preview: aiResult.text.slice(0, 1000),
-        },
+        }),
+        ...parseMethodFields,
       })
       .eq("id", factuurId);
     await broadcastFactuurStatus(supabase, locationId, {
@@ -982,10 +984,11 @@ async function processInvoiceInner(params: ProcessParams) {
       .from("factuur_uploads")
       .update({
         ai_parsing_status: "failed",
-        ai_raw_response: {
+        ai_raw_response: enrichRaw({
           error: "ai_returned_no_regels",
           parsed_data: parsed,
-        },
+        }),
+        ...parseMethodFields,
       })
       .eq("id", factuurId);
     await broadcastFactuurStatus(supabase, locationId, {
@@ -1006,12 +1009,13 @@ async function processInvoiceInner(params: ProcessParams) {
       .from("factuur_uploads")
       .update({
         ai_parsing_status: "failed",
-        ai_raw_response: {
+        ai_raw_response: enrichRaw({
           error: "regel_insert_failed",
           db_error: insertError.message,
           attempted_count: regelInserts.length,
           parsed_data: parsed,
-        },
+        }),
+        ...parseMethodFields,
       })
       .eq("id", factuurId);
     await broadcastFactuurStatus(supabase, locationId, {
@@ -1029,13 +1033,14 @@ async function processInvoiceInner(params: ProcessParams) {
       ai_parsing_status: "completed",
       ai_parsed_at: new Date().toISOString(),
       ai_confidence_overall: parsed.confidence_overall ?? null,
-      ai_raw_response: parsed,
+      ai_raw_response: enrichRaw(parsed),
       leverancier_naam_herkend: leverancierNaam ?? null,
       leverancier_id: leverancierId ?? factuur.leverancier_id,
       fuzzy_kandidaten: fuzzyKandidaten,
       factuurnummer: parsed.factuurnummer ?? factuur.factuurnummer,
       factuurdatum: parsed.factuurdatum ?? factuur.factuurdatum,
       totaalbedrag: parsed.totaalbedrag ?? factuur.totaalbedrag,
+      ...parseMethodFields,
     })
     .eq("id", factuurId);
 
