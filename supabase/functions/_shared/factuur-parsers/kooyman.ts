@@ -15,7 +15,14 @@ const TWO_AMOUNTS_TAIL_RE =
 const QTY_UNIT_RE = /\b(\d+(?:[.,]\d+)?)\s*(ds|do|st|stuk|stuks|kg|g|gr|l|lt|liter|ml|krt|krat|bk|bak|pak|pk|fles|fl|zak)\b/i;
 
 const BLACKLIST_RE =
-  /\b(subtotaal|totaal incl|totaal excl|btw|emballage|statiegeld|korting|leveringskosten|verzendkosten|transport|toeslag|fust|saldo|pagina|page|factuurnr|factuurdatum|klantnr|klant nr|debiteur)\b/i;
+  /\b(subtotaal|totaal incl|totaal excl|btw|emballage|statiegeld|korting|leveringskosten|verzendkosten|transport|toeslag|fust|rolcontainer|tussenlegger|saldo|pagina|page|factuurnr|factuurdatum|klantnr|klant nr|debiteur)\b/i;
+
+// Kooyman regel-staart bevat altijd btw-percentage (en soms btw-letter zoals " V"):
+//   "21,65 43,30 21%"      → strip "21%"
+//   "1,80 7,20 0% V"       → strip "0% V"
+//   "120,00 120,00 0%"     → strip "0%"
+// Daarna kunnen TWO_AMOUNTS_TAIL_RE / AMOUNT_TAIL_RE op de schone regel matchen.
+const BTW_SUFFIX_RE = /\s+\d{1,2}%(?:\s+[A-Z])?\s*$/;
 
 const FACTUURNR_RE = /factuur(?:nummer|nr\.?)\s*[:\s]+\s*([A-Z0-9\-\/]{4,20})/i;
 const DATE_RE =
@@ -82,12 +89,15 @@ export function parseKooyman(pages: string[]): ParserResult {
     let pageCandidates = 0;
 
     for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (!line || line.length < 10) continue;
-      if (BLACKLIST_RE.test(line)) continue;
+      const original = rawLine.trim();
+      if (!original || original.length < 10) continue;
+      if (BLACKLIST_RE.test(original)) continue;
 
-      const artnrMatch = line.match(ARTNR_RE);
+      const artnrMatch = original.match(ARTNR_RE);
       if (!artnrMatch) continue;
+
+      // Strip btw-suffix vóór amount matching — Kooyman regels eindigen op "21%" etc.
+      const line = original.replace(BTW_SUFFIX_RE, "").trimEnd();
 
       // Kandidaat: heeft artikelnr + bedrag(en) aan eind
       const twoAmt = line.match(TWO_AMOUNTS_TAIL_RE);
