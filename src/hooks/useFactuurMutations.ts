@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +8,7 @@ import { normalizeIngredientNaam } from "@/lib/stringUtils";
 
 export function useFactuurMutations() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { currentLocation } = useUserContext();
   const { user } = useAuth();
   const locId = currentLocation?.id;
