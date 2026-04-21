@@ -435,6 +435,8 @@ export function useFactuurMutations() {
     mutationFn: async (
       items: Array<{
         regelId: string;
+        /** R4b-4 — extra factuur_regels in dezelfde dedup-groep; allemaal koppelen aan dit ingrediënt */
+        extraRegelIds?: string[];
         naam: string;
         categorie: string;
         eenheid: string;
@@ -474,7 +476,7 @@ export function useFactuurMutations() {
             .single();
           if (iErr) throw iErr;
 
-          // 2. UPDATE factuurregel
+          // 2. UPDATE primaire factuurregel (introduceert nieuw ingrediënt)
           const { error: rErr } = await supabase
             .from("factuur_regels")
             .update({
@@ -484,6 +486,20 @@ export function useFactuurMutations() {
             })
             .eq("id", item.regelId);
           if (rErr) throw rErr;
+
+          // 2b. R4b-4 — koppel ALLE duplicate-regels uit dezelfde groep
+          // Hierop is_nieuw_ingredient=false zodat preview-modal slechts 1× "nieuw" telt
+          if (item.extraRegelIds && item.extraRegelIds.length > 0) {
+            const { error: extraErr } = await supabase
+              .from("factuur_regels")
+              .update({
+                ingredient_id: ing.id,
+                match_status: "manual",
+                is_nieuw_ingredient: false,
+              })
+              .in("id", item.extraRegelIds);
+            if (extraErr) throw extraErr;
+          }
 
           // 3. Alias (best-effort) — rauw, NIET genormaliseerd
           if (item.aliasNaam?.trim()) {
@@ -768,6 +784,8 @@ export function useFactuurMutations() {
     mutationFn: async (
       items: Array<{
         regelId: string;
+        /** R4b-4 — extra factuur_regels in dezelfde dedup-groep; allemaal koppelen aan dit ingrediënt */
+        extraRegelIds?: string[];
         ingredientId: string;
         leverancierId: string;
         artikelNaam: string;
@@ -797,7 +815,7 @@ export function useFactuurMutations() {
           });
           if (error) throw error;
 
-          // Koppel factuurregel aan bestaand ingrediënt
+          // Koppel primaire factuurregel aan bestaand ingrediënt
           const { error: rErr } = await supabase
             .from("factuur_regels")
             .update({
@@ -807,6 +825,19 @@ export function useFactuurMutations() {
             })
             .eq("id", item.regelId);
           if (rErr) throw rErr;
+
+          // R4b-4 — koppel ALLE duplicate-regels uit dezelfde groep
+          if (item.extraRegelIds && item.extraRegelIds.length > 0) {
+            const { error: extraErr } = await supabase
+              .from("factuur_regels")
+              .update({
+                ingredient_id: item.ingredientId,
+                match_status: "manual",
+                is_nieuw_ingredient: false,
+              })
+              .in("id", item.extraRegelIds);
+            if (extraErr) throw extraErr;
+          }
 
           // Best-effort alias
           if (item.aliasNaam?.trim()) {

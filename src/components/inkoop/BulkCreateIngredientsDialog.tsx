@@ -14,7 +14,7 @@
  */
 import * as React from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, ExternalLink, AlertTriangle, Link2, Plus } from "lucide-react";
+import { Sparkles, ExternalLink, AlertTriangle, Link2, Plus, Layers } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +60,11 @@ type Actie = "nieuw" | "koppel" | "variant";
 
 interface RowState {
   regelId: string;
+  /** R4b-4 — extra factuur_regels die in dezelfde dedup-groep vallen.
+   *  Worden bij submit allemaal gekoppeld aan hetzelfde nieuwe/bestaande ingrediënt. */
+  extraRegelIds: string[];
+  /** R4b-4 — aantal regels in deze groep (incl. primaire) voor "Nx op factuur" badge */
+  groupSize: number;
   checked: boolean;
   naam: string;
   origineleNaam: string; // Wat de chef oorspronkelijk zag, voor duplicate-key
@@ -74,6 +79,28 @@ interface RowState {
   // R4b-3
   actie: Actie;
   duplicate: DuplicateIngredient | null;
+}
+
+/** R4b-4 — Drempel boven welke we waarschuwen voor prijsdivergentie binnen een groep.
+ *  >5% verschil tussen min/max suggereert verschillende verpakkingen of typfout. */
+const PRIJS_VARIANCE_WARN_PCT = 0.05;
+
+/** R4b-4 — Helper: pak meest voorkomende waarde uit array (eerste bij gelijkspel). */
+function mostCommon<T>(values: Array<T | null | undefined>): T | undefined {
+  const counts = new Map<T, number>();
+  for (const v of values) {
+    if (v == null) continue;
+    counts.set(v, (counts.get(v) ?? 0) + 1);
+  }
+  let best: T | undefined;
+  let bestCount = 0;
+  for (const [v, c] of counts) {
+    if (c > bestCount) {
+      best = v;
+      bestCount = c;
+    }
+  }
+  return best;
 }
 
 interface Props {
@@ -94,33 +121,104 @@ export function BulkCreateIngredientsDialog({
 
   const [rows, setRows] = React.useState<RowState[]>([]);
 
-  // Initialiseer rijen bij open
+  // Initialiseer rijen bij open — R4b-4: dedup op clean_naam (PRIMARY) of leverancier+artikelnr (SECONDARY)
   React.useEffect(() => {
     if (!open) return;
-    setRows(
-      regels.map((r) => {
-        const naam = normalizeIngredientNaam(
-          r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
-        );
-        return {
-          regelId: r.id,
-          checked: true,
-          naam,
-          origineleNaam: naam,
-          categorie: r.ai_category_hint ?? "overig",
-          eenheid: r.ai_suggested_eenheid ?? "stuk",
-          kostprijs: r.prijs_per_basiseenheid ?? r.prijs_per_eenheid ?? null,
-          aliasNaam: r.product_naam_herkend,
-          artikelnummer: r.ai_raw_artikelnummer,
-          verpakkingHoeveelheid: r.verpakking_hoeveelheid,
-          verpakkingEenheid: r.verpakking_eenheid,
-          prijsPerVerpakking: r.prijs_per_eenheid,
-          actie: "nieuw",
-          duplicate: null,
-        };
-      })
-    );
-  }, [open, regels]);
+
+    // Stap 1: groepeer regels
+    const groups = new Map<string, FactuurRegel[]>();
+    for (const r of regels) {
+      const cleanNaam = normalizeIngredientNaam(
+        r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
+      );
+      let key: string;
+      if (cleanNaam.trim().length > 0) {
+        key = `naam:${cleanNaam.toLowerCase().trim()}`;
+      } else if (leverancierId && r.ai_raw_artikelnummer?.trim()) {
+        key = `artnr:${leverancierId}:${r.ai_raw_artikelnummer.trim()}`;
+      } else {
+        key = `regel:${r.id}`; // unieke fallback → geen groepering
+      }
+      const arr = groups.get(key) ?? [];
+      arr.push(r);
+      groups.set(key, arr);
+    }
+
+    // Stap 2: bouw RowState per groep
+    const newRows: RowState[] = [];
+    for (const [, regelsInGroep] of groups) {
+      // Kies "primaire" regel = regel met laagste prijs_per_basiseenheid (defensief).
+      // Reden: bij verschillen binnen groep is laagste prijs de zekerste schatting voor
+      // kostprijs (overschat zelden). Bij identieke prijzen maakt keuze niet uit.
+      const prijzen = regelsInGroep
+        .map((x) => x.prijs_per_basiseenheid ?? x.prijs_per_eenheid ?? null)
+        .filter((p): p is number => p != null && p > 0);
+
+      // R4b-4 monitoring: waarschuw bij significante prijsdivergentie binnen groep
+      if (prijzen.length >= 2) {
+        const min = Math.min(...prijzen);
+        const max = Math.max(...prijzen);
+        if (min > 0 && (max - min) / min > PRIJS_VARIANCE_WARN_PCT) {
+          const cleanNaam = normalizeIngredientNaam(
+            regelsInGroep[0].ai_suggested_naam ??
+              regelsInGroep[0].ai_raw_naam ??
+              regelsInGroep[0].product_naam_herkend
+          );
+          console.warn(
+            `[BulkCreateDialog] Prijsdivergentie >${(PRIJS_VARIANCE_WARN_PCT * 100).toFixed(0)}% binnen groep "${cleanNaam}":`,
+            {
+              regelIds: regelsInGroep.map((x) => x.id),
+              prijzen,
+              min,
+              max,
+              spreadPct: (((max - min) / min) * 100).toFixed(1) + "%",
+              gekozenKostprijs: min,
+              hint: "Verschillende verpakkingen of OCR-fout? Controleer voor aanmaak.",
+            }
+          );
+        }
+      }
+
+      const primair =
+        regelsInGroep.length === 1
+          ? regelsInGroep[0]
+          : regelsInGroep.reduce((best, cur) => {
+              const bp = best.prijs_per_basiseenheid ?? best.prijs_per_eenheid ?? Infinity;
+              const cp = cur.prijs_per_basiseenheid ?? cur.prijs_per_eenheid ?? Infinity;
+              return cp < bp ? cur : best;
+            });
+
+      const naam = normalizeIngredientNaam(
+        primair.ai_suggested_naam ?? primair.ai_raw_naam ?? primair.product_naam_herkend
+      );
+      const categorie =
+        mostCommon(regelsInGroep.map((x) => x.ai_category_hint ?? null)) ?? "overig";
+      const eenheid =
+        mostCommon(regelsInGroep.map((x) => x.ai_suggested_eenheid ?? null)) ?? "stuk";
+      const extraRegelIds = regelsInGroep.filter((x) => x.id !== primair.id).map((x) => x.id);
+
+      newRows.push({
+        regelId: primair.id,
+        extraRegelIds,
+        groupSize: regelsInGroep.length,
+        checked: true,
+        naam,
+        origineleNaam: naam,
+        categorie,
+        eenheid,
+        kostprijs: primair.prijs_per_basiseenheid ?? primair.prijs_per_eenheid ?? null,
+        aliasNaam: primair.product_naam_herkend,
+        artikelnummer: primair.ai_raw_artikelnummer,
+        verpakkingHoeveelheid: primair.verpakking_hoeveelheid,
+        verpakkingEenheid: primair.verpakking_eenheid,
+        prijsPerVerpakking: primair.prijs_per_eenheid,
+        actie: "nieuw",
+        duplicate: null,
+      });
+    }
+
+    setRows(newRows);
+  }, [open, regels, leverancierId]);
 
   // Pre-check duplicaten voor alle namen tegelijk
   const allNamen = React.useMemo(() => rows.map((r) => r.origineleNaam), [rows]);
@@ -191,6 +289,7 @@ export function BulkCreateIngredientsDialog({
       .filter((r) => r.actie === "nieuw" || r.actie === "variant")
       .map((r) => ({
         regelId: r.regelId,
+        extraRegelIds: r.extraRegelIds, // R4b-4
         naam: normalizeIngredientNaam(r.naam),
         categorie: r.categorie,
         eenheid: r.eenheid,
@@ -207,6 +306,7 @@ export function BulkCreateIngredientsDialog({
       .filter((r) => r.actie === "koppel" && r.duplicate && leverancierId)
       .map((r) => ({
         regelId: r.regelId,
+        extraRegelIds: r.extraRegelIds, // R4b-4
         ingredientId: r.duplicate!.id,
         leverancierId: leverancierId!,
         artikelNaam: r.aliasNaam,
@@ -271,11 +371,20 @@ export function BulkCreateIngredientsDialog({
         <DialogHeader className="pb-3">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
-            Maak {regels.length} nieuwe ingrediënten aan
+            Maak {rows.length} nieuwe ingrediënten aan
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1.5">
             Vink ingrediënten uit die je niet wilt aanmaken. Pas naam, categorie of
             eenheid aan waar nodig.
+            {regels.length > rows.length && (
+              <>
+                {" "}
+                <span className="text-foreground/80">
+                  ({regels.length} factuurregels samengevoegd tot {rows.length} unieke
+                  producten.)
+                </span>
+              </>
+            )}
           </p>
           {aantalDuplicates > 0 && (
             <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-2.5 flex items-start gap-2">
@@ -325,12 +434,20 @@ export function BulkCreateIngredientsDialog({
                     disabled={!r.checked || r.actie === "koppel"}
                     className="h-8 text-xs"
                   />
-                  {isDup && (
-                    <p className="text-[10px] text-primary flex items-center gap-1 px-0.5">
-                      <AlertTriangle className="h-2.5 w-2.5" />
-                      Bestaat al ({r.duplicate!.eenheid})
-                    </p>
-                  )}
+                  <div className="flex items-center gap-2 px-0.5">
+                    {r.groupSize > 1 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary">
+                        <Layers className="h-2.5 w-2.5" />
+                        {r.groupSize}× op factuur
+                      </span>
+                    )}
+                    {isDup && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-primary">
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        Bestaat al ({r.duplicate!.eenheid})
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <NestoSelect
                   value={r.categorie}
