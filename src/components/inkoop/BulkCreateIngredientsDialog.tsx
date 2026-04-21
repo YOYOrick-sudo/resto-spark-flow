@@ -289,6 +289,7 @@ export function BulkCreateIngredientsDialog({
       .filter((r) => r.actie === "nieuw" || r.actie === "variant")
       .map((r) => ({
         regelId: r.regelId,
+        extraRegelIds: r.extraRegelIds, // R4b-4
         naam: normalizeIngredientNaam(r.naam),
         categorie: r.categorie,
         eenheid: r.eenheid,
@@ -305,6 +306,7 @@ export function BulkCreateIngredientsDialog({
       .filter((r) => r.actie === "koppel" && r.duplicate && leverancierId)
       .map((r) => ({
         regelId: r.regelId,
+        extraRegelIds: r.extraRegelIds, // R4b-4
         ingredientId: r.duplicate!.id,
         leverancierId: leverancierId!,
         artikelNaam: r.aliasNaam,
