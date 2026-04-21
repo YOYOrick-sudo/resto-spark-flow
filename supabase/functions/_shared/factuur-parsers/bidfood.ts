@@ -86,8 +86,28 @@ export function parseBidfood(pages: string[]): ParserResult {
   const factuurnrMatch = allText.match(FACTUURNR_RE);
   const factuurnummer = factuurnrMatch ? factuurnrMatch[1].trim() : null;
   const factuurdatum = parseDateNL(allText);
+
+  // Totaalbedrag: probeer eerst generieke regex (label + bedrag dichtbij)
+  let totaalbedrag: number | null = null;
   const totaalMatch = allText.match(TOTAAL_RE);
-  const totaalbedrag = totaalMatch ? parseAmount(totaalMatch[1]) : null;
+  if (totaalMatch) {
+    totaalbedrag = parseAmount(totaalMatch[1]);
+  } else {
+    // Bidfood-fallback: "FACTUURBEDRAG" header staat los van bedrag (BTW-tabel ertussen).
+    // Strategie: vind LAATSTE "FACTUURBEDRAG" occurrence, pak het GROOTSTE bedrag erna.
+    const factuurbedragMatches = [...allText.matchAll(BIDFOOD_FACTUURBEDRAG_RE)];
+    if (factuurbedragMatches.length > 0) {
+      const lastMatch = factuurbedragMatches[factuurbedragMatches.length - 1];
+      const tail = allText.slice(lastMatch.index! + lastMatch[0].length);
+      const amounts = [...tail.matchAll(ANY_AMOUNT_RE)]
+        .map((m) => parseAmount(m[1]))
+        .filter((n): n is number => n != null && n > 0);
+      if (amounts.length > 0) {
+        // Het FACTUURBEDRAG totaal-incl-btw is altijd het grootste bedrag in de BTW-tabel
+        totaalbedrag = Math.max(...amounts);
+      }
+    }
+  }
 
   const regels: ParsedRegel[] = [];
   const candidateRowsPerPage: number[] = [];
