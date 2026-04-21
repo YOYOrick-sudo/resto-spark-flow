@@ -556,6 +556,8 @@ async function processInvoiceInner(params: ProcessParams) {
   // ===========================================================
   let textPadPreview: TextParserResult | null = null;
   let textExtractStats: TextExtractStats | null = null;
+  // TIJDELIJK DEBUG — ruwe text-extract output om parser-bug te diagnosticeren
+  let pdfExtractedTextDebug: Record<string, any> | null = null;
   let textParseMethod: "text_preview" | "multimodal" | "text_then_multimodal" =
     "multimodal";
   let textParseConfidence: number | null = null;
