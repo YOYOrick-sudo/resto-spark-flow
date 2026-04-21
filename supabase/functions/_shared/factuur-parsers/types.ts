@@ -7,6 +7,14 @@ export interface ParsedRegel {
   eenheid: string | null;
   prijs_per_eenheid: number | null;
   totaal: number | null;
+  /**
+   * Order-nummer per leverregel (Kooyman: 6 cijfers na qty+eenheid;
+   * Bidfood: Ordnr.BFD:NNNNNN sectiekop). Optioneel — generic vult dit niet.
+   * Gebruikt voor dedup-key (artnr|ordernr|totaal) zodat zelfde product
+   * in verschillende leveringen behouden blijft, maar PDF-extract dubbels
+   * binnen 1 order weggefilterd worden.
+   */
+  ordernr?: string | null;
 }
 
 export interface ParserResult {

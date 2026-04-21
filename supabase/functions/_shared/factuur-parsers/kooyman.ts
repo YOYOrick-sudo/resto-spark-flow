@@ -1,51 +1,42 @@
 // Kooyman factuur parser
-// Layout (geobserveerd): meerregel-blokken per artikel met artikelnummer (5-7 cijfers),
-// hoeveelheid, eenheid, prijs per eenheid, totaal.
-// Header bevat factuurnummer + factuurdatum.
+// Layout (geverifieerd): Art.nr Aantal VP Ordernr Omschrijving Groep Prijs Totaal BTW Emb.
+// - Ordernr is 6-cijferig (78XXXX) en staat na qty+eenheid.
+// - PDF text-extract wraps soms unit-namen over 2 regels (bv "overdo" + "os").
+// - PDF kan dezelfde regel dupliceren binnen 1 ordernr.
 
 import type { ParsedRegel, ParserResult } from "./types.ts";
 
 const ARTNR_RE = /\b(\d{5,7})\b/;
-// Bedrag aan einde regel: 1.234,56 of 1234,56 of 12,50 of 12.50
 const AMOUNT_TAIL_RE = /([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})\s*$/;
-// Twee bedragen aan einde (prijs/eenheid + totaal)
 const TWO_AMOUNTS_TAIL_RE =
   /([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})\s+([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})\s*$/;
-// Hoeveelheid + eenheid: "1 ds", "2,5 kg", "10 stuks"
-const QTY_UNIT_RE = /\b(\d+(?:[.,]\d+)?)\s*(ds|do|st|stuk|stuks|kg|g|gr|l|lt|liter|ml|krt|krat|bk|bak|pak|pk|fles|fl|zak)\b/i;
+const QTY_UNIT_RE = /\b(\d+(?:[.,]\d+)?)\s*(ds|do|doos|emmer|pc|can|st|stuk|stuks|kg|g|gr|l|lt|liter|ml|krt|krat|bk|bak|pak|pk|fles|fl|zak)\b/i;
+// Ordernr: 6 cijfers (Kooyman gebruikt 78XXXX serie maar generaal 6 cijfers).
+// Match alleen na een eenheid om verwarring met andere getallen te vermijden.
+const ORDERNR_AFTER_UNIT_RE = /\b\d+(?:[.,]\d+)?\s+(?:doos|emmer|pc|can|zak|krat|bak|stuk|stuks|kg|fles|fl|ds|st|do|pak|pk)\s+(\d{6})\b/i;
 
 const BLACKLIST_RE =
-  /\b(subtotaal|totaal incl|totaal excl|btw|emballage|statiegeld|korting|leveringskosten|verzendkosten|transport|toeslag|fust|rolcontainer|tussenlegger|saldo|pagina|page|factuurnr|factuurdatum|klantnr|klant nr|debiteur)\b/i;
+  /\b(subtotaal|totaal incl|totaal excl|btw|emballage|statiegeld|korting|leveringskosten|verzendkosten|transport|toeslag|fust|rolcontainer|tussenlegger|saldo|pagina|page|factuurnr|factuurdatum|klantnr|klant nr|debiteur|per order)\b/i;
 
-// Kooyman regel-staart bevat altijd btw-percentage (en soms btw-letter zoals " V"):
-//   "21,65 43,30 21%"      → strip "21%"
-//   "1,80 7,20 0% V"       → strip "0% V"
-//   "120,00 120,00 0%"     → strip "0%"
-// Daarna kunnen TWO_AMOUNTS_TAIL_RE / AMOUNT_TAIL_RE op de schone regel matchen.
 const BTW_SUFFIX_RE = /\s+\d{1,2}%(?:\s+[A-Z])?\s*$/;
 
 const FACTUURNR_RE = /factuur(?:nummer|nr\.?)\s*[:\s]+\s*([A-Z0-9\-\/]{4,20})/i;
 const DATE_RE =
   /(\d{1,2})[-\/\.\s](\d{1,2}|jan|feb|mrt|apr|mei|jun|jul|aug|sep|okt|nov|dec)[-\/\.\s](\d{2,4})/i;
+// Strikter: alleen "totaal te betalen / totaal incl btw / factuurbedrag / te voldoen"
+// — voorkomt match op kolom-header "Totaal" in tabel-header.
 const TOTAAL_RE =
-  /totaal(?:\s+(?:te\s+betalen|incl\.?\s*btw|incl\.?))?\s*[:\s€]+\s*([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})/i;
+  /(?:totaal\s+(?:te\s+betalen|incl\.?\s*btw)|factuurbedrag|te\s+voldoen)\s*[:\s€]+\s*([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})/i;
 
 function parseAmount(s: string): number | null {
   if (!s) return null;
-  // "1.234,56" → "1234.56", "12,50" → "12.50", "12.50" → "12.50"
   const cleaned = s.replace(/[\s\u00a0]/g, "");
-  // Als beide . en , aanwezig: . = thousands, , = decimal
   if (cleaned.includes(",") && cleaned.includes(".")) {
     return parseFloat(cleaned.replace(/\./g, "").replace(",", "."));
   }
-  // Alleen ,  → decimal
-  if (cleaned.includes(",")) {
-    return parseFloat(cleaned.replace(",", "."));
-  }
-  // Alleen . → check of het thousands (XXX.XXX) of decimal (XX.XX) is
+  if (cleaned.includes(",")) return parseFloat(cleaned.replace(",", "."));
   const dotMatch = cleaned.match(/^\d+\.(\d+)$/);
   if (dotMatch && dotMatch[1].length === 3) {
-    // Thousands separator zonder decimal
     return parseFloat(cleaned.replace(/\./g, ""));
   }
   return parseFloat(cleaned);
@@ -69,10 +60,41 @@ function parseDateNL(raw: string): string | null {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * Line-merge pre-pass: PDF wraps soms eenheid+omschrijving over 2 regels.
+ * Heuristiek: regel met artnr maar zonder amount-tail (na btw-suffix-strip)
+ * → merge met volgende regel als die geen artnr heeft.
+ */
+function mergeWrappedLines(lines: string[]): string[] {
+  const merged: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const cur = lines[i].trim();
+    if (!cur) { i++; continue; }
+
+    const hasArtnr = ARTNR_RE.test(cur);
+    if (hasArtnr) {
+      const stripped = cur.replace(BTW_SUFFIX_RE, "").trimEnd();
+      const hasAmount =
+        TWO_AMOUNTS_TAIL_RE.test(stripped) || AMOUNT_TAIL_RE.test(stripped);
+      if (!hasAmount && i + 1 < lines.length) {
+        const next = lines[i + 1].trim();
+        if (next && !ARTNR_RE.test(next.split(/\s+/)[0] ?? "")) {
+          merged.push(cur + " " + next);
+          i += 2;
+          continue;
+        }
+      }
+    }
+    merged.push(cur);
+    i++;
+  }
+  return merged;
+}
+
 export function parseKooyman(pages: string[]): ParserResult {
   const allText = pages.join("\n");
 
-  // Header info
   const factuurnrMatch = allText.match(FACTUURNR_RE);
   const factuurnummer = factuurnrMatch ? factuurnrMatch[1].trim() : null;
   const factuurdatum = parseDateNL(allText);
@@ -85,7 +107,8 @@ export function parseKooyman(pages: string[]): ParserResult {
   let totalValid = 0;
 
   for (const pageText of pages) {
-    const lines = pageText.split(/\r?\n/);
+    const rawLines = pageText.split(/\r?\n/);
+    const lines = mergeWrappedLines(rawLines);
     let pageCandidates = 0;
 
     for (const rawLine of lines) {
@@ -96,13 +119,10 @@ export function parseKooyman(pages: string[]): ParserResult {
       const artnrMatch = original.match(ARTNR_RE);
       if (!artnrMatch) continue;
 
-      // Strip btw-suffix vóór amount matching — Kooyman regels eindigen op "21%" etc.
       const line = original.replace(BTW_SUFFIX_RE, "").trimEnd();
 
-      // Kandidaat: heeft artikelnr + bedrag(en) aan eind
       const twoAmt = line.match(TWO_AMOUNTS_TAIL_RE);
       const oneAmt = !twoAmt ? line.match(AMOUNT_TAIL_RE) : null;
-
       if (!twoAmt && !oneAmt) continue;
 
       pageCandidates++;
@@ -119,7 +139,6 @@ export function parseKooyman(pages: string[]): ParserResult {
         totaal = parseAmount(oneAmt[1]);
       }
 
-      // Hoeveelheid + eenheid extractie (best-effort)
       let hoeveelheid: number | null = null;
       let eenheid: string | null = null;
       const qtyMatch = line.match(QTY_UNIT_RE);
@@ -128,14 +147,17 @@ export function parseKooyman(pages: string[]): ParserResult {
         eenheid = qtyMatch[2].toLowerCase();
       }
 
-      // Product naam: regel zonder artnr, hoeveelheid en bedragen
+      // Ordernr extractie: 6 cijfers ná qty+eenheid
+      let ordernr: string | null = null;
+      const ordnrMatch = line.match(ORDERNR_AFTER_UNIT_RE);
+      if (ordnrMatch) ordernr = ordnrMatch[1];
+
       let productNaam = line
         .replace(artnrMatch[0], " ")
         .replace(TWO_AMOUNTS_TAIL_RE, "")
         .replace(AMOUNT_TAIL_RE, "");
-      if (qtyMatch) {
-        productNaam = productNaam.replace(qtyMatch[0], " ");
-      }
+      if (qtyMatch) productNaam = productNaam.replace(qtyMatch[0], " ");
+      if (ordernr) productNaam = productNaam.replace(new RegExp(`\\b${ordernr}\\b`), " ");
       productNaam = productNaam.replace(/\s+/g, " ").trim();
       if (!productNaam) continue;
 
@@ -150,10 +172,21 @@ export function parseKooyman(pages: string[]): ParserResult {
         eenheid,
         prijs_per_eenheid: prijsPerEenheid,
         totaal,
+        ordernr,
       });
     }
 
     candidateRowsPerPage.push(pageCandidates);
+  }
+
+  // Dedup pass: artnr|ordernr|totaal — verschillende ordernrs = behouden
+  const seen = new Set<string>();
+  const deduped: ParsedRegel[] = [];
+  for (const r of regels) {
+    const key = `${r.artikelnummer ?? ''}|${r.ordernr ?? ''}|${r.totaal ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(r);
   }
 
   const confidence =
@@ -164,7 +197,7 @@ export function parseKooyman(pages: string[]): ParserResult {
     factuurnummer,
     factuurdatum,
     totaalbedrag,
-    regels,
+    regels: deduped,
     confidence,
     candidate_rows_per_page: candidateRowsPerPage,
   };
