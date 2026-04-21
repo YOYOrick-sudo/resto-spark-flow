@@ -371,11 +371,20 @@ export function BulkCreateIngredientsDialog({
         <DialogHeader className="pb-3">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
-            Maak {regels.length} nieuwe ingrediënten aan
+            Maak {rows.length} nieuwe ingrediënten aan
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1.5">
             Vink ingrediënten uit die je niet wilt aanmaken. Pas naam, categorie of
             eenheid aan waar nodig.
+            {regels.length > rows.length && (
+              <>
+                {" "}
+                <span className="text-foreground/80">
+                  ({regels.length} factuurregels samengevoegd tot {rows.length} unieke
+                  producten.)
+                </span>
+              </>
+            )}
           </p>
           {aantalDuplicates > 0 && (
             <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-2.5 flex items-start gap-2">
