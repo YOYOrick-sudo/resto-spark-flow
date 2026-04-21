@@ -420,6 +420,7 @@ serve(async (req) => {
       organizationId,
       factuur,
       base64,
+      uint8Array,
       isPDF,
       pageCount,
     });
@@ -482,6 +483,7 @@ interface ProcessParams {
   organizationId: string;
   factuur: any;
   base64: string;
+  uint8Array: Uint8Array;
   isPDF: boolean;
   pageCount: number | null;
 }
