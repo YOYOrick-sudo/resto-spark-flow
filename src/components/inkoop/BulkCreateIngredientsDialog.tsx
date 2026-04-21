@@ -434,12 +434,20 @@ export function BulkCreateIngredientsDialog({
                     disabled={!r.checked || r.actie === "koppel"}
                     className="h-8 text-xs"
                   />
-                  {isDup && (
-                    <p className="text-[10px] text-primary flex items-center gap-1 px-0.5">
-                      <AlertTriangle className="h-2.5 w-2.5" />
-                      Bestaat al ({r.duplicate!.eenheid})
-                    </p>
-                  )}
+                  <div className="flex items-center gap-2 px-0.5">
+                    {r.groupSize > 1 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary">
+                        <Layers className="h-2.5 w-2.5" />
+                        {r.groupSize}× op factuur
+                      </span>
+                    )}
+                    {isDup && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-primary">
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        Bestaat al ({r.duplicate!.eenheid})
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <NestoSelect
                   value={r.categorie}
