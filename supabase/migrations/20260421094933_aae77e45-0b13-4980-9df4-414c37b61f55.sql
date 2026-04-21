@@ -1,0 +1,2 @@
+ALTER TABLE public.factuur_regels ADD COLUMN IF NOT EXISTS ordernr text;
+COMMENT ON COLUMN public.factuur_regels.ordernr IS 'Order-nummer per leverregel (Kooyman 6-digit, Bidfood Ordnr.BFD), gebruikt voor Per Order grouping in UI';
