@@ -1510,6 +1510,8 @@ Output STRIKT als JSON:
     const artnr =
       regel.artikelnummer != null ? String(regel.artikelnummer).trim() || null : null;
 
+    const sug = suggestionsByIdx.get(idx);
+
     return {
       factuur_id: factuurId,
       product_naam_herkend: regel.product_naam?.trim() || "Onbekend",
@@ -1523,9 +1525,9 @@ Output STRIKT als JSON:
       ai_confidence: textParseConfidence,
       ai_raw_naam: regel.product_naam ?? null,
       ai_raw_artikelnummer: artnr,
-      ai_suggested_naam: null,
-      ai_category_hint: null,
-      ai_suggested_eenheid: null,
+      ai_suggested_naam: sug?.clean_naam ?? null,
+      ai_category_hint: sug?.category_hint ?? null,
+      ai_suggested_eenheid: sug?.basiseenheid ?? null,
       is_nieuw_ingredient: !m.ingredientId,
       verpakking_hoeveelheid: verpakkingHvh,
       verpakking_eenheid: verpakkingEenheid,
