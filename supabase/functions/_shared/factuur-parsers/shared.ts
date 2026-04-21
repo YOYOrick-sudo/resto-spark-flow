@@ -65,12 +65,14 @@ export function extractVerpakking(naam: string): VerpakkingExtract {
     const aantal = parseInt(mp[1], 10);
     const perStuk = toNumber(mp[2]);
     const ruweEenheid = mp[3].toLowerCase();
-    const base = toBase(aantal * perStuk, ruweEenheid);
 
-    // Heuristiek: kleine flesjes (cl/ml en totaal < 2L) → stuks ipv L
-    if ((ruweEenheid === "cl" || ruweEenheid === "ml") && base.hoeveelheid < 2) {
+    // FIX 1 — cl/ml multipack ALTIJD stuks (flesjes/blikjes zijn telbaar, ook bij >2L totaal).
+    // Reden: bier/drank prijs/L is misleidend; prijs/stuk = werkelijke verkoop-eenheid.
+    if (ruweEenheid === "cl" || ruweEenheid === "ml") {
       return { hoeveelheid: aantal, eenheid: "stuk", bron_eenheid: ruweEenheid };
     }
+    // ltr/l/kg/g/gr → totaal in basiseenheid; st/stuks → aantal × per stuk
+    const base = toBase(aantal * perStuk, ruweEenheid);
     return { hoeveelheid: base.hoeveelheid, eenheid: base.eenheid, bron_eenheid: ruweEenheid };
   }
 
