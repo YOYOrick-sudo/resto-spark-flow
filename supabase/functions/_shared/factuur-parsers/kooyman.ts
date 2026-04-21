@@ -23,10 +23,10 @@ const BTW_SUFFIX_RE = /\s+\d{1,2}%(?:\s+[A-Z])?\s*$/;
 const FACTUURNR_RE = /factuur(?:nummer|nr\.?)\s*[:\s]+\s*([A-Z0-9\-\/]{4,20})/i;
 const DATE_RE =
   /(\d{1,2})[-\/\.\s](\d{1,2}|jan|feb|mrt|apr|mei|jun|jul|aug|sep|okt|nov|dec)[-\/\.\s](\d{2,4})/i;
-// Strikter: alleen "totaal te betalen / totaal incl btw / factuurbedrag / te voldoen"
-// — voorkomt match op kolom-header "Totaal" in tabel-header.
+// Strikter: alleen "totaal te betalen / totaal incl(usief) btw / factuurbedrag / te voldoen"
+// /s flag zodat \s* over newlines matcht (Kooyman zet bedrag op nieuwe regel).
 const TOTAAL_RE =
-  /(?:totaal\s+(?:te\s+betalen|incl\.?\s*btw)|factuurbedrag|te\s+voldoen)\s*[:\s€]+\s*([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})/i;
+  /(?:totaal\s+(?:te\s+betalen|incl(?:usief|\.?)\s*btw)|factuurbedrag|te\s+voldoen)\s*[:\s€]*\s*([0-9]{1,3}(?:[.\s][0-9]{3})*[,.][0-9]{2})/is;
 
 function parseAmount(s: string): number | null {
   if (!s) return null;
@@ -79,7 +79,14 @@ function mergeWrappedLines(lines: string[]): string[] {
         TWO_AMOUNTS_TAIL_RE.test(stripped) || AMOUNT_TAIL_RE.test(stripped);
       if (!hasAmount && i + 1 < lines.length) {
         const next = lines[i + 1].trim();
-        if (next && !ARTNR_RE.test(next.split(/\s+/)[0] ?? "")) {
+        // Strikter: merge alleen als next NIET een complete product-regel is
+        // (artnr + amount-tail). Voorkomt opslorpen van legitieme volgende regel.
+        const nextStripped = next.replace(BTW_SUFFIX_RE, "").trimEnd();
+        const nextHasArtnr = ARTNR_RE.test(next);
+        const nextHasAmount =
+          TWO_AMOUNTS_TAIL_RE.test(nextStripped) ||
+          AMOUNT_TAIL_RE.test(nextStripped);
+        if (next && !(nextHasArtnr && nextHasAmount)) {
           merged.push(cur + " " + next);
           i += 2;
           continue;
