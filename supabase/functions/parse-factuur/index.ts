@@ -1525,6 +1525,60 @@ Output STRIKT als JSON:
     }
   }
 
+  // ---------- 4b. FIX 1: FK-validatie — filter ingredient_ids die niet (meer) bestaan ----------
+  // Vangt drie scenarios: Tier-1 naar ondertussen verwijderd/gearchiveerd ingr.,
+  // Ronde 2 AI-hallucinatie, én cross-location leaks (location_id filter).
+  const candidateIds = Array.from(
+    new Set(
+      matches
+        .map((m) => m.ingredientId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    )
+  );
+
+  if (candidateIds.length > 0) {
+    const { data: validRows, error: validErr } = await supabase
+      .from("ingredienten")
+      .select("id")
+      .eq("location_id", locationId)
+      .eq("is_archived", false)
+      .in("id", candidateIds);
+
+    if (validErr) {
+      console.warn(
+        `[parse-factuur][textPath] ${factuurId} FK-validatie query failed — alle matches conservatief resetten:`,
+        validErr.message
+      );
+      for (const m of matches) {
+        if (m.ingredientId) {
+          m.ingredientId = null;
+          m.matchStatus = "unmatched";
+          m.matchConfidence = null;
+        }
+      }
+    } else {
+      const validIds = new Set<string>();
+      for (const row of (validRows ?? []) as any[]) validIds.add(row.id);
+      let invalidCount = 0;
+      const invalidIds: string[] = [];
+      for (const m of matches) {
+        if (m.ingredientId && !validIds.has(m.ingredientId)) {
+          invalidIds.push(m.ingredientId);
+          m.ingredientId = null;
+          m.matchStatus = "unmatched";
+          m.matchConfidence = null;
+          invalidCount++;
+        }
+      }
+      if (invalidCount > 0) {
+        console.warn(
+          `[parse-factuur][textPath] ${factuurId} ${invalidCount} invalid ingredient_ids detected — resetting to unmatched. Sample:`,
+          invalidIds.slice(0, 5)
+        );
+      }
+    }
+  }
+
   // ---------- 5+6. Bouw rows + bulk insert ----------
   const regelInserts = parsedData.regels.map((regel, idx) => {
     const m = matches[idx];
