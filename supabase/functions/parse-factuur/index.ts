@@ -1637,8 +1637,42 @@ Output STRIKT als JSON:
     .insert(regelInserts);
 
   if (insertError) {
-    // DB-fail → throw zodat caller terugvalt op multimodal
-    throw new Error(`textPath insert failed: ${insertError.message}`);
+    // FIX 2: Fail-fast — markeer failed, broadcast, en return. GEEN throw (triggert multimodal).
+    const sampleIds = regelInserts
+      .map((r) => r.ingredient_id)
+      .filter(Boolean)
+      .slice(0, 10);
+    console.error(
+      `[parse-factuur][textPath] ${factuurId} bulk insert failed — marking failed (no multimodal fallback):`,
+      insertError.message,
+      "sample_ingredient_ids=", sampleIds,
+      "regels_count=", regelInserts.length
+    );
+
+    await supabase
+      .from("factuur_uploads")
+      .update({
+        ai_parsing_status: "failed",
+        ai_raw_response: enrichRaw({
+          source: "text_path",
+          error: "text_path_insert_failed",
+          db_error_detail: insertError.message,
+          db_error_code: (insertError as any).code ?? null,
+          regels_attempted: regelInserts.length,
+          round2_suggestions: round2Suggestions,
+          round2_error: round2Error,
+        }),
+        parse_method: "text",
+        parse_confidence: textParseConfidence,
+      })
+      .eq("id", factuurId);
+
+    await broadcastFactuurStatus(supabase, locationId, {
+      factuurId,
+      aiParsingStatus: "failed",
+    });
+
+    return; // NIET throwen — multimodal fallback is overkill voor DB bug
   }
 
   // ---------- 7. Update header ----------
