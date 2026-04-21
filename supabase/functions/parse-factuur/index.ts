@@ -724,6 +724,40 @@ async function processInvoiceInner(params: ProcessParams) {
     );
   }
 
+  // ===========================================================
+  // SPRINT Stap 2 — TEXT PAD als primaire insert-flow
+  // -----------------------------------------------------------
+  // Bij text-pad SUCCES (meetsThreshold=true) skippen we multimodal
+  // volledig en doen de échte regel-insert via runTextPath().
+  // Bij failure binnen runTextPath (bv. DB-error op bulk insert)
+  // vallen we terug op de bestaande multimodal flow met
+  // parse_method='text_then_multimodal'.
+  // Ronde 2 AI-failures worden BINNEN runTextPath gracefully
+  // afgevangen en throwen NIET (degradation: regels blijven unmatched).
+  // ===========================================================
+  if (textParseMethod === "text_preview" && textPadPreview) {
+    try {
+      await runTextPath({
+        supabase,
+        factuurId,
+        locationId,
+        organizationId,
+        factuur,
+        parsedData: textPadPreview,
+        textParseConfidence,
+        enrichRaw,
+      });
+      return; // Skip multimodal volledig
+    } catch (textPathErr: any) {
+      console.warn(
+        `[parse-factuur] ${factuurId} text-path failed, falling back to multimodal:`,
+        textPathErr?.message ?? String(textPathErr)
+      );
+      textParseMethod = "text_then_multimodal";
+      // val door naar bestaande multimodal flow
+    }
+  }
+
   // --- Call AI ---
   let aiResult;
   try {
