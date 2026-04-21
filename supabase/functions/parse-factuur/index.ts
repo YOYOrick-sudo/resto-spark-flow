@@ -540,9 +540,80 @@ async function processInvoiceInner(params: ProcessParams) {
     organizationId,
     factuur,
     base64,
+    uint8Array,
     isPDF,
     pageCount,
   } = params;
+
+  // ===========================================================
+  // SPRINT: Slimme factuur-AI Stap 1 — text-extractie pre-flight
+  // -----------------------------------------------------------
+  // Probeer eerst gratis text-extract + leverancier-parser. Resultaat
+  // wordt OPGESLAGEN als preview (text_pad_preview) + diagnostiek
+  // (text_extract_stats) in ai_raw_response. De échte regel-insert
+  // blijft via de bestaande multimodal flow lopen — Stap 2 zal het
+  // text-pad als primaire bron gaan gebruiken.
+  // ===========================================================
+  let textPadPreview: TextParserResult | null = null;
+  let textExtractStats: TextExtractStats | null = null;
+  let textParseMethod: "text_preview" | "multimodal" | "text_then_multimodal" =
+    "multimodal";
+  let textParseConfidence: number | null = null;
+  let textLeverancierSlug: "kooyman" | "bidfood" | "generic" | null = null;
+  let textThresholdApplied: number | null = null;
+
+  if (isPDF) {
+    try {
+      const extract = await extractTextPerPage(uint8Array);
+      textExtractStats = extract.stats;
+
+      if (extract.pages != null) {
+        // Niet-scan PDF → parser draaien
+        const slug = detectLeverancier(extract.pages[0] ?? "");
+        textLeverancierSlug = slug;
+        const threshold = thresholdForSlug(slug);
+        textThresholdApplied = threshold;
+
+        const parserResult = parseFactuurText(extract.pages, slug);
+        textParseConfidence = parserResult.confidence;
+        textPadPreview = parserResult;
+
+        if (parserResult.confidence >= threshold) {
+          textParseMethod = "text_preview";
+          console.log(
+            `[parse-factuur] ${factuurId} text-pad PASS — slug=${slug} ` +
+              `confidence=${parserResult.confidence} regels=${parserResult.regels.length}`
+          );
+        } else {
+          textParseMethod = "text_then_multimodal";
+          // Toevoeging B uit sprint: monitoring-warning voor parser-tuning
+          console.warn(
+            `[parse-factuur] text-pad fallback`,
+            JSON.stringify({
+              factuurId,
+              leverancierSlug: slug,
+              confidence: parserResult.confidence,
+              threshold,
+              regels: parserResult.regels.length,
+            })
+          );
+        }
+      } else {
+        // Scan-PDF → géén parser, géén preview
+        textParseMethod = "multimodal";
+        console.log(
+          `[parse-factuur] ${factuurId} scan-PDF detected — avg=${extract.stats.avg_chars_per_content_page} chars/page`
+        );
+      }
+    } catch (e: any) {
+      // Pre-flight mag NOOIT de hele flow breken — log en val terug op multimodal
+      console.warn(
+        `[parse-factuur] ${factuurId} text-extract pre-flight failed:`,
+        e?.message ?? String(e)
+      );
+      textParseMethod = "multimodal";
+    }
+  }
 
   const primaryModel = pickModel(pageCount);
   // Pro krijgt meer headroom (factuur is groot), Flash krijgt 48k.
@@ -552,7 +623,8 @@ async function processInvoiceInner(params: ProcessParams) {
 
   console.log(
     `[parse-factuur] background start factuurId=${factuurId} ` +
-      `model=${primaryModel} maxTokens=${maxTokens} timeoutMs=${timeoutMs}`
+      `model=${primaryModel} maxTokens=${maxTokens} timeoutMs=${timeoutMs} ` +
+      `parseMethod=${textParseMethod} parseConfidence=${textParseConfidence ?? "n/a"}`
   );
 
   // --- Call AI ---
