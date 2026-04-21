@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +8,7 @@ import { normalizeIngredientNaam } from "@/lib/stringUtils";
 
 export function useFactuurMutations() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { currentLocation } = useUserContext();
   const { user } = useAuth();
   const locId = currentLocation?.id;
@@ -43,10 +45,41 @@ export function useFactuurMutations() {
         .single();
       if (error) throw error;
 
-      // Trigger AI parse — fire-and-forget. UI luistert via realtime op factuur_uploads.
-      supabase.functions
-        .invoke("parse-factuur", { body: { factuurId: data.id } })
-        .catch((e) => console.error("[parse-factuur] invoke failed:", e));
+      // Trigger AI parse — awaited zodat we 409 'duplicate_upload' netjes kunnen
+      // afhandelen i.p.v. een rode runtime-error overlay van Lovable te triggeren.
+      const { error: parseErr } = await supabase.functions.invoke("parse-factuur", {
+        body: { factuurId: data.id },
+      });
+
+      if (parseErr) {
+        const ctx = (parseErr as any).context;
+        let body: any = null;
+        try {
+          body = await ctx?.json?.();
+        } catch {
+          /* no-op */
+        }
+
+        if (ctx?.status === 409 && body?.reason === "duplicate_upload") {
+          // Bug C architectuur: duplicate-row blijft staan met badge in lijst.
+          // Geen delete — chef ziet visibility van zijn upload.
+          nestoToast.warning(
+            "Deze factuur is al geüpload",
+            "Wordt al verwerkt in eerdere upload",
+            body.originalFactuurId
+              ? {
+                  action: {
+                    label: "Bekijk",
+                    onClick: () =>
+                      navigate(`/inkoop/facturen/${body.originalFactuurId}`),
+                  },
+                }
+              : undefined
+          );
+        } else {
+          console.error("[parse-factuur] invoke failed:", parseErr);
+        }
+      }
 
       return data;
     },
