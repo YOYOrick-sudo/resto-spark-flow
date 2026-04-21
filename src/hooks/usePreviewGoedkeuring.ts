@@ -130,10 +130,13 @@ export function usePreviewGoedkeuring(
         .map((r) => ({ regelId: r.id, naam: r.product_naam_herkend }));
 
       // 2. Nieuwe ingrediënten = regels met is_nieuw_ingredient=true
+      // FIX 4 — Dedup op clean_naam zodat duplicaten als 1 rij verschijnen met count-badge.
       const nieuwRegels = regels.filter(
         (r) => r.is_nieuw_ingredient === true && r.match_status !== "skipped"
       );
-      const nieuweIngredienten: NieuwIngredientPreview[] = nieuwRegels.map((r) => {
+      const nieuweIngredienten: NieuwIngredientPreview[] = groupNewIngredients(
+        nieuwRegels
+      ).map(({ primair: r, count }) => {
         const heeftBasisPrijs = r.prijs_per_basiseenheid != null;
         const basisEenheid = heeftBasisPrijs
           ? (r.ai_suggested_eenheid ?? r.eenheid ?? null)
@@ -142,12 +145,16 @@ export function usePreviewGoedkeuring(
           r.verpakking_hoeveelheid && r.verpakking_eenheid && basisEenheid
             ? `${r.verpakking_hoeveelheid} ${basisEenheid} per ${r.verpakking_eenheid}`
             : null;
+        const cleanedNaam = normalizeIngredientNaam(
+          r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
+        );
         return {
           regelId: r.id,
-          naam: r.product_naam_herkend,
+          naam: cleanedNaam || r.product_naam_herkend,
           eenheid: basisEenheid,
           verpakkingLabel,
           prijs: r.prijs_per_basiseenheid ?? r.prijs_per_eenheid ?? null,
+          count,
         };
       });
 
