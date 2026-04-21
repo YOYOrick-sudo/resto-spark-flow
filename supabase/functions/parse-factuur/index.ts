@@ -1630,21 +1630,32 @@ Output STRIKT als JSON:
   }
 
   // ---------- 5+6. Bouw rows + bulk insert ----------
+  const isBidfood = parsedData.leverancier_naam_raw?.toLowerCase() === "bidfood";
+
   const regelInserts = parsedData.regels.map((regel, idx) => {
     const m = matches[idx];
     const cache = m.tier1Cache;
     const sug = suggestionsByIdx.get(idx);
 
+    // FIX 2 (Bidfood) — Strip kolom-noise + trailing prijzen vóór alle verdere processing.
+    // ai_raw_naam blijft de ECHTE rauwe lijn (audit), cleanedRaw is de werkversie.
+    const rawNaam = regel.product_naam ?? null;
+    const cleanedRaw = isBidfood && rawNaam ? cleanBidfoodProductNaam(rawNaam) : (rawNaam ?? "");
+
     // FIX 1 — Hiërarchie: cache > AI-hint (Ronde 2) > regex > null
+    // Gebruik gecleande naam voor regex-extract (anders matcht regex op "FRITZ KOLA 20CL 10,00..." ruis)
     const chosen = chooseVerpakking({
       cacheHvh: cache?.verpakking_hoeveelheid,
       cacheEenheid: cache?.verpakking_eenheid,
       aiHvh: null, // text-path Ronde 2 levert geen verpakking_aantal velden
       aiEenheid: null,
-      ruweNaam: regel.product_naam ?? null,
+      ruweNaam: cleanedRaw || null,
     });
-    const verpakkingHvh = chosen.hoeveelheid;
-    const verpakkingEenheid = chosen.eenheid;
+
+    // FIX 2 — Whitelist verpakking_eenheid (alleen L/kg/stuk DB in)
+    const safeTp = safeVerpakking(chosen.hoeveelheid, chosen.eenheid);
+    const verpakkingHvh = safeTp.hvh;
+    const verpakkingEenheid = safeTp.eenheid;
 
     const prijsOpFactuur =
       typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
@@ -1656,17 +1667,17 @@ Output STRIKT als JSON:
     const artnr =
       regel.artikelnummer != null ? String(regel.artikelnummer).trim() || null : null;
 
-    // FIX 2 — Tier-1 / unmatched zonder Ronde 2 clean_naam: regex-clean fallback
+    // FIX 2 — Tier-1 / unmatched zonder Ronde 2 clean_naam: regex-clean fallback (op gecleande naam)
     const ronde2CleanNaam = sug?.clean_naam ?? null;
     const fallbackCleanNaam =
-      !ronde2CleanNaam && regel.product_naam
-        ? cleanIngredientNaam(regel.product_naam) || null
+      !ronde2CleanNaam && cleanedRaw
+        ? cleanIngredientNaam(cleanedRaw) || null
         : null;
     const suggestedNaam = ronde2CleanNaam ?? fallbackCleanNaam;
 
     return {
       factuur_id: factuurId,
-      product_naam_herkend: cleanProductNaamPrefix(regel.product_naam?.trim() ?? "") || "Onbekend",
+      product_naam_herkend: cleanProductNaamPrefix(cleanedRaw.trim()) || "Onbekend",
       hoeveelheid: regel.hoeveelheid ?? null,
       eenheid: regel.eenheid ?? null,
       prijs_per_eenheid: prijsOpFactuur,
@@ -1675,7 +1686,7 @@ Output STRIKT als JSON:
       match_status: m.matchStatus,
       match_confidence: m.matchConfidence,
       ai_confidence: textParseConfidence,
-      ai_raw_naam: regel.product_naam ?? null,
+      ai_raw_naam: rawNaam, // BEHOUD ruwe regel voor audit
       ai_raw_artikelnummer: artnr,
       ai_suggested_naam: suggestedNaam,
       ai_category_hint: sug?.category_hint ?? null,
