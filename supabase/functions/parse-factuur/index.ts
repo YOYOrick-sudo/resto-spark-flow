@@ -33,6 +33,7 @@ import {
   thresholdForSlug,
   type ParserResult as TextParserResult,
 } from "../_shared/factuur-parsers/index.ts";
+import { chooseVerpakking, cleanIngredientNaam } from "../_shared/factuur-parsers/shared.ts";
 
 // EdgeRuntime is door Supabase geïnjecteerd in productie maar niet getypeerd
 declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
@@ -1081,14 +1082,18 @@ async function processInvoiceInner(params: ProcessParams) {
 
     const cacheHasPackaging =
       tier1Cache?.verpakking_hoeveelheid != null && tier1Cache?.verpakking_eenheid != null;
-    const usedCachedPackaging = cacheHasPackaging;
 
-    const verpakkingHvh = cacheHasPackaging
-      ? Number(tier1Cache!.verpakking_hoeveelheid)
-      : aiVerpakkingHvh;
-    const verpakkingEenheid = cacheHasPackaging
-      ? tier1Cache!.verpakking_eenheid
-      : aiVerpakkingEenheid;
+    // FIX 1 — Hiërarchie: cache > AI-hint > regex (uit ruwe productnaam) > null
+    const chosen = chooseVerpakking({
+      cacheHvh: tier1Cache?.verpakking_hoeveelheid,
+      cacheEenheid: tier1Cache?.verpakking_eenheid,
+      aiHvh: aiVerpakkingHvh,
+      aiEenheid: aiVerpakkingEenheid,
+      ruweNaam: regel.product_naam ?? null,
+    });
+    const verpakkingHvh = chosen.hoeveelheid;
+    const verpakkingEenheid = chosen.eenheid;
+    const usedCachedPackaging = chosen.bron === "cache";
 
     const prijsOpFactuur = typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
     const prijsPerBasiseenheid = (verpakkingHvh && prijsOpFactuur != null)
@@ -1097,10 +1102,18 @@ async function processInvoiceInner(params: ProcessParams) {
 
     console.log(
       `[parse-factuur] regel "${productNaam}" tier=${matchConfidence ?? 'none'} ` +
-      `cached_packaging_used=${usedCachedPackaging} ` +
+      `verpakking_bron=${chosen.bron} ` +
       `verpakking=${verpakkingHvh}×${verpakkingEenheid} ` +
       `(ai=${aiVerpakkingHvh}×${aiVerpakkingEenheid})`
     );
+
+    // FIX 2 — Tier-1 hits zonder AI-clean_naam: regex-based clean uit ruwe productnaam
+    const aiCleanNaam = regel.clean_ingredient_naam?.toString().trim() || null;
+    const fallbackCleanNaam =
+      !aiCleanNaam && regel.product_naam
+        ? cleanIngredientNaam(regel.product_naam) || null
+        : null;
+    const suggestedNaam = aiCleanNaam ?? fallbackCleanNaam;
 
     regelInserts.push({
       factuur_id: factuurId,
@@ -1115,7 +1128,7 @@ async function processInvoiceInner(params: ProcessParams) {
       ai_confidence: regel.confidence ?? null,
       ai_raw_naam: regel.product_naam ?? null,
       ai_raw_artikelnummer: artikelnr,
-      ai_suggested_naam: regel.clean_ingredient_naam?.toString().trim() || null,
+      ai_suggested_naam: suggestedNaam,
       ai_category_hint: categoryHint,
       ai_suggested_eenheid: basiseenheid,
       is_nieuw_ingredient: !ingredientId,
@@ -1608,13 +1621,18 @@ Output STRIKT als JSON:
   const regelInserts = parsedData.regels.map((regel, idx) => {
     const m = matches[idx];
     const cache = m.tier1Cache;
-    const cacheHasPackaging =
-      cache?.verpakking_hoeveelheid != null && cache?.verpakking_eenheid != null;
+    const sug = suggestionsByIdx.get(idx);
 
-    const verpakkingHvh = cacheHasPackaging
-      ? Number(cache!.verpakking_hoeveelheid)
-      : null;
-    const verpakkingEenheid = cacheHasPackaging ? cache!.verpakking_eenheid : null;
+    // FIX 1 — Hiërarchie: cache > AI-hint (Ronde 2) > regex > null
+    const chosen = chooseVerpakking({
+      cacheHvh: cache?.verpakking_hoeveelheid,
+      cacheEenheid: cache?.verpakking_eenheid,
+      aiHvh: null, // text-path Ronde 2 levert geen verpakking_aantal velden
+      aiEenheid: null,
+      ruweNaam: regel.product_naam ?? null,
+    });
+    const verpakkingHvh = chosen.hoeveelheid;
+    const verpakkingEenheid = chosen.eenheid;
 
     const prijsOpFactuur =
       typeof regel.prijs_per_eenheid === "number" ? regel.prijs_per_eenheid : null;
@@ -1626,7 +1644,13 @@ Output STRIKT als JSON:
     const artnr =
       regel.artikelnummer != null ? String(regel.artikelnummer).trim() || null : null;
 
-    const sug = suggestionsByIdx.get(idx);
+    // FIX 2 — Tier-1 / unmatched zonder Ronde 2 clean_naam: regex-clean fallback
+    const ronde2CleanNaam = sug?.clean_naam ?? null;
+    const fallbackCleanNaam =
+      !ronde2CleanNaam && regel.product_naam
+        ? cleanIngredientNaam(regel.product_naam) || null
+        : null;
+    const suggestedNaam = ronde2CleanNaam ?? fallbackCleanNaam;
 
     return {
       factuur_id: factuurId,
@@ -1641,7 +1665,7 @@ Output STRIKT als JSON:
       ai_confidence: textParseConfidence,
       ai_raw_naam: regel.product_naam ?? null,
       ai_raw_artikelnummer: artnr,
-      ai_suggested_naam: sug?.clean_naam ?? null,
+      ai_suggested_naam: suggestedNaam,
       ai_category_hint: sug?.category_hint ?? null,
       ai_suggested_eenheid: sug?.basiseenheid ?? null,
       is_nieuw_ingredient: !m.ingredientId,

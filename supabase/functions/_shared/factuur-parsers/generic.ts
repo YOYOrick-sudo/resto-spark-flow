@@ -129,6 +129,14 @@ export function parseGeneric(pages: string[]): ParserResult {
         .replace(TWO_AMOUNTS_TAIL_RE, "")
         .replace(AMOUNT_TAIL_RE, "");
       if (qtyMatch) productNaam = productNaam.replace(qtyMatch[0], " ");
+      // FIX 3 — extra strip-pass voor generic parser:
+      // Leading "1,00 stuk|blik|doos|fles|pak|kg|ltr" (qty + verpakking-token)
+      productNaam = productNaam.replace(
+        /^\s*\d+(?:[,.]\d+)?\s+(stuk|stuks|blik|doos|fles|pak|kg|ltr?|lt|l|cl|ml|g|gr|krat|krt|bak|bk|zak|pk|fl)s?\b\s*/i,
+        " "
+      );
+      // Leading 5-6 cijferig artnr dat de hoofd-regex miste
+      productNaam = productNaam.replace(/^\s*\d{5,6}\s+/, " ");
       productNaam = productNaam.replace(/\s+/g, " ").trim();
       if (!productNaam) continue;
 

@@ -12,6 +12,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
+import { normalizeIngredientNaam } from "@/lib/stringUtils";
 
 export type PrijsSeverity = "groot" | "middel" | "klein";
 
@@ -30,6 +31,8 @@ export interface NieuwIngredientPreview {
   eenheid: string | null;
   verpakkingLabel: string | null;
   prijs: number | null;
+  /** Aantal regels in deze groep (FIX 4 dedup). 1 = niet gegroepeerd. */
+  count: number;
 }
 
 export interface SkippedRegelPreview {
@@ -48,6 +51,47 @@ export interface PreviewData {
   nieuweKoppelingen: number;
   skippedRegels: SkippedRegelPreview[];
   heeftGroteWijzigingen: boolean;
+}
+
+/**
+ * FIX 4 — Groepeer nieuwe-ingredient regels op clean_naam (PRIMARY) of
+ * leverancier+artnr (SECONDARY). Spiegelt logica van BulkCreateIngredientsDialog.
+ * Per groep wordt de "primaire" regel gekozen (laagste prijs_per_basiseenheid).
+ */
+export function groupNewIngredients(
+  regels: FactuurRegel[]
+): Array<{ primair: FactuurRegel; count: number }> {
+  const groups = new Map<string, FactuurRegel[]>();
+  for (const r of regels) {
+    const cleanNaam = normalizeIngredientNaam(
+      r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
+    );
+    let key: string;
+    if (cleanNaam.trim().length > 0) {
+      key = `naam:${cleanNaam.toLowerCase().trim()}`;
+    } else if (r.ai_raw_artikelnummer?.trim()) {
+      key = `artnr:${r.ai_raw_artikelnummer.trim()}`;
+    } else {
+      key = `regel:${r.id}`;
+    }
+    const arr = groups.get(key) ?? [];
+    arr.push(r);
+    groups.set(key, arr);
+  }
+
+  const out: Array<{ primair: FactuurRegel; count: number }> = [];
+  for (const [, regelsInGroep] of groups) {
+    const primair =
+      regelsInGroep.length === 1
+        ? regelsInGroep[0]
+        : regelsInGroep.reduce((best, cur) => {
+            const bp = best.prijs_per_basiseenheid ?? best.prijs_per_eenheid ?? Infinity;
+            const cp = cur.prijs_per_basiseenheid ?? cur.prijs_per_eenheid ?? Infinity;
+            return cp < bp ? cur : best;
+          });
+    out.push({ primair, count: regelsInGroep.length });
+  }
+  return out;
 }
 
 interface FactuurForPreview {
@@ -86,10 +130,13 @@ export function usePreviewGoedkeuring(
         .map((r) => ({ regelId: r.id, naam: r.product_naam_herkend }));
 
       // 2. Nieuwe ingrediënten = regels met is_nieuw_ingredient=true
+      // FIX 4 — Dedup op clean_naam zodat duplicaten als 1 rij verschijnen met count-badge.
       const nieuwRegels = regels.filter(
         (r) => r.is_nieuw_ingredient === true && r.match_status !== "skipped"
       );
-      const nieuweIngredienten: NieuwIngredientPreview[] = nieuwRegels.map((r) => {
+      const nieuweIngredienten: NieuwIngredientPreview[] = groupNewIngredients(
+        nieuwRegels
+      ).map(({ primair: r, count }) => {
         const heeftBasisPrijs = r.prijs_per_basiseenheid != null;
         const basisEenheid = heeftBasisPrijs
           ? (r.ai_suggested_eenheid ?? r.eenheid ?? null)
@@ -98,12 +145,16 @@ export function usePreviewGoedkeuring(
           r.verpakking_hoeveelheid && r.verpakking_eenheid && basisEenheid
             ? `${r.verpakking_hoeveelheid} ${basisEenheid} per ${r.verpakking_eenheid}`
             : null;
+        const cleanedNaam = normalizeIngredientNaam(
+          r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend
+        );
         return {
           regelId: r.id,
-          naam: r.product_naam_herkend,
+          naam: cleanedNaam || r.product_naam_herkend,
           eenheid: basisEenheid,
           verpakkingLabel,
           prijs: r.prijs_per_basiseenheid ?? r.prijs_per_eenheid ?? null,
+          count,
         };
       });
 
