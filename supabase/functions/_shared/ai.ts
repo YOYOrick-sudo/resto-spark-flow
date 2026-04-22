@@ -82,6 +82,11 @@ interface BaseAIOptions {
 
 export interface AICallOptions extends BaseAIOptions {
   jsonMode?: boolean;
+  // Structured output via JSON schema (Gemini / OpenAI-compat).
+  // Wederzijds exclusief met jsonMode + tools. Bij gebruik wordt de response
+  // alsnog door tryParseJSON gevalideerd; faalt parsing → AI_JSON_INVALID throw
+  // → fallback naar Pro (tenzij skipFallback=true).
+  responseSchema?: { name: string; schema: Record<string, unknown>; strict?: boolean };
 }
 
 export interface AIToolsOptions extends BaseAIOptions {
@@ -333,6 +338,16 @@ async function callGateway(
     if (opts.toolChoice) body.tool_choice = opts.toolChoice;
   } else if (!withTools && (opts as AICallOptions).jsonMode) {
     body.response_format = { type: "json_object" };
+  } else if (!withTools && (opts as AICallOptions).responseSchema) {
+    const rs = (opts as AICallOptions).responseSchema!;
+    body.response_format = {
+      type: "json_schema",
+      json_schema: {
+        name: rs.name,
+        strict: rs.strict ?? true,
+        schema: rs.schema,
+      },
+    };
   }
 
   const controller = new AbortController();
@@ -397,10 +412,13 @@ async function callGateway(
     }
 
     // === JSON VALIDATIE ===
-    // Bij jsonMode=true: validate dat response parseerbaar is (tolerant voor
-    // markdown fences ```json ... ```). Bij fail → fallback krijgt 2e kans.
+    // Bij jsonMode=true OF responseSchema: validate dat response parseerbaar is
+    // (tolerant voor markdown fences ```json ... ```). Bij fail → fallback krijgt 2e kans.
     // Caller's eigen extractJSON() blijft als safety net.
-    if ((opts as AICallOptions).jsonMode && !withTools && textContent) {
+    const wantsJson =
+      ((opts as AICallOptions).jsonMode || (opts as AICallOptions).responseSchema) &&
+      !withTools;
+    if (wantsJson && textContent) {
       const parseAttempt = tryParseJSON(textContent);
       if (!parseAttempt.ok) {
         throw new Error(`AI_JSON_INVALID: ${parseAttempt.error}`);
