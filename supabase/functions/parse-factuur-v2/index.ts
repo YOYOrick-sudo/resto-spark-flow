@@ -222,10 +222,13 @@ async function asyncRunV2(args: {
   }
 
   // 9. Update factuur_uploads
+  // Parity met V1: status='review' altijd zetten zodat UI (isEditable) actie-knoppen
+  // toont. Chef beslist over invalid/warning regels — niet auto-afwijzen.
   const aiParsingStatus = aiStatusFromValidation(validation.status);
   const { error: updErr } = await supabase
     .from("factuur_uploads")
     .update({
+      status: "review",
       ai_parsing_status: aiParsingStatus,
       ai_parsed_at: new Date().toISOString(),
       ai_confidence_overall: data.regels && data.regels.length > 0
@@ -260,10 +263,11 @@ async function asyncRunV2(args: {
     throw new Error(`Update factuur_uploads: ${updErr.message}`);
   }
 
-  // 10. Broadcast
+  // 10. Broadcast — parity met V1: ook 'status' meesturen voor realtime UI-trigger
   await broadcastFactuurStatus(supabase, locationId, {
     factuurId,
     aiParsingStatus,
+    status: "review",
   });
 
   return {
