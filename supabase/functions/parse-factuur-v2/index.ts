@@ -364,6 +364,7 @@ serve(async (req) => {
     // DRY-RUN: synchronous, no claim, no factuur_regels writes.
     // WEL persistente shadow-velden op factuur_uploads (parallel-mode vergelijking).
     if (dryRun) {
+      const startedAt = Date.now();
       try {
         const result = await asyncRunV2({
           supabase,
@@ -373,6 +374,8 @@ serve(async (req) => {
           bestandUrl: factuur.bestand_url as string,
           dryRun: true,
         });
+
+        const durationMs = Date.now() - startedAt;
 
         // Shadow-write naar dedicated v2_shadow_* kolommen.
         // Conflict-vrij: V1 schrijft hier nooit in.
@@ -389,6 +392,7 @@ serve(async (req) => {
             v2_shadow_cost_eur: result.costEur,
             v2_shadow_parse_method: result.parseMethod,
             v2_shadow_completed_at: new Date().toISOString(),
+            v2_shadow_duration_ms: durationMs,
             v2_shadow_error: null,
           })
           .eq("id", factuurId);
@@ -401,7 +405,7 @@ serve(async (req) => {
           console.log(
             `[parse-factuur-v2] shadow persisted factuurId=${factuurId} regels=${
               result.data.regels?.length ?? 0
-            } tokens=${result.tokensInput}+${result.tokensOutput} cost=€${result.costEur}`,
+            } tokens=${result.tokensInput}+${result.tokensOutput} cost=€${result.costEur} duration=${durationMs}ms`,
           );
         }
 
@@ -416,6 +420,7 @@ serve(async (req) => {
             tokens_input: result.tokensInput,
             tokens_output: result.tokensOutput,
             cost_eur: result.costEur,
+            duration_ms: durationMs,
             preview: result.data,
           }),
           {
@@ -424,20 +429,30 @@ serve(async (req) => {
           },
         );
       } catch (e) {
-        console.error("[parse-factuur-v2] dry-run failed:", e);
-        // Persist error voor zichtbaarheid in DB.
+        const durationMs = Date.now() - startedAt;
+        const errName = (e as Error)?.name ?? "Error";
+        const errMsg = (e as Error)?.message ?? String(e);
+        console.error(
+          `[parse-factuur-v2] dry-run failed factuurId=${factuurId} duration=${durationMs}ms:`,
+          e,
+        );
+        // Persist error voor zichtbaarheid in DB — MOET vóór de response.
         await supabase
           .from("factuur_uploads")
           .update({
-            v2_shadow_error: String(e).slice(0, 2000),
+            v2_shadow_error: `${errName}: ${errMsg}`.slice(0, 2000),
             v2_shadow_completed_at: new Date().toISOString(),
+            v2_shadow_duration_ms: durationMs,
+            v2_shadow_validation_status: null,
+            v2_shadow_response: null,
           })
           .eq("id", factuurId);
         return new Response(
           JSON.stringify({
             error: "extractie_mislukt",
-            detail: String(e),
+            detail: `${errName}: ${errMsg}`,
             factuurId,
+            duration_ms: durationMs,
           }),
           {
             status: 500,
