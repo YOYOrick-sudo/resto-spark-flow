@@ -9,6 +9,16 @@ import { FACTUUR_V2_SCHEMA } from "./schema.ts";
 import { FACTUUR_V2_SYSTEM_PROMPT } from "./prompt.ts";
 import type { FactuurV2Output } from "./types.ts";
 
+// =====================================================
+// Token-budget centralisatie (V2)
+// =====================================================
+// 32k geeft headroom voor ~400 regels (Sligro-schaal). Hoger maakt modellen
+// trager + minder accuraat. Truncation-detectie in _shared/ai.ts (callGateway)
+// throwt AI_TRUNCATED bij finish_reason=length OF outputTokens >= 95% van budget,
+// dus we krijgen NU al een harde error i.p.v. stille data-loss als 32k ooit krap blijkt.
+const MAX_TOKENS_V2 = 32000;
+const MAX_TOKENS_V2_FALLBACK = 32000; // pro heeft hoger limit, bewust gelijk gehouden
+
 export interface ExtractorInput {
   /** Volledige PDF-tekst (gejoined per pagina). Leeg bij scan-PDF. */
   text: string;
@@ -57,7 +67,9 @@ export async function extractFactuur(
     locationId: input.locationId,
     systemPrompt: FACTUUR_V2_SYSTEM_PROMPT,
     temperature: 0.0,
-    maxTokens: 8000,
+    maxTokens: input.modelOverride === "google/gemini-2.5-pro"
+      ? MAX_TOKENS_V2_FALLBACK
+      : MAX_TOKENS_V2,
     timeoutMs: 90_000,
     modelOverride: input.modelOverride,
     responseSchema: {
