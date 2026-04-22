@@ -214,6 +214,7 @@ serve(async (req) => {
 
   // === Feature-flag dispatch ===
   const version = Deno.env.get("PARSE_FACTUUR_VERSION") ?? "v1";
+  console.log(`[parse-factuur] flag PARSE_FACTUUR_VERSION=${version}`);
   if (version === "v2") {
     return await forwardToV2(req);
   }
