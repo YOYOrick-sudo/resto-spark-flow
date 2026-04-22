@@ -361,37 +361,82 @@ export function useFactuurMutations() {
       // multi-leverancier (her-upload Kooyman zou Sligro-koppeling deactiveren).
       // Onconflict op (leverancier_id, artikel_nummer) handelt re-upload van
       // ZELFDE artikel correct af. Andere leveranciers blijven onaangeroerd.
+      // BUGFIX: leveranciers (Boer & Chef e.d.) zonder artikelnummers per regel
+      // moeten ook gekoppeld worden. Splits in 2 paden:
+      //  - met artikelnummer  → onConflict-upsert op (leverancier, artikel_nummer)
+      //  - zonder artikelnummer → manueel insert/update op (leverancier, ingredient) WHERE artikel_nummer IS NULL
       const artNr = vars.artikelnummer?.trim();
-      if (vars.leverancierId && artNr) {
-        const { error: laErr } = await supabase
-          .from("leveranciers_artikelen")
-          .upsert(
-            {
-              leverancier_id: vars.leverancierId,
-              artikel_nummer: artNr,
-              ingredient_id: ing.id,
-              artikel_naam: cleanNaam,
-              prijs_per_eenheid: vars.kostprijs ?? null,         // per basiseenheid (afgeleid)
-              prijs_per_verpakking: vars.prijsPerVerpakking ?? null,
-              verpakking_hoeveelheid: vars.verpakkingHoeveelheid ?? null,
-              verpakking_eenheid: vars.verpakkingEenheid ?? null,
-              is_actief: true,
-              laatst_gesynchroniseerd: new Date().toISOString(),
-            },
-            { onConflict: "leverancier_id,artikel_nummer" }
-          );
-        if (laErr) {
-          console.error(
-            "[createNewIngredientFromFactuur leveranciers_artikelen] upsert failed:",
-            laErr
-          );
-          throw new Error(`Leverancier-koppeling mislukt: ${laErr.message}`);
+      if (vars.leverancierId) {
+        if (artNr) {
+          const { error: laErr } = await supabase
+            .from("leveranciers_artikelen")
+            .upsert(
+              {
+                leverancier_id: vars.leverancierId,
+                artikel_nummer: artNr,
+                ingredient_id: ing.id,
+                artikel_naam: cleanNaam,
+                prijs_per_eenheid: vars.kostprijs ?? null,         // per basiseenheid (afgeleid)
+                prijs_per_verpakking: vars.prijsPerVerpakking ?? null,
+                verpakking_hoeveelheid: vars.verpakkingHoeveelheid ?? null,
+                verpakking_eenheid: vars.verpakkingEenheid ?? null,
+                is_actief: true,
+                laatst_gesynchroniseerd: new Date().toISOString(),
+              },
+              { onConflict: "leverancier_id,artikel_nummer" }
+            );
+          if (laErr) {
+            console.error(
+              "[createNewIngredientFromFactuur leveranciers_artikelen] upsert failed:",
+              laErr
+            );
+            throw new Error(`Leverancier-koppeling mislukt: ${laErr.message}`);
+          }
+        } else {
+          // Fallback: artikel_nummer IS NULL — geen unique constraint, dus handmatig dedupen
+          const { data: bestaand } = await supabase
+            .from("leveranciers_artikelen")
+            .select("id")
+            .eq("leverancier_id", vars.leverancierId)
+            .eq("ingredient_id", ing.id)
+            .is("artikel_nummer", null)
+            .eq("is_actief", true)
+            .maybeSingle();
+
+          const payload = {
+            artikel_naam: cleanNaam,
+            prijs_per_eenheid: vars.kostprijs ?? null,
+            prijs_per_verpakking: vars.prijsPerVerpakking ?? null,
+            verpakking_hoeveelheid: vars.verpakkingHoeveelheid ?? null,
+            verpakking_eenheid: vars.verpakkingEenheid ?? null,
+            laatst_gesynchroniseerd: new Date().toISOString(),
+          };
+
+          if (bestaand) {
+            const { error: uErr } = await supabase
+              .from("leveranciers_artikelen")
+              .update(payload)
+              .eq("id", bestaand.id);
+            if (uErr) {
+              console.error("[createNewIngredientFromFactuur la fallback update] failed:", uErr);
+              throw new Error(`Leverancier-koppeling mislukt: ${uErr.message}`);
+            }
+          } else {
+            const { error: iErr } = await supabase
+              .from("leveranciers_artikelen")
+              .insert({
+                leverancier_id: vars.leverancierId,
+                artikel_nummer: null,
+                ingredient_id: ing.id,
+                is_actief: true,
+                ...payload,
+              });
+            if (iErr) {
+              console.error("[createNewIngredientFromFactuur la fallback insert] failed:", iErr);
+              throw new Error(`Leverancier-koppeling mislukt: ${iErr.message}`);
+            }
+          }
         }
-      } else if (vars.leverancierId && !artNr) {
-        console.warn(
-          "[createNewIngredientFromFactuur] leverancier bekend maar artikelnummer ontbreekt — geen leveranciers_artikelen koppeling aangemaakt voor ingredient",
-          ing.id
-        );
       }
 
       return ing;
@@ -515,28 +560,70 @@ export function useFactuurMutations() {
           }
 
           // 4. UPSERT leveranciers_artikelen
-          // R4b-3 FIX: GEEN pre-deactivate op (leverancier, ingredient). Onconflict
-          // op (leverancier_id, artikel_nummer) is voldoende; multi-leverancier blijft intact.
+          // BUGFIX: leveranciers zonder artikelnummers (Boer & Chef e.d.) moeten ook
+          // gekoppeld worden. Splits in 2 paden:
+          //  - met artikelnummer  → onConflict-upsert op (leverancier, artikel_nummer)
+          //  - zonder artikelnummer → manueel dedup op (leverancier, ingredient) WHERE artikel_nummer IS NULL
           const artNr = item.artikelnummer?.trim();
-          if (item.leverancierId && artNr) {
-            const { error: laErr } = await supabase
-              .from("leveranciers_artikelen")
-              .upsert(
-                {
-                  leverancier_id: item.leverancierId,
-                  artikel_nummer: artNr,
-                  ingredient_id: ing.id,
-                  artikel_naam: cleanNaam,
-                  prijs_per_eenheid: item.kostprijs ?? null,
-                  prijs_per_verpakking: item.prijsPerVerpakking ?? null,
-                  verpakking_hoeveelheid: item.verpakkingHoeveelheid ?? null,
-                  verpakking_eenheid: item.verpakkingEenheid ?? null,
-                  is_actief: true,
-                  laatst_gesynchroniseerd: new Date().toISOString(),
-                },
-                { onConflict: "leverancier_id,artikel_nummer" }
-              );
-            if (laErr) throw laErr;
+          if (item.leverancierId) {
+            if (artNr) {
+              const { error: laErr } = await supabase
+                .from("leveranciers_artikelen")
+                .upsert(
+                  {
+                    leverancier_id: item.leverancierId,
+                    artikel_nummer: artNr,
+                    ingredient_id: ing.id,
+                    artikel_naam: cleanNaam,
+                    prijs_per_eenheid: item.kostprijs ?? null,
+                    prijs_per_verpakking: item.prijsPerVerpakking ?? null,
+                    verpakking_hoeveelheid: item.verpakkingHoeveelheid ?? null,
+                    verpakking_eenheid: item.verpakkingEenheid ?? null,
+                    is_actief: true,
+                    laatst_gesynchroniseerd: new Date().toISOString(),
+                  },
+                  { onConflict: "leverancier_id,artikel_nummer" }
+                );
+              if (laErr) throw laErr;
+            } else {
+              // Fallback: artikel_nummer IS NULL — handmatig dedupen op (leverancier, ingredient)
+              const { data: bestaand } = await supabase
+                .from("leveranciers_artikelen")
+                .select("id")
+                .eq("leverancier_id", item.leverancierId)
+                .eq("ingredient_id", ing.id)
+                .is("artikel_nummer", null)
+                .eq("is_actief", true)
+                .maybeSingle();
+
+              const payload = {
+                artikel_naam: cleanNaam,
+                prijs_per_eenheid: item.kostprijs ?? null,
+                prijs_per_verpakking: item.prijsPerVerpakking ?? null,
+                verpakking_hoeveelheid: item.verpakkingHoeveelheid ?? null,
+                verpakking_eenheid: item.verpakkingEenheid ?? null,
+                laatst_gesynchroniseerd: new Date().toISOString(),
+              };
+
+              if (bestaand) {
+                const { error: uErr } = await supabase
+                  .from("leveranciers_artikelen")
+                  .update(payload)
+                  .eq("id", bestaand.id);
+                if (uErr) throw uErr;
+              } else {
+                const { error: iErr } = await supabase
+                  .from("leveranciers_artikelen")
+                  .insert({
+                    leverancier_id: item.leverancierId,
+                    artikel_nummer: null,
+                    ingredient_id: ing.id,
+                    is_actief: true,
+                    ...payload,
+                  });
+                if (iErr) throw iErr;
+              }
+            }
           }
 
           success++;
