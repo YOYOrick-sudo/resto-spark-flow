@@ -1465,6 +1465,14 @@ export type Database = {
           status: string
           totaalbedrag: number | null
           updated_at: string
+          v2_shadow_completed_at: string | null
+          v2_shadow_cost_eur: number | null
+          v2_shadow_error: string | null
+          v2_shadow_parse_method: string | null
+          v2_shadow_response: Json | null
+          v2_shadow_tokens_input: number | null
+          v2_shadow_tokens_output: number | null
+          v2_shadow_validation_status: string | null
           validation_errors: Json | null
           validation_status: string | null
           validation_warnings: Json | null
@@ -1499,6 +1507,14 @@ export type Database = {
           status?: string
           totaalbedrag?: number | null
           updated_at?: string
+          v2_shadow_completed_at?: string | null
+          v2_shadow_cost_eur?: number | null
+          v2_shadow_error?: string | null
+          v2_shadow_parse_method?: string | null
+          v2_shadow_response?: Json | null
+          v2_shadow_tokens_input?: number | null
+          v2_shadow_tokens_output?: number | null
+          v2_shadow_validation_status?: string | null
           validation_errors?: Json | null
           validation_status?: string | null
           validation_warnings?: Json | null
@@ -1533,6 +1549,14 @@ export type Database = {
           status?: string
           totaalbedrag?: number | null
           updated_at?: string
+          v2_shadow_completed_at?: string | null
+          v2_shadow_cost_eur?: number | null
+          v2_shadow_error?: string | null
+          v2_shadow_parse_method?: string | null
+          v2_shadow_response?: Json | null
+          v2_shadow_tokens_input?: number | null
+          v2_shadow_tokens_output?: number | null
+          v2_shadow_validation_status?: string | null
           validation_errors?: Json | null
           validation_status?: string | null
           validation_warnings?: Json | null
