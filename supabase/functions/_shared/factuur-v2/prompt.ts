@@ -58,6 +58,36 @@ KRITIEKE REGELS:
     - Geen leveranciers-artikelnummer in de naam
     - Wél: merknaam + productnaam + formaat (bv "Olijfolie Abril Pom 5L")
 
+11b. REGIO/HERKOMST-PREFIX SPLITSEN:
+    Productnamen die beginnen met een NL provincie of land DIRECT vastgeplakt
+    aan de productnaam ZONDER spatie zijn een layout-artefact uit de factuur
+    (sectie/kolom-header die door PDF-extractie aan de naam plakt).
+    Splits de prefix af in product_naam.
+
+    CORRECT splitsen (geen spatie tussen prefix en productnaam):
+    - "FrieslandPastinaak" → "Pastinaak"
+    - "DrenthePrei"        → "Prei"
+    - "FrieslandKool wit"  → "Kool wit"
+    - "ZeeuwseUien"        → "Uien"
+    - "BelgischeWitlof"    → "Witlof"
+
+    NIET splitsen (adjectief + spatie = echt deel van naam):
+    - "Friese stoofpeer"   → blijft "Friese stoofpeer"
+    - "Brabantse worst"    → blijft "Brabantse worst"
+    - "Hollandse nieuwe"   → blijft "Hollandse nieuwe"
+
+    NL provincies: Friesland, Friese, Groningen, Groningse, Drenthe, Drentse,
+    Overijssel, Overijsselse, Flevoland, Flevolandse, Gelderland, Gelderse,
+    Utrecht, Utrechtse, Noord-Holland, Zuid-Holland, Hollandse, Zeeland,
+    Zeeuwse, Noord-Brabant, Brabantse, Limburg, Limburgse.
+
+    Landen/herkomst: Nederland, Nederlandse, België, Belgisch, Belgische,
+    Frankrijk, Frans, Franse, Duitsland, Duits, Duitse, Spanje, Spaans,
+    Spaanse, Italië, Italiaans, Italiaanse.
+
+    REGEL: alleen splitsen bij vastgeplakte prefix ZONDER spatie.
+    Bij twijfel: behoud originele naam en flag in extractie_waarschuwingen.
+
 12. PRODUCT_OMSCHRIJVING_KORT:
     voor matching tegen bestaande ingrediënten.
     Alleen de kern: "olijfolie", "biologische volle melk", "rode wijn azijn".
