@@ -1,7 +1,7 @@
 project_id = "igqcfxizgtdkwnajvers"
 
 [functions.parse-factuur-v2]
-verify_jwt = true
+verify_jwt = false
 
 [functions.onboarding-agent]
 verify_jwt = false
