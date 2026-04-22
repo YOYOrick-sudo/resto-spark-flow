@@ -34,7 +34,10 @@ export async function lookupTier1(
     .in("artikel_nummer", cleaned);
 
   if (error) {
-    console.warn("[factuur-v2/cache] lookupTier1 failed (soft):", error.message);
+    console.warn(
+      "[factuur-v2/cache] lookupTier1 failed (soft):",
+      error.message,
+    );
     return result;
   }
 

@@ -4,7 +4,7 @@
 // AI-route = Lovable Gateway (https://ai.gateway.lovable.dev/v1/chat/completions)
 // via bestaande callAI() helper. GEEN Vertex AI, geen direct provider call.
 
-import { callAI, type AIResponse } from "../ai.ts";
+import { type AIResponse, callAI } from "../ai.ts";
 import { FACTUUR_V2_SCHEMA } from "./schema.ts";
 import { FACTUUR_V2_SYSTEM_PROMPT } from "./prompt.ts";
 import type { FactuurV2Output } from "./types.ts";
@@ -34,7 +34,8 @@ export interface ExtractorResult {
  */
 function parseJsonStrict(text: string): FactuurV2Output {
   let cleaned = text.trim();
-  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
+    .trim();
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
   if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -43,7 +44,9 @@ function parseJsonStrict(text: string): FactuurV2Output {
   return JSON.parse(cleaned) as FactuurV2Output;
 }
 
-export async function extractFactuur(input: ExtractorInput): Promise<ExtractorResult> {
+export async function extractFactuur(
+  input: ExtractorInput,
+): Promise<ExtractorResult> {
   const isMultimodal = input.isScanPdf && !!input.pdfBase64;
 
   // Bouw call-options. Bij text-PDF: prompt = volledige tekst.
@@ -66,14 +69,14 @@ export async function extractFactuur(input: ExtractorInput): Promise<ExtractorRe
 
   const response = isMultimodal
     ? await callAI({
-        ...baseOpts,
-        prompt: "Extraheer deze factuur volgens het schema.",
-        documents: [{ data: input.pdfBase64!, mimeType: "application/pdf" }],
-      })
+      ...baseOpts,
+      prompt: "Extraheer deze factuur volgens het schema.",
+      documents: [{ data: input.pdfBase64!, mimeType: "application/pdf" }],
+    })
     : await callAI({
-        ...baseOpts,
-        prompt: `Factuur-tekst:\n\n${input.text}\n\nExtraheer volgens schema.`,
-      });
+      ...baseOpts,
+      prompt: `Factuur-tekst:\n\n${input.text}\n\nExtraheer volgens schema.`,
+    });
 
   const data = parseJsonStrict(response.text);
   return { data, raw: response };

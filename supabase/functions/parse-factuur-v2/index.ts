@@ -21,14 +21,25 @@
 //      i. broadcast factuur.status
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  createClient,
+  type SupabaseClient,
+} from "https://esm.sh/@supabase/supabase-js@2";
 import { extractTextPerPage } from "../_shared/pdf-text.ts";
 import { extractFactuur } from "../_shared/factuur-v2/extractor.ts";
-import { validateFactuur, type ValidationStatus } from "../_shared/factuur-v2/validator.ts";
+import {
+  validateFactuur,
+  type ValidationStatus,
+} from "../_shared/factuur-v2/validator.ts";
 import { lookupTier1, upsertLeverancier } from "../_shared/factuur-v2/cache.ts";
-import type { FactuurV2Output, FactuurV2Regel } from "../_shared/factuur-v2/types.ts";
+import type {
+  FactuurV2Output,
+  FactuurV2Regel,
+} from "../_shared/factuur-v2/types.ts";
 
-declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
+declare const EdgeRuntime:
+  | { waitUntil: (p: Promise<unknown>) => void }
+  | undefined;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,7 +103,14 @@ async function asyncRunV2(args: {
   tokensOutput: number;
   costEur: number;
 }> {
-  const { supabase, factuurId, locationId, organizationId, bestandUrl, dryRun } = args;
+  const {
+    supabase,
+    factuurId,
+    locationId,
+    organizationId,
+    bestandUrl,
+    dryRun,
+  } = args;
 
   // 1. Storage download
   let storagePath = bestandUrl;
@@ -103,7 +121,9 @@ async function asyncRunV2(args: {
     .from("facturen")
     .download(storagePath);
   if (dlError || !fileData) {
-    throw new Error(`Storage download failed: ${dlError?.message ?? "no data"}`);
+    throw new Error(
+      `Storage download failed: ${dlError?.message ?? "no data"}`,
+    );
   }
   const bytes = new Uint8Array(await fileData.arrayBuffer());
 
@@ -174,7 +194,11 @@ async function asyncRunV2(args: {
       prijs_per_eenheid: r.prijs_per_besteld_item ?? null,
       prijs_per_basiseenheid: r.prijs_per_basiseenheid ?? null,
       totaal: r.prijs_totaal ?? null,
-      ai_confidence: r.confidence === "hoog" ? 0.95 : r.confidence === "medium" ? 0.7 : 0.4,
+      ai_confidence: r.confidence === "hoog"
+        ? 0.95
+        : r.confidence === "medium"
+        ? 0.7
+        : 0.4,
       extract_confidence: r.confidence ?? null,
       is_emballage: r.is_emballage ?? false,
       is_credit: r.is_credit ?? false,
@@ -188,7 +212,9 @@ async function asyncRunV2(args: {
   if (regelRows.length > 0) {
     // Eerst oude regels weggooien (bij re-parse).
     await supabase.from("factuur_regels").delete().eq("factuur_id", factuurId);
-    const { error: insErr } = await supabase.from("factuur_regels").insert(regelRows);
+    const { error: insErr } = await supabase.from("factuur_regels").insert(
+      regelRows,
+    );
     if (insErr) {
       console.error("[parse-factuur-v2] insert factuur_regels failed:", insErr);
       throw new Error(`Insert factuur_regels: ${insErr.message}`);
@@ -202,14 +228,18 @@ async function asyncRunV2(args: {
     .update({
       ai_parsing_status: aiParsingStatus,
       ai_parsed_at: new Date().toISOString(),
-      ai_confidence_overall:
-        data.regels && data.regels.length > 0
-          ? data.regels.reduce(
-              (sum, r) =>
-                sum + (r.confidence === "hoog" ? 0.95 : r.confidence === "medium" ? 0.7 : 0.4),
-              0,
-            ) / data.regels.length
-          : null,
+      ai_confidence_overall: data.regels && data.regels.length > 0
+        ? data.regels.reduce(
+          (sum, r) =>
+            sum +
+            (r.confidence === "hoog"
+              ? 0.95
+              : r.confidence === "medium"
+              ? 0.7
+              : 0.4),
+          0,
+        ) / data.regels.length
+        : null,
       ai_raw_response: data as unknown as Record<string, unknown>,
       parse_method: parseMethod,
       leverancier_id: leverancierId,
@@ -272,7 +302,9 @@ serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      token,
+    );
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Ongeldige sessie" }), {
         status: 401,
@@ -293,10 +325,13 @@ serve(async (req) => {
     const dryRun = body.dry_run === true;
 
     if (!factuurId || typeof factuurId !== "string" || factuurId.length < 36) {
-      return new Response(JSON.stringify({ error: "factuurId (uuid) is verplicht" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "factuurId (uuid) is verplicht" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Fetch factuur + organization_id
@@ -313,12 +348,17 @@ serve(async (req) => {
       });
     }
     const locationId = factuur.location_id as string;
-    const organizationId = (factuur as any).locations?.organization_id as string | undefined;
+    const organizationId = (factuur as any).locations?.organization_id as
+      | string
+      | undefined;
     if (!organizationId) {
-      return new Response(JSON.stringify({ error: "Kan organisatie niet bepalen" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Kan organisatie niet bepalen" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // DRY-RUN: synchronous, no claim, no DB-writes — return preview
@@ -345,13 +385,23 @@ serve(async (req) => {
             cost_eur: result.costEur,
             preview: result.data,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       } catch (e) {
         console.error("[parse-factuur-v2] dry-run failed:", e);
         return new Response(
-          JSON.stringify({ error: "extractie_mislukt", detail: String(e), factuurId }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({
+            error: "extractie_mislukt",
+            detail: String(e),
+            factuurId,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
     }
@@ -359,14 +409,28 @@ serve(async (req) => {
     // FULL RUN — race-guard + atomic claim
     if (factuur.ai_parsing_status === "processing") {
       return new Response(
-        JSON.stringify({ accepted: false, factuurId, reason: "already_processing" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          accepted: false,
+          factuurId,
+          reason: "already_processing",
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
     if (factuur.ai_parsing_status === "completed") {
       return new Response(
-        JSON.stringify({ accepted: false, factuurId, reason: "already_completed" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          accepted: false,
+          factuurId,
+          reason: "already_completed",
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -379,15 +443,21 @@ serve(async (req) => {
       .maybeSingle();
 
     if (claimErr) {
-      return new Response(JSON.stringify({ error: "Kon factuur niet claimen" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Kon factuur niet claimen" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
     if (!claimed) {
       return new Response(
         JSON.stringify({ accepted: false, factuurId, reason: "race_lost" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -431,13 +501,19 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ accepted: true, factuurId, version: "v2" }),
-      { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      {
+        status: 202,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (err) {
     console.error("[parse-factuur-v2] handler error:", err);
     return new Response(
       JSON.stringify({ error: "Interne fout", detail: String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
