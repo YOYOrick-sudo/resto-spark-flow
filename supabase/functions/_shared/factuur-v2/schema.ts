@@ -1,10 +1,15 @@
 // supabase/functions/_shared/factuur-v2/schema.ts
 // Sprint Factuur-AI V2 — JSON Schema voor Gemini responseSchema (structured output).
 //
-// AI mag GEEN andere waardes voor verpakking_eenheid (L|kg|stuk) of
-// btw_percentage (0|9|21) teruggeven. Dwingt consistentie af op model-niveau.
+// AI mag GEEN andere waardes voor verpakking_eenheid (L|kg|stuk) teruggeven.
+// btw_percentage moet 0/9/21 zijn (door validator afgedwongen, niet via enum
+// omdat numerieke enums door Gemini structured-output worden afgewezen).
 //
 // strict:true op gateway-niveau zorgt dat het schema hard wordt afgedwongen.
+//
+// LET OP: descriptions zijn bewust kort om response-tokens te minimaliseren.
+// Functionele descriptions die DATAVALIDITEIT beïnvloeden (BTW-tarieven,
+// verpakking_eenheid regel, prijs-formules) blijven volledig.
 
 export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
   type: "object",
@@ -22,21 +27,20 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
     leverancier_naam: { type: "string" },
     leverancier_btw_nummer: {
       type: ["string", "null"],
-      description:
-        "BTW-nummer formaat NL\\d{9}B\\d{2} (bv NL123456789B01). Null als niet gevonden.",
+      description: "Formaat NL\\d{9}B\\d{2}. Null indien onbekend.",
     },
     leverancier_kvk: {
       type: ["string", "null"],
-      description: "KvK nummer 8 cijfers. Null als niet gevonden.",
+      description: "KvK 8 cijfers. Null indien onbekend.",
     },
     factuur_nummer: { type: ["string", "null"] },
     factuur_datum: {
       type: ["string", "null"],
-      description: "ISO 8601 YYYY-MM-DD. NL-factuur DD-MM-YYYY converteren.",
+      description: "ISO 8601 YYYY-MM-DD (DD-MM-YYYY converteren).",
     },
     subtotaal_excl_btw: {
       type: ["number", "null"],
-      description: "Subtotaal exclusief BTW. Decimalen met punt.",
+      description: "Subtotaal excl. BTW.",
     },
     btw_regels: {
       type: "array",
@@ -48,7 +52,7 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
           percentage: {
             type: "number",
             description:
-              "NL BTW-tarief. ALLEEN 0, 9, of 21 toegestaan. Andere waarden zijn FOUT en worden afgewezen door validator.",
+              "NL BTW-tarief. ALLEEN 0, 9, of 21 toegestaan. Andere waarden zijn FOUT.",
           },
           basis_bedrag: { type: "number" },
           btw_bedrag: { type: "number" },
@@ -64,60 +68,56 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
         properties: {
           artikelnummer: {
             type: ["string", "null"],
-            description:
-              "Leveranciers artikelnummer. KRITIEK voor cache-match. Null bij twijfel.",
+            description: "Leveranciers artikelnummer. Null bij twijfel.",
           },
           product_naam: {
             type: "string",
             description:
-              "Schone productnaam zonder prijzen, kolom-codes of trailing suffixes (KR, L, DS, ZK, TR, BK).",
+              "Schone naam zonder prijzen of suffixes (KR, L, DS, ZK, TR, BK).",
           },
           product_omschrijving_kort: {
             type: ["string", "null"],
-            description:
-              "Korte naam voor matching tegen ingredienten. Bv 'olijfolie'. Geen merk/verpakking.",
+            description: "Korte naam voor matching. Geen merk/verpakking.",
           },
           hoeveelheid_besteld: {
             type: ["number", "null"],
-            description: "Aantal besteld (bv 2 dozen olijfolie).",
+            description: "Aantal besteld (excl. verpakking).",
           },
           verpakking_hoeveelheid: {
             type: ["number", "null"],
             description:
-              "Hoeveelheid per besteld item in basiseenheid. 5L fles → 5. 24×33cl bier → 24. 500gr boter → 0.5.",
+              "Hoeveelheid per item in basiseenheid. 5L fles=5. 24×33cl=24. 500gr=0.5.",
           },
           verpakking_eenheid: {
             type: "string",
             enum: ["L", "kg", "stuk"],
             description:
-              "Basiseenheid waarin chef rekent. Drank ALTIJD stuk. Olie/sap/melk = L. Vlees/vis/groente = kg.",
+              "Basiseenheid. Drank ALTIJD stuk. Olie/sap/melk=L. Vlees/vis/groente=kg.",
           },
           prijs_per_besteld_item: {
             type: ["number", "null"],
-            description: "Prijs per besteld item zoals op factuur.",
+            description: "Prijs per besteld item.",
           },
           prijs_per_basiseenheid: {
             type: ["number", "null"],
-            description:
-              "Prijs per L/kg/stuk = prijs_per_besteld_item / verpakking_hoeveelheid.",
+            description: "= prijs_per_besteld_item / verpakking_hoeveelheid.",
           },
           prijs_totaal: {
             type: ["number", "null"],
-            description:
-              "Regeltotaal = hoeveelheid_besteld × prijs_per_besteld_item.",
+            description: "= hoeveelheid_besteld × prijs_per_besteld_item.",
           },
           btw_percentage: {
             type: ["number", "null"],
             description:
-              "NL BTW-tarief per regel. ALLEEN 0, 9, of 21 toegestaan, of null als niet vermeld (bv. emballage). Andere waarden zijn FOUT.",
+              "NL BTW per regel. ALLEEN 0, 9, of 21, of null (bv emballage). Andere waarden zijn FOUT.",
           },
           is_emballage: {
             type: "boolean",
-            description: "True bij statiegeld/emballage-regel.",
+            description: "True bij statiegeld/emballage.",
           },
           is_credit: {
             type: "boolean",
-            description: "True bij negatief bedrag of retour/credit.",
+            description: "True bij negatief bedrag/retour.",
           },
           confidence: {
             type: "string",
@@ -128,7 +128,7 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
     },
     extractie_waarschuwingen: {
       type: "array",
-      description: "Velden of regels waar AI onzeker over was.",
+      description: "Onzekere velden/regels.",
       items: { type: "string" },
     },
   },

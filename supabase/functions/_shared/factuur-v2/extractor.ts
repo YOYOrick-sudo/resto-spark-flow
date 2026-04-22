@@ -16,8 +16,8 @@ import type { FactuurV2Output } from "./types.ts";
 // trager + minder accuraat. Truncation-detectie in _shared/ai.ts (callGateway)
 // throwt AI_TRUNCATED bij finish_reason=length OF outputTokens >= 95% van budget,
 // dus we krijgen NU al een harde error i.p.v. stille data-loss als 32k ooit krap blijkt.
-const MAX_TOKENS_V2 = 32000;
-const MAX_TOKENS_V2_FALLBACK = 32000; // pro heeft hoger limit, bewust gelijk gehouden
+const MAX_TOKENS_V2 = 60000;
+const MAX_TOKENS_V2_FALLBACK = 60000; // match V1 exact; Gemini Flash supports 65k output
 
 export interface ExtractorInput {
   /** Volledige PDF-tekst (gejoined per pagina). Leeg bij scan-PDF. */
