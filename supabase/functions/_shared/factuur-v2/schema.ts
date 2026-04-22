@@ -47,8 +47,8 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
         properties: {
           percentage: {
             type: "number",
-            enum: [0, 9, 21],
-            description: "NL BTW-tarieven. Andere waardes = error.",
+            description:
+              "NL BTW-tarief. ALLEEN 0, 9, of 21 toegestaan. Andere waarden zijn FOUT en worden afgewezen door validator.",
           },
           basis_bedrag: { type: "number" },
           btw_bedrag: { type: "number" },
@@ -108,7 +108,8 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
           },
           btw_percentage: {
             type: ["number", "null"],
-            enum: [0, 9, 21, null],
+            description:
+              "NL BTW-tarief per regel. ALLEEN 0, 9, of 21 toegestaan, of null als niet vermeld (bv. emballage). Andere waarden zijn FOUT.",
           },
           is_emballage: {
             type: "boolean",
