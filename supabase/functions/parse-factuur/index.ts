@@ -170,9 +170,52 @@ async function broadcastFactuurStatus(
   }
 }
 
+// =====================================================
+// Feature-flag router (Sprint Factuur-AI V2)
+// PARSE_FACTUUR_VERSION env: "v1" | "v2" | "parallel" (default v1)
+//   v1       → bestaande flow (no-op router)
+//   v2       → forward request naar parse-factuur-v2 endpoint
+//   parallel → V1 normaal + fire-and-forget V2 dry-run (log-only, geen DB-writes)
+// =====================================================
+async function forwardToV2(req: Request): Promise<Response> {
+  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/parse-factuur-v2`;
+  const bodyText = await req.text();
+  const headers = new Headers();
+  for (const [k, v] of req.headers.entries()) {
+    if (k.toLowerCase() !== "content-length" && k.toLowerCase() !== "host") {
+      headers.set(k, v);
+    }
+  }
+  headers.set("Content-Type", "application/json");
+  return await fetch(url, { method: "POST", headers, body: bodyText });
+}
+
+async function shadowRunV2(authHeader: string, factuurId: string): Promise<void> {
+  try {
+    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/parse-factuur-v2`;
+    const headers = new Headers();
+    headers.set("Content-Type", "application/json");
+    headers.set("Authorization", authHeader);
+    await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ factuurId, dry_run: true }),
+    });
+    console.log(`[parse-factuur] shadow V2 dry-run dispatched for ${factuurId}`);
+  } catch (e) {
+    console.warn("[parse-factuur] shadow V2 failed (non-blocking):", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // === Feature-flag dispatch ===
+  const version = Deno.env.get("PARSE_FACTUUR_VERSION") ?? "v1";
+  if (version === "v2") {
+    return await forwardToV2(req);
   }
 
   try {
@@ -208,6 +251,14 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // === Parallel mode: fire-and-forget shadow V2 dry-run ===
+    if (version === "parallel") {
+      const shadowJob = shadowRunV2(authHeader, factuurId);
+      if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+        EdgeRuntime.waitUntil(shadowJob);
+      }
     }
 
     // --- Fetch factuur record ---
