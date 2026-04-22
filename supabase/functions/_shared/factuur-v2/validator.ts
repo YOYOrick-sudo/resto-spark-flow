@@ -68,9 +68,34 @@ export function validateFactuur(data: FactuurV2Output): ValidationResult {
     }
   }
 
-  // 3. BTW-math per tarief
+  // 3a. BTW-percentage whitelist (vervangt schema-enum dat Gemini niet accepteert)
+  // NL kent alleen 0/9/21. Null toegestaan op regel-niveau (bv. emballage).
+  const ALLOWED_BTW = [0, 9, 21];
+
   if (data.btw_regels && data.btw_regels.length > 0) {
     for (const btw of data.btw_regels) {
+      if (!ALLOWED_BTW.includes(btw.percentage)) {
+        errors.push(
+          `Ongeldig BTW-percentage in btw_regels: ${btw.percentage}. Alleen 0/9/21 toegestaan.`,
+        );
+      }
+    }
+  }
+
+  for (const [idx, regel] of (data.regels ?? []).entries()) {
+    const pct = regel.btw_percentage;
+    // Null = skip (geen expliciete BTW vermeld, bv. emballage)
+    if (pct != null && !ALLOWED_BTW.includes(pct)) {
+      errors.push(
+        `Regel ${idx + 1} (${regel.product_naam}): ongeldig BTW-percentage ${pct}. Alleen 0/9/21 toegestaan.`,
+      );
+    }
+  }
+
+  // 3b. BTW-math per tarief (alleen op valide percentages)
+  if (data.btw_regels && data.btw_regels.length > 0) {
+    for (const btw of data.btw_regels) {
+      if (!ALLOWED_BTW.includes(btw.percentage)) continue; // al gerapporteerd in 3a
       const verwachtBtw = btw.basis_bedrag * (btw.percentage / 100);
       if (Math.abs(verwachtBtw - btw.btw_bedrag) > CENT_TOLERANCE) {
         warnings.push(
