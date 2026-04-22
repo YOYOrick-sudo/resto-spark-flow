@@ -173,9 +173,18 @@ async function broadcastFactuurStatus(
 // =====================================================
 // Feature-flag router (Sprint Factuur-AI V2)
 // PARSE_FACTUUR_VERSION env: "v1" | "v2" | "parallel" (default v1)
-//   v1       → bestaande flow (no-op router)
-//   v2       → forward request naar parse-factuur-v2 endpoint
-//   parallel → V1 normaal + fire-and-forget V2 dry-run (log-only, geen DB-writes)
+//   v2       → PRODUCTIE-DEFAULT (sinds 22-04-2026, na 5 succesvolle dry-runs).
+//              Forward request naar parse-factuur-v2; V2 schrijft direct naar
+//              productievelden (factuur_uploads + factuur_regels).
+//              v2_shadow_* kolommen blijven NULL in v2-mode (rollback-vangnet
+//              tot 06-05-2026, daarna droppen).
+//   v1       → ESCAPE-HATCH voor rollback. Bestaande V1-flow met 5-tier match
+//              cascade + Round-2 semantic AI match.
+//   parallel → V1 normaal + fire-and-forget V2 dry-run (log-only, geen DB-writes).
+//              Alleen voor pre-cutover validatie. Niet meer in productie-gebruik.
+//
+// Rollback-procedure: secret PARSE_FACTUUR_VERSION = v1 (geen redeploy nodig,
+// Deno.env.get leest per request). Cutover-impact <30s.
 // =====================================================
 async function forwardToV2(req: Request): Promise<Response> {
   const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/parse-factuur-v2`;
