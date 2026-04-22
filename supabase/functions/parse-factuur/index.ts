@@ -191,19 +191,33 @@ async function forwardToV2(req: Request): Promise<Response> {
 }
 
 async function shadowRunV2(authHeader: string, factuurId: string): Promise<void> {
+  // BELANGRIJK: deze hele Promise wordt aan EdgeRuntime.waitUntil() doorgegeven.
+  // We MOETEN de response-body consumeren, anders kan de runtime de fetch
+  // killen voordat parse-factuur-v2 booten of antwoorden kan.
+  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/parse-factuur-v2`;
+  const headers = new Headers();
+  headers.set("Content-Type", "application/json");
+  headers.set("Authorization", authHeader);
+  const startedAt = Date.now();
   try {
-    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/parse-factuur-v2`;
-    const headers = new Headers();
-    headers.set("Content-Type", "application/json");
-    headers.set("Authorization", authHeader);
-    await fetch(url, {
+    console.log(`[parse-factuur] shadow V2 dispatch start ${factuurId}`);
+    const resp = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify({ factuurId, dry_run: true }),
     });
-    console.log(`[parse-factuur] shadow V2 dry-run dispatched for ${factuurId}`);
+    // Body lezen blokkeert tot V2 klaar is — houdt waitUntil-lifecycle vast.
+    const bodyText = await resp.text();
+    const took = Date.now() - startedAt;
+    console.log(
+      `[parse-factuur] shadow V2 done ${factuurId} status=${resp.status} took=${took}ms bodyBytes=${bodyText.length}`,
+    );
   } catch (e) {
-    console.warn("[parse-factuur] shadow V2 failed (non-blocking):", e);
+    const took = Date.now() - startedAt;
+    console.warn(
+      `[parse-factuur] shadow V2 failed (non-blocking) ${factuurId} took=${took}ms:`,
+      e,
+    );
   }
 }
 

@@ -361,7 +361,8 @@ serve(async (req) => {
       );
     }
 
-    // DRY-RUN: synchronous, no claim, no DB-writes — return preview
+    // DRY-RUN: synchronous, no claim, no factuur_regels writes.
+    // WEL persistente shadow-velden op factuur_uploads (parallel-mode vergelijking).
     if (dryRun) {
       try {
         const result = await asyncRunV2({
@@ -372,6 +373,38 @@ serve(async (req) => {
           bestandUrl: factuur.bestand_url as string,
           dryRun: true,
         });
+
+        // Shadow-write naar dedicated v2_shadow_* kolommen.
+        // Conflict-vrij: V1 schrijft hier nooit in.
+        const { error: shadowErr } = await supabase
+          .from("factuur_uploads")
+          .update({
+            v2_shadow_response: result.data as unknown as Record<
+              string,
+              unknown
+            >,
+            v2_shadow_validation_status: result.validationStatus,
+            v2_shadow_tokens_input: result.tokensInput,
+            v2_shadow_tokens_output: result.tokensOutput,
+            v2_shadow_cost_eur: result.costEur,
+            v2_shadow_parse_method: result.parseMethod,
+            v2_shadow_completed_at: new Date().toISOString(),
+            v2_shadow_error: null,
+          })
+          .eq("id", factuurId);
+        if (shadowErr) {
+          console.warn(
+            "[parse-factuur-v2] shadow persist failed (non-blocking):",
+            shadowErr,
+          );
+        } else {
+          console.log(
+            `[parse-factuur-v2] shadow persisted factuurId=${factuurId} regels=${
+              result.data.regels?.length ?? 0
+            } tokens=${result.tokensInput}+${result.tokensOutput} cost=€${result.costEur}`,
+          );
+        }
+
         return new Response(
           JSON.stringify({
             dry_run: true,
@@ -392,6 +425,14 @@ serve(async (req) => {
         );
       } catch (e) {
         console.error("[parse-factuur-v2] dry-run failed:", e);
+        // Persist error voor zichtbaarheid in DB.
+        await supabase
+          .from("factuur_uploads")
+          .update({
+            v2_shadow_error: String(e).slice(0, 2000),
+            v2_shadow_completed_at: new Date().toISOString(),
+          })
+          .eq("id", factuurId);
         return new Response(
           JSON.stringify({
             error: "extractie_mislukt",
