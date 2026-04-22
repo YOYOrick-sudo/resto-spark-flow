@@ -103,7 +103,8 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
           },
           prijs_totaal: {
             type: ["number", "null"],
-            description: "Regeltotaal = hoeveelheid_besteld × prijs_per_besteld_item.",
+            description:
+              "Regeltotaal = hoeveelheid_besteld × prijs_per_besteld_item.",
           },
           btw_percentage: {
             type: ["number", "null"],
