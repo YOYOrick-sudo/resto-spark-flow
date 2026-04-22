@@ -365,6 +365,29 @@ serve(async (req) => {
     // WEL persistente shadow-velden op factuur_uploads (parallel-mode vergelijking).
     if (dryRun) {
       const startedAt = Date.now();
+
+      // START-marker: zet status='processing' direct, vóór de zware AI-call.
+      // Doel: bij container-shutdown weten we dat V2 wél gestart is (status
+      // blijft 'processing' i.p.v. NULL). Onderscheid tussen "nooit gestart"
+      // en "gestart maar gekilled" door Edge Runtime.
+      try {
+        await supabase
+          .from("factuur_uploads")
+          .update({
+            v2_shadow_validation_status: "processing",
+            v2_shadow_completed_at: null,
+            v2_shadow_error: null,
+            v2_shadow_response: null,
+            v2_shadow_duration_ms: null,
+          })
+          .eq("id", factuurId);
+      } catch (markerErr) {
+        console.warn(
+          "[parse-factuur-v2] start-marker write failed (non-blocking):",
+          markerErr,
+        );
+      }
+
       try {
         const result = await asyncRunV2({
           supabase,

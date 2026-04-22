@@ -190,6 +190,10 @@ async function forwardToV2(req: Request): Promise<Response> {
   return await fetch(url, { method: "POST", headers, body: bodyText });
 }
 
+// Caller-timeout: 310s = 10s buffer boven V2 max (300s) zodat persist-on-failure
+// in V2 nog kan voltooien voordat caller afkapt.
+const SHADOW_V2_TIMEOUT_MS = 310_000;
+
 async function shadowRunV2(authHeader: string, factuurId: string): Promise<void> {
   // BELANGRIJK: deze hele Promise wordt aan EdgeRuntime.waitUntil() doorgegeven.
   // We MOETEN de response-body consumeren, anders kan de runtime de fetch
@@ -199,12 +203,15 @@ async function shadowRunV2(authHeader: string, factuurId: string): Promise<void>
   headers.set("Content-Type", "application/json");
   headers.set("Authorization", authHeader);
   const startedAt = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SHADOW_V2_TIMEOUT_MS);
   try {
     console.log(`[parse-factuur] shadow V2 dispatch start ${factuurId}`);
     const resp = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify({ factuurId, dry_run: true }),
+      signal: controller.signal,
     });
     // Body lezen blokkeert tot V2 klaar is — houdt waitUntil-lifecycle vast.
     const bodyText = await resp.text();
@@ -218,6 +225,8 @@ async function shadowRunV2(authHeader: string, factuurId: string): Promise<void>
       `[parse-factuur] shadow V2 failed (non-blocking) ${factuurId} took=${took}ms:`,
       e,
     );
+  } finally {
+    clearTimeout(timer);
   }
 }
 
