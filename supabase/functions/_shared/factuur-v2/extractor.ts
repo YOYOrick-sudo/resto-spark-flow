@@ -70,7 +70,7 @@ export async function extractFactuur(
     maxTokens: input.modelOverride === "google/gemini-2.5-pro"
       ? MAX_TOKENS_V2_FALLBACK
       : MAX_TOKENS_V2,
-    timeoutMs: 90_000,
+    timeoutMs: 300_000,
     modelOverride: input.modelOverride,
     responseSchema: {
       name: "factuur_extractie",

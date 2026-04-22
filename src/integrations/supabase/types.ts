@@ -1467,6 +1467,7 @@ export type Database = {
           updated_at: string
           v2_shadow_completed_at: string | null
           v2_shadow_cost_eur: number | null
+          v2_shadow_duration_ms: number | null
           v2_shadow_error: string | null
           v2_shadow_parse_method: string | null
           v2_shadow_response: Json | null
@@ -1509,6 +1510,7 @@ export type Database = {
           updated_at?: string
           v2_shadow_completed_at?: string | null
           v2_shadow_cost_eur?: number | null
+          v2_shadow_duration_ms?: number | null
           v2_shadow_error?: string | null
           v2_shadow_parse_method?: string | null
           v2_shadow_response?: Json | null
@@ -1551,6 +1553,7 @@ export type Database = {
           updated_at?: string
           v2_shadow_completed_at?: string | null
           v2_shadow_cost_eur?: number | null
+          v2_shadow_duration_ms?: number | null
           v2_shadow_error?: string | null
           v2_shadow_parse_method?: string | null
           v2_shadow_response?: Json | null
