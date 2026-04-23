@@ -1,0 +1,31 @@
+-- Reset Boer & Chef factuur 9b781359 voor re-parse met nieuwe Validator-Slim gate
+DELETE FROM public.factuur_regels WHERE factuur_id = '9b781359-b637-477b-96e1-c0435e24fdb9';
+
+UPDATE public.factuur_uploads
+SET status = 'verwerken',
+    ai_parsing_status = 'pending',
+    totaalbedrag = NULL,
+    subtotaal_excl_btw = NULL,
+    totaal_incl_btw = NULL,
+    btw_bedrag = NULL,
+    btw_percentage = NULL,
+    leverancier_naam_herkend = NULL,
+    leverancier_id = NULL,
+    factuurnummer = NULL,
+    factuurdatum = NULL,
+    ai_raw_response = NULL,
+    ai_parsed_at = NULL,
+    ai_tokens_input = NULL,
+    ai_tokens_output = NULL,
+    ai_cost_estimate = NULL,
+    ai_confidence_overall = NULL,
+    parse_confidence = NULL,
+    validation_status = NULL,
+    validation_warnings = NULL,
+    validation_errors = NULL,
+    validation_retries = 0,
+    validation_blocked_reason = NULL,
+    fuzzy_kandidaten = '[]'::jsonb,
+    preview_snapshot = NULL,
+    ruwe_tekst = NULL
+WHERE id = '9b781359-b637-477b-96e1-c0435e24fdb9';
