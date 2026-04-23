@@ -1,0 +1,467 @@
+// supabase/functions/parse-pakbon/index.ts
+// Sprint Pakbon V1 — AI-extractie van pakbon-PDF/image, matching naar
+// ingredienten, vullen van goods_receipt_lines.
+//
+// AUTHENTICATIE:
+//   Service-role only. verify_jwt=false in config.toml + IN-CODE check:
+//   Authorization header MOET matchen met SUPABASE_SERVICE_ROLE_KEY,
+//   anders 403. Dit voorkomt dat externe partijen direct kunnen triggeren.
+//
+// FLOW:
+//   1. Auth check (service-role only)
+//   2. Download attachment uit storage
+//   3. AI-extractie via Lovable Gateway (Gemini 2.5 Pro, multimodal)
+//   4. Match-cascade per regel via _shared/ingredientMatcher.ts
+//   5. Bulk insert goods_receipt_lines (status=verwacht)
+//   6. Update goods_receipts (ai_parse_status, totaal_regels_verwacht, etc.)
+//   7. Update pakbon_email_intake.ai_parse_status
+//   8. Link met openstaande interne_bestellingen indien mogelijk (best-effort)
+//   9. Broadcast realtime update
+//
+// MULTI-LEVERANCIER:
+//   Match-cascade kan ingredient hitten dat bij ANDERE leverancier hoort
+//   (Tier-3 hit). NIET blokkeren — markeer is_nieuw_ingredient=false +
+//   ingredient_id=bestaande. UI behandelt "extra leverancier vs nieuw" later.
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai.ts";
+import {
+  matchIngredientLines,
+  type MatchableLine,
+} from "../_shared/ingredientMatcher.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+// =====================================================
+// AI Schema voor pakbon-extractie
+// =====================================================
+const PAKBON_SCHEMA = {
+  type: "object",
+  properties: {
+    extractie_status: { type: "string", enum: ["success", "partial", "failed"] },
+    leverancier_naam: { type: "string" },
+    pakbon_nummer: { type: ["string", "null"] },
+    levering_datum: { type: ["string", "null"], description: "ISO date YYYY-MM-DD" },
+    bestelnummer_referentie: { type: ["string", "null"] },
+    regels: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          artikelnummer: { type: ["string", "null"] },
+          product_naam: { type: "string" },
+          hoeveelheid_geleverd: { type: ["number", "null"] },
+          verpakking_eenheid: {
+            type: ["string", "null"],
+            enum: ["L", "kg", "stuk", null],
+          },
+          verpakking_hoeveelheid: { type: ["number", "null"] },
+          lotnummer: { type: ["string", "null"] },
+          tht_datum: { type: ["string", "null"], description: "ISO date" },
+          haccp_categorie: {
+            type: ["string", "null"],
+            enum: ["ambient", "gekoeld", "vries", "vis_op_ijs", null],
+          },
+          confidence: { type: ["string", "null"], enum: ["hoog", "medium", "laag", null] },
+        },
+        required: ["product_naam", "verpakking_eenheid"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["extractie_status", "leverancier_naam", "regels"],
+  additionalProperties: false,
+} as const;
+
+const PAKBON_SYSTEM_PROMPT = `Je bent een expert in het uitlezen van Nederlandse horeca-pakbonnen.
+Een pakbon is een leveringsdocument zonder prijzen — alleen producten + aantallen.
+
+EXTRACTIE-REGELS:
+- product_naam: exacte productomschrijving zoals op pakbon (behoud haakjes/leestekens)
+- artikelnummer: leverancier-eigen code (mag null zijn)
+- hoeveelheid_geleverd: aantal eenheden geleverd (bv. 5 dozen → 5)
+- verpakking_eenheid: STRIKT één van: "L" (liter), "kg" (gewicht), "stuk" (per item)
+- verpakking_hoeveelheid: inhoud per verpakking (bv. doos 12×1L → 12)
+- lotnummer: indien vermeld (verplicht voor HACCP-traceability)
+- tht_datum: T.H.T. of "houdbaar tot" datum (ISO YYYY-MM-DD)
+- haccp_categorie: schat in op basis van producttype:
+    * "vries" voor diepvries (-18°C)
+    * "gekoeld" voor zuivel/vlees/vis (2-7°C)
+    * "vis_op_ijs" voor verse vis op ijs (0-2°C)
+    * "ambient" voor droge waar (kamertemperatuur)
+- confidence: "hoog" (zekere extractie), "medium" (kleine twijfel), "laag" (onleesbaar)
+
+CRITICAL:
+- Pakbonnen hebben GEEN prijzen — extraheer ALLEEN aantallen + producten
+- Bij twijfel over verpakking: kies "stuk" en confidence "laag"
+- Negeer kop/voet-tekst, leveringsadres, handtekening-velden
+- bestelnummer_referentie = order/PO-nummer indien vermeld (voor matching)`;
+
+// =====================================================
+// Helpers
+// =====================================================
+
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function parseJsonStrict<T>(text: string): T {
+  let cleaned = text.trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  const first = cleaned.indexOf("{");
+  const last = cleaned.lastIndexOf("}");
+  if (first >= 0 && last > first) cleaned = cleaned.slice(first, last + 1);
+  return JSON.parse(cleaned) as T;
+}
+
+interface PakbonExtractie {
+  extractie_status: "success" | "partial" | "failed";
+  leverancier_naam: string;
+  pakbon_nummer?: string | null;
+  levering_datum?: string | null;
+  bestelnummer_referentie?: string | null;
+  regels: Array<{
+    artikelnummer?: string | null;
+    product_naam: string;
+    hoeveelheid_geleverd?: number | null;
+    verpakking_eenheid?: "L" | "kg" | "stuk" | null;
+    verpakking_hoeveelheid?: number | null;
+    lotnummer?: string | null;
+    tht_datum?: string | null;
+    haccp_categorie?: "ambient" | "gekoeld" | "vries" | "vis_op_ijs" | null;
+    confidence?: "hoog" | "medium" | "laag" | null;
+  }>;
+}
+
+// =====================================================
+// Handler
+// =====================================================
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  // ===========================================================
+  // 1. Service-role auth check (verify_jwt=false vereist in-code check)
+  // ===========================================================
+  const authHeader = req.headers.get("Authorization");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!authHeader || !serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`) {
+    console.warn("[parse-pakbon] unauthorized request");
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // ===========================================================
+  // 2. Parse + validate body
+  // ===========================================================
+  let body: { goods_receipt_id?: string; intake_id?: string; attachment_path?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (!body.goods_receipt_id || !body.attachment_path) {
+    return new Response(
+      JSON.stringify({ error: "Missing goods_receipt_id or attachment_path" }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+
+  // ===========================================================
+  // 3. Fetch goods_receipt voor context
+  // ===========================================================
+  const { data: receipt, error: recErr } = await supabase
+    .from("goods_receipts")
+    .select("id, location_id, organization_id, leverancier_id, bestelling_id")
+    .eq("id", body.goods_receipt_id)
+    .maybeSingle();
+
+  if (recErr || !receipt) {
+    console.error("[parse-pakbon] goods_receipt niet gevonden:", recErr);
+    return new Response(JSON.stringify({ error: "Receipt not found" }), {
+      status: 404,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // ===========================================================
+  // 4. Download attachment uit storage
+  // ===========================================================
+  const { data: blob, error: dlErr } = await supabase.storage
+    .from("pakbonnen")
+    .download(body.attachment_path);
+
+  if (dlErr || !blob) {
+    console.error("[parse-pakbon] attachment download failed:", dlErr);
+    await markFailed(supabase, receipt.id, body.intake_id, "Attachment download failed");
+    return new Response(JSON.stringify({ error: "Download failed" }), {
+      status: 502,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const base64 = uint8ToBase64(bytes);
+  const mimeType = blob.type || "application/pdf";
+
+  // ===========================================================
+  // 5. AI-extractie via Lovable Gateway (Gemini 2.5 Pro)
+  // ===========================================================
+  const aiModel = "google/gemini-2.5-pro";
+  let extractie: PakbonExtractie;
+  let aiCost = 0;
+  let aiTokensIn = 0;
+  let aiTokensOut = 0;
+
+  try {
+    const aiResponse = await callAI({
+      featureKey: "parse-pakbon",
+      organizationId: receipt.organization_id,
+      locationId: receipt.location_id,
+      systemPrompt: PAKBON_SYSTEM_PROMPT,
+      prompt: "Extraheer deze pakbon volgens het schema.",
+      documents: [{ data: base64, mimeType }],
+      modelOverride: aiModel,
+      temperature: 0.0,
+      maxTokens: 30000,
+      timeoutMs: 180_000,
+      responseSchema: {
+        name: "pakbon_extractie",
+        strict: true,
+        schema: PAKBON_SCHEMA,
+      },
+    } as any);
+
+    extractie = parseJsonStrict<PakbonExtractie>(aiResponse.text);
+    aiCost = aiResponse.costEur ?? 0;
+    aiTokensIn = aiResponse.tokensInput ?? 0;
+    aiTokensOut = aiResponse.tokensOutput ?? 0;
+  } catch (err) {
+    console.error("[parse-pakbon] AI extractie failed:", err);
+    await markFailed(
+      supabase,
+      receipt.id,
+      body.intake_id,
+      `AI extractie faalde: ${(err as Error).message?.slice(0, 200)}`,
+    );
+    return new Response(JSON.stringify({ error: "AI extraction failed" }), {
+      status: 502,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (extractie.extractie_status === "failed" || extractie.regels.length === 0) {
+    await markFailed(
+      supabase,
+      receipt.id,
+      body.intake_id,
+      "AI kon geen regels extraheren",
+    );
+    return new Response(
+      JSON.stringify({ status: "failed", reason: "no_regels" }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  // ===========================================================
+  // 6. Match-cascade per regel via shared matcher
+  // ===========================================================
+  const matchableLines: MatchableLine[] = extractie.regels.map((r) => ({
+    artikelnummer: r.artikelnummer ?? null,
+    product_naam: r.product_naam,
+    verpakking_eenheid: r.verpakking_eenheid ?? null,
+    verpakking_hoeveelheid: r.verpakking_hoeveelheid ?? null,
+  }));
+
+  const { matches, stats } = await matchIngredientLines(supabase, {
+    locationId: receipt.location_id,
+    leverancierId: receipt.leverancier_id,
+    lines: matchableLines,
+    autoUpsertOnTier34: true,
+  });
+
+  console.log(
+    `[parse-pakbon] match-stats receipt=${receipt.id} tier1=${stats.tier1} tier2=${stats.tier2} tier3=${stats.tier3} tier4=${stats.tier4} unmatched=${stats.unmatched}`,
+  );
+
+  // ===========================================================
+  // 7. Best-effort: link met openstaande interne_bestelling
+  // (alleen als bestelnummer_referentie matcht en nog geen bestelling_id)
+  // ===========================================================
+  let bestellingId: string | null = receipt.bestelling_id;
+  if (!bestellingId && extractie.bestelnummer_referentie) {
+    const { data: bestMatch } = await supabase
+      .from("interne_bestellingen")
+      .select("id")
+      .eq("location_id", receipt.location_id)
+      .ilike("bestelnummer", extractie.bestelnummer_referentie.trim())
+      .maybeSingle();
+    if (bestMatch?.id) bestellingId = bestMatch.id;
+  }
+
+  // ===========================================================
+  // 8. Bulk insert goods_receipt_lines
+  // ===========================================================
+  const lineRows = extractie.regels.map((r, idx) => {
+    const hit = matches[idx];
+    const conf = r.confidence === "hoog" ? 0.95 : r.confidence === "medium" ? 0.7 : 0.4;
+    return {
+      goods_receipt_id: receipt.id,
+      product_naam_herkend: r.product_naam,
+      ai_raw_naam: r.product_naam,
+      ai_raw_artikelnummer: (r.artikelnummer ?? "").trim() || null,
+      ai_confidence: conf,
+      hoeveelheid_verwacht: r.hoeveelheid_geleverd ?? null,
+      eenheid_verwacht: r.verpakking_eenheid ?? null,
+      ingredient_id: hit?.ingredient_id ?? null,
+      is_nieuw_ingredient: !hit,
+      match_status: hit ? "matched" : "unmatched",
+      match_confidence: hit ? hit.confidence : null,
+      haccp_categorie: r.haccp_categorie ?? null,
+      lotnummer: r.lotnummer ?? null,
+      tht_datum: r.tht_datum ?? null,
+      status: "verwacht" as const,
+    };
+  });
+
+  // Idempotent: delete existing → insert (re-run scenario)
+  await supabase.from("goods_receipt_lines").delete().eq("goods_receipt_id", receipt.id);
+  const { error: insErr } = await supabase
+    .from("goods_receipt_lines")
+    .insert(lineRows);
+
+  if (insErr) {
+    console.error("[parse-pakbon] insert lines failed:", insErr);
+    await markFailed(supabase, receipt.id, body.intake_id, `Insert lines: ${insErr.message}`);
+    return new Response(JSON.stringify({ error: "Insert failed" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // ===========================================================
+  // 9. Update goods_receipts
+  // ===========================================================
+  const aiParseStatus = extractie.extractie_status === "partial" ? "partial" : "success";
+  const overallConfidence = extractie.regels.length > 0
+    ? extractie.regels.reduce((s, r) => {
+        const c = r.confidence === "hoog" ? 0.95 : r.confidence === "medium" ? 0.7 : 0.4;
+        return s + c;
+      }, 0) / extractie.regels.length
+    : null;
+
+  const { error: updErr } = await supabase
+    .from("goods_receipts")
+    .update({
+      ai_parse_status: aiParseStatus,
+      ai_raw_response: extractie as unknown as Record<string, unknown>,
+      ai_model_version: aiModel,
+      ai_parse_confidence: overallConfidence,
+      pakbon_nummer: extractie.pakbon_nummer ?? null,
+      levering_datum: extractie.levering_datum ?? null,
+      bestelling_id: bestellingId,
+      totaal_regels_verwacht: extractie.regels.length,
+    })
+    .eq("id", receipt.id);
+
+  if (updErr) {
+    console.error("[parse-pakbon] update receipt failed:", updErr);
+  }
+
+  // ===========================================================
+  // 10. Update pakbon_email_intake
+  // ===========================================================
+  if (body.intake_id) {
+    await supabase
+      .from("pakbon_email_intake")
+      .update({ ai_parse_status: aiParseStatus })
+      .eq("id", body.intake_id);
+  }
+
+  // ===========================================================
+  // 11. Broadcast realtime update
+  // ===========================================================
+  try {
+    const channel = supabase.channel(`inkoop:${receipt.location_id}`);
+    await channel.send({
+      type: "broadcast",
+      event: "goods_receipt.parsed",
+      payload: {
+        goods_receipt_id: receipt.id,
+        ai_parse_status: aiParseStatus,
+        regels_count: extractie.regels.length,
+        unmatched: stats.unmatched,
+      },
+    });
+    await supabase.removeChannel(channel);
+  } catch (err) {
+    console.warn("[parse-pakbon] broadcast failed:", err);
+  }
+
+  return new Response(
+    JSON.stringify({
+      status: "ok",
+      goods_receipt_id: receipt.id,
+      ai_parse_status: aiParseStatus,
+      regels_count: extractie.regels.length,
+      match_stats: stats,
+      ai_cost_eur: aiCost,
+      ai_tokens: { input: aiTokensIn, output: aiTokensOut },
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
+});
+
+// =====================================================
+// Helper: markeer als failed (gebruikt in alle error-paden)
+// =====================================================
+async function markFailed(
+  supabase: ReturnType<typeof createClient>,
+  receiptId: string,
+  intakeId: string | undefined,
+  reason: string,
+) {
+  await supabase
+    .from("goods_receipts")
+    .update({ ai_parse_status: "failed" })
+    .eq("id", receiptId);
+  if (intakeId) {
+    await supabase
+      .from("pakbon_email_intake")
+      .update({ ai_parse_status: "failed", error_reason: reason.slice(0, 500) })
+      .eq("id", intakeId);
+  }
+}
