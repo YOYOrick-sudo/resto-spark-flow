@@ -302,19 +302,6 @@ serve(async (req) => {
       "svix-signature": req.headers.get("svix-signature") ?? "",
     };
     payload = wh.verify(rawBody, headers);
-
-    // DEBUG: Log payload structure for Test 4 verification
-    console.log("[RECV-DEBUG] payload structure:", JSON.stringify({
-      type: payload?.type,
-      data_keys: Object.keys(payload?.data ?? {}),
-      attachment_count: payload?.data?.attachments?.length ?? 0,
-      first_attachment_keys: payload?.data?.attachments?.[0] 
-        ? Object.keys(payload.data.attachments[0]) 
-        : null,
-      first_attachment_content_preview: payload?.data?.attachments?.[0]?.content
-        ? `${String(payload.data.attachments[0].content).slice(0, 50)}...`
-        : null,
-    }));
   } catch (err) {
     console.warn("[receive-pakbon-email] Svix verify failed:", err);
     return new Response(JSON.stringify({ error: "Invalid signature" }), {
