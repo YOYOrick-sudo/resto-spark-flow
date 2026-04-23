@@ -31,7 +31,15 @@ import {
   validateFactuur,
   type ValidationStatus,
 } from "../_shared/factuur-v2/validator.ts";
-import { lookupTier1, upsertLeverancier } from "../_shared/factuur-v2/cache.ts";
+import {
+  lookupTier1,
+  lookupTier2,
+  lookupTier3,
+  lookupTier4,
+  type MatchHit,
+  upsertLeverancier,
+  upsertLeverancierArtikelFromMatch,
+} from "../_shared/factuur-v2/cache.ts";
 import type {
   FactuurV2Output,
   FactuurV2Regel,
@@ -169,18 +177,64 @@ async function asyncRunV2(args: {
     data.leverancier_btw_nummer,
   );
 
-  // 7. Tier-1 cache lookup per regel
-  const artikelnummers: string[] = (data.regels ?? [])
+  // 7. Match-cascade per regel: Tier-1 → Tier-2 → Tier-3 → Tier-4.
+  // Ingrediënt wordt slechts één keer per upload toegewezen; eerste hit wint.
+  const regels = data.regels ?? [];
+  const artikelnummers: string[] = regels
     .map((r) => (r.artikelnummer ?? "").trim())
     .filter((a) => a.length > 0);
-  const cacheHits = leverancierId
-    ? await lookupTier1(supabase, leverancierId, artikelnummers)
-    : new Map();
+  const namen: string[] = regels
+    .map((r) => (r.product_naam ?? "").trim())
+    .filter((n) => n.length > 0);
+
+  // Lookups parallel uitvoeren — onafhankelijke read-only queries.
+  const [tier1Map, tier2Map, tier3Map, tier4Map] = await Promise.all([
+    leverancierId
+      ? lookupTier1(supabase, leverancierId, artikelnummers)
+      : Promise.resolve(new Map<string, MatchHit>()),
+    leverancierId
+      ? lookupTier2(supabase, leverancierId, namen)
+      : Promise.resolve(new Map<string, MatchHit>()),
+    lookupTier3(supabase, locationId, namen),
+    lookupTier4(supabase, locationId, leverancierId, namen),
+  ]);
+
+  // Resolve per regel + verzamel auto-upserts voor Tier-2/3/4 zonder bestaande artikel-link.
+  const matches: Array<MatchHit | null> = regels.map((r) => {
+    const artnr = (r.artikelnummer ?? "").trim();
+    const naamKey = (r.product_naam ?? "").trim().toLowerCase();
+    if (artnr && tier1Map.has(artnr)) return tier1Map.get(artnr)!;
+    if (naamKey && tier2Map.has(naamKey)) return tier2Map.get(naamKey)!;
+    if (naamKey && tier3Map.has(naamKey)) return tier3Map.get(naamKey)!;
+    if (naamKey && tier4Map.has(naamKey)) return tier4Map.get(naamKey)!;
+    return null;
+  });
+
+  // 7b. Auto-upsert leveranciers_artikelen voor Tier-3/4 hits (Tier-2 heeft al een link).
+  // Soft-fail per item — match-resultaat blijft geldig.
+  if (leverancierId) {
+    await Promise.all(
+      regels.map(async (r, idx) => {
+        const hit = matches[idx];
+        if (!hit) return;
+        if (hit.tier !== 3 && hit.tier !== 4) return;
+        await upsertLeverancierArtikelFromMatch(supabase, {
+          leverancierId: leverancierId!,
+          ingredientId: hit.ingredient_id,
+          artikelNummer: (r.artikelnummer ?? "").trim() || null,
+          artikelNaam: r.product_naam,
+          prijsPerEenheid: r.prijs_per_basiseenheid ?? null,
+          verpakkingEenheid: r.verpakking_eenheid ?? null,
+          verpakkingHoeveelheid: r.verpakking_hoeveelheid ?? null,
+        });
+      }),
+    );
+  }
 
   // 8. Bulk insert factuur_regels
-  const regelRows = (data.regels ?? []).map((r: FactuurV2Regel) => {
+  const regelRows = regels.map((r: FactuurV2Regel, idx: number) => {
     const artikelnummer = (r.artikelnummer ?? "").trim();
-    const cacheHit = artikelnummer ? cacheHits.get(artikelnummer) : undefined;
+    const hit = matches[idx];
     return {
       factuur_id: factuurId,
       product_naam_herkend: r.product_naam,
@@ -202,10 +256,10 @@ async function asyncRunV2(args: {
       extract_confidence: r.confidence ?? null,
       is_emballage: r.is_emballage ?? false,
       is_credit: r.is_credit ?? false,
-      ingredient_id: cacheHit?.ingredient_id ?? null,
-      is_nieuw_ingredient: !cacheHit,
-      match_status: cacheHit ? "matched" : "unmatched",
-      match_confidence: cacheHit ? 1.0 : null,
+      ingredient_id: hit?.ingredient_id ?? null,
+      is_nieuw_ingredient: !hit,
+      match_status: hit ? "matched" : "unmatched",
+      match_confidence: hit ? hit.confidence : null,
     };
   });
 
