@@ -1339,6 +1339,7 @@ export type Database = {
           ai_raw_verpakking_tekst: string | null
           ai_suggested_eenheid: string | null
           ai_suggested_naam: string | null
+          btw_percentage: number | null
           created_at: string
           eenheid: string | null
           extract_confidence: string | null
@@ -1373,6 +1374,7 @@ export type Database = {
           ai_raw_verpakking_tekst?: string | null
           ai_suggested_eenheid?: string | null
           ai_suggested_naam?: string | null
+          btw_percentage?: number | null
           created_at?: string
           eenheid?: string | null
           extract_confidence?: string | null
@@ -1407,6 +1409,7 @@ export type Database = {
           ai_raw_verpakking_tekst?: string | null
           ai_suggested_eenheid?: string | null
           ai_suggested_naam?: string | null
+          btw_percentage?: number | null
           created_at?: string
           eenheid?: string | null
           extract_confidence?: string | null
