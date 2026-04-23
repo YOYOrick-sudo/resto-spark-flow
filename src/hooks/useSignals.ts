@@ -51,7 +51,9 @@ export function useSignals() {
     enabled: !!locationId && !!context,
   });
 
-  // Client-side filtering: entitlements + muted preferences
+  // Client-side filtering: entitlements + role + muted preferences (defense-in-depth; RLS is primary)
+  const ALLOWED_INKOOP_ROLES = new Set(['owner', 'manager', 'finance']);
+
   const signals = useMemo(() => {
     if (!rawSignals || !context) return [];
 
@@ -66,11 +68,18 @@ export function useSignals() {
       // Filter by module entitlement (client-side double check)
       const entitlementKey = SIGNAL_MODULE_TO_ENTITLEMENT[signal.module];
       if (entitlementKey) {
+        if (!context.is_platform_admin) {
+          const entitlement = context.entitlements.find(
+            (e) => e.module === entitlementKey
+          );
+          if (!entitlement?.enabled) return false;
+        }
+      }
+
+      // Role-based filter for inkoop module (defense-in-depth; RLS is primary)
+      if (signal.module === 'inkoop') {
         if (context.is_platform_admin) return true;
-        const entitlement = context.entitlements.find(
-          (e) => e.module === entitlementKey
-        );
-        if (!entitlement?.enabled) return false;
+        if (!context.role || !ALLOWED_INKOOP_ROLES.has(context.role)) return false;
       }
 
       return true;
