@@ -48,24 +48,136 @@ const CHIP_TO_SECTIES: Record<ChipId, SectieId[]> = {
 };
 
 interface Props {
-  regels: FactuurRegel[];
-  filter: ChipId;
+  // Sprint B1: 'flat' mode rendert direct een platte lijst (tab IS de grouping).
+  // 'sections' mode behoudt de oude collapsible-sectie indeling (legacy).
+  regels?: FactuurRegel[];
+  visibleRegels?: FactuurRegel[];
+  mode?: "sections" | "flat";
+  filter?: ChipId;
   isEditable: boolean;
   leverancierId: string | null;
   leverancierNaam?: string | null;
   onDeleteRegel: (id: string) => void;
-  onOpenBulkCreate: (regels: FactuurRegel[]) => void;
+  onOpenBulkCreate?: (regels: FactuurRegel[]) => void;
+  /** Bulk-create knop bovenaan flat-mode tonen (alleen voor "Nieuw aanmaken" tab). */
+  showBulkCreate?: boolean;
 }
 
-export function RegelSecties({
-  regels,
-  filter,
+// ---------- FLAT MODE sub-component (Sprint B1) ----------
+function RegelsFlatList({
+  items,
   isEditable,
   leverancierId,
   leverancierNaam,
   onDeleteRegel,
   onOpenBulkCreate,
+  showBulkCreate,
+}: {
+  items: FactuurRegel[];
+  isEditable: boolean;
+  leverancierId: string | null;
+  leverancierNaam?: string | null;
+  onDeleteRegel: (id: string) => void;
+  onOpenBulkCreate?: (regels: FactuurRegel[]) => void;
+  showBulkCreate: boolean;
+}) {
+  if (items.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-6">
+        Geen regels in deze weergave.
+      </p>
+    );
+  }
+  const bulkKandidaten = showBulkCreate
+    ? items.filter(
+        (r) =>
+          r.match_status !== "skipped" &&
+          (r.ai_suggested_naam ?? r.ai_raw_naam ?? r.product_naam_herkend)
+            ?.trim().length > 0
+      )
+    : [];
+  return (
+    <div className="space-y-2">
+      {showBulkCreate && bulkKandidaten.length >= 3 && isEditable && onOpenBulkCreate && (
+        <NestoButton
+          variant="primary"
+          size="sm"
+          onClick={() => onOpenBulkCreate(bulkKandidaten)}
+          className="w-full justify-center"
+        >
+          <Sparkles className="h-3.5 w-3.5 mr-1" />
+          Maak {bulkKandidaten.length} nieuwe ingrediënten ineens
+        </NestoButton>
+      )}
+      {items.map((r) => {
+        const conf = r.match_confidence ?? 0;
+        const isSkipped = r.match_status === "skipped";
+        const needsAttention =
+          !isSkipped &&
+          (r.match_status === "unmatched" ||
+            (r.match_status === "matched" && conf <= 0.85));
+        return (
+          <div
+            key={r.id}
+            className={`rounded-xl border p-3 space-y-2 ${
+              isSkipped
+                ? "border-border/30 bg-muted/10 opacity-70"
+                : needsAttention
+                ? "border-warning/40 bg-warning/5"
+                : "border-border/30 bg-muted/20"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">
+                  {r.product_naam_herkend}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {r.hoeveelheid ?? "-"} {r.eenheid ?? ""} · €
+                  {r.prijs_per_eenheid?.toFixed(2) ?? "-"}/eh · €
+                  {r.totaal?.toFixed(2) ?? "-"}
+                </p>
+                <VerpakkingHint regel={r} />
+              </div>
+              {isEditable && (
+                <button
+                  onClick={() => onDeleteRegel(r.id)}
+                  className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted/50 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                  aria-label="Verwijder regel"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {isEditable && (
+              <IngredientMatchBadge
+                regel={r}
+                leverancierId={leverancierId}
+                leverancierNaam={leverancierNaam}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function RegelSecties({
+  regels,
+  visibleRegels,
+  mode = "sections",
+  filter = "all",
+  isEditable,
+  leverancierId,
+  leverancierNaam,
+  onDeleteRegel,
+  onOpenBulkCreate,
+  showBulkCreate = false,
 }: Props) {
+  // Hooks ALTIJD bovenaan — ook al wordt sections-mode niet gebruikt in flat-mode.
+  const sectionRegels = regels ?? [];
+  const sectionFilter = filter;
   const grouped = useMemo(() => {
     const map: Record<SectieId, FactuurRegel[]> = {
       perfect: [],
@@ -74,14 +186,12 @@ export function RegelSecties({
       geen: [],
     };
     // Sprint A3: verpakking-regels worden uitgesloten van de hoofdlijst.
-    for (const r of regels) {
+    for (const r of sectionRegels) {
       if (isVerpakkingRegel(r)) continue;
       map[categoriseer(r)].push(r);
     }
     return map;
-  }, [regels]);
-
-  const visibleSecties = CHIP_TO_SECTIES[filter];
+  }, [sectionRegels]);
 
   const [openMap, setOpenMap] = useState<Record<SectieId, boolean>>(() => ({
     perfect: SECTIE_META.perfect.defaultOpen,
@@ -90,13 +200,31 @@ export function RegelSecties({
     geen: SECTIE_META.geen.defaultOpen,
   }));
 
+  // ---------- FLAT MODE (Sprint B1) — delegate naar sub-component ----------
+  if (mode === "flat") {
+    return (
+      <RegelsFlatList
+        items={visibleRegels ?? []}
+        isEditable={isEditable}
+        leverancierId={leverancierId}
+        leverancierNaam={leverancierNaam}
+        onDeleteRegel={onDeleteRegel}
+        onOpenBulkCreate={onOpenBulkCreate}
+        showBulkCreate={showBulkCreate}
+      />
+    );
+  }
+
+  // ---------- SECTIONS MODE (legacy) ----------
+  const visibleSecties = CHIP_TO_SECTIES[sectionFilter];
+
   return (
     <div className="space-y-3">
       {visibleSecties.map((id) => {
         const items = grouped[id];
         if (items.length === 0) return null;
         const meta = SECTIE_META[id];
-        const forcedOpen = filter !== "all";
+        const forcedOpen = sectionFilter !== "all";
         const isOpen = forcedOpen ? true : openMap[id];
 
         // R4b-1: bulk-create kandidaten = unmatched met AI-naam
@@ -109,7 +237,8 @@ export function RegelSecties({
                     ?.trim().length > 0
               )
             : [];
-        const showBulkKnop = id === "geen" && isEditable && bulkKandidaten.length >= 3;
+        const showBulkKnop =
+          id === "geen" && isEditable && bulkKandidaten.length >= 3 && !!onOpenBulkCreate;
 
         return (
           <Collapsible
@@ -139,7 +268,7 @@ export function RegelSecties({
                   />
                 )}
               </CollapsibleTrigger>
-              {showBulkKnop && (
+              {showBulkKnop && onOpenBulkCreate && (
                 <NestoButton
                   variant="primary"
                   size="sm"

@@ -402,21 +402,31 @@ export default function FactuurDetailPage() {
               }
             />
 
-            {/* Filter-chips + Toevoegen */}
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <RegelFilterChips
-                active={activeChip}
-                onChange={setChip}
-                counts={counts}
-              />
-              {isEditable && !addOpen && (
-                <NestoButton
-                  variant="ghost"
+            {/* B1 — Tabs + zoekbalk */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <NestoTabs
+                  tabs={tabs}
+                  activeTab={tab}
+                  onTabChange={(id) => setTab(id as TabId)}
+                />
+                {isEditable && !addOpen && (
+                  <NestoButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAddOpen(true)}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Regel toevoegen
+                  </NestoButton>
+                )}
+              </div>
+              {tab !== "verpakking" && (
+                <SearchBar
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Zoek binnen deze tab op productnaam..."
                   size="sm"
-                  onClick={() => setAddOpen(true)}
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Regel toevoegen
-                </NestoButton>
+                />
               )}
             </div>
 
@@ -429,8 +439,8 @@ export default function FactuurDetailPage() {
               </div>
             )}
 
-            {/* Regel-secties */}
-            {activeChip === "verpakking" ? (
+            {/* Regel-lijst per tab */}
+            {tab === "verpakking" ? (
               verpakkingRegels.length > 0 ? (
                 <button
                   type="button"
@@ -452,8 +462,8 @@ export default function FactuurDetailPage() {
               )
             ) : (
               <RegelSecties
-                regels={factuur.regels}
-                filter={activeChip}
+                mode="flat"
+                visibleRegels={visibleRegels}
                 isEditable={isEditable}
                 leverancierId={factuur.leverancier_id}
                 leverancierNaam={
@@ -463,6 +473,7 @@ export default function FactuurDetailPage() {
                 }
                 onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
                 onOpenBulkCreate={(regels) => setBulkCreateRegels(regels)}
+                showBulkCreate={tab === "nieuw"}
               />
             )}
 
@@ -472,7 +483,7 @@ export default function FactuurDetailPage() {
               </p>
             )}
 
-            {/* Footer-knoppen INLINE (niet sticky) — alleen in review */}
+            {/* C1 — één primaire "Verwerk factuur" knop */}
             {isEditable && (
               <div className="pt-4 border-t border-border/50 flex items-center justify-end gap-2 flex-wrap">
                 <NestoButton
@@ -484,11 +495,10 @@ export default function FactuurDetailPage() {
                   Afwijzen
                 </NestoButton>
                 <NestoButton
-                  onClick={handleGoedkeuren}
-                  isLoading={goedkeuren.isPending}
+                  onClick={handleVerwerk}
                   className="min-h-[44px]"
                 >
-                  Goedkeuren & prijzen bijwerken
+                  Verwerk factuur ({fmtEuro(berekenTotaal)})
                 </NestoButton>
               </div>
             )}
@@ -511,19 +521,11 @@ export default function FactuurDetailPage() {
         onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
       />
 
-      <GoedkeurenPreviewModal
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        onConfirm={handleConfirmGoedkeuren}
-        isConfirming={goedkeuren.isPending}
-        factuur={{
-          factuurnummer: factuur.factuurnummer,
-          leverancierNaam:
-            (leveranciers ?? []).find((l: any) => l.id === factuur.leverancier_id)
-              ?.naam ?? factuur.leverancier_naam_herkend ?? null,
-          totaal: berekenTotaal,
-          regels: factuur.regels,
-        }}
+      <ProcessFactuurModal
+        open={processOpen}
+        onClose={() => setProcessOpen(false)}
+        factuur={factuur}
+        factuurId={factuurId!}
       />
     </div>
   );
