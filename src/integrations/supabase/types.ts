@@ -1357,6 +1357,9 @@ export type Database = {
           product_naam_herkend: string
           product_omschrijving_kort: string | null
           totaal: number | null
+          validation_ambiguous: boolean | null
+          validation_corrected: boolean | null
+          validation_correction_path: string | null
           validation_error: boolean
           validation_error_reden: string | null
           verpakking_eenheid: string | null
@@ -1388,6 +1391,9 @@ export type Database = {
           product_naam_herkend: string
           product_omschrijving_kort?: string | null
           totaal?: number | null
+          validation_ambiguous?: boolean | null
+          validation_corrected?: boolean | null
+          validation_correction_path?: string | null
           validation_error?: boolean
           validation_error_reden?: string | null
           verpakking_eenheid?: string | null
@@ -1419,6 +1425,9 @@ export type Database = {
           product_naam_herkend?: string
           product_omschrijving_kort?: string | null
           totaal?: number | null
+          validation_ambiguous?: boolean | null
+          validation_corrected?: boolean | null
+          validation_correction_path?: string | null
           validation_error?: boolean
           validation_error_reden?: string | null
           verpakking_eenheid?: string | null
