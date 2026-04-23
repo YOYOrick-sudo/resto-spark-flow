@@ -1,11 +1,16 @@
 // supabase/functions/_shared/factuur-v2/validator.ts
 // Sprint Factuur-AI V2 — deterministische validatie-laag.
 //
-// Sprint Factuur Enterprise Pass — uitgebreid:
-//   * per-regel: hoeveelheid × prijs ≠ totaal → markeert regel.validation_error
-//   * sum-check met BTW-intelligentie: probeer 9% en 21% match wanneer alleen
-//     bruto totaal beschikbaar is. Bij match wordt subtotaal/btw_regels ingevuld.
-//   * sumMismatch op output → triggert retry-logica in parse-factuur-v2/index.ts
+// Sprint Multi-BTW + Emballage (DEEL 3) — uitgebreid:
+//   * sumCheckMultiBTW() draait EERST. Als het slaagt → geen sumMismatch.
+//   * Pas als alle 3 strategieën falen valt validator terug op de oude
+//     detectSumMismatch() (Pad A/B) zodat de bestaande retry-logica blijft werken.
+//   * Nieuwe warnings: emballage_gedetecteerd, multi_btw_gesplitst, sum_check_strategy
+//
+// Sprint Validator-Slim (vorige sprint) — BLIJFT 100% INTACT:
+//   * CHECK 1 short-circuit per regel (canonieke waarheid).
+//   * Auto-fix via packaging_base_price / packaging_item_qty als CHECK 1 faalt.
+//   * Ambiguous-flag bij 2+ alternatieven.
 //
 // status:
 //   errors.length > 0   → "invalid"
@@ -18,6 +23,7 @@ import type {
   FactuurV2Regel,
   SumMismatchInfo,
 } from "./types.ts";
+import { sumCheckMultiBTW, type SumCheckResult } from "./sumCheckMultiBTW.ts";
 
 export type ValidationStatus = "valid" | "warning" | "invalid";
 
@@ -27,6 +33,8 @@ export interface ValidationResult {
   warnings: string[];
   /** Sprint Factuur Enterprise Pass — sum-check info voor retry-trigger. */
   sumMismatch: SumMismatchInfo | null;
+  /** Sprint Multi-BTW + Emballage — multi-strategie sum-check resultaat. */
+  sumCheck: SumCheckResult;
 }
 
 const CENT_TOLERANCE = 0.01;
@@ -37,30 +45,8 @@ const ALLOWED_BTW: BtwTarief[] = [0, 9, 21];
 
 // =====================================================
 // Sprint Validator-Slim — per-regel auto-correct + error markering
+// (ONGEWIJZIGD t.o.v. vorige sprint)
 // =====================================================
-//
-// SEMANTIEK (Optie B — CHECK 1 first, short-circuit on match):
-//   CHECK 1 (origineel) is de canonieke waarheid:
-//     hoeveelheid_besteld × prijs_per_besteld_item ≈ prijs_totaal
-//   Als CHECK 1 klopt → regel is valid, GEEN verdere checks.
-//
-//   Alleen als CHECK 1 faalt OF data ontbreekt (q/priceItem null) gaan we
-//   door naar fix-checks:
-//     CHECK 2: q × verpakking × priceBase ≈ totaal
-//              → fix: prijs_per_besteld_item = totaal / q
-//     CHECK 3: verpakking × priceItem ≈ totaal
-//              → fix: hoeveelheid_besteld = verpakking
-//
-// Gate (na falen/ontbreken CHECK 1):
-//   - 0 fix-matches → validation_error=true
-//   - 1 fix-match   → auto-fix toepassen + validation_corrected=true
-//   - 2+ fix-matches → validation_ambiguous=true (niet blokkeren)
-//
-// EDGE CASE: ontbrekende CHECK 1 data (q OR priceItem null) wordt behandeld
-// als "kan niet verifiëren via CHECK 1" — direct door naar fix-checks. Een
-// regel zonder priceItem kan dus alleen gefixed worden via CHECK 2.
-//
-// IDEMPOTENT: pure functie per regel — zelfde input geeft zelfde output.
 type CheckName = "packaging_base_price" | "packaging_item_qty";
 
 interface CheckMatch {
@@ -73,7 +59,6 @@ interface CheckMatch {
 
 function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
   for (const regel of regels) {
-    // Reset validator-velden — voorkomt stale waardes bij re-run.
     regel.validation_error = false;
     regel.validation_error_reden = null;
     regel.validation_corrected = false;
@@ -81,10 +66,7 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
     regel.validation_ambiguous = false;
 
     const totaal = regel.prijs_totaal;
-    if (totaal == null || totaal === 0) {
-      // Geen referentie-totaal → niets te valideren.
-      continue;
-    }
+    if (totaal == null || totaal === 0) continue;
 
     const q = regel.hoeveelheid_besteld;
     const priceItem = regel.prijs_per_besteld_item;
@@ -92,24 +74,18 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
     const verpakking = regel.verpakking_hoeveelheid;
     const absTotaal = Math.abs(totaal);
 
-    // ============================================================
-    // CHECK 1 — origineel (canonieke waarheid, short-circuit on match)
-    // ============================================================
+    // CHECK 1 — canonieke waarheid (short-circuit on match)
     const check1Possible = q != null && priceItem != null;
     if (check1Possible) {
       const expected = q! * priceItem!;
       if (Math.abs(expected - absTotaal) <= PER_REGEL_TOLERANCE) {
-        // CHECK 1 klopt → regel is valid, klaar.
         continue;
       }
     }
 
-    // ============================================================
     // CHECK 1 faalt OF data ontbreekt → fix-checks evalueren
-    // ============================================================
     const matches: CheckMatch[] = [];
 
-    // CHECK 2 — basiseenheid-prijs via verpakking
     if (q != null && q !== 0 && verpakking != null && priceBase != null) {
       const expected = q * verpakking * priceBase;
       if (Math.abs(expected - absTotaal) <= PER_REGEL_TOLERANCE) {
@@ -122,8 +98,6 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
       }
     }
 
-    // CHECK 3 — verpakking × pak-prijs (vereist priceItem, dus alleen
-    // relevant als CHECK 1 wél data had maar faalde).
     if (verpakking != null && priceItem != null) {
       const expected = verpakking * priceItem;
       if (Math.abs(expected - absTotaal) <= PER_REGEL_TOLERANCE) {
@@ -135,7 +109,6 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
     }
 
     if (matches.length === 0) {
-      // Geen consistente berekening — markeer als error.
       regel.validation_error = true;
       if (check1Possible) {
         const expected = q! * priceItem!;
@@ -162,7 +135,6 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
       continue;
     }
 
-    // 2+ matches: alle alternatieven kloppen → niet blokkeren, wel markeren.
     regel.validation_ambiguous = true;
     console.warn(
       `[validator] ambiguous product="${regel.product_naam}" totaal=€${
@@ -173,10 +145,12 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
 }
 
 // =====================================================
-// Sum-check met BTW-intelligentie
+// Legacy sum-check met BTW-intelligentie — nu fallback
+// (alleen aangeroepen als sumCheckMultiBTW niet slaagt)
 // =====================================================
-function detectSumMismatch(data: FactuurV2Output): SumMismatchInfo | null {
-  // Som van valide (niet-validation_error) regels — credits negatief.
+function detectSumMismatchLegacy(
+  data: FactuurV2Output,
+): SumMismatchInfo | null {
   const validRegels = (data.regels ?? []).filter((r) => !r.validation_error);
   const somPositief = validRegels
     .filter((r) => !r.is_credit)
@@ -186,7 +160,6 @@ function detectSumMismatch(data: FactuurV2Output): SumMismatchInfo | null {
     .reduce((s, r) => s + Math.abs(r.prijs_totaal ?? 0), 0);
   const somRegels = somPositief - somCredits;
 
-  // === PAD A: expliciete subtotaal_excl_btw vergelijking ===
   if (data.subtotaal_excl_btw != null) {
     const verschil = Math.abs(somRegels - data.subtotaal_excl_btw);
     const pct = data.subtotaal_excl_btw === 0
@@ -194,7 +167,7 @@ function detectSumMismatch(data: FactuurV2Output): SumMismatchInfo | null {
       : (verschil / Math.abs(data.subtotaal_excl_btw)) * 100;
 
     if (verschil < 0.50 || pct < 0.5) {
-      return null; // OK
+      return null;
     }
     return {
       type: verschil < 2 && pct < 1 ? "klein" : "netto_mismatch",
@@ -205,7 +178,6 @@ function detectSumMismatch(data: FactuurV2Output): SumMismatchInfo | null {
     };
   }
 
-  // === PAD B: alleen totaal_incl_btw bekend → BTW-intelligentie ===
   if (data.totaal_incl_btw != null && data.totaal_incl_btw > 0) {
     const mogelijkePct: BtwTarief[] = [9, 21, 0];
     for (const pct of mogelijkePct) {
@@ -213,7 +185,6 @@ function detectSumMismatch(data: FactuurV2Output): SumMismatchInfo | null {
       const verschil = Math.abs(verwachtBruto - data.totaal_incl_btw);
       const relPct = (verschil / Math.abs(data.totaal_incl_btw)) * 100;
       if (verschil < 0.50 || relPct < 0.5) {
-        // Match — vul subtotaal/btw_regels in
         data.subtotaal_excl_btw = Number(somRegels.toFixed(2));
         const btwBedrag = Number(
           (data.totaal_incl_btw - somRegels).toFixed(2),
@@ -233,7 +204,6 @@ function detectSumMismatch(data: FactuurV2Output): SumMismatchInfo | null {
         };
       }
     }
-    // Geen BTW-percentage verklaart het verschil
     const verschil = Math.abs(somRegels - data.totaal_incl_btw);
     const pct = (verschil / Math.abs(data.totaal_incl_btw)) * 100;
     return {
@@ -245,7 +215,7 @@ function detectSumMismatch(data: FactuurV2Output): SumMismatchInfo | null {
     };
   }
 
-  return null; // geen referentie om mee te vergelijken
+  return null;
 }
 
 // =====================================================
@@ -255,7 +225,7 @@ export function validateFactuur(data: FactuurV2Output): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // 1. Per-regel auto-correct + error-markering (writes naar data.regels[i])
+  // 1. Per-regel auto-correct + error-markering
   validateAndCorrectLines(data.regels ?? []);
   for (const [idx, regel] of (data.regels ?? []).entries()) {
     if (regel.validation_error) {
@@ -273,17 +243,49 @@ export function validateFactuur(data: FactuurV2Output): ValidationResult {
     }
   }
 
-  // 2. Sum-check met BTW-intelligentie
-  const sumMismatch = detectSumMismatch(data);
-  if (sumMismatch && sumMismatch.type !== "klein") {
+  // 2. Sprint Multi-BTW + Emballage — multi-strategie sum-check FIRST.
+  const sumCheck = sumCheckMultiBTW(data.regels ?? [], {
+    subtotaal_excl_btw: data.subtotaal_excl_btw ?? null,
+    btw_bedrag: null,
+    totaal_incl_btw: data.totaal_incl_btw ?? null,
+    btw_regels: data.btw_regels,
+  });
+
+  // Transparency-warnings (helpt manager begrijpen wat er gebeurde).
+  const aantalEmballage = (data.regels ?? []).filter((r) => r.is_emballage).length;
+  if (aantalEmballage > 0) {
     warnings.push(
-      `Som regels (${sumMismatch.som_regels.toFixed(2)}) wijkt €${
-        sumMismatch.verschil.toFixed(2)
-      } af van factuur (${sumMismatch.vergelijk_basis.toFixed(2)})`,
+      `emballage_gedetecteerd: ${aantalEmballage} regel(s) gemarkeerd als emballage (€${
+        sumCheck.details.totaal_regels_emballage.toFixed(2)
+      }). Niet meegeteld in kostprijs-update.`,
     );
   }
+  if (sumCheck.details.n_btw_tarieven >= 2) {
+    warnings.push(
+      `multi_btw_gesplitst: factuur bevat regels op tarieven ${
+        sumCheck.details.btw_tarieven.join("%, ")
+      }%.`,
+    );
+  }
+  if (sumCheck.passed) {
+    warnings.push(`sum_check_strategy: ${sumCheck.strategy}`);
+  }
 
-  // 3. BTW-percentage whitelist
+  // 3. Legacy sum-mismatch alleen invoegen als nieuwe check FAALT.
+  // Dat triggert de bestaande retry-logica in extractor (buildRetryHint).
+  let sumMismatch: SumMismatchInfo | null = null;
+  if (!sumCheck.passed) {
+    sumMismatch = detectSumMismatchLegacy(data);
+    if (sumMismatch && sumMismatch.type !== "klein") {
+      warnings.push(
+        `Som regels (${sumMismatch.som_regels.toFixed(2)}) wijkt €${
+          sumMismatch.verschil.toFixed(2)
+        } af van factuur (${sumMismatch.vergelijk_basis.toFixed(2)})`,
+      );
+    }
+  }
+
+  // 4. BTW-percentage whitelist
   if (data.btw_regels && data.btw_regels.length > 0) {
     for (const btw of data.btw_regels) {
       if (!ALLOWED_BTW.includes(btw.percentage)) {
@@ -304,7 +306,7 @@ export function validateFactuur(data: FactuurV2Output): ValidationResult {
     }
   }
 
-  // 4. BTW-math per tarief
+  // 5. BTW-math per tarief
   if (data.btw_regels && data.btw_regels.length > 0) {
     for (const btw of data.btw_regels) {
       if (!ALLOWED_BTW.includes(btw.percentage)) continue;
@@ -319,7 +321,7 @@ export function validateFactuur(data: FactuurV2Output): ValidationResult {
     }
   }
 
-  // 5. Totaal = subtotaal + ΣBTW (HARD error)
+  // 6. Totaal = subtotaal + ΣBTW (HARD error)
   if (
     data.subtotaal_excl_btw != null &&
     data.btw_regels &&
@@ -337,7 +339,7 @@ export function validateFactuur(data: FactuurV2Output): ValidationResult {
     }
   }
 
-  // 6. BTW-nummer regex
+  // 7. BTW-nummer regex
   if (data.leverancier_btw_nummer) {
     if (!/^NL\d{9}B\d{2}$/.test(data.leverancier_btw_nummer)) {
       warnings.push(
@@ -351,15 +353,13 @@ export function validateFactuur(data: FactuurV2Output): ValidationResult {
   else if (warnings.length > 0) status = "warning";
   else status = "valid";
 
-  return { status, errors, warnings, sumMismatch };
+  return { status, errors, warnings, sumMismatch, sumCheck };
 }
 
 // =====================================================
 // Retry-helper — bepaalt of een 2e AI-poging zinvol is
+// (ONGEWIJZIGD t.o.v. vorige sprint — werkt op sumMismatch)
 // =====================================================
-//
-// IDEMPOTENT: pure functie zonder side-effects. Mag onbeperkt herhaald
-// worden — output hangt alleen af van inputs.
 export function shouldRetryParse(args: {
   data: FactuurV2Output;
   sumMismatch: SumMismatchInfo | null;
@@ -367,17 +367,12 @@ export function shouldRetryParse(args: {
 }): boolean {
   const { data, sumMismatch, currentRetries } = args;
 
-  // Maximaal 1 retry — bespaar kosten
   if (currentRetries >= 1) return false;
 
-  // Geen mismatch → niets te doen
   if (!sumMismatch) return false;
   if (sumMismatch.type === "klein") return false;
 
-  // KOSTEN-BESPARING (Aanscherping 1):
-  // - extractie_status='failed' → AI weet zelf dat het mislukt is, retry helpt niet
   if (data.extractie_status === "failed") return false;
-  // - extractie_status='partial' ÉN beide totaal-velden missen → hopeloze parse
   if (
     data.extractie_status === "partial" &&
     data.subtotaal_excl_btw == null &&
@@ -386,7 +381,6 @@ export function shouldRetryParse(args: {
     return false;
   }
 
-  // Mismatch significant: > €2 EN > 1%
   if (sumMismatch.verschil > 2 && sumMismatch.verschil_pct > 1) return true;
 
   return false;
