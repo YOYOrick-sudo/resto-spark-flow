@@ -27,6 +27,8 @@ import type { PreviewData } from "@/hooks/usePreviewGoedkeuring";
 import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
 import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterChips";
 import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
+import { VerpakkingModal } from "@/components/inkoop/VerpakkingModal";
+import { isVerpakkingRegel } from "@/lib/factuur-categories";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { ArrowLeft, Plus, MoreHorizontal, Copy, ArrowRight } from "lucide-react";
@@ -111,6 +113,7 @@ export default function FactuurDetailPage() {
   const [chip, setChip] = useState<ChipId | null>(null);
   const [bulkCreateRegels, setBulkCreateRegels] = useState<FactuurRegel[] | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [verpakkingOpen, setVerpakkingOpen] = useState(false);
 
   // Local state voor editable factuurvelden (onBlur saves)
   const [factuurnummer, setFactuurnummer] = useState("");
@@ -123,22 +126,26 @@ export default function FactuurDetailPage() {
     }
   }, [factuur]);
 
-  const { highConfRegels, counts, smartDefaultChip } = useMemo(() => {
+  const { highConfRegels, verpakkingRegels, counts, smartDefaultChip } = useMemo(() => {
     const regels = factuur?.regels ?? [];
 
-    // Categoriseer alle regels
-    const cats = regels.map((r) => ({ r, cat: categoriseer(r) }));
+    // Sprint A3: scheid verpakking-regels van échte ingrediënt-regels.
+    const verpakking = regels.filter(isVerpakkingRegel);
+    const ingredientRegels = regels.filter((r) => !isVerpakkingRegel(r));
+
+    // Categoriseer alleen ingrediënt-regels (verpakking valt buiten de categorisering).
+    const cats = ingredientRegels.map((r) => ({ r, cat: categoriseer(r) }));
 
     const counts = {
-      all: regels.length,
+      all: ingredientRegels.length,
       nieuw: cats.filter((x) => x.cat === "geen").length,
       onzeker: cats.filter((x) => x.cat === "ai" || x.cat === "geen").length,
       gematcht: cats.filter((x) => x.cat === "perfect" || x.cat === "naam").length,
-      overig: cats.filter((x) => x.cat === "overig").length,
+      verpakking: verpakking.length,
     };
 
     // High-conf voor bulk-bevestig: matched + (ai_confidence | match_confidence) >= 0.9
-    const highConf = regels.filter((r) => {
+    const highConf = ingredientRegels.filter((r) => {
       const c = r.match_confidence ?? r.ai_confidence ?? 0;
       return r.match_status === "matched" && c >= 0.9;
     });
@@ -148,6 +155,7 @@ export default function FactuurDetailPage() {
 
     return {
       highConfRegels: highConf,
+      verpakkingRegels: verpakking,
       counts,
       smartDefaultChip: smart,
     };
