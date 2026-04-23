@@ -102,59 +102,160 @@ function yyyymm(date: Date): string {
 }
 
 // =====================================================
-// Resend Inbound payload helpers
+// Resend Inbound payload + attachments API
 // =====================================================
 //
-// Resend Inbound webhook (event: "email.received") levert ALLE content direct
-// in de payload — er is geen tweede API-call nodig. Attachments zitten als
-// base64-string in `data.attachments[].content`.
+// Resend Inbound webhook (event: "email.received") bevat ALLEEN metadata,
+// GEEN attachment bytes. Per Resend docs:
+//   "Webhooks do not include the actual content of attachments, only their
+//    metadata. You must call the Attachments API to retrieve the content."
+//   https://resend.com/docs/dashboard/receiving/attachments
 //
-// Payload-vorm (per Resend docs nov 2025):
+// Webhook payload-vorm:
 //   {
 //     type: "email.received",
 //     data: {
 //       email_id: "uuid",
-//       from: "Yorick <yorick@shouf.ai>",
-//       to: ["pakbon+slug@mail.shouf.ai"],
-//       subject: "...",
-//       html: "...",
-//       text: "...",
+//       from, to[], subject, message_id, created_at, cc, bcc,
 //       attachments: [
-//         {
-//           filename: "pakbon.pdf",
-//           content_type: "application/pdf",
-//           content: "<base64>",
-//           content_disposition?: "attachment",
-//           content_id?: "..."
-//         }
+//         { id, filename, content_type, content_disposition, content_id }
 //       ]
 //     }
 //   }
+//
+// Attachment fetch flow (2 stappen):
+//   1. GET https://api.resend.com/emails/receiving/{email_id}/attachments/{att_id}
+//      Headers: Authorization: Bearer {RESEND_API_KEY}
+//      Response: { object, id, filename, size, content_type, download_url, expires_at }
+//   2. GET {download_url}  (signed CDN URL, geen auth header)
+//      Response: raw bytes
+//
+// Bron: https://resend.com/docs/api-reference/emails/retrieve-received-email-attachment
 
-interface ResendInboundAttachmentPayload {
+interface ResendInboundAttachmentMeta {
+  id: string;
   filename: string;
   content_type?: string;
-  contentType?: string;
-  content: string; // base64
   content_disposition?: string | null;
   content_id?: string | null;
 }
 
+interface ResendAttachmentFetchResult {
+  bytes: Uint8Array | null;
+  contentType: string;
+  filename: string;
+  size: number | null;
+  errorReason: string | null;
+  errorCode: "metadata_404" | "metadata_403" | "metadata_other" | "download_failed" | "size_exceeded" | "type_blocked" | null;
+}
+
+let __debugLoggedFirstFetch = false;
+
 /**
- * Decode base64 → Uint8Array (Deno-safe, ondersteunt zowel padded als
- * unpadded base64 en strip whitespace/newlines).
+ * Fetch attachment metadata + bytes via Resend Inbound API.
+ * Returns bytes=null met errorReason als iets misgaat (graceful).
  */
-function decodeBase64ToBytes(b64: string): Uint8Array | null {
+async function fetchResendInboundAttachment(
+  emailId: string,
+  attachmentId: string,
+  apiKey: string,
+): Promise<ResendAttachmentFetchResult> {
+  const baseResult: ResendAttachmentFetchResult = {
+    bytes: null,
+    contentType: "",
+    filename: "",
+    size: null,
+    errorReason: null,
+    errorCode: null,
+  };
+
+  // Stap 1: metadata + signed download URL
+  const metaUrl = `https://api.resend.com/emails/receiving/${emailId}/attachments/${attachmentId}`;
+  let metaRes: Response;
   try {
-    const cleaned = b64.replace(/\s+/g, "");
-    const binary = atob(cleaned);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
+    metaRes = await fetch(metaUrl, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
   } catch (err) {
-    console.error("[receive-pakbon-email] base64 decode failed:", err);
-    return null;
+    return {
+      ...baseResult,
+      errorReason: `metadata fetch threw: ${err instanceof Error ? err.message : String(err)}`,
+      errorCode: "metadata_other",
+    };
   }
+
+  if (!metaRes.ok) {
+    const body = await metaRes.text().catch(() => "");
+    const code = metaRes.status === 404
+      ? "metadata_404"
+      : metaRes.status === 403
+      ? "metadata_403"
+      : "metadata_other";
+    return {
+      ...baseResult,
+      errorReason: `attachment metadata fetch failed: ${metaRes.status} ${body.slice(0, 200)}`,
+      errorCode: code,
+    };
+  }
+
+  const meta = await metaRes.json().catch(() => null) as
+    | { download_url?: string; content_type?: string; filename?: string; size?: number }
+    | null;
+
+  // DEBUG (Test 5): log volledige response van eerste fetch om structuur te bevestigen
+  if (!__debugLoggedFirstFetch) {
+    __debugLoggedFirstFetch = true;
+    console.log("[RECV-DEBUG-T5] first attachment metadata response:", JSON.stringify(meta));
+  }
+
+  if (!meta?.download_url) {
+    return {
+      ...baseResult,
+      errorReason: "metadata response zonder download_url",
+      errorCode: "metadata_other",
+    };
+  }
+
+  const filename = meta.filename ?? "attachment";
+  const contentType = (meta.content_type ?? "").toLowerCase();
+  const size = typeof meta.size === "number" ? meta.size : null;
+
+  // Stap 2: download bytes via signed URL
+  let dlRes: Response;
+  try {
+    dlRes = await fetch(meta.download_url);
+  } catch (err) {
+    return {
+      ...baseResult,
+      filename,
+      contentType,
+      size,
+      errorReason: `attachment download threw: ${err instanceof Error ? err.message : String(err)}`,
+      errorCode: "download_failed",
+    };
+  }
+
+  if (!dlRes.ok) {
+    return {
+      ...baseResult,
+      filename,
+      contentType,
+      size,
+      errorReason: `attachment download failed: ${dlRes.status}`,
+      errorCode: "download_failed",
+    };
+  }
+
+  const buf = await dlRes.arrayBuffer();
+  return {
+    bytes: new Uint8Array(buf),
+    contentType,
+    filename,
+    size,
+    errorReason: null,
+    errorCode: null,
+  };
 }
 
 // =====================================================
