@@ -8,6 +8,8 @@ import {
   dateFromString,
   dateToString,
 } from "@/components/polar";
+import { NestoTabs, type TabItem } from "@/components/polar/NestoTabs";
+import { SearchBar } from "@/components/polar/SearchBar";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -22,16 +24,18 @@ import { FactuurRegelForm } from "@/components/inkoop/FactuurRegelForm";
 import { LeverancierMatchWidget } from "@/components/inkoop/LeverancierMatchWidget";
 import { LeverancierSelectCombobox } from "@/components/inkoop/LeverancierSelectCombobox";
 import { BulkCreateIngredientsDialog } from "@/components/inkoop/BulkCreateIngredientsDialog";
-import { GoedkeurenPreviewModal } from "@/components/inkoop/GoedkeurenPreviewModal";
-import type { PreviewData } from "@/hooks/usePreviewGoedkeuring";
+import { ProcessFactuurModal } from "@/components/inkoop/ProcessFactuurModal";
 import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
-import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterChips";
 import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
 import { VerpakkingModal } from "@/components/inkoop/VerpakkingModal";
 import { isVerpakkingRegel } from "@/lib/factuur-categories";
+import { fmtEuro } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { ArrowLeft, Plus, MoreHorizontal, Copy, ArrowRight } from "lucide-react";
+
+// Sprint B1: tab-IDs voor de vereenvoudigde 3-tabs structuur.
+type TabId = "herkend" | "nieuw" | "verpakking";
 
 const STATUS_BADGES: Record<
   string,
@@ -109,12 +113,13 @@ export default function FactuurDetailPage() {
   const { data: leveranciers } = useLeveranciers();
 
   const [addOpen, setAddOpen] = useState(false);
-  const [chip, setChip] = useState<ChipId | null>(null);
+  // Sprint B1: 3 tabs ipv 5 chips. Default = "herkend".
+  const [tab, setTab] = useState<TabId>("herkend");
+  const [search, setSearch] = useState("");
   const [bulkCreateRegels, setBulkCreateRegels] = useState<FactuurRegel[] | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [processOpen, setProcessOpen] = useState(false);
   const [verpakkingOpen, setVerpakkingOpen] = useState(false);
 
-  // Local state voor editable factuurvelden (onBlur saves)
   const [factuurnummer, setFactuurnummer] = useState("");
   const [factuurdatum, setFactuurdatum] = useState("");
 
@@ -125,47 +130,64 @@ export default function FactuurDetailPage() {
     }
   }, [factuur]);
 
-  const { highConfRegels, verpakkingRegels, counts, smartDefaultChip } = useMemo(() => {
+  const { highConfRegels, verpakkingRegels, ingredientRegels, counts } = useMemo(() => {
     const regels = factuur?.regels ?? [];
-
-    // Sprint A3: scheid verpakking-regels van échte ingrediënt-regels.
     const verpakking = regels.filter(isVerpakkingRegel);
-    const ingredientRegels = regels.filter((r) => !isVerpakkingRegel(r));
+    const ingredient = regels.filter((r) => !isVerpakkingRegel(r));
 
-    // Categoriseer alleen ingrediënt-regels (verpakking valt buiten de categorisering).
-    const cats = ingredientRegels.map((r) => ({ r, cat: categoriseer(r) }));
+    const herkendCount = ingredient.filter(
+      (r) =>
+        r.ingredient_id != null &&
+        r.is_nieuw_ingredient !== true &&
+        (r.match_status === "matched" || r.match_status === "manual")
+    ).length;
+    const nieuwCount = ingredient.filter(
+      (r) =>
+        r.is_nieuw_ingredient === true ||
+        (r.ingredient_id == null && r.match_status !== "skipped")
+    ).length;
 
-    const counts = {
-      all: ingredientRegels.length,
-      nieuw: cats.filter((x) => x.cat === "geen").length,
-      onzeker: cats.filter((x) => x.cat === "ai" || x.cat === "geen").length,
-      gematcht: cats.filter((x) => x.cat === "perfect" || x.cat === "naam").length,
-      verpakking: verpakking.length,
-    };
-
-    // High-conf voor bulk-bevestig: matched + (ai_confidence | match_confidence) >= 0.9
-    const highConf = ingredientRegels.filter((r) => {
+    const highConf = ingredient.filter((r) => {
       const c = r.match_confidence ?? r.ai_confidence ?? 0;
       return r.match_status === "matched" && c >= 0.9;
     });
 
-    // Smart default: als > 5 onzeker → "onzeker", anders "all"
-    const smart: ChipId = counts.onzeker > 5 ? "onzeker" : "all";
-
     return {
       highConfRegels: highConf,
       verpakkingRegels: verpakking,
-      counts,
-      smartDefaultChip: smart,
+      ingredientRegels: ingredient,
+      counts: {
+        herkend: herkendCount,
+        nieuw: nieuwCount,
+        verpakking: verpakking.length,
+      },
     };
   }, [factuur?.regels]);
 
-  // Set default chip pas wanneer factuur klaar is en chip nog niet gezet
-  useEffect(() => {
-    if (chip === null && factuur && factuur.regels.length > 0) {
-      setChip(smartDefaultChip);
+  const visibleRegels = useMemo(() => {
+    let base: FactuurRegel[] = [];
+    if (tab === "herkend") {
+      base = ingredientRegels.filter(
+        (r) =>
+          r.ingredient_id != null &&
+          r.is_nieuw_ingredient !== true &&
+          (r.match_status === "matched" || r.match_status === "manual")
+      );
+    } else if (tab === "nieuw") {
+      base = ingredientRegels.filter(
+        (r) =>
+          r.is_nieuw_ingredient === true ||
+          (r.ingredient_id == null && r.match_status !== "skipped")
+      );
+    } else {
+      base = verpakkingRegels;
     }
-  }, [chip, factuur, smartDefaultChip]);
+    const q = search.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((r) =>
+      (r.product_naam_herkend ?? "").toLowerCase().includes(q)
+    );
+  }, [tab, search, ingredientRegels, verpakkingRegels]);
 
   if (isLoading || !factuur) {
     return (
@@ -178,29 +200,17 @@ export default function FactuurDetailPage() {
   const badge = STATUS_BADGES[factuur.status] ?? STATUS_BADGES.review;
   const isEditable = factuur.status === "review";
   const berekenTotaal = factuur.regels.reduce((s, r) => s + (r.totaal ?? 0), 0);
-  const activeChip: ChipId = chip ?? "all";
 
-  const handleGoedkeuren = () => {
-    setPreviewOpen(true);
-  };
-
-  const handleConfirmGoedkeuren = (snapshot: PreviewData) => {
-    goedkeuren.mutate(
-      { id: factuurId!, snapshot },
-      {
-        onSuccess: () => {
-          setPreviewOpen(false);
-          navigate("/inkoop");
-        },
-      }
-    );
-  };
-
+  const handleVerwerk = () => setProcessOpen(true);
   const handleAfwijzen = () => {
-    afwijzen.mutate(factuurId!, {
-      onSuccess: () => navigate("/inkoop"),
-    });
+    afwijzen.mutate(factuurId!, { onSuccess: () => navigate("/inkoop") });
   };
+
+  const tabs: TabItem[] = [
+    { id: "herkend", label: "✓ Herkend", count: counts.herkend },
+    { id: "nieuw", label: "+ Nieuw aanmaken", count: counts.nieuw },
+    { id: "verpakking", label: "📦 Verpakking", count: counts.verpakking },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col">
