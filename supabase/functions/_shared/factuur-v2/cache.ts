@@ -58,8 +58,70 @@ export async function lookupTier1(
 }
 
 // =====================================================
-// Tier-2 — exact artikel_naam per leverancier (case-insensitive)
-// Key in resultaat-Map: lower(naam) — caller normaliseert ook.
+// Tier-2/3/4 — gecombineerde lookup via SQL RPC.
+// Vervangt aparte PostgREST .or(ilike) calls die faalden op
+// haakjes/komma's/quotes door parser-issues. Eén robuuste
+// SQL-call retourneert alle hits per tier; caller kiest
+// hoogste confidence (= laagste tier-nummer) per naam_key.
+// =====================================================
+export async function lookupTier2_3_4(
+  supabase: SupabaseClient,
+  locationId: string,
+  leverancierId: string | null,
+  namen: string[],
+): Promise<Map<string, MatchHit>> {
+  const result = new Map<string, MatchHit>();
+  const cleaned = Array.from(
+    new Set(
+      namen
+        .map((n) => n?.trim())
+        .filter((n): n is string => !!n && n.length > 0),
+    ),
+  );
+  if (cleaned.length === 0) return result;
+
+  const { data, error } = await supabase.rpc("match_ingredienten_by_names", {
+    p_location_id: locationId,
+    p_leverancier_id: leverancierId,
+    p_namen: cleaned,
+  });
+
+  if (error) {
+    console.warn(
+      "[factuur-v2/cache] lookupTier2_3_4 RPC failed (soft):",
+      error.message,
+    );
+    return result;
+  }
+
+  // Sorteer op tier ascending: Tier-2 (0.95) wint van Tier-3/4 (0.85).
+  const rows = (data ?? []).slice().sort(
+    (a: any, b: any) => (a.tier ?? 99) - (b.tier ?? 99),
+  );
+
+  for (const row of rows as any[]) {
+    if (!row.naam_key || !row.ingredient_id) continue;
+    if (result.has(row.naam_key)) continue;
+    result.set(row.naam_key, {
+      ingredient_id: row.ingredient_id,
+      artikel_nummer: row.artikel_nummer ?? null,
+      tier: (row.tier as 2 | 3 | 4) ?? 3,
+      confidence: typeof row.confidence === "number"
+        ? row.confidence
+        : Number(row.confidence ?? 0.85),
+    });
+  }
+  return result;
+}
+
+// =====================================================
+// LEGACY (dead code, behouden voor backwards-compat tot opschoning):
+// lookupTier2 / lookupTier3 / lookupTier4 — niet meer gebruikt door
+// parse-factuur-v2. Gebruikten PostgREST .or(ilike) wat brak op
+// productnamen met haakjes (bv. "Sla rood (radicchio)").
+// Vervangen door lookupTier2_3_4 (RPC) hierboven.
+// Verwijderen in volgende sprint na bevestiging dat geen andere
+// caller deze functies gebruikt.
 // =====================================================
 export async function lookupTier2(
   supabase: SupabaseClient,
@@ -72,8 +134,6 @@ export async function lookupTier2(
   );
   if (cleaned.length === 0) return result;
 
-  // ilike-or per naam (Supabase heeft geen native case-insensitive `in`).
-  // We doen één query met `or` op alle namen.
   const orFilter = cleaned
     .map((n) => `artikel_naam.ilike.${escapeForOrIlike(n)}`)
     .join(",");
@@ -105,10 +165,6 @@ export async function lookupTier2(
   return result;
 }
 
-// =====================================================
-// Tier-3 — exact ingredient.naam per location (case-insensitive)
-// Ongeacht leverancier. Caller doet auto-upsert leveranciers_artikelen.
-// =====================================================
 export async function lookupTier3(
   supabase: SupabaseClient,
   locationId: string,
@@ -150,10 +206,6 @@ export async function lookupTier3(
   return result;
 }
 
-// =====================================================
-// Tier-4 — alias-match via ingredient_aliassen
-// Per leverancier (indien beschikbaar) of binnen location.
-// =====================================================
 export async function lookupTier4(
   supabase: SupabaseClient,
   locationId: string,
@@ -170,7 +222,6 @@ export async function lookupTier4(
     .map((n) => `alias_naam.ilike.${escapeForOrIlike(n)}`)
     .join(",");
 
-  // Join via ingredient_id → ingredienten.location_id filter via inner join.
   let query = supabase
     .from("ingredient_aliassen")
     .select(
@@ -181,7 +232,6 @@ export async function lookupTier4(
     .or(orFilter);
 
   if (leverancierId) {
-    // Voorkeur voor alias gekoppeld aan deze leverancier OF aan geen leverancier (algemeen).
     query = query.or(
       `leverancier_id.eq.${leverancierId},leverancier_id.is.null`,
     );
@@ -194,7 +244,6 @@ export async function lookupTier4(
     return result;
   }
 
-  // Sorteer: alias met expliciete leverancier-koppeling wint van algemene alias.
   const rows = (data ?? []).slice().sort((a: any, b: any) => {
     const aHasLev = a.leverancier_id && a.leverancier_id === leverancierId
       ? 0

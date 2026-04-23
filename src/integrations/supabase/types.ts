@@ -7753,6 +7753,20 @@ export type Database = {
           total_visits: number
         }[]
       }
+      match_ingredienten_by_names: {
+        Args: {
+          p_leverancier_id: string
+          p_location_id: string
+          p_namen: string[]
+        }
+        Returns: {
+          artikel_nummer: string
+          confidence: number
+          ingredient_id: string
+          naam_key: string
+          tier: number
+        }[]
+      }
       move_reservation_table: {
         Args: {
           _actor_id?: string
