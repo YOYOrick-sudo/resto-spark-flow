@@ -844,12 +844,27 @@ serve(async (req) => {
           dryRun: false,
         });
       } catch (e) {
-        console.error("[parse-factuur-v2] async job failed:", e);
+        // Verbeterde error-capture: stack-trace wordt opgeslagen voor post-mortem
+        const errName = (e as Error)?.name ?? "Error";
+        const errMsg = (e as Error)?.message ?? String(e);
+        const errStack = (e as Error)?.stack ?? "";
+        const detail = `${errName}: ${errMsg}`;
+        console.error(
+          `[parse-factuur-v2] async job failed factuurId=${factuurId}:`,
+          detail,
+          "\nstack:",
+          errStack.slice(0, 1500),
+        );
         await supabase
           .from("factuur_uploads")
           .update({
             ai_parsing_status: "failed",
-            ai_raw_response: { error: "v2_async_failed", detail: String(e) },
+            ai_raw_response: {
+              error: "v2_async_failed",
+              detail,
+              stack: errStack.slice(0, 500),
+              failed_at: new Date().toISOString(),
+            },
           })
           .eq("id", factuurId);
         await broadcastFactuurStatus(supabase, locationId, {
