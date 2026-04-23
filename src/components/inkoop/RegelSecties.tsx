@@ -175,22 +175,7 @@ export function RegelSecties({
   onOpenBulkCreate,
   showBulkCreate = false,
 }: Props) {
-  // ---------- FLAT MODE (Sprint B1) — delegate naar sub-component ----------
-  if (mode === "flat") {
-    return (
-      <RegelsFlatList
-        items={visibleRegels ?? []}
-        isEditable={isEditable}
-        leverancierId={leverancierId}
-        leverancierNaam={leverancierNaam}
-        onDeleteRegel={onDeleteRegel}
-        onOpenBulkCreate={onOpenBulkCreate}
-        showBulkCreate={showBulkCreate}
-      />
-    );
-  }
-
-  // ---------- SECTIONS MODE (legacy) ----------
+  // Hooks ALTIJD bovenaan — ook al wordt sections-mode niet gebruikt in flat-mode.
   const sectionRegels = regels ?? [];
   const sectionFilter = filter;
   const grouped = useMemo(() => {
@@ -208,14 +193,30 @@ export function RegelSecties({
     return map;
   }, [sectionRegels]);
 
-  const visibleSecties = CHIP_TO_SECTIES[sectionFilter];
-
   const [openMap, setOpenMap] = useState<Record<SectieId, boolean>>(() => ({
     perfect: SECTIE_META.perfect.defaultOpen,
     naam: SECTIE_META.naam.defaultOpen,
     ai: SECTIE_META.ai.defaultOpen,
     geen: SECTIE_META.geen.defaultOpen,
   }));
+
+  // ---------- FLAT MODE (Sprint B1) — delegate naar sub-component ----------
+  if (mode === "flat") {
+    return (
+      <RegelsFlatList
+        items={visibleRegels ?? []}
+        isEditable={isEditable}
+        leverancierId={leverancierId}
+        leverancierNaam={leverancierNaam}
+        onDeleteRegel={onDeleteRegel}
+        onOpenBulkCreate={onOpenBulkCreate}
+        showBulkCreate={showBulkCreate}
+      />
+    );
+  }
+
+  // ---------- SECTIONS MODE (legacy) ----------
+  const visibleSecties = CHIP_TO_SECTIES[sectionFilter];
 
   return (
     <div className="space-y-3">
