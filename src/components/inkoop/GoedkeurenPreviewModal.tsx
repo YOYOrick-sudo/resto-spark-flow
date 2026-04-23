@@ -29,6 +29,7 @@ import {
   usePreviewGoedkeuring,
   type PreviewData,
   type PrijsWijziging,
+  type BijwerkenIngredientPreview,
 } from "@/hooks/usePreviewGoedkeuring";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { fmtEuro, fmtEuroPrecise } from "@/lib/format";
