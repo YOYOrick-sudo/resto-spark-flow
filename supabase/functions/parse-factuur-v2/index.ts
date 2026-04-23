@@ -307,6 +307,28 @@ async function asyncRunV2(args: {
   const regelRows = regels.map((r: FactuurV2Regel, idx: number) => {
     const artikelnummer = (r.artikelnummer ?? "").trim();
     const hit = matches[idx];
+
+    // Sprint Multi-BTW + Emballage — Triple-check emballage-detectie.
+    // Override AI-flag: meer signalen = meer zekerheid. Conservatief: liever
+    // false positive (kostprijs niet updaten) dan false negative (corrupted price).
+    const emballageDetect = isEmballageRegel(r);
+    if (emballageDetect.isEmballage) {
+      console.log(
+        `[emballage-detect] factuurId=${factuurId} regel="${r.product_naam}" confidence=${emballageDetect.confidence} detectedBy=[${emballageDetect.detectedBy.join(",")}]`,
+      );
+    }
+
+    // Defensive: btw_percentage moet binnen CHECK-constraint {0,9,21} of NULL.
+    const rawBtw = r.btw_percentage;
+    const safeBtwPct = (rawBtw === 0 || rawBtw === 9 || rawBtw === 21)
+      ? rawBtw
+      : null;
+    if (rawBtw != null && safeBtwPct == null) {
+      console.warn(
+        `[parse-factuur-v2] regel btw_percentage ${rawBtw} buiten {0,9,21} — forceer NULL voor "${r.product_naam}"`,
+      );
+    }
+
     return {
       factuur_id: factuurId,
       product_naam_herkend: r.product_naam,
@@ -320,13 +342,16 @@ async function asyncRunV2(args: {
       prijs_per_eenheid: r.prijs_per_besteld_item ?? null,
       prijs_per_basiseenheid: r.prijs_per_basiseenheid ?? null,
       totaal: r.prijs_totaal ?? null,
+      // Sprint Multi-BTW — per-regel BTW-tarief uit AI extractie.
+      btw_percentage: safeBtwPct,
       ai_confidence: r.confidence === "hoog"
         ? 0.95
         : r.confidence === "medium"
         ? 0.7
         : 0.4,
       extract_confidence: r.confidence ?? null,
-      is_emballage: r.is_emballage ?? false,
+      // Triple-check overschrijft pure AI-flag.
+      is_emballage: emballageDetect.isEmballage,
       is_credit: r.is_credit ?? false,
       ingredient_id: hit?.ingredient_id ?? null,
       is_nieuw_ingredient: !hit,
