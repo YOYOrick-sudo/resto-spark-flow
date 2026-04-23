@@ -41,6 +41,17 @@ export interface SkippedRegelPreview {
   naam: string;
 }
 
+export interface VerpakkingRegelPreview {
+  regelId: string;
+  naam: string;
+  bedrag: number;
+}
+
+export interface BijwerkenIngredientPreview {
+  ingredientId: string;
+  ingredientNaam: string;
+}
+
 export interface PreviewData {
   factuur: {
     leverancierNaam: string | null;
@@ -48,9 +59,16 @@ export interface PreviewData {
     totaal: number;
   };
   nieuweIngredienten: NieuwIngredientPreview[];
+  /** R4-A3-fix: ingrediënten waarvan kostprijs/koppeling wordt bijgewerkt
+   * (matched/manual, niet nieuw, niet verpakking). Inclusief regels zonder
+   * prijswijziging — anders is "X bijwerken" verwarrend voor de chef. */
+  bijwerkenIngredienten: BijwerkenIngredientPreview[];
   kostprijsWijzigingen: PrijsWijziging[];
   nieuweKoppelingen: number;
   skippedRegels: SkippedRegelPreview[];
+  /** R4-A3-fix: verpakking & toeslagen — worden geskipt, geen ingredient-koppeling */
+  verpakkingRegels: VerpakkingRegelPreview[];
+  verpakkingTotaal: number;
   heeftGroteWijzigingen: boolean;
 }
 
