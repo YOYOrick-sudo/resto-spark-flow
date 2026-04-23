@@ -22,6 +22,8 @@ import {
   Link2,
   SkipForward,
   Package,
+  ChevronRight,
+  Pencil,
 } from "lucide-react";
 import {
   usePreviewGoedkeuring,
