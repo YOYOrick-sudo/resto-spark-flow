@@ -6,8 +6,12 @@
 // Tier-3: exact (location_id, lower(ingredient.naam))        confidence 0.85
 //          → ongeacht leverancier; auto-upsert leveranciers_artikelen
 // Tier-4: alias-match via ingredient_aliassen                confidence 0.85
+//
+// Alle naam-keys lopen via normalizeMatchKey() — GEEN destructieve
+// strip van haakjes of leestekens (eerdere bug bij Boer & Chef).
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { escapeForOrIlike, normalizeMatchKey } from "./normalize.ts";
 
 export interface MatchHit {
   ingredient_id: string;
@@ -71,7 +75,7 @@ export async function lookupTier2(
   // ilike-or per naam (Supabase heeft geen native case-insensitive `in`).
   // We doen één query met `or` op alle namen.
   const orFilter = cleaned
-    .map((n) => `artikel_naam.ilike.${escapeIlike(n)}`)
+    .map((n) => `artikel_naam.ilike.${escapeForOrIlike(n)}`)
     .join(",");
 
   const { data, error } = await supabase
@@ -88,7 +92,7 @@ export async function lookupTier2(
 
   for (const row of data ?? []) {
     if (!row.artikel_naam || !row.ingredient_id) continue;
-    const key = String(row.artikel_naam).trim().toLowerCase();
+    const key = normalizeMatchKey(String(row.artikel_naam));
     if (!result.has(key)) {
       result.set(key, {
         ingredient_id: row.ingredient_id,
@@ -117,7 +121,7 @@ export async function lookupTier3(
   if (cleaned.length === 0) return result;
 
   const orFilter = cleaned
-    .map((n) => `naam.ilike.${escapeIlike(n)}`)
+    .map((n) => `naam.ilike.${escapeForOrIlike(n)}`)
     .join(",");
 
   const { data, error } = await supabase
@@ -134,7 +138,7 @@ export async function lookupTier3(
 
   for (const row of data ?? []) {
     if (!row.naam || !row.id) continue;
-    const key = String(row.naam).trim().toLowerCase();
+    const key = normalizeMatchKey(String(row.naam));
     if (!result.has(key)) {
       result.set(key, {
         ingredient_id: row.id,
@@ -163,7 +167,7 @@ export async function lookupTier4(
   if (cleaned.length === 0) return result;
 
   const orFilter = cleaned
-    .map((n) => `alias_naam.ilike.${escapeIlike(n)}`)
+    .map((n) => `alias_naam.ilike.${escapeForOrIlike(n)}`)
     .join(",");
 
   // Join via ingredient_id → ingredienten.location_id filter via inner join.
@@ -203,7 +207,7 @@ export async function lookupTier4(
 
   for (const row of rows as any[]) {
     if (!row.alias_naam || !row.ingredient_id) continue;
-    const key = String(row.alias_naam).trim().toLowerCase();
+    const key = normalizeMatchKey(String(row.alias_naam));
     if (!result.has(key)) {
       result.set(key, {
         ingredient_id: row.ingredient_id,
@@ -362,15 +366,6 @@ export async function upsertLeverancier(
 }
 
 // =====================================================
-// Helpers
+// Helpers — naam-normalisatie verhuisd naar ./normalize.ts
+// (zie escapeForOrIlike, normalizeMatchKey)
 // =====================================================
-function escapeIlike(value: string): string {
-  // Supabase .or() encoding: comma's en haakjes breken de filter.
-  // We strippen ze defensief; ilike-pattern krijgt geen wildcards (exact match).
-  return value
-    .replace(/,/g, " ")
-    .replace(/\(/g, " ")
-    .replace(/\)/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
