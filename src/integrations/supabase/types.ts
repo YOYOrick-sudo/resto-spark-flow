@@ -214,6 +214,63 @@ export type Database = {
           },
         ]
       }
+      ai_correction_events: {
+        Row: {
+          confidence_before: number | null
+          corrected_at: string
+          field_path: string
+          id: string
+          leverancier_id: string | null
+          location_id: string
+          new_value: Json | null
+          old_value: Json | null
+          source_id: string
+          source_table: string
+          user_id: string | null
+        }
+        Insert: {
+          confidence_before?: number | null
+          corrected_at?: string
+          field_path: string
+          id?: string
+          leverancier_id?: string | null
+          location_id: string
+          new_value?: Json | null
+          old_value?: Json | null
+          source_id: string
+          source_table: string
+          user_id?: string | null
+        }
+        Update: {
+          confidence_before?: number | null
+          corrected_at?: string
+          field_path?: string
+          id?: string
+          leverancier_id?: string | null
+          location_id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          source_id?: string
+          source_table?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_correction_events_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_correction_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_logs: {
         Row: {
           cost_eur: number | null
@@ -994,6 +1051,110 @@ export type Database = {
             columns: ["reservation_id"]
             isOneToOne: false
             referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_note_requests: {
+        Row: {
+          aantal: number | null
+          created_at: string
+          dedup_key: string | null
+          eenheid: string | null
+          email_message_id: string | null
+          email_verzonden_at: string | null
+          geschatte_waarde: number | null
+          goods_receipt_id: string
+          goods_receipt_line_id: string | null
+          id: string
+          leverancier_id: string | null
+          leverancier_reactie: string | null
+          location_id: string
+          notities: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_via:
+            | Database["public"]["Enums"]["credit_note_resolved_via"]
+            | null
+          status: Database["public"]["Enums"]["credit_note_status"]
+          type: Database["public"]["Enums"]["credit_note_type"]
+          updated_at: string
+        }
+        Insert: {
+          aantal?: number | null
+          created_at?: string
+          dedup_key?: string | null
+          eenheid?: string | null
+          email_message_id?: string | null
+          email_verzonden_at?: string | null
+          geschatte_waarde?: number | null
+          goods_receipt_id: string
+          goods_receipt_line_id?: string | null
+          id?: string
+          leverancier_id?: string | null
+          leverancier_reactie?: string | null
+          location_id: string
+          notities?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_via?:
+            | Database["public"]["Enums"]["credit_note_resolved_via"]
+            | null
+          status?: Database["public"]["Enums"]["credit_note_status"]
+          type: Database["public"]["Enums"]["credit_note_type"]
+          updated_at?: string
+        }
+        Update: {
+          aantal?: number | null
+          created_at?: string
+          dedup_key?: string | null
+          eenheid?: string | null
+          email_message_id?: string | null
+          email_verzonden_at?: string | null
+          geschatte_waarde?: number | null
+          goods_receipt_id?: string
+          goods_receipt_line_id?: string | null
+          id?: string
+          leverancier_id?: string | null
+          leverancier_reactie?: string | null
+          location_id?: string
+          notities?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_via?:
+            | Database["public"]["Enums"]["credit_note_resolved_via"]
+            | null
+          status?: Database["public"]["Enums"]["credit_note_status"]
+          type?: Database["public"]["Enums"]["credit_note_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_note_requests_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_note_requests_goods_receipt_line_id_fkey"
+            columns: ["goods_receipt_line_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipt_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_note_requests_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_note_requests_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
@@ -1803,6 +1964,234 @@ export type Database = {
           },
         ]
       }
+      goods_receipt_lines: {
+        Row: {
+          afgevinkt_at: string | null
+          afgevinkt_door: string | null
+          afwijking_foto_url: string | null
+          afwijking_notitie: string | null
+          ai_confidence: number | null
+          ai_confidence_per_field: Json | null
+          ai_raw_artikelnummer: string | null
+          ai_raw_naam: string | null
+          created_at: string
+          eenheid_verwacht: string | null
+          goods_receipt_id: string
+          haccp_categorie: Database["public"]["Enums"]["haccp_categorie"] | null
+          hoeveelheid_ontvangen: number | null
+          hoeveelheid_verwacht: number | null
+          id: string
+          ingredient_id: string | null
+          is_nieuw_ingredient: boolean | null
+          lotnummer: string | null
+          match_confidence: number | null
+          match_status: string | null
+          product_naam_herkend: string
+          status: Database["public"]["Enums"]["goods_receipt_line_status"]
+          tht_datum: string | null
+          updated_at: string
+          validation_errors: Json | null
+        }
+        Insert: {
+          afgevinkt_at?: string | null
+          afgevinkt_door?: string | null
+          afwijking_foto_url?: string | null
+          afwijking_notitie?: string | null
+          ai_confidence?: number | null
+          ai_confidence_per_field?: Json | null
+          ai_raw_artikelnummer?: string | null
+          ai_raw_naam?: string | null
+          created_at?: string
+          eenheid_verwacht?: string | null
+          goods_receipt_id: string
+          haccp_categorie?:
+            | Database["public"]["Enums"]["haccp_categorie"]
+            | null
+          hoeveelheid_ontvangen?: number | null
+          hoeveelheid_verwacht?: number | null
+          id?: string
+          ingredient_id?: string | null
+          is_nieuw_ingredient?: boolean | null
+          lotnummer?: string | null
+          match_confidence?: number | null
+          match_status?: string | null
+          product_naam_herkend: string
+          status?: Database["public"]["Enums"]["goods_receipt_line_status"]
+          tht_datum?: string | null
+          updated_at?: string
+          validation_errors?: Json | null
+        }
+        Update: {
+          afgevinkt_at?: string | null
+          afgevinkt_door?: string | null
+          afwijking_foto_url?: string | null
+          afwijking_notitie?: string | null
+          ai_confidence?: number | null
+          ai_confidence_per_field?: Json | null
+          ai_raw_artikelnummer?: string | null
+          ai_raw_naam?: string | null
+          created_at?: string
+          eenheid_verwacht?: string | null
+          goods_receipt_id?: string
+          haccp_categorie?:
+            | Database["public"]["Enums"]["haccp_categorie"]
+            | null
+          hoeveelheid_ontvangen?: number | null
+          hoeveelheid_verwacht?: number | null
+          id?: string
+          ingredient_id?: string | null
+          is_nieuw_ingredient?: boolean | null
+          lotnummer?: string | null
+          match_confidence?: number | null
+          match_status?: string | null
+          product_naam_herkend?: string
+          status?: Database["public"]["Enums"]["goods_receipt_line_status"]
+          tht_datum?: string | null
+          updated_at?: string
+          validation_errors?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_lines_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_lines_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_receipts: {
+        Row: {
+          ai_generated: boolean
+          ai_model_version: string | null
+          ai_parse_confidence: number | null
+          ai_parse_status:
+            | Database["public"]["Enums"]["pakbon_ai_parse_status"]
+            | null
+          ai_raw_response: Json | null
+          bestelling_id: string | null
+          created_at: string
+          email_raw_url: string | null
+          heeft_strict_temp_alarm: boolean
+          id: string
+          leverancier_id: string | null
+          levering_datum: string | null
+          location_id: string
+          notities: string | null
+          ontvangen_at: string | null
+          ontvangen_door: string | null
+          ontvangst_status: Database["public"]["Enums"]["goods_receipt_status"]
+          organization_id: string
+          pakbon_nummer: string | null
+          temp_gekoeld_gemeten: number | null
+          temp_gemeten_at: string | null
+          temp_gemeten_door: string | null
+          temp_vries_gemeten: number | null
+          totaal_regels_afwijking: number | null
+          totaal_regels_akkoord: number | null
+          totaal_regels_verwacht: number | null
+          updated_at: string
+        }
+        Insert: {
+          ai_generated?: boolean
+          ai_model_version?: string | null
+          ai_parse_confidence?: number | null
+          ai_parse_status?:
+            | Database["public"]["Enums"]["pakbon_ai_parse_status"]
+            | null
+          ai_raw_response?: Json | null
+          bestelling_id?: string | null
+          created_at?: string
+          email_raw_url?: string | null
+          heeft_strict_temp_alarm?: boolean
+          id?: string
+          leverancier_id?: string | null
+          levering_datum?: string | null
+          location_id: string
+          notities?: string | null
+          ontvangen_at?: string | null
+          ontvangen_door?: string | null
+          ontvangst_status?: Database["public"]["Enums"]["goods_receipt_status"]
+          organization_id: string
+          pakbon_nummer?: string | null
+          temp_gekoeld_gemeten?: number | null
+          temp_gemeten_at?: string | null
+          temp_gemeten_door?: string | null
+          temp_vries_gemeten?: number | null
+          totaal_regels_afwijking?: number | null
+          totaal_regels_akkoord?: number | null
+          totaal_regels_verwacht?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ai_generated?: boolean
+          ai_model_version?: string | null
+          ai_parse_confidence?: number | null
+          ai_parse_status?:
+            | Database["public"]["Enums"]["pakbon_ai_parse_status"]
+            | null
+          ai_raw_response?: Json | null
+          bestelling_id?: string | null
+          created_at?: string
+          email_raw_url?: string | null
+          heeft_strict_temp_alarm?: boolean
+          id?: string
+          leverancier_id?: string | null
+          levering_datum?: string | null
+          location_id?: string
+          notities?: string | null
+          ontvangen_at?: string | null
+          ontvangen_door?: string | null
+          ontvangst_status?: Database["public"]["Enums"]["goods_receipt_status"]
+          organization_id?: string
+          pakbon_nummer?: string | null
+          temp_gekoeld_gemeten?: number | null
+          temp_gemeten_at?: string | null
+          temp_gemeten_door?: string | null
+          temp_vries_gemeten?: number | null
+          totaal_regels_afwijking?: number | null
+          totaal_regels_akkoord?: number | null
+          totaal_regels_verwacht?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipts_bestelling_id_fkey"
+            columns: ["bestelling_id"]
+            isOneToOne: false
+            referencedRelation: "interne_bestellingen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       halffabricaat_methodes: {
         Row: {
           batch_nummer_template: string | null
@@ -1963,6 +2352,8 @@ export type Database = {
           categorie: string
           created_at: string
           eenheid: string
+          haccp_categorie: Database["public"]["Enums"]["haccp_categorie"] | null
+          haccp_strict_temp_max: number | null
           id: string
           is_archived: boolean
           kostprijs: number | null
@@ -1984,6 +2375,10 @@ export type Database = {
           categorie: string
           created_at?: string
           eenheid: string
+          haccp_categorie?:
+            | Database["public"]["Enums"]["haccp_categorie"]
+            | null
+          haccp_strict_temp_max?: number | null
           id?: string
           is_archived?: boolean
           kostprijs?: number | null
@@ -2005,6 +2400,10 @@ export type Database = {
           categorie?: string
           created_at?: string
           eenheid?: string
+          haccp_categorie?:
+            | Database["public"]["Enums"]["haccp_categorie"]
+            | null
+          haccp_strict_temp_max?: number | null
           id?: string
           is_archived?: boolean
           kostprijs?: number | null
@@ -2300,6 +2699,47 @@ export type Database = {
           },
         ]
       }
+      leverancier_prompt_examples: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          example_pakbon_storage_url: string
+          expected_output: Json
+          id: string
+          is_active: boolean
+          leverancier_id: string
+          quality_score: number | null
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          example_pakbon_storage_url: string
+          expected_output: Json
+          id?: string
+          is_active?: boolean
+          leverancier_id: string
+          quality_score?: number | null
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          example_pakbon_storage_url?: string
+          expected_output?: Json
+          id?: string
+          is_active?: boolean
+          leverancier_id?: string
+          quality_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leverancier_prompt_examples_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leveranciers: {
         Row: {
           api_type: string | null
@@ -2307,6 +2747,7 @@ export type Database = {
           contactpersoon: string | null
           created_at: string
           email: string | null
+          email_domains: string[] | null
           id: string
           is_actief: boolean
           klantnummer: string | null
@@ -2324,6 +2765,7 @@ export type Database = {
           contactpersoon?: string | null
           created_at?: string
           email?: string | null
+          email_domains?: string[] | null
           id?: string
           is_actief?: boolean
           klantnummer?: string | null
@@ -2341,6 +2783,7 @@ export type Database = {
           contactpersoon?: string | null
           created_at?: string
           email?: string | null
+          email_domains?: string[] | null
           id?: string
           is_actief?: boolean
           klantnummer?: string | null
@@ -2631,6 +3074,8 @@ export type Database = {
           logo_url: string | null
           name: string
           organization_id: string
+          pakbon_cc_addresses: string[] | null
+          pakbon_slug: string | null
           recept_categorieen: Json | null
           role_in_organization: string | null
           slug: string
@@ -2670,6 +3115,8 @@ export type Database = {
           logo_url?: string | null
           name: string
           organization_id: string
+          pakbon_cc_addresses?: string[] | null
+          pakbon_slug?: string | null
           recept_categorieen?: Json | null
           role_in_organization?: string | null
           slug: string
@@ -2709,6 +3156,8 @@ export type Database = {
           logo_url?: string | null
           name?: string
           organization_id?: string
+          pakbon_cc_addresses?: string[] | null
+          pakbon_slug?: string | null
           recept_categorieen?: Json | null
           role_in_organization?: string | null
           slug?: string
@@ -4949,6 +5398,79 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pakbon_email_intake: {
+        Row: {
+          ai_parse_status: Database["public"]["Enums"]["pakbon_intake_status"]
+          attachments_urls: string[] | null
+          created_at: string
+          error_reason: string | null
+          from_address: string
+          goods_receipt_id: string | null
+          id: string
+          matched_leverancier_id: string | null
+          matched_location_id: string | null
+          raw_email_url: string | null
+          received_at: string
+          resend_message_id: string | null
+          subject: string | null
+          to_address: string
+        }
+        Insert: {
+          ai_parse_status?: Database["public"]["Enums"]["pakbon_intake_status"]
+          attachments_urls?: string[] | null
+          created_at?: string
+          error_reason?: string | null
+          from_address: string
+          goods_receipt_id?: string | null
+          id?: string
+          matched_leverancier_id?: string | null
+          matched_location_id?: string | null
+          raw_email_url?: string | null
+          received_at?: string
+          resend_message_id?: string | null
+          subject?: string | null
+          to_address: string
+        }
+        Update: {
+          ai_parse_status?: Database["public"]["Enums"]["pakbon_intake_status"]
+          attachments_urls?: string[] | null
+          created_at?: string
+          error_reason?: string | null
+          from_address?: string
+          goods_receipt_id?: string | null
+          id?: string
+          matched_leverancier_id?: string | null
+          matched_location_id?: string | null
+          raw_email_url?: string | null
+          received_at?: string
+          resend_message_id?: string | null
+          subject?: string | null
+          to_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pakbon_email_intake_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pakbon_email_intake_matched_leverancier_id_fkey"
+            columns: ["matched_leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pakbon_email_intake_matched_location_id_fkey"
+            columns: ["matched_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payslips: {
         Row: {
@@ -7925,6 +8447,23 @@ export type Database = {
         | "device.paired"
         | "device.deactivated"
       bestel_methode: "email" | "api" | "portal" | "handmatig"
+      credit_note_resolved_via:
+        | "alsnog_geleverd"
+        | "credit_nota"
+        | "handmatig"
+        | "verlopen"
+      credit_note_status:
+        | "open"
+        | "email_verzonden"
+        | "alsnog_geleverd"
+        | "credit_ontvangen"
+        | "handmatig_afgewikkeld"
+        | "verlopen"
+      credit_note_type:
+        | "missing"
+        | "beschadigd"
+        | "verkeerd"
+        | "meer_dan_besteld"
       device_role_enum:
         | "kitchen_station"
         | "service_station"
@@ -7932,6 +8471,19 @@ export type Database = {
         | "reception_station"
       employee_status: "invited" | "active" | "archived"
       fill_order_type: "first_available" | "round_robin" | "priority" | "custom"
+      goods_receipt_line_status:
+        | "verwacht"
+        | "akkoord"
+        | "afwijking_missing"
+        | "afwijking_beschadigd"
+        | "afwijking_verkeerd"
+        | "afwijking_meer"
+      goods_receipt_status:
+        | "verwachten"
+        | "ontvangen_compleet"
+        | "ontvangen_met_afwijking"
+        | "geannuleerd"
+      haccp_categorie: "ambient" | "gekoeld" | "vries" | "vis_op_ijs"
       location_role:
         | "owner"
         | "manager"
@@ -7957,6 +8509,14 @@ export type Database = {
         | "no_response"
         | "expired"
       operating_exception_type: "closed" | "modified" | "extra"
+      pakbon_ai_parse_status: "pending" | "success" | "failed" | "partial"
+      pakbon_intake_status:
+        | "pending"
+        | "success"
+        | "failed"
+        | "rejected_unknown_sender"
+        | "rejected_unknown_location"
+        | "rejected_duplicate"
       platform_role: "platform_admin" | "support"
       reservation_channel:
         | "widget"
@@ -8117,6 +8677,26 @@ export const Constants = {
         "device.deactivated",
       ],
       bestel_methode: ["email", "api", "portal", "handmatig"],
+      credit_note_resolved_via: [
+        "alsnog_geleverd",
+        "credit_nota",
+        "handmatig",
+        "verlopen",
+      ],
+      credit_note_status: [
+        "open",
+        "email_verzonden",
+        "alsnog_geleverd",
+        "credit_ontvangen",
+        "handmatig_afgewikkeld",
+        "verlopen",
+      ],
+      credit_note_type: [
+        "missing",
+        "beschadigd",
+        "verkeerd",
+        "meer_dan_besteld",
+      ],
       device_role_enum: [
         "kitchen_station",
         "service_station",
@@ -8125,6 +8705,21 @@ export const Constants = {
       ],
       employee_status: ["invited", "active", "archived"],
       fill_order_type: ["first_available", "round_robin", "priority", "custom"],
+      goods_receipt_line_status: [
+        "verwacht",
+        "akkoord",
+        "afwijking_missing",
+        "afwijking_beschadigd",
+        "afwijking_verkeerd",
+        "afwijking_meer",
+      ],
+      goods_receipt_status: [
+        "verwachten",
+        "ontvangen_compleet",
+        "ontvangen_met_afwijking",
+        "geannuleerd",
+      ],
+      haccp_categorie: ["ambient", "gekoeld", "vries", "vis_op_ijs"],
       location_role: [
         "owner",
         "manager",
@@ -8153,6 +8748,15 @@ export const Constants = {
         "expired",
       ],
       operating_exception_type: ["closed", "modified", "extra"],
+      pakbon_ai_parse_status: ["pending", "success", "failed", "partial"],
+      pakbon_intake_status: [
+        "pending",
+        "success",
+        "failed",
+        "rejected_unknown_sender",
+        "rejected_unknown_location",
+        "rejected_duplicate",
+      ],
       platform_role: ["platform_admin", "support"],
       reservation_channel: [
         "widget",
