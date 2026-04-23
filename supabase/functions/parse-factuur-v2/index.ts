@@ -464,17 +464,28 @@ async function asyncRunV2(args: {
   }
 
   // ===========================================================
-  // 9. Signal upsert/dedup bij blocked
+  // 9. Signal-evaluatie triggeren (fire-and-forget)
   // ===========================================================
-  if (blocked && blockedReason) {
-    await upsertFactuurBlockedSignal(supabase, {
-      factuurId,
-      locationId,
-      organizationId,
-      leverancierNaam: data.leverancier_naam ?? null,
-      factuurNummer: data.factuur_nummer ?? null,
-      reason: blockedReason,
-    });
+  // IDEMPOTENT: evaluate-signals doet zelf dedup via dedup_key
+  // ('inkoop_factuur_blocked:{factuur_id}'). Cron is safety net
+  // wanneer deze trigger faalt; daarom non-fatal.
+  try {
+    await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/evaluate-signals`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ location_id: locationId }),
+      },
+    );
+  } catch (e) {
+    console.warn(
+      "[parse-factuur-v2] signal-evaluation trigger faalde (non-fatal):",
+      e,
+    );
   }
 
   // 10. Broadcast — incl. status zodat realtime UI direct refresh-t
