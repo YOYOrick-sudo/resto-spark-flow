@@ -139,6 +139,48 @@ function Sectie({
   );
 }
 
+/**
+ * R4-A3-fix: Uitvouwbare lijst van te-updaten ingrediënten.
+ * Default ingeklapt — chef kan expand voor verificatie.
+ */
+function BijwerkenSectie({ items }: { items: BijwerkenIngredientPreview[] }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <section className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 text-left hover:bg-muted/40 rounded-md -mx-1 px-1 py-1 transition-colors"
+        aria-expanded={open}
+      >
+        <Pencil className="h-4 w-4 text-foreground" />
+        <h3 className="text-sm font-semibold">
+          Bestaande ingrediënten bijwerken{" "}
+          <span className="text-muted-foreground">({items.length})</span>
+        </h3>
+        <ChevronRight
+          className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${
+            open ? "rotate-90" : ""
+          }`}
+        />
+      </button>
+      {open && (
+        <div className="space-y-0.5 pl-6">
+          {items.map((b) => (
+            <div
+              key={b.ingredientId}
+              className="flex items-center justify-between px-2 py-1 text-sm text-muted-foreground"
+            >
+              <span className="truncate">{b.ingredientNaam}</span>
+              <span className="text-xs shrink-0 ml-3">→ bijwerken</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function GoedkeurenPreviewModal({
   open,
   onClose,
