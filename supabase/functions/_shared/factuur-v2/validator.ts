@@ -252,14 +252,20 @@ export function validateFactuur(data: FactuurV2Output): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // 1. Per-regel validation_error markeren (writes naar data.regels[i])
-  markPerRegelValidationErrors(data.regels ?? []);
+  // 1. Per-regel auto-correct + error-markering (writes naar data.regels[i])
+  validateAndCorrectLines(data.regels ?? []);
   for (const [idx, regel] of (data.regels ?? []).entries()) {
     if (regel.validation_error) {
       warnings.push(
         `Regel ${idx + 1} (${regel.product_naam}): ${
           regel.validation_error_reden ?? "rekenfout"
         }`,
+      );
+    } else if (regel.validation_ambiguous) {
+      warnings.push(
+        `Regel ${
+          idx + 1
+        } (${regel.product_naam}): meerdere berekeningen kloppen — handmatig controleren.`,
       );
     }
   }
