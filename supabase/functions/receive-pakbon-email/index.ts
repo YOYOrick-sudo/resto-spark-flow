@@ -105,72 +105,104 @@ function yyyymm(date: Date): string {
 // Resend API helpers
 // =====================================================
 
-interface ResendEmailDetails {
+interface ResendInboundAttachmentMeta {
+  id: string;
+  filename: string;
+  content_type: string;
+  content_disposition?: string | null;
+  content_id?: string | null;
+}
+
+interface ResendInboundEmailDetails {
   id: string;
   from: string;
   to: string[];
   subject: string;
   html?: string;
   text?: string;
-  attachments?: Array<{
-    filename: string;
-    content_type: string;
-    /** base64-encoded, voor inline attachments */
-    content?: string;
-    /** of: download URL */
-    url?: string;
-    size?: number;
-  }>;
+  raw?: { download_url?: string; expires_at?: string } | null;
+  attachments?: ResendInboundAttachmentMeta[];
+}
+
+interface ResendInboundAttachmentResolved {
+  id: string;
+  filename: string;
+  content_type: string;
+  download_url: string;
+  size?: number;
 }
 
 /**
- * Fetch volledige email-content (incl. attachments) via Resend API.
- * Resend Inbound webhook bevat alleen metadata; body+attachments moeten
- * apart gefetcht worden via /emails/{id}.
+ * Fetch volledige inbound email-metadata via Resend Receiving API.
+ * Endpoint: GET /emails/receiving/{email_id}
+ * Returnt metadata + attachment-lijst (zonder bytes; bytes via aparte call).
  */
-async function fetchResendEmail(
+async function fetchResendInboundEmail(
   emailId: string,
   apiKey: string,
-): Promise<ResendEmailDetails | null> {
+): Promise<ResendInboundEmailDetails | null> {
   try {
-    const res = await fetch(`https://api.resend.com/emails/${emailId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
+    const res = await fetch(
+      `https://api.resend.com/emails/receiving/${emailId}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } },
+    );
     if (!res.ok) {
       console.error(
-        `[receive-pakbon-email] Resend fetch failed: ${res.status} ${await res.text()}`,
+        `[receive-pakbon-email] Resend inbound fetch failed: ${res.status} ${await res.text()}`,
       );
       return null;
     }
-    return (await res.json()) as ResendEmailDetails;
+    return (await res.json()) as ResendInboundEmailDetails;
   } catch (err) {
-    console.error("[receive-pakbon-email] Resend fetch threw:", err);
+    console.error("[receive-pakbon-email] Resend inbound fetch threw:", err);
     return null;
   }
 }
 
 /**
- * Download attachment-content als Uint8Array.
- * Ondersteunt zowel `content` (base64) als `url` (download).
+ * Vraag een signed download-URL voor één inbound attachment op.
+ * Endpoint: GET /emails/receiving/{email_id}/attachments/{attachment_id}
  */
-async function downloadAttachment(
-  att: NonNullable<ResendEmailDetails["attachments"]>[number],
+async function fetchResendAttachmentMeta(
+  emailId: string,
+  attachmentId: string,
+  apiKey: string,
+): Promise<ResendInboundAttachmentResolved | null> {
+  try {
+    const res = await fetch(
+      `https://api.resend.com/emails/receiving/${emailId}/attachments/${attachmentId}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } },
+    );
+    if (!res.ok) {
+      console.error(
+        `[receive-pakbon-email] Resend attachment meta failed: ${res.status} ${await res.text()}`,
+      );
+      return null;
+    }
+    return (await res.json()) as ResendInboundAttachmentResolved;
+  } catch (err) {
+    console.error("[receive-pakbon-email] Resend attachment meta threw:", err);
+    return null;
+  }
+}
+
+/**
+ * Download attachment-bytes via signed download_url.
+ */
+async function downloadAttachmentBytes(
+  downloadUrl: string,
 ): Promise<Uint8Array | null> {
   try {
-    if (att.content) {
-      const binary = atob(att.content);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      return bytes;
+    const res = await fetch(downloadUrl);
+    if (!res.ok) {
+      console.error(
+        `[receive-pakbon-email] attachment download failed: ${res.status}`,
+      );
+      return null;
     }
-    if (att.url) {
-      const res = await fetch(att.url);
-      if (!res.ok) return null;
-      return new Uint8Array(await res.arrayBuffer());
-    }
-    return null;
+    return new Uint8Array(await res.arrayBuffer());
   } catch (err) {
-    console.error("[receive-pakbon-email] downloadAttachment failed:", err);
+    console.error("[receive-pakbon-email] downloadAttachmentBytes threw:", err);
     return null;
   }
 }
@@ -434,7 +466,7 @@ serve(async (req) => {
     });
   }
 
-  const fullEmail = await fetchResendEmail(resendMessageId, resendApiKey);
+  const fullEmail = await fetchResendInboundEmail(resendMessageId, resendApiKey);
   if (!fullEmail) {
     await supabase.from("pakbon_email_intake").insert({
       to_address: primaryTo,
@@ -444,7 +476,7 @@ serve(async (req) => {
       matched_location_id: location.id,
       matched_leverancier_id: leverancierId,
       ai_parse_status: "failed",
-      error_reason: "Kon email-content niet ophalen via Resend API",
+      error_reason: "Kon email-content niet ophalen via Resend Receiving API",
     });
     return new Response(JSON.stringify({ error: "Email fetch failed" }), {
       status: 502,
@@ -469,7 +501,20 @@ serve(async (req) => {
       continue;
     }
 
-    const bytes = await downloadAttachment(att);
+    // Resolve signed download URL voor deze attachment
+    const meta = await fetchResendAttachmentMeta(
+      resendMessageId,
+      att.id,
+      resendApiKey,
+    );
+    if (!meta?.download_url) {
+      console.warn(
+        `[receive-pakbon-email] geen download_url voor ${att.filename} (${att.id})`,
+      );
+      continue;
+    }
+
+    const bytes = await downloadAttachmentBytes(meta.download_url);
     if (!bytes) {
       console.warn(
         `[receive-pakbon-email] attachment download failed: ${att.filename}`,
