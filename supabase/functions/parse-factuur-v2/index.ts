@@ -34,11 +34,13 @@ import {
   upsertLeverancierArtikelFromMatch,
 } from "../_shared/factuur-v2/cache.ts";
 import { normalizeMatchKey } from "../_shared/factuur-v2/normalize.ts";
+import { isEmballageRegel } from "../_shared/factuur-v2/emballageDetector.ts";
 import type {
   FactuurV2Output,
   FactuurV2Regel,
   SumMismatchInfo,
 } from "../_shared/factuur-v2/types.ts";
+import type { SumCheckResult } from "../_shared/factuur-v2/sumCheckMultiBTW.ts";
 
 declare const EdgeRuntime:
   | { waitUntil: (p: Promise<unknown>) => void }
