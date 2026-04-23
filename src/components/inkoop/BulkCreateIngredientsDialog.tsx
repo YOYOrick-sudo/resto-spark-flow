@@ -341,20 +341,30 @@ export function BulkCreateIngredientsDialog({
     ]);
 
     const totalErrors = createRes.errors.length + koppelRes.errors.length;
+    const totalSuccess = createRes.success + koppelRes.success;
     const summaryParts: string[] = [];
-    if (aantalNieuw > 0) summaryParts.push(`${aantalNieuw} nieuw`);
     if (koppelRes.success > 0) summaryParts.push(`${koppelRes.success} gekoppeld`);
+    if (aantalNieuw > 0) summaryParts.push(`${aantalNieuw} nieuw`);
     if (aantalVariant > 0) summaryParts.push(`${aantalVariant} als variant`);
 
-    if (totalErrors === 0 && summaryParts.length > 0) {
-      nestoToast.success(`${summaryParts.join(", ")} aangemaakt`);
+    if (totalErrors === 0 && totalSuccess > 0) {
+      nestoToast.success(
+        `✓ ${totalSuccess} ingrediënten verwerkt`,
+        summaryParts.join(", ")
+      );
       onClose();
-    } else if (totalErrors > 0 && createRes.success + koppelRes.success > 0) {
-      nestoToast.error(
-        `${summaryParts.join(", ")} verwerkt, ${totalErrors} gefaald. Bekijk console.`
+    } else if (totalErrors > 0 && totalSuccess > 0) {
+      nestoToast.warning(
+        `${totalSuccess} verwerkt`,
+        `${totalErrors} ${
+          totalErrors === 1 ? "regel heeft" : "regels hebben"
+        } nog aandacht nodig`
       );
     } else if (totalErrors > 0) {
-      nestoToast.error(`Verwerking mislukt (${totalErrors} fouten). Bekijk console.`);
+      nestoToast.error(
+        "Kon niet verwerken",
+        "Probeer opnieuw of pas de gegevens aan"
+      );
     }
   };
 

@@ -639,11 +639,20 @@ export function useFactuurMutations() {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["ingredienten"] });
       qc.invalidateQueries({ queryKey: ["leveranciers-artikelen"] });
-      if (res.errors.length === 0) {
-        nestoToast.success(`${res.success} ingrediënten aangemaakt`);
-      } else {
+      // Toast wordt door caller (BulkCreateIngredientsDialog) getoond met
+      // gecombineerde samenvatting van create- + koppel-batches. Hier alleen
+      // een fallback voor stand-alone gebruik.
+      if (res.errors.length === 0 && res.success > 0) {
+        nestoToast.success(`✓ ${res.success} ingrediënten aangemaakt`);
+      } else if (res.errors.length > 0 && res.success > 0) {
+        nestoToast.warning(
+          `${res.success} aangemaakt`,
+          `${res.errors.length} hebben nog aandacht nodig`
+        );
+      } else if (res.errors.length > 0) {
         nestoToast.error(
-          `${res.success} aangemaakt, ${res.errors.length} gefaald. Bekijk console voor details.`
+          "Kon niet aanmaken",
+          "Probeer opnieuw of pas de gegevens aan"
         );
       }
     },
@@ -889,18 +898,54 @@ export function useFactuurMutations() {
 
       for (const item of items) {
         try {
-          const { error } = await supabase.rpc("koppel_extra_leverancier", {
-            p_ingredient_id: item.ingredientId,
-            p_leverancier_id: item.leverancierId,
-            p_artikel_naam: item.artikelNaam,
-            p_artikel_nummer: item.artikelNummer ?? null,
-            p_ean_code: null,
-            p_verpakking_hoeveelheid: item.verpakkingHoeveelheid ?? null,
-            p_verpakking_eenheid: item.verpakkingEenheid ?? null,
-            p_prijs_per_verpakking: item.prijsPerVerpakking ?? null,
-            p_prijs_per_eenheid: item.prijsPerEenheid ?? null,
-          });
-          if (error) throw error;
+          // IDEMPOTENT: check eerst of deze koppeling al bestaat. Zo ja,
+          // behandelen we 'm als success — geen RPC-call, geen unique-violation.
+          const artNr = item.artikelNummer?.trim();
+          let alreadyLinked = false;
+
+          if (artNr) {
+            const { data: bestaand } = await supabase
+              .from("leveranciers_artikelen")
+              .select("id, ingredient_id, is_actief")
+              .eq("leverancier_id", item.leverancierId)
+              .eq("artikel_nummer", artNr)
+              .maybeSingle();
+
+            if (
+              bestaand?.id &&
+              bestaand.ingredient_id === item.ingredientId &&
+              bestaand.is_actief
+            ) {
+              alreadyLinked = true;
+            }
+          } else {
+            const { data: bestaand } = await supabase
+              .from("leveranciers_artikelen")
+              .select("id, is_actief")
+              .eq("leverancier_id", item.leverancierId)
+              .eq("ingredient_id", item.ingredientId)
+              .is("artikel_nummer", null)
+              .maybeSingle();
+
+            if (bestaand?.id && bestaand.is_actief) {
+              alreadyLinked = true;
+            }
+          }
+
+          if (!alreadyLinked) {
+            const { error } = await supabase.rpc("koppel_extra_leverancier", {
+              p_ingredient_id: item.ingredientId,
+              p_leverancier_id: item.leverancierId,
+              p_artikel_naam: item.artikelNaam,
+              p_artikel_nummer: item.artikelNummer ?? null,
+              p_ean_code: null,
+              p_verpakking_hoeveelheid: item.verpakkingHoeveelheid ?? null,
+              p_verpakking_eenheid: item.verpakkingEenheid ?? null,
+              p_prijs_per_verpakking: item.prijsPerVerpakking ?? null,
+              p_prijs_per_eenheid: item.prijsPerEenheid ?? null,
+            });
+            if (error) throw error;
+          }
 
           // Koppel primaire factuurregel aan bestaand ingrediënt
           const { error: rErr } = await supabase
@@ -926,7 +971,7 @@ export function useFactuurMutations() {
             if (extraErr) throw extraErr;
           }
 
-          // Best-effort alias
+          // Best-effort alias — leerlogica voor toekomstige Tier-4 hits
           if (item.aliasNaam?.trim()) {
             const { error: aErr } = await supabase.rpc("record_factuur_correction", {
               p_ingredient_id: item.ingredientId,
