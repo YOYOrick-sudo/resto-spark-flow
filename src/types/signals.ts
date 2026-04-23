@@ -3,7 +3,7 @@
 // ============================================
 
 /** Module identifiers for signals - extensible via string */
-export type SignalModule = 'reserveringen' | 'keuken' | 'revenue' | 'configuratie' | 'onboarding' | (string & {});
+export type SignalModule = 'reserveringen' | 'keuken' | 'revenue' | 'configuratie' | 'onboarding' | 'inkoop' | (string & {});
 
 export type SignalSeverity = 'info' | 'warning' | 'error' | 'ok';
 export type SignalKind = 'signal' | 'insight';
@@ -48,6 +48,7 @@ export const SIGNAL_MODULE_TO_ENTITLEMENT: Record<string, string> = {
   revenue: 'finance',
   configuratie: 'settings',
   onboarding: 'onboarding',
+  inkoop: 'inkoop',
 };
 
 /** Module display configs */
@@ -56,6 +57,7 @@ export const SIGNAL_MODULE_CONFIGS: SignalModuleConfig[] = [
   { value: 'reserveringen', label: 'Reserveringen', variant: 'primary' },
   { value: 'keuken', label: 'Keuken', variant: 'warning' },
   { value: 'revenue', label: 'Revenue', variant: 'success' },
+  { value: 'inkoop', label: 'Inkoop', variant: 'warning' },
   { value: 'configuratie', label: 'Configuratie', variant: 'default' },
   { value: 'onboarding', label: 'Onboarding', variant: 'primary' },
 ];

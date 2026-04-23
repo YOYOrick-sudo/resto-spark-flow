@@ -1678,6 +1678,46 @@ const inkoopProvider: SignalProvider = {
       });
     }
 
+    // 5. inkoop_factuur_blocked — facturen die door validator op review_blocked zijn gezet
+    const { data: blocked } = await supabaseAdmin
+      .from('factuur_uploads')
+      .select('id, factuurnummer, leverancier_naam_herkend, totaal_incl_btw, validation_blocked_reason, factuurdatum, bestandsnaam')
+      .eq('location_id', locationId)
+      .eq('status', 'review_blocked');
+
+    for (const f of blocked ?? []) {
+      const lev = (f as any).leverancier_naam_herkend ?? 'onbekende leverancier';
+      const bedrag = (f as any).totaal_incl_btw != null
+        ? `€${Number((f as any).totaal_incl_btw).toFixed(2)}`
+        : '';
+      const datum = (f as any).factuurdatum
+        ? new Date((f as any).factuurdatum).toLocaleDateString('nl-NL')
+        : '';
+      const parts = [datum, bedrag].filter(Boolean).join(' · ');
+      const reden = (f as any).validation_blocked_reason ?? 'Bedragen niet automatisch bevestigd.';
+      drafts.push({
+        organization_id: orgId,
+        location_id: locationId,
+        module: 'inkoop',
+        signal_type: 'inkoop_factuur_blocked',
+        kind: 'signal',
+        severity: 'warning',
+        title: `Factuur ${lev} vereist controle`,
+        message: parts ? `${parts}. ${reden}` : reden,
+        action_path: `/inkoop/factuur/${(f as any).id}`,
+        dedup_key: `inkoop_factuur_blocked:${(f as any).id}`,
+        actionable: true,
+        priority: 15,
+        cooldown_hours: 0,
+        payload: {
+          factuur_id: (f as any).id,
+          bestandsnaam: (f as any).bestandsnaam,
+          totaal_incl_btw: (f as any).totaal_incl_btw,
+          validation_blocked_reason: reden,
+        },
+      });
+    }
+
     // 4. inkoop_nieuwe_leverancier_ontdekt — herkend maar niet gekoppeld, dedupe op naam
     const { data: nieuweLev } = await supabaseAdmin
       .from('factuur_uploads')
@@ -1725,6 +1765,7 @@ const inkoopProvider: SignalProvider = {
         'inkoop_factuur_parsing_gefaald',
         'inkoop_factuur_klaar_voor_review',
         'inkoop_nieuwe_leverancier_ontdekt',
+        'inkoop_factuur_blocked',
       ];
     }
     return resolved;
