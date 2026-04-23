@@ -770,16 +770,18 @@ export function useFactuurMutations() {
         }
       }
 
-      // Sprint Enterprise Pass — resolve eventueel openstaand "factuur_blocked"
-      // signal voor deze factuur. IDEMPOTENT: WHERE-filter op status='active'
-      // garandeert dat een 2e goedkeur-call (na retry) geen no-op fout geeft.
+      // Sprint Enterprise Pass — resolve eventueel openstaand
+      // 'inkoop_factuur_blocked' signal voor deze factuur. IDEMPOTENT:
+      // WHERE-filter op status='active' garandeert dat een 2e goedkeur-call
+      // (na retry) geen no-op fout geeft. evaluate-signals.resolveStale
+      // ruimt eventuele resterende rows op via cron.
       await supabase
         .from("signals")
         .update({
           status: "resolved" as const,
           resolved_at: new Date().toISOString(),
         })
-        .eq("dedup_key", `factuur_blocked:${factuurId}`)
+        .eq("dedup_key", `inkoop_factuur_blocked:${factuurId}`)
         .eq("status", "active");
 
       return { updated };
@@ -810,7 +812,7 @@ export function useFactuurMutations() {
           status: "resolved" as const,
           resolved_at: new Date().toISOString(),
         })
-        .eq("dedup_key", `factuur_blocked:${factuurId}`)
+        .eq("dedup_key", `inkoop_factuur_blocked:${factuurId}`)
         .eq("status", "active");
     },
     onSuccess: () => {
