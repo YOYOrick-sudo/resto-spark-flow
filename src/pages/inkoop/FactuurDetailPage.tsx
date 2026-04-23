@@ -26,13 +26,22 @@ import { LeverancierSelectCombobox } from "@/components/inkoop/LeverancierSelect
 import { BulkCreateIngredientsDialog } from "@/components/inkoop/BulkCreateIngredientsDialog";
 import { ProcessFactuurModal } from "@/components/inkoop/ProcessFactuurModal";
 import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
-import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
+import { RegelSecties } from "@/components/inkoop/RegelSecties";
 import { VerpakkingModal } from "@/components/inkoop/VerpakkingModal";
+import { FactuurBlockedBanner } from "@/components/inkoop/FactuurBlockedBanner";
 import { isVerpakkingRegel } from "@/lib/factuur-categories";
 import { fmtEuro } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
-import { ArrowLeft, Plus, MoreHorizontal, Copy, ArrowRight } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  MoreHorizontal,
+  Copy,
+  ArrowRight,
+  CheckCircle2,
+  Package,
+} from "lucide-react";
 
 // Sprint B1: tab-IDs voor de vereenvoudigde 3-tabs structuur.
 type TabId = "herkend" | "nieuw" | "verpakking";
@@ -43,6 +52,7 @@ const STATUS_BADGES: Record<
 > = {
   verwerken: { variant: "default", label: "Verwerken..." },
   review: { variant: "warning", label: "Review nodig" },
+  review_blocked: { variant: "warning", label: "Manager-review" },
   goedgekeurd: { variant: "success", label: "Goedgekeurd" },
   afgewezen: { variant: "error", label: "Afgewezen" },
 };
@@ -103,17 +113,10 @@ export default function FactuurDetailPage() {
   const factuurId = id ?? null;
 
   const { data: factuur, isLoading } = useFactuurDetail(factuurId);
-  const {
-    updateFactuur,
-    deleteRegel,
-    goedkeuren,
-    afwijzen,
-    bulkConfirmHighConfidence,
-  } = useFactuurMutations();
+  const { updateFactuur, deleteRegel, afwijzen } = useFactuurMutations();
   const { data: leveranciers } = useLeveranciers();
 
   const [addOpen, setAddOpen] = useState(false);
-  // Sprint B1: 3 tabs ipv 5 chips. Default = "herkend".
   const [tab, setTab] = useState<TabId>("herkend");
   const [search, setSearch] = useState("");
   const [bulkCreateRegels, setBulkCreateRegels] = useState<FactuurRegel[] | null>(null);
@@ -130,7 +133,7 @@ export default function FactuurDetailPage() {
     }
   }, [factuur]);
 
-  const { highConfRegels, verpakkingRegels, ingredientRegels, counts } = useMemo(() => {
+  const { verpakkingRegels, ingredientRegels, counts } = useMemo(() => {
     const regels = factuur?.regels ?? [];
     const verpakking = regels.filter(isVerpakkingRegel);
     const ingredient = regels.filter((r) => !isVerpakkingRegel(r));
@@ -147,13 +150,7 @@ export default function FactuurDetailPage() {
         (r.ingredient_id == null && r.match_status !== "skipped")
     ).length;
 
-    const highConf = ingredient.filter((r) => {
-      const c = r.match_confidence ?? r.ai_confidence ?? 0;
-      return r.match_status === "matched" && c >= 0.9;
-    });
-
     return {
-      highConfRegels: highConf,
       verpakkingRegels: verpakking,
       ingredientRegels: ingredient,
       counts: {
@@ -163,6 +160,24 @@ export default function FactuurDetailPage() {
       },
     };
   }, [factuur?.regels]);
+
+  // Sprint Enterprise Pass — bouw conditionele tabs (verberg tabs met count=0).
+  const tabs: TabItem[] = useMemo(() => {
+    const all: TabItem[] = [
+      { id: "herkend", label: "Herkend", count: counts.herkend, icon: CheckCircle2 },
+      { id: "nieuw", label: "Nieuw aanmaken", count: counts.nieuw, icon: Plus },
+      { id: "verpakking", label: "Verpakking", count: counts.verpakking, icon: Package },
+    ];
+    return all.filter((t) => (t.count ?? 0) > 0);
+  }, [counts]);
+
+  // Auto-fallback naar eerste zichtbare tab als huidige tab leeg raakt.
+  useEffect(() => {
+    if (tabs.length === 0) return;
+    if (!tabs.find((t) => t.id === tab)) {
+      setTab(tabs[0].id as TabId);
+    }
+  }, [tabs, tab]);
 
   const visibleRegels = useMemo(() => {
     let base: FactuurRegel[] = [];
@@ -199,6 +214,7 @@ export default function FactuurDetailPage() {
 
   const badge = STATUS_BADGES[factuur.status] ?? STATUS_BADGES.review;
   const isEditable = factuur.status === "review";
+  const isBlocked = factuur.status === "review_blocked";
   const berekenTotaal = factuur.regels.reduce((s, r) => s + (r.totaal ?? 0), 0);
 
   const handleVerwerk = () => setProcessOpen(true);
@@ -206,11 +222,14 @@ export default function FactuurDetailPage() {
     afwijzen.mutate(factuurId!, { onSuccess: () => navigate("/inkoop") });
   };
 
-  const tabs: TabItem[] = [
-    { id: "herkend", label: "✓ Herkend", count: counts.herkend },
-    { id: "nieuw", label: "+ Nieuw aanmaken", count: counts.nieuw },
-    { id: "verpakking", label: "📦 Verpakking", count: counts.verpakking },
-  ];
+  // Toon zoekbalk alleen wanneer de actieve tab >10 items heeft (drempel uit plan).
+  const activeTabCount =
+    tab === "herkend"
+      ? counts.herkend
+      : tab === "nieuw"
+        ? counts.nieuw
+        : counts.verpakking;
+  const showSearch = tabs.length > 1 && tab !== "verpakking" && activeTabCount > 10;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -303,6 +322,14 @@ export default function FactuurDetailPage() {
 
           {/* Rechterkolom: data + regels (natuurlijke scroll) */}
           <div className="space-y-6 min-w-0">
+            {/* Sprint Enterprise Pass — Blocked banner heeft voorrang. */}
+            {isBlocked && (
+              <FactuurBlockedBanner
+                reason={factuur.validation_blocked_reason}
+                retries={factuur.validation_retries ?? 0}
+              />
+            )}
+
             {/* AI Match Widget */}
             <LeverancierMatchWidget
               factuurId={factuurId!}
@@ -371,136 +398,164 @@ export default function FactuurDetailPage() {
                   disabled={!isEditable}
                 />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">
-                  Totaalbedrag
-                </label>
-                <Input
-                  value={
-                    berekenTotaal ? `€${berekenTotaal.toFixed(2)}` : "€0,00"
-                  }
-                  readOnly
-                  className="h-9 bg-muted/30"
-                />
-              </div>
             </div>
 
-            {/* Samenvatting-card */}
+            {/* Samenvatting-card — header + collapsible bedrag-details */}
             <RegelsSamenvattingCard
               regels={factuur.regels}
               totaal={berekenTotaal}
-              highConfRegels={highConfRegels}
-              isBulkPending={bulkConfirmHighConfidence.isPending}
-              isEditable={isEditable}
-              onBulkConfirm={() =>
-                bulkConfirmHighConfidence.mutate(highConfRegels.map((r) => r.id))
+              leverancierNaam={
+                (leveranciers ?? []).find(
+                  (l: any) => l.id === factuur.leverancier_id
+                )?.naam ?? factuur.leverancier_naam_herkend ?? null
               }
-              onOpenVerpakking={
-                verpakkingRegels.length > 0
-                  ? () => setVerpakkingOpen(true)
-                  : undefined
-              }
+              factuurnummer={factuur.factuurnummer}
+              factuurdatum={factuur.factuurdatum}
+              subtotaalExclBtw={factuur.subtotaal_excl_btw}
+              btwBedrag={factuur.btw_bedrag}
+              btwPercentage={factuur.btw_percentage}
+              totaalInclBtw={factuur.totaal_incl_btw}
             />
 
-            {/* B1 — Tabs + zoekbalk */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <NestoTabs
-                  tabs={tabs}
-                  activeTab={tab}
-                  onTabChange={(id) => setTab(id as TabId)}
-                />
-                {isEditable && !addOpen && (
-                  <NestoButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAddOpen(true)}
-                  >
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Regel toevoegen
-                  </NestoButton>
-                )}
-              </div>
-              {tab !== "verpakking" && (
-                <SearchBar
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="Zoek binnen deze tab op productnaam..."
-                  size="sm"
-                />
-              )}
-            </div>
-
-            {addOpen && (
-              <div>
-                <FactuurRegelForm
-                  factuurId={factuurId!}
-                  onDone={() => setAddOpen(false)}
+            {/* Sprint Enterprise Pass — bij review_blocked toont alleen read-only
+                regel-lijst zonder tabs/zoek/verwerk. Banner staat al boven. */}
+            {isBlocked ? (
+              <div className="space-y-3">
+                <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Geëxtraheerde regels (read-only)
+                </h3>
+                <RegelSecties
+                  mode="flat"
+                  visibleRegels={factuur.regels}
+                  isEditable={false}
+                  leverancierId={factuur.leverancier_id}
+                  leverancierNaam={
+                    (leveranciers ?? []).find(
+                      (l: any) => l.id === factuur.leverancier_id
+                    )?.naam ?? factuur.leverancier_naam_herkend ?? null
+                  }
+                  onDeleteRegel={() => {}}
+                  onOpenBulkCreate={() => {}}
+                  showBulkCreate={false}
                 />
               </div>
-            )}
-
-            {/* Regel-lijst per tab */}
-            {tab === "verpakking" ? (
-              verpakkingRegels.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setVerpakkingOpen(true)}
-                  className="w-full rounded-xl border border-border/50 bg-muted/20 p-4 text-left hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <p className="text-sm font-medium">
-                    📦 {verpakkingRegels.length} verpakking-regels
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Tellen mee in factuur-totaal · klik om te bekijken of een
-                    foutief geclassificeerde regel te verwijderen
-                  </p>
-                </button>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  Geen verpakking-regels op deze factuur.
-                </p>
-              )
             ) : (
-              <RegelSecties
-                mode="flat"
-                visibleRegels={visibleRegels}
-                isEditable={isEditable}
-                leverancierId={factuur.leverancier_id}
-                leverancierNaam={
-                  (leveranciers ?? []).find(
-                    (l: any) => l.id === factuur.leverancier_id
-                  )?.naam ?? factuur.leverancier_naam_herkend ?? null
-                }
-                onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
-                onOpenBulkCreate={(regels) => setBulkCreateRegels(regels)}
-                showBulkCreate={tab === "nieuw"}
-              />
-            )}
+              <>
+                {/* Conditionele tabs + zoekbalk */}
+                {tabs.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      {tabs.length > 1 ? (
+                        <NestoTabs
+                          tabs={tabs}
+                          activeTab={tab}
+                          onTabChange={(id) => setTab(id as TabId)}
+                        />
+                      ) : (
+                        <div className="text-sm font-medium text-foreground inline-flex items-center gap-2">
+                          {(() => {
+                            const Icon = tabs[0].icon;
+                            return Icon ? <Icon className="h-4 w-4" /> : null;
+                          })()}
+                          {tabs[0].label}
+                          <span className="text-muted-foreground tabular-nums">
+                            {tabs[0].count}
+                          </span>
+                        </div>
+                      )}
+                      {isEditable && !addOpen && (
+                        <NestoButton
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAddOpen(true)}
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" /> Regel toevoegen
+                        </NestoButton>
+                      )}
+                    </div>
+                    {showSearch && (
+                      <SearchBar
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Zoek binnen deze tab op productnaam..."
+                        size="sm"
+                      />
+                    )}
+                  </div>
+                )}
 
-            {factuur.regels.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                Nog geen regels. Voeg ze handmatig toe.
-              </p>
-            )}
+                {addOpen && (
+                  <div>
+                    <FactuurRegelForm
+                      factuurId={factuurId!}
+                      onDone={() => setAddOpen(false)}
+                    />
+                  </div>
+                )}
 
-            {/* C1 — één primaire "Verwerk factuur" knop */}
-            {isEditable && (
-              <div className="pt-4 border-t border-border/50 flex items-center justify-end gap-2 flex-wrap">
-                <NestoButton
-                  variant="outline"
-                  onClick={handleAfwijzen}
-                  isLoading={afwijzen.isPending}
-                  className="text-destructive hover:text-destructive min-h-[44px]"
-                >
-                  Afwijzen
-                </NestoButton>
-                <NestoButton
-                  onClick={handleVerwerk}
-                  className="min-h-[44px]"
-                >
-                  Verwerk factuur ({fmtEuro(berekenTotaal)})
-                </NestoButton>
-              </div>
+                {/* Regel-lijst per tab */}
+                {tabs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Geen regels op deze factuur. Voeg ze handmatig toe.
+                  </p>
+                ) : tab === "verpakking" ? (
+                  verpakkingRegels.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setVerpakkingOpen(true)}
+                      className="w-full rounded-xl border border-border/50 bg-muted/20 p-4 text-left hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <p className="text-sm font-medium inline-flex items-center gap-1.5">
+                        <Package className="h-4 w-4" />
+                        {verpakkingRegels.length} verpakking-regels
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Tellen mee in factuur-totaal · klik om te bekijken of
+                        een foutief geclassificeerde regel te verwijderen
+                      </p>
+                    </button>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">
+                      Geen verpakking-regels op deze factuur.
+                    </p>
+                  )
+                ) : (
+                  <RegelSecties
+                    mode="flat"
+                    visibleRegels={visibleRegels}
+                    isEditable={isEditable}
+                    leverancierId={factuur.leverancier_id}
+                    leverancierNaam={
+                      (leveranciers ?? []).find(
+                        (l: any) => l.id === factuur.leverancier_id
+                      )?.naam ?? factuur.leverancier_naam_herkend ?? null
+                    }
+                    onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
+                    onOpenBulkCreate={(regels) => setBulkCreateRegels(regels)}
+                    showBulkCreate={tab === "nieuw"}
+                  />
+                )}
+
+                {/* Verwerk-knop — alleen in editable, niet-blocked state */}
+                {isEditable && (
+                  <div className="pt-4 border-t border-border/50 flex items-center justify-end gap-2 flex-wrap">
+                    <NestoButton
+                      variant="outline"
+                      onClick={handleAfwijzen}
+                      isLoading={afwijzen.isPending}
+                      className="text-destructive hover:text-destructive min-h-[44px]"
+                    >
+                      Afwijzen
+                    </NestoButton>
+                    <NestoButton
+                      onClick={handleVerwerk}
+                      className="min-h-[44px]"
+                    >
+                      Verwerk factuur ({fmtEuro(berekenTotaal)})
+                    </NestoButton>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -770,16 +770,31 @@ export function useFactuurMutations() {
         }
       }
 
+      // Sprint Enterprise Pass — resolve eventueel openstaand "factuur_blocked"
+      // signal voor deze factuur. IDEMPOTENT: WHERE-filter op status='active'
+      // garandeert dat een 2e goedkeur-call (na retry) geen no-op fout geeft.
+      await supabase
+        .from("signals")
+        .update({
+          status: "resolved" as const,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("dedup_key", `factuur_blocked:${factuurId}`)
+        .eq("status", "active");
+
       return { updated };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
       qc.invalidateQueries({ queryKey: ["ingredienten"] });
+      qc.invalidateQueries({ queryKey: ["signals"] });
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
 
+  // IDEMPOTENT: status='afgewezen' overschrijven is een no-op zelfde-waarde update.
+  // Signal-resolve filtert op status='active' zodat dubbel afwijzen geen extra writes geeft.
   const afwijzen = useMutation({
     mutationFn: async (factuurId: string) => {
       const { error } = await supabase
@@ -787,10 +802,21 @@ export function useFactuurMutations() {
         .update({ status: "afgewezen" as const })
         .eq("id", factuurId);
       if (error) throw error;
+
+      // Sprint Enterprise Pass — resolve eventueel openstaand blocked-signal.
+      await supabase
+        .from("signals")
+        .update({
+          status: "resolved" as const,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("dedup_key", `factuur_blocked:${factuurId}`)
+        .eq("status", "active");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["factuur-detail"] });
       qc.invalidateQueries({ queryKey: ["factuur-uploads"] });
+      qc.invalidateQueries({ queryKey: ["signals"] });
     },
     onError: (e: Error) => nestoToast.error(e.message),
   });
