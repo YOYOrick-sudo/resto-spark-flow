@@ -149,8 +149,6 @@ interface ResendAttachmentFetchResult {
   errorCode: "metadata_404" | "metadata_403" | "metadata_other" | "download_failed" | "size_exceeded" | "type_blocked" | null;
 }
 
-let __debugLoggedFirstFetch = false;
-
 /**
  * Fetch attachment metadata + bytes via Resend Inbound API.
  * Returns bytes=null met errorReason als iets misgaat (graceful).
@@ -202,12 +200,6 @@ async function fetchResendInboundAttachment(
   const meta = await metaRes.json().catch(() => null) as
     | { download_url?: string; content_type?: string; filename?: string; size?: number }
     | null;
-
-  // DEBUG (Test 5): log volledige response van eerste fetch om structuur te bevestigen
-  if (!__debugLoggedFirstFetch) {
-    __debugLoggedFirstFetch = true;
-    console.log("[RECV-DEBUG-T5] first attachment metadata response:", JSON.stringify(meta));
-  }
 
   if (!meta?.download_url) {
     return {
