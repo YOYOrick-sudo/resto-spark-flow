@@ -1,24 +1,17 @@
 // supabase/functions/parse-factuur-v2/index.ts
-// Sprint Factuur-AI V2 — Generieke AI-only extractor.
+// Sprint Factuur Enterprise Pass — orchestreert AI-extractie met:
+//   * Retry-loop (max 1×) bij sum-mismatch — bespaart kosten via shouldRetryParse()
+//   * Persisteert nieuwe DB-velden:
+//       factuur_uploads.subtotaal_excl_btw / btw_bedrag / btw_percentage /
+//       totaal_incl_btw / validation_retries / validation_blocked_reason
+//       factuur_regels.validation_error / validation_error_reden
+//   * Bij onhandelbare mismatch → status='review_blocked'
+//   * Signal-upsert/dedup met key="factuur_blocked:{factuur_id}"
+//       - module='inkoop', kind='signal', signal_type='inkoop_factuur_blocked'
+//       - status='open' bestaand → UPDATE message+timestamp (geen dubbel signal)
+//       - status='resolved' bestaand → INSERT nieuw (issue is opnieuw opgetreden)
 //
-// AI-route = Lovable AI Gateway via _shared/ai.ts callAI().
-// Geen Vertex AI, geen direct provider call.
-//
-// Flow:
-//   1. Auth + body-validatie
-//   2. Fetch factuur_uploads + locations.organization_id
-//   3. Optionele race-guard (skipped voor dry_run)
-//   4. Atomic claim ai_parsing_status='processing' + parse_method
-//   5. EdgeRuntime.waitUntil(asyncRunV2)
-//      a. Storage download
-//      b. extractTextPerPage → scan-detectie
-//      c. extractFactuur (Gemini Flash, structured output)
-//      d. validateFactuur (5 checks)
-//      e. Tier-1 cache lookup per regel (artikelnummer)
-//      f. dry_run? → return preview, geen DB-writes
-//      g. upsert leverancier + bulk insert factuur_regels
-//      h. update factuur_uploads (status, validation_*, tokens, cost, raw)
-//      i. broadcast factuur.status
+// AI-route = Lovable AI Gateway via _shared/ai.ts callAI() (geen Vertex/direct).
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
@@ -28,9 +21,11 @@ import {
 import { extractTextPerPage } from "../_shared/pdf-text.ts";
 import { extractFactuur } from "../_shared/factuur-v2/extractor.ts";
 import {
+  shouldRetryParse,
   validateFactuur,
   type ValidationStatus,
 } from "../_shared/factuur-v2/validator.ts";
+import { buildRetryHint } from "../_shared/factuur-v2/prompt.ts";
 import {
   lookupTier1,
   lookupTier2_3_4,
@@ -42,6 +37,7 @@ import { normalizeMatchKey } from "../_shared/factuur-v2/normalize.ts";
 import type {
   FactuurV2Output,
   FactuurV2Regel,
+  SumMismatchInfo,
 } from "../_shared/factuur-v2/types.ts";
 
 declare const EdgeRuntime:
@@ -86,8 +82,99 @@ function uint8ToBase64(bytes: Uint8Array): string {
 // =====================================================
 function aiStatusFromValidation(v: ValidationStatus): string {
   if (v === "invalid") return "failed";
-  // "valid" en "warning" beide → completed (chef reviewt warnings in UI later).
   return "completed";
+}
+
+// =====================================================
+// Sprint Enterprise Pass — bouw chef-leesbare reden bij block
+// =====================================================
+function buildBlockedReason(sm: SumMismatchInfo): string {
+  const verschil = sm.verschil.toFixed(2);
+  const pct = sm.verschil_pct.toFixed(1);
+  if (sm.type === "onverklaarbaar") {
+    return `De bedragen op deze factuur konden niet automatisch bevestigd worden. ` +
+      `Verschil van €${verschil} (${pct}%) tussen de som van de regels en het ` +
+      `factuur-totaal — kon ook niet via 9% of 21% BTW verklaard worden. ` +
+      `Vereist handmatige controle.`;
+  }
+  return `De bedragen op deze factuur konden niet automatisch bevestigd worden. ` +
+    `Verschil van €${verschil} (${pct}%) tussen de som van de regels en het ` +
+    `factuur-totaal. Vereist handmatige controle.`;
+}
+
+// =====================================================
+// Sprint Enterprise Pass — Signal upsert/dedup
+// =====================================================
+//
+// IDEMPOTENT: leest eerst bestaand signal met dezelfde dedup_key.
+// - Geen rij                    → INSERT
+// - status='open'               → UPDATE message + created_at
+// - status='resolved/dismissed' → INSERT nieuw (issue komt terug)
+async function upsertFactuurBlockedSignal(
+  supabase: SupabaseClient,
+  args: {
+    factuurId: string;
+    locationId: string;
+    organizationId: string;
+    leverancierNaam: string | null;
+    factuurNummer: string | null;
+    reason: string;
+  },
+): Promise<void> {
+  const dedupKey = `factuur_blocked:${args.factuurId}`;
+  const titleLeverancier = args.leverancierNaam ?? "Onbekende leverancier";
+  const titleNummer = args.factuurNummer ? ` #${args.factuurNummer}` : "";
+  const title = `Factuur ${titleLeverancier}${titleNummer} vereist controle`;
+
+  try {
+    const { data: bestaand } = await supabase
+      .from("signals")
+      .select("id, status")
+      .eq("dedup_key", dedupKey)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (bestaand && bestaand.status === "open") {
+      // Update bestaand open signal — geen dubbele notificatie.
+      const { error: upErr } = await supabase
+        .from("signals")
+        .update({
+          title,
+          message: args.reason,
+          created_at: new Date().toISOString(),
+        })
+        .eq("id", bestaand.id);
+      if (upErr) {
+        console.warn("[parse-factuur-v2] signal update failed:", upErr);
+      }
+      return;
+    }
+
+    // Geen rij OF eerder resolved/dismissed → nieuw signal aanmaken
+    const { error: insErr } = await supabase.from("signals").insert({
+      organization_id: args.organizationId,
+      location_id: args.locationId,
+      module: "inkoop",
+      signal_type: "inkoop_factuur_blocked",
+      kind: "signal",
+      severity: "medium",
+      title,
+      message: args.reason,
+      action_path: `/inkoop/facturen/${args.factuurId}`,
+      payload: { factuur_id: args.factuurId },
+      dedup_key: dedupKey,
+      status: "open",
+      actionable: true,
+      priority: 50,
+    });
+    if (insErr) {
+      console.warn("[parse-factuur-v2] signal insert failed:", insErr);
+    }
+  } catch (err) {
+    // Soft-fail — signal-creatie mag de hoofd-flow niet breken
+    console.warn("[parse-factuur-v2] signal upsert exception:", err);
+  }
 }
 
 // =====================================================
@@ -109,6 +196,10 @@ async function asyncRunV2(args: {
   tokensInput: number;
   tokensOutput: number;
   costEur: number;
+  retries: number;
+  blocked: boolean;
+  blockedReason: string | null;
+  sumMismatch: SumMismatchInfo | null;
 }> {
   const {
     supabase,
@@ -142,19 +233,69 @@ async function asyncRunV2(args: {
     ? "ai_v2_multimodal"
     : "ai_v2_text";
 
-  // 3. Extract via Gemini
-  const { data, raw } = await extractFactuur({
-    text,
-    isScanPdf,
-    pdfBase64: isScanPdf ? uint8ToBase64(bytes) : undefined,
-    organizationId,
-    locationId,
-  });
+  // ===========================================================
+  // 3. AI EXTRACT + VALIDATE met retry-lus (max 1×)
+  // ===========================================================
+  // Aanscherping 1: shouldRetryParse() blokkeert retry bij failed/laag-confidence
+  // → bespaart kosten als AI zelf zegt dat het niks kan worden.
+  let retries = 0;
+  let aggregatedTokensIn = 0;
+  let aggregatedTokensOut = 0;
+  let aggregatedCost = 0;
+  let data: FactuurV2Output;
+  let validation: ReturnType<typeof validateFactuur>;
+  let lastRetryHint: string | undefined;
 
-  // 4. Validatie
-  const validation = validateFactuur(data);
+  while (true) {
+    const { data: parsed, raw } = await extractFactuur({
+      text,
+      isScanPdf,
+      pdfBase64: isScanPdf ? uint8ToBase64(bytes) : undefined,
+      organizationId,
+      locationId,
+      retryHint: lastRetryHint,
+    });
+    data = parsed;
+    validation = validateFactuur(data);
 
-  // 5. Dry-run → geen DB-writes
+    aggregatedTokensIn += raw.inputTokens;
+    aggregatedTokensOut += raw.outputTokens;
+    aggregatedCost += raw.costEur;
+
+    const wantRetry = shouldRetryParse({
+      data,
+      sumMismatch: validation.sumMismatch,
+      currentRetries: retries,
+    });
+    if (!wantRetry) break;
+
+    // Bouw hint voor 2e poging
+    const sm = validation.sumMismatch!;
+    lastRetryHint = buildRetryHint({
+      somRegels: sm.som_regels,
+      vergelijkBasis: sm.vergelijk_basis,
+      basisLabel: sm.type === "netto_mismatch" ? "subtotaal" : "totaal",
+      verschil: sm.verschil,
+    });
+    retries += 1;
+    console.log(
+      `[parse-factuur-v2] retry ${retries} factuurId=${factuurId} reden=${sm.type} verschil=${sm.verschil}`,
+    );
+  }
+
+  // Bepaal of factuur geblokkeerd moet worden
+  const sumMismatch = validation.sumMismatch;
+  const blocked = !!(
+    sumMismatch &&
+    sumMismatch.type !== "klein" &&
+    sumMismatch.verschil > 2 &&
+    sumMismatch.verschil_pct > 1
+  );
+  const blockedReason = blocked && sumMismatch
+    ? buildBlockedReason(sumMismatch)
+    : null;
+
+  // 4. Dry-run → geen DB-writes (behalve shadow-velden door caller)
   if (dryRun) {
     return {
       data,
@@ -162,13 +303,17 @@ async function asyncRunV2(args: {
       errors: validation.errors,
       warnings: validation.warnings,
       parseMethod,
-      tokensInput: raw.inputTokens,
-      tokensOutput: raw.outputTokens,
-      costEur: raw.costEur,
+      tokensInput: aggregatedTokensIn,
+      tokensOutput: aggregatedTokensOut,
+      costEur: aggregatedCost,
+      retries,
+      blocked,
+      blockedReason,
+      sumMismatch,
     };
   }
 
-  // 6. Upsert leverancier
+  // 5. Upsert leverancier
   const leverancierId = await upsertLeverancier(
     supabase,
     locationId,
@@ -176,8 +321,7 @@ async function asyncRunV2(args: {
     data.leverancier_btw_nummer,
   );
 
-  // 7. Match-cascade per regel: Tier-1 → Tier-2 → Tier-3 → Tier-4.
-  // Ingrediënt wordt slechts één keer per upload toegewezen; eerste hit wint.
+  // 6. Match-cascade per regel: Tier-1 → Tier-2 → Tier-3 → Tier-4.
   const regels = data.regels ?? [];
   const artikelnummers: string[] = regels
     .map((r) => (r.artikelnummer ?? "").trim())
@@ -186,9 +330,6 @@ async function asyncRunV2(args: {
     .map((r) => (r.product_naam ?? "").trim())
     .filter((n) => n.length > 0);
 
-  // Lookups parallel uitvoeren — Tier-1 (artnr) + RPC voor Tier-2/3/4 (naam).
-  // De RPC vervangt drie aparte PostgREST .or(ilike) calls die faalden op
-  // productnamen met haakjes/komma's/quotes (bv. "Sla rood (radicchio)").
   const [tier1Map, tier234Map] = await Promise.all([
     leverancierId
       ? lookupTier1(supabase, leverancierId, artikelnummers)
@@ -196,9 +337,6 @@ async function asyncRunV2(args: {
     lookupTier2_3_4(supabase, locationId, leverancierId, namen),
   ]);
 
-  // Resolve per regel: Tier-1 (artnr-exact) wint van Tier-2/3/4 (naam-exact).
-  // Map-key is genormaliseerde naam — moet identiek zijn aan RPC's naam_key
-  // (lower+trim+collapse whitespace).
   const matches: Array<MatchHit | null> = regels.map((r) => {
     const artnr = (r.artikelnummer ?? "").trim();
     const naamKey = normalizeMatchKey(r.product_naam);
@@ -207,8 +345,7 @@ async function asyncRunV2(args: {
     return null;
   });
 
-  // 7b. Auto-upsert leveranciers_artikelen voor Tier-3/4 hits (Tier-2 heeft al een link).
-  // Soft-fail per item — match-resultaat blijft geldig.
+  // 6b. Auto-upsert leveranciers_artikelen voor Tier-3/4 hits.
   if (leverancierId) {
     await Promise.all(
       regels.map(async (r, idx) => {
@@ -228,7 +365,12 @@ async function asyncRunV2(args: {
     );
   }
 
-  // 8. Bulk insert factuur_regels
+  // ===========================================================
+  // 7. Bulk insert factuur_regels — incl. validation_error/_reden
+  // ===========================================================
+  //
+  // IDEMPOTENT: DELETE+INSERT op factuur_id. Re-parse vervangt alle regels
+  // — chef heeft nog niets goedgekeurd want status='review' is nog niet bereikt.
   const regelRows = regels.map((r: FactuurV2Regel, idx: number) => {
     const artikelnummer = (r.artikelnummer ?? "").trim();
     const hit = matches[idx];
@@ -257,11 +399,13 @@ async function asyncRunV2(args: {
       is_nieuw_ingredient: !hit,
       match_status: hit ? "matched" : "unmatched",
       match_confidence: hit ? hit.confidence : null,
+      // Sprint Enterprise Pass — validator-output per regel
+      validation_error: r.validation_error === true,
+      validation_error_reden: r.validation_error_reden ?? null,
     };
   });
 
   if (regelRows.length > 0) {
-    // Eerst oude regels weggooien (bij re-parse).
     await supabase.from("factuur_regels").delete().eq("factuur_id", factuurId);
     const { error: insErr } = await supabase.from("factuur_regels").insert(
       regelRows,
@@ -272,14 +416,32 @@ async function asyncRunV2(args: {
     }
   }
 
-  // 9. Update factuur_uploads
-  // Parity met V1: status='review' altijd zetten zodat UI (isEditable) actie-knoppen
-  // toont. Chef beslist over invalid/warning regels — niet auto-afwijzen.
+  // ===========================================================
+  // 8. Update factuur_uploads — incl. nieuwe BTW + blocked velden
+  // ===========================================================
+  //
+  // IDEMPOTENT: UPDATE op factuur_id. Re-run met identieke AI-output schrijft
+  // exact dezelfde waardes (no-op in praktijk).
   const aiParsingStatus = aiStatusFromValidation(validation.status);
+  const finalStatus = blocked ? "review_blocked" : "review";
+
+  // Eén uniform BTW-percentage afleiden uit btw_regels (NULL bij meerdere)
+  let uniformBtwPct: number | null = null;
+  let totaalBtwBedrag: number | null = null;
+  if (data.btw_regels && data.btw_regels.length > 0) {
+    if (data.btw_regels.length === 1) {
+      uniformBtwPct = data.btw_regels[0].percentage;
+    }
+    totaalBtwBedrag = data.btw_regels.reduce(
+      (s, r) => s + (r.btw_bedrag ?? 0),
+      0,
+    );
+  }
+
   const { error: updErr } = await supabase
     .from("factuur_uploads")
     .update({
-      status: "review",
+      status: finalStatus,
       ai_parsing_status: aiParsingStatus,
       ai_parsed_at: new Date().toISOString(),
       ai_confidence_overall: data.regels && data.regels.length > 0
@@ -301,12 +463,21 @@ async function asyncRunV2(args: {
       factuurnummer: data.factuur_nummer ?? null,
       factuurdatum: data.factuur_datum ?? null,
       totaalbedrag: data.totaal_incl_btw ?? null,
+      // Sprint Enterprise Pass — BTW kolommen
+      subtotaal_excl_btw: data.subtotaal_excl_btw ?? null,
+      btw_bedrag: totaalBtwBedrag,
+      btw_percentage: uniformBtwPct,
+      totaal_incl_btw: data.totaal_incl_btw ?? null,
+      // Sprint Enterprise Pass — block-info
+      validation_retries: retries,
+      validation_blocked_reason: blockedReason,
+      // Bestaand: validator legacy fields
       validation_status: validation.status,
       validation_errors: validation.errors,
       validation_warnings: validation.warnings,
-      ai_tokens_input: raw.inputTokens,
-      ai_tokens_output: raw.outputTokens,
-      ai_cost_estimate: raw.costEur,
+      ai_tokens_input: aggregatedTokensIn,
+      ai_tokens_output: aggregatedTokensOut,
+      ai_cost_estimate: aggregatedCost,
     })
     .eq("id", factuurId);
   if (updErr) {
@@ -314,11 +485,25 @@ async function asyncRunV2(args: {
     throw new Error(`Update factuur_uploads: ${updErr.message}`);
   }
 
-  // 10. Broadcast — parity met V1: ook 'status' meesturen voor realtime UI-trigger
+  // ===========================================================
+  // 9. Signal upsert/dedup bij blocked
+  // ===========================================================
+  if (blocked && blockedReason) {
+    await upsertFactuurBlockedSignal(supabase, {
+      factuurId,
+      locationId,
+      organizationId,
+      leverancierNaam: data.leverancier_naam ?? null,
+      factuurNummer: data.factuur_nummer ?? null,
+      reason: blockedReason,
+    });
+  }
+
+  // 10. Broadcast — incl. status zodat realtime UI direct refresh-t
   await broadcastFactuurStatus(supabase, locationId, {
     factuurId,
     aiParsingStatus,
-    status: "review",
+    status: finalStatus,
   });
 
   return {
@@ -327,9 +512,13 @@ async function asyncRunV2(args: {
     errors: validation.errors,
     warnings: validation.warnings,
     parseMethod,
-    tokensInput: raw.inputTokens,
-    tokensOutput: raw.outputTokens,
-    costEur: raw.costEur,
+    tokensInput: aggregatedTokensIn,
+    tokensOutput: aggregatedTokensOut,
+    costEur: aggregatedCost,
+    retries,
+    blocked,
+    blockedReason,
+    sumMismatch,
   };
 }
 
@@ -389,7 +578,6 @@ serve(async (req) => {
       );
     }
 
-    // Fetch factuur + organization_id
     const { data: factuur, error: fetchError } = await supabase
       .from("factuur_uploads")
       .select("*, locations!factuur_uploads_location_id_fkey(organization_id)")
@@ -417,14 +605,9 @@ serve(async (req) => {
     }
 
     // DRY-RUN: synchronous, no claim, no factuur_regels writes.
-    // WEL persistente shadow-velden op factuur_uploads (parallel-mode vergelijking).
     if (dryRun) {
       const startedAt = Date.now();
 
-      // START-marker: zet status='processing' direct, vóór de zware AI-call.
-      // Doel: bij container-shutdown weten we dat V2 wél gestart is (status
-      // blijft 'processing' i.p.v. NULL). Onderscheid tussen "nooit gestart"
-      // en "gestart maar gekilled" door Edge Runtime.
       try {
         await supabase
           .from("factuur_uploads")
@@ -455,8 +638,6 @@ serve(async (req) => {
 
         const durationMs = Date.now() - startedAt;
 
-        // Shadow-write naar dedicated v2_shadow_* kolommen.
-        // Conflict-vrij: V1 schrijft hier nooit in.
         const { error: shadowErr } = await supabase
           .from("factuur_uploads")
           .update({
@@ -483,7 +664,7 @@ serve(async (req) => {
           console.log(
             `[parse-factuur-v2] shadow persisted factuurId=${factuurId} regels=${
               result.data.regels?.length ?? 0
-            } tokens=${result.tokensInput}+${result.tokensOutput} cost=€${result.costEur} duration=${durationMs}ms`,
+            } tokens=${result.tokensInput}+${result.tokensOutput} cost=€${result.costEur} retries=${result.retries} blocked=${result.blocked} duration=${durationMs}ms`,
           );
         }
 
@@ -499,6 +680,10 @@ serve(async (req) => {
             tokens_output: result.tokensOutput,
             cost_eur: result.costEur,
             duration_ms: durationMs,
+            retries: result.retries,
+            blocked: result.blocked,
+            blocked_reason: result.blockedReason,
+            sum_mismatch: result.sumMismatch,
             preview: result.data,
           }),
           {
@@ -514,7 +699,6 @@ serve(async (req) => {
           `[parse-factuur-v2] dry-run failed factuurId=${factuurId} duration=${durationMs}ms:`,
           e,
         );
-        // Persist error voor zichtbaarheid in DB — MOET vóór de response.
         await supabase
           .from("factuur_uploads")
           .update({
@@ -629,7 +813,6 @@ serve(async (req) => {
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(job);
     } else {
-      // dev fallback: just await
       await job;
     }
 
