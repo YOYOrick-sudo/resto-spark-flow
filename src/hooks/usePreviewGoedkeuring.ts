@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { normalizeIngredientNaam } from "@/lib/stringUtils";
+import { isVerpakkingRegel } from "@/lib/factuur-categories";
 
 export type PrijsSeverity = "groot" | "middel" | "klein";
 
