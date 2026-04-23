@@ -27,6 +27,8 @@ import type { PreviewData } from "@/hooks/usePreviewGoedkeuring";
 import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
 import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterChips";
 import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
+import { VerpakkingModal } from "@/components/inkoop/VerpakkingModal";
+import { isVerpakkingRegel } from "@/lib/factuur-categories";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { ArrowLeft, Plus, MoreHorizontal, Copy, ArrowRight } from "lucide-react";
@@ -103,7 +105,6 @@ export default function FactuurDetailPage() {
     goedkeuren,
     afwijzen,
     bulkConfirmHighConfidence,
-    skipRegels,
   } = useFactuurMutations();
   const { data: leveranciers } = useLeveranciers();
 
@@ -111,6 +112,7 @@ export default function FactuurDetailPage() {
   const [chip, setChip] = useState<ChipId | null>(null);
   const [bulkCreateRegels, setBulkCreateRegels] = useState<FactuurRegel[] | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [verpakkingOpen, setVerpakkingOpen] = useState(false);
 
   // Local state voor editable factuurvelden (onBlur saves)
   const [factuurnummer, setFactuurnummer] = useState("");
@@ -123,22 +125,26 @@ export default function FactuurDetailPage() {
     }
   }, [factuur]);
 
-  const { highConfRegels, counts, smartDefaultChip } = useMemo(() => {
+  const { highConfRegels, verpakkingRegels, counts, smartDefaultChip } = useMemo(() => {
     const regels = factuur?.regels ?? [];
 
-    // Categoriseer alle regels
-    const cats = regels.map((r) => ({ r, cat: categoriseer(r) }));
+    // Sprint A3: scheid verpakking-regels van échte ingrediënt-regels.
+    const verpakking = regels.filter(isVerpakkingRegel);
+    const ingredientRegels = regels.filter((r) => !isVerpakkingRegel(r));
+
+    // Categoriseer alleen ingrediënt-regels (verpakking valt buiten de categorisering).
+    const cats = ingredientRegels.map((r) => ({ r, cat: categoriseer(r) }));
 
     const counts = {
-      all: regels.length,
+      all: ingredientRegels.length,
       nieuw: cats.filter((x) => x.cat === "geen").length,
       onzeker: cats.filter((x) => x.cat === "ai" || x.cat === "geen").length,
       gematcht: cats.filter((x) => x.cat === "perfect" || x.cat === "naam").length,
-      overig: cats.filter((x) => x.cat === "overig").length,
+      verpakking: verpakking.length,
     };
 
     // High-conf voor bulk-bevestig: matched + (ai_confidence | match_confidence) >= 0.9
-    const highConf = regels.filter((r) => {
+    const highConf = ingredientRegels.filter((r) => {
       const c = r.match_confidence ?? r.ai_confidence ?? 0;
       return r.match_status === "matched" && c >= 0.9;
     });
@@ -148,6 +154,7 @@ export default function FactuurDetailPage() {
 
     return {
       highConfRegels: highConf,
+      verpakkingRegels: verpakking,
       counts,
       smartDefaultChip: smart,
     };
@@ -378,6 +385,11 @@ export default function FactuurDetailPage() {
               onBulkConfirm={() =>
                 bulkConfirmHighConfidence.mutate(highConfRegels.map((r) => r.id))
               }
+              onOpenVerpakking={
+                verpakkingRegels.length > 0
+                  ? () => setVerpakkingOpen(true)
+                  : undefined
+              }
             />
 
             {/* Filter-chips + Toevoegen */}
@@ -408,23 +420,41 @@ export default function FactuurDetailPage() {
             )}
 
             {/* Regel-secties */}
-            <RegelSecties
-              regels={factuur.regels}
-              filter={activeChip}
-              isEditable={isEditable}
-              leverancierId={factuur.leverancier_id}
-              leverancierNaam={
-                (leveranciers ?? []).find(
-                  (l: any) => l.id === factuur.leverancier_id
-                )?.naam ?? factuur.leverancier_naam_herkend ?? null
-              }
-              onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
-              onSkipAllOverig={(ids) => skipRegels.mutate(ids)}
-              onOpenBulkCreate={(regels) => {
-                console.log("[bulk] open in FactuurDetailPage", regels.length);
-                setBulkCreateRegels(regels);
-              }}
-            />
+            {activeChip === "verpakking" ? (
+              verpakkingRegels.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setVerpakkingOpen(true)}
+                  className="w-full rounded-xl border border-border/50 bg-muted/20 p-4 text-left hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <p className="text-sm font-medium">
+                    📦 {verpakkingRegels.length} verpakking-regels
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tellen mee in factuur-totaal · klik om te bekijken of een
+                    foutief geclassificeerde regel te verwijderen
+                  </p>
+                </button>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Geen verpakking-regels op deze factuur.
+                </p>
+              )
+            ) : (
+              <RegelSecties
+                regels={factuur.regels}
+                filter={activeChip}
+                isEditable={isEditable}
+                leverancierId={factuur.leverancier_id}
+                leverancierNaam={
+                  (leveranciers ?? []).find(
+                    (l: any) => l.id === factuur.leverancier_id
+                  )?.naam ?? factuur.leverancier_naam_herkend ?? null
+                }
+                onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
+                onOpenBulkCreate={(regels) => setBulkCreateRegels(regels)}
+              />
+            )}
 
             {factuur.regels.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">
@@ -461,6 +491,14 @@ export default function FactuurDetailPage() {
         onClose={() => setBulkCreateRegels(null)}
         regels={bulkCreateRegels ?? []}
         leverancierId={factuur.leverancier_id}
+      />
+
+      <VerpakkingModal
+        open={verpakkingOpen}
+        onClose={() => setVerpakkingOpen(false)}
+        regels={verpakkingRegels}
+        isEditable={isEditable}
+        onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
       />
 
       <GoedkeurenPreviewModal

@@ -1,4 +1,5 @@
-export type ChipId = "all" | "nieuw" | "onzeker" | "gematcht" | "overig";
+// Sprint A3: 'overig' chip vervangen door 'verpakking' — duidelijker chef-taal.
+export type ChipId = "all" | "nieuw" | "onzeker" | "gematcht" | "verpakking";
 
 interface Chip {
   id: ChipId;
@@ -14,7 +15,7 @@ interface Props {
     nieuw: number;
     onzeker: number;
     gematcht: number;
-    overig: number;
+    verpakking: number;
   };
 }
 
@@ -24,7 +25,7 @@ export function RegelFilterChips({ active, onChange, counts }: Props) {
     { id: "nieuw", label: "Nieuw", count: counts.nieuw },
     { id: "onzeker", label: "Onzeker", count: counts.onzeker },
     { id: "gematcht", label: "Gematcht", count: counts.gematcht },
-    { id: "overig", label: "Overig", count: counts.overig },
+    { id: "verpakking", label: "📦 Verpakking", count: counts.verpakking },
   ];
 
   return (

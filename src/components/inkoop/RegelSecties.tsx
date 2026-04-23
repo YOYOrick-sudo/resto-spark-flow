@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, Trash2, SkipForward, Sparkles } from "lucide-react";
+import { ChevronDown, Trash2, Sparkles } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -8,18 +8,18 @@ import {
 import { NestoButton } from "@/components/polar/NestoButton";
 import { IngredientMatchBadge } from "@/components/inkoop/IngredientMatchBadge";
 import { VerpakkingHint } from "@/components/inkoop/VerpakkingHint";
+import { isVerpakkingRegel } from "@/lib/factuur-categories";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import type { ChipId } from "./RegelFilterChips";
 
-const OVERIG_REGEX =
-  /bezorg|emballage|retour|statiegeld|toeslag|brandstof|milieu|pallet|deksel|beker|bestek|servet|rietje|draagtas|wegwerp|afhaal.*doos|kartonnen.{0,5}bak|vacuum.{0,5}zak|\bzak\b|\bzakken\b|\bbakje\b|\bbakjes\b|folie|disposable/i;
-
-export type SectieId = "perfect" | "naam" | "ai" | "geen" | "overig";
+// Sprint A3: 'overig' bestaat niet meer als hoofdlijst-categorie.
+// Alle verpakking/emballage/toeslag-regels worden door isVerpakkingRegel()
+// uit de hoofdlijst gefilterd vóór categorisering en getoond via VerpakkingModal.
+export type SectieId = "perfect" | "naam" | "ai" | "geen";
 
 export function categoriseer(r: FactuurRegel): SectieId {
-  // R4b-1: skipped regels horen visueel in 'overig'
-  if (r.match_status === "skipped") return "overig";
-  if (OVERIG_REGEX.test(r.product_naam_herkend)) return "overig";
+  // R4b-1: skipped regels die GEEN verpakking zijn → 'geen' (chef kan nog handelen)
+  if (r.match_status === "skipped") return "geen";
   if (r.match_status === "unmatched") return "geen";
   const c = r.match_confidence ?? 0;
   if (c >= 0.98) return "perfect"; // tier 1 + 2
@@ -36,15 +36,15 @@ const SECTIE_META: Record<
   naam: { emoji: "🟢", label: "Naam-match", defaultOpen: false, tone: "success" },
   ai: { emoji: "🔵", label: "AI-suggestie", defaultOpen: true, tone: "info" },
   geen: { emoji: "🔴", label: "Geen match", defaultOpen: true, tone: "danger" },
-  overig: { emoji: "⏭", label: "Overig", defaultOpen: false, tone: "muted" },
 };
 
 const CHIP_TO_SECTIES: Record<ChipId, SectieId[]> = {
-  all: ["perfect", "naam", "ai", "geen", "overig"],
+  all: ["perfect", "naam", "ai", "geen"],
   nieuw: ["geen"],
   onzeker: ["ai", "geen"],
   gematcht: ["perfect", "naam"],
-  overig: ["overig"],
+  // Sprint A3: 'verpakking' filter rendert geen secties — chef gebruikt VerpakkingModal.
+  verpakking: [],
 };
 
 interface Props {
@@ -54,7 +54,6 @@ interface Props {
   leverancierId: string | null;
   leverancierNaam?: string | null;
   onDeleteRegel: (id: string) => void;
-  onSkipAllOverig: (ids: string[]) => void;
   onOpenBulkCreate: (regels: FactuurRegel[]) => void;
 }
 
@@ -65,7 +64,6 @@ export function RegelSecties({
   leverancierId,
   leverancierNaam,
   onDeleteRegel,
-  onSkipAllOverig,
   onOpenBulkCreate,
 }: Props) {
   const grouped = useMemo(() => {
@@ -74,9 +72,10 @@ export function RegelSecties({
       naam: [],
       ai: [],
       geen: [],
-      overig: [],
     };
+    // Sprint A3: verpakking-regels worden uitgesloten van de hoofdlijst.
     for (const r of regels) {
+      if (isVerpakkingRegel(r)) continue;
       map[categoriseer(r)].push(r);
     }
     return map;
@@ -89,7 +88,6 @@ export function RegelSecties({
     naam: SECTIE_META.naam.defaultOpen,
     ai: SECTIE_META.ai.defaultOpen,
     geen: SECTIE_META.geen.defaultOpen,
-    overig: SECTIE_META.overig.defaultOpen,
   }));
 
   return (
@@ -100,13 +98,6 @@ export function RegelSecties({
         const meta = SECTIE_META[id];
         const forcedOpen = filter !== "all";
         const isOpen = forcedOpen ? true : openMap[id];
-
-        // R4b-1: skip-overig kandidaten = niet al skipped
-        const skipKandidaten =
-          id === "overig"
-            ? items.filter((r) => r.match_status !== "skipped")
-            : [];
-        const showSkipKnop = id === "overig" && isEditable && skipKandidaten.length > 0;
 
         // R4b-1: bulk-create kandidaten = unmatched met AI-naam
         const bulkKandidaten =
@@ -148,20 +139,6 @@ export function RegelSecties({
                   />
                 )}
               </CollapsibleTrigger>
-              {showSkipKnop && (
-                <NestoButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onSkipAllOverig(skipKandidaten.map((r) => r.id));
-                  }}
-                >
-                  <SkipForward className="h-3.5 w-3.5 mr-1" />
-                  Skip alle overig
-                </NestoButton>
-              )}
               {showBulkKnop && (
                 <NestoButton
                   variant="primary"
@@ -169,10 +146,6 @@ export function RegelSecties({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log("[bulk] click in RegelSecties", {
-                      count: bulkKandidaten.length,
-                      first: bulkKandidaten[0]?.id,
-                    });
                     onOpenBulkCreate(bulkKandidaten);
                   }}
                 >
