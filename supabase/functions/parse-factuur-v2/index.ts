@@ -33,9 +33,7 @@ import {
 } from "../_shared/factuur-v2/validator.ts";
 import {
   lookupTier1,
-  lookupTier2,
-  lookupTier3,
-  lookupTier4,
+  lookupTier2_3_4,
   type MatchHit,
   upsertLeverancier,
   upsertLeverancierArtikelFromMatch,
@@ -188,28 +186,24 @@ async function asyncRunV2(args: {
     .map((r) => (r.product_naam ?? "").trim())
     .filter((n) => n.length > 0);
 
-  // Lookups parallel uitvoeren — onafhankelijke read-only queries.
-  const [tier1Map, tier2Map, tier3Map, tier4Map] = await Promise.all([
+  // Lookups parallel uitvoeren — Tier-1 (artnr) + RPC voor Tier-2/3/4 (naam).
+  // De RPC vervangt drie aparte PostgREST .or(ilike) calls die faalden op
+  // productnamen met haakjes/komma's/quotes (bv. "Sla rood (radicchio)").
+  const [tier1Map, tier234Map] = await Promise.all([
     leverancierId
       ? lookupTier1(supabase, leverancierId, artikelnummers)
       : Promise.resolve(new Map<string, MatchHit>()),
-    leverancierId
-      ? lookupTier2(supabase, leverancierId, namen)
-      : Promise.resolve(new Map<string, MatchHit>()),
-    lookupTier3(supabase, locationId, namen),
-    lookupTier4(supabase, locationId, leverancierId, namen),
+    lookupTier2_3_4(supabase, locationId, leverancierId, namen),
   ]);
 
-  // Resolve per regel + verzamel auto-upserts voor Tier-2/3/4 zonder bestaande artikel-link.
-  // BELANGRIJK: gebruik dezelfde normalizeMatchKey als de lookups (cache.ts) zodat
-  // namen met haakjes/leestekens consistent matchen.
+  // Resolve per regel: Tier-1 (artnr-exact) wint van Tier-2/3/4 (naam-exact).
+  // Map-key is genormaliseerde naam — moet identiek zijn aan RPC's naam_key
+  // (lower+trim+collapse whitespace).
   const matches: Array<MatchHit | null> = regels.map((r) => {
     const artnr = (r.artikelnummer ?? "").trim();
     const naamKey = normalizeMatchKey(r.product_naam);
     if (artnr && tier1Map.has(artnr)) return tier1Map.get(artnr)!;
-    if (naamKey && tier2Map.has(naamKey)) return tier2Map.get(naamKey)!;
-    if (naamKey && tier3Map.has(naamKey)) return tier3Map.get(naamKey)!;
-    if (naamKey && tier4Map.has(naamKey)) return tier4Map.get(naamKey)!;
+    if (naamKey && tier234Map.has(naamKey)) return tier234Map.get(naamKey)!;
     return null;
   });
 
