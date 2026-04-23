@@ -102,107 +102,57 @@ function yyyymm(date: Date): string {
 }
 
 // =====================================================
-// Resend API helpers
+// Resend Inbound payload helpers
 // =====================================================
+//
+// Resend Inbound webhook (event: "email.received") levert ALLE content direct
+// in de payload — er is geen tweede API-call nodig. Attachments zitten als
+// base64-string in `data.attachments[].content`.
+//
+// Payload-vorm (per Resend docs nov 2025):
+//   {
+//     type: "email.received",
+//     data: {
+//       email_id: "uuid",
+//       from: "Yorick <yorick@shouf.ai>",
+//       to: ["pakbon+slug@mail.shouf.ai"],
+//       subject: "...",
+//       html: "...",
+//       text: "...",
+//       attachments: [
+//         {
+//           filename: "pakbon.pdf",
+//           content_type: "application/pdf",
+//           content: "<base64>",
+//           content_disposition?: "attachment",
+//           content_id?: "..."
+//         }
+//       ]
+//     }
+//   }
 
-interface ResendInboundAttachmentMeta {
-  id: string;
+interface ResendInboundAttachmentPayload {
   filename: string;
-  content_type: string;
+  content_type?: string;
+  contentType?: string;
+  content: string; // base64
   content_disposition?: string | null;
   content_id?: string | null;
 }
 
-interface ResendInboundEmailDetails {
-  id: string;
-  from: string;
-  to: string[];
-  subject: string;
-  html?: string;
-  text?: string;
-  raw?: { download_url?: string; expires_at?: string } | null;
-  attachments?: ResendInboundAttachmentMeta[];
-}
-
-interface ResendInboundAttachmentResolved {
-  id: string;
-  filename: string;
-  content_type: string;
-  download_url: string;
-  size?: number;
-}
-
 /**
- * Fetch volledige inbound email-metadata via Resend Receiving API.
- * Endpoint: GET /emails/receiving/{email_id}
- * Returnt metadata + attachment-lijst (zonder bytes; bytes via aparte call).
+ * Decode base64 → Uint8Array (Deno-safe, ondersteunt zowel padded als
+ * unpadded base64 en strip whitespace/newlines).
  */
-async function fetchResendInboundEmail(
-  emailId: string,
-  apiKey: string,
-): Promise<ResendInboundEmailDetails | null> {
+function decodeBase64ToBytes(b64: string): Uint8Array | null {
   try {
-    const res = await fetch(
-      `https://api.resend.com/emails/receiving/${emailId}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } },
-    );
-    if (!res.ok) {
-      console.error(
-        `[receive-pakbon-email] Resend inbound fetch failed: ${res.status} ${await res.text()}`,
-      );
-      return null;
-    }
-    return (await res.json()) as ResendInboundEmailDetails;
+    const cleaned = b64.replace(/\s+/g, "");
+    const binary = atob(cleaned);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
   } catch (err) {
-    console.error("[receive-pakbon-email] Resend inbound fetch threw:", err);
-    return null;
-  }
-}
-
-/**
- * Vraag een signed download-URL voor één inbound attachment op.
- * Endpoint: GET /emails/receiving/{email_id}/attachments/{attachment_id}
- */
-async function fetchResendAttachmentMeta(
-  emailId: string,
-  attachmentId: string,
-  apiKey: string,
-): Promise<ResendInboundAttachmentResolved | null> {
-  try {
-    const res = await fetch(
-      `https://api.resend.com/emails/receiving/${emailId}/attachments/${attachmentId}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } },
-    );
-    if (!res.ok) {
-      console.error(
-        `[receive-pakbon-email] Resend attachment meta failed: ${res.status} ${await res.text()}`,
-      );
-      return null;
-    }
-    return (await res.json()) as ResendInboundAttachmentResolved;
-  } catch (err) {
-    console.error("[receive-pakbon-email] Resend attachment meta threw:", err);
-    return null;
-  }
-}
-
-/**
- * Download attachment-bytes via signed download_url.
- */
-async function downloadAttachmentBytes(
-  downloadUrl: string,
-): Promise<Uint8Array | null> {
-  try {
-    const res = await fetch(downloadUrl);
-    if (!res.ok) {
-      console.error(
-        `[receive-pakbon-email] attachment download failed: ${res.status}`,
-      );
-      return null;
-    }
-    return new Uint8Array(await res.arrayBuffer());
-  } catch (err) {
-    console.error("[receive-pakbon-email] downloadAttachmentBytes threw:", err);
+    console.error("[receive-pakbon-email] base64 decode failed:", err);
     return null;
   }
 }
@@ -455,19 +405,20 @@ serve(async (req) => {
   }
 
   // ===========================================================
-  // 8. Fetch volledige email + attachments via Resend API
+  // 8. Lees attachments DIRECT uit het webhook payload
   // ===========================================================
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  if (!resendApiKey) {
-    console.error("[receive-pakbon-email] RESEND_API_KEY niet geconfigureerd");
-    return new Response(JSON.stringify({ error: "Server misconfigured" }), {
-      status: 503,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // Resend Inbound levert attachments als base64 in `data.attachments[]`.
+  // Geen tweede API-call nodig.
+  const rawAttachments: ResendInboundAttachmentPayload[] = Array.isArray(
+    emailData.attachments,
+  )
+    ? emailData.attachments
+    : [];
 
-  const fullEmail = await fetchResendInboundEmail(resendMessageId, resendApiKey);
-  if (!fullEmail) {
+  if (rawAttachments.length === 0) {
+    console.warn(
+      `[receive-pakbon-email] webhook bevat geen attachments voor ${resendMessageId}`,
+    );
     await supabase.from("pakbon_email_intake").insert({
       to_address: primaryTo,
       from_address: fromAddress,
@@ -476,48 +427,48 @@ serve(async (req) => {
       matched_location_id: location.id,
       matched_leverancier_id: leverancierId,
       ai_parse_status: "failed",
-      error_reason: "Kon email-content niet ophalen via Resend Receiving API",
+      error_reason: "Email bevat geen attachments",
     });
-    return new Response(JSON.stringify({ error: "Email fetch failed" }), {
-      status: 502,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ status: "no_attachments" }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
   // ===========================================================
-  // 9. Upload attachments naar storage
+  // 9. Decode + upload attachments naar storage
   // ===========================================================
-  const attachments = fullEmail.attachments ?? [];
   const uploadedUrls: string[] = [];
   const monthFolder = yyyymm(new Date());
   const basePath = `${location.id}/${monthFolder}/${resendMessageId}`;
 
-  for (const att of attachments) {
+  for (const att of rawAttachments) {
+    const contentType = (att.content_type ?? att.contentType ?? "")
+      .toLowerCase();
+    const filename = att.filename ?? `attachment_${Date.now()}`;
+
     // File-type check
-    if (!ALLOWED_MIMES.test(att.content_type)) {
+    if (!ALLOWED_MIMES.test(contentType)) {
       console.warn(
-        `[receive-pakbon-email] attachment skipped (type=${att.content_type}): ${att.filename}`,
+        `[receive-pakbon-email] attachment skipped (type=${contentType}): ${filename}`,
       );
       continue;
     }
 
-    // Resolve signed download URL voor deze attachment
-    const meta = await fetchResendAttachmentMeta(
-      resendMessageId,
-      att.id,
-      resendApiKey,
-    );
-    if (!meta?.download_url) {
+    if (!att.content || typeof att.content !== "string") {
       console.warn(
-        `[receive-pakbon-email] geen download_url voor ${att.filename} (${att.id})`,
+        `[receive-pakbon-email] attachment zonder base64 content: ${filename}`,
       );
       continue;
     }
 
-    const bytes = await downloadAttachmentBytes(meta.download_url);
+    const bytes = decodeBase64ToBytes(att.content);
     if (!bytes) {
       console.warn(
-        `[receive-pakbon-email] attachment download failed: ${att.filename}`,
+        `[receive-pakbon-email] base64 decode mislukt: ${filename}`,
       );
       continue;
     }
@@ -525,17 +476,17 @@ serve(async (req) => {
     // Size check
     if (bytes.byteLength > MAX_ATTACHMENT_SIZE) {
       console.warn(
-        `[receive-pakbon-email] attachment too large (${bytes.byteLength}): ${att.filename}`,
+        `[receive-pakbon-email] attachment too large (${bytes.byteLength}): ${filename}`,
       );
       continue;
     }
 
-    const safeName = sanitizeFilename(att.filename);
+    const safeName = sanitizeFilename(filename);
     const storagePath = `${basePath}/${safeName}`;
     const { error: upErr } = await supabase.storage
       .from("pakbonnen")
       .upload(storagePath, bytes, {
-        contentType: att.content_type,
+        contentType,
         upsert: true,
       });
     if (upErr) {
