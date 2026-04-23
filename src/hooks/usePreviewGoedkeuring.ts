@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { normalizeIngredientNaam } from "@/lib/stringUtils";
+import { isVerpakkingRegel } from "@/lib/factuur-categories";
 
 export type PrijsSeverity = "groot" | "middel" | "klein";
 
@@ -40,6 +41,17 @@ export interface SkippedRegelPreview {
   naam: string;
 }
 
+export interface VerpakkingRegelPreview {
+  regelId: string;
+  naam: string;
+  bedrag: number;
+}
+
+export interface BijwerkenIngredientPreview {
+  ingredientId: string;
+  ingredientNaam: string;
+}
+
 export interface PreviewData {
   factuur: {
     leverancierNaam: string | null;
@@ -47,9 +59,16 @@ export interface PreviewData {
     totaal: number;
   };
   nieuweIngredienten: NieuwIngredientPreview[];
+  /** R4-A3-fix: ingrediënten waarvan kostprijs/koppeling wordt bijgewerkt
+   * (matched/manual, niet nieuw, niet verpakking). Inclusief regels zonder
+   * prijswijziging — anders is "X bijwerken" verwarrend voor de chef. */
+  bijwerkenIngredienten: BijwerkenIngredientPreview[];
   kostprijsWijzigingen: PrijsWijziging[];
   nieuweKoppelingen: number;
   skippedRegels: SkippedRegelPreview[];
+  /** R4-A3-fix: verpakking & toeslagen — worden geskipt, geen ingredient-koppeling */
+  verpakkingRegels: VerpakkingRegelPreview[];
+  verpakkingTotaal: number;
   heeftGroteWijzigingen: boolean;
 }
 
@@ -122,16 +141,28 @@ export function usePreviewGoedkeuring(
     queryFn: async (): Promise<PreviewData> => {
       if (!factuur) throw new Error("Geen factuur");
 
-      const regels = factuur.regels;
+      // R4-A3-fix: split verpakking vs ingredient regels VÓÓR alle downstream
+      // berekeningen, zodat emballage NOOIT in "Nieuwe ingrediënten" of
+      // "Kostprijs-wijzigingen" terechtkomt — ook niet als AI hem als
+      // is_nieuw_ingredient=true heeft gemarkeerd.
+      const verpakkingRaw = factuur.regels.filter(isVerpakkingRegel);
+      const ingredientRegels = factuur.regels.filter((r) => !isVerpakkingRegel(r));
 
-      // 1. Skipped regels
-      const skippedRegels: SkippedRegelPreview[] = regels
+      const verpakkingRegels: VerpakkingRegelPreview[] = verpakkingRaw.map((r) => ({
+        regelId: r.id,
+        naam: r.product_naam_herkend,
+        bedrag: r.totaal ?? 0,
+      }));
+      const verpakkingTotaal = verpakkingRegels.reduce((s, v) => s + v.bedrag, 0);
+
+      // 1. Skipped regels — alleen chef-handmatig skipped, NIET verpakking
+      // (verpakking heeft eigen sectie).
+      const skippedRegels: SkippedRegelPreview[] = ingredientRegels
         .filter((r) => r.match_status === "skipped")
         .map((r) => ({ regelId: r.id, naam: r.product_naam_herkend }));
 
-      // 2. Nieuwe ingrediënten = regels met is_nieuw_ingredient=true
-      // FIX 4 — Dedup op clean_naam zodat duplicaten als 1 rij verschijnen met count-badge.
-      const nieuwRegels = regels.filter(
+      // 2. Nieuwe ingrediënten = regels met is_nieuw_ingredient=true (excl verpakking)
+      const nieuwRegels = ingredientRegels.filter(
         (r) => r.is_nieuw_ingredient === true && r.match_status !== "skipped"
       );
       const nieuweIngredienten: NieuwIngredientPreview[] = groupNewIngredients(
@@ -159,7 +190,7 @@ export function usePreviewGoedkeuring(
       });
 
       // 3. Matched regels (incl. manual) → groeperen per ingredient_id
-      const matchedRegels = regels.filter(
+      const matchedRegels = ingredientRegels.filter(
         (r) =>
           r.ingredient_id &&
           r.match_status !== "skipped" &&
@@ -185,6 +216,16 @@ export function usePreviewGoedkeuring(
           ])
         );
       }
+
+      // R4-A3-fix: bijwerken-lijst = alle unieke matched ingrediënten
+      // (ongeacht prijswijziging). Chef kan desgewenst zien welke worden
+      // bijgewerkt; modal toont default ingeklapt.
+      const bijwerkenIngredienten: BijwerkenIngredientPreview[] = ingredientIds
+        .map((id) => ({
+          ingredientId: id,
+          ingredientNaam: oudePrijzen.get(id)?.naam ?? "Onbekend ingredient",
+        }))
+        .sort((a, b) => a.ingredientNaam.localeCompare(b.ingredientNaam));
 
       // R4b-3: groepeer per ingredient_id; gewogen gemiddelde over hoeveelheid
       type Groep = {
@@ -261,8 +302,8 @@ export function usePreviewGoedkeuring(
         });
       }
 
-      // 4. Nieuwe leveranciers_artikelen koppelingen
-      const nieuweKoppelingen = regels.filter(
+      // 4. Nieuwe leveranciers_artikelen koppelingen (excl verpakking)
+      const nieuweKoppelingen = ingredientRegels.filter(
         (r) =>
           r.ai_raw_artikelnummer &&
           r.match_status !== "skipped" &&
@@ -280,9 +321,12 @@ export function usePreviewGoedkeuring(
           totaal: factuur.totaal,
         },
         nieuweIngredienten,
+        bijwerkenIngredienten,
         kostprijsWijzigingen,
         nieuweKoppelingen,
         skippedRegels,
+        verpakkingRegels,
+        verpakkingTotaal,
         heeftGroteWijzigingen,
       };
       console.log("[preview] returning", result);

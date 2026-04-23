@@ -22,11 +22,14 @@ import {
   Link2,
   SkipForward,
   Package,
+  ChevronRight,
+  Pencil,
 } from "lucide-react";
 import {
   usePreviewGoedkeuring,
   type PreviewData,
   type PrijsWijziging,
+  type BijwerkenIngredientPreview,
 } from "@/hooks/usePreviewGoedkeuring";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { fmtEuro, fmtEuroPrecise } from "@/lib/format";
@@ -136,6 +139,48 @@ function Sectie({
   );
 }
 
+/**
+ * R4-A3-fix: Uitvouwbare lijst van te-updaten ingrediënten.
+ * Default ingeklapt — chef kan expand voor verificatie.
+ */
+function BijwerkenSectie({ items }: { items: BijwerkenIngredientPreview[] }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <section className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 text-left hover:bg-muted/40 rounded-md -mx-1 px-1 py-1 transition-colors"
+        aria-expanded={open}
+      >
+        <Pencil className="h-4 w-4 text-foreground" />
+        <h3 className="text-sm font-semibold">
+          Bestaande ingrediënten bijwerken{" "}
+          <span className="text-muted-foreground">({items.length})</span>
+        </h3>
+        <ChevronRight
+          className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${
+            open ? "rotate-90" : ""
+          }`}
+        />
+      </button>
+      {open && (
+        <div className="space-y-0.5 pl-6">
+          {items.map((b) => (
+            <div
+              key={b.ingredientId}
+              className="flex items-center justify-between px-2 py-1 text-sm text-muted-foreground"
+            >
+              <span className="truncate">{b.ingredientNaam}</span>
+              <span className="text-xs shrink-0 ml-3">→ bijwerken</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function GoedkeurenPreviewModal({
   open,
   onClose,
@@ -194,9 +239,15 @@ export function GoedkeurenPreviewModal({
             </div>
           ) : (
             <>
+              {/* R4-A3-fix: Bestaande ingrediënten bijwerken — uitvouwbaar.
+                  Default ingeklapt voor rust; chef kan expand voor verificatie. */}
+              {preview.bijwerkenIngredienten.length > 0 && (
+                <BijwerkenSectie items={preview.bijwerkenIngredienten} />
+              )}
+
               <Sectie
                 icon={<Sparkles className="h-4 w-4 text-primary" />}
-                title="Nieuwe ingrediënten"
+                title="Nieuwe ingrediënten aanmaken"
                 count={preview.nieuweIngredienten.length}
               >
                 {preview.nieuweIngredienten.map((n, idx) => (
@@ -239,6 +290,42 @@ export function GoedkeurenPreviewModal({
                   <PrijsRij key={`${w.ingredientId}-${idx}`} w={w} />
                 ))}
               </Sectie>
+
+              {/* R4-A3-fix: Verpakking & toeslagen — eigen sectie.
+                  Worden geskipt, geen ingredient-koppeling. */}
+              {preview.verpakkingRegels.length > 0 && (
+                <section className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold">
+                      Verpakking & toeslagen{" "}
+                      <span className="text-muted-foreground">
+                        ({preview.verpakkingRegels.length})
+                      </span>
+                    </h3>
+                    <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                      {fmtEuro(preview.verpakkingTotaal)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground px-3">
+                    Tellen mee in factuur-totaal, worden overgeslagen voor
+                    ingrediënt-koppeling.
+                  </p>
+                  <div className="space-y-1">
+                    {preview.verpakkingRegels.map((v) => (
+                      <div
+                        key={v.regelId}
+                        className="flex items-center justify-between px-3 py-1.5 text-sm text-muted-foreground"
+                      >
+                        <span className="truncate">{v.naam}</span>
+                        <span className="tabular-nums shrink-0 ml-3">
+                          {fmtEuro(v.bedrag)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {preview.nieuweKoppelingen > 0 && (
                 <section className="space-y-2">
