@@ -34,6 +34,14 @@ export interface FactuurV2Regel {
   // Sprint Factuur Enterprise Pass — door validator gezet (NIET door AI)
   validation_error?: boolean;
   validation_error_reden?: string | null;
+
+  // Sprint Validator-Slim — auto-correctie o.b.v. verpakking-conversie (NIET door AI)
+  validation_corrected?: boolean;
+  validation_correction_path?:
+    | "packaging_base_price"
+    | "packaging_item_qty"
+    | null;
+  validation_ambiguous?: boolean;
 }
 
 export interface FactuurV2Output {
