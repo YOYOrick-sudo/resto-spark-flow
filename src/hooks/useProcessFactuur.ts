@@ -104,34 +104,40 @@ export function partitionRegels(regels: FactuurRegel[]): PhasePartition {
   const verpakking = regels.filter(isVerpakkingRegel);
   const ingredientRegels = regels.filter((r) => !isVerpakkingRegel(r));
 
-  // Phase A: matched OR manual met ingredient_id, niet nieuw.
-  // (matched/manual zijn per definitie ≠ "skipped", dus geen extra check nodig.)
-  const matchedToConfirm = ingredientRegels.filter(
+  // Sprint Enterprise Pass: regels met validation_error (qty×prijs ≠ totaal)
+  // mogen NIET worden gebruikt voor matching/koppeling — ze worden in Phase C
+  // als skipped gemarkeerd en uitgesloten van kostprijs-updates.
+  const errorRegels = ingredientRegels.filter((r) => r.validation_error);
+  const cleanIngredientRegels = ingredientRegels.filter(
+    (r) => !r.validation_error,
+  );
+
+  // Phase A: matched OR manual met ingredient_id, niet nieuw, geen validation_error.
+  const matchedToConfirm = cleanIngredientRegels.filter(
     (r) =>
       r.ingredient_id != null &&
       r.is_nieuw_ingredient !== true &&
       (r.match_status === "matched" || r.match_status === "manual")
   );
 
-  // Phase B: is_nieuw_ingredient=true ZONDER ingredient_id (nog niet aangemaakt).
-  // Of regels die door AI als is_nieuw zijn gemarkeerd zonder dat chef ze heeft
-  // verwerkt. Idempotent: regels mét ingredient_id worden geskipt (al gedaan).
-  const newToCreate = ingredientRegels.filter(
+  // Phase B: is_nieuw_ingredient=true ZONDER ingredient_id, geen validation_error.
+  const newToCreate = cleanIngredientRegels.filter(
     (r) =>
       r.is_nieuw_ingredient === true &&
       r.ingredient_id == null &&
       r.match_status !== "skipped"
   );
 
-  // Phase C: verpakking + chef-handmatig skipped die nog niet skipped-status hebben
+  // Phase C: verpakking + unmatched + validation_error regels die nog niet skipped zijn
   const toSkip = [
     ...verpakking.filter((r) => r.match_status !== "skipped"),
-    ...ingredientRegels.filter(
+    ...cleanIngredientRegels.filter(
       (r) =>
         r.match_status === "unmatched" &&
         r.is_nieuw_ingredient !== true &&
         r.ingredient_id == null
     ),
+    ...errorRegels.filter((r) => r.match_status !== "skipped"),
   ];
 
   return { matchedToConfirm, newToCreate, toSkip };
@@ -185,6 +191,15 @@ export function useProcessFactuur() {
   const run = useCallback(
     async (factuurId: string, factuur: FactuurDetail) => {
       if (!locId) throw new Error("Geen locatie actief");
+
+      // Sprint Enterprise Pass — pre-flight: blocked factuur mag NIET worden verwerkt.
+      // IDEMPOTENT: pure check op factuur.status, geen DB-write.
+      if (factuur.status === "review_blocked") {
+        throw new Error(
+          "Deze factuur is geblokkeerd — een manager moet eerst de bedragen reviewen.",
+        );
+      }
+
       setIsRunning(true);
       setResult(null);
 
@@ -381,10 +396,14 @@ export function useProcessFactuur() {
           if (uErr) throw uErr;
 
           // Kostprijs-update voor alle matched/manual regels (skipt skipped/null)
+          // Sprint Enterprise Pass: regels met validation_error worden uitgesloten —
+          // hun prijs is intern inconsistent (qty × prijs ≠ totaal) en mag de
+          // kostprijs van het ingredient niet vervuilen.
           const matchedRegels = regels.filter(
             (r: any) =>
               r.ingredient_id &&
               r.match_status !== "skipped" &&
+              r.validation_error !== true &&
               (r.match_status === "matched" || r.match_status === "manual")
           );
           for (const regel of matchedRegels) {
