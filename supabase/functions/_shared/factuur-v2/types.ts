@@ -1,5 +1,9 @@
 // supabase/functions/_shared/factuur-v2/types.ts
 // TypeScript-mirror van FACTUUR_V2_SCHEMA.
+//
+// Sprint Factuur Enterprise Pass — uitgebreid met:
+//   - sumMismatch info op output (validator-resultaat)
+//   - validation_error per regel (qty × prijs ≠ totaal)
 
 export type ExtractieStatus = "success" | "partial" | "failed";
 export type Confidence = "hoog" | "medium" | "laag";
@@ -26,6 +30,10 @@ export interface FactuurV2Regel {
   is_emballage?: boolean;
   is_credit?: boolean;
   confidence?: Confidence;
+
+  // Sprint Factuur Enterprise Pass — door validator gezet (NIET door AI)
+  validation_error?: boolean;
+  validation_error_reden?: string | null;
 }
 
 export interface FactuurV2Output {
@@ -40,4 +48,14 @@ export interface FactuurV2Output {
   totaal_incl_btw: number;
   regels: FactuurV2Regel[];
   extractie_waarschuwingen?: string[];
+}
+
+// Sprint Factuur Enterprise Pass — sum-check resultaat (validator-output, niet AI).
+export interface SumMismatchInfo {
+  type: "netto_mismatch" | "bruto_mismatch" | "onverklaarbaar" | "klein";
+  som_regels: number;
+  vergelijk_basis: number; // subtotaal_excl_btw OF totaal_incl_btw
+  verschil: number;        // absolute
+  verschil_pct: number;    // |delta / basis| * 100
+  inferred_btw_percentage?: BtwTarief; // bij Pad B succes
 }
