@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface TabItem {
@@ -6,6 +7,8 @@ export interface TabItem {
   label: string;
   count?: number;
   disabled?: boolean;
+  /** Sprint Enterprise Pass — optionele lucide icon links van het label (16px). */
+  icon?: LucideIcon;
 }
 
 export interface NestoTabsProps {
@@ -26,6 +29,7 @@ export function NestoTabs({
       <nav className="flex gap-6" role="tablist" aria-label="Tabs">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
+          const Icon = tab.icon;
 
           return (
             <button
@@ -44,6 +48,7 @@ export function NestoTabs({
                 tab.disabled && "cursor-not-allowed opacity-50"
               )}
             >
+              {Icon && <Icon className="h-4 w-4" aria-hidden />}
               {tab.label}
               {tab.count !== undefined && (
                 <span

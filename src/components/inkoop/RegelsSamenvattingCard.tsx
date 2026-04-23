@@ -1,85 +1,74 @@
-import { NestoButton } from "@/components/polar";
-import { CheckCircle2, Package } from "lucide-react";
+/**
+ * Sprint Factuur Enterprise Pass — RegelsSamenvattingCard
+ *
+ * VEREENVOUDIGD: alleen header (leverancier, factuurnummer, datum, totaal)
+ * + collapsible bedrag-details. Geen "Bevestig X high-confidence matches"
+ * knop meer — die actie zit nu impliciet in de "Verwerk factuur" flow.
+ */
+import { fmtEuro } from "@/lib/format";
 import { isVerpakkingRegel, sumRegelTotaal } from "@/lib/factuur-categories";
+import { FactuurBedragDetails } from "@/components/inkoop/FactuurBedragDetails";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 
 interface Props {
   regels: FactuurRegel[];
   totaal: number;
-  highConfRegels: FactuurRegel[];
-  onBulkConfirm: () => void;
-  isBulkPending: boolean;
-  isEditable: boolean;
-  onOpenVerpakking?: () => void;
+  leverancierNaam: string | null;
+  factuurnummer: string | null;
+  factuurdatum: string | null;
+  subtotaalExclBtw: number | null;
+  btwBedrag: number | null;
+  btwPercentage: number | null;
+  totaalInclBtw: number | null;
 }
 
 export function RegelsSamenvattingCard({
   regels,
   totaal,
-  highConfRegels,
-  onBulkConfirm,
-  isBulkPending,
-  isEditable,
-  onOpenVerpakking,
+  leverancierNaam,
+  factuurnummer,
+  factuurdatum,
+  subtotaalExclBtw,
+  btwBedrag,
+  btwPercentage,
+  totaalInclBtw,
 }: Props) {
-  // Sprint A3: scheid verpakking-regels van échte ingrediënt-regels.
   const verpakkingRegels = regels.filter(isVerpakkingRegel);
-  const ingredientRegels = regels.filter((r) => !isVerpakkingRegel(r));
-
-  const totalCount = ingredientRegels.length;
-  const matchedCount = ingredientRegels.filter(
-    (r) => r.match_status === "matched" || r.match_status === "manual"
-  ).length;
-  const unmatchedCount = ingredientRegels.filter(
-    (r) => r.match_status === "unmatched"
-  ).length;
-
   const verpakkingTotaal = sumRegelTotaal(verpakkingRegels);
+
+  const datumLabel = factuurdatum
+    ? new Date(factuurdatum).toLocaleDateString("nl-NL", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-3">
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
-        <div className="text-sm">
-          <span className="font-semibold">{totalCount} regels</span>
-          <span className="text-muted-foreground"> · </span>
-          <span className="text-success font-medium">{matchedCount} gematcht</span>
-          {unmatchedCount > 0 && (
-            <>
-              <span className="text-muted-foreground"> · </span>
-              <span className="text-warning font-medium">{unmatchedCount} nieuw</span>
-            </>
-          )}
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-sm font-semibold truncate">
+            {leverancierNaam ?? "Onbekende leverancier"}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {factuurnummer ? `#${factuurnummer}` : "Geen factuurnummer"}
+            {datumLabel ? ` · ${datumLabel}` : ""}
+          </p>
         </div>
-        <div className="text-sm font-semibold tabular-nums">€{totaal.toFixed(2)}</div>
+        <div className="text-base font-semibold tabular-nums shrink-0">
+          {fmtEuro(totaal)}
+        </div>
       </div>
 
-      {/* Sprint A3: compacte verpakking-chip — klikbaar → opent modal */}
-      {verpakkingRegels.length > 0 && onOpenVerpakking && (
-        <button
-          type="button"
-          onClick={onOpenVerpakking}
-          className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full text-xs font-medium border border-border/60 bg-background text-muted-foreground hover:text-foreground hover:border-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Package className="h-3 w-3" />
-          {verpakkingRegels.length} verpakking
-          <span className="tabular-nums opacity-70">
-            · €{verpakkingTotaal.toFixed(2)}
-          </span>
-        </button>
-      )}
-
-      {isEditable && highConfRegels.length > 0 && (
-        <NestoButton
-          variant="outline"
-          size="sm"
-          isLoading={isBulkPending}
-          onClick={onBulkConfirm}
-          className="w-full sm:w-auto"
-        >
-          <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-success" />
-          Bevestig {highConfRegels.length} high-confidence matches
-        </NestoButton>
-      )}
+      <FactuurBedragDetails
+        subtotaalExclBtw={subtotaalExclBtw}
+        btwBedrag={btwBedrag}
+        btwPercentage={btwPercentage}
+        totaalInclBtw={totaalInclBtw}
+        verpakkingTotaal={verpakkingTotaal}
+        berekendTotaal={totaal}
+      />
     </div>
   );
 }
