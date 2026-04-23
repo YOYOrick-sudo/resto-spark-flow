@@ -152,3 +152,12 @@ verify_jwt = false
 
 [functions.submit-application]
 verify_jwt = false
+
+[functions.receive-pakbon-email]
+verify_jwt = false
+
+[functions.parse-pakbon]
+verify_jwt = false
+
+[functions.send-complaint-email]
+verify_jwt = true

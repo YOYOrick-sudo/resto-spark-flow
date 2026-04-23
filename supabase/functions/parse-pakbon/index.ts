@@ -261,8 +261,8 @@ serve(async (req) => {
 
     extractie = parseJsonStrict<PakbonExtractie>(aiResponse.text);
     aiCost = aiResponse.costEur ?? 0;
-    aiTokensIn = aiResponse.tokensInput ?? 0;
-    aiTokensOut = aiResponse.tokensOutput ?? 0;
+    aiTokensIn = aiResponse.inputTokens ?? 0;
+    aiTokensOut = aiResponse.outputTokens ?? 0;
   } catch (err) {
     console.error("[parse-pakbon] AI extractie failed:", err);
     await markFailed(

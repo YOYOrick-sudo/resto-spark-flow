@@ -257,7 +257,7 @@ serve(async (req) => {
   //     én rol owner/manager/chef binnen die location.
   // ===========================================================
   const { data: roleRow } = await supabaseAdmin
-    .from("user_locations")
+    .from("user_location_roles")
     .select("role")
     .eq("user_id", userId)
     .eq("location_id", ctx.goods_receipt.location_id)
