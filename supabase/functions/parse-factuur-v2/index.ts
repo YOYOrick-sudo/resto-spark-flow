@@ -40,6 +40,7 @@ import {
   upsertLeverancier,
   upsertLeverancierArtikelFromMatch,
 } from "../_shared/factuur-v2/cache.ts";
+import { normalizeMatchKey } from "../_shared/factuur-v2/normalize.ts";
 import type {
   FactuurV2Output,
   FactuurV2Regel,
@@ -200,9 +201,11 @@ async function asyncRunV2(args: {
   ]);
 
   // Resolve per regel + verzamel auto-upserts voor Tier-2/3/4 zonder bestaande artikel-link.
+  // BELANGRIJK: gebruik dezelfde normalizeMatchKey als de lookups (cache.ts) zodat
+  // namen met haakjes/leestekens consistent matchen.
   const matches: Array<MatchHit | null> = regels.map((r) => {
     const artnr = (r.artikelnummer ?? "").trim();
-    const naamKey = (r.product_naam ?? "").trim().toLowerCase();
+    const naamKey = normalizeMatchKey(r.product_naam);
     if (artnr && tier1Map.has(artnr)) return tier1Map.get(artnr)!;
     if (naamKey && tier2Map.has(naamKey)) return tier2Map.get(naamKey)!;
     if (naamKey && tier3Map.has(naamKey)) return tier3Map.get(naamKey)!;
