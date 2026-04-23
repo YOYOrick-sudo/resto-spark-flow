@@ -1,69 +1,58 @@
 
+# Deel 1 — Validator-Slim (uitvoeren)
 
-## Huidige code (ModuleSubNav.tsx, regel 89-105)
+Akkoord ontvangen op alle 4 deviaties. Ik ga Deel 1 nu volledig bouwen volgens het plan, met strikte stop-gate na verificatie.
 
-```tsx
-className={cn(
-  "relative flex items-center gap-2 px-4 min-h-[44px] text-sm font-medium whitespace-nowrap rounded-md transition-colors",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-  isActive
-    ? "text-primary"
-    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-)}
-```
+## Wat ik ga doen (Deel 1)
 
-Active = `text-primary` + onderlijn-spanne (regel 109-114, `bg-primary`).
-Hover (non-active) = `hover:text-foreground hover:bg-accent/50` ← veroorzaakt de pill + flash.
+1. **SQL migration** — `factuur_regels` uitbreiden met 3 kolommen (idempotent, IF NOT EXISTS):
+   - `validation_corrected BOOLEAN DEFAULT false`
+   - `validation_correction_path TEXT`
+   - `validation_ambiguous BOOLEAN DEFAULT false`
+   - Plus `COMMENT ON COLUMN` voor alle drie
 
-## Fix
+2. **`supabase/functions/_shared/factuur-v2/types.ts`** (volledig) — `FactuurV2Regel` uitbreiden met de 3 nieuwe optionele velden.
 
-**Eén className-wijziging op regel 95:**
+3. **`supabase/functions/_shared/factuur-v2/validator.ts`** (volledig) — bestaande `markPerRegelValidationErrors()` vervangen door `validateAndCorrectLines()`:
+   - CHECK 1: `hoeveelheid_besteld × prijs_per_besteld_item ≈ prijs_totaal`
+   - CHECK 2: `hoeveelheid_besteld × verpakking_hoeveelheid × prijs_per_basiseenheid ≈ prijs_totaal` → fix `prijs_per_besteld_item`
+   - CHECK 3: `verpakking_hoeveelheid × prijs_per_besteld_item ≈ prijs_totaal` → fix `hoeveelheid_besteld`
+   - Tolerantie €0,02
+   - Gate: 0 = error, 1 = auto-fix + corrected=true, 2+ = ambiguous=true (niet blokkeren)
+   - `console.log` per auto-fix
 
-```diff
-- : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-+ : "text-muted-foreground hover:text-foreground"
-```
+4. **`supabase/functions/parse-factuur-v2/index.ts`** (volledig) — regelRows-mapping uitbreiden met de 3 nieuwe velden zodat ze daadwerkelijk in de DB landen.
 
-Verwijder ook `rounded-md` (regel 91) — niet meer nodig zonder bg-pill, en voorkomt visuele suggestie van een button-shape. Active onderlijn (regel 109-114, `absolute left-3 right-3 -bottom-px h-0.5 bg-primary rounded-full`) blijft ongewijzigd.
+5. **TypeScript build-check** via `npx tsc --noEmit` op shared types.
 
-`transition-colors` blijft staan: het animeert nu alleen `color`, geen `background-color` → geen flash meer bij snelle muisbeweging.
+## Stop-gate verificatie (Deel 1)
 
-**Nieuwe classNames (regel 89-96):**
-```tsx
-className={cn(
-  "relative flex items-center gap-2 px-4 min-h-[44px] text-sm font-medium whitespace-nowrap transition-colors",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-  isActive
-    ? "text-primary"
-    : "text-muted-foreground hover:text-foreground"
-)}
-```
+Na deploy + migration:
+- **Reset Boer & Chef factuur** (DELETE regels + reset uploads-velden via SQL).
+- **Re-parse** triggeren via curl naar `parse-factuur-v2` met service role key (geen UI-afhankelijkheid).
+- **SQL-output tonen**:
+  ```sql
+  SELECT COUNT(*) AS totaal,
+         COUNT(*) FILTER (WHERE validation_error = true) AS errors,
+         COUNT(*) FILTER (WHERE validation_corrected = true) AS auto_fixed,
+         COUNT(*) FILTER (WHERE validation_ambiguous = true) AS ambiguous
+  FROM factuur_regels WHERE factuur_id = '7e5ba86a-...';
+  ```
+  Verwacht: `totaal=60, errors=0, auto_fixed=5, ambiguous=0`
+- **Factuur-status SQL**:
+  ```sql
+  SELECT status, ai_parsing_status, totaalbedrag, validation_retries,
+         validation_blocked_reason, jsonb_array_length(validation_warnings) AS n_warn
+  FROM factuur_uploads WHERE id = '7e5ba86a-...';
+  ```
+  Verwacht: `status='review'` (niet `review_blocked`), `ai_parsing_status='success'`, totaal ≈ €594
+- **Edge-function logs**: eerste 20 regels van `parse-factuur-v2` met de `[validator] auto-fix path=…` regels zichtbaar.
 
-## Tokens (geen hex)
+Deel 2 en 3 wachten expliciet op jouw OK.
 
-We gebruiken bestaande semantische tokens — `text-muted-foreground` (default), `text-foreground` (hover), `text-primary` (active). Geen `text-gray-600/900` of `text-teal-600` hardcoden — die respecteren dark-mode niet en breken de design-token conventie van het project.
-
-## iPad / touch
-
-Voor iPad-tap-highlight: standaard browser-tap-highlight kan een korte flash geven. Optioneel `[-webkit-tap-highlight-color:transparent]` toevoegen aan de NavLink className. **Voorstel:** wel toevoegen — past bij touch-only context (Pura Vida iPad aan de muur).
-
-## Verificatie
-
-1. Hover over `/voorraad` tab: tekst gaat van muted naar foreground, géén grijze pill achter de tab
-2. Snelle muisbeweging over alle tabs: geen background-flash (alleen color-transition)
-3. Active tab (`/voorraad`): teal onderlijn blijft zichtbaar, tekst blijft `text-primary`
-4. Tab via Tab-key navigeren: focus-ring blijft werken (`focus-visible:ring-2`)
-5. iPad tap: geen blauwe/grijze tap-highlight flash
-6. Dark mode: hover gaat van muted naar foreground, beide tokens werken automatisch
-7. `npx tsc --noEmit` groen (alleen className-wijziging, geen type-impact)
-
-## Te wijzigen bestand
-
-- `src/components/polar/ModuleSubNav.tsx` — regel 91 (verwijder `rounded-md`), regel 95 (verwijder `hover:bg-accent/50`), optioneel regel 90 (`[-webkit-tap-highlight-color:transparent]` toevoegen)
-
-## Out of scope
-
-- Geen wijzigingen aan andere componenten (sidebar, NestoButton, ViewToggle, etc.) — die houden hun eigen hover-patroon
-- Geen wijziging aan active-state onderlijn of kleur
-- Geen wijziging aan fade-edges of overflow-scroll gedrag
-
+## Niet doen in deze ronde
+- Geen wijziging aan extractor/prompt/AI-schema
+- Geen wijziging aan frontend
+- Geen RLS-wijzigingen (dat is Deel 2)
+- Geen evaluate-signals-aanpassingen (dat is Deel 2)
+- Geen fire-and-forget POST (dat is Deel 3)
