@@ -39,32 +39,33 @@ const ALLOWED_BTW: BtwTarief[] = [0, 9, 21];
 // Sprint Validator-Slim — per-regel auto-correct + error markering
 // =====================================================
 //
-// Per regel proberen we tot 3 berekeningen die het regel-totaal kunnen verklaren.
-// Het regel-totaal is leidend (staat letterlijk op de factuur).
-//
-//   CHECK 1 (origineel):
+// SEMANTIEK (Optie B — CHECK 1 first, short-circuit on match):
+//   CHECK 1 (origineel) is de canonieke waarheid:
 //     hoeveelheid_besteld × prijs_per_besteld_item ≈ prijs_totaal
+//   Als CHECK 1 klopt → regel is valid, GEEN verdere checks.
 //
-//   CHECK 2 (basiseenheid-prijs via verpakking):
-//     hoeveelheid_besteld × verpakking_hoeveelheid × prijs_per_basiseenheid ≈ prijs_totaal
-//     → fix: prijs_per_besteld_item = totaal / hoeveelheid_besteld
+//   Alleen als CHECK 1 faalt OF data ontbreekt (q/priceItem null) gaan we
+//   door naar fix-checks:
+//     CHECK 2: q × verpakking × priceBase ≈ totaal
+//              → fix: prijs_per_besteld_item = totaal / q
+//     CHECK 3: verpakking × priceItem ≈ totaal
+//              → fix: hoeveelheid_besteld = verpakking
 //
-//   CHECK 3 (verpakking × pak-prijs):
-//     verpakking_hoeveelheid × prijs_per_besteld_item ≈ prijs_totaal
-//     → fix: hoeveelheid_besteld = verpakking_hoeveelheid
+// Gate (na falen/ontbreken CHECK 1):
+//   - 0 fix-matches → validation_error=true
+//   - 1 fix-match   → auto-fix toepassen + validation_corrected=true
+//   - 2+ fix-matches → validation_ambiguous=true (niet blokkeren)
 //
-// Gate:
-//   - 0 matches → validation_error=true (huidig gedrag)
-//   - 1 match   → auto-fix toepassen + validation_corrected=true
-//   - 2+        → validation_ambiguous=true (niet blokkeren — alle alternatieven
-//                 zijn consistent met het totaal)
+// EDGE CASE: ontbrekende CHECK 1 data (q OR priceItem null) wordt behandeld
+// als "kan niet verifiëren via CHECK 1" — direct door naar fix-checks. Een
+// regel zonder priceItem kan dus alleen gefixed worden via CHECK 2.
 //
 // IDEMPOTENT: pure functie per regel — zelfde input geeft zelfde output.
-type CheckName = "origineel" | "packaging_base_price" | "packaging_item_qty";
+type CheckName = "packaging_base_price" | "packaging_item_qty";
 
 interface CheckMatch {
   name: CheckName;
-  fix?: Partial<Pick<
+  fix: Partial<Pick<
     FactuurV2Regel,
     "hoeveelheid_besteld" | "prijs_per_besteld_item"
   >>;
@@ -91,15 +92,22 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
     const verpakking = regel.verpakking_hoeveelheid;
     const absTotaal = Math.abs(totaal);
 
-    const matches: CheckMatch[] = [];
-
-    // CHECK 1 — origineel
-    if (q != null && priceItem != null) {
-      const expected = q * priceItem;
+    // ============================================================
+    // CHECK 1 — origineel (canonieke waarheid, short-circuit on match)
+    // ============================================================
+    const check1Possible = q != null && priceItem != null;
+    if (check1Possible) {
+      const expected = q! * priceItem!;
       if (Math.abs(expected - absTotaal) <= PER_REGEL_TOLERANCE) {
-        matches.push({ name: "origineel" });
+        // CHECK 1 klopt → regel is valid, klaar.
+        continue;
       }
     }
+
+    // ============================================================
+    // CHECK 1 faalt OF data ontbreekt → fix-checks evalueren
+    // ============================================================
+    const matches: CheckMatch[] = [];
 
     // CHECK 2 — basiseenheid-prijs via verpakking
     if (q != null && q !== 0 && verpakking != null && priceBase != null) {
@@ -114,7 +122,8 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
       }
     }
 
-    // CHECK 3 — verpakking × pak-prijs
+    // CHECK 3 — verpakking × pak-prijs (vereist priceItem, dus alleen
+    // relevant als CHECK 1 wél data had maar faalde).
     if (verpakking != null && priceItem != null) {
       const expected = verpakking * priceItem;
       if (Math.abs(expected - absTotaal) <= PER_REGEL_TOLERANCE) {
@@ -126,36 +135,30 @@ function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
     }
 
     if (matches.length === 0) {
-      // Geen consistente berekening — markeer als error (gedrag = vóór deze sprint).
-      if (q != null && priceItem != null) {
-        const expected = q * priceItem;
-        regel.validation_error = true;
-        regel.validation_error_reden = `${q} × €${priceItem.toFixed(2)} = €${
+      // Geen consistente berekening — markeer als error.
+      regel.validation_error = true;
+      if (check1Possible) {
+        const expected = q! * priceItem!;
+        regel.validation_error_reden = `${q} × €${priceItem!.toFixed(2)} = €${
           expected.toFixed(2)
         }, regel zegt €${totaal.toFixed(2)}`;
       } else {
-        regel.validation_error = true;
         regel.validation_error_reden =
-          `Geen consistente berekening gevonden (totaal=€${totaal.toFixed(2)})`;
+          `Geen consistente berekening gevonden (totaal=€${totaal.toFixed(2)}, ontbrekende velden)`;
       }
       continue;
     }
 
     if (matches.length === 1) {
       const only = matches[0];
-      if (only.fix) {
-        Object.assign(regel, only.fix);
-        regel.validation_corrected = true;
-        regel.validation_correction_path = only.name as
-          | "packaging_base_price"
-          | "packaging_item_qty";
-        console.log(
-          `[validator] auto-fix path=${only.name} product="${regel.product_naam}" totaal=€${
-            totaal.toFixed(2)
-          } fix=${JSON.stringify(only.fix)}`,
-        );
-      }
-      // 'origineel' (geen fix) → niets te doen, regel was al correct.
+      Object.assign(regel, only.fix);
+      regel.validation_corrected = true;
+      regel.validation_correction_path = only.name;
+      console.log(
+        `[validator] auto-fix path=${only.name} product="${regel.product_naam}" totaal=€${
+          totaal.toFixed(2)
+        } fix=${JSON.stringify(only.fix)}`,
+      );
       continue;
     }
 
