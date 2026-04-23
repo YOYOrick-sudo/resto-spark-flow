@@ -104,13 +104,13 @@ export function partitionRegels(regels: FactuurRegel[]): PhasePartition {
   const verpakking = regels.filter(isVerpakkingRegel);
   const ingredientRegels = regels.filter((r) => !isVerpakkingRegel(r));
 
-  // Phase A: matched OR manual met ingredient_id, niet skipped, niet nieuw
+  // Phase A: matched OR manual met ingredient_id, niet nieuw.
+  // (matched/manual zijn per definitie ≠ "skipped", dus geen extra check nodig.)
   const matchedToConfirm = ingredientRegels.filter(
     (r) =>
       r.ingredient_id != null &&
       r.is_nieuw_ingredient !== true &&
-      (r.match_status === "matched" || r.match_status === "manual") &&
-      r.match_status !== "skipped"
+      (r.match_status === "matched" || r.match_status === "manual")
   );
 
   // Phase B: is_nieuw_ingredient=true ZONDER ingredient_id (nog niet aangemaakt).
