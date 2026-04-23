@@ -466,7 +466,7 @@ serve(async (req) => {
     });
   }
 
-  const fullEmail = await fetchResendEmail(resendMessageId, resendApiKey);
+  const fullEmail = await fetchResendInboundEmail(resendMessageId, resendApiKey);
   if (!fullEmail) {
     await supabase.from("pakbon_email_intake").insert({
       to_address: primaryTo,
@@ -476,7 +476,7 @@ serve(async (req) => {
       matched_location_id: location.id,
       matched_leverancier_id: leverancierId,
       ai_parse_status: "failed",
-      error_reason: "Kon email-content niet ophalen via Resend API",
+      error_reason: "Kon email-content niet ophalen via Resend Receiving API",
     });
     return new Response(JSON.stringify({ error: "Email fetch failed" }), {
       status: 502,
@@ -501,7 +501,20 @@ serve(async (req) => {
       continue;
     }
 
-    const bytes = await downloadAttachment(att);
+    // Resolve signed download URL voor deze attachment
+    const meta = await fetchResendAttachmentMeta(
+      resendMessageId,
+      att.id,
+      resendApiKey,
+    );
+    if (!meta?.download_url) {
+      console.warn(
+        `[receive-pakbon-email] geen download_url voor ${att.filename} (${att.id})`,
+      );
+      continue;
+    }
+
+    const bytes = await downloadAttachmentBytes(meta.download_url);
     if (!bytes) {
       console.warn(
         `[receive-pakbon-email] attachment download failed: ${att.filename}`,
