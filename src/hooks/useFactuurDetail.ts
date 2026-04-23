@@ -24,6 +24,9 @@ export interface FactuurRegel {
   verpakking_eenheid: string | null;
   prijs_per_basiseenheid: number | null;
   ai_raw_verpakking_tekst: string | null;
+  // Sprint Factuur Enterprise Pass — per-regel validator-output
+  validation_error: boolean;
+  validation_error_reden: string | null;
   created_at: string;
   ingredient_naam?: string | null;
 }
@@ -54,6 +57,13 @@ export interface FactuurDetail {
   ai_confidence_overall: number | null;
   ai_raw_response: any;
   fuzzy_kandidaten: FuzzyKandidaat[];
+  // Sprint Factuur Enterprise Pass — BTW + block velden
+  subtotaal_excl_btw: number | null;
+  btw_bedrag: number | null;
+  btw_percentage: number | null;
+  totaal_incl_btw: number | null;
+  validation_retries: number;
+  validation_blocked_reason: string | null;
   leverancier_naam?: string;
   regels: FactuurRegel[];
 }
@@ -71,13 +81,24 @@ export function useFactuurDetail(id: string | null) {
 
       const regels = ((data as any).factuur_regels ?? []).map((r: any) => ({
         ...r,
+        validation_error: r.validation_error === true,
+        validation_error_reden: r.validation_error_reden ?? null,
         ingredient_naam: r.ingredienten?.naam ?? null,
       }));
 
       return {
         ...data,
         leverancier_naam: (data as any).leveranciers?.naam ?? "Onbekend",
-        fuzzy_kandidaten: ((data as any).fuzzy_kandidaten ?? []) as FuzzyKandidaat[],
+        fuzzy_kandidaten:
+          ((data as any).fuzzy_kandidaten ?? []) as FuzzyKandidaat[],
+        // Sprint Enterprise Pass — defaults voor null-safety in UI
+        subtotaal_excl_btw: (data as any).subtotaal_excl_btw ?? null,
+        btw_bedrag: (data as any).btw_bedrag ?? null,
+        btw_percentage: (data as any).btw_percentage ?? null,
+        totaal_incl_btw: (data as any).totaal_incl_btw ?? null,
+        validation_retries: (data as any).validation_retries ?? 0,
+        validation_blocked_reason:
+          (data as any).validation_blocked_reason ?? null,
         regels,
       } as FactuurDetail;
     },
