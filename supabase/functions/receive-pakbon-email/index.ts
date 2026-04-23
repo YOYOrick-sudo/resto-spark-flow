@@ -519,11 +519,37 @@ serve(async (req) => {
   }
 
   // ===========================================================
-  // 8. Lees attachments DIRECT uit het webhook payload
+  // 8. Fetch attachments via Resend Inbound Attachments API
   // ===========================================================
-  // Resend Inbound levert attachments als base64 in `data.attachments[]`.
-  // Geen tweede API-call nodig.
-  const rawAttachments: ResendInboundAttachmentPayload[] = Array.isArray(
+  // Resend Inbound webhooks bevatten ALLEEN attachment-metadata (id, filename,
+  // content_type), GEEN bytes. Per Resend docs moeten we de Attachments API
+  // aanroepen om de signed download_url op te halen, daarna de bytes downloaden.
+  // Bron: https://resend.com/docs/dashboard/receiving/attachments
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    console.error(
+      "[receive-pakbon-email] RESEND_API_KEY niet geconfigureerd — kan attachments niet ophalen",
+    );
+    await supabase.from("pakbon_email_intake").insert({
+      to_address: primaryTo,
+      from_address: fromAddress,
+      subject,
+      resend_message_id: resendMessageId,
+      matched_location_id: location.id,
+      matched_leverancier_id: leverancierId,
+      ai_parse_status: "failed",
+      error_reason: "RESEND_API_KEY ontbreekt in edge function config",
+    });
+    return new Response(
+      JSON.stringify({ status: "config_error", reason: "missing_resend_api_key" }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  const rawAttachments: ResendInboundAttachmentMeta[] = Array.isArray(
     emailData.attachments,
   )
     ? emailData.attachments
@@ -553,57 +579,83 @@ serve(async (req) => {
   }
 
   // ===========================================================
-  // 9. Decode + upload attachments naar storage
+  // 9. Fetch + upload attachments naar storage
   // ===========================================================
   const uploadedUrls: string[] = [];
+  const attachmentErrors: string[] = [];
   const monthFolder = yyyymm(new Date());
   const basePath = `${location.id}/${monthFolder}/${resendMessageId}`;
 
   for (const att of rawAttachments) {
-    const contentType = (att.content_type ?? att.contentType ?? "")
-      .toLowerCase();
-    const filename = att.filename ?? `attachment_${Date.now()}`;
+    if (!att?.id) {
+      attachmentErrors.push(`attachment zonder id: ${att?.filename ?? "?"}`);
+      console.warn("[receive-pakbon-email] attachment zonder id:", att);
+      continue;
+    }
 
-    // File-type check
-    if (!ALLOWED_MIMES.test(contentType)) {
+    // Pre-check: webhook-metadata content_type tegen whitelist (bespaart fetch)
+    const webhookContentType = (att.content_type ?? "").toLowerCase();
+    if (webhookContentType && !ALLOWED_MIMES.test(webhookContentType)) {
+      attachmentErrors.push(
+        `${att.filename}: type ${webhookContentType} not allowed`,
+      );
       console.warn(
-        `[receive-pakbon-email] attachment skipped (type=${contentType}): ${filename}`,
+        `[receive-pakbon-email] attachment skipped (type=${webhookContentType}): ${att.filename}`,
       );
       continue;
     }
 
-    if (!att.content || typeof att.content !== "string") {
-      console.warn(
-        `[receive-pakbon-email] attachment zonder base64 content: ${filename}`,
+    const fetched = await fetchResendInboundAttachment(
+      resendMessageId,
+      att.id,
+      resendApiKey,
+    );
+
+    if (fetched.errorReason) {
+      attachmentErrors.push(`${att.filename ?? att.id}: ${fetched.errorReason}`);
+      console.error(
+        `[receive-pakbon-email] attachment fetch failed for ${att.filename ?? att.id}: ${fetched.errorReason}`,
       );
       continue;
     }
 
-    const bytes = decodeBase64ToBytes(att.content);
-    if (!bytes) {
+    if (!fetched.bytes) {
+      attachmentErrors.push(`${att.filename ?? att.id}: geen bytes ontvangen`);
+      continue;
+    }
+
+    // Server-side validation (auteur metadata kan ontbreken/liegen)
+    const finalContentType = fetched.contentType || webhookContentType;
+    if (!ALLOWED_MIMES.test(finalContentType)) {
+      attachmentErrors.push(
+        `${fetched.filename}: type ${finalContentType} not allowed`,
+      );
       console.warn(
-        `[receive-pakbon-email] base64 decode mislukt: ${filename}`,
+        `[receive-pakbon-email] post-fetch type-check faalde: ${finalContentType}`,
       );
       continue;
     }
 
-    // Size check
-    if (bytes.byteLength > MAX_ATTACHMENT_SIZE) {
+    if (fetched.bytes.byteLength > MAX_ATTACHMENT_SIZE) {
+      attachmentErrors.push(
+        `${fetched.filename}: size ${fetched.bytes.byteLength} > limit ${MAX_ATTACHMENT_SIZE}`,
+      );
       console.warn(
-        `[receive-pakbon-email] attachment too large (${bytes.byteLength}): ${filename}`,
+        `[receive-pakbon-email] attachment too large (${fetched.bytes.byteLength}): ${fetched.filename}`,
       );
       continue;
     }
 
-    const safeName = sanitizeFilename(filename);
+    const safeName = sanitizeFilename(fetched.filename || att.filename || "attachment");
     const storagePath = `${basePath}/${safeName}`;
     const { error: upErr } = await supabase.storage
       .from("pakbonnen")
-      .upload(storagePath, bytes, {
-        contentType,
+      .upload(storagePath, fetched.bytes, {
+        contentType: finalContentType,
         upsert: true,
       });
     if (upErr) {
+      attachmentErrors.push(`${safeName}: storage upload failed: ${upErr.message}`);
       console.error(
         `[receive-pakbon-email] storage upload failed ${storagePath}:`,
         upErr.message,
@@ -614,8 +666,11 @@ serve(async (req) => {
   }
 
   if (uploadedUrls.length === 0) {
+    const errorDetail = attachmentErrors.length
+      ? attachmentErrors.join(" | ").slice(0, 500)
+      : "Geen geldige PDF/image-attachments gevonden";
     console.warn(
-      `[receive-pakbon-email] geen geldige attachments voor ${resendMessageId}`,
+      `[receive-pakbon-email] geen geldige attachments voor ${resendMessageId}: ${errorDetail}`,
     );
     await supabase.from("pakbon_email_intake").insert({
       to_address: primaryTo,
@@ -625,10 +680,10 @@ serve(async (req) => {
       matched_location_id: location.id,
       matched_leverancier_id: leverancierId,
       ai_parse_status: "failed",
-      error_reason: "Geen geldige PDF/image-attachments gevonden",
+      error_reason: errorDetail,
     });
     return new Response(
-      JSON.stringify({ status: "no_attachments" }),
+      JSON.stringify({ status: "no_attachments", errors: attachmentErrors }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
