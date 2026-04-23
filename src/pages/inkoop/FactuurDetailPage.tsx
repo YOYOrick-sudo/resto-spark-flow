@@ -8,6 +8,8 @@ import {
   dateFromString,
   dateToString,
 } from "@/components/polar";
+import { NestoTabs, type TabItem } from "@/components/polar/NestoTabs";
+import { SearchBar } from "@/components/polar/SearchBar";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -22,16 +24,18 @@ import { FactuurRegelForm } from "@/components/inkoop/FactuurRegelForm";
 import { LeverancierMatchWidget } from "@/components/inkoop/LeverancierMatchWidget";
 import { LeverancierSelectCombobox } from "@/components/inkoop/LeverancierSelectCombobox";
 import { BulkCreateIngredientsDialog } from "@/components/inkoop/BulkCreateIngredientsDialog";
-import { GoedkeurenPreviewModal } from "@/components/inkoop/GoedkeurenPreviewModal";
-import type { PreviewData } from "@/hooks/usePreviewGoedkeuring";
+import { ProcessFactuurModal } from "@/components/inkoop/ProcessFactuurModal";
 import { RegelsSamenvattingCard } from "@/components/inkoop/RegelsSamenvattingCard";
-import { RegelFilterChips, type ChipId } from "@/components/inkoop/RegelFilterChips";
 import { RegelSecties, categoriseer } from "@/components/inkoop/RegelSecties";
 import { VerpakkingModal } from "@/components/inkoop/VerpakkingModal";
 import { isVerpakkingRegel } from "@/lib/factuur-categories";
+import { fmtEuro } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import type { FactuurRegel } from "@/hooks/useFactuurDetail";
 import { ArrowLeft, Plus, MoreHorizontal, Copy, ArrowRight } from "lucide-react";
+
+// Sprint B1: tab-IDs voor de vereenvoudigde 3-tabs structuur.
+type TabId = "herkend" | "nieuw" | "verpakking";
 
 const STATUS_BADGES: Record<
   string,
