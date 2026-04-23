@@ -438,47 +438,96 @@ async function asyncRunV2(args: {
     );
   }
 
+  // ===========================================================
+  // Defensive guards — voorkom CHECK-constraint violations
+  // ===========================================================
+  // CHECK: btw_percentage IN (0, 9, 21) OR NULL → forceer NULL bij andere waardes
+  if (
+    uniformBtwPct !== null && uniformBtwPct !== 0 && uniformBtwPct !== 9 &&
+    uniformBtwPct !== 21
+  ) {
+    console.warn(
+      `[parse-factuur-v2] btw_percentage ${uniformBtwPct} buiten {0,9,21} — forceer NULL`,
+    );
+    uniformBtwPct = null;
+  }
+  // Numeric guards: negatieve totalen zijn ongeldig (creditfacturen worden per-regel gemarkeerd)
+  const safeSubtotaal =
+    typeof data.subtotaal_excl_btw === "number" && data.subtotaal_excl_btw >= 0
+      ? data.subtotaal_excl_btw
+      : null;
+  const safeTotaal =
+    typeof data.totaal_incl_btw === "number" && data.totaal_incl_btw >= 0
+      ? data.totaal_incl_btw
+      : null;
+  const safeBtwBedrag =
+    typeof totaalBtwBedrag === "number" && totaalBtwBedrag >= 0
+      ? totaalBtwBedrag
+      : null;
+
+  const updatePayload = {
+    status: finalStatus,
+    ai_parsing_status: aiParsingStatus,
+    ai_parsed_at: new Date().toISOString(),
+    ai_confidence_overall: data.regels && data.regels.length > 0
+      ? data.regels.reduce(
+        (sum, r) =>
+          sum +
+          (r.confidence === "hoog"
+            ? 0.95
+            : r.confidence === "medium"
+            ? 0.7
+            : 0.4),
+        0,
+      ) / data.regels.length
+      : null,
+    ai_raw_response: data as unknown as Record<string, unknown>,
+    parse_method: parseMethod,
+    leverancier_id: leverancierId,
+    leverancier_naam_herkend: data.leverancier_naam ?? null,
+    factuurnummer: data.factuur_nummer ?? null,
+    factuurdatum: data.factuur_datum ?? null,
+    totaalbedrag: safeTotaal,
+    // Sprint Enterprise Pass — BTW kolommen
+    subtotaal_excl_btw: safeSubtotaal,
+    btw_bedrag: safeBtwBedrag,
+    btw_percentage: uniformBtwPct,
+    totaal_incl_btw: safeTotaal,
+    // Sprint Enterprise Pass — block-info
+    validation_retries: retries,
+    validation_blocked_reason: blockedReason,
+    // Bestaand: validator legacy fields
+    validation_status: validation.status,
+    validation_errors: validation.errors,
+    validation_warnings: validation.warnings,
+    ai_tokens_input: aggregatedTokensIn,
+    ai_tokens_output: aggregatedTokensOut,
+    ai_cost_estimate: aggregatedCost,
+  };
+
+  // Defensive pre-update log: complete payload zichtbaar in edge function logs
+  // — bij volgende crash weten we onmiddellijk wat we probeerden te schrijven.
+  console.log("[parse-factuur-v2] about to update factuur_uploads:", {
+    factuurId,
+    status: finalStatus,
+    ai_parsing_status: aiParsingStatus,
+    retries,
+    blocked,
+    blockedReason: blockedReason?.slice(0, 120) ?? null,
+    subtotaal_excl_btw: safeSubtotaal,
+    btw_regels_count: data.btw_regels?.length ?? 0,
+    btw_percentage_uniform: uniformBtwPct,
+    btw_bedrag_totaal: safeBtwBedrag,
+    totaal_incl_btw: safeTotaal,
+    regels_count: regels.length,
+    validation_status: validation.status,
+    n_errors: validation.errors.length,
+    n_warnings: validation.warnings.length,
+  });
+
   const { error: updErr } = await supabase
     .from("factuur_uploads")
-    .update({
-      status: finalStatus,
-      ai_parsing_status: aiParsingStatus,
-      ai_parsed_at: new Date().toISOString(),
-      ai_confidence_overall: data.regels && data.regels.length > 0
-        ? data.regels.reduce(
-          (sum, r) =>
-            sum +
-            (r.confidence === "hoog"
-              ? 0.95
-              : r.confidence === "medium"
-              ? 0.7
-              : 0.4),
-          0,
-        ) / data.regels.length
-        : null,
-      ai_raw_response: data as unknown as Record<string, unknown>,
-      parse_method: parseMethod,
-      leverancier_id: leverancierId,
-      leverancier_naam_herkend: data.leverancier_naam ?? null,
-      factuurnummer: data.factuur_nummer ?? null,
-      factuurdatum: data.factuur_datum ?? null,
-      totaalbedrag: data.totaal_incl_btw ?? null,
-      // Sprint Enterprise Pass — BTW kolommen
-      subtotaal_excl_btw: data.subtotaal_excl_btw ?? null,
-      btw_bedrag: totaalBtwBedrag,
-      btw_percentage: uniformBtwPct,
-      totaal_incl_btw: data.totaal_incl_btw ?? null,
-      // Sprint Enterprise Pass — block-info
-      validation_retries: retries,
-      validation_blocked_reason: blockedReason,
-      // Bestaand: validator legacy fields
-      validation_status: validation.status,
-      validation_errors: validation.errors,
-      validation_warnings: validation.warnings,
-      ai_tokens_input: aggregatedTokensIn,
-      ai_tokens_output: aggregatedTokensOut,
-      ai_cost_estimate: aggregatedCost,
-    })
+    .update(updatePayload)
     .eq("id", factuurId);
   if (updErr) {
     console.error("[parse-factuur-v2] update factuur_uploads failed:", updErr);
