@@ -1357,6 +1357,8 @@ export type Database = {
           product_naam_herkend: string
           product_omschrijving_kort: string | null
           totaal: number | null
+          validation_error: boolean
+          validation_error_reden: string | null
           verpakking_eenheid: string | null
           verpakking_hoeveelheid: number | null
         }
@@ -1386,6 +1388,8 @@ export type Database = {
           product_naam_herkend: string
           product_omschrijving_kort?: string | null
           totaal?: number | null
+          validation_error?: boolean
+          validation_error_reden?: string | null
           verpakking_eenheid?: string | null
           verpakking_hoeveelheid?: number | null
         }
@@ -1415,6 +1419,8 @@ export type Database = {
           product_naam_herkend?: string
           product_omschrijving_kort?: string | null
           totaal?: number | null
+          validation_error?: boolean
+          validation_error_reden?: string | null
           verpakking_eenheid?: string | null
           verpakking_hoeveelheid?: number | null
         }
@@ -1447,6 +1453,8 @@ export type Database = {
           bestand_url: string
           bestandsnaam: string
           bron: string
+          btw_bedrag: number | null
+          btw_percentage: number | null
           created_at: string
           factuurdatum: string | null
           factuurnummer: string | null
@@ -1463,6 +1471,8 @@ export type Database = {
           preview_snapshot: Json | null
           ruwe_tekst: string | null
           status: string
+          subtotaal_excl_btw: number | null
+          totaal_incl_btw: number | null
           totaalbedrag: number | null
           updated_at: string
           v2_shadow_completed_at: string | null
@@ -1474,7 +1484,9 @@ export type Database = {
           v2_shadow_tokens_input: number | null
           v2_shadow_tokens_output: number | null
           v2_shadow_validation_status: string | null
+          validation_blocked_reason: string | null
           validation_errors: Json | null
+          validation_retries: number
           validation_status: string | null
           validation_warnings: Json | null
           verwerkt_op: string | null
@@ -1490,6 +1502,8 @@ export type Database = {
           bestand_url: string
           bestandsnaam: string
           bron?: string
+          btw_bedrag?: number | null
+          btw_percentage?: number | null
           created_at?: string
           factuurdatum?: string | null
           factuurnummer?: string | null
@@ -1506,6 +1520,8 @@ export type Database = {
           preview_snapshot?: Json | null
           ruwe_tekst?: string | null
           status?: string
+          subtotaal_excl_btw?: number | null
+          totaal_incl_btw?: number | null
           totaalbedrag?: number | null
           updated_at?: string
           v2_shadow_completed_at?: string | null
@@ -1517,7 +1533,9 @@ export type Database = {
           v2_shadow_tokens_input?: number | null
           v2_shadow_tokens_output?: number | null
           v2_shadow_validation_status?: string | null
+          validation_blocked_reason?: string | null
           validation_errors?: Json | null
+          validation_retries?: number
           validation_status?: string | null
           validation_warnings?: Json | null
           verwerkt_op?: string | null
@@ -1533,6 +1551,8 @@ export type Database = {
           bestand_url?: string
           bestandsnaam?: string
           bron?: string
+          btw_bedrag?: number | null
+          btw_percentage?: number | null
           created_at?: string
           factuurdatum?: string | null
           factuurnummer?: string | null
@@ -1549,6 +1569,8 @@ export type Database = {
           preview_snapshot?: Json | null
           ruwe_tekst?: string | null
           status?: string
+          subtotaal_excl_btw?: number | null
+          totaal_incl_btw?: number | null
           totaalbedrag?: number | null
           updated_at?: string
           v2_shadow_completed_at?: string | null
@@ -1560,7 +1582,9 @@ export type Database = {
           v2_shadow_tokens_input?: number | null
           v2_shadow_tokens_output?: number | null
           v2_shadow_validation_status?: string | null
+          validation_blocked_reason?: string | null
           validation_errors?: Json | null
+          validation_retries?: number
           validation_status?: string | null
           validation_warnings?: Json | null
           verwerkt_op?: string | null
