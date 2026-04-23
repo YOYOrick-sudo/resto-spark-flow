@@ -6,10 +6,10 @@
 //       totaal_incl_btw / validation_retries / validation_blocked_reason
 //       factuur_regels.validation_error / validation_error_reden
 //   * Bij onhandelbare mismatch → status='review_blocked'
-//   * Signal-upsert/dedup met key="factuur_blocked:{factuur_id}"
-//       - module='inkoop', kind='signal', signal_type='inkoop_factuur_blocked'
-//       - status='open' bestaand → UPDATE message+timestamp (geen dubbel signal)
-//       - status='resolved' bestaand → INSERT nieuw (issue is opnieuw opgetreden)
+//   * Signal-creatie gedelegeerd aan evaluate-signals (fire-and-forget POST)
+//       - dedup_key='inkoop_factuur_blocked:{factuur_id}'
+//       - evaluate-signals doet zelf dedup + role-routing via RLS
+//       - cron is safety net wanneer fire-and-forget faalt
 //
 // AI-route = Lovable AI Gateway via _shared/ai.ts callAI() (geen Vertex/direct).
 
@@ -100,81 +100,6 @@ function buildBlockedReason(sm: SumMismatchInfo): string {
   return `De bedragen op deze factuur konden niet automatisch bevestigd worden. ` +
     `Verschil van €${verschil} (${pct}%) tussen de som van de regels en het ` +
     `factuur-totaal. Vereist handmatige controle.`;
-}
-
-// =====================================================
-// Sprint Enterprise Pass — Signal upsert/dedup
-// =====================================================
-//
-// IDEMPOTENT: leest eerst bestaand signal met dezelfde dedup_key.
-// - Geen rij                    → INSERT
-// - status='open'               → UPDATE message + created_at
-// - status='resolved/dismissed' → INSERT nieuw (issue komt terug)
-async function upsertFactuurBlockedSignal(
-  supabase: SupabaseClient,
-  args: {
-    factuurId: string;
-    locationId: string;
-    organizationId: string;
-    leverancierNaam: string | null;
-    factuurNummer: string | null;
-    reason: string;
-  },
-): Promise<void> {
-  const dedupKey = `factuur_blocked:${args.factuurId}`;
-  const titleLeverancier = args.leverancierNaam ?? "Onbekende leverancier";
-  const titleNummer = args.factuurNummer ? ` #${args.factuurNummer}` : "";
-  const title = `Factuur ${titleLeverancier}${titleNummer} vereist controle`;
-
-  try {
-    const { data: bestaand } = await supabase
-      .from("signals")
-      .select("id, status")
-      .eq("dedup_key", dedupKey)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (bestaand && bestaand.status === "open") {
-      // Update bestaand open signal — geen dubbele notificatie.
-      const { error: upErr } = await supabase
-        .from("signals")
-        .update({
-          title,
-          message: args.reason,
-          created_at: new Date().toISOString(),
-        })
-        .eq("id", bestaand.id);
-      if (upErr) {
-        console.warn("[parse-factuur-v2] signal update failed:", upErr);
-      }
-      return;
-    }
-
-    // Geen rij OF eerder resolved/dismissed → nieuw signal aanmaken
-    const { error: insErr } = await supabase.from("signals").insert({
-      organization_id: args.organizationId,
-      location_id: args.locationId,
-      module: "inkoop",
-      signal_type: "inkoop_factuur_blocked",
-      kind: "signal",
-      severity: "medium",
-      title,
-      message: args.reason,
-      action_path: `/inkoop/facturen/${args.factuurId}`,
-      payload: { factuur_id: args.factuurId },
-      dedup_key: dedupKey,
-      status: "open",
-      actionable: true,
-      priority: 50,
-    });
-    if (insErr) {
-      console.warn("[parse-factuur-v2] signal insert failed:", insErr);
-    }
-  } catch (err) {
-    // Soft-fail — signal-creatie mag de hoofd-flow niet breken
-    console.warn("[parse-factuur-v2] signal upsert exception:", err);
-  }
 }
 
 // =====================================================
