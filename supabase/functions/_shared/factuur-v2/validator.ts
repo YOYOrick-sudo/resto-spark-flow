@@ -36,29 +36,136 @@ const PER_REGEL_TOLERANCE = 0.02;
 const ALLOWED_BTW: BtwTarief[] = [0, 9, 21];
 
 // =====================================================
-// Per-regel validation_error (qty × prijs ≠ totaal)
+// Sprint Validator-Slim — per-regel auto-correct + error markering
 // =====================================================
-function markPerRegelValidationErrors(regels: FactuurV2Regel[]): void {
+//
+// Per regel proberen we tot 3 berekeningen die het regel-totaal kunnen verklaren.
+// Het regel-totaal is leidend (staat letterlijk op de factuur).
+//
+//   CHECK 1 (origineel):
+//     hoeveelheid_besteld × prijs_per_besteld_item ≈ prijs_totaal
+//
+//   CHECK 2 (basiseenheid-prijs via verpakking):
+//     hoeveelheid_besteld × verpakking_hoeveelheid × prijs_per_basiseenheid ≈ prijs_totaal
+//     → fix: prijs_per_besteld_item = totaal / hoeveelheid_besteld
+//
+//   CHECK 3 (verpakking × pak-prijs):
+//     verpakking_hoeveelheid × prijs_per_besteld_item ≈ prijs_totaal
+//     → fix: hoeveelheid_besteld = verpakking_hoeveelheid
+//
+// Gate:
+//   - 0 matches → validation_error=true (huidig gedrag)
+//   - 1 match   → auto-fix toepassen + validation_corrected=true
+//   - 2+        → validation_ambiguous=true (niet blokkeren — alle alternatieven
+//                 zijn consistent met het totaal)
+//
+// IDEMPOTENT: pure functie per regel — zelfde input geeft zelfde output.
+type CheckName = "origineel" | "packaging_base_price" | "packaging_item_qty";
+
+interface CheckMatch {
+  name: CheckName;
+  fix?: Partial<Pick<
+    FactuurV2Regel,
+    "hoeveelheid_besteld" | "prijs_per_besteld_item"
+  >>;
+}
+
+function validateAndCorrectLines(regels: FactuurV2Regel[]): void {
   for (const regel of regels) {
+    // Reset validator-velden — voorkomt stale waardes bij re-run.
     regel.validation_error = false;
     regel.validation_error_reden = null;
+    regel.validation_corrected = false;
+    regel.validation_correction_path = null;
+    regel.validation_ambiguous = false;
 
-    if (
-      regel.hoeveelheid_besteld != null &&
-      regel.prijs_per_besteld_item != null &&
-      regel.prijs_totaal != null
-    ) {
-      const verwacht = regel.hoeveelheid_besteld * regel.prijs_per_besteld_item;
-      const verschil = Math.abs(verwacht - regel.prijs_totaal);
-      if (verschil > PER_REGEL_TOLERANCE) {
-        regel.validation_error = true;
-        regel.validation_error_reden = `${regel.hoeveelheid_besteld} × €${
-          regel.prijs_per_besteld_item.toFixed(2)
-        } = €${verwacht.toFixed(2)}, regel zegt €${
-          regel.prijs_totaal.toFixed(2)
-        }`;
+    const totaal = regel.prijs_totaal;
+    if (totaal == null || totaal === 0) {
+      // Geen referentie-totaal → niets te valideren.
+      continue;
+    }
+
+    const q = regel.hoeveelheid_besteld;
+    const priceItem = regel.prijs_per_besteld_item;
+    const priceBase = regel.prijs_per_basiseenheid;
+    const verpakking = regel.verpakking_hoeveelheid;
+    const absTotaal = Math.abs(totaal);
+
+    const matches: CheckMatch[] = [];
+
+    // CHECK 1 — origineel
+    if (q != null && priceItem != null) {
+      const expected = q * priceItem;
+      if (Math.abs(expected - absTotaal) <= PER_REGEL_TOLERANCE) {
+        matches.push({ name: "origineel" });
       }
     }
+
+    // CHECK 2 — basiseenheid-prijs via verpakking
+    if (q != null && q !== 0 && verpakking != null && priceBase != null) {
+      const expected = q * verpakking * priceBase;
+      if (Math.abs(expected - absTotaal) <= PER_REGEL_TOLERANCE) {
+        matches.push({
+          name: "packaging_base_price",
+          fix: {
+            prijs_per_besteld_item: Math.round((absTotaal / q) * 100) / 100,
+          },
+        });
+      }
+    }
+
+    // CHECK 3 — verpakking × pak-prijs
+    if (verpakking != null && priceItem != null) {
+      const expected = verpakking * priceItem;
+      if (Math.abs(expected - absTotaal) <= PER_REGEL_TOLERANCE) {
+        matches.push({
+          name: "packaging_item_qty",
+          fix: { hoeveelheid_besteld: verpakking },
+        });
+      }
+    }
+
+    if (matches.length === 0) {
+      // Geen consistente berekening — markeer als error (gedrag = vóór deze sprint).
+      if (q != null && priceItem != null) {
+        const expected = q * priceItem;
+        regel.validation_error = true;
+        regel.validation_error_reden = `${q} × €${priceItem.toFixed(2)} = €${
+          expected.toFixed(2)
+        }, regel zegt €${totaal.toFixed(2)}`;
+      } else {
+        regel.validation_error = true;
+        regel.validation_error_reden =
+          `Geen consistente berekening gevonden (totaal=€${totaal.toFixed(2)})`;
+      }
+      continue;
+    }
+
+    if (matches.length === 1) {
+      const only = matches[0];
+      if (only.fix) {
+        Object.assign(regel, only.fix);
+        regel.validation_corrected = true;
+        regel.validation_correction_path = only.name as
+          | "packaging_base_price"
+          | "packaging_item_qty";
+        console.log(
+          `[validator] auto-fix path=${only.name} product="${regel.product_naam}" totaal=€${
+            totaal.toFixed(2)
+          } fix=${JSON.stringify(only.fix)}`,
+        );
+      }
+      // 'origineel' (geen fix) → niets te doen, regel was al correct.
+      continue;
+    }
+
+    // 2+ matches: alle alternatieven kloppen → niet blokkeren, wel markeren.
+    regel.validation_ambiguous = true;
+    console.warn(
+      `[validator] ambiguous product="${regel.product_naam}" totaal=€${
+        totaal.toFixed(2)
+      } matching=${matches.map((m) => m.name).join(",")}`,
+    );
   }
 }
 
