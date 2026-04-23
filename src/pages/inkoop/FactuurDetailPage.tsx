@@ -105,7 +105,6 @@ export default function FactuurDetailPage() {
     goedkeuren,
     afwijzen,
     bulkConfirmHighConfidence,
-    skipRegels,
   } = useFactuurMutations();
   const { data: leveranciers } = useLeveranciers();
 
