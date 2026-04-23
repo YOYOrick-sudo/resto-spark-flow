@@ -3,6 +3,10 @@
 //
 // AI-route = Lovable Gateway (https://ai.gateway.lovable.dev/v1/chat/completions)
 // via bestaande callAI() helper. GEEN Vertex AI, geen direct provider call.
+//
+// Sprint Factuur Enterprise Pass — extra `retryHint` parameter voor 2e poging
+// bij sum-mismatch. Hint wordt achter de gewone prompt geplakt zodat de AI
+// weet wáár hij naar moet kijken.
 
 import { type AIResponse, callAI } from "../ai.ts";
 import { FACTUUR_V2_SCHEMA } from "./schema.ts";
@@ -12,12 +16,8 @@ import type { FactuurV2Output } from "./types.ts";
 // =====================================================
 // Token-budget centralisatie (V2)
 // =====================================================
-// 32k geeft headroom voor ~400 regels (Sligro-schaal). Hoger maakt modellen
-// trager + minder accuraat. Truncation-detectie in _shared/ai.ts (callGateway)
-// throwt AI_TRUNCATED bij finish_reason=length OF outputTokens >= 95% van budget,
-// dus we krijgen NU al een harde error i.p.v. stille data-loss als 32k ooit krap blijkt.
 const MAX_TOKENS_V2 = 60000;
-const MAX_TOKENS_V2_FALLBACK = 60000; // match V1 exact; Gemini Flash supports 65k output
+const MAX_TOKENS_V2_FALLBACK = 60000;
 
 export interface ExtractorInput {
   /** Volledige PDF-tekst (gejoined per pagina). Leeg bij scan-PDF. */
@@ -31,6 +31,11 @@ export interface ExtractorInput {
   locationId?: string;
   /** Override default model. */
   modelOverride?: string;
+  /**
+   * Sprint Factuur Enterprise Pass — extra hint die achter de prompt wordt
+   * geplakt bij retry-poging. Bevat verschil + tips waar AI op moet letten.
+   */
+  retryHint?: string;
 }
 
 export interface ExtractorResult {
@@ -58,9 +63,8 @@ export async function extractFactuur(
   input: ExtractorInput,
 ): Promise<ExtractorResult> {
   const isMultimodal = input.isScanPdf && !!input.pdfBase64;
+  const hint = input.retryHint ?? "";
 
-  // Bouw call-options. Bij text-PDF: prompt = volledige tekst.
-  // Bij scan-PDF: prompt = korte instructie + documents-array met PDF.
   const baseOpts = {
     featureKey: "parse-factuur-v2",
     organizationId: input.organizationId,
@@ -82,12 +86,12 @@ export async function extractFactuur(
   const response = isMultimodal
     ? await callAI({
       ...baseOpts,
-      prompt: "Extraheer deze factuur volgens het schema.",
+      prompt: `Extraheer deze factuur volgens het schema.${hint}`,
       documents: [{ data: input.pdfBase64!, mimeType: "application/pdf" }],
     })
     : await callAI({
       ...baseOpts,
-      prompt: `Factuur-tekst:\n\n${input.text}\n\nExtraheer volgens schema.`,
+      prompt: `Factuur-tekst:\n\n${input.text}\n\nExtraheer volgens schema.${hint}`,
     });
 
   const data = parseJsonStrict(response.text);

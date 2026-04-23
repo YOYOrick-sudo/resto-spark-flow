@@ -8,8 +8,6 @@
 // strict:true op gateway-niveau zorgt dat het schema hard wordt afgedwongen.
 //
 // LET OP: descriptions zijn bewust kort om response-tokens te minimaliseren.
-// Functionele descriptions die DATAVALIDITEIT beïnvloeden (BTW-tarieven,
-// verpakking_eenheid regel, prijs-formules) blijven volledig.
 
 export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
   type: "object",
@@ -40,7 +38,7 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
     },
     subtotaal_excl_btw: {
       type: ["number", "null"],
-      description: "Subtotaal excl. BTW.",
+      description: "Netto subtotaal. Moet kloppen met som regel-totalen.",
     },
     btw_regels: {
       type: "array",
@@ -59,7 +57,10 @@ export const FACTUUR_V2_SCHEMA: Record<string, unknown> = {
         },
       },
     },
-    totaal_incl_btw: { type: "number" },
+    totaal_incl_btw: {
+      type: "number",
+      description: "Bruto eindbedrag = subtotaal + BTW.",
+    },
     regels: {
       type: "array",
       items: {
