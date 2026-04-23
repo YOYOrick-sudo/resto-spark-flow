@@ -402,6 +402,10 @@ async function asyncRunV2(args: {
       // Sprint Enterprise Pass — validator-output per regel
       validation_error: r.validation_error === true,
       validation_error_reden: r.validation_error_reden ?? null,
+      // Sprint Validator-Slim — auto-correctie metadata
+      validation_corrected: r.validation_corrected === true,
+      validation_correction_path: r.validation_correction_path ?? null,
+      validation_ambiguous: r.validation_ambiguous === true,
     };
   });
 
