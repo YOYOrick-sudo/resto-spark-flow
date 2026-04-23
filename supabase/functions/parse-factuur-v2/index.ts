@@ -34,11 +34,13 @@ import {
   upsertLeverancierArtikelFromMatch,
 } from "../_shared/factuur-v2/cache.ts";
 import { normalizeMatchKey } from "../_shared/factuur-v2/normalize.ts";
+import { isEmballageRegel } from "../_shared/factuur-v2/emballageDetector.ts";
 import type {
   FactuurV2Output,
   FactuurV2Regel,
   SumMismatchInfo,
 } from "../_shared/factuur-v2/types.ts";
+import type { SumCheckResult } from "../_shared/factuur-v2/sumCheckMultiBTW.ts";
 
 declare const EdgeRuntime:
   | { waitUntil: (p: Promise<unknown>) => void }
@@ -208,9 +210,15 @@ async function asyncRunV2(args: {
     );
   }
 
-  // Bepaal of factuur geblokkeerd moet worden
+  // Bepaal of factuur geblokkeerd moet worden — Sprint Multi-BTW + Emballage:
+  // sumCheck (3-strategieën) is leidend. Pas blocked als ALLE strategieën falen
+  // EN de oude sumMismatch ook significant is (>€2 + >1%).
+  const sumCheck: SumCheckResult = validation.sumCheck;
   const sumMismatch = validation.sumMismatch;
-  const blocked = !!(
+  console.log(
+    `[sum-check] factuurId=${factuurId} strategy=${sumCheck.strategy} passed=${sumCheck.passed} verschil=€${sumCheck.details.verschil.toFixed(2)} n_btw=${sumCheck.details.n_btw_tarieven} emballage=€${sumCheck.details.totaal_regels_emballage.toFixed(2)}`,
+  );
+  const blocked = !sumCheck.passed && !!(
     sumMismatch &&
     sumMismatch.type !== "klein" &&
     sumMismatch.verschil > 2 &&
