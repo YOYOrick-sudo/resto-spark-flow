@@ -386,6 +386,11 @@ export default function FactuurDetailPage() {
               onBulkConfirm={() =>
                 bulkConfirmHighConfidence.mutate(highConfRegels.map((r) => r.id))
               }
+              onOpenVerpakking={
+                verpakkingRegels.length > 0
+                  ? () => setVerpakkingOpen(true)
+                  : undefined
+              }
             />
 
             {/* Filter-chips + Toevoegen */}
@@ -416,23 +421,41 @@ export default function FactuurDetailPage() {
             )}
 
             {/* Regel-secties */}
-            <RegelSecties
-              regels={factuur.regels}
-              filter={activeChip}
-              isEditable={isEditable}
-              leverancierId={factuur.leverancier_id}
-              leverancierNaam={
-                (leveranciers ?? []).find(
-                  (l: any) => l.id === factuur.leverancier_id
-                )?.naam ?? factuur.leverancier_naam_herkend ?? null
-              }
-              onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
-              onSkipAllOverig={(ids) => skipRegels.mutate(ids)}
-              onOpenBulkCreate={(regels) => {
-                console.log("[bulk] open in FactuurDetailPage", regels.length);
-                setBulkCreateRegels(regels);
-              }}
-            />
+            {activeChip === "verpakking" ? (
+              verpakkingRegels.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setVerpakkingOpen(true)}
+                  className="w-full rounded-xl border border-border/50 bg-muted/20 p-4 text-left hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <p className="text-sm font-medium">
+                    📦 {verpakkingRegels.length} verpakking-regels
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tellen mee in factuur-totaal · klik om te bekijken of een
+                    foutief geclassificeerde regel te verwijderen
+                  </p>
+                </button>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Geen verpakking-regels op deze factuur.
+                </p>
+              )
+            ) : (
+              <RegelSecties
+                regels={factuur.regels}
+                filter={activeChip}
+                isEditable={isEditable}
+                leverancierId={factuur.leverancier_id}
+                leverancierNaam={
+                  (leveranciers ?? []).find(
+                    (l: any) => l.id === factuur.leverancier_id
+                  )?.naam ?? factuur.leverancier_naam_herkend ?? null
+                }
+                onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
+                onOpenBulkCreate={(regels) => setBulkCreateRegels(regels)}
+              />
+            )}
 
             {factuur.regels.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">
@@ -469,6 +492,14 @@ export default function FactuurDetailPage() {
         onClose={() => setBulkCreateRegels(null)}
         regels={bulkCreateRegels ?? []}
         leverancierId={factuur.leverancier_id}
+      />
+
+      <VerpakkingModal
+        open={verpakkingOpen}
+        onClose={() => setVerpakkingOpen(false)}
+        regels={verpakkingRegels}
+        isEditable={isEditable}
+        onDeleteRegel={(rid) => deleteRegel.mutate(rid)}
       />
 
       <GoedkeurenPreviewModal
