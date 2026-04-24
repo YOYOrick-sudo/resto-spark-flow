@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
   async function countTempRegistraties(userId: string, sinceIso: string): Promise<{ count: number; rows: unknown[] }> {
     const { data, error } = await admin
       .from("temperatuur_registraties")
-      .select("id, temperatuur, actie_vereist, actie_beschrijving, locatie, gemeten_op, ingredient_id")
+      .select("id, temperatuur, actie_vereist, actie_beschrijving, locatie_naam, type, max_temp")
       .eq("gemeten_door", userId)
       .gte("created_at", sinceIso)
       .order("created_at", { ascending: false });
