@@ -2,13 +2,15 @@
 // Operationele route — chef werkt op iPad. Tap-targets ≥60px, geen hover-only critical actions.
 
 import * as React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Check,
   Thermometer,
   AlertTriangle,
   Package,
   Truck,
+  X,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DetailPageLayout } from "@/components/polar/DetailPageLayout";
@@ -20,48 +22,82 @@ import {
   useGoodsReceiptDetail,
   type GoodsReceiptLineWithIngredient,
 } from "@/hooks/useGoodsReceiptDetail";
+import {
+  useConfirmGoodsReceipt,
+  type ConfirmLineInput,
+  type ConfirmError,
+} from "@/hooks/useConfirmGoodsReceipt";
 import { formatLeveringDatumDetail } from "@/pages/leveringen/utils/formatLeveringDatum";
+import { AfwijkingModal, type AfwijkingValue } from "@/pages/leveringen/components/AfwijkingModal";
+import { SkipTempModal } from "@/pages/leveringen/components/SkipTempModal";
+import { nestoToast } from "@/lib/nestoToast";
+
+type LineState =
+  | { kind: "akkoord" }
+  | { kind: "afwijking"; value: AfwijkingValue };
 
 function LineRow({
   line,
-  checked,
-  onToggle,
+  state,
+  onMarkAfwijking,
+  onResetAkkoord,
+  onEditAfwijking,
 }: {
   line: GoodsReceiptLineWithIngredient;
-  checked: boolean;
-  onToggle: () => void;
+  state: LineState;
+  onMarkAfwijking: () => void;
+  onResetAkkoord: () => void;
+  onEditAfwijking: () => void;
 }) {
   const cat = line.ingredient?.haccp_categorie ?? line.haccp_categorie;
   const isRisk =
     line.ingredient?.haccp_strict_temp_max != null || cat === "vis_op_ijs";
+  const isAkkoord = state.kind === "akkoord";
+  const accepted = state.kind === "afwijking" && state.value.accepted_with_issue;
+
+  const afwijkingLabel = (() => {
+    if (state.kind !== "afwijking") return null;
+    switch (state.value.status) {
+      case "afwijking_missing":
+        return "Niet geleverd";
+      case "afwijking_beschadigd":
+        return accepted ? "Beschadigd · geaccepteerd" : "Beschadigd";
+      case "afwijking_verkeerd":
+        return accepted ? "Verkeerd · geaccepteerd" : "Verkeerd product";
+      case "afwijking_meer":
+        return `Meer (${state.value.hoeveelheid_ontvangen ?? "?"})`;
+    }
+  })();
 
   return (
-    <button
-      type="button"
-      onClick={onToggle}
+    <div
       className={cn(
-        "w-full text-left flex items-start gap-4 px-4 py-4 rounded-xl border transition-colors",
+        "w-full flex items-start gap-4 px-4 py-4 rounded-xl border transition-colors",
         "min-h-[60px]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        checked
+        isAkkoord
           ? "border-success/30 bg-success/5"
+          : accepted
+          ? "border-success/40 bg-success/5"
           : "border-warning/40 bg-warning/5"
       )}
     >
-      {/* Checkbox visual */}
-      <div
+      {/* Toggle/icon */}
+      <button
+        type="button"
+        onClick={isAkkoord ? onMarkAfwijking : onResetAkkoord}
         className={cn(
           "flex-shrink-0 w-7 h-7 rounded-md border-2 flex items-center justify-center transition-colors",
-          checked
-            ? "bg-success border-success"
-            : "bg-background border-muted-foreground/40"
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          isAkkoord ? "bg-success border-success" : "bg-background border-warning"
         )}
-        aria-hidden
+        aria-label={isAkkoord ? "Markeer als afwijking" : "Zet terug op akkoord"}
       >
-        {checked && (
+        {isAkkoord ? (
           <Check className="h-4 w-4 text-success-foreground" strokeWidth={3} />
+        ) : (
+          <X className="h-4 w-4 text-warning" strokeWidth={3} />
         )}
-      </div>
+      </button>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
@@ -81,23 +117,38 @@ function LineRow({
             </span>
           )}
           {cat === "gekoeld" && (
-            <NestoBadge variant="default" size="sm">
-              Gekoeld
-            </NestoBadge>
+            <NestoBadge variant="default" size="sm">Gekoeld</NestoBadge>
           )}
           {cat === "vries" && (
-            <NestoBadge variant="default" size="sm">
-              Vries
-            </NestoBadge>
+            <NestoBadge variant="default" size="sm">Vries</NestoBadge>
           )}
           {isRisk && (
-            <NestoBadge variant="warning" size="sm">
-              Risicogroep
-            </NestoBadge>
+            <NestoBadge variant="warning" size="sm">Risicogroep</NestoBadge>
           )}
         </div>
+
+        {state.kind === "afwijking" && (
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <NestoBadge variant={accepted ? "success" : "warning"} size="sm">
+              {afwijkingLabel}
+            </NestoBadge>
+            {state.value.afwijking_notitie && (
+              <span className="text-xs text-muted-foreground italic line-clamp-1">
+                "{state.value.afwijking_notitie}"
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onEditAfwijking}
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            >
+              <Pencil className="h-3 w-3" />
+              bewerken
+            </button>
+          </div>
+        )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -106,17 +157,45 @@ function TempField({
   hint,
   value,
   onChange,
+  skipped,
+  onSkip,
+  onClearSkip,
 }: {
   label: string;
   hint: string;
   value: string;
   onChange: (v: string) => void;
+  skipped: string | null;
+  onSkip: () => void;
+  onClearSkip: () => void;
 }) {
+  if (skipped) {
+    return (
+      <div className="space-y-1.5">
+        <label className="text-small font-medium text-foreground block">{label}</label>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-warning/40 bg-warning/5 min-h-[60px]">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-small font-medium text-foreground">Overgeslagen</p>
+              <p className="text-xs text-muted-foreground line-clamp-1">{skipped}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClearSkip}
+            className="text-xs text-primary hover:underline whitespace-nowrap"
+          >
+            Toch meten
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1.5">
-      <label className="text-small font-medium text-foreground block">
-        {label}
-      </label>
+      <label className="text-small font-medium text-foreground block">{label}</label>
       <div className="flex items-stretch gap-2">
         <input
           type="number"
@@ -135,34 +214,44 @@ function TempField({
           °C
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">{hint}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">{hint}</p>
+        <button
+          type="button"
+          onClick={onSkip}
+          className="text-xs text-muted-foreground hover:text-foreground underline whitespace-nowrap"
+        >
+          Overslaan
+        </button>
+      </div>
     </div>
   );
 }
 
 export default function LeveringDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data, isLoading, isError, smartFlags } = useGoodsReceiptDetail(id);
+  const confirmMutation = useConfirmGoodsReceipt();
 
-  // Default-akkoord state: alle regels vooraf aangevinkt (chef vinkt alleen afwijkingen UIT).
-  const [checkedLines, setCheckedLines] = React.useState<Set<string>>(new Set());
+  // Default-akkoord state: alle regels vooraf "akkoord". Chef markeert afwijkingen.
+  const [lineStates, setLineStates] = React.useState<Map<string, LineState>>(new Map());
   const [tempGekoeld, setTempGekoeld] = React.useState("");
   const [tempVries, setTempVries] = React.useState("");
+  const [skipGekoeld, setSkipGekoeld] = React.useState<string | null>(null);
+  const [skipVries, setSkipVries] = React.useState<string | null>(null);
+
+  // Modals
+  const [afwijkingFor, setAfwijkingFor] = React.useState<string | null>(null);
+  const [skipModalFor, setSkipModalFor] = React.useState<"gekoeld" | "vries" | null>(null);
 
   React.useEffect(() => {
     if (data?.lines) {
-      setCheckedLines(new Set(data.lines.map((l) => l.id)));
+      const next = new Map<string, LineState>();
+      for (const l of data.lines) next.set(l.id, { kind: "akkoord" });
+      setLineStates(next);
     }
   }, [data?.lines]);
-
-  const toggleLine = (lineId: string) => {
-    setCheckedLines((prev) => {
-      const next = new Set(prev);
-      if (next.has(lineId)) next.delete(lineId);
-      else next.add(lineId);
-      return next;
-    });
-  };
 
   if (isLoading) {
     return (
@@ -191,11 +280,115 @@ export default function LeveringDetail() {
   }
 
   const totalLines = data.lines.length;
-  const akkoord = checkedLines.size;
+  const akkoord = Array.from(lineStates.values()).filter((s) => s.kind === "akkoord").length;
   const afwijking = totalLines - akkoord;
 
+  const editingLine = afwijkingFor ? data.lines.find((l) => l.id === afwijkingFor) : null;
+  const editingState = afwijkingFor ? lineStates.get(afwijkingFor) : null;
+
+  // Confirm-button state-machine
+  const tempGekoeldNum = tempGekoeld === "" ? null : Number(tempGekoeld);
+  const tempVriesNum = tempVries === "" ? null : Number(tempVries);
+  const tempGekoeldFilled = tempGekoeldNum !== null && !Number.isNaN(tempGekoeldNum);
+  const tempVriesFilled = tempVriesNum !== null && !Number.isNaN(tempVriesNum);
+
+  const gekoeldHandled = !smartFlags.hasGekoeld || tempGekoeldFilled || skipGekoeld !== null;
+  const vriesHandled = !smartFlags.hasVries || tempVriesFilled || skipVries !== null;
+  // Hard-lock: bij risicogroep MOET temp_gekoeld ingevuld zijn (skip mag niet)
+  const risicogroepOK = !smartFlags.hasRisicogroep || tempGekoeldFilled;
+
+  const canConfirm =
+    totalLines > 0 && gekoeldHandled && vriesHandled && risicogroepOK && !confirmMutation.isPending;
+
+  const helperText: string | null = (() => {
+    if (confirmMutation.isPending) return null;
+    if (!risicogroepOK) return "Temperatuur verplicht voor risicogroep-producten — overslaan kan niet";
+    if (!gekoeldHandled) return "Vul temperatuur gekoeld in of kies 'Overslaan'";
+    if (!vriesHandled) return "Vul temperatuur vries in of kies 'Overslaan'";
+    return null;
+  })();
+
+  const handleMarkAfwijking = (lineId: string) => setAfwijkingFor(lineId);
+  const handleResetAkkoord = (lineId: string) => {
+    setLineStates((prev) => {
+      const next = new Map(prev);
+      next.set(lineId, { kind: "akkoord" });
+      return next;
+    });
+  };
+
+  const handleAfwijkingSubmit = (value: AfwijkingValue) => {
+    if (!afwijkingFor) return;
+    setLineStates((prev) => {
+      const next = new Map(prev);
+      next.set(afwijkingFor, { kind: "afwijking", value });
+      return next;
+    });
+    setAfwijkingFor(null);
+  };
+
+  const handleConfirm = () => {
+    if (!id) return;
+    const lines: ConfirmLineInput[] = data.lines.map((l) => {
+      const st = lineStates.get(l.id);
+      if (!st || st.kind === "akkoord") {
+        return { line_id: l.id, status: "akkoord" };
+      }
+      const v = st.value;
+      return {
+        line_id: l.id,
+        status: v.status,
+        hoeveelheid_ontvangen: v.hoeveelheid_ontvangen,
+        afwijking_notitie: v.afwijking_notitie,
+        accepted_with_issue: v.accepted_with_issue,
+      };
+    });
+
+    const tempSkip: { gekoeld?: string; vries?: string } = {};
+    if (skipGekoeld) tempSkip.gekoeld = skipGekoeld;
+    if (skipVries) tempSkip.vries = skipVries;
+
+    confirmMutation.mutate(
+      {
+        receipt_id: id,
+        lines,
+        temp_gekoeld: tempGekoeldFilled ? tempGekoeldNum : null,
+        temp_vries: tempVriesFilled ? tempVriesNum : null,
+        temp_skip: tempSkip,
+      },
+      {
+        onSuccess: (res) => {
+          const s = res.summary;
+          const desc =
+            s.count_afwijking > 0
+              ? `${s.count_akkoord} akkoord, ${s.count_afwijking} afwijking — ${s.credit_notes_created} klacht aangemaakt`
+              : `${s.count_akkoord} regels op voorraad`;
+          if (s.has_strict_temp_alarm) {
+            nestoToast.warning("Levering bevestigd · temp-alarm", desc);
+          } else {
+            nestoToast.success("Levering bevestigd", desc);
+          }
+          navigate("/leveringen");
+        },
+        onError: (err: ConfirmError) => {
+          const map: Record<string, { title: string; desc?: string }> = {
+            forbidden: { title: "Geen permissie", desc: "Je hebt geen rechten om deze levering te bevestigen." },
+            already_confirmed: { title: "Al bevestigd", desc: "Deze pakbon is al verwerkt of geannuleerd." },
+            receipt_not_found: { title: "Pakbon niet gevonden" },
+            validation_error: { title: "Invoer ongeldig", desc: err.message },
+            unauthorized: { title: "Niet ingelogd", desc: "Log opnieuw in." },
+            internal_error: { title: "Server-fout", desc: err.message },
+            network_error: { title: "Verbindingsfout", desc: "Controleer je internet." },
+          };
+          const m = map[err.code] ?? { title: "Onbekende fout", desc: err.message };
+          nestoToast.error(m.title, m.desc);
+        },
+      },
+    );
+  };
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-32">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-40">
       <DetailPageLayout
         title={data.leverancier?.naam ?? "Levering"}
         backHref="/leveringen"
@@ -206,9 +399,7 @@ export default function LeveringDetail() {
             {data.pakbon_nummer && (
               <div>
                 <span className="text-muted-foreground">Pakbon</span>{" "}
-                <span className="font-mono text-foreground">
-                  #{data.pakbon_nummer}
-                </span>
+                <span className="font-mono text-foreground">#{data.pakbon_nummer}</span>
               </div>
             )}
             <div>
@@ -240,41 +431,39 @@ export default function LeveringDetail() {
               Regels
             </h2>
             <div className="text-small text-muted-foreground">
-              <span className="text-success font-medium">
-                {akkoord} akkoord
-              </span>
+              <span className="text-success font-medium">{akkoord} akkoord</span>
               {afwijking > 0 && (
                 <>
                   {" · "}
-                  <span className="text-warning font-medium">
-                    {afwijking} afwijking
-                  </span>
+                  <span className="text-warning font-medium">{afwijking} afwijking</span>
                 </>
               )}
             </div>
           </div>
 
           <p className="text-small text-muted-foreground mb-3">
-            Alles staat standaard aangevinkt. Vink een regel uit als de
-            levering niet klopt — in 2C kun je dan aangeven wat er mis is.
+            Alles staat standaard akkoord. Tik op een regel om een afwijking te markeren.
           </p>
 
           <div className="space-y-2">
-            {data.lines.map((line) => (
-              <LineRow
-                key={line.id}
-                line={line}
-                checked={checkedLines.has(line.id)}
-                onToggle={() => toggleLine(line.id)}
-              />
-            ))}
+            {data.lines.map((line) => {
+              const state = lineStates.get(line.id) ?? { kind: "akkoord" as const };
+              return (
+                <LineRow
+                  key={line.id}
+                  line={line}
+                  state={state}
+                  onMarkAfwijking={() => handleMarkAfwijking(line.id)}
+                  onResetAkkoord={() => handleResetAkkoord(line.id)}
+                  onEditAfwijking={() => handleMarkAfwijking(line.id)}
+                />
+              );
+            })}
           </div>
         </section>
 
-        {/* Temperatuur-secties (conditioneel via smart-detectie) */}
-        {(smartFlags.hasGekoeld ||
-          smartFlags.hasVries ||
-          smartFlags.hasRisicogroep) && (
+        {/* Temperatuur-secties */}
+        {(smartFlags.hasGekoeld || smartFlags.hasVries || smartFlags.hasRisicogroep) && (
           <section className="mb-8">
             <h2 className="text-h3 text-foreground flex items-center gap-2 mb-3">
               <Thermometer className="h-4 w-4 text-muted-foreground" />
@@ -287,7 +476,22 @@ export default function LeveringDetail() {
                   label="Gekoeld (max 7 °C)"
                   hint="Meet de kerntemperatuur van een gekoeld product."
                   value={tempGekoeld}
-                  onChange={setTempGekoeld}
+                  onChange={(v) => {
+                    setTempGekoeld(v);
+                    if (v !== "") setSkipGekoeld(null);
+                  }}
+                  skipped={skipGekoeld}
+                  onSkip={() => {
+                    if (smartFlags.hasRisicogroep) {
+                      nestoToast.warning(
+                        "Overslaan niet toegestaan",
+                        "Risicogroep-producten vereisen een temperatuur-meting."
+                      );
+                      return;
+                    }
+                    setSkipModalFor("gekoeld");
+                  }}
+                  onClearSkip={() => setSkipGekoeld(null)}
                 />
               )}
               {smartFlags.hasVries && (
@@ -295,7 +499,13 @@ export default function LeveringDetail() {
                   label="Vries (max -18 °C)"
                   hint="Meet de oppervlakte-temperatuur van een diepvriesproduct."
                   value={tempVries}
-                  onChange={setTempVries}
+                  onChange={(v) => {
+                    setTempVries(v);
+                    if (v !== "") setSkipVries(null);
+                  }}
+                  skipped={skipVries}
+                  onSkip={() => setSkipModalFor("vries")}
+                  onClearSkip={() => setSkipVries(null)}
                 />
               )}
               {smartFlags.hasRisicogroep && (
@@ -307,15 +517,12 @@ export default function LeveringDetail() {
                       {smartFlags.strictTempMax !== null && (
                         <>
                           {" — "}max{" "}
-                          <span className="font-semibold">
-                            {smartFlags.strictTempMax} °C
-                          </span>
+                          <span className="font-semibold">{smartFlags.strictTempMax} °C</span>
                         </>
                       )}
                     </p>
                     <p className="text-muted-foreground mt-0.5">
-                      Vlees, vis of zuivel met strikte eis. Controleer extra
-                      zorgvuldig.
+                      Vlees, vis of zuivel met strikte eis. Meting verplicht.
                     </p>
                   </div>
                 </div>
@@ -325,22 +532,65 @@ export default function LeveringDetail() {
         )}
       </DetailPageLayout>
 
-      {/* Sticky bottom-bar met confirm-button (DISABLED in 2B, actief in 2C) */}
+      {/* Sticky bottom-bar met confirm-button */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 sm:p-5 z-30">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <div className="text-small text-muted-foreground hidden sm:block">
-            {akkoord} van {totalLines} regels akkoord
+          <div className="hidden sm:flex flex-col gap-0.5">
+            <span className="text-small text-muted-foreground">
+              {akkoord} van {totalLines} regels akkoord
+            </span>
+            {helperText && (
+              <span className="text-xs text-muted-foreground">{helperText}</span>
+            )}
           </div>
-          <NestoButton
-            disabled
-            className="min-h-[60px] px-8 text-base flex-1 sm:flex-none sm:min-w-[280px]"
-            title="Beschikbaar in volgende versie"
-          >
-            <Check className="h-5 w-5 mr-2" />
-            Bevestig levering
-          </NestoButton>
+          <div className="flex flex-col items-end gap-1 flex-1 sm:flex-none">
+            <NestoButton
+              onClick={handleConfirm}
+              disabled={!canConfirm}
+              className="min-h-[60px] px-8 text-base w-full sm:w-auto sm:min-w-[280px]"
+            >
+              <Check className="h-5 w-5 mr-2" />
+              {confirmMutation.isPending ? "Bevestigen…" : "Bevestig levering"}
+            </NestoButton>
+            {helperText && (
+              <span className="sm:hidden text-xs text-muted-foreground text-right">
+                {helperText}
+              </span>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Afwijking modal */}
+      {editingLine && (
+        <AfwijkingModal
+          open={!!afwijkingFor}
+          onOpenChange={(o) => !o && setAfwijkingFor(null)}
+          productNaam={editingLine.product_naam_herkend}
+          hoeveelheidVerwacht={editingLine.hoeveelheid_verwacht}
+          eenheid={editingLine.eenheid_verwacht}
+          initial={editingState?.kind === "afwijking" ? editingState.value : null}
+          onSubmit={handleAfwijkingSubmit}
+        />
+      )}
+
+      {/* Skip-temp modal */}
+      {skipModalFor && (
+        <SkipTempModal
+          open={!!skipModalFor}
+          onOpenChange={(o) => !o && setSkipModalFor(null)}
+          type={skipModalFor}
+          onConfirm={(reden) => {
+            if (skipModalFor === "gekoeld") {
+              setSkipGekoeld(reden);
+              setTempGekoeld("");
+            } else {
+              setSkipVries(reden);
+              setTempVries("");
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
