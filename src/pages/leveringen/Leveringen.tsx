@@ -4,6 +4,8 @@
 import * as React from "react";
 import { Truck } from "lucide-react";
 import { PageHeader } from "@/components/polar/PageHeader";
+import { ModuleSubNav } from "@/components/polar/ModuleSubNav";
+import { KEUKEN_SUBNAV } from "@/lib/moduleSubNav";
 import { EmptyState } from "@/components/polar/EmptyState";
 import { CardSkeleton } from "@/components/polar/LoadingStates";
 import { useGoodsReceipts } from "@/hooks/useGoodsReceipts";
@@ -24,6 +26,7 @@ export default function Leveringen() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <ModuleSubNav items={KEUKEN_SUBNAV} />
       <PakbonAIDisclaimerModal />
 
       <PageHeader

@@ -20,16 +20,7 @@ import {
   useGoodsReceiptDetail,
   type GoodsReceiptLineWithIngredient,
 } from "@/hooks/useGoodsReceiptDetail";
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "Datum onbekend";
-  return new Date(dateStr).toLocaleDateString("nl-NL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+import { formatLeveringDatumDetail } from "@/pages/leveringen/utils/formatLeveringDatum";
 
 function LineRow({
   line,
@@ -223,7 +214,7 @@ export default function LeveringDetail() {
             <div>
               <span className="text-muted-foreground">Datum</span>{" "}
               <span className="text-foreground font-medium">
-                {formatDate(data.levering_datum)}
+                {formatLeveringDatumDetail(data.levering_datum)}
               </span>
             </div>
             <div>
