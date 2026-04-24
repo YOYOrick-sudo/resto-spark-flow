@@ -98,6 +98,9 @@ export async function matchIngredientLines(
     lookupTier2_3_4(supabase, locationId, leverancierId, namen),
   ]);
 
+  // ---------------------------------------------------------------------------
+  // PASS 1 — exact-match (huidig gedrag).
+  // ---------------------------------------------------------------------------
   const matches: Array<MatchHit | null> = lines.map((r) => {
     const artnr = (r.artikelnummer ?? "").trim();
     const naamKey = normalizeMatchKey(r.product_naam);
@@ -105,6 +108,59 @@ export async function matchIngredientLines(
     if (naamKey && tier234Map.has(naamKey)) return tier234Map.get(naamKey)!;
     return null;
   });
+
+  // ---------------------------------------------------------------------------
+  // PASS 2 — stripped-match fallback (Sprint Pakbon V1, Spoor A).
+  //
+  // Voor regels die in PASS 1 missen: probeer opnieuw met de verpakkings-
+  // suffix gestript. Dit vangt AI-extracties als "Aubergine ds 5 kg" die
+  // moeten matchen op DB-naam "Aubergine".
+  //
+  // Belangrijk:
+  //  - Strippen gebeurt CONSERVATIEF (zie stripPackagingSuffix). "Koriander
+  //    bos" en andere echte ingredient-namen blijven onveranderd.
+  //  - Doet aparte RPC-call met de gestripte namen om Tier-2/3/4 te zoeken.
+  //  - Confidence van de hit blijft uit lookup (Tier-2 = 0.95 etc.); dit is
+  //    nog steeds een EXACTE match na normalisatie.
+  // ---------------------------------------------------------------------------
+  const unmatchedIdxs: number[] = [];
+  const strippedNamenSet = new Set<string>();
+  for (let i = 0; i < lines.length; i++) {
+    if (matches[i] !== null) continue;
+    const raw = (lines[i].product_naam ?? "").trim();
+    if (!raw) continue;
+    const stripped = stripPackagingSuffix(raw);
+    // Skip als strip niets veranderde — PASS 1 had die al getest.
+    if (stripped.toLowerCase() === raw.toLowerCase()) continue;
+    // Skip als stripped te kort (defensief, voorkomt valse hits zoals "ds").
+    if (stripped.length < 3) continue;
+    unmatchedIdxs.push(i);
+    strippedNamenSet.add(stripped);
+  }
+
+  if (strippedNamenSet.size > 0) {
+    const strippedNamen = Array.from(strippedNamenSet);
+    const tier234StrippedMap = await lookupTier2_3_4(
+      supabase,
+      locationId,
+      leverancierId,
+      strippedNamen,
+    );
+
+    for (const idx of unmatchedIdxs) {
+      const raw = (lines[idx].product_naam ?? "").trim();
+      const stripped = stripPackagingSuffix(raw);
+      const key = normalizeMatchKeyStripped(raw); // normalize ná strip
+      const hit = key ? tier234StrippedMap.get(key) : undefined;
+      if (hit) {
+        matches[idx] = hit;
+        console.log(
+          `[stripped-match] "${raw}" → "${stripped}" matched ingredient ${hit.ingredient_id} via tier ${hit.tier} (confidence ${hit.confidence})`,
+        );
+      }
+    }
+  }
+
 
   // Auto-upsert leveranciers_artikelen voor Tier-3/4 hits (zoals factuur-v2).
   if (autoUpsertOnTier34 && leverancierId) {
