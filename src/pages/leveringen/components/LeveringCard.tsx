@@ -58,14 +58,11 @@ export function LeveringCard({ levering }: LeveringCardProps) {
       )}
     >
       <div className="flex items-start gap-4">
-        {/* Icon */}
         <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
           <Truck className="h-5 w-5 text-primary" />
         </div>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Top row: leverancier + chevron */}
           <div className="flex items-center justify-between gap-2 mb-1">
             <h3 className="font-semibold text-foreground truncate">
               {levering.leverancier_naam ?? "Onbekende leverancier"}
@@ -73,7 +70,6 @@ export function LeveringCard({ levering }: LeveringCardProps) {
             <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
           </div>
 
-          {/* Meta-row: pakbon + datum */}
           <div className="text-small text-muted-foreground mb-2.5 flex items-center gap-2 flex-wrap">
             {levering.pakbon_nummer && (
               <span className="font-mono text-xs">#{levering.pakbon_nummer}</span>
@@ -84,7 +80,6 @@ export function LeveringCard({ levering }: LeveringCardProps) {
             <span>{levering.regels_count} regels</span>
           </div>
 
-          {/* Tag-row: indicators */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {confidenceLabel && (
               <NestoBadge variant={confidenceVariant} size="sm">
@@ -93,7 +88,7 @@ export function LeveringCard({ levering }: LeveringCardProps) {
             )}
             {levering.has_gekoeld && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
                 title="Gekoelde producten"
               >
                 <Thermometer className="h-3 w-3" />
@@ -102,7 +97,7 @@ export function LeveringCard({ levering }: LeveringCardProps) {
             )}
             {levering.has_vries && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-xs font-medium"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
                 title="Diepvriesproducten"
               >
                 <Snowflake className="h-3 w-3" />
@@ -111,7 +106,7 @@ export function LeveringCard({ levering }: LeveringCardProps) {
             )}
             {levering.has_risicogroep && (
               <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-medium"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning/10 text-warning text-xs font-medium"
                 title="Risicogroep — strikte temperatuur-eis"
               >
                 <AlertTriangle className="h-3 w-3" />
