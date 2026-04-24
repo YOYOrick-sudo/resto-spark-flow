@@ -25,6 +25,8 @@ export interface KeukenSettings {
   assistent_min_waarde_overschot: number;
   haccp_freeze_tijd: string; // HH:MM:SS
   standaard_tijden_per_type: StandaardTijdenPerType;
+  pakbon_klacht_email: string | null;
+  pakbon_klacht_cc: string[];
 }
 
 export interface AiBevoegdheden {
@@ -63,6 +65,8 @@ const DEFAULTS: KeukenSettings = {
   assistent_min_waarde_overschot: 10,
   haccp_freeze_tijd: "03:00:00",
   standaard_tijden_per_type: DEFAULT_STANDAARD_TIJDEN,
+  pakbon_klacht_email: null,
+  pakbon_klacht_cc: [],
 };
 
 export function useKeukenSettings() {
@@ -74,7 +78,7 @@ export function useKeukenSettings() {
     queryFn: async (): Promise<KeukenSettings> => {
       const { data, error } = await supabase
         .from("locations")
-        .select("besteladvies_buffer_percentage, haccp_koeling_max, haccp_vriezer_max, haccp_kern_min, haccp_warmhouden_min, ingredient_categorieen, recept_categorieen, gerecht_categorieen, ai_bevoegdheden_keuken, assistent_min_waarde_verlopen, assistent_min_waarde_overschot, haccp_freeze_tijd, standaard_tijden_per_type")
+        .select("besteladvies_buffer_percentage, haccp_koeling_max, haccp_vriezer_max, haccp_kern_min, haccp_warmhouden_min, ingredient_categorieen, recept_categorieen, gerecht_categorieen, ai_bevoegdheden_keuken, assistent_min_waarde_verlopen, assistent_min_waarde_overschot, haccp_freeze_tijd, standaard_tijden_per_type, pakbon_klacht_email, pakbon_klacht_cc")
         .eq("id", locationId!)
         .single();
       if (error) throw error;
@@ -95,6 +99,8 @@ export function useKeukenSettings() {
           ...DEFAULT_STANDAARD_TIJDEN,
           ...(((data as any).standaard_tijden_per_type ?? {}) as Partial<StandaardTijdenPerType>),
         },
+        pakbon_klacht_email: (data as any).pakbon_klacht_email ?? null,
+        pakbon_klacht_cc: ((data as any).pakbon_klacht_cc ?? []) as string[],
       };
     },
     enabled: !!locationId,
