@@ -6,7 +6,6 @@ import { useParams } from "react-router-dom";
 import {
   Check,
   Thermometer,
-  Snowflake,
   AlertTriangle,
   Package,
   Truck,
@@ -42,6 +41,8 @@ function LineRow({
   onToggle: () => void;
 }) {
   const cat = line.ingredient?.haccp_categorie ?? line.haccp_categorie;
+  const isRisk =
+    line.ingredient?.haccp_strict_temp_max != null || cat === "vis_op_ijs";
 
   return (
     <button
@@ -52,8 +53,8 @@ function LineRow({
         "min-h-[60px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         checked
-          ? "border-emerald-500/30 bg-emerald-500/5"
-          : "border-orange-500/40 bg-orange-500/5"
+          ? "border-success/30 bg-success/5"
+          : "border-warning/40 bg-warning/5"
       )}
     >
       {/* Checkbox visual */}
@@ -61,12 +62,14 @@ function LineRow({
         className={cn(
           "flex-shrink-0 w-7 h-7 rounded-md border-2 flex items-center justify-center transition-colors",
           checked
-            ? "bg-emerald-500 border-emerald-500"
+            ? "bg-success border-success"
             : "bg-background border-muted-foreground/40"
         )}
         aria-hidden
       >
-        {checked && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
+        {checked && (
+          <Check className="h-4 w-4 text-success-foreground" strokeWidth={3} />
+        )}
       </div>
 
       {/* Content */}
@@ -87,16 +90,16 @@ function LineRow({
             </span>
           )}
           {cat === "gekoeld" && (
-            <NestoBadge variant="info" size="sm">
+            <NestoBadge variant="default" size="sm">
               Gekoeld
             </NestoBadge>
           )}
           {cat === "vries" && (
-            <NestoBadge variant="info" size="sm">
+            <NestoBadge variant="default" size="sm">
               Vries
             </NestoBadge>
           )}
-          {(line.ingredient?.haccp_strict_temp_max != null || cat === "vis_op_ijs") && (
+          {isRisk && (
             <NestoBadge variant="warning" size="sm">
               Risicogroep
             </NestoBadge>
@@ -246,13 +249,13 @@ export default function LeveringDetail() {
               Regels
             </h2>
             <div className="text-small text-muted-foreground">
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="text-success font-medium">
                 {akkoord} akkoord
               </span>
               {afwijking > 0 && (
                 <>
                   {" · "}
-                  <span className="text-orange-600 dark:text-orange-400 font-medium">
+                  <span className="text-warning font-medium">
                     {afwijking} afwijking
                   </span>
                 </>
@@ -305,8 +308,8 @@ export default function LeveringDetail() {
                 />
               )}
               {smartFlags.hasRisicogroep && (
-                <div className="flex items-start gap-3 rounded-xl bg-orange-500/10 p-4">
-                  <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 rounded-xl bg-warning/10 p-4">
+                  <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
                   <div className="text-small">
                     <p className="font-medium text-foreground">
                       Risicogroep aanwezig
@@ -329,17 +332,10 @@ export default function LeveringDetail() {
             </div>
           </section>
         )}
-
-        {smartFlags.hasVries && !smartFlags.hasGekoeld && (
-          <div className="hidden">
-            {/* placeholder zodat Snowflake import niet als unused gemarkeerd wordt */}
-            <Snowflake />
-          </div>
-        )}
       </DetailPageLayout>
 
       {/* Sticky bottom-bar met confirm-button (DISABLED in 2B, actief in 2C) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 sm:p-5 shadow-[0_-4px_20px_-4px_hsl(var(--background))] z-30">
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 sm:p-5 z-30">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <div className="text-small text-muted-foreground hidden sm:block">
             {akkoord} van {totalLines} regels akkoord
