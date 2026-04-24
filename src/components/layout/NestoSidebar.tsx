@@ -52,6 +52,7 @@ function ExpandableContent({ isOpen, children }: { isOpen: boolean; children: Re
 
 import { useSignalCount } from '@/hooks/useSignalCount';
 import { useMarketingBadge } from '@/hooks/useMarketingBadge';
+import { usePakbonBadge } from '@/hooks/usePakbonBadge';
 import { NestoLogo } from '@/components/polar/NestoLogo';
 import { NestoBadge } from '@/components/polar/NestoBadge';
 
@@ -81,6 +82,7 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
   const signalCount = useSignalCount();
 
   const { data: atRiskCount = 0 } = useMarketingBadge();
+  const { data: pakbonCount = 0 } = usePakbonBadge();
 
   useEffect(() => {
     const groupToExpand = getExpandedGroupFromPath(location.pathname);
@@ -308,7 +310,10 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
                                       : 'text-muted-foreground font-medium hover:text-foreground'
                                   )}
                                 >
-                                  {subItem.label}
+                                  <span className="flex-1 text-left">{subItem.label}</span>
+                                  {subItem.id === 'kitchen-leveringen' && pakbonCount > 0 && (
+                                    <NestoBadge variant="warning" size="sm">{pakbonCount}</NestoBadge>
+                                  )}
                                 </button>
                               </li>
                             );
