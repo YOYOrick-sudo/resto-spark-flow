@@ -32,6 +32,8 @@ const LineSchema = z.object({
   tht_datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   afwijking_notitie: z.string().max(2000).optional(),
   afwijking_foto_url: z.string().url().max(2000).optional(),
+  // 2C-2: chef accepteert beschadigd/verkeerd product alsnog (voorraad IN + credit-note)
+  accepted_with_issue: z.boolean().optional(),
 });
 
 const TempSkipSchema = z
