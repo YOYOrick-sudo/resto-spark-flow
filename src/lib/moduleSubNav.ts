@@ -3,6 +3,7 @@ import {
   Carrot,
   BookOpen,
   Package,
+  Truck,
   Thermometer,
   UtensilsCrossed,
   BarChart3,
@@ -28,6 +29,7 @@ export const KEUKEN_SUBNAV: ModuleSubNavItem[] = [
   { path: "/recepten", label: "Halffabricaten", icon: BookOpen },
   { path: "/voorraad", label: "Ingrediënten", icon: Carrot },
   { path: "/inkoop", label: "Voorraad & Inkoop", icon: Package },
+  { path: "/leveringen", label: "Leveringen", icon: Truck },
 ];
 
 export const KAARTBEHEER_SUBNAV: ModuleSubNavItem[] = [
