@@ -353,7 +353,7 @@ Deno.serve(async (req) => {
       await admin.from("checklist_runs").delete().in("template_id", tplIds).eq("datum", tomorrow);
 
       // deno-lint-ignore no-explicit-any
-      const { data: schedRes, error: schedErr } = await (admin.rpc as any)("generate_daily_checklist_runs_for_date", { p_date: tomorrow });
+      const { data: schedRes, error: schedErr } = await (admin.rpc as any)("generate_daily_checklist_runs_for_date", { _target_date: tomorrow });
       runsCreated = schedRes;
       schedulerError = schedErr?.message;
 
