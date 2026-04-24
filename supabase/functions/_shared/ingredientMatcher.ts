@@ -23,13 +23,19 @@ import {
   upsertLeverancier,
   upsertLeverancierArtikelFromMatch,
 } from "./factuur-v2/cache.ts";
-import { normalizeMatchKey } from "./factuur-v2/normalize.ts";
+import {
+  normalizeMatchKey,
+  normalizeMatchKeyStripped,
+  stripPackagingSuffix,
+} from "./factuur-v2/normalize.ts";
 
 // Re-exports voor callers die direct toegang willen.
 export {
   lookupTier1,
   lookupTier2_3_4,
   normalizeMatchKey,
+  normalizeMatchKeyStripped,
+  stripPackagingSuffix,
   upsertLeverancier,
   upsertLeverancierArtikelFromMatch,
 };
