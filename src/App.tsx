@@ -209,6 +209,8 @@ const App = () => (
                   <Route path="/inkoop/leveranciers/:id" element={<LeverancierDetail />} />
                   <Route path="/inkoop/leveranciers/:id/import" element={<Suspense fallback={null}><AfnamelijstImport /></Suspense>} />
                   <Route path="/interne-bestellingen" element={<InterneBestellingen />} />
+                  <Route path="/leveringen" element={<Leveringen />} />
+                  <Route path="/leveringen/:id" element={<LeveringDetail />} />
                   <Route path="/taken" element={<Taken />} />
                   <Route path="/taken/logboek" element={<TakenLogboek />} />
                   <Route path="/taken/run/:runId" element={<TakenRun />} />
