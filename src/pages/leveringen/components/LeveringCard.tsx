@@ -3,20 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Truck, Snowflake, Thermometer, AlertTriangle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NestoBadge } from "@/components/polar/NestoBadge";
+import { formatLeveringDatumInbox } from "@/pages/leveringen/utils/formatLeveringDatum";
 import type { GoodsReceiptInboxRow } from "@/hooks/useGoodsReceipts";
 
 interface LeveringCardProps {
   levering: GoodsReceiptInboxRow;
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "Datum onbekend";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("nl-NL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
 }
 
 export function LeveringCard({ levering }: LeveringCardProps) {
@@ -75,7 +66,7 @@ export function LeveringCard({ levering }: LeveringCardProps) {
               <span className="font-mono text-xs">#{levering.pakbon_nummer}</span>
             )}
             {levering.pakbon_nummer && <span aria-hidden>•</span>}
-            <span>{formatDate(levering.levering_datum)}</span>
+            <span>{formatLeveringDatumInbox(levering.levering_datum)}</span>
             <span aria-hidden>•</span>
             <span>{levering.regels_count} regels</span>
           </div>
