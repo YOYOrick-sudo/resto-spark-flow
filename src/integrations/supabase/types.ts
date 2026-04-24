@@ -3075,6 +3075,8 @@ export type Database = {
           name: string
           organization_id: string
           pakbon_cc_addresses: string[] | null
+          pakbon_klacht_cc: string[]
+          pakbon_klacht_email: string | null
           pakbon_slug: string | null
           recept_categorieen: Json | null
           role_in_organization: string | null
@@ -3116,6 +3118,8 @@ export type Database = {
           name: string
           organization_id: string
           pakbon_cc_addresses?: string[] | null
+          pakbon_klacht_cc?: string[]
+          pakbon_klacht_email?: string | null
           pakbon_slug?: string | null
           recept_categorieen?: Json | null
           role_in_organization?: string | null
@@ -3157,6 +3161,8 @@ export type Database = {
           name?: string
           organization_id?: string
           pakbon_cc_addresses?: string[] | null
+          pakbon_klacht_cc?: string[]
+          pakbon_klacht_email?: string | null
           pakbon_slug?: string | null
           recept_categorieen?: Json | null
           role_in_organization?: string | null
