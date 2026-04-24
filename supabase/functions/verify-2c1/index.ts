@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
         { name: "heeft_strict_temp_alarm=false (5°C ok voor kip)", expected: false, actual: status.heeft_strict_temp_alarm, pass: status.heeft_strict_temp_alarm === false },
       ];
     }
-    result.pass = result.expectations.every((e) => e.pass);
+    result.pass = !result.rpc_error && result.expectations.length > 0 && result.expectations.every((e) => e.pass);
     results.push(result);
   }
 
