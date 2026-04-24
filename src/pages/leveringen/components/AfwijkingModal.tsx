@@ -23,13 +23,15 @@ export interface AfwijkingModalProps {
   onSubmit: (value: AfwijkingValue) => void;
 }
 
-const OPTIES: Array<{
+type Optie = {
   status: AfwijkingValue["status"];
   label: string;
   desc: string;
   needsAantal?: boolean;
   needsAccept?: boolean;
-}> = [
+};
+
+const OPTIES: Optie[] = [
   {
     status: "afwijking_missing",
     label: "Niet geleverd",
@@ -57,8 +59,8 @@ const OPTIES: Array<{
 
 // "Anders" mappen we naar 'beschadigd' (vrije notitie verplicht). Cleanere mapping
 // volgt eventueel in 2D als backend een 'afwijking_anders' enum krijgt.
-const ANDERS_OPTIE = {
-  status: "afwijking_beschadigd" as const,
+const ANDERS_OPTIE: Optie = {
+  status: "afwijking_beschadigd",
   label: "Anders",
   desc: "Anders dan bovenstaande — beschrijf hieronder.",
 };
