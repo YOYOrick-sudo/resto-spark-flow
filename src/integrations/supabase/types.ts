@@ -1137,6 +1137,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "credit_note_requests_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts_chef_inbox"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "credit_note_requests_goods_receipt_line_id_fkey"
             columns: ["goods_receipt_line_id"]
             isOneToOne: false
@@ -2056,6 +2063,13 @@ export type Database = {
             columns: ["goods_receipt_id"]
             isOneToOne: false
             referencedRelation: "goods_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_lines_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts_chef_inbox"
             referencedColumns: ["id"]
           },
           {
@@ -5463,6 +5477,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pakbon_email_intake_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts_chef_inbox"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pakbon_email_intake_matched_leverancier_id_fkey"
             columns: ["matched_leverancier_id"]
             isOneToOne: false
@@ -7949,6 +7970,66 @@ export type Database = {
             columns: ["productie_locatie_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_receipts_chef_inbox: {
+        Row: {
+          ai_generated: boolean | null
+          ai_parse_confidence: number | null
+          ai_parse_status:
+            | Database["public"]["Enums"]["pakbon_ai_parse_status"]
+            | null
+          bestelling_id: string | null
+          created_at: string | null
+          has_gekoeld: boolean | null
+          has_risicogroep: boolean | null
+          has_vries: boolean | null
+          id: string | null
+          leverancier_id: string | null
+          leverancier_naam: string | null
+          levering_datum: string | null
+          location_id: string | null
+          notities: string | null
+          ontvangst_status:
+            | Database["public"]["Enums"]["goods_receipt_status"]
+            | null
+          organization_id: string | null
+          pakbon_nummer: string | null
+          regels_count: number | null
+          totaal_regels_afwijking: number | null
+          totaal_regels_akkoord: number | null
+          totaal_regels_verwacht: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipts_bestelling_id_fkey"
+            columns: ["bestelling_id"]
+            isOneToOne: false
+            referencedRelation: "interne_bestellingen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
