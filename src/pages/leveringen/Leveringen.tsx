@@ -25,7 +25,7 @@ export default function Leveringen() {
     grouped.vandaag.length + grouped.deze_week.length + grouped.eerder.length;
 
   return (
-　    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <ModuleSubNav items={KEUKEN_SUBNAV} />
       <PakbonAIDisclaimerModal />
 
