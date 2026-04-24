@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
         { name: "checklist_runs=1", expected: 1, actual: clRuns, pass: clRuns === 1 },
       ];
     }
-    result.pass = result.expectations.every((e) => e.pass);
+    result.pass = !result.rpc_error && result.expectations.length > 0 && result.expectations.every((e) => e.pass);
     results.push(result);
   }
 
