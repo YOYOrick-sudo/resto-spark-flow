@@ -21,6 +21,8 @@ import Ingredienten from "./pages/Ingredienten";
 import IngredientenNieuw from "./pages/IngredientenNieuw";
 import IngredientenDetail from "./pages/IngredientenDetail";
 import Inkoop from "./pages/Inkoop";
+import Leveringen from "./pages/leveringen/Leveringen";
+import LeveringDetail from "./pages/leveringen/LeveringDetail";
 import Leveranciers from "./pages/Leveranciers";
 import LeverancierNieuw from "./pages/LeverancierNieuw";
 import LeverancierDetail from "./pages/LeverancierDetail";
