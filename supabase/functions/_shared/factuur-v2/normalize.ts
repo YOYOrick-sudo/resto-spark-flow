@@ -34,26 +34,32 @@ export function normalizeMatchKey(s: string | null | undefined): string {
 
 // Volgorde matters: meest specifieke patterns eerst, generiekste laatst.
 const PACKAGING_SUFFIX_PATTERNS: RegExp[] = [
-  // Cijfer + eenheid aan het einde, eventueel voorafgegaan door
-  // verpakkingswoord. Vangt: "ds 5 kg", "kist 1,5 kg", "pak 500 gr",
-  // "zak 450 gr", "doos 14 stuks", "kist 6 stuks", "ds 4,5 kg".
+  // VOLGORDE IS BELANGRIJK — meest specifieke eerst, generiekste laatst.
+  // Eerste match wint en stopt verdere passes.
+
+  // 1. CONSERVATIEF: "bos|bundel" + cijfer + eenheid. MOET vóór de generieke
+  //    "cijfer + eenheid"-pattern, anders strip die alleen het cijferdeel
+  //    en blijft "Asperges bos" over. Beschermt tegelijk standalone "bos"
+  //    (bv. "Koriander bos") want zonder cijfer geen match.
+  /\s+(?:bos|bundel)\s+\d[\d.,]*\s*(?:kg|g|gr|gram|st|stuks?)?\b.*$/i,
+
+  // 2. Verpakkingswoord + cijfer + eenheid: "ds 5 kg", "kist 1,5 kg",
+  //    "pak 500 gr", "zak 450 gr", "doos 14 stuks", "kist 6 stuks".
   /\s+(?:ds|doos|kist|pak|zak|tray|krat|fles|pot|blik|colli|bak)\s+\d[\d.,]*\s*(?:kg|g|gr|gram|l|lt|ml|st|stuks?|cl)?\b.*$/i,
 
-  // Verpakkingswoord zonder getal aan einde: "Bosuien doos", "Komkommer ds".
-  // Alleen als het echt het laatste deel is.
-  /\s+(?:ds|doos|kist|pak|zak|tray|krat|colli|bak)$/i,
-
-  // "per stuk" suffix: "Paksoi per stuk", "Kool chinese per stuk".
+  // 3. "per stuk" suffix: "Paksoi per stuk", "Kool chinese per stuk".
   /\s+per\s+stuk[s]?$/i,
 
-  // Pure cijfer + eenheid suffix zonder verpakkingswoord: "Aubergine 5 kg",
-  // "Spinazie 450 gr", "Limoen 4,5 kg".
+  // 4. Pure cijfer + eenheid suffix: "Aubergine 5 kg", "Spinazie 450 gr".
   /\s+\d[\d.,]*\s*(?:kg|g|gr|gram|l|lt|ml|st|stuks?|cl)\b.*$/i,
 
-  // CONSERVATIEF: "bos|bundel" alleen als gevolgd door cijfer (verpakking),
-  // nooit standalone — anders breekt "Koriander bos", "Peterselie krul bos".
-  /\s+(?:bos|bundel)\s+\d[\d.,]*\s*(?:kg|g|gr|gram|st|stuks?)?\b.*$/i,
+  // 5. Verpakkingswoord ZONDER getal als laatste woord: "Komkommer ds",
+  //    "Bosuien doos". CONSERVATIEF: 'tray' / 'krat' weglaten — die zijn
+  //    soms onderdeel van naam ("Emballage paddestoelen tray"). Idem
+  //    'pot/blik/fles' want dat zijn vaak inhoud-aanduidingen ("Tomaat pot").
+  /\s+(?:ds|doos|kist|pak|zak|colli|bak)$/i,
 ];
+
 
 export function stripPackagingSuffix(name: string | null | undefined): string {
   if (!name) return "";
