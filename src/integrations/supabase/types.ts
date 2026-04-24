@@ -8089,6 +8089,17 @@ export type Database = {
         }
         Returns: Json
       }
+      confirm_goods_receipt: {
+        Args: {
+          _lines: Json
+          _receipt_id: string
+          _temp_gekoeld?: number
+          _temp_skip?: Json
+          _temp_vries?: number
+          _user_id: string
+        }
+        Returns: Json
+      }
       count_segment_customers: {
         Args: { _filter_rules: Json; _location_id: string }
         Returns: number
