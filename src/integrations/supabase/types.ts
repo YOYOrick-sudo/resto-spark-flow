@@ -1979,10 +1979,18 @@ export type Database = {
           afwijking_notitie: string | null
           ai_confidence: number | null
           ai_confidence_per_field: Json | null
+          ai_is_weighted: boolean
+          ai_package_unit: string | null
+          ai_per_package_quantity: number | null
           ai_raw_artikelnummer: string | null
           ai_raw_naam: string | null
+          ai_reasoning: string | null
+          ai_total_packages: number | null
+          ai_total_received_quantity: number | null
+          ai_total_received_unit: string | null
           created_at: string
           eenheid_verwacht: string | null
+          factor_status: string
           goods_receipt_id: string
           haccp_categorie: Database["public"]["Enums"]["haccp_categorie"] | null
           hoeveelheid_ontvangen: number | null
@@ -2006,10 +2014,18 @@ export type Database = {
           afwijking_notitie?: string | null
           ai_confidence?: number | null
           ai_confidence_per_field?: Json | null
+          ai_is_weighted?: boolean
+          ai_package_unit?: string | null
+          ai_per_package_quantity?: number | null
           ai_raw_artikelnummer?: string | null
           ai_raw_naam?: string | null
+          ai_reasoning?: string | null
+          ai_total_packages?: number | null
+          ai_total_received_quantity?: number | null
+          ai_total_received_unit?: string | null
           created_at?: string
           eenheid_verwacht?: string | null
+          factor_status?: string
           goods_receipt_id: string
           haccp_categorie?:
             | Database["public"]["Enums"]["haccp_categorie"]
@@ -2035,10 +2051,18 @@ export type Database = {
           afwijking_notitie?: string | null
           ai_confidence?: number | null
           ai_confidence_per_field?: Json | null
+          ai_is_weighted?: boolean
+          ai_package_unit?: string | null
+          ai_per_package_quantity?: number | null
           ai_raw_artikelnummer?: string | null
           ai_raw_naam?: string | null
+          ai_reasoning?: string | null
+          ai_total_packages?: number | null
+          ai_total_received_quantity?: number | null
+          ai_total_received_unit?: string | null
           created_at?: string
           eenheid_verwacht?: string | null
+          factor_status?: string
           goods_receipt_id?: string
           haccp_categorie?:
             | Database["public"]["Enums"]["haccp_categorie"]
@@ -2829,14 +2853,18 @@ export type Database = {
         Row: {
           artikel_naam: string
           artikel_nummer: string | null
+          confirmation_count: number
           created_at: string
           ean_code: string | null
+          factor_source: string
           id: string
           import_bestandsnaam: string | null
           ingredient_id: string
           is_actief: boolean
+          is_weighted: boolean
           laatst_geimporteerd: string | null
           laatst_gesynchroniseerd: string | null
+          last_confirmed_at: string | null
           leverancier_id: string
           prijs_per_eenheid: number | null
           prijs_per_verpakking: number | null
@@ -2848,14 +2876,18 @@ export type Database = {
         Insert: {
           artikel_naam: string
           artikel_nummer?: string | null
+          confirmation_count?: number
           created_at?: string
           ean_code?: string | null
+          factor_source?: string
           id?: string
           import_bestandsnaam?: string | null
           ingredient_id: string
           is_actief?: boolean
+          is_weighted?: boolean
           laatst_geimporteerd?: string | null
           laatst_gesynchroniseerd?: string | null
+          last_confirmed_at?: string | null
           leverancier_id: string
           prijs_per_eenheid?: number | null
           prijs_per_verpakking?: number | null
@@ -2867,14 +2899,18 @@ export type Database = {
         Update: {
           artikel_naam?: string
           artikel_nummer?: string | null
+          confirmation_count?: number
           created_at?: string
           ean_code?: string | null
+          factor_source?: string
           id?: string
           import_bestandsnaam?: string | null
           ingredient_id?: string
           is_actief?: boolean
+          is_weighted?: boolean
           laatst_geimporteerd?: string | null
           laatst_gesynchroniseerd?: string | null
+          last_confirmed_at?: string | null
           leverancier_id?: string
           prijs_per_eenheid?: number | null
           prijs_per_verpakking?: number | null
@@ -8135,6 +8171,10 @@ export type Database = {
         Returns: string
       }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      default_voorraad_eenheid: {
+        Args: { p_categorie: string }
+        Returns: string
+      }
       detect_empty_shifts: { Args: never; Returns: undefined }
       extend_option: {
         Args: {
