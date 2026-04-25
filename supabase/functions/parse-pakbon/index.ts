@@ -254,7 +254,12 @@ serve(async (req) => {
   // ===========================================================
   // 2. Parse + validate body
   // ===========================================================
-  let body: { goods_receipt_id?: string; intake_id?: string; attachment_path?: string };
+  let body: {
+    goods_receipt_id?: string;
+    intake_id?: string;
+    attachment_path?: string;
+    sender_match_leverancier_ids?: string[];
+  };
   try {
     body = await req.json();
   } catch {
@@ -273,6 +278,10 @@ serve(async (req) => {
       },
     );
   }
+
+  const senderMatchIds: string[] = Array.isArray(body.sender_match_leverancier_ids)
+    ? body.sender_match_leverancier_ids
+    : [];
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
