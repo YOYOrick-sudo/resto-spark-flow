@@ -11,7 +11,7 @@ export interface VoorraadBeweging {
   opmerking: string | null;
   created_at: string;
   created_by: string | null;
-  profiles: { full_name: string | null } | null;
+  profiles: { name: string | null } | null;
 }
 
 export function useIngredient(id: string | null) {
@@ -47,7 +47,7 @@ export function useVoorraadBewegingen(ingredientId: string | null) {
         .from("voorraad_bewegingen")
         .select(`
           *,
-          profiles:medewerker_id(full_name)
+          profiles:medewerker_id(name)
         `)
         .eq("ingredient_id", ingredientId!)
         .order("created_at", { ascending: false })

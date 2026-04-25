@@ -192,8 +192,8 @@ export function VoorraadTab({ ingredient }: VoorraadTabProps) {
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(b.created_at), "d MMM HH:mm", { locale: nl })}
                     </p>
-                    {b.profiles?.full_name && (
-                      <p className="text-xs text-muted-foreground">{b.profiles.full_name}</p>
+                    {b.profiles?.name && (
+                      <p className="text-xs text-muted-foreground">{b.profiles.name}</p>
                     )}
                   </div>
                 </div>
