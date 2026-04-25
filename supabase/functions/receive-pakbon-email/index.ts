@@ -735,6 +735,7 @@ serve(async (req) => {
             goods_receipt_id: goodsReceipt.id,
             intake_id: intake?.id,
             attachment_path: uploadedUrls[0],
+            sender_match_leverancier_ids: senderMatchIds,
           }),
         },
       );
