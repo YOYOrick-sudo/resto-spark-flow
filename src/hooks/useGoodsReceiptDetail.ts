@@ -47,6 +47,8 @@ export interface GoodsReceiptDetail {
   temp_gekoeld_gemeten: number | null;
   temp_vries_gemeten: number | null;
   heeft_strict_temp_alarm: boolean;
+  leverancier_warning: boolean;
+  leverancier_warning_reason: string | null;
   created_at: string;
   updated_at: string;
   leverancier: { id: string; naam: string } | null;
