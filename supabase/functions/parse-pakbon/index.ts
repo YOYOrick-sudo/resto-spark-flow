@@ -56,12 +56,27 @@ const PAKBON_SCHEMA = {
         properties: {
           artikelnummer: { type: ["string", "null"] },
           product_naam: { type: "string" },
-          hoeveelheid_geleverd: { type: ["number", "null"] },
+          hoeveelheid_geleverd: {
+            type: ["number", "null"],
+            description: "Aantal verpakkingen besteld (kolom 'aantal' op pakbon).",
+          },
           verpakking_eenheid: {
             type: ["string", "null"],
             enum: ["L", "kg", "stuk", null],
+            description: "Voorraad-eenheid van het PRODUCT IN de verpakking (na g→kg / ml→l conversie).",
           },
-          verpakking_hoeveelheid: { type: ["number", "null"] },
+          verpakking_hoeveelheid: {
+            type: ["number", "null"],
+            description: "Hoeveelheid per verpakking in voorraad-eenheid (bv. doos 14 stuks → 14, kist 20 kg → 20, zak 450 g → 0.45). null als verpakking-eenheid zelf de telbare eenheid is (bv. 1 bos = 1 bos).",
+          },
+          totaal_ontvangen_hoeveelheid: {
+            type: ["number", "null"],
+            description: "Berekende totaal in voorraad-eenheid: hoeveelheid_geleverd × verpakking_hoeveelheid (of hoeveelheid_geleverd als verpakking_hoeveelheid null is).",
+          },
+          is_weighted: {
+            type: "boolean",
+            description: "true als pakbon variabel gewicht aanduidt met ± / ca. / ~ / ongeveer.",
+          },
           lotnummer: { type: ["string", "null"] },
           tht_datum: { type: ["string", "null"], description: "ISO date" },
           haccp_categorie: {
@@ -69,8 +84,16 @@ const PAKBON_SCHEMA = {
             enum: ["ambient", "gekoeld", "vries", "vis_op_ijs", null],
           },
           confidence: { type: ["string", "null"], enum: ["hoog", "medium", "laag", null] },
+          confidence_score: {
+            type: ["number", "null"],
+            description: "Numerieke confidence 0.0-1.0. 0.95+ = standaard NL-pattern, 0.80-0.94 = kleine afkorting, 0.60-0.79 = afgeleid uit context, <0.60 = onzeker.",
+          },
+          reasoning: {
+            type: ["string", "null"],
+            description: "1 korte zin waarom je deze verpakking-factor koos.",
+          },
         },
-        required: ["product_naam", "verpakking_eenheid"],
+        required: ["product_naam", "verpakking_eenheid", "is_weighted"],
         additionalProperties: false,
       },
     },
@@ -82,24 +105,99 @@ const PAKBON_SCHEMA = {
 const PAKBON_SYSTEM_PROMPT = `Je bent een expert in het uitlezen van Nederlandse horeca-pakbonnen.
 Een pakbon is een leveringsdocument zonder prijzen — alleen producten + aantallen.
 
-EXTRACTIE-REGELS:
+EXTRACTIE-REGELS PER REGEL:
 - product_naam: exacte productomschrijving zoals op pakbon (behoud haakjes/leestekens)
 - artikelnummer: leverancier-eigen code (mag null zijn)
-- hoeveelheid_geleverd: aantal eenheden geleverd (bv. 5 dozen → 5)
-- verpakking_eenheid: STRIKT één van: "L" (liter), "kg" (gewicht), "stuk" (per item)
-- verpakking_hoeveelheid: inhoud per verpakking (bv. doos 12×1L → 12)
-- lotnummer: indien vermeld (verplicht voor HACCP-traceability)
-- tht_datum: T.H.T. of "houdbaar tot" datum (ISO YYYY-MM-DD)
-- haccp_categorie: schat in op basis van producttype:
-    * "vries" voor diepvries (-18°C)
-    * "gekoeld" voor zuivel/vlees/vis (2-7°C)
-    * "vis_op_ijs" voor verse vis op ijs (0-2°C)
-    * "ambient" voor droge waar (kamertemperatuur)
-- confidence: "hoog" (zekere extractie), "medium" (kleine twijfel), "laag" (onleesbaar)
+- hoeveelheid_geleverd: aantal VERPAKKINGEN besteld (kolom 'aantal' van pakbon, bv. 2 kisten → 2)
+- verpakking_eenheid: STRIKT één van "L" | "kg" | "stuk" — de voorraad-eenheid van het PRODUCT in de verpakking
+- verpakking_hoeveelheid: hoeveel product zit er PER verpakking, in voorraad-eenheid
+- totaal_ontvangen_hoeveelheid: hoeveelheid_geleverd × verpakking_hoeveelheid (of = hoeveelheid_geleverd als verpakking_hoeveelheid null)
+- is_weighted: true als pakbon ± / ca. / ~ / ongeveer / circa aanduidt (variabel gewicht)
+- lotnummer / tht_datum: indien vermeld
+- haccp_categorie: "vries" | "gekoeld" | "vis_op_ijs" | "ambient"
+- confidence: "hoog" | "medium" | "laag" (text)
+- confidence_score: numeriek 0.0-1.0 (zie rubriek hieronder)
+- reasoning: 1 korte zin over je verpakking-keuze
+
+VERPAKKING-EXTRACTIE — kritisch voor voorraad-correctheid
+
+GLOSSARIUM (afkortingen → eenheid):
+  ds, doos, krt, karton  → verpakking met inhoud
+  kist, kt               → kist
+  krat                   → krat
+  pak, pk                → pak
+  zak, zk                → zak
+  bs, bos                → bos (behandel als 1 stuk = 1 bos)
+  bdl, bundel            → bundel
+  tr, tray               → tray
+  emm, emmer             → emmer
+  fl, fls, fles          → fles
+  st, stk, stuks, stuk   → stuks
+  gr, g, gram            → g (CONVERTEER naar kg in verpakking_hoeveelheid)
+  kg, kilo               → kg
+  ml                     → ml (CONVERTEER naar L in verpakking_hoeveelheid)
+  l, ltr, lt, liter      → L
+
+GETALFORMAAT (Nederlandse pakbonnen):
+  Komma = decimaal: "4,5 kg" → 4.5
+  Punt = duizendtal in groot getal: "1.250 g" → 1250 → converteer naar 1.25 kg
+
+CONVERSIE: ALTIJD g→kg en ml→L in verpakking_hoeveelheid + totaal_ontvangen_hoeveelheid.
+"Bos" / "tray eieren" / "krat" → behandel als verpakking_eenheid="stuk".
+
+CONFIDENCE-RUBRIEK (NIET DEFAULT 0.95!):
+  0.95-1.00 → standaard NL-pattern, alle velden helder ("kist 20 kg")
+  0.80-0.94 → hoge zekerheid, kleine afkorting in glossarium ("ds 4,5 kg")
+  0.60-0.79 → medium, eenheid afgeleid uit context
+  <0.60     → laag, vraag review
+
+FEW-SHOT VOORBEELDEN:
+
+Voorbeeld 1 — Multi-pack op gewicht:
+  Pakbon: "Aardappel agria kist 20kg" + aantal=2
+  → verpakking_eenheid="kg", verpakking_hoeveelheid=20,
+     hoeveelheid_geleverd=2, totaal_ontvangen_hoeveelheid=40,
+     is_weighted=false, confidence_score=0.95,
+     reasoning="Kist van 20 kg, 2 kisten besteld = 40 kg totaal"
+
+Voorbeeld 2 — Doos met stuks (klassieke conversie!):
+  Pakbon: "Bosuien (kort) doos 14 stuks" + aantal=1
+  → verpakking_eenheid="stuk", verpakking_hoeveelheid=14,
+     hoeveelheid_geleverd=1, totaal_ontvangen_hoeveelheid=14,
+     is_weighted=false, confidence_score=0.95,
+     reasoning="Doos van 14 stuks, 1 doos = 14 stuks totaal"
+
+Voorbeeld 3 — NL-decimaal:
+  Pakbon: "Limoen ds 4,5 kg" + aantal=1
+  → verpakking_eenheid="kg", verpakking_hoeveelheid=4.5,
+     hoeveelheid_geleverd=1, totaal_ontvangen_hoeveelheid=4.5,
+     is_weighted=false, confidence_score=0.92,
+     reasoning="Doos van 4,5 kg (NL-comma decimaal)"
+
+Voorbeeld 4 — Bos = eenheid zelf:
+  Pakbon: "Koriander bos" + aantal=4
+  → verpakking_eenheid="stuk", verpakking_hoeveelheid=null,
+     hoeveelheid_geleverd=4, totaal_ontvangen_hoeveelheid=4,
+     is_weighted=false, confidence_score=0.95,
+     reasoning="Bos is zelf de telbare eenheid, 4 bossen besteld"
+
+Voorbeeld 5 — Variabel gewicht (KRITIEK):
+  Pakbon: "Tauge zak ca. 1 kg" + aantal=1
+  → verpakking_eenheid="kg", verpakking_hoeveelheid=1.0,
+     hoeveelheid_geleverd=1, totaal_ontvangen_hoeveelheid=1.0,
+     is_weighted=true (BELANGRIJK!), confidence_score=0.85,
+     reasoning="Variabel gewicht aangeduid met 'ca.', chef vult werkelijk gewicht in"
+
+Voorbeeld 6 — Gram conversie:
+  Pakbon: "Spinazie zak 450 gr" + aantal=1
+  → verpakking_eenheid="kg", verpakking_hoeveelheid=0.45,
+     hoeveelheid_geleverd=1, totaal_ontvangen_hoeveelheid=0.45,
+     is_weighted=false, confidence_score=0.93,
+     reasoning="Zak van 450 g geconverteerd naar 0.45 kg voorraad-eenheid"
 
 CRITICAL:
 - Pakbonnen hebben GEEN prijzen — extraheer ALLEEN aantallen + producten
-- Bij twijfel over verpakking: kies "stuk" en confidence "laag"
+- Bij twijfel over verpakking: kies "stuk", verpakking_hoeveelheid=null, confidence_score laag
 - Negeer kop/voet-tekst, leveringsadres, handtekening-velden
 - bestelnummer_referentie = order/PO-nummer indien vermeld (voor matching)`;
 
@@ -210,23 +308,29 @@ function matchPdfToLeverancier(
   return null;
 }
 
+interface PakbonExtractieRegel {
+  artikelnummer?: string | null;
+  product_naam: string;
+  hoeveelheid_geleverd?: number | null;
+  verpakking_eenheid?: "L" | "kg" | "stuk" | null;
+  verpakking_hoeveelheid?: number | null;
+  totaal_ontvangen_hoeveelheid?: number | null;
+  is_weighted?: boolean | null;
+  lotnummer?: string | null;
+  tht_datum?: string | null;
+  haccp_categorie?: "ambient" | "gekoeld" | "vries" | "vis_op_ijs" | null;
+  confidence?: "hoog" | "medium" | "laag" | null;
+  confidence_score?: number | null;
+  reasoning?: string | null;
+}
+
 interface PakbonExtractie {
   extractie_status: "success" | "partial" | "failed";
   leverancier_naam: string;
   pakbon_nummer?: string | null;
   levering_datum?: string | null;
   bestelnummer_referentie?: string | null;
-  regels: Array<{
-    artikelnummer?: string | null;
-    product_naam: string;
-    hoeveelheid_geleverd?: number | null;
-    verpakking_eenheid?: "L" | "kg" | "stuk" | null;
-    verpakking_hoeveelheid?: number | null;
-    lotnummer?: string | null;
-    tht_datum?: string | null;
-    haccp_categorie?: "ambient" | "gekoeld" | "vries" | "vis_op_ijs" | null;
-    confidence?: "hoog" | "medium" | "laag" | null;
-  }>;
+  regels: PakbonExtractieRegel[];
 }
 
 // =====================================================
