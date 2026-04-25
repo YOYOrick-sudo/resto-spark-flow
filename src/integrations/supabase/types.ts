@@ -2096,6 +2096,8 @@ export type Database = {
           heeft_strict_temp_alarm: boolean
           id: string
           leverancier_id: string | null
+          leverancier_warning: boolean
+          leverancier_warning_reason: string | null
           levering_datum: string | null
           location_id: string
           notities: string | null
@@ -2127,6 +2129,8 @@ export type Database = {
           heeft_strict_temp_alarm?: boolean
           id?: string
           leverancier_id?: string | null
+          leverancier_warning?: boolean
+          leverancier_warning_reason?: string | null
           levering_datum?: string | null
           location_id: string
           notities?: string | null
@@ -2158,6 +2162,8 @@ export type Database = {
           heeft_strict_temp_alarm?: boolean
           id?: string
           leverancier_id?: string | null
+          leverancier_warning?: boolean
+          leverancier_warning_reason?: string | null
           levering_datum?: string | null
           location_id?: string
           notities?: string | null
@@ -5433,6 +5439,7 @@ export type Database = {
           raw_email_url: string | null
           received_at: string
           resend_message_id: string | null
+          sender_match_leverancier_ids: string[]
           subject: string | null
           to_address: string
         }
@@ -5449,6 +5456,7 @@ export type Database = {
           raw_email_url?: string | null
           received_at?: string
           resend_message_id?: string | null
+          sender_match_leverancier_ids?: string[]
           subject?: string | null
           to_address: string
         }
@@ -5465,6 +5473,7 @@ export type Database = {
           raw_email_url?: string | null
           received_at?: string
           resend_message_id?: string | null
+          sender_match_leverancier_ids?: string[]
           subject?: string | null
           to_address?: string
         }
@@ -7989,6 +7998,8 @@ export type Database = {
           id: string | null
           leverancier_id: string | null
           leverancier_naam: string | null
+          leverancier_warning: boolean | null
+          leverancier_warning_reason: string | null
           levering_datum: string | null
           location_id: string | null
           notities: string | null
