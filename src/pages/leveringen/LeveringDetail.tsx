@@ -393,6 +393,22 @@ export default function LeveringDetail() {
         title={data.leverancier?.naam ?? "Levering"}
         backHref="/leveringen"
       >
+        {/* Leverancier-warning banner (mini-sprint 2C-3) */}
+        {data.leverancier_warning && (
+          <div className="mb-6 rounded-2xl border border-warning/40 bg-warning/10 px-5 py-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground mb-1">
+                Mogelijk verkeerde leverancier
+              </p>
+              <p className="text-small text-muted-foreground">
+                {data.leverancier_warning_reason ??
+                  "Controleer of de toegewezen leverancier klopt voordat je bevestigt."}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Pakbon meta */}
         <div className="rounded-2xl bg-card border border-border p-5 mb-6">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-small">
