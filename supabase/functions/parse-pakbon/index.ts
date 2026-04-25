@@ -56,12 +56,27 @@ const PAKBON_SCHEMA = {
         properties: {
           artikelnummer: { type: ["string", "null"] },
           product_naam: { type: "string" },
-          hoeveelheid_geleverd: { type: ["number", "null"] },
+          hoeveelheid_geleverd: {
+            type: ["number", "null"],
+            description: "Aantal verpakkingen besteld (kolom 'aantal' op pakbon).",
+          },
           verpakking_eenheid: {
             type: ["string", "null"],
             enum: ["L", "kg", "stuk", null],
+            description: "Voorraad-eenheid van het PRODUCT IN de verpakking (na g→kg / ml→l conversie).",
           },
-          verpakking_hoeveelheid: { type: ["number", "null"] },
+          verpakking_hoeveelheid: {
+            type: ["number", "null"],
+            description: "Hoeveelheid per verpakking in voorraad-eenheid (bv. doos 14 stuks → 14, kist 20 kg → 20, zak 450 g → 0.45). null als verpakking-eenheid zelf de telbare eenheid is (bv. 1 bos = 1 bos).",
+          },
+          totaal_ontvangen_hoeveelheid: {
+            type: ["number", "null"],
+            description: "Berekende totaal in voorraad-eenheid: hoeveelheid_geleverd × verpakking_hoeveelheid (of hoeveelheid_geleverd als verpakking_hoeveelheid null is).",
+          },
+          is_weighted: {
+            type: "boolean",
+            description: "true als pakbon variabel gewicht aanduidt met ± / ca. / ~ / ongeveer.",
+          },
           lotnummer: { type: ["string", "null"] },
           tht_datum: { type: ["string", "null"], description: "ISO date" },
           haccp_categorie: {
@@ -69,8 +84,16 @@ const PAKBON_SCHEMA = {
             enum: ["ambient", "gekoeld", "vries", "vis_op_ijs", null],
           },
           confidence: { type: ["string", "null"], enum: ["hoog", "medium", "laag", null] },
+          confidence_score: {
+            type: ["number", "null"],
+            description: "Numerieke confidence 0.0-1.0. 0.95+ = standaard NL-pattern, 0.80-0.94 = kleine afkorting, 0.60-0.79 = afgeleid uit context, <0.60 = onzeker.",
+          },
+          reasoning: {
+            type: ["string", "null"],
+            description: "1 korte zin waarom je deze verpakking-factor koos.",
+          },
         },
-        required: ["product_naam", "verpakking_eenheid"],
+        required: ["product_naam", "verpakking_eenheid", "is_weighted"],
         additionalProperties: false,
       },
     },
