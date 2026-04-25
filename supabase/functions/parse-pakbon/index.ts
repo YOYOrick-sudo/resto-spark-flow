@@ -308,23 +308,29 @@ function matchPdfToLeverancier(
   return null;
 }
 
+interface PakbonExtractieRegel {
+  artikelnummer?: string | null;
+  product_naam: string;
+  hoeveelheid_geleverd?: number | null;
+  verpakking_eenheid?: "L" | "kg" | "stuk" | null;
+  verpakking_hoeveelheid?: number | null;
+  totaal_ontvangen_hoeveelheid?: number | null;
+  is_weighted?: boolean | null;
+  lotnummer?: string | null;
+  tht_datum?: string | null;
+  haccp_categorie?: "ambient" | "gekoeld" | "vries" | "vis_op_ijs" | null;
+  confidence?: "hoog" | "medium" | "laag" | null;
+  confidence_score?: number | null;
+  reasoning?: string | null;
+}
+
 interface PakbonExtractie {
   extractie_status: "success" | "partial" | "failed";
   leverancier_naam: string;
   pakbon_nummer?: string | null;
   levering_datum?: string | null;
   bestelnummer_referentie?: string | null;
-  regels: Array<{
-    artikelnummer?: string | null;
-    product_naam: string;
-    hoeveelheid_geleverd?: number | null;
-    verpakking_eenheid?: "L" | "kg" | "stuk" | null;
-    verpakking_hoeveelheid?: number | null;
-    lotnummer?: string | null;
-    tht_datum?: string | null;
-    haccp_categorie?: "ambient" | "gekoeld" | "vries" | "vis_op_ijs" | null;
-    confidence?: "hoog" | "medium" | "laag" | null;
-  }>;
+  regels: PakbonExtractieRegel[];
 }
 
 // =====================================================
