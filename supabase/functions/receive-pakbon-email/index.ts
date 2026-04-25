@@ -705,6 +705,7 @@ serve(async (req) => {
       resend_message_id: resendMessageId,
       matched_location_id: location.id,
       matched_leverancier_id: leverancierId,
+      sender_match_leverancier_ids: senderMatchIds,
       ai_parse_status: "pending",
       goods_receipt_id: goodsReceipt.id,
       attachments_urls: uploadedUrls,
