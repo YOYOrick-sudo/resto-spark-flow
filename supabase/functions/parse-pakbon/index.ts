@@ -396,7 +396,7 @@ serve(async (req) => {
     .from("leveranciers")
     .select("id, naam")
     .eq("location_id", receipt.location_id)
-    .eq("actief", true);
+    .eq("is_actief", true);
 
   if (levErr) {
     console.warn("[parse-pakbon] kon leveranciers niet ophalen:", levErr);
