@@ -72,15 +72,6 @@ export function LeveringCard({ levering }: LeveringCardProps) {
           </div>
 
           <div className="flex items-center gap-1.5 flex-wrap">
-            {levering.leverancier_warning && (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning/15 text-warning text-xs font-medium"
-                title={levering.leverancier_warning_reason ?? "Controleer leverancier"}
-              >
-                <AlertTriangle className="h-3 w-3" />
-                Check leverancier
-              </span>
-            )}
             {confidenceLabel && (
               <NestoBadge variant={confidenceVariant} size="sm">
                 {confidenceLabel}
