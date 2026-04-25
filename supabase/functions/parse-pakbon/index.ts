@@ -124,6 +124,92 @@ function parseJsonStrict<T>(text: string): T {
   return JSON.parse(cleaned) as T;
 }
 
+// =====================================================
+// Mini-sprint 2C-3: Leverancier-naam normalisatie + matching
+// =====================================================
+
+/**
+ * Normaliseer leverancier-naam voor vergelijking:
+ * - lowercase
+ * - strip B.V. / BV / N.V. / NV / V.O.F. / VOF (rechtsvormen)
+ * - strip leestekens
+ * - collapse whitespace
+ */
+function normalizeLeverancierNaam(s: string | null | undefined): string {
+  if (!s) return "";
+  let n = s.toLowerCase();
+  // strip rechtsvormen (met/zonder punten/spaties, alleen aan einde-ish)
+  n = n.replace(/\b(b\.?\s*v\.?|n\.?\s*v\.?|v\.?\s*o\.?\s*f\.?|holding|group|nederland)\b/gi, " ");
+  // strip leestekens
+  n = n.replace(/[^\p{L}\p{N}\s]/gu, " ");
+  // collapse whitespace
+  n = n.replace(/\s+/g, " ").trim();
+  return n;
+}
+
+function tokenize(s: string): string[] {
+  return s.split(/\s+/).filter((t) => t.length >= 2);
+}
+
+/** Jaccard token-set overlap. */
+function tokenSetOverlap(a: string, b: string): number {
+  const ta = new Set(tokenize(a));
+  const tb = new Set(tokenize(b));
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let inter = 0;
+  for (const t of ta) if (tb.has(t)) inter++;
+  const union = new Set([...ta, ...tb]).size;
+  return union === 0 ? 0 : inter / union;
+}
+
+/** True als a in b zit, of b in a (na normalisatie, beide non-trivial). */
+function isSubstringMatch(a: string, b: string): boolean {
+  if (a.length < 4 || b.length < 4) return false;
+  return a.includes(b) || b.includes(a);
+}
+
+interface LeverancierCandidate {
+  id: string;
+  naam: string;
+}
+
+/**
+ * Match PDF-extracted leverancier-naam tegen lijst van bekende leveranciers.
+ * Returns HIT (id+naam) of null (MISS).
+ *
+ * HIT-criteria (in volgorde):
+ *   1. Exact match na normalisatie
+ *   2. Token-set overlap >= 80%
+ *   3. Substring beide kanten
+ */
+function matchPdfToLeverancier(
+  pdfNaam: string | null | undefined,
+  candidates: LeverancierCandidate[],
+): LeverancierCandidate | null {
+  if (!pdfNaam || candidates.length === 0) return null;
+  const normPdf = normalizeLeverancierNaam(pdfNaam);
+  if (normPdf.length === 0) return null;
+
+  // Pass 1: exact normalized
+  for (const c of candidates) {
+    if (normalizeLeverancierNaam(c.naam) === normPdf) return c;
+  }
+  // Pass 2: token-set overlap >= 80%
+  let bestOverlap: { c: LeverancierCandidate; score: number } | null = null;
+  for (const c of candidates) {
+    const score = tokenSetOverlap(normPdf, normalizeLeverancierNaam(c.naam));
+    if (score >= 0.8 && (!bestOverlap || score > bestOverlap.score)) {
+      bestOverlap = { c, score };
+    }
+  }
+  if (bestOverlap) return bestOverlap.c;
+  // Pass 3: substring beide kanten
+  for (const c of candidates) {
+    if (isSubstringMatch(normPdf, normalizeLeverancierNaam(c.naam))) return c;
+  }
+  return null;
+}
+
 interface PakbonExtractie {
   extractie_status: "success" | "partial" | "failed";
   leverancier_naam: string;
@@ -168,7 +254,12 @@ serve(async (req) => {
   // ===========================================================
   // 2. Parse + validate body
   // ===========================================================
-  let body: { goods_receipt_id?: string; intake_id?: string; attachment_path?: string };
+  let body: {
+    goods_receipt_id?: string;
+    intake_id?: string;
+    attachment_path?: string;
+    sender_match_leverancier_ids?: string[];
+  };
   try {
     body = await req.json();
   } catch {
@@ -187,6 +278,10 @@ serve(async (req) => {
       },
     );
   }
+
+  const senderMatchIds: string[] = Array.isArray(body.sender_match_leverancier_ids)
+    ? body.sender_match_leverancier_ids
+    : [];
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
