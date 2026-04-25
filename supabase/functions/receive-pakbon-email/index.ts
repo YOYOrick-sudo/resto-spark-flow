@@ -445,57 +445,55 @@ serve(async (req) => {
   }
 
   // ===========================================================
-  // 7. Match leverancier via from-domain (whitelist of fallback)
+  // 7. Match leveranciers via from-domain (Mini-sprint 2C-3: array i.p.v. single)
   // ===========================================================
+  // We verzamelen ALLE leveranciers waarvan het sender-domein matcht (max 10).
+  // Geen hard reject meer bij 0 matches: parse-pakbon krijgt PDF-content kans
+  // om leverancier alsnog te identificeren (scenario e in beslismatrix).
   const fromDomain = extractFromDomain(fromAddress);
-  let leverancierId: string | null = null;
+  const senderMatchIds: string[] = [];
+  const senderMatchNames: string[] = [];
+
   if (fromDomain) {
-    // Probeer eerst whitelist-match (email_domains array bevat fromDomain)
-    const { data: levMatch } = await supabase
+    // Whitelist-match (email_domains array bevat fromDomain)
+    const { data: levMatches } = await supabase
       .from("leveranciers")
       .select("id, naam, email_domains")
       .eq("location_id", location.id)
       .eq("is_actief", true)
       .contains("email_domains", [fromDomain])
-      .maybeSingle();
+      .limit(10);
 
-    if (levMatch) {
-      leverancierId = levMatch.id;
-    } else {
-      // Fallback: match op exact domain in `email`-kolom (suffix-check)
+    for (const lev of levMatches ?? []) {
+      senderMatchIds.push(lev.id);
+      senderMatchNames.push(lev.naam);
+    }
+
+    // Indien whitelist niets oplevert: fallback via email-kolom suffix
+    if (senderMatchIds.length === 0) {
       const { data: levByEmail } = await supabase
         .from("leveranciers")
         .select("id, naam, email")
         .eq("location_id", location.id)
         .eq("is_actief", true)
         .ilike("email", `%@${fromDomain}`)
-        .maybeSingle();
-      if (levByEmail) leverancierId = levByEmail.id;
+        .limit(10);
+      for (const lev of levByEmail ?? []) {
+        senderMatchIds.push(lev.id);
+        senderMatchNames.push(lev.naam);
+      }
     }
   }
 
-  // Geen leverancier? Reject (security: alleen bekende afzenders).
-  if (!leverancierId) {
-    console.warn(
-      `[receive-pakbon-email] onbekende afzender domain=${fromDomain} location=${location.id}`,
-    );
-    await supabase.from("pakbon_email_intake").insert({
-      to_address: primaryTo,
-      from_address: fromAddress,
-      subject,
-      resend_message_id: resendMessageId,
-      matched_location_id: location.id,
-      ai_parse_status: "rejected_unknown_sender",
-      error_reason: `Onbekende afzender (domain=${fromDomain ?? "?"}). Voeg toe aan leverancier email_domains.`,
-    });
-    return new Response(
-      JSON.stringify({ status: "rejected", reason: "unknown_sender" }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
-  }
+  // Default leverancier-keuze (parse-pakbon kan dit overrulen via PDF-content):
+  //   - 1 match → die ene
+  //   - meerdere → eerste (parse-pakbon kiest correct via PDF)
+  //   - 0 matches → null (parse-pakbon probeert via PDF; faalt → fail)
+  const leverancierId: string | null = senderMatchIds[0] ?? null;
+
+  console.log(
+    `[receive-pakbon-email] sender-match domain=${fromDomain} matches=${senderMatchIds.length} names=[${senderMatchNames.join(", ")}]`,
+  );
 
   // ===========================================================
   // 8. Fetch attachments via Resend Inbound Attachments API
