@@ -20,6 +20,8 @@ export interface GoodsReceiptInboxRow {
   has_gekoeld: boolean;
   has_vries: boolean;
   has_risicogroep: boolean;
+  leverancier_warning: boolean;
+  leverancier_warning_reason: string | null;
   created_at: string;
   updated_at: string;
 }
