@@ -389,6 +389,103 @@ serve(async (req) => {
   }
 
   // ===========================================================
+  // 5b. Mini-sprint 2C-3: Sender + PDF cross-verificatie leverancier
+  // ===========================================================
+  // Fetch alle actieve leveranciers van de location
+  const { data: alleLeveranciers, error: levErr } = await supabase
+    .from("leveranciers")
+    .select("id, naam")
+    .eq("location_id", receipt.location_id)
+    .eq("actief", true);
+
+  if (levErr) {
+    console.warn("[parse-pakbon] kon leveranciers niet ophalen:", levErr);
+  }
+
+  const allCandidates: LeverancierCandidate[] = (alleLeveranciers ?? []) as LeverancierCandidate[];
+  const senderCandidates: LeverancierCandidate[] = allCandidates.filter((c) =>
+    senderMatchIds.includes(c.id)
+  );
+  const senderNames = senderCandidates.map((c) => c.naam);
+
+  const pdfNaam = extractie.leverancier_naam ?? null;
+  // PDF-match wordt ALTIJD getest tegen ALLE leveranciers (niet alleen sender-candidates)
+  const pdfMatchAll = matchPdfToLeverancier(pdfNaam, allCandidates);
+  // Voor scenario c: PDF-match binnen de sender-candidates
+  const pdfMatchInSender = matchPdfToLeverancier(pdfNaam, senderCandidates);
+
+  let chosen: LeverancierCandidate | null = null;
+  let warning = false;
+  let warningReason: string | null = null;
+  let scenario: "a" | "b1" | "b2" | "b3" | "c" | "d" | "e" | "f" = "f";
+
+  if (senderCandidates.length === 1) {
+    const sender = senderCandidates[0];
+    if (pdfMatchAll && pdfMatchAll.id === sender.id) {
+      // a: 1 sender, PDF bevestigt
+      scenario = "a";
+      chosen = sender;
+    } else if (!pdfMatchAll) {
+      // b1: 1 sender, PDF onbekend
+      scenario = "b1";
+      chosen = sender;
+    } else if (pdfMatchAll && pdfMatchAll.id !== sender.id) {
+      // b2: 1 sender, PDF matcht ANDERE bekende leverancier (HIGH-CONF) → PDF wint
+      scenario = "b2";
+      chosen = pdfMatchAll;
+      warning = true;
+      warningReason =
+        `Afzenderdomein hoort bij ${sender.naam}, maar PDF lijkt van ${pdfMatchAll.naam}. ` +
+        `Toegewezen op basis van PDF-inhoud.`;
+    } else {
+      // b3 fallback (low-conf zou hier landen, maar matchPdfToLeverancier returnt of HIT of null)
+      scenario = "b3";
+      chosen = sender;
+      warning = true;
+      warningReason = `PDF-leverancier "${pdfNaam ?? "?"}" kon niet met zekerheid worden gekoppeld.`;
+    }
+  } else if (senderCandidates.length > 1) {
+    if (pdfMatchInSender) {
+      // c: meerdere senders, PDF resolveert
+      scenario = "c";
+      chosen = pdfMatchInSender;
+    } else {
+      // d: meerdere senders, PDF herkent geen
+      scenario = "d";
+      chosen = senderCandidates[0];
+      warning = true;
+      warningReason =
+        `Afzenderdomein matcht meerdere leveranciers (${senderNames.join(", ")}). ` +
+        `Eerste match gekozen — controleer leverancier.`;
+    }
+  } else {
+    // 0 sender matches
+    if (pdfMatchAll) {
+      // e: geen sender, PDF herkent
+      scenario = "e";
+      chosen = pdfMatchAll;
+      warning = true;
+      warningReason =
+        `Afzender onbekend — leverancier toegewezen op basis van PDF-inhoud (${pdfMatchAll.naam}).`;
+    } else {
+      // f: geen sender, geen PDF-match → houd null (huidig fallback gedrag)
+      scenario = "f";
+      chosen = null;
+    }
+  }
+
+  console.log(
+    `[leverancier-decision] receipt=${receipt.id} scenario=${scenario} ` +
+      `sender_matches=[${senderMatchIds.join(",")}] sender_names=[${senderNames.join("|")}] ` +
+      `pdf_name="${pdfNaam ?? ""}" pdf_match_id=${pdfMatchAll?.id ?? "null"} ` +
+      `pdf_match_name=${pdfMatchAll?.naam ?? "null"} ` +
+      `chosen=${chosen?.id ?? "null"} chosen_name=${chosen?.naam ?? "null"} warning=${warning}`,
+  );
+
+  // Effectieve leverancier voor matching (kan null zijn bij scenario f)
+  const effectiveLeverancierId = chosen?.id ?? null;
+
+  // ===========================================================
   // 6. Match-cascade per regel via shared matcher
   // ===========================================================
   const matchableLines: MatchableLine[] = extractie.regels.map((r) => ({
@@ -400,7 +497,7 @@ serve(async (req) => {
 
   const { matches, stats } = await matchIngredientLines(supabase, {
     locationId: receipt.location_id,
-    leverancierId: receipt.leverancier_id,
+    leverancierId: effectiveLeverancierId,
     lines: matchableLines,
     autoUpsertOnTier34: true,
   });
