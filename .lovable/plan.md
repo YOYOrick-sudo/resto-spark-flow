@@ -1,58 +1,55 @@
+# Mini-sprint 2C-3 — Sender + PDF-content cross-verificatie leverancier
 
-# Deel 1 — Validator-Slim (uitvoeren)
+## Doel
+Pakbon wordt aan correcte leverancier gekoppeld via combinatie van sender-domein
+whitelist + AI-extractie van leverancier_naam uit PDF. Voorkomt mis-toewijzing
+zoals huidig probleem (Boer & Chef PDF van shouf.ai → toegewezen aan Bidfood).
 
-Akkoord ontvangen op alle 4 deviaties. Ik ga Deel 1 nu volledig bouwen volgens het plan, met strikte stop-gate na verificatie.
+## Beslismatrix (definitief, b1/b2/b3 split)
 
-## Wat ik ga doen (Deel 1)
+| Scenario | Sender-matches | PDF-extractie | Actie | Warning |
+|----------|----------------|---------------|-------|---------|
+| **a**    | 1 match        | bevestigt sender | use sender | nee |
+| **b1**   | 1 match        | match onbekend (PDF naam unmatched) | use sender | nee |
+| **b2**   | 1 match        | matcht ANDERE bekende leverancier (HIGH-CONF) | **use PDF-match** | **JA** |
+| **b3**   | 1 match        | matcht andere maar LOW-CONF | use sender | ja (zwak) |
+| **c**    | meerdere       | matcht één van de kandidaten | use PDF-match | nee |
+| **d**    | meerdere       | matcht geen | use eerste sender-match | ja |
+| **e**    | 0 matches      | matcht bekende leverancier | use PDF-match | ja ("toegewezen via PDF") |
+| **f**    | 0 matches      | matcht geen | reject (huidige fallback) | n.v.t. |
 
-1. **SQL migration** — `factuur_regels` uitbreiden met 3 kolommen (idempotent, IF NOT EXISTS):
-   - `validation_corrected BOOLEAN DEFAULT false`
-   - `validation_correction_path TEXT`
-   - `validation_ambiguous BOOLEAN DEFAULT false`
-   - Plus `COMMENT ON COLUMN` voor alle drie
+## High-confidence threshold (PDF-naam → leverancier)
+HIT wanneer:
+1. Exact normalized match (lowercase + strip "B.V."/"BV"/punct/whitespace), OF
+2. Token-set overlap ≥ 80% (jaccard op woord-tokens), OF
+3. Substring beide kanten (een naam zit in de andere)
 
-2. **`supabase/functions/_shared/factuur-v2/types.ts`** (volledig) — `FactuurV2Regel` uitbreiden met de 3 nieuwe optionele velden.
+Anders MISS. Hard threshold voorkomt fuzzy-chaos.
 
-3. **`supabase/functions/_shared/factuur-v2/validator.ts`** (volledig) — bestaande `markPerRegelValidationErrors()` vervangen door `validateAndCorrectLines()`:
-   - CHECK 1: `hoeveelheid_besteld × prijs_per_besteld_item ≈ prijs_totaal`
-   - CHECK 2: `hoeveelheid_besteld × verpakking_hoeveelheid × prijs_per_basiseenheid ≈ prijs_totaal` → fix `prijs_per_besteld_item`
-   - CHECK 3: `verpakking_hoeveelheid × prijs_per_besteld_item ≈ prijs_totaal` → fix `hoeveelheid_besteld`
-   - Tolerantie €0,02
-   - Gate: 0 = error, 1 = auto-fix + corrected=true, 2+ = ambiguous=true (niet blokkeren)
-   - `console.log` per auto-fix
+## Logging per pakbon
+```
+[leverancier-decision] receipt=<id> scenario=<a|b1|b2|b3|c|d|e|f>
+  sender_matches=[id1,id2] sender_names=[X,Y]
+  pdf_name="<naam>" pdf_match_id=<id|null> pdf_match_name=<X|null>
+  chosen=<id> chosen_name=<X> warning=<true|false>
+```
 
-4. **`supabase/functions/parse-factuur-v2/index.ts`** (volledig) — regelRows-mapping uitbreiden met de 3 nieuwe velden zodat ze daadwerkelijk in de DB landen.
+## Build-volgorde
+1. DB-migration: `pakbon_email_intake.sender_match_leverancier_ids uuid[]`,
+   `goods_receipts.leverancier_warning bool`, `leverancier_warning_reason text`
+2. `receive-pakbon-email`: sender match → array (limit 10), geen hard reject,
+   pass kandidaten door naar parse-pakbon
+3. `parse-pakbon`: helpers + beslismatrix + logging + DB-update
+4. View `goods_receipts_chef_inbox` aanvullen met warning-velden
+5. `useGoodsReceipts` row-type aanvullen
+6. `LeveringCard.tsx`: oranje "⚠ Check leverancier" pill
+7. Detail-page: prominente warning-banner bovenaan
+8. Cleanup-migration receipt 6f1914d6 → Boer & Chef
+9. Deploy beide edge functions
+10. Smoke-test 5 scenarios
 
-5. **TypeScript build-check** via `npx tsc --noEmit` op shared types.
-
-## Stop-gate verificatie (Deel 1)
-
-Na deploy + migration:
-- **Reset Boer & Chef factuur** (DELETE regels + reset uploads-velden via SQL).
-- **Re-parse** triggeren via curl naar `parse-factuur-v2` met service role key (geen UI-afhankelijkheid).
-- **SQL-output tonen**:
-  ```sql
-  SELECT COUNT(*) AS totaal,
-         COUNT(*) FILTER (WHERE validation_error = true) AS errors,
-         COUNT(*) FILTER (WHERE validation_corrected = true) AS auto_fixed,
-         COUNT(*) FILTER (WHERE validation_ambiguous = true) AS ambiguous
-  FROM factuur_regels WHERE factuur_id = '7e5ba86a-...';
-  ```
-  Verwacht: `totaal=60, errors=0, auto_fixed=5, ambiguous=0`
-- **Factuur-status SQL**:
-  ```sql
-  SELECT status, ai_parsing_status, totaalbedrag, validation_retries,
-         validation_blocked_reason, jsonb_array_length(validation_warnings) AS n_warn
-  FROM factuur_uploads WHERE id = '7e5ba86a-...';
-  ```
-  Verwacht: `status='review'` (niet `review_blocked`), `ai_parsing_status='success'`, totaal ≈ €594
-- **Edge-function logs**: eerste 20 regels van `parse-factuur-v2` met de `[validator] auto-fix path=…` regels zichtbaar.
-
-Deel 2 en 3 wachten expliciet op jouw OK.
-
-## Niet doen in deze ronde
-- Geen wijziging aan extractor/prompt/AI-schema
-- Geen wijziging aan frontend
-- Geen RLS-wijzigingen (dat is Deel 2)
-- Geen evaluate-signals-aanpassingen (dat is Deel 2)
-- Geen fire-and-forget POST (dat is Deel 3)
+## Niet in scope (Ronde 3)
+- Concept-status voor scenario (f) ipv hard reject
+- Manager-UI voor warning-pakbonnen review
+- Auto-leerproces (sender_domain toevoegen na bevestigde PDF-match)
+- Bulk-correctie tools
