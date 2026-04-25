@@ -583,6 +583,9 @@ serve(async (req) => {
       levering_datum: extractie.levering_datum ?? null,
       bestelling_id: bestellingId,
       totaal_regels_verwacht: extractie.regels.length,
+      leverancier_id: effectiveLeverancierId,
+      leverancier_warning: warning,
+      leverancier_warning_reason: warningReason,
     })
     .eq("id", receipt.id);
 
