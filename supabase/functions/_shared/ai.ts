@@ -205,6 +205,8 @@ async function callWithFallback(
       outputTokens: result.outputTokens,
       durationMs,
       success: true,
+      escalatedToPro: options.escalation?.escalatedToPro ?? false,
+      escalationReason: options.escalation?.escalationReason,
     });
 
     return buildResponse(result, primaryModel, false, withTools);
