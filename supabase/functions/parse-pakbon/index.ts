@@ -30,6 +30,7 @@ import {
   matchIngredientLines,
   type MatchableLine,
 } from "../_shared/ingredientMatcher.ts";
+import { extractTextPerPage } from "../_shared/pdf-text.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
