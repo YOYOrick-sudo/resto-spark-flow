@@ -352,6 +352,14 @@ async function callGateway(
     temperature: opts.temperature ?? 0.7,
   };
 
+  // Sprint 2E Loop 1 — reasoning effort (Gemini "thinking" / OpenAI reasoning).
+  // Mapping naar Lovable AI Gateway (OpenAI-compat). Bij "none" sturen we
+  // expliciet effort:"none" mee zodat Gemini Flash/Pro de thinking-stap
+  // overslaat (lagere kosten + latency).
+  if (opts.reasoningEffort) {
+    body.reasoning = { effort: opts.reasoningEffort };
+  }
+
   // Tools of JSON mode (mutual exclusive)
   if (withTools && opts.tools) {
     body.tools = opts.tools;
