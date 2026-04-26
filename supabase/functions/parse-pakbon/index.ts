@@ -335,6 +335,128 @@ interface PakbonExtractie {
 }
 
 // =====================================================
+// Sprint 2E Loop 1b — Hybride model-strategie
+// shouldEscalateToPro(): bepaalt of een Flash-resultaat goed genoeg is.
+//
+// CHECKS (universeel — werkt voor ELKE leverancier, geen hardcoded namen):
+//   1. Parse-failure         → lines.length === 0
+//   2. Regelnummers vs lines → tel "1 ", "2 " etc. patronen in source-text;
+//                              extractie < 90% van pdf-lines → escalate
+//                              SKIP bij scan-PDF (geen text)
+//   3. Confidence reliability → > 20% van regels heeft confidence_score < 0.65
+//   4. Data-volledigheid     → lege naam OF qty <= 0 OF unit niet in
+//                              [kg, g, l, ml, L, stuk]
+//   5. Source-grounding      → > 2 regels waarvan productnaam (eerste 10 chars)
+//                              niet voorkomt in PDF source-text
+//                              SKIP bij scan-PDF
+//   6. Bedragen-rekenkunde   → ALLEEN als bedragen aanwezig op pakbon
+//                              (niet bij Bidfood/Sligro/Hanos pakbonnen)
+//                              Skip in V1 — we extraheren geen bedragen op
+//                              pakbon-niveau (alleen op factuur).
+//
+// Returns checksRun voor logging-transparantie.
+// =====================================================
+
+interface EscalationDecision {
+  escalate: boolean;
+  reason: string;
+  checksRun: string[];
+}
+
+const VALID_UNITS = new Set(["kg", "g", "l", "ml", "L", "stuk"]);
+
+function shouldEscalateToPro(
+  flashResult: PakbonExtractie,
+  sourceText: string | null,
+): EscalationDecision {
+  const checksRun: string[] = [];
+  const failures: string[] = [];
+
+  // CHECK 1: parse-failure
+  checksRun.push("1");
+  if (!flashResult.regels || flashResult.regels.length === 0) {
+    return {
+      escalate: true,
+      reason: `parse_failure (checks: ${checksRun.join(",")})`,
+      checksRun,
+    };
+  }
+
+  // CHECK 2: regelnummers vs extractie (alleen bij text-PDF)
+  if (sourceText) {
+    checksRun.push("2");
+    // Regex: regelnummer aan begin van een line, gevolgd door whitespace + alpha
+    const lineNumberMatches = sourceText.match(/^\s*\d+\s+[A-Za-z]/gm) ?? [];
+    const pdfLineCount = lineNumberMatches.length;
+    if (pdfLineCount > 0) {
+      const ratio = flashResult.regels.length / pdfLineCount;
+      if (ratio < 0.9) {
+        failures.push(
+          `lines_missing (extracted=${flashResult.regels.length}/${pdfLineCount}, ratio=${ratio.toFixed(2)})`,
+        );
+      }
+    }
+  }
+
+  // CHECK 3: confidence reliability
+  checksRun.push("3");
+  const lowConfRegels = flashResult.regels.filter((r) => {
+    const score = r.confidence_score ?? 0;
+    return score < 0.65;
+  });
+  const lowConfRatio = lowConfRegels.length / flashResult.regels.length;
+  if (lowConfRatio > 0.2) {
+    failures.push(
+      `low_confidence (${lowConfRegels.length}/${flashResult.regels.length} regels < 0.65)`,
+    );
+  }
+
+  // CHECK 4: data-volledigheid
+  checksRun.push("4");
+  const incompleteRegels = flashResult.regels.filter((r) => {
+    if (!r.product_naam || r.product_naam.trim().length === 0) return true;
+    if (r.hoeveelheid_geleverd != null && r.hoeveelheid_geleverd <= 0) return true;
+    if (r.verpakking_eenheid && !VALID_UNITS.has(r.verpakking_eenheid)) return true;
+    return false;
+  });
+  if (incompleteRegels.length > 0) {
+    failures.push(`data_incomplete (${incompleteRegels.length} regels)`);
+  }
+
+  // CHECK 5: source-grounding (anti-hallucinatie, alleen bij text-PDF)
+  if (sourceText) {
+    checksRun.push("5");
+    const sourceLower = sourceText.toLowerCase();
+    const ungroundedRegels = flashResult.regels.filter((r) => {
+      const stem = (r.product_naam ?? "").toLowerCase().slice(0, 10).trim();
+      if (stem.length < 4) return false; // skip te-korte namen
+      return !sourceLower.includes(stem);
+    });
+    if (ungroundedRegels.length > 2) {
+      failures.push(`hallucination_suspected (${ungroundedRegels.length} regels niet in source)`);
+    }
+  }
+
+  // CHECK 6: bedragen-rekenkunde — V1 skip (pakbonnen extraheren geen bedragen).
+  // Toekomst: als we ooit subtotaal/totaal op pakbon extraheren, hier toevoegen.
+
+  if (failures.length === 0) {
+    return {
+      escalate: false,
+      reason: `pass (checks: ${checksRun.join(",")})`,
+      checksRun,
+    };
+  }
+
+  return {
+    escalate: true,
+    reason: `${failures.join(" | ")} (checks: ${checksRun.join(",")})`,
+    checksRun,
+  };
+}
+
+
+// =====================================================
 // Handler
 // =====================================================
 
