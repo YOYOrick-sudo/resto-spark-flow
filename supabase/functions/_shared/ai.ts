@@ -524,6 +524,9 @@ async function logCall(entry: {
   durationMs: number;
   success: boolean;
   errorMessage?: string;
+  // Sprint 2E Loop 1 — hybride model strategie
+  escalatedToPro?: boolean;
+  escalationReason?: string;
 }) {
   try {
     const costEur =
@@ -544,6 +547,8 @@ async function logCall(entry: {
       latency_ms: entry.durationMs,         // Backward compat met bestaande ai-respond logAiCall()
       status: entry.success ? "success" : "error",
       error_message: entry.errorMessage ?? null,
+      escalated_to_pro: entry.escalatedToPro ?? false,
+      escalation_reason: entry.escalationReason ?? null,
     });
   } catch (err) {
     // Logging mag NOOIT de main call breken
