@@ -30,6 +30,7 @@ import {
   matchIngredientLines,
   type MatchableLine,
 } from "../_shared/ingredientMatcher.ts";
+import { extractTextPerPage } from "../_shared/pdf-text.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -334,6 +335,128 @@ interface PakbonExtractie {
 }
 
 // =====================================================
+// Sprint 2E Loop 1b — Hybride model-strategie
+// shouldEscalateToPro(): bepaalt of een Flash-resultaat goed genoeg is.
+//
+// CHECKS (universeel — werkt voor ELKE leverancier, geen hardcoded namen):
+//   1. Parse-failure         → lines.length === 0
+//   2. Regelnummers vs lines → tel "1 ", "2 " etc. patronen in source-text;
+//                              extractie < 90% van pdf-lines → escalate
+//                              SKIP bij scan-PDF (geen text)
+//   3. Confidence reliability → > 20% van regels heeft confidence_score < 0.65
+//   4. Data-volledigheid     → lege naam OF qty <= 0 OF unit niet in
+//                              [kg, g, l, ml, L, stuk]
+//   5. Source-grounding      → > 2 regels waarvan productnaam (eerste 10 chars)
+//                              niet voorkomt in PDF source-text
+//                              SKIP bij scan-PDF
+//   6. Bedragen-rekenkunde   → ALLEEN als bedragen aanwezig op pakbon
+//                              (niet bij Bidfood/Sligro/Hanos pakbonnen)
+//                              Skip in V1 — we extraheren geen bedragen op
+//                              pakbon-niveau (alleen op factuur).
+//
+// Returns checksRun voor logging-transparantie.
+// =====================================================
+
+interface EscalationDecision {
+  escalate: boolean;
+  reason: string;
+  checksRun: string[];
+}
+
+const VALID_UNITS = new Set(["kg", "g", "l", "ml", "L", "stuk"]);
+
+function shouldEscalateToPro(
+  flashResult: PakbonExtractie,
+  sourceText: string | null,
+): EscalationDecision {
+  const checksRun: string[] = [];
+  const failures: string[] = [];
+
+  // CHECK 1: parse-failure
+  checksRun.push("1");
+  if (!flashResult.regels || flashResult.regels.length === 0) {
+    return {
+      escalate: true,
+      reason: `parse_failure (checks: ${checksRun.join(",")})`,
+      checksRun,
+    };
+  }
+
+  // CHECK 2: regelnummers vs extractie (alleen bij text-PDF)
+  if (sourceText) {
+    checksRun.push("2");
+    // Regex: regelnummer aan begin van een line, gevolgd door whitespace + alpha
+    const lineNumberMatches = sourceText.match(/^\s*\d+\s+[A-Za-z]/gm) ?? [];
+    const pdfLineCount = lineNumberMatches.length;
+    if (pdfLineCount > 0) {
+      const ratio = flashResult.regels.length / pdfLineCount;
+      if (ratio < 0.9) {
+        failures.push(
+          `lines_missing (extracted=${flashResult.regels.length}/${pdfLineCount}, ratio=${ratio.toFixed(2)})`,
+        );
+      }
+    }
+  }
+
+  // CHECK 3: confidence reliability
+  checksRun.push("3");
+  const lowConfRegels = flashResult.regels.filter((r) => {
+    const score = r.confidence_score ?? 0;
+    return score < 0.65;
+  });
+  const lowConfRatio = lowConfRegels.length / flashResult.regels.length;
+  if (lowConfRatio > 0.2) {
+    failures.push(
+      `low_confidence (${lowConfRegels.length}/${flashResult.regels.length} regels < 0.65)`,
+    );
+  }
+
+  // CHECK 4: data-volledigheid
+  checksRun.push("4");
+  const incompleteRegels = flashResult.regels.filter((r) => {
+    if (!r.product_naam || r.product_naam.trim().length === 0) return true;
+    if (r.hoeveelheid_geleverd != null && r.hoeveelheid_geleverd <= 0) return true;
+    if (r.verpakking_eenheid && !VALID_UNITS.has(r.verpakking_eenheid)) return true;
+    return false;
+  });
+  if (incompleteRegels.length > 0) {
+    failures.push(`data_incomplete (${incompleteRegels.length} regels)`);
+  }
+
+  // CHECK 5: source-grounding (anti-hallucinatie, alleen bij text-PDF)
+  if (sourceText) {
+    checksRun.push("5");
+    const sourceLower = sourceText.toLowerCase();
+    const ungroundedRegels = flashResult.regels.filter((r) => {
+      const stem = (r.product_naam ?? "").toLowerCase().slice(0, 10).trim();
+      if (stem.length < 4) return false; // skip te-korte namen
+      return !sourceLower.includes(stem);
+    });
+    if (ungroundedRegels.length > 2) {
+      failures.push(`hallucination_suspected (${ungroundedRegels.length} regels niet in source)`);
+    }
+  }
+
+  // CHECK 6: bedragen-rekenkunde — V1 skip (pakbonnen extraheren geen bedragen).
+  // Toekomst: als we ooit subtotaal/totaal op pakbon extraheren, hier toevoegen.
+
+  if (failures.length === 0) {
+    return {
+      escalate: false,
+      reason: `pass (checks: ${checksRun.join(",")})`,
+      checksRun,
+    };
+  }
+
+  return {
+    escalate: true,
+    reason: `${failures.join(" | ")} (checks: ${checksRun.join(",")})`,
+    checksRun,
+  };
+}
+
+
+// =====================================================
 // Handler
 // =====================================================
 
@@ -431,37 +554,126 @@ serve(async (req) => {
   const mimeType = blob.type || "application/pdf";
 
   // ===========================================================
-  // 5. AI-extractie via Lovable Gateway (Gemini 2.5 Pro)
+  // 5. AI-extractie — Sprint 2E Loop 1b: hybride model-strategie
+  //    Flash default (€0.005), Pro fallback bij quality-checks fail.
   // ===========================================================
-  const aiModel = "google/gemini-2.5-pro";
+  const FLASH_MODEL = "google/gemini-2.5-flash";
+  const PRO_MODEL = "google/gemini-2.5-pro";
   let extractie: PakbonExtractie;
   let aiCost = 0;
   let aiTokensIn = 0;
   let aiTokensOut = 0;
+  let aiModel: string = FLASH_MODEL;
+  let escalated = false;
+  let escalationReason: string | null = null;
 
+  // 5a. Extract source-text uit PDF (voor checks 2 + 5).
+  // Bij scan-PDF (geen tekst-laag) → null → checks 2+5 worden geskipt.
+  let sourceText: string | null = null;
+  if (mimeType === "application/pdf") {
+    try {
+      const textResult = await extractTextPerPage(bytes);
+      if (textResult.pages && textResult.pages.length > 0) {
+        sourceText = textResult.pages.join("\n");
+      }
+      console.log(
+        `[parse-pakbon] pdf-text receipt=${receipt.id} pages=${textResult.stats.total_pages} ` +
+          `chars=${textResult.stats.total_chars} scan_detected=${textResult.stats.scan_detected}`,
+      );
+    } catch (err) {
+      console.warn("[parse-pakbon] pdf-text extraction failed (treating as scan):", err);
+    }
+  }
+
+  const aiCallBase = {
+    featureKey: "parse-pakbon",
+    organizationId: receipt.organization_id,
+    locationId: receipt.location_id,
+    systemPrompt: PAKBON_SYSTEM_PROMPT,
+    prompt: "Extraheer deze pakbon volgens het schema.",
+    documents: [{ data: base64, mimeType }],
+    temperature: 0.0,
+    maxTokens: 30000,
+    timeoutMs: 180_000,
+    responseSchema: {
+      name: "pakbon_extractie",
+      strict: true,
+      schema: PAKBON_SCHEMA,
+    },
+    skipFallback: true, // wij regelen onze eigen escalation
+  };
+
+  // 5b. Eerste poging: Flash met reasoning=none
   try {
-    const aiResponse = await callAI({
-      featureKey: "parse-pakbon",
-      organizationId: receipt.organization_id,
-      locationId: receipt.location_id,
-      systemPrompt: PAKBON_SYSTEM_PROMPT,
-      prompt: "Extraheer deze pakbon volgens het schema.",
-      documents: [{ data: base64, mimeType }],
-      modelOverride: aiModel,
-      temperature: 0.0,
-      maxTokens: 30000,
-      timeoutMs: 180_000,
-      responseSchema: {
-        name: "pakbon_extractie",
-        strict: true,
-        schema: PAKBON_SCHEMA,
-      },
+    const flashResponse = await callAI({
+      ...aiCallBase,
+      modelOverride: FLASH_MODEL,
+      reasoningEffort: "none",
     } as any);
 
-    extractie = parseJsonStrict<PakbonExtractie>(aiResponse.text);
-    aiCost = aiResponse.costEur ?? 0;
-    aiTokensIn = aiResponse.inputTokens ?? 0;
-    aiTokensOut = aiResponse.outputTokens ?? 0;
+    const flashExtractie = parseJsonStrict<PakbonExtractie>(flashResponse.text);
+
+    // 5c. Quality-checks
+    const decision = shouldEscalateToPro(
+      flashExtractie,
+      sourceText,
+    );
+    // Als source-text ontbreekt EN andere checks passen, log dat als info
+    const sourceMissingNote = !sourceText ? " | source: scan_pdf_no_text" : "";
+
+    console.log(
+      `[parse-pakbon] flash-checks receipt=${receipt.id} escalate=${decision.escalate} ` +
+        `reason="${decision.reason}${sourceMissingNote}"`,
+    );
+
+    if (!decision.escalate) {
+      // ✅ Flash slaagt → gebruik Flash-resultaat
+      extractie = flashExtractie;
+      aiModel = FLASH_MODEL;
+      aiCost = flashResponse.costEur ?? 0;
+      aiTokensIn = flashResponse.inputTokens ?? 0;
+      aiTokensOut = flashResponse.outputTokens ?? 0;
+    } else {
+      // ⚠️ Escalate → markeer Flash-row + retry met Pro
+      escalated = true;
+      escalationReason = decision.reason + sourceMissingNote;
+
+      // Re-log Flash met escalated_to_pro=true via een tweede dummy log call?
+      // Probleem: callAI heeft Flash-row al gelogd zonder escalation flag.
+      // Oplossing: directe insert in ai_logs voor de escalation-marker (Flash-row update).
+      // De callAI logging gebruikt zijn eigen rij; wij voegen een aparte marker-row toe.
+      try {
+        await supabase.from("ai_logs").insert({
+          feature: "parse-pakbon",
+          organization_id: receipt.organization_id,
+          location_id: receipt.location_id,
+          model: FLASH_MODEL,
+          status: "escalated",
+          escalated_to_pro: true,
+          escalation_reason: escalationReason.slice(0, 500),
+          input_tokens: 0,
+          output_tokens: 0,
+          cost_eur: 0,
+          was_fallback: false,
+        });
+      } catch (logErr) {
+        console.warn("[parse-pakbon] kon escalation-marker niet loggen:", logErr);
+      }
+
+      // Pro retry
+      const proResponse = await callAI({
+        ...aiCallBase,
+        modelOverride: PRO_MODEL,
+        reasoningEffort: "medium",
+      } as any);
+
+      extractie = parseJsonStrict<PakbonExtractie>(proResponse.text);
+      aiModel = PRO_MODEL;
+      // Som: Flash + Pro kosten samen voor volledige transparantie in summary
+      aiCost = (flashResponse.costEur ?? 0) + (proResponse.costEur ?? 0);
+      aiTokensIn = (flashResponse.inputTokens ?? 0) + (proResponse.inputTokens ?? 0);
+      aiTokensOut = (flashResponse.outputTokens ?? 0) + (proResponse.outputTokens ?? 0);
+    }
   } catch (err) {
     console.error("[parse-pakbon] AI extractie failed:", err);
     await markFailed(
@@ -475,6 +687,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
 
   if (extractie.extractie_status === "failed" || extractie.regels.length === 0) {
     await markFailed(
@@ -734,6 +947,9 @@ serve(async (req) => {
       ai_parse_status: aiParseStatus,
       regels_count: extractie.regels.length,
       match_stats: stats,
+      ai_model: aiModel,
+      ai_escalated: escalated,
+      ai_escalation_reason: escalationReason,
       ai_cost_eur: aiCost,
       ai_tokens: { input: aiTokensIn, output: aiTokensOut },
     }),
