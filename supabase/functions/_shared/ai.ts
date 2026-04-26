@@ -78,6 +78,26 @@ interface BaseAIOptions {
 
   // Override default timeout (ms). Default 20000. Verhoog voor zware document-parsing (bv. 60000).
   timeoutMs?: number;
+
+  // Sprint 2E Loop 1 — Reasoning effort (Gemini "thinking", OpenAI reasoning).
+  // Doorgegeven als `reasoning.effort` aan de gateway (OpenAI-compat).
+  // Aanbevolen waarden:
+  //   "none"    → schakel reasoning uit (Flash default voor lage kosten/latency)
+  //   "minimal" → minimale reasoning
+  //   "low"     → lichte reasoning
+  //   "medium"  → standaard
+  //   "high"    → diepe reasoning (Pro-fallback bij escalation)
+  //   "xhigh"   → maximaal
+  reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+
+  // Sprint 2E Loop 1 — Escalation logging (hybride model-strategie).
+  // Wanneer een caller een Pro-retry doet na een mislukte Flash-call,
+  // markeert de Flash-rij in ai_logs met escalated_to_pro=true + reden.
+  // De Pro-rij blijft een normale rij (escalated_to_pro=false) voor sum-analyse.
+  escalation?: {
+    escalatedToPro?: boolean;     // markeer DEZE rij als "geëscaleerd weg"
+    escalationReason?: string;    // bv. "lines_missing (checks: 1,2,3,4,5)"
+  };
 }
 
 export interface AICallOptions extends BaseAIOptions {
@@ -185,6 +205,8 @@ async function callWithFallback(
       outputTokens: result.outputTokens,
       durationMs,
       success: true,
+      escalatedToPro: options.escalation?.escalatedToPro ?? false,
+      escalationReason: options.escalation?.escalationReason,
     });
 
     return buildResponse(result, primaryModel, false, withTools);
@@ -331,6 +353,14 @@ async function callGateway(
     max_tokens: opts.maxTokens ?? 1000,
     temperature: opts.temperature ?? 0.7,
   };
+
+  // Sprint 2E Loop 1 — reasoning effort (Gemini "thinking" / OpenAI reasoning).
+  // Mapping naar Lovable AI Gateway (OpenAI-compat). Bij "none" sturen we
+  // expliciet effort:"none" mee zodat Gemini Flash/Pro de thinking-stap
+  // overslaat (lagere kosten + latency).
+  if (opts.reasoningEffort) {
+    body.reasoning = { effort: opts.reasoningEffort };
+  }
 
   // Tools of JSON mode (mutual exclusive)
   if (withTools && opts.tools) {
@@ -494,6 +524,9 @@ async function logCall(entry: {
   durationMs: number;
   success: boolean;
   errorMessage?: string;
+  // Sprint 2E Loop 1 — hybride model strategie
+  escalatedToPro?: boolean;
+  escalationReason?: string;
 }) {
   try {
     const costEur =
@@ -514,6 +547,8 @@ async function logCall(entry: {
       latency_ms: entry.durationMs,         // Backward compat met bestaande ai-respond logAiCall()
       status: entry.success ? "success" : "error",
       error_message: entry.errorMessage ?? null,
+      escalated_to_pro: entry.escalatedToPro ?? false,
+      escalation_reason: entry.escalationReason ?? null,
     });
   } catch (err) {
     // Logging mag NOOIT de main call breken
