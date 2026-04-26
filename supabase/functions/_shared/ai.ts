@@ -78,6 +78,26 @@ interface BaseAIOptions {
 
   // Override default timeout (ms). Default 20000. Verhoog voor zware document-parsing (bv. 60000).
   timeoutMs?: number;
+
+  // Sprint 2E Loop 1 — Reasoning effort (Gemini "thinking", OpenAI reasoning).
+  // Doorgegeven als `reasoning.effort` aan de gateway (OpenAI-compat).
+  // Aanbevolen waarden:
+  //   "none"    → schakel reasoning uit (Flash default voor lage kosten/latency)
+  //   "minimal" → minimale reasoning
+  //   "low"     → lichte reasoning
+  //   "medium"  → standaard
+  //   "high"    → diepe reasoning (Pro-fallback bij escalation)
+  //   "xhigh"   → maximaal
+  reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+
+  // Sprint 2E Loop 1 — Escalation logging (hybride model-strategie).
+  // Wanneer een caller een Pro-retry doet na een mislukte Flash-call,
+  // markeert de Flash-rij in ai_logs met escalated_to_pro=true + reden.
+  // De Pro-rij blijft een normale rij (escalated_to_pro=false) voor sum-analyse.
+  escalation?: {
+    escalatedToPro?: boolean;     // markeer DEZE rij als "geëscaleerd weg"
+    escalationReason?: string;    // bv. "lines_missing (checks: 1,2,3,4,5)"
+  };
 }
 
 export interface AICallOptions extends BaseAIOptions {
