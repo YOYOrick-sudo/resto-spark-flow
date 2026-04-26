@@ -277,6 +277,8 @@ export type Database = {
           created_at: string | null
           duration_ms: number | null
           error_message: string | null
+          escalated_to_pro: boolean
+          escalation_reason: string | null
           feature: string
           id: string
           input_tokens: number | null
@@ -293,6 +295,8 @@ export type Database = {
           created_at?: string | null
           duration_ms?: number | null
           error_message?: string | null
+          escalated_to_pro?: boolean
+          escalation_reason?: string | null
           feature: string
           id?: string
           input_tokens?: number | null
@@ -309,6 +313,8 @@ export type Database = {
           created_at?: string | null
           duration_ms?: number | null
           error_message?: string | null
+          escalated_to_pro?: boolean
+          escalation_reason?: string | null
           feature?: string
           id?: string
           input_tokens?: number | null
