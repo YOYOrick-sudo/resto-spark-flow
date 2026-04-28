@@ -261,6 +261,10 @@ export default function LeveringDetail() {
 
   // Default-akkoord state: alle regels vooraf "akkoord". Chef markeert afwijkingen.
   const [lineStates, setLineStates] = React.useState<Map<string, LineState>>(new Map());
+  // Loop 4: per-regel packaging-state (factor-actie + variabel gewicht)
+  const [packagingStates, setPackagingStates] = React.useState<Map<string, LinePackagingState>>(
+    new Map(),
+  );
   const [tempGekoeld, setTempGekoeld] = React.useState("");
   const [tempVries, setTempVries] = React.useState("");
   const [skipGekoeld, setSkipGekoeld] = React.useState<string | null>(null);
@@ -273,8 +277,13 @@ export default function LeveringDetail() {
   React.useEffect(() => {
     if (data?.lines) {
       const next = new Map<string, LineState>();
-      for (const l of data.lines) next.set(l.id, { kind: "akkoord" });
+      const pkg = new Map<string, LinePackagingState>();
+      for (const l of data.lines) {
+        next.set(l.id, { kind: "akkoord" });
+        pkg.set(l.id, { action: { kind: "none" }, werkelijk_gewicht_g: null });
+      }
       setLineStates(next);
+      setPackagingStates(pkg);
     }
   }, [data?.lines]);
 
