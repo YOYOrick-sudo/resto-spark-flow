@@ -155,6 +155,23 @@ function LineRow({
             </button>
           </div>
         )}
+
+        {/* Loop 4: inline factor-panel — alleen relevant bij stock-mutatie */}
+        <LineFactorPanel
+          ctx={line.factor_ctx}
+          state={packagingState}
+          aantalVerpakkingen={
+            (state.kind === "afwijking" && state.value.hoeveelheid_ontvangen != null
+              ? state.value.hoeveelheid_ontvangen
+              : line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 1) as number
+          }
+          verpakkingNaam={line.eenheid_verwacht ?? "verpakking"}
+          onChange={onPackagingChange}
+          isStockMutation={
+            state.kind === "akkoord" ||
+            (state.kind === "afwijking" && !!state.value.accepted_with_issue)
+          }
+        />
       </div>
     </div>
   );
