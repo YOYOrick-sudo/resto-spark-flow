@@ -574,11 +574,18 @@ export default function LeveringDetail() {
           <div className="space-y-2">
             {data.lines.map((line) => {
               const state = lineStates.get(line.id) ?? { kind: "akkoord" as const };
+              const pkg =
+                packagingStates.get(line.id) ?? {
+                  action: { kind: "none" as const },
+                  werkelijk_gewicht_g: null,
+                };
               return (
                 <LineRow
                   key={line.id}
                   line={line}
                   state={state}
+                  packagingState={pkg}
+                  onPackagingChange={(next) => handlePackagingChange(line.id, next)}
                   onMarkAfwijking={() => handleMarkAfwijking(line.id)}
                   onResetAkkoord={() => handleResetAkkoord(line.id)}
                   onEditAfwijking={() => handleMarkAfwijking(line.id)}
