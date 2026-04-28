@@ -30,6 +30,10 @@ import {
 import { formatLeveringDatumDetail } from "@/pages/leveringen/utils/formatLeveringDatum";
 import { AfwijkingModal, type AfwijkingValue } from "@/pages/leveringen/components/AfwijkingModal";
 import { SkipTempModal } from "@/pages/leveringen/components/SkipTempModal";
+import {
+  LineFactorPanel,
+  type LinePackagingState,
+} from "@/pages/leveringen/components/LineFactorPanel";
 import { nestoToast } from "@/lib/nestoToast";
 
 type LineState =
@@ -39,12 +43,16 @@ type LineState =
 function LineRow({
   line,
   state,
+  packagingState,
+  onPackagingChange,
   onMarkAfwijking,
   onResetAkkoord,
   onEditAfwijking,
 }: {
   line: GoodsReceiptLineWithIngredient;
   state: LineState;
+  packagingState: LinePackagingState;
+  onPackagingChange: (next: LinePackagingState) => void;
   onMarkAfwijking: () => void;
   onResetAkkoord: () => void;
   onEditAfwijking: () => void;
@@ -147,6 +155,23 @@ function LineRow({
             </button>
           </div>
         )}
+
+        {/* Loop 4: inline factor-panel — alleen relevant bij stock-mutatie */}
+        <LineFactorPanel
+          ctx={line.factor_ctx}
+          state={packagingState}
+          aantalVerpakkingen={
+            (state.kind === "afwijking" && state.value.hoeveelheid_ontvangen != null
+              ? state.value.hoeveelheid_ontvangen
+              : line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 1) as number
+          }
+          verpakkingNaam={line.eenheid_verwacht ?? "verpakking"}
+          onChange={onPackagingChange}
+          isStockMutation={
+            state.kind === "akkoord" ||
+            (state.kind === "afwijking" && !!state.value.accepted_with_issue)
+          }
+        />
       </div>
     </div>
   );
@@ -236,6 +261,10 @@ export default function LeveringDetail() {
 
   // Default-akkoord state: alle regels vooraf "akkoord". Chef markeert afwijkingen.
   const [lineStates, setLineStates] = React.useState<Map<string, LineState>>(new Map());
+  // Loop 4: per-regel packaging-state (factor-actie + variabel gewicht)
+  const [packagingStates, setPackagingStates] = React.useState<Map<string, LinePackagingState>>(
+    new Map(),
+  );
   const [tempGekoeld, setTempGekoeld] = React.useState("");
   const [tempVries, setTempVries] = React.useState("");
   const [skipGekoeld, setSkipGekoeld] = React.useState<string | null>(null);
@@ -248,8 +277,13 @@ export default function LeveringDetail() {
   React.useEffect(() => {
     if (data?.lines) {
       const next = new Map<string, LineState>();
-      for (const l of data.lines) next.set(l.id, { kind: "akkoord" });
+      const pkg = new Map<string, LinePackagingState>();
+      for (const l of data.lines) {
+        next.set(l.id, { kind: "akkoord" });
+        pkg.set(l.id, { action: { kind: "none" }, werkelijk_gewicht_g: null });
+      }
       setLineStates(next);
+      setPackagingStates(pkg);
     }
   }, [data?.lines]);
 
@@ -286,6 +320,50 @@ export default function LeveringDetail() {
   const editingLine = afwijkingFor ? data.lines.find((l) => l.id === afwijkingFor) : null;
   const editingState = afwijkingFor ? lineStates.get(afwijkingFor) : null;
 
+  // Loop 4: factor-counters per regel — alleen relevant voor stock-mutaties
+  const factorBuckets = (() => {
+    let confirmed = 0;
+    let unconfirmed = 0; // AI_SUGGESTED zonder accept of override
+    let manualRequired = 0;
+    for (const l of data.lines) {
+      const st = lineStates.get(l.id) ?? { kind: "akkoord" as const };
+      const pkg = packagingStates.get(l.id) ?? {
+        action: { kind: "none" as const },
+        werkelijk_gewicht_g: null,
+      };
+      const isStock =
+        st.kind === "akkoord" ||
+        (st.kind === "afwijking" && !!st.value.accepted_with_issue);
+      if (!isStock) continue;
+      const ctx = l.factor_ctx;
+
+      // Variabel gewicht zonder input → manual required
+      if (ctx.is_weighted && pkg.werkelijk_gewicht_g == null) {
+        manualRequired++;
+        continue;
+      }
+
+      if (pkg.action.kind === "manual") {
+        confirmed++;
+        continue;
+      }
+      if (pkg.action.kind === "accept_ai") {
+        confirmed++;
+        continue;
+      }
+      if (ctx.mode === "CONFIRMED") {
+        confirmed++;
+        continue;
+      }
+      if (ctx.mode === "AI_SUGGESTED") {
+        unconfirmed++;
+        continue;
+      }
+      manualRequired++;
+    }
+    return { confirmed, unconfirmed, manualRequired };
+  })();
+
   // Confirm-button state-machine
   const tempGekoeldNum = tempGekoeld === "" ? null : Number(tempGekoeld);
   const tempVriesNum = tempVries === "" ? null : Number(tempVries);
@@ -294,17 +372,27 @@ export default function LeveringDetail() {
 
   const gekoeldHandled = !smartFlags.hasGekoeld || tempGekoeldFilled || skipGekoeld !== null;
   const vriesHandled = !smartFlags.hasVries || tempVriesFilled || skipVries !== null;
-  // Hard-lock: bij risicogroep MOET temp_gekoeld ingevuld zijn (skip mag niet)
   const risicogroepOK = !smartFlags.hasRisicogroep || tempGekoeldFilled;
 
+  const factorBlocking = factorBuckets.manualRequired > 0;
+
   const canConfirm =
-    totalLines > 0 && gekoeldHandled && vriesHandled && risicogroepOK && !confirmMutation.isPending;
+    totalLines > 0 &&
+    gekoeldHandled &&
+    vriesHandled &&
+    risicogroepOK &&
+    !factorBlocking &&
+    !confirmMutation.isPending;
 
   const helperText: string | null = (() => {
     if (confirmMutation.isPending) return null;
+    if (factorBlocking)
+      return `${factorBuckets.manualRequired} regel(s) vereisen invoer voor verpakking-omrekening`;
     if (!risicogroepOK) return "Temperatuur verplicht voor risicogroep-producten — overslaan kan niet";
     if (!gekoeldHandled) return "Vul temperatuur gekoeld in of kies 'Overslaan'";
     if (!vriesHandled) return "Vul temperatuur vries in of kies 'Overslaan'";
+    if (factorBuckets.unconfirmed > 0)
+      return `${factorBuckets.unconfirmed} regel(s) gebruiken AI-suggestie — controleer of klopt`;
     return null;
   })();
 
@@ -314,6 +402,14 @@ export default function LeveringDetail() {
       const next = new Map(prev);
       next.set(lineId, { kind: "akkoord" });
       return next;
+    });
+  };
+
+  const handlePackagingChange = (lineId: string, next: LinePackagingState) => {
+    setPackagingStates((prev) => {
+      const m = new Map(prev);
+      m.set(lineId, next);
+      return m;
     });
   };
 
@@ -331,8 +427,22 @@ export default function LeveringDetail() {
     if (!id) return;
     const lines: ConfirmLineInput[] = data.lines.map((l) => {
       const st = lineStates.get(l.id);
+      const pkg = packagingStates.get(l.id) ?? {
+        action: { kind: "none" as const },
+        werkelijk_gewicht_g: null,
+      };
+      const factorPayload: Partial<ConfirmLineInput> = {};
+      if (pkg.action.kind === "accept_ai") factorPayload.accept_ai_factor = true;
+      if (pkg.action.kind === "manual")
+        factorPayload.manual_factor = {
+          hoeveelheid: pkg.action.hoeveelheid,
+          eenheid: pkg.action.eenheid,
+        };
+      if (l.factor_ctx.is_weighted && pkg.werkelijk_gewicht_g != null)
+        factorPayload.werkelijk_gewicht_g = pkg.werkelijk_gewicht_g;
+
       if (!st || st.kind === "akkoord") {
-        return { line_id: l.id, status: "akkoord" };
+        return { line_id: l.id, status: "akkoord", ...factorPayload };
       }
       const v = st.value;
       return {
@@ -341,6 +451,7 @@ export default function LeveringDetail() {
         hoeveelheid_ontvangen: v.hoeveelheid_ontvangen,
         afwijking_notitie: v.afwijking_notitie,
         accepted_with_issue: v.accepted_with_issue,
+        ...factorPayload,
       };
     });
 
@@ -371,6 +482,16 @@ export default function LeveringDetail() {
           navigate("/leveringen");
         },
         onError: (err: ConfirmError) => {
+          if (err.code === "factor_required" && err.details?.lines?.length) {
+            const items = err.details.lines;
+            const first = items[0];
+            const more = items.length > 1 ? ` (+${items.length - 1} meer)` : "";
+            nestoToast.error(
+              "Verpakking-info nodig",
+              `${first.product ?? "Regel"}: ${first.reason}${more}`,
+            );
+            return;
+          }
           const map: Record<string, { title: string; desc?: string }> = {
             forbidden: { title: "Geen permissie", desc: "Je hebt geen rechten om deze levering te bevestigen." },
             already_confirmed: { title: "Al bevestigd", desc: "Deze pakbon is al verwerkt of geannuleerd." },
@@ -379,6 +500,7 @@ export default function LeveringDetail() {
             unauthorized: { title: "Niet ingelogd", desc: "Log opnieuw in." },
             internal_error: { title: "Server-fout", desc: err.message },
             network_error: { title: "Verbindingsfout", desc: "Controleer je internet." },
+            unit_mismatch: { title: "Eenheid-mismatch", desc: err.message },
           };
           const m = map[err.code] ?? { title: "Onbekende fout", desc: err.message };
           nestoToast.error(m.title, m.desc);
@@ -452,11 +574,18 @@ export default function LeveringDetail() {
           <div className="space-y-2">
             {data.lines.map((line) => {
               const state = lineStates.get(line.id) ?? { kind: "akkoord" as const };
+              const pkg =
+                packagingStates.get(line.id) ?? {
+                  action: { kind: "none" as const },
+                  werkelijk_gewicht_g: null,
+                };
               return (
                 <LineRow
                   key={line.id}
                   line={line}
                   state={state}
+                  packagingState={pkg}
+                  onPackagingChange={(next) => handlePackagingChange(line.id, next)}
                   onMarkAfwijking={() => handleMarkAfwijking(line.id)}
                   onResetAkkoord={() => handleResetAkkoord(line.id)}
                   onEditAfwijking={() => handleMarkAfwijking(line.id)}
@@ -536,15 +665,48 @@ export default function LeveringDetail() {
         )}
       </DetailPageLayout>
 
-      {/* Sticky bottom-bar met confirm-button */}
+      {/* Sticky bottom-bar met confirm-button + 3-counter */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 sm:p-5 z-30">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <div className="hidden sm:flex flex-col gap-0.5">
-            <span className="text-small text-muted-foreground">
+            <span className="text-small text-foreground font-medium">
               {akkoord} van {totalLines} regels akkoord
             </span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                {factorBuckets.confirmed} bevestigd
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                {factorBuckets.unconfirmed} onbevestigd
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1",
+                  factorBuckets.manualRequired > 0 && "text-warning font-medium",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    factorBuckets.manualRequired > 0 ? "bg-warning" : "bg-muted-foreground/40",
+                  )}
+                />
+                {factorBuckets.manualRequired} vereist invoer
+              </span>
+            </div>
             {helperText && (
-              <span className="text-xs text-muted-foreground">{helperText}</span>
+              <span
+                className={cn(
+                  "text-xs mt-0.5",
+                  factorBlocking || !risicogroepOK ? "text-warning" : "text-muted-foreground",
+                )}
+              >
+                {helperText}
+              </span>
             )}
           </div>
           <div className="flex flex-col items-end gap-1 flex-1 sm:flex-none">
@@ -557,7 +719,12 @@ export default function LeveringDetail() {
               {confirmMutation.isPending ? "Bevestigen…" : "Bevestig levering"}
             </NestoButton>
             {helperText && (
-              <span className="sm:hidden text-xs text-muted-foreground text-right">
+              <span
+                className={cn(
+                  "sm:hidden text-xs text-right",
+                  factorBlocking || !risicogroepOK ? "text-warning" : "text-muted-foreground",
+                )}
+              >
                 {helperText}
               </span>
             )}

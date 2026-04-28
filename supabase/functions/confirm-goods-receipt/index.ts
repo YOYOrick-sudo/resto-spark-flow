@@ -184,10 +184,10 @@ Deno.serve(async (req) => {
   const { data: dbLines, error: lnErr } = await supabaseAdmin
     .from("goods_receipt_lines")
     .select(
-      `id, ingredient_id, hoeveelheid_verwacht, eenheid_verwacht,
+      `id, ingredient_id, product_naam_herkend, hoeveelheid_verwacht, eenheid_verwacht,
        leverancier_artikel_id,
        ai_per_package_quantity, ai_package_unit, ai_is_weighted,
-       ingredient:ingredienten ( id, eenheid, base_unit, weight_per_piece_g, density_g_per_ml, is_weighted )`,
+       ingredient:ingredienten ( id, eenheid, base_unit, weight_per_piece_g, density_g_per_ml )`,
     )
     .in("id", lineIds)
     .eq("goods_receipt_id", body.receipt_id);
@@ -347,7 +347,7 @@ Deno.serve(async (req) => {
       out.factor_source_to_set = "ai_confirmed";
     }
 
-    const isWeighted = !!(la.is_weighted || ingredient.is_weighted);
+    const isWeighted = !!(la.is_weighted || dbLine.ai_is_weighted);
     const aantalVerpakkingen = inputLine.hoeveelheid_ontvangen ?? dbLine.hoeveelheid_verwacht ?? 1;
 
     // 3c. VARIABLE WEIGHT: chef MOET werkelijk_gewicht_g geven

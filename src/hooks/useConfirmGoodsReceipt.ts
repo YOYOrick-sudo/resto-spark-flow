@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Edge function: confirm-goods-receipt
- * Roept RPC public.confirm_goods_receipt aan en stuurt broadcast pakbon:{location_id}.
+ * Loop 4: regel-input ondersteunt accept_ai_factor, manual_factor en werkelijk_gewicht_g.
+ * Foutcode `factor_required` (HTTP 422) bevat per-regel `details.lines[]`.
  */
 
 export type AfwijkingStatus =
@@ -12,6 +13,11 @@ export type AfwijkingStatus =
   | "afwijking_beschadigd"
   | "afwijking_verkeerd"
   | "afwijking_meer";
+
+export interface ManualFactorInput {
+  hoeveelheid: number;
+  eenheid: string;
+}
 
 export interface ConfirmLineInput {
   line_id: string;
@@ -22,6 +28,12 @@ export interface ConfirmLineInput {
   afwijking_notitie?: string;
   /** Bij beschadigd/verkeerd: chef accepteert toch → voorraad IN + credit-note. */
   accepted_with_issue?: boolean;
+  /** Loop 4: chef bevestigt AI-suggestie (graduate count → ai_confirmed) */
+  accept_ai_factor?: boolean;
+  /** Loop 4: chef vult eigen factor in (override → factor_source='user') */
+  manual_factor?: ManualFactorInput;
+  /** Loop 4: variabel gewicht per verpakking in gram */
+  werkelijk_gewicht_g?: number;
 }
 
 export interface ConfirmGoodsReceiptInput {
@@ -55,14 +67,22 @@ export type ConfirmErrorCode =
   | "validation_error"
   | "receipt_not_found"
   | "already_confirmed"
+  | "factor_required"
+  | "unit_mismatch"
   | "internal_error"
   | "network_error";
+
+export interface FactorRequiredLineDetail {
+  line_id: string;
+  reason: string;
+  product?: string;
+}
 
 export interface ConfirmError {
   code: ConfirmErrorCode;
   message: string;
   status?: number;
-  details?: unknown;
+  details?: { lines?: FactorRequiredLineDetail[] } & Record<string, unknown>;
 }
 
 export function useConfirmGoodsReceipt() {
@@ -76,7 +96,6 @@ export function useConfirmGoodsReceipt() {
       );
 
       if (error) {
-        // FunctionsHttpError exposes context with response body
         const ctx = (error as unknown as { context?: Response }).context;
         let payload: { error?: ConfirmErrorCode; message?: string; details?: unknown } = {};
         let status = 0;
@@ -93,7 +112,7 @@ export function useConfirmGoodsReceipt() {
           code,
           status,
           message: payload.message ?? error.message ?? "Onbekende fout",
-          details: payload.details,
+          details: payload.details as ConfirmError["details"],
         } as ConfirmError;
       }
 
