@@ -30,6 +30,10 @@ import {
 import { formatLeveringDatumDetail } from "@/pages/leveringen/utils/formatLeveringDatum";
 import { AfwijkingModal, type AfwijkingValue } from "@/pages/leveringen/components/AfwijkingModal";
 import { SkipTempModal } from "@/pages/leveringen/components/SkipTempModal";
+import {
+  LineFactorPanel,
+  type LinePackagingState,
+} from "@/pages/leveringen/components/LineFactorPanel";
 import { nestoToast } from "@/lib/nestoToast";
 
 type LineState =
@@ -39,12 +43,16 @@ type LineState =
 function LineRow({
   line,
   state,
+  packagingState,
+  onPackagingChange,
   onMarkAfwijking,
   onResetAkkoord,
   onEditAfwijking,
 }: {
   line: GoodsReceiptLineWithIngredient;
   state: LineState;
+  packagingState: LinePackagingState;
+  onPackagingChange: (next: LinePackagingState) => void;
   onMarkAfwijking: () => void;
   onResetAkkoord: () => void;
   onEditAfwijking: () => void;
