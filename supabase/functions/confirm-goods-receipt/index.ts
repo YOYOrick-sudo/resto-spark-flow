@@ -1,14 +1,17 @@
 // Edge Function: confirm-goods-receipt
-// Roept de RPC public.confirm_goods_receipt aan in één transactie en
-// emit een Realtime broadcast op pakbon:{location_id}.
-//
-// verify_jwt = true (default in supabase/config.toml). We valideren de JWT
-// in code via getClaims() en geven het user-id door aan de RPC. De RPC
-// doet zelf de role-check en faalt met 'forbidden' als de user geen
-// owner/manager/kitchen-rol heeft op de locatie.
+// Loop 4: resolvet per regel de verpakking-factor + base-unit conversie
+// vóór hij de RPC public.confirm_goods_receipt aanroept. Daarna emit
+// hij een Realtime broadcast op pakbon:{location_id}.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import { z } from "https://esm.sh/zod@3.23.8";
+import {
+  toBaseUnit,
+  isKnownUnit,
+  UnknownUnitError,
+  MissingConversionError,
+  type Ingredient as ConvIngredient,
+} from "../_shared/conversions/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +21,11 @@ const corsHeaders = {
 };
 
 // ----- Validatie -----
+const ManualFactorSchema = z.object({
+  hoeveelheid: z.number().positive(),
+  eenheid: z.string().min(1).max(40),
+});
+
 const LineSchema = z.object({
   line_id: z.string().uuid(),
   status: z.enum([
@@ -32,8 +40,11 @@ const LineSchema = z.object({
   tht_datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   afwijking_notitie: z.string().max(2000).optional(),
   afwijking_foto_url: z.string().url().max(2000).optional(),
-  // 2C-2: chef accepteert beschadigd/verkeerd product alsnog (voorraad IN + credit-note)
   accepted_with_issue: z.boolean().optional(),
+  // Loop 4 extras
+  accept_ai_factor: z.boolean().optional(),
+  manual_factor: ManualFactorSchema.optional(),
+  werkelijk_gewicht_g: z.number().positive().optional(),
 });
 
 const TempSkipSchema = z
@@ -58,6 +69,8 @@ type ErrorCode =
   | "forbidden"
   | "receipt_not_found"
   | "already_confirmed"
+  | "factor_required"
+  | "unit_mismatch"
   | "internal_error";
 
 function jsonResponse(status: number, body: unknown) {
@@ -69,6 +82,24 @@ function jsonResponse(status: number, body: unknown) {
 
 function errorResponse(code: ErrorCode, message: string, status: number, details?: unknown) {
   return jsonResponse(status, { error: code, message, details });
+}
+
+interface ResolvedLine {
+  line_id: string;
+  status: string;
+  hoeveelheid_ontvangen?: number;
+  lotnummer?: string;
+  tht_datum?: string;
+  afwijking_notitie?: string;
+  afwijking_foto_url?: string;
+  accepted_with_issue?: boolean;
+  // pre-computed for RPC
+  leverancier_artikel_id?: string;
+  delta_base?: number;
+  base_unit?: string;
+  factor_status?: "confirmed" | "manual_required" | "unknown";
+  factor_source_to_set?: "ai_confirmed" | "user" | null;
+  werkelijk_gewicht_g?: number;
 }
 
 Deno.serve(async (req) => {
@@ -91,11 +122,6 @@ Deno.serve(async (req) => {
 
   const token = authHeader.replace("Bearer ", "");
   let userId: string;
-
-  // Smoke-test bypass: als bearer == service_role key, sla auth-check over
-  // en lees user_id uit de request body. Dit is bedoeld voor verify-script
-  // testing en is alleen mogelijk omdat de service_role key nooit naar de
-  // browser lekt.
   const isServiceRoleBypass = token === SUPABASE_SERVICE_ROLE_KEY;
 
   if (!isServiceRoleBypass) {
@@ -108,7 +134,7 @@ Deno.serve(async (req) => {
     }
     userId = data.claims.sub;
   } else {
-    userId = ""; // gevuld vanuit body hieronder
+    userId = "";
   }
 
   // ----- 2. Body validatie -----
@@ -119,41 +145,298 @@ Deno.serve(async (req) => {
     return errorResponse("validation_error", "Invalid JSON body", 400);
   }
 
-  // Voor service-role-bypass: accepteer een _smoke_user_id field
   if (isServiceRoleBypass && typeof bodyJson === "object" && bodyJson !== null) {
     const smokeUid = (bodyJson as Record<string, unknown>)._smoke_user_id;
     if (typeof smokeUid !== "string" || !smokeUid) {
-      return errorResponse(
-        "validation_error",
-        "Service-role bypass requires _smoke_user_id in body",
-        400,
-      );
+      return errorResponse("validation_error", "Service-role bypass requires _smoke_user_id in body", 400);
     }
     userId = smokeUid;
   }
 
   const parsed = BodySchema.safeParse(bodyJson);
   if (!parsed.success) {
-    return errorResponse(
-      "validation_error",
-      "Body failed validation",
-      400,
-      parsed.error.flatten(),
-    );
+    return errorResponse("validation_error", "Body failed validation", 400, parsed.error.flatten());
   }
   const body = parsed.data;
 
-  // ----- 3. RPC call -----
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // ----- 3. Pre-RPC: factor-resolution -----
+  // Haal receipt op (voor leverancier_id)
+  const { data: receipt, error: rcErr } = await supabaseAdmin
+    .from("goods_receipts")
+    .select("id, leverancier_id, location_id, ontvangst_status")
+    .eq("id", body.receipt_id)
+    .maybeSingle();
+
+  if (rcErr) {
+    console.error("Receipt lookup failed", rcErr);
+    return errorResponse("internal_error", "Receipt lookup failed", 500);
+  }
+  if (!receipt) {
+    return errorResponse("receipt_not_found", "Pakbon bestaat niet", 404);
+  }
+
+  // Haal alle relevante lines op (met ingredient + bestaande la_id)
+  const lineIds = body.lines.map((l) => l.line_id);
+  const { data: dbLines, error: lnErr } = await supabaseAdmin
+    .from("goods_receipt_lines")
+    .select(
+      `id, ingredient_id, hoeveelheid_verwacht, eenheid_verwacht,
+       leverancier_artikel_id,
+       ai_per_package_quantity, ai_package_unit, ai_is_weighted,
+       ingredient:ingredienten ( id, eenheid, base_unit, weight_per_piece_g, density_g_per_ml, is_weighted )`,
+    )
+    .in("id", lineIds)
+    .eq("goods_receipt_id", body.receipt_id);
+
+  if (lnErr) {
+    console.error("Lines lookup failed", lnErr);
+    return errorResponse("internal_error", "Lines lookup failed", 500);
+  }
+
+  const dbLineMap = new Map<string, any>();
+  for (const dl of dbLines ?? []) dbLineMap.set(dl.id, dl);
+
+  // Resolve la_ids in batch (per leverancier+ingredient)
+  const ingredientIds = Array.from(
+    new Set((dbLines ?? []).map((d: any) => d.ingredient_id).filter(Boolean)),
+  );
+  const laMap = new Map<string, any>(); // key: ingredient_id
+
+  if (receipt.leverancier_id && ingredientIds.length > 0) {
+    const { data: las, error: laErr } = await supabaseAdmin
+      .from("leveranciers_artikelen")
+      .select(
+        "id, ingredient_id, verpakking_hoeveelheid, verpakking_eenheid, is_weighted, factor_source, confirmation_count",
+      )
+      .eq("leverancier_id", receipt.leverancier_id)
+      .eq("is_actief", true)
+      .in("ingredient_id", ingredientIds);
+
+    if (laErr) {
+      console.error("LA lookup failed", laErr);
+      return errorResponse("internal_error", "Supplier-article lookup failed", 500);
+    }
+    for (const la of las ?? []) laMap.set(la.ingredient_id, la);
+  }
+
+  // Per regel: bepaal factor_status / delta_base / la_id / factor_source_to_set
+  const resolved: ResolvedLine[] = [];
+  const factorErrors: Array<{ line_id: string; reason: string; product?: string }> = [];
+
+  for (const inputLine of body.lines) {
+    const out: ResolvedLine = { ...inputLine };
+    const dbLine = dbLineMap.get(inputLine.line_id);
+    if (!dbLine) {
+      // RPC zal dit hard maken; geen factor nodig
+      resolved.push(out);
+      continue;
+    }
+
+    const isStockMutation =
+      (inputLine.status === "akkoord" || inputLine.accepted_with_issue === true) &&
+      dbLine.ingredient_id != null;
+
+    if (!isStockMutation) {
+      resolved.push(out);
+      continue;
+    }
+
+    const ingredient = dbLine.ingredient;
+    if (!ingredient || !ingredient.base_unit) {
+      factorErrors.push({
+        line_id: inputLine.line_id,
+        reason: "ingredient_or_base_unit_missing",
+        product: dbLine.product_naam_herkend,
+      });
+      out.factor_status = "manual_required";
+      resolved.push(out);
+      continue;
+    }
+
+    let la = laMap.get(dbLine.ingredient_id);
+
+    // 3a. MANUAL FACTOR (chef-input wint altijd) — upsert la, gebruik die
+    if (inputLine.manual_factor) {
+      const mf = inputLine.manual_factor;
+      // Upsert la
+      let laId = la?.id ?? dbLine.leverancier_artikel_id ?? null;
+      if (laId) {
+        const { error: upErr } = await supabaseAdmin
+          .from("leveranciers_artikelen")
+          .update({
+            verpakking_hoeveelheid: mf.hoeveelheid,
+            verpakking_eenheid: mf.eenheid,
+            factor_source: "user",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", laId);
+        if (upErr) {
+          console.error("LA update failed", upErr);
+          return errorResponse("internal_error", "Failed to save manual factor", 500);
+        }
+      } else if (receipt.leverancier_id && dbLine.ingredient_id) {
+        // Insert nieuwe la met chef-factor
+        const { data: ins, error: insErr } = await supabaseAdmin
+          .from("leveranciers_artikelen")
+          .insert({
+            leverancier_id: receipt.leverancier_id,
+            ingredient_id: dbLine.ingredient_id,
+            artikel_naam: dbLine.product_naam_herkend ?? "Onbekend",
+            verpakking_hoeveelheid: mf.hoeveelheid,
+            verpakking_eenheid: mf.eenheid,
+            factor_source: "user",
+            type: "handmatig",
+            is_actief: true,
+          })
+          .select("id")
+          .single();
+        if (insErr) {
+          console.error("LA insert failed", insErr);
+          return errorResponse("internal_error", "Failed to create supplier-article", 500);
+        }
+        laId = ins.id;
+      }
+      la = {
+        id: laId,
+        ingredient_id: dbLine.ingredient_id,
+        verpakking_hoeveelheid: mf.hoeveelheid,
+        verpakking_eenheid: mf.eenheid,
+        is_weighted: la?.is_weighted ?? false,
+        factor_source: "user",
+        confirmation_count: la?.confirmation_count ?? 0,
+      };
+      out.factor_source_to_set = "user";
+    }
+
+    // 3b. la moet bestaan en bekend zijn
+    if (!la || !la.verpakking_hoeveelheid || !la.verpakking_eenheid) {
+      factorErrors.push({
+        line_id: inputLine.line_id,
+        reason: la ? "incomplete_packaging" : "no_supplier_article",
+        product: dbLine.product_naam_herkend,
+      });
+      out.factor_status = "manual_required";
+      resolved.push(out);
+      continue;
+    }
+
+    // factor_source==unknown EN chef heeft niet bevestigd → MANUAL_REQUIRED
+    if (la.factor_source === "unknown" && !inputLine.accept_ai_factor && !inputLine.manual_factor) {
+      factorErrors.push({
+        line_id: inputLine.line_id,
+        reason: "factor_unknown_not_accepted",
+        product: dbLine.product_naam_herkend,
+      });
+      out.factor_status = "manual_required";
+      resolved.push(out);
+      continue;
+    }
+
+    out.leverancier_artikel_id = la.id;
+
+    // promotion: unknown → ai_confirmed bij eerste accept
+    if (
+      !out.factor_source_to_set &&
+      la.factor_source === "unknown" &&
+      inputLine.accept_ai_factor
+    ) {
+      out.factor_source_to_set = "ai_confirmed";
+    }
+
+    const isWeighted = !!(la.is_weighted || ingredient.is_weighted);
+    const aantalVerpakkingen = inputLine.hoeveelheid_ontvangen ?? dbLine.hoeveelheid_verwacht ?? 1;
+
+    // 3c. VARIABLE WEIGHT: chef MOET werkelijk_gewicht_g geven
+    if (isWeighted) {
+      if (inputLine.werkelijk_gewicht_g == null) {
+        factorErrors.push({
+          line_id: inputLine.line_id,
+          reason: "werkelijk_gewicht_required",
+          product: dbLine.product_naam_herkend,
+        });
+        out.factor_status = "manual_required";
+        resolved.push(out);
+        continue;
+      }
+      // delta_base = werkelijk_gewicht_g (per verpakking) * aantal verpakkingen
+      // Convert van g → ingredient.base_unit indien nodig
+      try {
+        const totalGrams = inputLine.werkelijk_gewicht_g * aantalVerpakkingen;
+        const deltaBase = toBaseUnit(totalGrams, "g", ingredient as ConvIngredient);
+        out.delta_base = deltaBase;
+        out.base_unit = ingredient.base_unit;
+        out.factor_status = "confirmed";
+        out.werkelijk_gewicht_g = inputLine.werkelijk_gewicht_g;
+      } catch (e) {
+        const reason = e instanceof MissingConversionError || e instanceof UnknownUnitError
+          ? e.message : "conversion_error";
+        factorErrors.push({ line_id: inputLine.line_id, reason, product: dbLine.product_naam_herkend });
+        out.factor_status = "manual_required";
+      }
+      resolved.push(out);
+      continue;
+    }
+
+    // 3d. NORMAL FACTOR: aantal_verpakkingen * factor convert naar base
+    if (!isKnownUnit(la.verpakking_eenheid)) {
+      factorErrors.push({
+        line_id: inputLine.line_id,
+        reason: `unknown_packaging_unit:${la.verpakking_eenheid}`,
+        product: dbLine.product_naam_herkend,
+      });
+      out.factor_status = "manual_required";
+      resolved.push(out);
+      continue;
+    }
+
+    try {
+      const totalInPackagingUnit = Number(la.verpakking_hoeveelheid) * Number(aantalVerpakkingen);
+      const deltaBase = toBaseUnit(
+        totalInPackagingUnit,
+        la.verpakking_eenheid,
+        ingredient as ConvIngredient,
+      );
+      out.delta_base = deltaBase;
+      out.base_unit = ingredient.base_unit;
+      out.factor_status = "confirmed";
+    } catch (e) {
+      if (e instanceof MissingConversionError || e instanceof UnknownUnitError) {
+        factorErrors.push({
+          line_id: inputLine.line_id,
+          reason: e.message,
+          product: dbLine.product_naam_herkend,
+        });
+        out.factor_status = "manual_required";
+      } else {
+        console.error("Unexpected conversion error", e);
+        return errorResponse("internal_error", "Conversion failure", 500);
+      }
+    }
+
+    resolved.push(out);
+  }
+
+  // Hard fail VÓÓR RPC als er factor-errors zijn (defense-in-depth, betere errors voor UI)
+  if (factorErrors.length > 0) {
+    return errorResponse(
+      "factor_required",
+      "Een of meer regels missen een geldige verpakking-factor",
+      422,
+      { lines: factorErrors },
+    );
+  }
+
+  // ----- 4. RPC call -----
   const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc(
     "confirm_goods_receipt" as never,
     {
       _receipt_id: body.receipt_id,
       _user_id: userId,
-      _lines: body.lines,
+      _lines: resolved,
       _temp_gekoeld: body.temp_gekoeld ?? null,
       _temp_vries: body.temp_vries ?? null,
       _temp_skip: body.temp_skip ?? {},
@@ -169,10 +452,14 @@ Deno.serve(async (req) => {
       return errorResponse("receipt_not_found", "Pakbon bestaat niet", 404);
     }
     if (msg.includes("already_confirmed")) {
+      return errorResponse("already_confirmed", "Pakbon is al bevestigd of geannuleerd", 409);
+    }
+    if (msg.includes("factor_required")) {
       return errorResponse(
-        "already_confirmed",
-        "Pakbon is al bevestigd of geannuleerd",
-        409,
+        "factor_required",
+        "RPC weigerde stock-mutatie zonder geldige factor",
+        422,
+        { pg_message: msg },
       );
     }
     console.error("RPC failure", rpcError);
@@ -186,8 +473,7 @@ Deno.serve(async (req) => {
     return errorResponse("internal_error", "RPC returned empty result", 500);
   }
 
-  // ----- 4. Realtime broadcast -----
-  // Channel: pakbon:{location_id}, event: goods_receipt.updated
+  // ----- 5. Realtime broadcast -----
   const locationId = String(summary.location_id || "");
   if (locationId) {
     const channel = supabaseAdmin.channel(`pakbon:${locationId}`);
@@ -202,7 +488,6 @@ Deno.serve(async (req) => {
         },
       });
     } catch (e) {
-      // Broadcast-fout is niet fataal — RPC is al gecommit
       console.error("Broadcast emit failed", e);
     } finally {
       await supabaseAdmin.removeChannel(channel);
