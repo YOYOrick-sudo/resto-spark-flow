@@ -411,6 +411,77 @@ export type Database = {
           },
         ]
       }
+      article_cache: {
+        Row: {
+          article_code: string
+          created_at: string
+          description: string | null
+          hit_count: number
+          ingredient_id: string | null
+          last_seen_at: string
+          last_unit_price_eur: number | null
+          leverancier_id: string
+          location_id: string
+          packaging_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          article_code: string
+          created_at?: string
+          description?: string | null
+          hit_count?: number
+          ingredient_id?: string | null
+          last_seen_at?: string
+          last_unit_price_eur?: number | null
+          leverancier_id: string
+          location_id: string
+          packaging_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          article_code?: string
+          created_at?: string
+          description?: string | null
+          hit_count?: number
+          ingredient_id?: string | null
+          last_seen_at?: string
+          last_unit_price_eur?: number | null
+          leverancier_id?: string
+          location_id?: string
+          packaging_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_cache_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_cache_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_cache_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_cache_packaging_id_fkey"
+            columns: ["packaging_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_packagings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -1386,6 +1457,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "devices_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_cache: {
+        Row: {
+          cost_eur: number | null
+          location_id: string
+          model_used: string | null
+          parsed_at: string
+          parsed_result: Json
+          pdf_sha256: string
+        }
+        Insert: {
+          cost_eur?: number | null
+          location_id: string
+          model_used?: string | null
+          parsed_at?: string
+          parsed_result: Json
+          pdf_sha256: string
+        }
+        Update: {
+          cost_eur?: number | null
+          location_id?: string
+          model_used?: string | null
+          parsed_at?: string
+          parsed_result?: Json
+          pdf_sha256?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_cache_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
@@ -2395,35 +2501,112 @@ export type Database = {
           },
         ]
       }
+      ingredient_packagings: {
+        Row: {
+          created_at: string
+          factor_confidence: number | null
+          factor_source: string | null
+          factor_to_base: number | null
+          id: string
+          ingredient_id: string
+          is_piece: boolean
+          is_weighted: boolean
+          label: string
+          leverancier_id: string | null
+          notes: string | null
+          pieces_in_package: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          factor_confidence?: number | null
+          factor_source?: string | null
+          factor_to_base?: number | null
+          id?: string
+          ingredient_id: string
+          is_piece?: boolean
+          is_weighted?: boolean
+          label: string
+          leverancier_id?: string | null
+          notes?: string | null
+          pieces_in_package?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          factor_confidence?: number | null
+          factor_source?: string | null
+          factor_to_base?: number | null
+          id?: string
+          ingredient_id?: string
+          is_piece?: boolean
+          is_weighted?: boolean
+          label?: string
+          leverancier_id?: string | null
+          notes?: string | null
+          pieces_in_package?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_packagings_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_packagings_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredienten: {
         Row: {
           archived_at: string | null
+          base_unit: string | null
           btw_percentage: number | null
           categorie: string
+          conversion_confidence: number | null
+          conversion_source: string | null
           created_at: string
+          density_g_per_ml: number | null
           eenheid: string
           haccp_categorie: Database["public"]["Enums"]["haccp_categorie"] | null
           haccp_strict_temp_max: number | null
           id: string
           is_archived: boolean
+          is_variable_weight: boolean
           kostprijs: number | null
           kostprijs_bron: string | null
           kostprijs_laatst_bijgewerkt: string | null
           location_id: string
           max_voorraad: number | null
+          measure_class: string | null
           min_voorraad: number
           naam: string
           opslag_locatie: string | null
           opslag_type: string | null
+          prefer_piece_display: boolean
           updated_at: string
           voorraad: number
+          weight_per_piece_g: number | null
+          weight_per_piece_max_g: number | null
+          weight_per_piece_min_g: number | null
           yield_percentage: number
         }
         Insert: {
           archived_at?: string | null
+          base_unit?: string | null
           btw_percentage?: number | null
           categorie: string
+          conversion_confidence?: number | null
+          conversion_source?: string | null
           created_at?: string
+          density_g_per_ml?: number | null
           eenheid: string
           haccp_categorie?:
             | Database["public"]["Enums"]["haccp_categorie"]
@@ -2431,24 +2614,34 @@ export type Database = {
           haccp_strict_temp_max?: number | null
           id?: string
           is_archived?: boolean
+          is_variable_weight?: boolean
           kostprijs?: number | null
           kostprijs_bron?: string | null
           kostprijs_laatst_bijgewerkt?: string | null
           location_id: string
           max_voorraad?: number | null
+          measure_class?: string | null
           min_voorraad?: number
           naam: string
           opslag_locatie?: string | null
           opslag_type?: string | null
+          prefer_piece_display?: boolean
           updated_at?: string
           voorraad?: number
+          weight_per_piece_g?: number | null
+          weight_per_piece_max_g?: number | null
+          weight_per_piece_min_g?: number | null
           yield_percentage?: number
         }
         Update: {
           archived_at?: string | null
+          base_unit?: string | null
           btw_percentage?: number | null
           categorie?: string
+          conversion_confidence?: number | null
+          conversion_source?: string | null
           created_at?: string
+          density_g_per_ml?: number | null
           eenheid?: string
           haccp_categorie?:
             | Database["public"]["Enums"]["haccp_categorie"]
@@ -2456,17 +2649,23 @@ export type Database = {
           haccp_strict_temp_max?: number | null
           id?: string
           is_archived?: boolean
+          is_variable_weight?: boolean
           kostprijs?: number | null
           kostprijs_bron?: string | null
           kostprijs_laatst_bijgewerkt?: string | null
           location_id?: string
           max_voorraad?: number | null
+          measure_class?: string | null
           min_voorraad?: number
           naam?: string
           opslag_locatie?: string | null
           opslag_type?: string | null
+          prefer_piece_display?: boolean
           updated_at?: string
           voorraad?: number
+          weight_per_piece_g?: number | null
+          weight_per_piece_max_g?: number | null
+          weight_per_piece_min_g?: number | null
           yield_percentage?: number
         }
         Relationships: [
@@ -7026,6 +7225,153 @@ export type Database = {
           },
         ]
       }
+      stock_lots: {
+        Row: {
+          base_unit: string
+          created_at: string
+          expires_at: string | null
+          goods_receipt_id: string | null
+          goods_receipt_line_id: string | null
+          id: string
+          ingredient_id: string
+          initial_base: number
+          notes: string | null
+          packaging_id: string | null
+          received_at: string
+          remaining_base: number
+          unit_cost_eur: number | null
+          updated_at: string
+        }
+        Insert: {
+          base_unit: string
+          created_at?: string
+          expires_at?: string | null
+          goods_receipt_id?: string | null
+          goods_receipt_line_id?: string | null
+          id?: string
+          ingredient_id: string
+          initial_base: number
+          notes?: string | null
+          packaging_id?: string | null
+          received_at?: string
+          remaining_base: number
+          unit_cost_eur?: number | null
+          updated_at?: string
+        }
+        Update: {
+          base_unit?: string
+          created_at?: string
+          expires_at?: string | null
+          goods_receipt_id?: string | null
+          goods_receipt_line_id?: string | null
+          id?: string
+          ingredient_id?: string
+          initial_base?: number
+          notes?: string | null
+          packaging_id?: string | null
+          received_at?: string
+          remaining_base?: number
+          unit_cost_eur?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_lots_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_lots_goods_receipt_id_fkey"
+            columns: ["goods_receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts_chef_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_lots_goods_receipt_line_id_fkey"
+            columns: ["goods_receipt_line_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipt_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_lots_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_lots_packaging_id_fkey"
+            columns: ["packaging_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_packagings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          base_unit: string
+          created_at: string
+          created_by: string | null
+          delta_base: number
+          id: number
+          ingredient_id: string
+          notes: string | null
+          occurred_at: string
+          reason: string
+          reference_id: string | null
+          reference_type: string | null
+          stock_lot_id: string | null
+        }
+        Insert: {
+          base_unit: string
+          created_at?: string
+          created_by?: string | null
+          delta_base: number
+          id?: number
+          ingredient_id: string
+          notes?: string | null
+          occurred_at?: string
+          reason: string
+          reference_id?: string | null
+          reference_type?: string | null
+          stock_lot_id?: string | null
+        }
+        Update: {
+          base_unit?: string
+          created_at?: string
+          created_by?: string | null
+          delta_base?: number
+          id?: number
+          ingredient_id?: string
+          notes?: string | null
+          occurred_at?: string
+          reason?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          stock_lot_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_stock_lot_id_fkey"
+            columns: ["stock_lot_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_transfers: {
         Row: {
           bestelling_id: string | null
@@ -7307,6 +7653,57 @@ export type Database = {
           },
           {
             foreignKeyName: "temperatuur_registraties_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_cache: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          hit_count: number
+          id: string
+          last_used_at: string | null
+          leverancier_id: string | null
+          leverancier_naam: string | null
+          location_id: string | null
+          template_data: Json
+        }
+        Insert: {
+          created_at?: string
+          fingerprint: string
+          hit_count?: number
+          id?: string
+          last_used_at?: string | null
+          leverancier_id?: string | null
+          leverancier_naam?: string | null
+          location_id?: string | null
+          template_data: Json
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          hit_count?: number
+          id?: string
+          last_used_at?: string | null
+          leverancier_id?: string | null
+          leverancier_naam?: string | null
+          location_id?: string | null
+          template_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_cache_leverancier_id_fkey"
+            columns: ["leverancier_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_cache_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
