@@ -3,6 +3,39 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
 
+/**
+ * Loop 4: per-line factor-resolutie (CONFIRMED / AI_SUGGESTED / MANUAL_REQUIRED)
+ * via leveranciers_artikelen lookup (leverancier_id × ingredient_id).
+ *
+ * Generiek voor elke leverancier — geen hardcoded namen.
+ */
+
+export type FactorMode = "CONFIRMED" | "AI_SUGGESTED" | "MANUAL_REQUIRED";
+
+export interface LineFactorContext {
+  /** Bestaande supplier-article (indien gevonden in batch) */
+  la_id: string | null;
+  la_factor: number | null;
+  la_eenheid: string | null;
+  la_factor_source: "user" | "ai_confirmed" | "unknown" | null;
+  la_confirmation_count: number;
+  /** AI-detectie uit pakbon-parser, fallback voor eerste suggestie */
+  ai_factor: number | null;
+  ai_eenheid: string | null;
+  /** True wanneer la.is_weighted OF ingredient.is_weighted */
+  is_weighted: boolean;
+  /** Best-effort base unit van ingredient — voor delta-preview */
+  ingredient_base_unit: string | null;
+  ingredient_eenheid: string | null;
+  /** Vertoningsfactor + eenheid (eerste niet-null in volgorde la → ai) */
+  display_factor: number | null;
+  display_eenheid: string | null;
+  /** Eindmodus (server-aligned) */
+  mode: FactorMode;
+  /** Reden bij MANUAL_REQUIRED voor UX-helper */
+  manual_reason: string | null;
+}
+
 export interface GoodsReceiptLineWithIngredient {
   id: string;
   goods_receipt_id: string;
@@ -10,6 +43,9 @@ export interface GoodsReceiptLineWithIngredient {
   ai_raw_naam: string | null;
   ai_raw_artikelnummer: string | null;
   ai_confidence: number | null;
+  ai_per_package_quantity: number | null;
+  ai_package_unit: string | null;
+  ai_is_weighted: boolean | null;
   hoeveelheid_verwacht: number | null;
   eenheid_verwacht: string | null;
   hoeveelheid_ontvangen: number | null;
@@ -22,12 +58,18 @@ export interface GoodsReceiptLineWithIngredient {
   tht_datum: string | null;
   status: string;
   afwijking_notitie: string | null;
+  leverancier_artikel_id: string | null;
   ingredient?: {
     id: string;
     naam: string;
+    eenheid: string | null;
+    base_unit: string | null;
+    is_weighted: boolean;
     haccp_categorie: string | null;
     haccp_strict_temp_max: number | null;
   } | null;
+  /** Loop 4: factor-context, alleen relevant voor stock-mutaties */
+  factor_ctx: LineFactorContext;
 }
 
 export interface GoodsReceiptDetail {
@@ -59,13 +101,89 @@ export interface SmartHaccpFlags {
   hasGekoeld: boolean;
   hasVries: boolean;
   hasRisicogroep: boolean;
-  /** Strikste max-temp uit risicogroep ingredients (laagste waarde wint). */
   strictTempMax: number | null;
 }
 
+// Bekende eenheden uit conversion-service (sync gehouden met _shared/conversions)
+const KNOWN_UNITS = new Set([
+  "g", "kg", "mg",
+  "ml", "l", "cl", "dl",
+  "stuk", "stuks", "st",
+]);
+
+function computeFactorContext(
+  line: any,
+  la: any | null,
+): LineFactorContext {
+  const ingredient = line.ingredient ?? null;
+  const ai_factor = line.ai_per_package_quantity ?? null;
+  const ai_eenheid = line.ai_package_unit ?? null;
+  const la_factor = la?.verpakking_hoeveelheid != null ? Number(la.verpakking_hoeveelheid) : null;
+  const la_eenheid = la?.verpakking_eenheid ?? null;
+  const la_source = (la?.factor_source ?? null) as LineFactorContext["la_factor_source"];
+  const la_count = la?.confirmation_count ?? 0;
+  const is_weighted = !!(la?.is_weighted || ingredient?.is_weighted || line.ai_is_weighted);
+
+  const display_factor = la_factor ?? ai_factor;
+  const display_eenheid = la_eenheid ?? ai_eenheid;
+
+  // Geen ingredient gekoppeld → geen stock-mutatie mogelijk; mode is N/A maar markeer als manual zodat UI 'm flagt
+  let mode: FactorMode = "MANUAL_REQUIRED";
+  let manual_reason: string | null = null;
+
+  if (!ingredient || !ingredient.base_unit) {
+    manual_reason = "Geen gekoppeld ingredient of base_unit";
+    return {
+      la_id: la?.id ?? null,
+      la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
+      ai_factor, ai_eenheid, is_weighted,
+      ingredient_base_unit: ingredient?.base_unit ?? null,
+      ingredient_eenheid: ingredient?.eenheid ?? null,
+      display_factor, display_eenheid, mode, manual_reason,
+    };
+  }
+
+  // Variable-weight: chef MOET werkelijk gewicht invullen → MANUAL_REQUIRED tot input
+  // (UI handelt dat af met aparte input; mode-bepaling negeert is_weighted hier omdat
+  // factor zelf aanwezig kan zijn, maar de werkelijk_gewicht_g blijft verplicht)
+
+  if (la && la_factor && la_eenheid) {
+    if (!KNOWN_UNITS.has(la_eenheid.toLowerCase())) {
+      mode = "MANUAL_REQUIRED";
+      manual_reason = `Onbekende verpakking-eenheid: ${la_eenheid}`;
+    } else if (la_source === "unknown") {
+      mode = "MANUAL_REQUIRED";
+      manual_reason = "Verpakking-factor nooit bevestigd";
+    } else if (la_count >= 3 && (la_source === "user" || la_source === "ai_confirmed")) {
+      mode = "CONFIRMED";
+    } else {
+      mode = "AI_SUGGESTED";
+    }
+  } else if (ai_factor && ai_eenheid) {
+    // Geen la maar wel AI-suggestie → AI_SUGGESTED zodat chef kan accepteren
+    if (!KNOWN_UNITS.has(ai_eenheid.toLowerCase())) {
+      mode = "MANUAL_REQUIRED";
+      manual_reason = `Onbekende AI-eenheid: ${ai_eenheid}`;
+    } else {
+      mode = "AI_SUGGESTED";
+    }
+  } else {
+    mode = "MANUAL_REQUIRED";
+    manual_reason = "Geen verpakking-info";
+  }
+
+  return {
+    la_id: la?.id ?? null,
+    la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
+    ai_factor, ai_eenheid, is_weighted,
+    ingredient_base_unit: ingredient.base_unit,
+    ingredient_eenheid: ingredient.eenheid,
+    display_factor, display_eenheid, mode, manual_reason,
+  };
+}
+
 /**
- * Detail-query: pakbon + alle regels mét gejoinde ingredient (haccp_categorie, strict_temp_max).
- * Smart-detectie wordt client-side berekend voor live updates bij row-edits.
+ * Detail-query: pakbon + alle regels + per-regel factor-context (LA batch).
  */
 export function useGoodsReceiptDetail(id: string | undefined) {
   const { currentLocation } = useUserContext();
@@ -100,15 +218,38 @@ export function useGoodsReceiptDetail(id: string | undefined) {
       const { data: lines, error: lErr } = await supabase
         .from("goods_receipt_lines")
         .select(
-          "*, ingredient:ingredienten(id, naam, haccp_categorie, haccp_strict_temp_max)"
+          `*, ingredient:ingredienten(id, naam, eenheid, base_unit, is_weighted, haccp_categorie, haccp_strict_temp_max)`,
         )
         .eq("goods_receipt_id", id)
         .order("created_at", { ascending: true });
       if (lErr) throw lErr;
 
+      // Loop 4: batch leveranciers_artikelen lookup
+      const ingredientIds = Array.from(
+        new Set((lines ?? []).map((l: any) => l.ingredient_id).filter(Boolean)),
+      );
+      const laMap = new Map<string, any>();
+      if ((receipt as any).leverancier_id && ingredientIds.length > 0) {
+        const { data: las, error: laErr } = await supabase
+          .from("leveranciers_artikelen")
+          .select(
+            "id, ingredient_id, verpakking_hoeveelheid, verpakking_eenheid, is_weighted, factor_source, confirmation_count",
+          )
+          .eq("leverancier_id", (receipt as any).leverancier_id)
+          .eq("is_actief", true)
+          .in("ingredient_id", ingredientIds as string[]);
+        if (laErr) throw laErr;
+        for (const la of las ?? []) laMap.set((la as any).ingredient_id, la);
+      }
+
+      const enriched = (lines ?? []).map((l: any) => {
+        const la = l.ingredient_id ? laMap.get(l.ingredient_id) ?? null : null;
+        return { ...l, factor_ctx: computeFactorContext(l, la) };
+      });
+
       return {
         ...(receipt as any),
-        lines: (lines ?? []) as unknown as GoodsReceiptLineWithIngredient[],
+        lines: enriched as unknown as GoodsReceiptLineWithIngredient[],
       } as GoodsReceiptDetail;
     },
     enabled: !!id,
