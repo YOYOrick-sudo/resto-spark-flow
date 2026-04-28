@@ -665,15 +665,48 @@ export default function LeveringDetail() {
         )}
       </DetailPageLayout>
 
-      {/* Sticky bottom-bar met confirm-button */}
+      {/* Sticky bottom-bar met confirm-button + 3-counter */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 sm:p-5 z-30">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <div className="hidden sm:flex flex-col gap-0.5">
-            <span className="text-small text-muted-foreground">
+            <span className="text-small text-foreground font-medium">
               {akkoord} van {totalLines} regels akkoord
             </span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                {factorBuckets.confirmed} bevestigd
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                {factorBuckets.unconfirmed} onbevestigd
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1",
+                  factorBuckets.manualRequired > 0 && "text-warning font-medium",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    factorBuckets.manualRequired > 0 ? "bg-warning" : "bg-muted-foreground/40",
+                  )}
+                />
+                {factorBuckets.manualRequired} vereist invoer
+              </span>
+            </div>
             {helperText && (
-              <span className="text-xs text-muted-foreground">{helperText}</span>
+              <span
+                className={cn(
+                  "text-xs mt-0.5",
+                  factorBlocking || !risicogroepOK ? "text-warning" : "text-muted-foreground",
+                )}
+              >
+                {helperText}
+              </span>
             )}
           </div>
           <div className="flex flex-col items-end gap-1 flex-1 sm:flex-none">
@@ -686,7 +719,12 @@ export default function LeveringDetail() {
               {confirmMutation.isPending ? "Bevestigen…" : "Bevestig levering"}
             </NestoButton>
             {helperText && (
-              <span className="sm:hidden text-xs text-muted-foreground text-right">
+              <span
+                className={cn(
+                  "sm:hidden text-xs text-right",
+                  factorBlocking || !risicogroepOK ? "text-warning" : "text-muted-foreground",
+                )}
+              >
                 {helperText}
               </span>
             )}
