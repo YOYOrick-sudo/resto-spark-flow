@@ -2110,6 +2110,7 @@ export type Database = {
           id: string
           ingredient_id: string | null
           is_nieuw_ingredient: boolean | null
+          leverancier_artikel_id: string | null
           lotnummer: string | null
           match_confidence: number | null
           match_status: string | null
@@ -2118,6 +2119,7 @@ export type Database = {
           tht_datum: string | null
           updated_at: string
           validation_errors: Json | null
+          werkelijk_gewicht_g: number | null
         }
         Insert: {
           afgevinkt_at?: string | null
@@ -2147,6 +2149,7 @@ export type Database = {
           id?: string
           ingredient_id?: string | null
           is_nieuw_ingredient?: boolean | null
+          leverancier_artikel_id?: string | null
           lotnummer?: string | null
           match_confidence?: number | null
           match_status?: string | null
@@ -2155,6 +2158,7 @@ export type Database = {
           tht_datum?: string | null
           updated_at?: string
           validation_errors?: Json | null
+          werkelijk_gewicht_g?: number | null
         }
         Update: {
           afgevinkt_at?: string | null
@@ -2184,6 +2188,7 @@ export type Database = {
           id?: string
           ingredient_id?: string | null
           is_nieuw_ingredient?: boolean | null
+          leverancier_artikel_id?: string | null
           lotnummer?: string | null
           match_confidence?: number | null
           match_status?: string | null
@@ -2192,6 +2197,7 @@ export type Database = {
           tht_datum?: string | null
           updated_at?: string
           validation_errors?: Json | null
+          werkelijk_gewicht_g?: number | null
         }
         Relationships: [
           {
@@ -2213,6 +2219,13 @@ export type Database = {
             columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredienten"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_lines_leverancier_artikel_id_fkey"
+            columns: ["leverancier_artikel_id"]
+            isOneToOne: false
+            referencedRelation: "leveranciers_artikelen"
             referencedColumns: ["id"]
           },
         ]
