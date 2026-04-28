@@ -64,7 +64,6 @@ export interface GoodsReceiptLineWithIngredient {
     naam: string;
     eenheid: string | null;
     base_unit: string | null;
-    is_weighted: boolean;
     haccp_categorie: string | null;
     haccp_strict_temp_max: number | null;
   } | null;
@@ -122,7 +121,7 @@ function computeFactorContext(
   const la_eenheid = la?.verpakking_eenheid ?? null;
   const la_source = (la?.factor_source ?? null) as LineFactorContext["la_factor_source"];
   const la_count = la?.confirmation_count ?? 0;
-  const is_weighted = !!(la?.is_weighted || ingredient?.is_weighted || line.ai_is_weighted);
+  const is_weighted = !!(la?.is_weighted || line.ai_is_weighted);
 
   const display_factor = la_factor ?? ai_factor;
   const display_eenheid = la_eenheid ?? ai_eenheid;
@@ -218,7 +217,7 @@ export function useGoodsReceiptDetail(id: string | undefined) {
       const { data: lines, error: lErr } = await supabase
         .from("goods_receipt_lines")
         .select(
-          `*, ingredient:ingredienten(id, naam, eenheid, base_unit, is_weighted, haccp_categorie, haccp_strict_temp_max)`,
+          `*, ingredient:ingredienten(id, naam, eenheid, base_unit, haccp_categorie, haccp_strict_temp_max)`,
         )
         .eq("goods_receipt_id", id)
         .order("created_at", { ascending: true });
