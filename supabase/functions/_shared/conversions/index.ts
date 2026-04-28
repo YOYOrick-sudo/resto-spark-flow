@@ -27,7 +27,7 @@
 //     is (bv. weight_per_piece_g voor g↔st). Caller bepaalt of dit een
 //     hard fail of soft fallback wordt (bv. UI-prompt aan chef).
 
-import Decimal from "npm:decimal.js@10.4.3";
+import Decimal from "https://esm.sh/decimal.js@10.4.3";
 
 export type BaseUnit = "g" | "ml" | "st";
 export type Unit = string; // genormaliseerd via normalizeUnit()
