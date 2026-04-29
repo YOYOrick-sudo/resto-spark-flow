@@ -431,7 +431,11 @@ export default function LeveringDetail() {
 
   const handleConfirm = () => {
     if (!id) return;
-    const lines: ConfirmLineInput[] = data.lines.map((l) => {
+    // Loop 4C-FINISH: emballage-regels worden NIET doorgestuurd naar de
+    // confirm-edge (geen voorraad-mutatie, geen klacht).
+    const lines: ConfirmLineInput[] = data.lines
+      .filter((l) => l.factor_ctx.mode !== "SKIP")
+      .map((l) => {
       const st = lineStates.get(l.id);
       const pkg = packagingStates.get(l.id) ?? {
         action: { kind: "none" as const },
