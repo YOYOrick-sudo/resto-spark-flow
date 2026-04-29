@@ -313,8 +313,15 @@ export default function LeveringDetail() {
     );
   }
 
-  const totalLines = data.lines.length;
-  const akkoord = Array.from(lineStates.values()).filter((s) => s.kind === "akkoord").length;
+  // Loop 4C-FINISH: emballage-regels worden niet meegerekend in counters
+  // of voorraad-mutatie. Ze worden wel getoond (gedempt) zodat chef ziet
+  // dat ze op de pakbon stonden.
+  const stockLines = data.lines.filter((l) => l.factor_ctx.mode !== "SKIP");
+  const skipLines = data.lines.filter((l) => l.factor_ctx.mode === "SKIP");
+  const totalLines = stockLines.length;
+  const akkoord = stockLines.filter(
+    (l) => (lineStates.get(l.id) ?? { kind: "akkoord" as const }).kind === "akkoord",
+  ).length;
   const afwijking = totalLines - akkoord;
 
   const editingLine = afwijkingFor ? data.lines.find((l) => l.id === afwijkingFor) : null;
@@ -325,7 +332,7 @@ export default function LeveringDetail() {
     let confirmed = 0;
     let unconfirmed = 0; // AI_SUGGESTED zonder accept of override
     let manualRequired = 0;
-    for (const l of data.lines) {
+    for (const l of stockLines) {
       const st = lineStates.get(l.id) ?? { kind: "akkoord" as const };
       const pkg = packagingStates.get(l.id) ?? {
         action: { kind: "none" as const },
