@@ -266,7 +266,7 @@ export function useGoodsReceiptDetail(id: string | undefined) {
         const { data: las, error: laErr } = await supabase
           .from("leveranciers_artikelen")
           .select(
-            "id, ingredient_id, verpakking_hoeveelheid, verpakking_eenheid, is_weighted, factor_source, confirmation_count",
+            "id, ingredient_id, verpakking_hoeveelheid, verpakking_eenheid, verpakking_label, is_weighted, factor_source, confirmation_count",
           )
           .eq("leverancier_id", (receipt as any).leverancier_id)
           .eq("is_actief", true)
