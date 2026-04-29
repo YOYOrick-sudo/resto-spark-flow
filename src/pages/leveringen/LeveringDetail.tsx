@@ -356,7 +356,8 @@ export default function LeveringDetail() {
         continue;
       }
       if (ctx.mode === "AI_SUGGESTED") {
-        unconfirmed++;
+        // Loop 4C: AI_SUGGESTED telt als klaar — bulk-bevestig via hoofdactie
+        confirmed++;
         continue;
       }
       manualRequired++;
