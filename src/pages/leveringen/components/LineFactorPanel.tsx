@@ -129,6 +129,9 @@ export function LineFactorPanel({
   const preview = computeDeltaPreview(ctx, state, aantalVerpakkingen);
 
   if (!isStockMutation) return null;
+  // Loop 4C-FINISH: emballage-regels worden upstream al apart gerenderd,
+  // maar safety-net: nooit factor-panel tonen voor SKIP.
+  if (ctx.mode === "SKIP") return null;
 
   const submitManual = () => {
     const n = Number(draftAmount.replace(",", "."));
