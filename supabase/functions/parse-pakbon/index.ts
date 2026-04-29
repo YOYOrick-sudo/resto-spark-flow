@@ -1169,7 +1169,7 @@ serve(async (req) => {
       if (body.intake_id) {
         await supabase
           .from("pakbon_email_intake")
-          .update({ ai_parse_status: "duplicate" as never })
+          .update({ ai_parse_status: "rejected_duplicate" })
           .eq("id", body.intake_id);
       }
 
