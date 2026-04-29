@@ -319,6 +319,7 @@ interface PakbonExtractieRegel {
   hoeveelheid_geleverd?: number | null;
   verpakking_eenheid?: "L" | "kg" | "stuk" | null;
   verpakking_hoeveelheid?: number | null;
+  verpakking_woord?: string | null;
   totaal_ontvangen_hoeveelheid?: number | null;
   is_weighted?: boolean | null;
   lotnummer?: string | null;
