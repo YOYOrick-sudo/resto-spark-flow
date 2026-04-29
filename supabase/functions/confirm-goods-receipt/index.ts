@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
     .from("goods_receipt_lines")
     .select(
       `id, ingredient_id, product_naam_herkend, hoeveelheid_verwacht, eenheid_verwacht,
-       leverancier_artikel_id,
+       leverancier_artikel_id, ai_package_label,
        ai_per_package_quantity, ai_package_unit, ai_is_weighted,
        ingredient:ingredienten ( id, eenheid, base_unit, weight_per_piece_g, density_g_per_ml )`,
     )
@@ -264,15 +264,18 @@ Deno.serve(async (req) => {
       const mf = inputLine.manual_factor;
       // Upsert la
       let laId = la?.id ?? dbLine.leverancier_artikel_id ?? null;
+      const labelToPersist = (dbLine.ai_package_label as string | null) ?? null;
       if (laId) {
+        const updatePayload: Record<string, unknown> = {
+          verpakking_hoeveelheid: mf.hoeveelheid,
+          verpakking_eenheid: mf.eenheid,
+          factor_source: "user",
+          updated_at: new Date().toISOString(),
+        };
+        if (labelToPersist) updatePayload.verpakking_label = labelToPersist;
         const { error: upErr } = await supabaseAdmin
           .from("leveranciers_artikelen")
-          .update({
-            verpakking_hoeveelheid: mf.hoeveelheid,
-            verpakking_eenheid: mf.eenheid,
-            factor_source: "user",
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq("id", laId);
         if (upErr) {
           console.error("LA update failed", upErr);
@@ -280,18 +283,20 @@ Deno.serve(async (req) => {
         }
       } else if (receipt.leverancier_id && dbLine.ingredient_id) {
         // Insert nieuwe la met chef-factor
+        const insertPayload: Record<string, unknown> = {
+          leverancier_id: receipt.leverancier_id,
+          ingredient_id: dbLine.ingredient_id,
+          artikel_naam: dbLine.product_naam_herkend ?? "Onbekend",
+          verpakking_hoeveelheid: mf.hoeveelheid,
+          verpakking_eenheid: mf.eenheid,
+          factor_source: "user",
+          type: "handmatig",
+          is_actief: true,
+        };
+        if (labelToPersist) insertPayload.verpakking_label = labelToPersist;
         const { data: ins, error: insErr } = await supabaseAdmin
           .from("leveranciers_artikelen")
-          .insert({
-            leverancier_id: receipt.leverancier_id,
-            ingredient_id: dbLine.ingredient_id,
-            artikel_naam: dbLine.product_naam_herkend ?? "Onbekend",
-            verpakking_hoeveelheid: mf.hoeveelheid,
-            verpakking_eenheid: mf.eenheid,
-            factor_source: "user",
-            type: "handmatig",
-            is_actief: true,
-          })
+          .insert(insertPayload)
           .select("id")
           .single();
         if (insErr) {

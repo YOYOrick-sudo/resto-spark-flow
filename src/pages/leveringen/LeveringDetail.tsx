@@ -165,7 +165,7 @@ function LineRow({
               ? state.value.hoeveelheid_ontvangen
               : line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 1) as number
           }
-          verpakkingNaam={line.eenheid_verwacht ?? "verpakking"}
+          
           onChange={onPackagingChange}
           isStockMutation={
             state.kind === "akkoord" ||
@@ -356,7 +356,8 @@ export default function LeveringDetail() {
         continue;
       }
       if (ctx.mode === "AI_SUGGESTED") {
-        unconfirmed++;
+        // Loop 4C: AI_SUGGESTED telt als klaar — bulk-bevestig via hoofdactie
+        confirmed++;
         continue;
       }
       manualRequired++;
@@ -387,12 +388,10 @@ export default function LeveringDetail() {
   const helperText: string | null = (() => {
     if (confirmMutation.isPending) return null;
     if (factorBlocking)
-      return `${factorBuckets.manualRequired} regel(s) vereisen invoer voor verpakking-omrekening`;
+      return `${factorBuckets.manualRequired} regel(s) vragen om jouw input vóór bevestigen`;
     if (!risicogroepOK) return "Temperatuur verplicht voor risicogroep-producten — overslaan kan niet";
     if (!gekoeldHandled) return "Vul temperatuur gekoeld in of kies 'Overslaan'";
     if (!vriesHandled) return "Vul temperatuur vries in of kies 'Overslaan'";
-    if (factorBuckets.unconfirmed > 0)
-      return `${factorBuckets.unconfirmed} regel(s) gebruiken AI-suggestie — controleer of klopt`;
     return null;
   })();
 
@@ -438,6 +437,14 @@ export default function LeveringDetail() {
           hoeveelheid: pkg.action.hoeveelheid,
           eenheid: pkg.action.eenheid,
         };
+      // Loop 4C: bulk-bevestig — AI_SUGGESTED zonder expliciete chef-actie
+      // wordt impliciet bevestigd via "Bevestig levering" (één tap = klaar).
+      if (
+        pkg.action.kind === "none" &&
+        l.factor_ctx.mode === "AI_SUGGESTED"
+      ) {
+        factorPayload.accept_ai_factor = true;
+      }
       if (l.factor_ctx.is_weighted && pkg.werkelijk_gewicht_g != null)
         factorPayload.werkelijk_gewicht_g = pkg.werkelijk_gewicht_g;
 
