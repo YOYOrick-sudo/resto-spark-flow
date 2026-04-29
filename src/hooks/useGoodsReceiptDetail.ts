@@ -48,6 +48,7 @@ export interface GoodsReceiptLineWithIngredient {
   ai_per_package_quantity: number | null;
   ai_package_unit: string | null;
   ai_is_weighted: boolean | null;
+  ai_package_label: string | null;
   hoeveelheid_verwacht: number | null;
   eenheid_verwacht: string | null;
   hoeveelheid_ontvangen: number | null;
