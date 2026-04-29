@@ -591,6 +591,26 @@ export default function LeveringDetail() {
 
           <div className="space-y-2">
             {data.lines.map((line) => {
+              if (line.factor_ctx.mode === "SKIP") {
+                // Loop 4C-FINISH: emballage-regels — gedempt, geen factor-panel,
+                // geen checkbox. Chef ziet wel dat 't op de pakbon stond.
+                return (
+                  <div
+                    key={line.id}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/20 opacity-60"
+                  >
+                    <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-small text-muted-foreground line-clamp-1">
+                        {line.product_naam_herkend}
+                      </p>
+                      <p className="text-xs text-muted-foreground/70">
+                        emballage — niet meegerekend
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
               const state = lineStates.get(line.id) ?? { kind: "akkoord" as const };
               const pkg =
                 packagingStates.get(line.id) ?? {
