@@ -1000,21 +1000,18 @@ serve(async (req) => {
       try {
         await supabase.from("ai_logs").insert({
           location_id: receipt.location_id,
-          source: "parse_pakbon",
-          action: "auto_create_ingredient",
-          payload: {
-            goods_receipt_id: receipt.id,
-            product_naam_raw: r.product_naam,
-            product_naam_clean: cap,
-            ingredient_id: created.id,
-            base_unit: baseUnit,
-            matched_to_existing: false,
-            reasoning:
-              "Geen fuzzy hit ≥0.7 — auto-created met complete AI verpakking-data",
-          },
+          feature: "parse_pakbon_auto_create_ingredient",
+          model: "n/a",
+          input_tokens: 0,
+          output_tokens: 0,
+          status: "success",
+          error_message:
+            `auto_created ingredient_id=${created.id} naam="${cap}" ` +
+            `from_raw="${r.product_naam}" base_unit=${baseUnit} ` +
+            `goods_receipt_id=${receipt.id} matched_to_existing=false`,
         });
       } catch (_e) {
-        // ai_logs bestaat mogelijk niet of andere shape — niet blokkeren
+        // niet blokkeren
       }
 
       console.log(`[parse-pakbon][auto-create] "${cap}" id=${created.id} base_unit=${baseUnit}`);
