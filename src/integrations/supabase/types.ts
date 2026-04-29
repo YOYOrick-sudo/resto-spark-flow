@@ -2092,6 +2092,7 @@ export type Database = {
           ai_confidence: number | null
           ai_confidence_per_field: Json | null
           ai_is_weighted: boolean
+          ai_package_label: string | null
           ai_package_unit: string | null
           ai_per_package_quantity: number | null
           ai_raw_artikelnummer: string | null
@@ -2129,6 +2130,7 @@ export type Database = {
           ai_confidence?: number | null
           ai_confidence_per_field?: Json | null
           ai_is_weighted?: boolean
+          ai_package_label?: string | null
           ai_package_unit?: string | null
           ai_per_package_quantity?: number | null
           ai_raw_artikelnummer?: string | null
@@ -2168,6 +2170,7 @@ export type Database = {
           ai_confidence?: number | null
           ai_confidence_per_field?: Json | null
           ai_is_weighted?: boolean
+          ai_package_label?: string | null
           ai_package_unit?: string | null
           ai_per_package_quantity?: number | null
           ai_raw_artikelnummer?: string | null
@@ -3090,6 +3093,7 @@ export type Database = {
           updated_at: string
           verpakking_eenheid: string | null
           verpakking_hoeveelheid: number | null
+          verpakking_label: string | null
         }
         Insert: {
           artikel_naam: string
@@ -3113,6 +3117,7 @@ export type Database = {
           updated_at?: string
           verpakking_eenheid?: string | null
           verpakking_hoeveelheid?: number | null
+          verpakking_label?: string | null
         }
         Update: {
           artikel_naam?: string
@@ -3136,6 +3141,7 @@ export type Database = {
           updated_at?: string
           verpakking_eenheid?: string | null
           verpakking_hoeveelheid?: number | null
+          verpakking_label?: string | null
         }
         Relationships: [
           {
