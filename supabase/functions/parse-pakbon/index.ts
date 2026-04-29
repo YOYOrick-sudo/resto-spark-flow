@@ -70,6 +70,10 @@ const PAKBON_SCHEMA = {
             type: ["number", "null"],
             description: "Hoeveelheid per verpakking in voorraad-eenheid (bv. doos 14 stuks → 14, kist 20 kg → 20, zak 450 g → 0.45). null als verpakking-eenheid zelf de telbare eenheid is (bv. 1 bos = 1 bos).",
           },
+          verpakking_woord: {
+            type: ["string", "null"],
+            description: "Het verpakking-LABEL letterlijk zoals op pakbon ('kist', 'doos', 'pak', 'zak', 'fles', 'krat', 'bos', 'tray', 'emmer', 'bundel'). NIET de inhoud-eenheid. Bij 'per stuk' of geen verpakking-vorm: null.",
+          },
           totaal_ontvangen_hoeveelheid: {
             type: ["number", "null"],
             description: "Berekende totaal in voorraad-eenheid: hoeveelheid_geleverd × verpakking_hoeveelheid (of hoeveelheid_geleverd als verpakking_hoeveelheid null is).",
