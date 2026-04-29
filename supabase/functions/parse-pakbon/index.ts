@@ -846,10 +846,40 @@ serve(async (req) => {
 
   // ===========================================================
   // 8. Bulk insert goods_receipt_lines
+  //    Loop 4C: AI-velden EXPLICIET schrijven + verpakking-label resolven
+  //    via AI verpakking_woord → regex-fallback uit productnaam.
   // ===========================================================
+
+  // Regex pre-pass: NL-verpakking-woorden uit productnaam (universeel, geen
+  // hardcoded leveranciers). Wordt alleen gebruikt als AI géén verpakking_woord
+  // heeft afgegeven.
+  const PACKAGING_LABEL_RE =
+    /\b(kist|doos|pak|zak|fles|krat|bos|tray|emmer|bundel|ds|krt|karton|bdl|bus|fl|fls|emm)\b/i;
+  const LABEL_NORMALISE: Record<string, string> = {
+    ds: "doos",
+    krt: "doos",
+    karton: "doos",
+    bdl: "bundel",
+    bus: "bus",
+    fl: "fles",
+    fls: "fles",
+    emm: "emmer",
+  };
+  function detectPackagingLabel(productNaam: string): string | null {
+    if (!productNaam) return null;
+    const m = productNaam.match(PACKAGING_LABEL_RE);
+    if (!m) return null;
+    const raw = m[1].toLowerCase();
+    return LABEL_NORMALISE[raw] ?? raw;
+  }
+
   const lineRows = extractie.regels.map((r, idx) => {
     const hit = matches[idx];
     const conf = r.confidence === "hoog" ? 0.95 : r.confidence === "medium" ? 0.7 : 0.4;
+    // Resolve verpakking-label: AI > regex > null
+    const aiLabel = (r.verpakking_woord ?? "").trim().toLowerCase() || null;
+    const regexLabel = aiLabel ? null : detectPackagingLabel(r.product_naam);
+    const aiPackageLabel = aiLabel ?? regexLabel;
     return {
       goods_receipt_id: receipt.id,
       product_naam_herkend: r.product_naam,
@@ -866,6 +896,15 @@ serve(async (req) => {
       lotnummer: r.lotnummer ?? null,
       tht_datum: r.tht_datum ?? null,
       status: "verwacht" as const,
+      // Loop 4C ROOT-CAUSE FIX: AI-extractie persist
+      ai_per_package_quantity: r.verpakking_hoeveelheid ?? null,
+      ai_package_unit: r.verpakking_eenheid ?? null,
+      ai_total_packages: r.hoeveelheid_geleverd ?? null,
+      ai_total_received_quantity: r.totaal_ontvangen_hoeveelheid ?? null,
+      ai_total_received_unit: r.verpakking_eenheid ?? null,
+      ai_is_weighted: r.is_weighted ?? false,
+      ai_reasoning: r.reasoning ?? null,
+      ai_package_label: aiPackageLabel,
     };
   });
 
