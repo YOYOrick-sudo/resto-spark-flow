@@ -438,6 +438,14 @@ export default function LeveringDetail() {
           hoeveelheid: pkg.action.hoeveelheid,
           eenheid: pkg.action.eenheid,
         };
+      // Loop 4C: bulk-bevestig — AI_SUGGESTED zonder expliciete chef-actie
+      // wordt impliciet bevestigd via "Bevestig levering" (één tap = klaar).
+      if (
+        pkg.action.kind === "none" &&
+        l.factor_ctx.mode === "AI_SUGGESTED"
+      ) {
+        factorPayload.accept_ai_factor = true;
+      }
       if (l.factor_ctx.is_weighted && pkg.werkelijk_gewicht_g != null)
         factorPayload.werkelijk_gewicht_g = pkg.werkelijk_gewicht_g;
 
