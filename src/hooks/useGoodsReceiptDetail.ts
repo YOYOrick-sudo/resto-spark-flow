@@ -113,6 +113,31 @@ const KNOWN_UNITS = new Set([
   "stuk", "stuks", "st",
 ]);
 
+function resolveVerpakkingLabel(
+  laLabel: string | null,
+  aiLabel: string | null,
+  ingredientBaseUnit: string | null,
+): string {
+  // Hiërarchie: la.verpakking_label → goods_receipt_lines.ai_package_label →
+  // woordenboek-fallback op ingredient.base_unit.
+  if (laLabel && laLabel.trim()) return laLabel.trim().toLowerCase();
+  if (aiLabel && aiLabel.trim()) return aiLabel.trim().toLowerCase();
+  switch ((ingredientBaseUnit ?? "").toLowerCase()) {
+    case "stuk":
+    case "stuks":
+    case "st":
+      return "stuks";
+    case "kg":
+    case "g":
+      return "verpakking";
+    case "l":
+    case "ml":
+      return "fles";
+    default:
+      return "verpakking";
+  }
+}
+
 function computeFactorContext(
   line: any,
   la: any | null,
@@ -129,19 +154,25 @@ function computeFactorContext(
   const display_factor = la_factor ?? ai_factor;
   const display_eenheid = la_eenheid ?? ai_eenheid;
 
+  const verpakking_label = resolveVerpakkingLabel(
+    la?.verpakking_label ?? null,
+    line.ai_package_label ?? null,
+    ingredient?.base_unit ?? null,
+  );
+
   // Geen ingredient gekoppeld → geen stock-mutatie mogelijk; mode is N/A maar markeer als manual zodat UI 'm flagt
   let mode: FactorMode = "MANUAL_REQUIRED";
   let manual_reason: string | null = null;
 
   if (!ingredient || !ingredient.base_unit) {
-    manual_reason = "Geen gekoppeld ingredient of base_unit";
+    manual_reason = "Eerste keer dit product — wat zit erin?";
     return {
       la_id: la?.id ?? null,
       la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
       ai_factor, ai_eenheid, is_weighted,
       ingredient_base_unit: ingredient?.base_unit ?? null,
       ingredient_eenheid: ingredient?.eenheid ?? null,
-      display_factor, display_eenheid, mode, manual_reason,
+      display_factor, display_eenheid, verpakking_label, mode, manual_reason,
     };
   }
 
@@ -152,10 +183,10 @@ function computeFactorContext(
   if (la && la_factor && la_eenheid) {
     if (!KNOWN_UNITS.has(la_eenheid.toLowerCase())) {
       mode = "MANUAL_REQUIRED";
-      manual_reason = `Onbekende verpakking-eenheid: ${la_eenheid}`;
+      manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
     } else if (la_source === "unknown") {
       mode = "MANUAL_REQUIRED";
-      manual_reason = "Verpakking-factor nooit bevestigd";
+      manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
     } else if (la_count >= 3 && (la_source === "user" || la_source === "ai_confirmed")) {
       mode = "CONFIRMED";
     } else {
@@ -165,13 +196,13 @@ function computeFactorContext(
     // Geen la maar wel AI-suggestie → AI_SUGGESTED zodat chef kan accepteren
     if (!KNOWN_UNITS.has(ai_eenheid.toLowerCase())) {
       mode = "MANUAL_REQUIRED";
-      manual_reason = `Onbekende AI-eenheid: ${ai_eenheid}`;
+      manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
     } else {
       mode = "AI_SUGGESTED";
     }
   } else {
     mode = "MANUAL_REQUIRED";
-    manual_reason = "Geen verpakking-info";
+    manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
   }
 
   return {
@@ -180,7 +211,7 @@ function computeFactorContext(
     ai_factor, ai_eenheid, is_weighted,
     ingredient_base_unit: ingredient.base_unit,
     ingredient_eenheid: ingredient.eenheid,
-    display_factor, display_eenheid, mode, manual_reason,
+    display_factor, display_eenheid, verpakking_label, mode, manual_reason,
   };
 }
 
