@@ -28,6 +28,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai.ts";
 import {
   matchIngredientLines,
+  stripPackagingSuffix,
   type MatchableLine,
 } from "../_shared/ingredientMatcher.ts";
 import { extractTextPerPage } from "../_shared/pdf-text.ts";
