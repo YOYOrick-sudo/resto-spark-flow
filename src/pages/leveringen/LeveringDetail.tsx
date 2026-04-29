@@ -388,12 +388,10 @@ export default function LeveringDetail() {
   const helperText: string | null = (() => {
     if (confirmMutation.isPending) return null;
     if (factorBlocking)
-      return `${factorBuckets.manualRequired} regel(s) vereisen invoer voor verpakking-omrekening`;
+      return `${factorBuckets.manualRequired} regel(s) vragen om jouw input vóór bevestigen`;
     if (!risicogroepOK) return "Temperatuur verplicht voor risicogroep-producten — overslaan kan niet";
     if (!gekoeldHandled) return "Vul temperatuur gekoeld in of kies 'Overslaan'";
     if (!vriesHandled) return "Vul temperatuur vries in of kies 'Overslaan'";
-    if (factorBuckets.unconfirmed > 0)
-      return `${factorBuckets.unconfirmed} regel(s) gebruiken AI-suggestie — controleer of klopt`;
     return null;
   })();
 
