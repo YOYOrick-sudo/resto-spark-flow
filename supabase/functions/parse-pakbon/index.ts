@@ -116,6 +116,7 @@ EXTRACTIE-REGELS PER REGEL:
 - hoeveelheid_geleverd: aantal VERPAKKINGEN besteld (kolom 'aantal' van pakbon, bv. 2 kisten → 2)
 - verpakking_eenheid: STRIKT één van "L" | "kg" | "stuk" — de voorraad-eenheid van het PRODUCT in de verpakking
 - verpakking_hoeveelheid: hoeveel product zit er PER verpakking, in voorraad-eenheid
+- verpakking_woord: het LABEL van de verpakking letterlijk uit productnaam ("kist", "doos", "pak", "zak", "fles", "krat", "bos", "tray", "emmer", "bundel"). Lowercase. Null bij "per stuk" of als er geen verpakking-vorm staat.
 - totaal_ontvangen_hoeveelheid: hoeveelheid_geleverd × verpakking_hoeveelheid (of = hoeveelheid_geleverd als verpakking_hoeveelheid null)
 - is_weighted: true als pakbon ± / ca. / ~ / ongeveer / circa aanduidt (variabel gewicht)
 - lotnummer / tht_datum: indien vermeld
