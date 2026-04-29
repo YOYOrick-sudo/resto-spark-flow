@@ -10,7 +10,7 @@ import { useUserContext } from "@/contexts/UserContext";
  * Generiek voor elke leverancier — geen hardcoded namen.
  */
 
-export type FactorMode = "CONFIRMED" | "AI_SUGGESTED" | "MANUAL_REQUIRED";
+export type FactorMode = "CONFIRMED" | "AI_SUGGESTED" | "MANUAL_REQUIRED" | "SKIP";
 
 export interface LineFactorContext {
   /** Bestaande supplier-article (indien gevonden in batch) */
