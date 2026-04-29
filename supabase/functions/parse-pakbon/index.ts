@@ -1107,7 +1107,7 @@ serve(async (req) => {
   }
 
   // ===========================================================
-  // 9. Update goods_receipts
+  // 9. Dedup-precheck + Update goods_receipts
   // ===========================================================
   const aiParseStatus = extractie.extractie_status === "partial" ? "partial" : "success";
   const overallConfidence = extractie.regels.length > 0
@@ -1116,6 +1116,84 @@ serve(async (req) => {
         return s + c;
       }, 0) / extractie.regels.length
     : null;
+
+  // Dedup: zelfde fysieke pakbon bestaat al? Partial unique index op
+  // (location_id, leverancier_id, pakbon_nummer) WHERE pakbon_nummer NOT NULL.
+  // Conditie c: alleen deleten als bestaande receipt status='success' of
+  // 'partial' (nooit 'pending' → race-veilig).
+  if (extractie.pakbon_nummer && effectiveLeverancierId) {
+    const { data: dups, error: dupErr } = await supabase
+      .from("goods_receipts")
+      .select("id, ai_parse_status")
+      .eq("location_id", receipt.location_id)
+      .eq("leverancier_id", effectiveLeverancierId)
+      .eq("pakbon_nummer", extractie.pakbon_nummer)
+      .neq("id", receipt.id)
+      .in("ai_parse_status", ["success", "partial"])
+      .limit(1);
+
+    if (dupErr) {
+      console.warn("[parse-pakbon][dedup] precheck failed:", dupErr.message);
+    } else if (dups && dups.length > 0) {
+      const original = dups[0];
+      console.log(
+        `[parse-pakbon][dedup] receipt=${receipt.id} duplicate of ${original.id} ` +
+        `(loc=${receipt.location_id} lev=${effectiveLeverancierId} nr=${extractie.pakbon_nummer}) — auto-deleting`,
+      );
+
+      // Audit-log naar ai_logs vóór delete (idempotent: error_message bevat
+      // JSON-payload met alle context voor latere "waar is mijn pakbon"-vragen).
+      try {
+        await supabase.from("ai_logs").insert({
+          location_id: receipt.location_id,
+          organization_id: receipt.organization_id,
+          feature: "parse_pakbon_dedup_skip",
+          model: aiModel,
+          status: "skipped",
+          error_message: JSON.stringify({
+            reasoning: `Duplicate van receipt ${original.id} — auto-deleted`,
+            attempted_receipt_id: receipt.id,
+            original_receipt_id: original.id,
+            original_status: original.ai_parse_status,
+            location_id: receipt.location_id,
+            leverancier_id: effectiveLeverancierId,
+            pakbon_nummer: extractie.pakbon_nummer,
+            email_intake_id: body.intake_id ?? null,
+          }),
+        });
+      } catch (logErr) {
+        console.warn("[parse-pakbon][dedup] ai_logs insert failed:", logErr);
+      }
+
+      // Update intake-status zodat email-pipeline weet wat er gebeurd is
+      if (body.intake_id) {
+        await supabase
+          .from("pakbon_email_intake")
+          .update({ ai_parse_status: "duplicate" as never })
+          .eq("id", body.intake_id);
+      }
+
+      // CASCADE delete (goods_receipt_lines volgt automatisch)
+      const { error: delErr } = await supabase
+        .from("goods_receipts")
+        .delete()
+        .eq("id", receipt.id);
+
+      if (delErr) {
+        console.error("[parse-pakbon][dedup] delete failed:", delErr);
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: "duplicate",
+          attempted_receipt_id: receipt.id,
+          original_receipt_id: original.id,
+          message: `Duplicate van pakbon ${extractie.pakbon_nummer} (receipt ${original.id}) — opgeruimd.`,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+  }
 
   const { error: updErr } = await supabase
     .from("goods_receipts")
