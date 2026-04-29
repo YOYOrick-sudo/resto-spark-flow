@@ -555,6 +555,11 @@ export default function LeveringDetail() {
             <div>
               <span className="text-muted-foreground">Regels</span>{" "}
               <span className="text-foreground font-medium">{totalLines}</span>
+              {skipLines.length > 0 && (
+                <span className="text-muted-foreground/70">
+                  {" "}(+{skipLines.length} emballage)
+                </span>
+              )}
             </div>
             {data.ai_parse_confidence !== null && (
               <div>
