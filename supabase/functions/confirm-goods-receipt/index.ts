@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
     .from("goods_receipt_lines")
     .select(
       `id, ingredient_id, product_naam_herkend, hoeveelheid_verwacht, eenheid_verwacht,
-       leverancier_artikel_id,
+       leverancier_artikel_id, ai_package_label,
        ai_per_package_quantity, ai_package_unit, ai_is_weighted,
        ingredient:ingredienten ( id, eenheid, base_unit, weight_per_piece_g, density_g_per_ml )`,
     )
