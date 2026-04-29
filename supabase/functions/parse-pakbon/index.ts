@@ -968,6 +968,11 @@ serve(async (req) => {
     if (!r.verpakking_eenheid) continue;
 
     const baseUnit = normalizeBaseUnit(r.verpakking_eenheid);
+    // Display-eenheid voor chefs: behoud leverancier-eenheid waar zinvol
+    const displayUnitMap: Record<string, string> = {
+      g: "kg", ml: "l", st: "stuk",
+    };
+    const displayEenheid = displayUnitMap[baseUnit] ?? baseUnit;
     const cap = cleanNaam.charAt(0).toUpperCase() + cleanNaam.slice(1);
 
     try {
@@ -977,7 +982,7 @@ serve(async (req) => {
           location_id: receipt.location_id,
           naam: cap,
           categorie: "overig",
-          eenheid: baseUnit,
+          eenheid: displayEenheid,
           base_unit: baseUnit,
           is_variable_weight: !!r.is_weighted,
           created_by_source: "ai_pakbon",
