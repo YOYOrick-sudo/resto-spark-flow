@@ -1,8 +1,12 @@
-// Inline factor-panel per regel: CONFIRMED / AI_SUGGESTED / MANUAL_REQUIRED
-// + variabel gewicht. Geen popups, alles inline. Gebruik design tokens.
+// Inline factor-panel per regel (Loop 4C): rustige presentatie.
+// - CONFIRMED + AI_SUGGESTED → 1-regel compacte status, geen "Klopt"-knop
+//   (impliciete bulk-bevestig via "Bevestig levering")
+// - MANUAL_REQUIRED → inline form, vraag-richting altijd "1 [verpakking] = X eenheid"
+// - Variabel gewicht → aparte strip bij is_weighted
+// Geen jargon, geen verkeerslicht-emoji's, geen Sparkles-badges.
 
 import * as React from "react";
-import { Check, Pencil, Scale, Sparkles, AlertCircle, X } from "lucide-react";
+import { Check, Pencil, Scale, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { NestoButton } from "@/components/polar/NestoButton";
@@ -41,36 +45,8 @@ interface Props {
   /** Aantal verpakkingen (= hoeveelheid_ontvangen of verwacht) */
   aantalVerpakkingen: number;
   onChange: (next: LinePackagingState) => void;
-  /** Verpakking-label uit pakbon (bv. "doos") */
-  verpakkingNaam: string;
   /** True als regel akkoord/accepted is — anders factor irrelevant */
   isStockMutation: boolean;
-}
-
-function computeDeltaPreview(
-  ctx: LineFactorContext,
-  state: LinePackagingState,
-  aantal: number,
-): { value: number; unit: string } | null {
-  // Variabel gewicht
-  if (ctx.is_weighted) {
-    if (state.werkelijk_gewicht_g == null || state.werkelijk_gewicht_g <= 0) return null;
-    const totalG = state.werkelijk_gewicht_g * aantal;
-    if (ctx.ingredient_base_unit === "g") return { value: totalG, unit: "g" };
-    if (ctx.ingredient_base_unit === "kg")
-      return { value: +(totalG / 1000).toFixed(3), unit: "kg" };
-    return { value: totalG, unit: "g" };
-  }
-
-  // Manual override wint
-  if (state.action.kind === "manual") {
-    return previewWithFactor(state.action.hoeveelheid, state.action.eenheid, aantal, ctx);
-  }
-  // Anders: la → ai
-  const f = ctx.la_factor ?? ctx.ai_factor;
-  const u = ctx.la_eenheid ?? ctx.ai_eenheid;
-  if (!f || !u) return null;
-  return previewWithFactor(f, u, aantal, ctx);
 }
 
 function previewWithFactor(
@@ -81,7 +57,6 @@ function previewWithFactor(
 ): { value: number; unit: string } | null {
   const u = eenheid.toLowerCase();
   const total = factor * aantal;
-  // Map naar ingredient.base_unit indien bekend
   if (u === "stuk" || u === "stuks" || u === "st") return { value: total, unit: "stuks" };
   if (u === "g")
     return ctx.ingredient_base_unit === "kg"
@@ -102,6 +77,28 @@ function previewWithFactor(
   return { value: total, unit: u };
 }
 
+function computeDeltaPreview(
+  ctx: LineFactorContext,
+  state: LinePackagingState,
+  aantal: number,
+): { value: number; unit: string } | null {
+  if (ctx.is_weighted) {
+    if (state.werkelijk_gewicht_g == null || state.werkelijk_gewicht_g <= 0) return null;
+    const totalG = state.werkelijk_gewicht_g * aantal;
+    if (ctx.ingredient_base_unit === "g") return { value: totalG, unit: "g" };
+    if (ctx.ingredient_base_unit === "kg")
+      return { value: +(totalG / 1000).toFixed(3), unit: "kg" };
+    return { value: totalG, unit: "g" };
+  }
+  if (state.action.kind === "manual") {
+    return previewWithFactor(state.action.hoeveelheid, state.action.eenheid, aantal, ctx);
+  }
+  const f = ctx.la_factor ?? ctx.ai_factor;
+  const u = ctx.la_eenheid ?? ctx.ai_eenheid;
+  if (!f || !u) return null;
+  return previewWithFactor(f, u, aantal, ctx);
+}
+
 function formatPreview(p: { value: number; unit: string } | null): string {
   if (!p) return "—";
   const v =
@@ -114,9 +111,9 @@ export function LineFactorPanel({
   state,
   aantalVerpakkingen,
   onChange,
-  verpakkingNaam,
   isStockMutation,
 }: Props) {
+  const verpakkingLabel = ctx.verpakking_label;
   const [editingFactor, setEditingFactor] = React.useState(false);
   const [draftAmount, setDraftAmount] = React.useState<string>(
     ctx.display_factor != null ? String(ctx.display_factor) : "",
@@ -125,7 +122,7 @@ export function LineFactorPanel({
     ctx.display_eenheid ?? ctx.ingredient_base_unit ?? "stuks",
   );
 
-  // Effectieve modus: manual override → AI_SUGGESTED-look maar met source=user
+  // Effectieve modus: manual override → kort tonen als bevestigd
   const effectiveMode =
     state.action.kind === "manual" ? "USER_OVERRIDE" : ctx.mode;
 
@@ -141,11 +138,11 @@ export function LineFactorPanel({
     setEditingFactor(false);
   };
 
-  // ---------- Variabel gewicht (separate strip, kan combineren met factor-modi) ----------
+  // ---------- Variabel gewicht (separate strip) ----------
   const weightStrip = ctx.is_weighted ? (
     <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
       <Scale className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-      <span className="text-xs text-muted-foreground">Werkelijk gewicht per {verpakkingNaam}</span>
+      <span className="text-xs text-muted-foreground">Werkelijk gewicht per {verpakkingLabel}</span>
       <div className="flex items-center gap-1.5 ml-auto">
         <Input
           type="number"
@@ -169,39 +166,54 @@ export function LineFactorPanel({
     </div>
   ) : null;
 
-  // ---------- MODUS rendering ----------
-  // CONFIRMED: subtiele success-tekst, geen actie
-  if (effectiveMode === "CONFIRMED") {
+  // ---------- CONFIRMED of AI_SUGGESTED → 1-regel rustige status ----------
+  if (effectiveMode === "CONFIRMED" || effectiveMode === "AI_SUGGESTED") {
     return (
       <>
-        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
           <Check className="h-3 w-3 text-success" />
-          <span>
-            <span className="text-foreground font-medium">{formatPreview(preview)}</span>
-            <span className="text-muted-foreground/80"> op voorraad</span>
-          </span>
+          <span className="text-foreground tabular-nums">{formatPreview(preview)}</span>
+          <span className="text-muted-foreground/70">op voorraad</span>
+          <button
+            type="button"
+            onClick={() => setEditingFactor(true)}
+            className="ml-auto text-xs text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-1"
+          >
+            <Pencil className="h-3 w-3" />
+            Aanpassen
+          </button>
         </div>
+        {editingFactor && (
+          <ManualForm
+            verpakkingLabel={verpakkingLabel}
+            draftAmount={draftAmount}
+            setDraftAmount={setDraftAmount}
+            draftUnit={draftUnit}
+            setDraftUnit={setDraftUnit}
+            onCancel={() => setEditingFactor(false)}
+            onSubmit={submitManual}
+          />
+        )}
         {weightStrip}
       </>
     );
   }
 
-  // USER_OVERRIDE: chef heeft handmatig ingevuld
+  // ---------- USER_OVERRIDE: chef heeft handmatig ingevuld ----------
   if (effectiveMode === "USER_OVERRIDE" && state.action.kind === "manual") {
     return (
       <>
-        <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success-foreground px-2 py-0.5 border border-success/30">
-            <Check className="h-3 w-3" />
-            <span className="font-medium">
-              1 {verpakkingNaam} = {state.action.hoeveelheid} {state.action.eenheid}
-            </span>
+        <div className="mt-1.5 flex items-center gap-2 text-xs flex-wrap">
+          <Check className="h-3 w-3 text-success" />
+          <span className="text-foreground tabular-nums">
+            1 {verpakkingLabel} = {state.action.hoeveelheid} {state.action.eenheid}
           </span>
-          <span className="text-foreground font-medium">→ {formatPreview(preview)}</span>
+          <span className="text-muted-foreground/70">·</span>
+          <span className="text-foreground font-medium tabular-nums">{formatPreview(preview)}</span>
           <button
             type="button"
             onClick={() => onChange({ ...state, action: { kind: "none" } })}
-            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
             <X className="h-3 w-3" />
             wissen
@@ -212,113 +224,96 @@ export function LineFactorPanel({
     );
   }
 
-  // AI_SUGGESTED
-  if (effectiveMode === "AI_SUGGESTED" && !editingFactor) {
-    const accepted = state.action.kind === "accept_ai";
-    return (
-      <>
-        <div className="mt-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-            <span className="text-xs text-muted-foreground">
-              <span className="text-foreground">
-                1 {verpakkingNaam} = {ctx.display_factor} {ctx.display_eenheid}
-              </span>
-              {preview && (
-                <>
-                  <span className="text-muted-foreground/70"> · </span>
-                  <span className="text-foreground font-medium">{formatPreview(preview)}</span>
-                </>
-              )}
-            </span>
-            <div className="ml-auto flex items-center gap-1.5">
-              {accepted ? (
-                <span className="inline-flex items-center gap-1 text-xs text-success">
-                  <Check className="h-3 w-3" />
-                  bevestigd
-                </span>
-              ) : (
-                <NestoButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    onChange({ ...state, action: { kind: "accept_ai" } })
-                  }
-                  className="h-7 px-2.5 text-xs"
-                >
-                  Klopt
-                </NestoButton>
-              )}
-              <button
-                type="button"
-                onClick={() => setEditingFactor(true)}
-                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-1"
-              >
-                <Pencil className="h-3 w-3" />
-                Aanpassen
-              </button>
-            </div>
-          </div>
-        </div>
-        {weightStrip}
-      </>
-    );
-  }
-
-  // MANUAL_REQUIRED of editing inline → form
+  // ---------- MANUAL_REQUIRED ----------
   return (
     <>
-      <div className="mt-2 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2.5">
+      <ManualForm
+        title={ctx.manual_reason ?? `Bevestig 1× wat er in een ${verpakkingLabel} zit`}
+        verpakkingLabel={verpakkingLabel}
+        draftAmount={draftAmount}
+        setDraftAmount={setDraftAmount}
+        draftUnit={draftUnit}
+        setDraftUnit={setDraftUnit}
+        onSubmit={submitManual}
+      />
+      {weightStrip}
+    </>
+  );
+}
+
+// ---------- Inline manual form ----------
+interface ManualFormProps {
+  title?: string;
+  verpakkingLabel: string;
+  draftAmount: string;
+  setDraftAmount: (v: string) => void;
+  draftUnit: string;
+  setDraftUnit: (v: string) => void;
+  onCancel?: () => void;
+  onSubmit: () => void;
+}
+
+function ManualForm({
+  title,
+  verpakkingLabel,
+  draftAmount,
+  setDraftAmount,
+  draftUnit,
+  setDraftUnit,
+  onCancel,
+  onSubmit,
+}: ManualFormProps) {
+  return (
+    <div className="mt-2 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2.5">
+      {title && (
         <div className="flex items-center gap-2 mb-2">
           <AlertCircle className="h-3.5 w-3.5 text-warning flex-shrink-0" />
-          <span className="text-xs text-foreground font-medium">
-            {ctx.manual_reason ?? "Verpakking-info nodig"}
-          </span>
-          {editingFactor && (
+          <span className="text-xs text-foreground">{title}</span>
+          {onCancel && (
             <button
               type="button"
-              onClick={() => setEditingFactor(false)}
+              onClick={onCancel}
               className="ml-auto text-xs text-muted-foreground hover:text-foreground"
             >
               annuleer
             </button>
           )}
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-muted-foreground">1 {verpakkingNaam} =</span>
-          <Input
-            type="number"
-            inputMode="decimal"
-            step="any"
-            value={draftAmount}
-            onChange={(e) => setDraftAmount(e.target.value)}
-            placeholder="0"
-            className="h-8 w-20 text-sm text-right tabular-nums"
-          />
-          <Select value={draftUnit} onValueChange={setDraftUnit}>
-            <SelectTrigger className="h-8 w-24 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-[80]">
-              {PACKAGING_UNITS.map((u) => (
-                <SelectItem key={u.value} value={u.value}>
-                  {u.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <NestoButton
-            variant="primary"
-            size="sm"
-            onClick={submitManual}
-            disabled={!draftAmount || Number(draftAmount.replace(",", ".")) <= 0}
-            className={cn("h-8 px-3 text-xs ml-auto")}
-          >
-            Bevestig en onthoud
-          </NestoButton>
-        </div>
+      )}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Vraag-richting: ALTIJD '1 [verpakking] = X [eenheid]' */}
+        <span className="text-xs text-muted-foreground">1 {verpakkingLabel} =</span>
+        <Input
+          type="number"
+          inputMode="decimal"
+          step="any"
+          value={draftAmount}
+          onChange={(e) => setDraftAmount(e.target.value)}
+          placeholder="0"
+          className="h-8 w-20 text-sm text-right tabular-nums"
+        />
+        <Select value={draftUnit} onValueChange={setDraftUnit}>
+          <SelectTrigger className="h-8 w-24 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="z-[80]">
+            {PACKAGING_UNITS.map((u) => (
+              <SelectItem key={u.value} value={u.value}>
+                {u.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <NestoButton
+          variant="primary"
+          size="sm"
+          onClick={onSubmit}
+          disabled={!draftAmount || Number(draftAmount.replace(",", ".")) <= 0}
+          className={cn("h-8 px-3 text-xs ml-auto")}
+        >
+          Bevestig
+        </NestoButton>
       </div>
-      {weightStrip}
-    </>
+    </div>
   );
 }
