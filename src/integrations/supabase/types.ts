@@ -2589,6 +2589,7 @@ export type Database = {
           conversion_confidence: number | null
           conversion_source: string | null
           created_at: string
+          created_by_source: string | null
           density_g_per_ml: number | null
           eenheid: string
           haccp_categorie: Database["public"]["Enums"]["haccp_categorie"] | null
@@ -2622,6 +2623,7 @@ export type Database = {
           conversion_confidence?: number | null
           conversion_source?: string | null
           created_at?: string
+          created_by_source?: string | null
           density_g_per_ml?: number | null
           eenheid: string
           haccp_categorie?:
@@ -2657,6 +2659,7 @@ export type Database = {
           conversion_confidence?: number | null
           conversion_source?: string | null
           created_at?: string
+          created_by_source?: string | null
           density_g_per_ml?: number | null
           eenheid?: string
           haccp_categorie?:

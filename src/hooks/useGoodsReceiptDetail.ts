@@ -10,7 +10,7 @@ import { useUserContext } from "@/contexts/UserContext";
  * Generiek voor elke leverancier — geen hardcoded namen.
  */
 
-export type FactorMode = "CONFIRMED" | "AI_SUGGESTED" | "MANUAL_REQUIRED";
+export type FactorMode = "CONFIRMED" | "AI_SUGGESTED" | "MANUAL_REQUIRED" | "SKIP";
 
 export interface LineFactorContext {
   /** Bestaande supplier-article (indien gevonden in batch) */
@@ -160,25 +160,43 @@ function computeFactorContext(
     ingredient?.base_unit ?? null,
   );
 
-  // Geen ingredient gekoppeld → geen stock-mutatie mogelijk; mode is N/A maar markeer als manual zodat UI 'm flagt
+  const baseCtx = {
+    la_id: la?.id ?? null,
+    la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
+    ai_factor, ai_eenheid, is_weighted,
+    ingredient_base_unit: ingredient?.base_unit ?? null,
+    ingredient_eenheid: ingredient?.eenheid ?? null,
+    display_factor, display_eenheid, verpakking_label,
+  };
+
+  // Loop 4C-FINISH: emballage-regels worden niet meegerekend
+  if (line.status === "emballage_skip") {
+    return { ...baseCtx, mode: "SKIP", manual_reason: null };
+  }
+
   let mode: FactorMode = "MANUAL_REQUIRED";
   let manual_reason: string | null = null;
 
+  // Loop 4C-FINISH: relax — als AI complete data heeft (factor + eenheid)
+  // én de eenheid is bekend, kunnen we AI_SUGGESTED tonen ook zonder
+  // ingredient_id of base_unit. De stock-mutatie zelf vereist alsnog
+  // ingredient_id (server-side check), maar voor de UX-flow telt 'm als klaar.
+  const hasCompleteAi = ai_factor != null && ai_factor > 0 && !!ai_eenheid;
+  const aiUnitKnown = hasCompleteAi && KNOWN_UNITS.has(ai_eenheid!.toLowerCase());
+
   if (!ingredient || !ingredient.base_unit) {
-    manual_reason = "Eerste keer dit product — wat zit erin?";
+    if (aiUnitKnown) {
+      // Geen ingredient gekoppeld maar AI-data compleet → AI_SUGGESTED
+      // (auto-create gebeurt in parse-pakbon; als daar iets misging valt 'ie
+      // alsnog in deze tak — chef ziet rustige one-liner).
+      return { ...baseCtx, mode: "AI_SUGGESTED", manual_reason: null };
+    }
     return {
-      la_id: la?.id ?? null,
-      la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
-      ai_factor, ai_eenheid, is_weighted,
-      ingredient_base_unit: ingredient?.base_unit ?? null,
-      ingredient_eenheid: ingredient?.eenheid ?? null,
-      display_factor, display_eenheid, verpakking_label, mode, manual_reason,
+      ...baseCtx,
+      mode: "MANUAL_REQUIRED",
+      manual_reason: `Bevestig 1× wat er in een ${verpakking_label} zit`,
     };
   }
-
-  // Variable-weight: chef MOET werkelijk gewicht invullen → MANUAL_REQUIRED tot input
-  // (UI handelt dat af met aparte input; mode-bepaling negeert is_weighted hier omdat
-  // factor zelf aanwezig kan zijn, maar de werkelijk_gewicht_g blijft verplicht)
 
   if (la && la_factor && la_eenheid) {
     if (!KNOWN_UNITS.has(la_eenheid.toLowerCase())) {
@@ -192,27 +210,14 @@ function computeFactorContext(
     } else {
       mode = "AI_SUGGESTED";
     }
-  } else if (ai_factor && ai_eenheid) {
-    // Geen la maar wel AI-suggestie → AI_SUGGESTED zodat chef kan accepteren
-    if (!KNOWN_UNITS.has(ai_eenheid.toLowerCase())) {
-      mode = "MANUAL_REQUIRED";
-      manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
-    } else {
-      mode = "AI_SUGGESTED";
-    }
+  } else if (aiUnitKnown) {
+    mode = "AI_SUGGESTED";
   } else {
     mode = "MANUAL_REQUIRED";
     manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
   }
 
-  return {
-    la_id: la?.id ?? null,
-    la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
-    ai_factor, ai_eenheid, is_weighted,
-    ingredient_base_unit: ingredient.base_unit,
-    ingredient_eenheid: ingredient.eenheid,
-    display_factor, display_eenheid, verpakking_label, mode, manual_reason,
-  };
+  return { ...baseCtx, mode, manual_reason };
 }
 
 /**

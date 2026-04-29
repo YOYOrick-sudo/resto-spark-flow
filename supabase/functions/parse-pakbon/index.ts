@@ -28,6 +28,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai.ts";
 import {
   matchIngredientLines,
+  stripPackagingSuffix,
   type MatchableLine,
 } from "../_shared/ingredientMatcher.ts";
 import { extractTextPerPage } from "../_shared/pdf-text.ts";
@@ -846,8 +847,12 @@ serve(async (req) => {
 
   // ===========================================================
   // 8. Bulk insert goods_receipt_lines
-  //    Loop 4C: AI-velden EXPLICIET schrijven + verpakking-label resolven
-  //    via AI verpakking_woord → regex-fallback uit productnaam.
+  //    Loop 4C-FINISH:
+  //      - Emballage-detect (status='emballage_skip', geen voorraad-mutatie)
+  //      - Auto-link via fuzzy_match_ingredient (threshold 0.7)
+  //      - Auto-create ingredient bij volledige AI-data (created_by_source='ai_pakbon')
+  //      - Per-stuk default: ai_package_unit='stuk' & qty=null → qty=1
+  //    Universeel: regex op productnaam-features, geen leverancier-namen.
   // ===========================================================
 
   // Regex pre-pass: NL-verpakking-woorden uit productnaam (universeel, geen
@@ -873,6 +878,173 @@ serve(async (req) => {
     return LABEL_NORMALISE[raw] ?? raw;
   }
 
+  // Emballage-detect: case-insensitive prefix-match. Universeel — werkt op
+  // alle leveranciers. Productnamen zoals "Emballage groot/klap",
+  // "Emballage paddestoelen tray", "EMBALLAGE BAK 50".
+  function isEmballageLine(productNaam: string): boolean {
+    if (!productNaam) return false;
+    return /^\s*emballage\b/i.test(productNaam);
+  }
+
+  // Normaliseer ai_package_unit naar voorraad base_unit voor auto-create.
+  // g→kg, ml→l (consistent met conversion-service).
+  function normalizeBaseUnit(unit: string | null | undefined): string {
+    const u = (unit ?? "").toLowerCase();
+    if (u === "g" || u === "gr" || u === "gram") return "kg";
+    if (u === "ml" || u === "cl" || u === "dl") return "l";
+    if (u === "stuks" || u === "st") return "stuk";
+    if (u === "kg" || u === "l" || u === "stuk") return u;
+    return "stuk"; // veilige fallback
+  }
+
+  // Pas 0: per-stuk default — Koriander/Kool/Paksoi pattern.
+  // Als unit='stuk' en qty=null → qty=1 (impliciet 1 verpakking = 1 stuk).
+  // Veilig: dit is universeel correct voor "per stuk"-producten.
+  for (const r of extractie.regels) {
+    if (
+      (r.verpakking_eenheid ?? "").toLowerCase() === "stuk" &&
+      (r.verpakking_hoeveelheid == null || r.verpakking_hoeveelheid === 0)
+    ) {
+      r.verpakking_hoeveelheid = 1;
+      if (!r.reasoning) {
+        r.reasoning = "Per-stuk default: 1 verpakking = 1 stuk (auto)";
+      }
+    }
+  }
+
+  // Pas 1: fuzzy auto-link voor unmatched regels (skip emballage).
+  const unmatchedFuzzyTargets: { idx: number; cleanNaam: string }[] = [];
+  for (let i = 0; i < extractie.regels.length; i++) {
+    if (matches[i]) continue;
+    const r = extractie.regels[i];
+    if (isEmballageLine(r.product_naam)) continue;
+    const stripped = stripPackagingSuffix(r.product_naam ?? "").trim();
+    const clean = stripped.length >= 3 ? stripped : (r.product_naam ?? "").trim();
+    if (clean.length < 3) continue;
+    unmatchedFuzzyTargets.push({ idx: i, cleanNaam: clean });
+  }
+
+  let fuzzyHits = 0;
+  for (const tgt of unmatchedFuzzyTargets) {
+    try {
+      const { data: cands, error: fzErr } = await supabase.rpc("fuzzy_match_ingredient", {
+        p_location_id: receipt.location_id,
+        p_naam: tgt.cleanNaam,
+      });
+      if (fzErr) {
+        console.warn(`[parse-pakbon][fuzzy] rpc-fail "${tgt.cleanNaam}":`, fzErr.message);
+        continue;
+      }
+      const top = (cands ?? [])[0] as { id: string; naam: string; similarity: number } | undefined;
+      if (top && top.similarity >= 0.7) {
+        matches[tgt.idx] = {
+          ingredient_id: top.id,
+          tier: 4,
+          confidence: top.similarity,
+        } as unknown as (typeof matches)[number];
+        fuzzyHits++;
+        console.log(
+          `[parse-pakbon][fuzzy] "${tgt.cleanNaam}" → ${top.naam} (${top.similarity.toFixed(2)})`,
+        );
+      }
+    } catch (e) {
+      console.warn(`[parse-pakbon][fuzzy] threw "${tgt.cleanNaam}":`, e);
+    }
+  }
+
+  // Pas 2: auto-create voor regels die NA fuzzy nog unmatched zijn én
+  // complete AI-data hebben. Skip emballage.
+  let autoCreated = 0;
+  for (let i = 0; i < extractie.regels.length; i++) {
+    if (matches[i]) continue;
+    const r = extractie.regels[i];
+    if (isEmballageLine(r.product_naam)) continue;
+
+    // Vereisten: productnaam + ai_package_unit
+    const cleanNaam = stripPackagingSuffix(r.product_naam ?? "").trim() ||
+      (r.product_naam ?? "").trim();
+    if (cleanNaam.length < 2) continue;
+    if (!r.verpakking_eenheid) continue;
+
+    const baseUnit = normalizeBaseUnit(r.verpakking_eenheid);
+    const cap = cleanNaam.charAt(0).toUpperCase() + cleanNaam.slice(1);
+
+    try {
+      const { data: created, error: cErr } = await supabase
+        .from("ingredienten")
+        .insert({
+          location_id: receipt.location_id,
+          naam: cap,
+          categorie: "overig",
+          eenheid: baseUnit,
+          base_unit: baseUnit,
+          is_variable_weight: !!r.is_weighted,
+          created_by_source: "ai_pakbon",
+        })
+        .select("id, naam")
+        .single();
+
+      if (cErr) {
+        console.warn(`[parse-pakbon][auto-create] failed "${cap}":`, cErr.message);
+        continue;
+      }
+
+      matches[i] = {
+        ingredient_id: created.id,
+        tier: 4,
+        confidence: 0.5,
+      } as unknown as (typeof matches)[number];
+      autoCreated++;
+
+      // Best-effort: ai_logs entry voor traceerbaarheid (silent fail)
+      try {
+        await supabase.from("ai_logs").insert({
+          location_id: receipt.location_id,
+          feature: "parse_pakbon_auto_create_ingredient",
+          model: "n/a",
+          input_tokens: 0,
+          output_tokens: 0,
+          status: "success",
+          error_message:
+            `auto_created ingredient_id=${created.id} naam="${cap}" ` +
+            `from_raw="${r.product_naam}" base_unit=${baseUnit} ` +
+            `goods_receipt_id=${receipt.id} matched_to_existing=false`,
+        });
+      } catch (_e) {
+        // niet blokkeren
+      }
+
+      console.log(`[parse-pakbon][auto-create] "${cap}" id=${created.id} base_unit=${baseUnit}`);
+
+      // Best-effort: koppel aan leverancier_artikelen (idempotent) zodat
+      // volgende pakbon Tier-2/3 hit krijgt.
+      if (effectiveLeverancierId) {
+        try {
+          const { upsertLeverancierArtikelFromMatch } = await import(
+            "../_shared/factuur-v2/cache.ts"
+          );
+          await upsertLeverancierArtikelFromMatch(supabase, {
+            leverancierId: effectiveLeverancierId,
+            ingredientId: created.id,
+            artikelNummer: (r.artikelnummer ?? "").trim() || null,
+            artikelNaam: r.product_naam,
+            prijsPerEenheid: null,
+            verpakkingEenheid: r.verpakking_eenheid ?? null,
+            verpakkingHoeveelheid: r.verpakking_hoeveelheid ?? null,
+          });
+        } catch (e) {
+          console.warn(`[parse-pakbon][auto-create] la-upsert skipped:`, e);
+        }
+      }
+    } catch (e) {
+      console.warn(`[parse-pakbon][auto-create] threw "${cap}":`, e);
+    }
+  }
+
+  console.log(
+    `[parse-pakbon][loop4c-finish] receipt=${receipt.id} fuzzy_hits=${fuzzyHits} auto_created=${autoCreated}`,
+  );
+
   const lineRows = extractie.regels.map((r, idx) => {
     const hit = matches[idx];
     const conf = r.confidence === "hoog" ? 0.95 : r.confidence === "medium" ? 0.7 : 0.4;
@@ -880,6 +1052,7 @@ serve(async (req) => {
     const aiLabel = (r.verpakking_woord ?? "").trim().toLowerCase() || null;
     const regexLabel = aiLabel ? null : detectPackagingLabel(r.product_naam);
     const aiPackageLabel = aiLabel ?? regexLabel;
+    const isEmballage = isEmballageLine(r.product_naam);
     return {
       goods_receipt_id: receipt.id,
       product_naam_herkend: r.product_naam,
@@ -889,13 +1062,17 @@ serve(async (req) => {
       hoeveelheid_verwacht: r.hoeveelheid_geleverd ?? null,
       eenheid_verwacht: r.verpakking_eenheid ?? null,
       ingredient_id: hit?.ingredient_id ?? null,
-      is_nieuw_ingredient: !hit,
+      is_nieuw_ingredient: !hit && !isEmballage,
       match_status: hit ? "matched" : "unmatched",
       match_confidence: hit ? hit.confidence : null,
       haccp_categorie: r.haccp_categorie ?? null,
       lotnummer: r.lotnummer ?? null,
       tht_datum: r.tht_datum ?? null,
-      status: "verwacht" as const,
+      // Loop 4C-FINISH: emballage-regels krijgen aparte status zodat ze
+      // niet in voorraad-mutatie of counter terechtkomen.
+      status: (isEmballage ? "emballage_skip" : "verwacht") as
+        | "verwacht"
+        | "emballage_skip",
       // Loop 4C ROOT-CAUSE FIX: AI-extractie persist
       ai_per_package_quantity: r.verpakking_hoeveelheid ?? null,
       ai_package_unit: r.verpakking_eenheid ?? null,
