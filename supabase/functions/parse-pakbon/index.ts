@@ -887,14 +887,15 @@ serve(async (req) => {
   }
 
   // Normaliseer ai_package_unit naar voorraad base_unit voor auto-create.
-  // g→kg, ml→l (consistent met conversion-service).
-  function normalizeBaseUnit(unit: string | null | undefined): string {
-    const u = (unit ?? "").toLowerCase();
-    if (u === "g" || u === "gr" || u === "gram") return "kg";
-    if (u === "ml" || u === "cl" || u === "dl") return "l";
-    if (u === "stuks" || u === "st") return "stuk";
-    if (u === "kg" || u === "l" || u === "stuk") return u;
-    return "stuk"; // veilige fallback
+  // DB-constraint: base_unit ∈ {'g','ml','st'}. Alle gewichten → g, alle
+  // volumes → ml, alle stuks → st. Conversie-factoren komen later via
+  // ai_per_package_quantity (bv. 1 fles = 0.7 L = 700 ml).
+  function normalizeBaseUnit(unit: string | null | undefined): "g" | "ml" | "st" {
+    const u = (unit ?? "").toLowerCase().trim();
+    if (u === "g" || u === "gr" || u === "gram" || u === "kg" || u === "kilogram") return "g";
+    if (u === "ml" || u === "cl" || u === "dl" || u === "l" || u === "liter") return "ml";
+    if (u === "st" || u === "stuk" || u === "stuks" || u === "pcs" || u === "piece") return "st";
+    return "st"; // veilige fallback
   }
 
   // Pas 0: per-stuk default — Koriander/Kool/Paksoi pattern.
@@ -967,6 +968,11 @@ serve(async (req) => {
     if (!r.verpakking_eenheid) continue;
 
     const baseUnit = normalizeBaseUnit(r.verpakking_eenheid);
+    // Display-eenheid voor chefs: behoud leverancier-eenheid waar zinvol
+    const displayUnitMap: Record<string, string> = {
+      g: "kg", ml: "l", st: "stuk",
+    };
+    const displayEenheid = displayUnitMap[baseUnit] ?? baseUnit;
     const cap = cleanNaam.charAt(0).toUpperCase() + cleanNaam.slice(1);
 
     try {
@@ -976,7 +982,7 @@ serve(async (req) => {
           location_id: receipt.location_id,
           naam: cap,
           categorie: "overig",
-          eenheid: baseUnit,
+          eenheid: displayEenheid,
           base_unit: baseUnit,
           is_variable_weight: !!r.is_weighted,
           created_by_source: "ai_pakbon",
