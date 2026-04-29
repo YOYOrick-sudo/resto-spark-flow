@@ -30,6 +30,8 @@ export interface LineFactorContext {
   /** Vertoningsfactor + eenheid (eerste niet-null in volgorde la → ai) */
   display_factor: number | null;
   display_eenheid: string | null;
+  /** Loop 4C: verpakking-LABEL ('kist', 'doos', 'pak'…) — nooit de inhoud-eenheid */
+  verpakking_label: string | null;
   /** Eindmodus (server-aligned) */
   mode: FactorMode;
   /** Reden bij MANUAL_REQUIRED voor UX-helper */
