@@ -165,7 +165,7 @@ function LineRow({
               ? state.value.hoeveelheid_ontvangen
               : line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 1) as number
           }
-          verpakkingNaam={line.eenheid_verwacht ?? "verpakking"}
+          
           onChange={onPackagingChange}
           isStockMutation={
             state.kind === "akkoord" ||
