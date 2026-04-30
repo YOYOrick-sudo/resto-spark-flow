@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { LineFactorContext } from "@/hooks/useGoodsReceiptDetail";
+import { computeDeltaPreview, formatPreview } from "@/pages/leveringen/utils/factorPreview";
 
 export type FactorAction =
   | { kind: "none" }
