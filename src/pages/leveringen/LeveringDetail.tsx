@@ -65,6 +65,15 @@ function pluralize(woord: string, aantal: number): string {
   return PLURAL_MAP[lower] ?? woord;
 }
 
+// Loop 4c-polish v2: voorkom dat letterlijk "verpakking" als label opduikt
+// (hook-fallback). Mappen naar "stuk(s)" zodat copy menselijk blijft.
+function safeVerpakking(label: string | null | undefined, aantal: number): string {
+  if (!label || label.toLowerCase() === "verpakking") {
+    return pluralize("stuk", aantal);
+  }
+  return pluralize(label, aantal);
+}
+
 type LineState =
   | { kind: "akkoord" }
   | { kind: "afwijking"; value: AfwijkingValue };
