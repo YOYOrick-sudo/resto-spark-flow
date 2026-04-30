@@ -126,19 +126,11 @@ export function LineFactorPanel({
   // ---------- CONFIRMED of AI_SUGGESTED → 1-regel rustige status ----------
   if (effectiveMode === "CONFIRMED" || effectiveMode === "AI_SUGGESTED") {
     return (
-      <>
+      <div onClick={(e) => e.stopPropagation()}>
         <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
           <Check className="h-3 w-3 text-success" />
           <span className="text-foreground tabular-nums">{formatPreview(preview)}</span>
           <span className="text-muted-foreground/70">op voorraad</span>
-          <button
-            type="button"
-            onClick={() => setEditingFactor(true)}
-            className="ml-auto text-xs text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-1"
-          >
-            <Pencil className="h-3 w-3" />
-            Aanpassen
-          </button>
         </div>
         {editingFactor && (
           <ManualForm
@@ -152,7 +144,7 @@ export function LineFactorPanel({
           />
         )}
         {weightStrip}
-      </>
+      </div>
     );
   }
 
