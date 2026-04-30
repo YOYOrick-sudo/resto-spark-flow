@@ -6,7 +6,7 @@
 // Geen jargon, geen verkeerslicht-emoji's, geen Sparkles-badges.
 
 import * as React from "react";
-import { Check, Pencil, Scale, AlertCircle, X } from "lucide-react";
+import { Check, Scale, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { NestoButton } from "@/components/polar/NestoButton";
