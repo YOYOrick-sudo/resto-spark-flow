@@ -79,6 +79,7 @@ type LineState =
   | { kind: "afwijking"; value: AfwijkingValue };
 
 function LineRow({
+  id,
   line,
   state,
   packagingState,
@@ -87,6 +88,7 @@ function LineRow({
   onResetAkkoord,
   onEditAfwijking,
 }: {
+  id?: string;
   line: GoodsReceiptLineWithIngredient;
   state: LineState;
   packagingState: LinePackagingState;
@@ -136,6 +138,7 @@ function LineRow({
 
   return (
     <div
+      id={id}
       role={canOpenFactor ? "button" : undefined}
       tabIndex={canOpenFactor ? 0 : undefined}
       onClick={canOpenFactor ? handleCardClick : undefined}
