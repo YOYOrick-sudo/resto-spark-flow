@@ -51,7 +51,6 @@ interface Props {
   isStockMutation: boolean;
 }
 
-function previewWithFactor(
 // Helpers verplaatst naar src/pages/leveringen/utils/factorPreview.ts
 
 export function LineFactorPanel({
