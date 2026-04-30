@@ -35,6 +35,11 @@ import {
   type LinePackagingState,
 } from "@/pages/leveringen/components/LineFactorPanel";
 import { nestoToast } from "@/lib/nestoToast";
+import {
+  computeDeltaPreview,
+  formatPreview,
+  formatRawBreakdown,
+} from "@/pages/leveringen/utils/factorPreview";
 
 type LineState =
   | { kind: "akkoord" }
