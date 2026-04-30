@@ -35,11 +35,28 @@ import {
   type LinePackagingState,
 } from "@/pages/leveringen/components/LineFactorPanel";
 import { nestoToast } from "@/lib/nestoToast";
-import {
-  computeDeltaPreview,
-  formatPreview,
-  formatRawBreakdown,
-} from "@/pages/leveringen/utils/factorPreview";
+
+// Loop 4c: Nederlandse pluralisering voor verpakking-woorden.
+// Bekend → expliciet plural; onbekend → raw woord (geen geforceerde -s).
+const PLURAL_MAP: Record<string, string> = {
+  doos: "dozen",
+  kist: "kisten",
+  zak: "zakken",
+  pak: "pakken",
+  bak: "bakken",
+  tray: "trays",
+  krat: "kratten",
+  stuk: "stuks",
+  fles: "flessen",
+  rol: "rollen",
+  emmer: "emmers",
+};
+function pluralize(woord: string, aantal: number): string {
+  if (!woord) return "";
+  if (aantal === 1) return woord;
+  const lower = woord.toLowerCase();
+  return PLURAL_MAP[lower] ?? woord;
+}
 
 type LineState =
   | { kind: "akkoord" }
