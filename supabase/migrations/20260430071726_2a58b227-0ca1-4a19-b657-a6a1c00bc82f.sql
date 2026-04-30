@@ -1,0 +1,1 @@
+ALTER TYPE goods_receipt_line_status ADD VALUE IF NOT EXISTS 'emballage_skip';
