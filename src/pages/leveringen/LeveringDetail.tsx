@@ -113,9 +113,32 @@ function LineRow({
           <p className="font-medium text-foreground leading-snug">
             {line.product_naam_herkend}
           </p>
-          <span className="text-small text-muted-foreground whitespace-nowrap">
-            {line.hoeveelheid_verwacht ?? "?"} {line.eenheid_verwacht ?? ""}
-          </span>
+          {(() => {
+            const ctx = line.factor_ctx;
+            const aantal = (line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 0) as number;
+            // SKIP (emballage) of geen factor → raw weergave
+            if (ctx.mode === "SKIP" || !ctx.display_factor) {
+              return (
+                <span className="text-small text-muted-foreground whitespace-nowrap tabular-nums">
+                  {line.hoeveelheid_verwacht ?? "?"} {line.eenheid_verwacht ?? ""}
+                </span>
+              );
+            }
+            const preview = computeDeltaPreview(
+              ctx,
+              packagingState,
+              aantal,
+            );
+            const breakdown = formatRawBreakdown(ctx, aantal);
+            return (
+              <span
+                className="text-small text-foreground whitespace-nowrap tabular-nums font-medium"
+                title={breakdown ? `${breakdown} op voorraad` : undefined}
+              >
+                {formatPreview(preview)} op voorraad
+              </span>
+            );
+          })()}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
