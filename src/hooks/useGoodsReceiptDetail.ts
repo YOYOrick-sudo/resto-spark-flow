@@ -169,6 +169,24 @@ function computeFactorContext(
     display_factor, display_eenheid, verpakking_label,
   };
 
+  // DEBUG (issue 1) — verwijder na fix
+  const _dbg = (mode: FactorMode, branch: string, manual_reason: string | null) => {
+    // eslint-disable-next-line no-console
+    console.log("[factor_ctx]", {
+      product: line.product_naam_herkend,
+      ingredient_id: line.ingredient_id,
+      base_unit: ingredient?.base_unit ?? null,
+      ai_per_package_quantity: ai_factor,
+      ai_package_unit: ai_eenheid,
+      la,
+      la_count,
+      aiUnitKnown,
+      mode,
+      branch,
+      manual_reason,
+    });
+  };
+
   // Loop 4C-FINISH: emballage-regels worden niet meegerekend
   if (line.status === "emballage_skip") {
     return { ...baseCtx, mode: "SKIP", manual_reason: null };
@@ -186,11 +204,10 @@ function computeFactorContext(
 
   if (!ingredient || !ingredient.base_unit) {
     if (aiUnitKnown) {
-      // Geen ingredient gekoppeld maar AI-data compleet → AI_SUGGESTED
-      // (auto-create gebeurt in parse-pakbon; als daar iets misging valt 'ie
-      // alsnog in deze tak — chef ziet rustige one-liner).
+      _dbg("AI_SUGGESTED", "no-ingredient + aiUnitKnown", null);
       return { ...baseCtx, mode: "AI_SUGGESTED", manual_reason: null };
     }
+    _dbg("MANUAL_REQUIRED", "no-ingredient + ai-unknown", `Bevestig 1× wat er in een ${verpakking_label} zit`);
     return {
       ...baseCtx,
       mode: "MANUAL_REQUIRED",
@@ -198,25 +215,33 @@ function computeFactorContext(
     };
   }
 
+  let branch = "";
   if (la && la_factor && la_eenheid) {
     if (!KNOWN_UNITS.has(la_eenheid.toLowerCase())) {
       mode = "MANUAL_REQUIRED";
       manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
+      branch = "la-unit-unknown";
     } else if (la_source === "unknown") {
       mode = "MANUAL_REQUIRED";
       manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
+      branch = "la-source-unknown";
     } else if (la_count >= 3 && (la_source === "user" || la_source === "ai_confirmed")) {
       mode = "CONFIRMED";
+      branch = "la-confirmed-3plus";
     } else {
       mode = "AI_SUGGESTED";
+      branch = "la-suggested";
     }
   } else if (aiUnitKnown) {
     mode = "AI_SUGGESTED";
+    branch = "no-la + aiUnitKnown";
   } else {
     mode = "MANUAL_REQUIRED";
     manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
+    branch = "no-la + ai-unknown";
   }
 
+  _dbg(mode, branch, manual_reason);
   return { ...baseCtx, mode, manual_reason };
 }
 
