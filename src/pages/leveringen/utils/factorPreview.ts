@@ -52,6 +52,9 @@ export function computeDeltaPreview(
   if (state.action.kind === "manual" && state.action.hoeveelheid && state.action.eenheid) {
     return previewWithFactor(state.action.hoeveelheid, state.action.eenheid, aantal, ctx);
   }
+  // Loop 4c: bij MANUAL_REQUIRED zonder chef-input is er geen betrouwbare
+  // preview — toon niets (chef moet eerst bevestigen).
+  if (ctx.mode === "MANUAL_REQUIRED") return null;
   const f = ctx.la_factor ?? ctx.ai_factor;
   const u = ctx.la_eenheid ?? ctx.ai_eenheid;
   if (!f || !u) return null;
