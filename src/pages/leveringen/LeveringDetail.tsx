@@ -723,6 +723,7 @@ export default function LeveringDetail() {
               return (
                 <LineRow
                   key={line.id}
+                  id={`line-${line.id}`}
                   line={line}
                   state={state}
                   packagingState={pkg}
