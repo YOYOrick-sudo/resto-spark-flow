@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { DetailPageLayout } from "@/components/polar/DetailPageLayout";
-import { NestoButton } from "@/components/polar/NestoButton";
+
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import { CardSkeleton } from "@/components/polar/LoadingStates";
 import { EmptyState } from "@/components/polar/EmptyState";
@@ -41,6 +41,7 @@ import {
   LineFactorPanel,
   type LinePackagingState,
 } from "@/pages/leveringen/components/LineFactorPanel";
+import { LeveringConfirmCard } from "@/pages/leveringen/components/LeveringConfirmCard";
 import { nestoToast } from "@/lib/nestoToast";
 
 // Loop 4c: Nederlandse pluralisering voor verpakking-woorden.
@@ -79,6 +80,7 @@ type LineState =
   | { kind: "afwijking"; value: AfwijkingValue };
 
 function LineRow({
+  id,
   line,
   state,
   packagingState,
@@ -87,6 +89,7 @@ function LineRow({
   onResetAkkoord,
   onEditAfwijking,
 }: {
+  id?: string;
   line: GoodsReceiptLineWithIngredient;
   state: LineState;
   packagingState: LinePackagingState;
@@ -136,6 +139,7 @@ function LineRow({
 
   return (
     <div
+      id={id}
       role={canOpenFactor ? "button" : undefined}
       tabIndex={canOpenFactor ? 0 : undefined}
       onClick={canOpenFactor ? handleCardClick : undefined}
@@ -638,7 +642,7 @@ export default function LeveringDetail() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-40">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <DetailPageLayout
         title={data.leverancier?.naam ?? "Levering"}
         backHref="/leveringen"
@@ -719,6 +723,7 @@ export default function LeveringDetail() {
               return (
                 <LineRow
                   key={line.id}
+                  id={`line-${line.id}`}
                   line={line}
                   state={state}
                   packagingState={pkg}
@@ -826,74 +831,43 @@ export default function LeveringDetail() {
             </div>
           </section>
         )}
-      </DetailPageLayout>
 
-      {/* Sticky bottom-bar met confirm-button + 3-counter */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 sm:p-5 z-30">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <div className="hidden sm:flex flex-col gap-0.5">
-            <span className="text-small text-foreground font-medium">
-              {akkoord} van {totalLines} regels akkoord
-            </span>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                {factorBuckets.confirmed} bevestigd
-              </span>
-              <span className="text-muted-foreground/50">·</span>
-              <span className="inline-flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                {factorBuckets.unconfirmed} onbevestigd
-              </span>
-              <span className="text-muted-foreground/50">·</span>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1",
-                  factorBuckets.manualRequired > 0 && "text-warning font-medium",
-                )}
-              >
-                <span
-                  className={cn(
-                    "h-1.5 w-1.5 rounded-full",
-                    factorBuckets.manualRequired > 0 ? "bg-warning" : "bg-muted-foreground/40",
-                  )}
-                />
-                {factorBuckets.manualRequired} vereist invoer
-              </span>
-            </div>
-            {helperText && (
-              <span
-                className={cn(
-                  "text-xs mt-0.5",
-                  factorBlocking || !risicogroepOK ? "text-warning" : "text-muted-foreground",
-                )}
-              >
-                {helperText}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-col items-end gap-1 flex-1 sm:flex-none">
-            <NestoButton
-              onClick={handleConfirm}
-              disabled={!canConfirm}
-              className="min-h-[60px] px-8 text-base w-full sm:w-auto sm:min-w-[280px]"
-            >
-              <Check className="h-5 w-5 mr-2" />
-              {confirmMutation.isPending ? "Bevestigen…" : "Bevestig levering"}
-            </NestoButton>
-            {helperText && (
-              <span
-                className={cn(
-                  "sm:hidden text-xs text-right",
-                  factorBlocking || !risicogroepOK ? "text-warning" : "text-muted-foreground",
-                )}
-              >
-                {helperText}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+        {/* Loop 4c-finalize: inline confirm-card als laatste sectie */}
+        <LeveringConfirmCard
+          state={
+            factorBlocking
+              ? "wacht"
+              : totalLines > 0 && akkoord === 0
+              ? "alles_afwijking"
+              : "klaar"
+          }
+          totalLines={totalLines}
+          akkoord={akkoord}
+          afwijking={afwijking}
+          manualRequired={factorBuckets.manualRequired}
+          helperText={helperText}
+          isPending={confirmMutation.isPending}
+          isDisabled={!canConfirm}
+          onConfirm={handleConfirm}
+          onJumpToFirstOpen={() => {
+            const first = stockLines.find((l) => {
+              const st = lineStates.get(l.id) ?? { kind: "akkoord" as const };
+              const pkg = packagingStates.get(l.id);
+              const isStock =
+                st.kind === "akkoord" ||
+                (st.kind === "afwijking" && !!st.value.accepted_with_issue);
+              if (!isStock) return false;
+              if (l.factor_ctx.is_weighted && (!pkg || pkg.werkelijk_gewicht_g == null)) return true;
+              if (l.factor_ctx.mode === "MANUAL_REQUIRED" && (!pkg || pkg.action.kind === "none")) return true;
+              return false;
+            });
+            if (first) {
+              const el = document.getElementById(`line-${first.id}`);
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }}
+        />
+      </DetailPageLayout>
 
       {/* Afwijking modal */}
       {editingLine && (
