@@ -684,25 +684,28 @@ export default function LeveringDetail() {
 
         {/* Regels */}
         <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center mb-3">
             <h2 className="text-h3 text-foreground flex items-center gap-2">
               <Package className="h-4 w-4 text-muted-foreground" />
               Regels
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Info over regels"
+                      className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    Alles staat standaard akkoord. Tik op een regel om een afwijking te markeren.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </h2>
-            <div className="text-small text-muted-foreground">
-              <span className="text-success font-medium">{akkoord} akkoord</span>
-              {afwijking > 0 && (
-                <>
-                  {" · "}
-                  <span className="text-warning font-medium">{afwijking} afwijking</span>
-                </>
-              )}
-            </div>
           </div>
-
-          <p className="text-small text-muted-foreground mb-3">
-            Alles staat standaard akkoord. Tik op een regel om een afwijking te markeren.
-          </p>
 
           {/* Loop 4c: stock-regels eerst, daarna emballage onder een sectie-header. */}
           <div className="space-y-2">
