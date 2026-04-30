@@ -151,7 +151,7 @@ export function LineFactorPanel({
   // ---------- USER_OVERRIDE: chef heeft handmatig ingevuld ----------
   if (effectiveMode === "USER_OVERRIDE" && state.action.kind === "manual") {
     return (
-      <>
+      <div onClick={(e) => e.stopPropagation()}>
         <div className="mt-1.5 flex items-center gap-2 text-xs flex-wrap">
           <Check className="h-3 w-3 text-success" />
           <span className="text-foreground tabular-nums">
@@ -169,13 +169,13 @@ export function LineFactorPanel({
           </button>
         </div>
         {weightStrip}
-      </>
+      </div>
     );
   }
 
   // ---------- MANUAL_REQUIRED ----------
   return (
-    <>
+    <div onClick={(e) => e.stopPropagation()}>
       <ManualForm
         title={ctx.manual_reason ?? `Bevestig 1× wat er in een ${verpakkingLabel} zit`}
         verpakkingLabel={verpakkingLabel}
@@ -186,7 +186,7 @@ export function LineFactorPanel({
         onSubmit={submitManual}
       />
       {weightStrip}
-    </>
+    </div>
   );
 }
 
