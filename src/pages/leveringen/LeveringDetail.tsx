@@ -118,33 +118,54 @@ function LineRow({
           <p className="font-medium text-foreground leading-snug">
             {line.product_naam_herkend}
           </p>
-          {(() => {
-            const ctx = line.factor_ctx;
-            const aantal = (line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 0) as number;
-            // SKIP (emballage) of geen factor → raw weergave
-            if (ctx.mode === "SKIP" || !ctx.display_factor) {
-              return (
-                <span className="text-small text-muted-foreground whitespace-nowrap tabular-nums">
-                  {line.hoeveelheid_verwacht ?? "?"} {line.eenheid_verwacht ?? ""}
-                </span>
-              );
-            }
-            const preview = computeDeltaPreview(
-              ctx,
-              packagingState,
-              aantal,
-            );
-            const breakdown = formatRawBreakdown(ctx, aantal);
-            return (
-              <span
-                className="text-small text-foreground whitespace-nowrap tabular-nums font-medium"
-                title={breakdown ? `${breakdown} op voorraad` : undefined}
-              >
-                {formatPreview(preview)} op voorraad
-              </span>
-            );
-          })()}
+          {/* Loop 4c: rechts-boven = neutrale pakbon-anker (raw qty + eenheid).
+              Voorraad-impact verhuisd naar besteld-regel hieronder + LineFactorPanel. */}
+          <span className="text-small text-muted-foreground whitespace-nowrap tabular-nums">
+            {line.hoeveelheid_verwacht ?? "?"} {line.eenheid_verwacht ?? ""}
+          </span>
         </div>
+
+        {/* Loop 4c: besteld-regel — wat er feitelijk besteld is incl. factor.
+            Dimmed bij MANUAL_REQUIRED (factor nog niet bevestigd). */}
+        {(() => {
+          const ctx = line.factor_ctx;
+          const aantal = (line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 0) as number;
+          const eenheid = line.eenheid_verwacht ?? "";
+          const verpakkingLabel = ctx.verpakking_label;
+          const factor = ctx.display_factor;
+          const factorEenheid = ctx.display_eenheid;
+          const baseUnit = ctx.ingredient_base_unit;
+
+          // Per-stuk: base_unit='st' én factor=1 → "{aantal} stuks"
+          const isPerStuk =
+            baseUnit === "st" && (factor === 1 || factor == null);
+
+          let label: string | null = null;
+          if (ctx.mode === "SKIP") {
+            label = `${aantal} ${eenheid}`.trim();
+          } else if (isPerStuk) {
+            label = `${aantal} ${pluralize(eenheid || "stuk", aantal)}`;
+          } else if (verpakkingLabel && factor && factorEenheid) {
+            label = `${aantal} ${pluralize(verpakkingLabel, aantal)} × ${factor} ${factorEenheid}`;
+          } else if (verpakkingLabel) {
+            label = `${aantal} ${pluralize(verpakkingLabel, aantal)}`;
+          } else {
+            label = `${aantal} ${eenheid}`.trim();
+          }
+
+          const isUnconfirmed = ctx.mode === "MANUAL_REQUIRED";
+          return (
+            <p
+              className={cn(
+                "text-xs tabular-nums mb-1",
+                isUnconfirmed ? "text-muted-foreground/70 italic" : "text-muted-foreground",
+              )}
+            >
+              {label}
+              {isUnconfirmed && " · factor nog te bevestigen"}
+            </p>
+          );
+        })()}
 
         <div className="flex items-center gap-2 flex-wrap">
           {line.ai_raw_artikelnummer && (
