@@ -61,51 +61,53 @@ export function LeveringConfirmCard({
   return (
     <section
       aria-live="polite"
-      className={cn("rounded-2xl border p-6 mt-2", config.borderClass)}
+      className={cn("rounded-2xl border p-5 mt-2", config.borderClass)}
     >
-      <div className="flex items-start gap-3 mb-4">
-        <Icon
-          className={cn("h-5 w-5 flex-shrink-0 mt-0.5", config.iconClass)}
-          aria-hidden="true"
-        />
-        <div className="flex-1 min-w-0">
-          <h3 className="text-h3 text-foreground">{config.title}</h3>
-          <p className="text-small text-muted-foreground mt-1">
-            {config.subtitle}
-          </p>
-          {state === "wacht" && onJumpToFirstOpen && (
-            <button
-              type="button"
-              onClick={onJumpToFirstOpen}
-              className="inline-flex items-center gap-1 mt-2 text-small text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-            >
-              <ArrowDown className="h-3.5 w-3.5" />
-              Spring naar eerste open regel
-            </button>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <Icon
+            className={cn("h-5 w-5 flex-shrink-0 mt-0.5", config.iconClass)}
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
+            <h3 className="text-h3 text-foreground">{config.title}</h3>
+            <p className="text-small text-muted-foreground mt-1">
+              {config.subtitle}
+            </p>
+            {state === "wacht" && onJumpToFirstOpen && (
+              <button
+                type="button"
+                onClick={onJumpToFirstOpen}
+                className="inline-flex items-center gap-1 mt-2 text-small text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+                Spring naar eerste open regel
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center sm:items-end gap-1 sm:flex-shrink-0 w-full sm:w-auto">
+          <NestoButton
+            onClick={onConfirm}
+            disabled={isDisabled}
+            aria-disabled={isDisabled}
+            variant={state === "alles_afwijking" ? "danger" : "primary"}
+            className="min-h-[48px] px-6 text-base w-full sm:w-auto sm:min-w-[220px]"
+          >
+            {isPending ? (
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" aria-hidden="true" />
+            ) : (
+              <Check className="h-5 w-5 mr-2" aria-hidden="true" />
+            )}
+            {isPending ? "Bevestigen…" : "Bevestig levering"}
+          </NestoButton>
+          {helperText && (
+            <span className="text-xs text-muted-foreground text-center sm:text-right">
+              {helperText}
+            </span>
           )}
         </div>
-      </div>
-
-      <div className="border-t border-border/60 pt-4 flex flex-col items-stretch sm:items-end gap-2">
-        <NestoButton
-          onClick={onConfirm}
-          disabled={isDisabled}
-          aria-disabled={isDisabled}
-          variant={state === "alles_afwijking" ? "danger" : "primary"}
-          className="min-h-[60px] px-8 text-base w-full sm:w-auto sm:min-w-[280px]"
-        >
-          {isPending ? (
-            <Loader2 className="h-5 w-5 mr-2 animate-spin" aria-hidden="true" />
-          ) : (
-            <Check className="h-5 w-5 mr-2" aria-hidden="true" />
-          )}
-          {isPending ? "Bevestigen…" : "Bevestig levering"}
-        </NestoButton>
-        {helperText && (
-          <span className="text-xs text-muted-foreground sm:text-right">
-            {helperText}
-          </span>
-        )}
       </div>
     </section>
   );
