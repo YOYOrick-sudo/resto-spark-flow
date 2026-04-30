@@ -35,11 +35,28 @@ import {
   type LinePackagingState,
 } from "@/pages/leveringen/components/LineFactorPanel";
 import { nestoToast } from "@/lib/nestoToast";
-import {
-  computeDeltaPreview,
-  formatPreview,
-  formatRawBreakdown,
-} from "@/pages/leveringen/utils/factorPreview";
+
+// Loop 4c: Nederlandse pluralisering voor verpakking-woorden.
+// Bekend → expliciet plural; onbekend → raw woord (geen geforceerde -s).
+const PLURAL_MAP: Record<string, string> = {
+  doos: "dozen",
+  kist: "kisten",
+  zak: "zakken",
+  pak: "pakken",
+  bak: "bakken",
+  tray: "trays",
+  krat: "kratten",
+  stuk: "stuks",
+  fles: "flessen",
+  rol: "rollen",
+  emmer: "emmers",
+};
+function pluralize(woord: string, aantal: number): string {
+  if (!woord) return "";
+  if (aantal === 1) return woord;
+  const lower = woord.toLowerCase();
+  return PLURAL_MAP[lower] ?? woord;
+}
 
 type LineState =
   | { kind: "akkoord" }
@@ -118,33 +135,54 @@ function LineRow({
           <p className="font-medium text-foreground leading-snug">
             {line.product_naam_herkend}
           </p>
-          {(() => {
-            const ctx = line.factor_ctx;
-            const aantal = (line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 0) as number;
-            // SKIP (emballage) of geen factor → raw weergave
-            if (ctx.mode === "SKIP" || !ctx.display_factor) {
-              return (
-                <span className="text-small text-muted-foreground whitespace-nowrap tabular-nums">
-                  {line.hoeveelheid_verwacht ?? "?"} {line.eenheid_verwacht ?? ""}
-                </span>
-              );
-            }
-            const preview = computeDeltaPreview(
-              ctx,
-              packagingState,
-              aantal,
-            );
-            const breakdown = formatRawBreakdown(ctx, aantal);
-            return (
-              <span
-                className="text-small text-foreground whitespace-nowrap tabular-nums font-medium"
-                title={breakdown ? `${breakdown} op voorraad` : undefined}
-              >
-                {formatPreview(preview)} op voorraad
-              </span>
-            );
-          })()}
+          {/* Loop 4c: rechts-boven = neutrale pakbon-anker (raw qty + eenheid).
+              Voorraad-impact verhuisd naar besteld-regel hieronder + LineFactorPanel. */}
+          <span className="text-small text-muted-foreground whitespace-nowrap tabular-nums">
+            {line.hoeveelheid_verwacht ?? "?"} {line.eenheid_verwacht ?? ""}
+          </span>
         </div>
+
+        {/* Loop 4c: besteld-regel — wat er feitelijk besteld is incl. factor.
+            Dimmed bij MANUAL_REQUIRED (factor nog niet bevestigd). */}
+        {(() => {
+          const ctx = line.factor_ctx;
+          const aantal = (line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 0) as number;
+          const eenheid = line.eenheid_verwacht ?? "";
+          const verpakkingLabel = ctx.verpakking_label;
+          const factor = ctx.display_factor;
+          const factorEenheid = ctx.display_eenheid;
+          const baseUnit = ctx.ingredient_base_unit;
+
+          // Per-stuk: base_unit='st' én factor=1 → "{aantal} stuks"
+          const isPerStuk =
+            baseUnit === "st" && (factor === 1 || factor == null);
+
+          let label: string | null = null;
+          if (ctx.mode === "SKIP") {
+            label = `${aantal} ${eenheid}`.trim();
+          } else if (isPerStuk) {
+            label = `${aantal} ${pluralize(eenheid || "stuk", aantal)}`;
+          } else if (verpakkingLabel && factor && factorEenheid) {
+            label = `${aantal} ${pluralize(verpakkingLabel, aantal)} × ${factor} ${factorEenheid}`;
+          } else if (verpakkingLabel) {
+            label = `${aantal} ${pluralize(verpakkingLabel, aantal)}`;
+          } else {
+            label = `${aantal} ${eenheid}`.trim();
+          }
+
+          const isUnconfirmed = ctx.mode === "MANUAL_REQUIRED";
+          return (
+            <p
+              className={cn(
+                "text-xs tabular-nums mb-1",
+                isUnconfirmed ? "text-muted-foreground/70 italic" : "text-muted-foreground",
+              )}
+            >
+              {label}
+              {isUnconfirmed && " · factor nog te bevestigen"}
+            </p>
+          );
+        })()}
 
         <div className="flex items-center gap-2 flex-wrap">
           {line.ai_raw_artikelnummer && (
@@ -622,28 +660,9 @@ export default function LeveringDetail() {
             Alles staat standaard akkoord. Tik op een regel om een afwijking te markeren.
           </p>
 
+          {/* Loop 4c: stock-regels eerst, daarna emballage onder een sectie-header. */}
           <div className="space-y-2">
-            {data.lines.map((line) => {
-              if (line.factor_ctx.mode === "SKIP") {
-                // Loop 4C-FINISH: emballage-regels — gedempt, geen factor-panel,
-                // geen checkbox. Chef ziet wel dat 't op de pakbon stond.
-                return (
-                  <div
-                    key={line.id}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/20 opacity-60"
-                  >
-                    <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-small text-muted-foreground line-clamp-1">
-                        {line.product_naam_herkend}
-                      </p>
-                      <p className="text-xs text-muted-foreground/70">
-                        emballage — niet meegerekend
-                      </p>
-                    </div>
-                  </div>
-                );
-              }
+            {stockLines.map((line) => {
               const state = lineStates.get(line.id) ?? { kind: "akkoord" as const };
               const pkg =
                 packagingStates.get(line.id) ?? {
@@ -664,6 +683,32 @@ export default function LeveringDetail() {
               );
             })}
           </div>
+
+          {skipLines.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Niet meegerekend ({skipLines.length})
+              </h3>
+              <div className="space-y-2">
+                {skipLines.map((line) => (
+                  <div
+                    key={line.id}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/20 opacity-60"
+                  >
+                    <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-small text-muted-foreground line-clamp-1">
+                        {line.product_naam_herkend}
+                      </p>
+                      <p className="text-xs text-muted-foreground/70">
+                        emballage — niet meegerekend
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Temperatuur-secties */}
