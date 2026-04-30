@@ -32,6 +32,7 @@ export interface LinePackagingState {
 }
 
 const PACKAGING_UNITS = [
+  { value: "stuk", label: "stuk" },
   { value: "stuks", label: "stuks" },
   { value: "g", label: "g" },
   { value: "kg", label: "kg" },
