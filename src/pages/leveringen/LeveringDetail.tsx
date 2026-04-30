@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { DetailPageLayout } from "@/components/polar/DetailPageLayout";
-import { NestoButton } from "@/components/polar/NestoButton";
+
 import { NestoBadge } from "@/components/polar/NestoBadge";
 import { CardSkeleton } from "@/components/polar/LoadingStates";
 import { EmptyState } from "@/components/polar/EmptyState";
