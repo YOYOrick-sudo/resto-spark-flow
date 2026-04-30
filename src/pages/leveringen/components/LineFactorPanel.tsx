@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { LineFactorContext } from "@/hooks/useGoodsReceiptDetail";
+import { computeDeltaPreview, formatPreview } from "@/pages/leveringen/utils/factorPreview";
 
 export type FactorAction =
   | { kind: "none" }
@@ -32,6 +33,7 @@ export interface LinePackagingState {
 }
 
 const PACKAGING_UNITS = [
+  { value: "stuk", label: "stuk" },
   { value: "stuks", label: "stuks" },
   { value: "g", label: "g" },
   { value: "kg", label: "kg" },
@@ -49,62 +51,7 @@ interface Props {
   isStockMutation: boolean;
 }
 
-function previewWithFactor(
-  factor: number,
-  eenheid: string,
-  aantal: number,
-  ctx: LineFactorContext,
-): { value: number; unit: string } | null {
-  const u = eenheid.toLowerCase();
-  const total = factor * aantal;
-  if (u === "stuk" || u === "stuks" || u === "st") return { value: total, unit: "stuks" };
-  if (u === "g")
-    return ctx.ingredient_base_unit === "kg"
-      ? { value: +(total / 1000).toFixed(3), unit: "kg" }
-      : { value: total, unit: "g" };
-  if (u === "kg")
-    return ctx.ingredient_base_unit === "g"
-      ? { value: total * 1000, unit: "g" }
-      : { value: total, unit: "kg" };
-  if (u === "ml")
-    return ctx.ingredient_base_unit === "l"
-      ? { value: +(total / 1000).toFixed(3), unit: "l" }
-      : { value: total, unit: "ml" };
-  if (u === "l")
-    return ctx.ingredient_base_unit === "ml"
-      ? { value: total * 1000, unit: "ml" }
-      : { value: total, unit: "l" };
-  return { value: total, unit: u };
-}
-
-function computeDeltaPreview(
-  ctx: LineFactorContext,
-  state: LinePackagingState,
-  aantal: number,
-): { value: number; unit: string } | null {
-  if (ctx.is_weighted) {
-    if (state.werkelijk_gewicht_g == null || state.werkelijk_gewicht_g <= 0) return null;
-    const totalG = state.werkelijk_gewicht_g * aantal;
-    if (ctx.ingredient_base_unit === "g") return { value: totalG, unit: "g" };
-    if (ctx.ingredient_base_unit === "kg")
-      return { value: +(totalG / 1000).toFixed(3), unit: "kg" };
-    return { value: totalG, unit: "g" };
-  }
-  if (state.action.kind === "manual") {
-    return previewWithFactor(state.action.hoeveelheid, state.action.eenheid, aantal, ctx);
-  }
-  const f = ctx.la_factor ?? ctx.ai_factor;
-  const u = ctx.la_eenheid ?? ctx.ai_eenheid;
-  if (!f || !u) return null;
-  return previewWithFactor(f, u, aantal, ctx);
-}
-
-function formatPreview(p: { value: number; unit: string } | null): string {
-  if (!p) return "—";
-  const v =
-    Number.isInteger(p.value) ? String(p.value) : p.value.toFixed(p.value < 10 ? 2 : 1);
-  return `+${v} ${p.unit}`;
-}
+// Helpers verplaatst naar src/pages/leveringen/utils/factorPreview.ts
 
 export function LineFactorPanel({
   ctx,
