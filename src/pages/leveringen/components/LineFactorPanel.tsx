@@ -6,7 +6,7 @@
 // Geen jargon, geen verkeerslicht-emoji's, geen Sparkles-badges.
 
 import * as React from "react";
-import { Check, Pencil, Scale, AlertCircle, X } from "lucide-react";
+import { Check, Scale, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { NestoButton } from "@/components/polar/NestoButton";
@@ -49,6 +49,9 @@ interface Props {
   onChange: (next: LinePackagingState) => void;
   /** True als regel akkoord/accepted is — anders factor irrelevant */
   isStockMutation: boolean;
+  /** Loop 4c-polish v2: edit-state lifted naar parent zodat card-click 'm kan openen */
+  editingFactor?: boolean;
+  onEditingFactorChange?: (v: boolean) => void;
 }
 
 // Helpers verplaatst naar src/pages/leveringen/utils/factorPreview.ts
@@ -59,9 +62,13 @@ export function LineFactorPanel({
   aantalVerpakkingen,
   onChange,
   isStockMutation,
+  editingFactor: editingFactorProp,
+  onEditingFactorChange,
 }: Props) {
   const verpakkingLabel = ctx.verpakking_label;
-  const [editingFactor, setEditingFactor] = React.useState(false);
+  const [editingFactorLocal, setEditingFactorLocal] = React.useState(false);
+  const editingFactor = editingFactorProp ?? editingFactorLocal;
+  const setEditingFactor = onEditingFactorChange ?? setEditingFactorLocal;
   const [draftAmount, setDraftAmount] = React.useState<string>(
     ctx.display_factor != null ? String(ctx.display_factor) : "",
   );
@@ -119,19 +126,11 @@ export function LineFactorPanel({
   // ---------- CONFIRMED of AI_SUGGESTED → 1-regel rustige status ----------
   if (effectiveMode === "CONFIRMED" || effectiveMode === "AI_SUGGESTED") {
     return (
-      <>
+      <div onClick={(e) => e.stopPropagation()}>
         <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
           <Check className="h-3 w-3 text-success" />
           <span className="text-foreground tabular-nums">{formatPreview(preview)}</span>
           <span className="text-muted-foreground/70">op voorraad</span>
-          <button
-            type="button"
-            onClick={() => setEditingFactor(true)}
-            className="ml-auto text-xs text-muted-foreground/80 hover:text-foreground inline-flex items-center gap-1"
-          >
-            <Pencil className="h-3 w-3" />
-            Aanpassen
-          </button>
         </div>
         {editingFactor && (
           <ManualForm
@@ -145,14 +144,14 @@ export function LineFactorPanel({
           />
         )}
         {weightStrip}
-      </>
+      </div>
     );
   }
 
   // ---------- USER_OVERRIDE: chef heeft handmatig ingevuld ----------
   if (effectiveMode === "USER_OVERRIDE" && state.action.kind === "manual") {
     return (
-      <>
+      <div onClick={(e) => e.stopPropagation()}>
         <div className="mt-1.5 flex items-center gap-2 text-xs flex-wrap">
           <Check className="h-3 w-3 text-success" />
           <span className="text-foreground tabular-nums">
@@ -170,13 +169,13 @@ export function LineFactorPanel({
           </button>
         </div>
         {weightStrip}
-      </>
+      </div>
     );
   }
 
   // ---------- MANUAL_REQUIRED ----------
   return (
-    <>
+    <div onClick={(e) => e.stopPropagation()}>
       <ManualForm
         title={ctx.manual_reason ?? `Bevestig 1× wat er in een ${verpakkingLabel} zit`}
         verpakkingLabel={verpakkingLabel}
@@ -187,7 +186,7 @@ export function LineFactorPanel({
         onSubmit={submitManual}
       />
       {weightStrip}
-    </>
+    </div>
   );
 }
 

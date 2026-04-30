@@ -11,7 +11,14 @@ import {
   Truck,
   X,
   Pencil,
+  Info,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { DetailPageLayout } from "@/components/polar/DetailPageLayout";
 import { NestoButton } from "@/components/polar/NestoButton";
@@ -58,6 +65,15 @@ function pluralize(woord: string, aantal: number): string {
   return PLURAL_MAP[lower] ?? woord;
 }
 
+// Loop 4c-polish v2: voorkom dat letterlijk "verpakking" als label opduikt
+// (hook-fallback). Mappen naar "stuk(s)" zodat copy menselijk blijft.
+function safeVerpakking(label: string | null | undefined, aantal: number): string {
+  if (!label || label.toLowerCase() === "verpakking") {
+    return pluralize("stuk", aantal);
+  }
+  return pluralize(label, aantal);
+}
+
 type LineState =
   | { kind: "akkoord" }
   | { kind: "afwijking"; value: AfwijkingValue };
@@ -99,8 +115,34 @@ function LineRow({
     }
   })();
 
+  // Loop 4c-polish v2: hele card klikbaar → opent factor-form
+  const [editingFactor, setEditingFactor] = React.useState(false);
+  const isStockMutation =
+    state.kind === "akkoord" ||
+    (state.kind === "afwijking" && !!state.value.accepted_with_issue);
+  const canOpenFactor = isStockMutation && line.factor_ctx.mode !== "SKIP";
+
+  const handleCardClick = () => {
+    if (!canOpenFactor) return;
+    setEditingFactor((v) => !v);
+  };
+  const handleCardKey = (e: React.KeyboardEvent) => {
+    if (!canOpenFactor) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setEditingFactor((v) => !v);
+    }
+  };
+
   return (
     <div
+      role={canOpenFactor ? "button" : undefined}
+      tabIndex={canOpenFactor ? 0 : undefined}
+      onClick={canOpenFactor ? handleCardClick : undefined}
+      onKeyDown={canOpenFactor ? handleCardKey : undefined}
+      aria-label={
+        canOpenFactor ? `Bewerk factor voor ${line.product_naam_herkend}` : undefined
+      }
       className={cn(
         "w-full flex items-start gap-4 px-4 py-4 rounded-xl border transition-colors",
         "min-h-[60px]",
@@ -108,13 +150,18 @@ function LineRow({
           ? "border-success/30 bg-success/5"
           : accepted
           ? "border-success/40 bg-success/5"
-          : "border-warning/40 bg-warning/5"
+          : "border-warning/40 bg-warning/5",
+        canOpenFactor &&
+          "cursor-pointer hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
-      {/* Toggle/icon */}
+      {/* Toggle/icon — eigen click, mag card-click niet triggeren */}
       <button
         type="button"
-        onClick={isAkkoord ? onMarkAfwijking : onResetAkkoord}
+        onClick={(e) => {
+          e.stopPropagation();
+          (isAkkoord ? onMarkAfwijking : onResetAkkoord)();
+        }}
         className={cn(
           "flex-shrink-0 w-7 h-7 rounded-md border-2 flex items-center justify-center transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -131,16 +178,9 @@ function LineRow({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <p className="font-medium text-foreground leading-snug">
-            {line.product_naam_herkend}
-          </p>
-          {/* Loop 4c: rechts-boven = neutrale pakbon-anker (raw qty + eenheid).
-              Voorraad-impact verhuisd naar besteld-regel hieronder + LineFactorPanel. */}
-          <span className="text-small text-muted-foreground whitespace-nowrap tabular-nums">
-            {line.hoeveelheid_verwacht ?? "?"} {line.eenheid_verwacht ?? ""}
-          </span>
-        </div>
+        <p className="font-medium text-foreground leading-snug mb-1">
+          {line.product_naam_herkend}
+        </p>
 
         {/* Loop 4c: besteld-regel — wat er feitelijk besteld is incl. factor.
             Dimmed bij MANUAL_REQUIRED (factor nog niet bevestigd). */}
@@ -163,9 +203,9 @@ function LineRow({
           } else if (isPerStuk) {
             label = `${aantal} ${pluralize(eenheid || "stuk", aantal)}`;
           } else if (verpakkingLabel && factor && factorEenheid) {
-            label = `${aantal} ${pluralize(verpakkingLabel, aantal)} × ${factor} ${factorEenheid}`;
+            label = `${aantal} ${safeVerpakking(verpakkingLabel, aantal)} × ${factor} ${factorEenheid}`;
           } else if (verpakkingLabel) {
-            label = `${aantal} ${pluralize(verpakkingLabel, aantal)}`;
+            label = `${aantal} ${safeVerpakking(verpakkingLabel, aantal)}`;
           } else {
             label = `${aantal} ${eenheid}`.trim();
           }
@@ -202,7 +242,10 @@ function LineRow({
         </div>
 
         {state.kind === "afwijking" && (
-          <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <div
+            className="mt-2 flex items-center gap-2 flex-wrap"
+            onClick={(e) => e.stopPropagation()}
+          >
             <NestoBadge variant={accepted ? "success" : "warning"} size="sm">
               {afwijkingLabel}
             </NestoBadge>
@@ -213,7 +256,10 @@ function LineRow({
             )}
             <button
               type="button"
-              onClick={onEditAfwijking}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditAfwijking();
+              }}
               className="text-xs text-primary hover:underline inline-flex items-center gap-1"
             >
               <Pencil className="h-3 w-3" />
@@ -231,12 +277,10 @@ function LineRow({
               ? state.value.hoeveelheid_ontvangen
               : line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 1) as number
           }
-          
           onChange={onPackagingChange}
-          isStockMutation={
-            state.kind === "akkoord" ||
-            (state.kind === "afwijking" && !!state.value.accepted_with_issue)
-          }
+          isStockMutation={isStockMutation}
+          editingFactor={editingFactor}
+          onEditingFactorChange={setEditingFactor}
         />
       </div>
     </div>
@@ -640,25 +684,28 @@ export default function LeveringDetail() {
 
         {/* Regels */}
         <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center mb-3">
             <h2 className="text-h3 text-foreground flex items-center gap-2">
               <Package className="h-4 w-4 text-muted-foreground" />
               Regels
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Info over regels"
+                      className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    Alles staat standaard akkoord. Tik op een regel om een afwijking te markeren.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </h2>
-            <div className="text-small text-muted-foreground">
-              <span className="text-success font-medium">{akkoord} akkoord</span>
-              {afwijking > 0 && (
-                <>
-                  {" · "}
-                  <span className="text-warning font-medium">{afwijking} afwijking</span>
-                </>
-              )}
-            </div>
           </div>
-
-          <p className="text-small text-muted-foreground mb-3">
-            Alles staat standaard akkoord. Tik op een regel om een afwijking te markeren.
-          </p>
 
           {/* Loop 4c: stock-regels eerst, daarna emballage onder een sectie-header. */}
           <div className="space-y-2">
