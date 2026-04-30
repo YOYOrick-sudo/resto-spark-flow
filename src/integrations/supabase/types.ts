@@ -9052,6 +9052,7 @@ export type Database = {
         | "afwijking_beschadigd"
         | "afwijking_verkeerd"
         | "afwijking_meer"
+        | "emballage_skip"
       goods_receipt_status:
         | "verwachten"
         | "ontvangen_compleet"
@@ -9286,6 +9287,7 @@ export const Constants = {
         "afwijking_beschadigd",
         "afwijking_verkeerd",
         "afwijking_meer",
+        "emballage_skip",
       ],
       goods_receipt_status: [
         "verwachten",
