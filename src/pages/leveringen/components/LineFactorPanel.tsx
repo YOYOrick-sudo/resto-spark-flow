@@ -49,6 +49,9 @@ interface Props {
   onChange: (next: LinePackagingState) => void;
   /** True als regel akkoord/accepted is — anders factor irrelevant */
   isStockMutation: boolean;
+  /** Loop 4c-polish v2: edit-state lifted naar parent zodat card-click 'm kan openen */
+  editingFactor?: boolean;
+  onEditingFactorChange?: (v: boolean) => void;
 }
 
 // Helpers verplaatst naar src/pages/leveringen/utils/factorPreview.ts
@@ -59,9 +62,13 @@ export function LineFactorPanel({
   aantalVerpakkingen,
   onChange,
   isStockMutation,
+  editingFactor: editingFactorProp,
+  onEditingFactorChange,
 }: Props) {
   const verpakkingLabel = ctx.verpakking_label;
-  const [editingFactor, setEditingFactor] = React.useState(false);
+  const [editingFactorLocal, setEditingFactorLocal] = React.useState(false);
+  const editingFactor = editingFactorProp ?? editingFactorLocal;
+  const setEditingFactor = onEditingFactorChange ?? setEditingFactorLocal;
   const [draftAmount, setDraftAmount] = React.useState<string>(
     ctx.display_factor != null ? String(ctx.display_factor) : "",
   );
