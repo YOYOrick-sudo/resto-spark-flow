@@ -41,6 +41,7 @@ import {
   LineFactorPanel,
   type LinePackagingState,
 } from "@/pages/leveringen/components/LineFactorPanel";
+import { LeveringConfirmCard } from "@/pages/leveringen/components/LeveringConfirmCard";
 import { nestoToast } from "@/lib/nestoToast";
 
 // Loop 4c: Nederlandse pluralisering voor verpakking-woorden.
