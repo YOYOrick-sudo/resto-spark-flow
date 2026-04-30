@@ -222,9 +222,27 @@ function computeFactorContext(
       manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
       branch = "la-unit-unknown";
     } else if (la_source === "unknown") {
-      mode = "MANUAL_REQUIRED";
-      manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
-      branch = "la-source-unknown";
+      // Optie A: la-rij is niet-bevestigd (auto-created). Behandel als AI-pad,
+      // maar check op conflict tussen la-waarde en ai-waarde.
+      if (!aiUnitKnown) {
+        mode = "MANUAL_REQUIRED";
+        manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
+        branch = "la-unknown + ai-unknown";
+      } else {
+        const sameUnit =
+          (la_eenheid ?? "").toLowerCase() === (ai_eenheid ?? "").toLowerCase();
+        const sameFactor =
+          la_factor != null && ai_factor != null &&
+          Math.abs(Number(la_factor) - Number(ai_factor)) <= 0.001;
+        if (sameUnit && sameFactor) {
+          mode = "AI_SUGGESTED";
+          branch = "la-unknown-source-fallback-ai (match)";
+        } else {
+          mode = "MANUAL_REQUIRED";
+          manual_reason = `Verschil tussen opslag (${la_factor} ${la_eenheid}) en AI (${ai_factor} ${ai_eenheid}) — bevestig`;
+          branch = "la-unknown-source-conflict";
+        }
+      }
     } else if (la_count >= 3 && (la_source === "user" || la_source === "ai_confirmed")) {
       mode = "CONFIRMED";
       branch = "la-confirmed-3plus";
