@@ -8886,6 +8886,20 @@ export type Database = {
         Args: { _location_id: string; _user_id: string }
         Returns: string[]
       }
+      get_yield_history: {
+        Args: { p_methode_id: string }
+        Returns: {
+          assertion_period: unknown
+          correction_reason: string
+          created_at: string
+          created_by: string
+          created_by_name: string
+          effective_period: unknown
+          id: string
+          source: string
+          yield_pct: number
+        }[]
+      }
       has_unanswered_inbound: {
         Args: { _conversation_id: string }
         Returns: boolean
