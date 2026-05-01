@@ -80,12 +80,14 @@ export function MethodesTab({ recept }: MethodesTabProps) {
   return (
     <div className="w-full overflow-auto rounded-2xl bg-card shadow-card">
       {/* Header */}
-      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_1fr_40px] gap-1 px-3 pt-3 pb-2">
+      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_90px_36px_1fr_40px] gap-1 px-3 pt-3 pb-2">
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">#</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Type</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Output</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Duur</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Houdbaar</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Yield</span>
+        <span />
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Detail</span>
         <span />
       </div>
