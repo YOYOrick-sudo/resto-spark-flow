@@ -3,8 +3,12 @@ import { ReceptDetail, HalffabricaatMethodeRow } from "@/hooks/useRecept";
 import { useReceptMutations } from "@/hooks/useReceptMutations";
 import { useRecepten } from "@/hooks/useRecepten";
 import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
-import { Trash2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronUp, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrentYield } from "@/hooks/useYield";
+import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
+import { YieldCorrectionPanel } from "@/components/recepten/yield/YieldCorrectionPanel";
+import { YieldHistoryPanel } from "@/components/recepten/yield/YieldHistoryPanel";
 
 const METHODE_TYPES = [
   { value: "Bereiden", label: "Bereiden" },
@@ -76,12 +80,14 @@ export function MethodesTab({ recept }: MethodesTabProps) {
   return (
     <div className="w-full overflow-auto rounded-2xl bg-card shadow-card">
       {/* Header */}
-      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_1fr_40px] gap-1 px-3 pt-3 pb-2">
+      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_90px_36px_1fr_40px] gap-1 px-3 pt-3 pb-2">
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">#</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Type</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Output</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Duur</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Houdbaar</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Yield</span>
+        <span />
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Detail</span>
         <span />
       </div>
@@ -99,6 +105,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
               methode={m}
               index={index}
               porties={recept.porties}
+              receptNaam={recept.naam}
               subReceptOptions={subReceptOptions}
               isExpanded={expandedRows.has(m.id)}
               onToggleExpand={() => toggleRow(m.id)}
@@ -129,6 +136,7 @@ interface MethodeRowProps {
   methode: HalffabricaatMethodeRow;
   index: number;
   porties: number;
+  receptNaam: string;
   subReceptOptions: { value: string; label: string }[];
   isExpanded: boolean;
   onToggleExpand: () => void;
@@ -140,6 +148,7 @@ function MethodeRow({
   methode,
   index,
   porties,
+  receptNaam,
   subReceptOptions,
   isExpanded,
   onToggleExpand,
@@ -154,14 +163,18 @@ function MethodeRow({
   const [instructie, setInstructie] = React.useState(methode.instructie ?? "");
   const [subReceptId, setSubReceptId] = React.useState(methode.sub_recept_id ?? "");
 
-  const portie = berekenPortieGrootte(outputHoeveelheid, outputEenheid, porties);
+  // Yield panels state
+  const [correctionOpen, setCorrectionOpen] = React.useState(false);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
+  const { data: currentYield, isLoading: yieldLoading } = useCurrentYield(methode.id);
 
-  const hasDetail = type === "Bereiden" || instructie.length > 0;
+  const portie = berekenPortieGrootte(outputHoeveelheid, outputEenheid, porties);
+  const methodeLabel = `${receptNaam} · ${methode.type}`;
 
   return (
     <div className="group">
       {/* Main row */}
-      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_1fr_40px] gap-1 items-center px-3 py-2.5 hover:bg-accent/40 transition-colors duration-150">
+      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_90px_36px_1fr_40px] gap-1 items-center px-3 py-2.5 hover:bg-accent/40 transition-colors duration-150">
         {/* # */}
         <span className="text-xs font-medium text-muted-foreground tabular-nums">{index + 1}</span>
 
@@ -196,11 +209,6 @@ function MethodeRow({
             size="sm"
           />
         </div>
-        {portie && (
-          <span className="text-[11px] text-muted-foreground col-span-2 pl-8 -mt-1.5">
-            = {portie.display} per portie
-          </span>
-        )}
 
         {/* Duur */}
         <div className="flex items-center gap-1">
@@ -227,6 +235,35 @@ function MethodeRow({
           />
           <span className="text-[11px] text-muted-foreground">d</span>
         </div>
+
+        {/* Yield (klikbaar → correctie-panel) */}
+        <button
+          onClick={() => setCorrectionOpen(true)}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors text-left"
+          title="Yield aanpassen"
+        >
+          {yieldLoading ? (
+            <span className="text-[11px] text-muted-foreground">…</span>
+          ) : currentYield ? (
+            <>
+              <span className="text-xs font-medium tabular-nums text-foreground">
+                {Math.round(currentYield.yield_pct * 100)}%
+              </span>
+              <YieldSourcePill source={currentYield.source} size="xs" />
+            </>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">–</span>
+          )}
+        </button>
+
+        {/* History icon */}
+        <button
+          onClick={() => setHistoryOpen(true)}
+          className="p-1.5 rounded-md hover:bg-accent transition-colors flex items-center justify-center"
+          title="Yield-historie"
+        >
+          <History className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
 
         {/* Detail toggle */}
         <button
@@ -258,6 +295,15 @@ function MethodeRow({
         </button>
       </div>
 
+      {/* Portie-info regel onder hoofdrij */}
+      {portie && (
+        <div className="px-3 -mt-1 pb-1 pl-[140px]">
+          <span className="text-[11px] text-muted-foreground">
+            = {portie.display} per portie
+          </span>
+        </div>
+      )}
+
       {/* Expanded detail row */}
       {isExpanded && (
         <div className="px-3 pb-3 pt-1 pl-[44px]">
@@ -283,6 +329,25 @@ function MethodeRow({
             />
           )}
         </div>
+      )}
+
+      {/* Yield panels (rendered per row, only when open) */}
+      {correctionOpen && (
+        <YieldCorrectionPanel
+          open={correctionOpen}
+          onClose={() => setCorrectionOpen(false)}
+          methodeId={methode.id}
+          methodeLabel={methodeLabel}
+          current={currentYield ?? null}
+        />
+      )}
+      {historyOpen && (
+        <YieldHistoryPanel
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          methodeId={methode.id}
+          methodeLabel={methodeLabel}
+        />
       )}
     </div>
   );
