@@ -6509,6 +6509,50 @@ export type Database = {
           },
         ]
       }
+      recipe_yield: {
+        Row: {
+          assertion_period: unknown
+          correction_reason: string | null
+          created_at: string
+          created_by: string | null
+          effective_period: unknown
+          halffabricaat_methode_id: string
+          id: string
+          source: string
+          yield_pct: number
+        }
+        Insert: {
+          assertion_period: unknown
+          correction_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_period: unknown
+          halffabricaat_methode_id: string
+          id?: string
+          source: string
+          yield_pct: number
+        }
+        Update: {
+          assertion_period?: unknown
+          correction_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_period?: unknown
+          halffabricaat_methode_id?: string
+          id?: string
+          source?: string
+          yield_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_yield_halffabricaat_methode_id_fkey"
+            columns: ["halffabricaat_methode_id"]
+            isOneToOne: false
+            referencedRelation: "halffabricaat_methodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservation_email_templates: {
         Row: {
           body: string
