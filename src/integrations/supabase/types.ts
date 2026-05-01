@@ -8590,6 +8590,15 @@ export type Database = {
         Args: { _candidate_id: string; _user_id: string }
         Returns: Json
       }
+      apply_yield_correction: {
+        Args: {
+          p_correction_reason?: string
+          p_effective_from?: string
+          p_methode_id: string
+          p_new_yield_pct: number
+        }
+        Returns: string
+      }
       archive_area: { Args: { _area_id: string }; Returns: Json }
       assign_best_table: {
         Args: {
