@@ -3,8 +3,12 @@ import { ReceptDetail, HalffabricaatMethodeRow } from "@/hooks/useRecept";
 import { useReceptMutations } from "@/hooks/useReceptMutations";
 import { useRecepten } from "@/hooks/useRecepten";
 import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
-import { Trash2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronUp, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrentYield } from "@/hooks/useYield";
+import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
+import { YieldCorrectionPanel } from "@/components/recepten/yield/YieldCorrectionPanel";
+import { YieldHistoryPanel } from "@/components/recepten/yield/YieldHistoryPanel";
 
 const METHODE_TYPES = [
   { value: "Bereiden", label: "Bereiden" },
