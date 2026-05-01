@@ -8739,6 +8739,20 @@ export type Database = {
           ticket_type: string
         }[]
       }
+      get_current_yield: {
+        Args: {
+          p_asserted_at?: string
+          p_effective_at?: string
+          p_methode_id: string
+        }
+        Returns: {
+          assertion_period: unknown
+          effective_period: unknown
+          source: string
+          yield_id: string
+          yield_pct: number
+        }[]
+      }
       get_effective_shift_schedule: {
         Args: { _date: string; _location_id: string }
         Returns: {
