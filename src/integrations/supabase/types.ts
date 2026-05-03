@@ -2372,6 +2372,7 @@ export type Database = {
           id: string
           instructie: string | null
           output_eenheid: string
+          output_gewicht_per_stuk_g: number | null
           output_hoeveelheid: number
           recept_id: string
           sort_order: number | null
@@ -2387,6 +2388,7 @@ export type Database = {
           id?: string
           instructie?: string | null
           output_eenheid: string
+          output_gewicht_per_stuk_g?: number | null
           output_hoeveelheid: number
           recept_id: string
           sort_order?: number | null
@@ -2402,6 +2404,7 @@ export type Database = {
           id?: string
           instructie?: string | null
           output_eenheid?: string
+          output_gewicht_per_stuk_g?: number | null
           output_hoeveelheid?: number
           recept_id?: string
           sort_order?: number | null
