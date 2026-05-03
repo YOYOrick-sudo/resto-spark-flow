@@ -82,7 +82,7 @@ export function useRecept(id: string | null) {
           *,
           recept_ingredienten(
             *,
-            ingredienten(id, naam, eenheid, kostprijs, yield_percentage)
+            ingredienten(id, naam, eenheid, kostprijs, yield_percentage, weight_per_piece_g, is_variable_weight)
           ),
           recept_allergenen(
             *,
