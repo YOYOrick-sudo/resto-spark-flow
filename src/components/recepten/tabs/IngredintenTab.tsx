@@ -219,10 +219,6 @@ export function IngredintenTab({ recept }: IngredintenTabProps) {
           <span className="font-medium text-foreground">Totale kostprijs</span>
           <span className="font-semibold text-foreground">€{totaleKostprijs.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Kostprijs per portie</span>
-          <span className="font-medium text-primary">€{kostprijsPerPortie.toFixed(2)}</span>
-        </div>
       </div>
 
       <NieuwIngredientModal
