@@ -86,7 +86,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Output</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Duur</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Houdbaar</span>
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Yield</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Opbrengst</span>
         <span />
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Detail</span>
         <span />
