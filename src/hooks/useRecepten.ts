@@ -68,7 +68,7 @@ export function useRecepten(filters: ReceptenFilters) {
             status,
             allergenen(id, code, naam_nl, naam_en, sort_order)
           ),
-          halffabricaat_methodes!halffabricaat_methodes_recept_id_fkey(type, output_hoeveelheid, output_eenheid)
+          halffabricaat_methodes!halffabricaat_methodes_recept_id_fkey(id, sort_order, type, output_hoeveelheid, output_eenheid, output_gewicht_per_stuk_g)
         `)
         .eq("location_id", locationId!)
         .eq("type", "halffabricaat")
