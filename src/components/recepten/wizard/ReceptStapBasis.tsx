@@ -46,19 +46,6 @@ export function ReceptStapBasis() {
         placeholder="Selecteer categorie"
       />
 
-      <div>
-        <label className="mb-2 block text-label text-muted-foreground">Porties</label>
-        <NestoInput
-          type="number"
-          min={1}
-          value={data.porties}
-          onChange={(e) => { const v = e.target.value; if (v === "") return; update("porties", Number(v) || 1); }}
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          Hoeveel porties haal je uit één volledige bereiding? De portiegrootte (gram per portie) wordt automatisch berekend zodra je in stap 4 de totale output invult.
-        </p>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="mb-2 block text-label text-muted-foreground">Actieve bereidingstijd (min)</label>
