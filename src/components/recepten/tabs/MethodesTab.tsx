@@ -176,7 +176,7 @@ function MethodeRow({
   return (
     <div className="group">
       {/* Main row */}
-      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_90px_36px_1fr_40px] gap-1 items-center px-3 py-2.5 hover:bg-accent/40 transition-colors duration-150">
+      <div className="grid grid-cols-[32px_1fr_120px_80px_80px_1fr_36px_40px] gap-1 items-center px-3 py-2.5 hover:bg-accent/40 transition-colors duration-150">
         {/* # */}
         <span className="text-xs font-medium text-muted-foreground tabular-nums">{index + 1}</span>
 
