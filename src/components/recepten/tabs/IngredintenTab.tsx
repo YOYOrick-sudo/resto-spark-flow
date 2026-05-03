@@ -76,7 +76,6 @@ export function IngredintenTab({ recept }: IngredintenTabProps) {
   }, 0);
 
   const totaleKostprijs = totaleIngredientkostprijs + arbeid;
-  const kostprijsPerPortie = recept.porties > 0 ? totaleKostprijs / recept.porties : 0;
 
   const handleArbeidBlur = () => {
     if (arbeid !== recept.arbeidskostprijs) {
