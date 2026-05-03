@@ -80,15 +80,14 @@ export function MethodesTab({ recept }: MethodesTabProps) {
   return (
     <div className="w-full overflow-auto rounded-2xl bg-card shadow-card">
       {/* Header */}
-      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_90px_36px_1fr_40px] gap-1 px-3 pt-3 pb-2">
+      <div className="grid grid-cols-[32px_1fr_120px_80px_80px_1fr_36px_40px] gap-1 px-3 pt-3 pb-2">
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">#</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Type</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Output</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Duur</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Houdbaar</span>
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Opbrengst</span>
-        <span />
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Detail</span>
+        <span />
         <span />
       </div>
 
@@ -105,6 +104,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
               methode={m}
               index={index}
               porties={recept.porties}
+              receptType={recept.type}
               receptNaam={recept.naam}
               subReceptOptions={subReceptOptions}
               isExpanded={expandedRows.has(m.id)}
@@ -136,6 +136,7 @@ interface MethodeRowProps {
   methode: HalffabricaatMethodeRow;
   index: number;
   porties: number;
+  receptType: string;
   receptNaam: string;
   subReceptOptions: { value: string; label: string }[];
   isExpanded: boolean;
@@ -148,6 +149,7 @@ function MethodeRow({
   methode,
   index,
   porties,
+  receptType,
   receptNaam,
   subReceptOptions,
   isExpanded,
@@ -174,7 +176,7 @@ function MethodeRow({
   return (
     <div className="group">
       {/* Main row */}
-      <div className="grid grid-cols-[32px_1fr_100px_80px_80px_90px_36px_1fr_40px] gap-1 items-center px-3 py-2.5 hover:bg-accent/40 transition-colors duration-150">
+      <div className="grid grid-cols-[32px_1fr_120px_80px_80px_1fr_36px_40px] gap-1 items-center px-3 py-2.5 hover:bg-accent/40 transition-colors duration-150">
         {/* # */}
         <span className="text-xs font-medium text-muted-foreground tabular-nums">{index + 1}</span>
 
@@ -236,34 +238,7 @@ function MethodeRow({
           <span className="text-[11px] text-muted-foreground">d</span>
         </div>
 
-        {/* Yield (klikbaar → correctie-panel) */}
-        <button
-          onClick={() => setCorrectionOpen(true)}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors text-left"
-          title="Opbrengst aanpassen"
-        >
-          {yieldLoading ? (
-            <span className="text-[11px] text-muted-foreground">…</span>
-          ) : currentYield ? (
-            <>
-              <span className="text-xs font-medium tabular-nums text-foreground">
-                {Math.round(currentYield.yield_pct * 100)}%
-              </span>
-              <YieldSourcePill source={currentYield.source} size="xs" />
-            </>
-          ) : (
-            <span className="text-[11px] text-muted-foreground">–</span>
-          )}
-        </button>
-
-        {/* History icon */}
-        <button
-          onClick={() => setHistoryOpen(true)}
-          className="p-1.5 rounded-md hover:bg-accent transition-colors flex items-center justify-center"
-          title="Opbrengst-historie"
-        >
-          <History className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
+        {/* (yield + history verplaatst naar uitgeklapte detail-rij) */}
 
         {/* Detail toggle */}
         <button
@@ -295,8 +270,8 @@ function MethodeRow({
         </button>
       </div>
 
-      {/* Portie-info regel onder hoofdrij */}
-      {portie && (
+      {/* Portie-info regel — alleen voor gerecht (halffabricaten kennen geen porties) */}
+      {receptType === "gerecht" && portie && (
         <div className="px-3 -mt-1 pb-1 pl-[140px]">
           <span className="text-[11px] text-muted-foreground">
             = {portie.display} per portie
@@ -306,7 +281,7 @@ function MethodeRow({
 
       {/* Expanded detail row */}
       {isExpanded && (
-        <div className="px-3 pb-3 pt-1 pl-[44px]">
+        <div className="px-3 pb-3 pt-1 pl-[44px] space-y-3">
           {type === "Bereiden" ? (
             <NestoSelect
               label="Sub-recept"
@@ -328,6 +303,37 @@ function MethodeRow({
               className="w-full min-h-[60px] rounded-button border-[1.5px] border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:!border-primary focus:outline-none resize-y"
             />
           )}
+
+          {/* Opbrengst — verplaatst uit hoofdregel */}
+          <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Opbrengst</span>
+            <button
+              onClick={() => setCorrectionOpen(true)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors text-left"
+              title="Opbrengst aanpassen"
+            >
+              {yieldLoading ? (
+                <span className="text-[11px] text-muted-foreground">…</span>
+              ) : currentYield ? (
+                <>
+                  <span className="text-xs font-medium tabular-nums text-foreground">
+                    {Math.round(currentYield.yield_pct * 100)}%
+                  </span>
+                  <YieldSourcePill source={currentYield.source} size="xs" />
+                </>
+              ) : (
+                <span className="text-[11px] text-muted-foreground">–</span>
+              )}
+            </button>
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="ml-auto p-1.5 rounded-md hover:bg-accent transition-colors flex items-center gap-1.5 text-[11px] text-muted-foreground"
+              title="Opbrengst-historie"
+            >
+              <History className="h-3.5 w-3.5" />
+              Historie
+            </button>
+          </div>
         </div>
       )}
 

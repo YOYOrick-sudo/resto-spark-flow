@@ -20,6 +20,7 @@ import { AllergenenTab } from "@/components/recepten/tabs/AllergenenTab";
 import { ChevronLeft, Archive, Info } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { berekenPortieGrootte, getPrimaireMethode } from "@/utils/portieGrootte";
+import { fmtEuroPrecise } from "@/lib/format";
 import type { TabItem } from "@/components/polar";
 
 const CATEGORIE_OPTIONS = [
@@ -63,6 +64,8 @@ export default function ReceptenDetail() {
     { id: "allergenen", label: "Allergenen" },
   ], []);
 
+  const isGerecht = recept?.type === "gerecht";
+
   const kostprijsPerPortie = recept && recept.porties > 0 && recept.totale_kostprijs != null
     ? recept.totale_kostprijs / recept.porties
     : null;
@@ -73,6 +76,21 @@ export default function ReceptenDetail() {
     primaireMethode?.output_eenheid ?? null,
     recept.porties
   ) : null;
+
+  const outputDisplay = primaireMethode
+    ? `${primaireMethode.output_hoeveelheid} ${primaireMethode.output_eenheid}`
+    : null;
+  const outputInBasisUnit = (() => {
+    if (!primaireMethode) return null;
+    const h = primaireMethode.output_hoeveelheid;
+    const e = primaireMethode.output_eenheid;
+    if (e === "kg") return { qty: h * 1000, unit: "g" };
+    if (e === "L" || e === "l") return { qty: h * 1000, unit: "ml" };
+    return { qty: h, unit: e };
+  })();
+  const kostprijsPerEenheid = recept && outputInBasisUnit && outputInBasisUnit.qty > 0 && recept.totale_kostprijs != null
+    ? recept.totale_kostprijs / outputInBasisUnit.qty
+    : null;
 
   const allergeenPills = useMemo(() => {
     if (!recept?.recept_allergenen) return [];
@@ -179,17 +197,19 @@ export default function ReceptenDetail() {
               options={CATEGORIE_OPTIONS}
             />
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs text-muted-foreground">Porties</label>
-                <NestoInput
-                  type="number"
-                  min={1}
-                  value={porties}
-                  onChange={(e) => { const v = e.target.value; if (v === "") return; setPorties(Number(v) || 1); }}
-                  onBlur={() => porties !== recept.porties && handleFieldSave("porties", porties)}
-                  className="h-9 text-xs"
-                />
-              </div>
+              {isGerecht && (
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Porties</label>
+                  <NestoInput
+                    type="number"
+                    min={1}
+                    value={porties}
+                    onChange={(e) => { const v = e.target.value; if (v === "") return; setPorties(Number(v) || 1); }}
+                    onBlur={() => porties !== recept.porties && handleFieldSave("porties", porties)}
+                    className="h-9 text-xs"
+                  />
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-xs text-muted-foreground">Actief (min)</label>
                 <NestoInput
@@ -214,8 +234,8 @@ export default function ReceptenDetail() {
               />
             </div>
 
-            {/* Per portie — auto-berekend */}
-            {portie && (
+            {/* Per portie (gerecht) of Output per bereiding (halffabricaat) */}
+            {isGerecht && portie && (
               <TooltipProvider>
                 <div>
                   <label className="mb-1 block text-xs text-muted-foreground">Per portie</label>
@@ -233,6 +253,12 @@ export default function ReceptenDetail() {
                   </div>
                 </div>
               </TooltipProvider>
+            )}
+            {!isGerecht && outputDisplay && (
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">Output per bereiding</label>
+                <span className="text-sm font-medium">{outputDisplay}</span>
+              </div>
             )}
           </div>
 
@@ -260,12 +286,33 @@ export default function ReceptenDetail() {
                   ? `€${recept.totale_kostprijs.toFixed(2)}`
                   : "—"}
               </span>
-              <span className="text-muted-foreground">Per portie{portie ? ` (${portie.display})` : ""}</span>
-              <span className="text-right font-medium text-primary">
-                {kostprijsPerPortie != null
-                  ? `€${kostprijsPerPortie.toFixed(2)}`
-                  : "Nog niet berekend"}
-              </span>
+              {isGerecht ? (
+                <>
+                  <span className="text-muted-foreground">Per portie{portie ? ` (${portie.display})` : ""}</span>
+                  <span className="text-right font-medium text-primary">
+                    {kostprijsPerPortie != null
+                      ? `€${kostprijsPerPortie.toFixed(2)}`
+                      : "Nog niet berekend"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">Per bereiding{outputDisplay ? ` (${outputDisplay})` : ""}</span>
+                  <span className="text-right font-medium text-primary">
+                    {recept.totale_kostprijs != null
+                      ? `€${recept.totale_kostprijs.toFixed(2)}`
+                      : "Nog niet berekend"}
+                  </span>
+                  {kostprijsPerEenheid != null && outputInBasisUnit && (
+                    <>
+                      <span className="text-muted-foreground">Per {outputInBasisUnit.unit}</span>
+                      <span className="text-right text-foreground">
+                        {fmtEuroPrecise(kostprijsPerEenheid)}
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
