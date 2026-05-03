@@ -273,7 +273,7 @@ function MethodeRow({
               onUpdate({ output_hoeveelheid: outputHoeveelheid });
               triggerYieldUpdateIfNeeded();
             }}
-            className="h-7 text-xs w-12 tabular-nums"
+            className="h-7 text-xs w-16 tabular-nums"
           />
           <NestoSelect
             value={outputEenheid}
@@ -305,7 +305,7 @@ function MethodeRow({
                   triggerYieldUpdateIfNeeded();
                 }}
                 placeholder="g/st"
-                className="h-7 text-xs w-12 tabular-nums"
+                className="h-7 text-xs w-16 tabular-nums"
               />
               <span className="text-[11px] text-muted-foreground">g</span>
             </>
@@ -366,6 +366,9 @@ function MethodeRow({
         >
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </button>
+
+        {/* Spacer — 8th column to align body with header */}
+        <span />
       </div>
 
       {/* A.7.1 — Inline afgeleide opbrengst onder output-cel (tweede-regel pattern) */}
