@@ -238,34 +238,7 @@ function MethodeRow({
           <span className="text-[11px] text-muted-foreground">d</span>
         </div>
 
-        {/* Yield (klikbaar → correctie-panel) */}
-        <button
-          onClick={() => setCorrectionOpen(true)}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors text-left"
-          title="Opbrengst aanpassen"
-        >
-          {yieldLoading ? (
-            <span className="text-[11px] text-muted-foreground">…</span>
-          ) : currentYield ? (
-            <>
-              <span className="text-xs font-medium tabular-nums text-foreground">
-                {Math.round(currentYield.yield_pct * 100)}%
-              </span>
-              <YieldSourcePill source={currentYield.source} size="xs" />
-            </>
-          ) : (
-            <span className="text-[11px] text-muted-foreground">–</span>
-          )}
-        </button>
-
-        {/* History icon */}
-        <button
-          onClick={() => setHistoryOpen(true)}
-          className="p-1.5 rounded-md hover:bg-accent transition-colors flex items-center justify-center"
-          title="Opbrengst-historie"
-        >
-          <History className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
+        {/* (yield + history verplaatst naar uitgeklapte detail-rij) */}
 
         {/* Detail toggle */}
         <button
