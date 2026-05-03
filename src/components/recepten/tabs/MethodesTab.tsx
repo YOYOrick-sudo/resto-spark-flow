@@ -6,7 +6,6 @@ import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
 import { Trash2, Plus, ChevronDown, ChevronUp, History } from "lucide-react";
 import { useApplyYieldCorrection, useCurrentYield } from "@/hooks/useYield";
 import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
-import { YieldCorrectionPanel } from "@/components/recepten/yield/YieldCorrectionPanel";
 import { YieldHistoryPanel } from "@/components/recepten/yield/YieldHistoryPanel";
 import {
   bepaalOpbrengst,
