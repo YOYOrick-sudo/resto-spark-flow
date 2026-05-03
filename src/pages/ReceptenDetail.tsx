@@ -286,12 +286,33 @@ export default function ReceptenDetail() {
                   ? `€${recept.totale_kostprijs.toFixed(2)}`
                   : "—"}
               </span>
-              <span className="text-muted-foreground">Per portie{portie ? ` (${portie.display})` : ""}</span>
-              <span className="text-right font-medium text-primary">
-                {kostprijsPerPortie != null
-                  ? `€${kostprijsPerPortie.toFixed(2)}`
-                  : "Nog niet berekend"}
-              </span>
+              {isGerecht ? (
+                <>
+                  <span className="text-muted-foreground">Per portie{portie ? ` (${portie.display})` : ""}</span>
+                  <span className="text-right font-medium text-primary">
+                    {kostprijsPerPortie != null
+                      ? `€${kostprijsPerPortie.toFixed(2)}`
+                      : "Nog niet berekend"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">Per bereiding{outputDisplay ? ` (${outputDisplay})` : ""}</span>
+                  <span className="text-right font-medium text-primary">
+                    {recept.totale_kostprijs != null
+                      ? `€${recept.totale_kostprijs.toFixed(2)}`
+                      : "Nog niet berekend"}
+                  </span>
+                  {kostprijsPerEenheid != null && outputInBasisUnit && (
+                    <>
+                      <span className="text-muted-foreground">Per {outputInBasisUnit.unit}</span>
+                      <span className="text-right text-foreground">
+                        {fmtEuroPrecise(kostprijsPerEenheid)}
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
