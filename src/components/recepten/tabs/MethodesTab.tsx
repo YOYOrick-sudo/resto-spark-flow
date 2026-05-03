@@ -86,7 +86,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Output</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Duur</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Houdbaar</span>
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Yield</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Opbrengst</span>
         <span />
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Detail</span>
         <span />
@@ -240,7 +240,7 @@ function MethodeRow({
         <button
           onClick={() => setCorrectionOpen(true)}
           className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors text-left"
-          title="Yield aanpassen"
+          title="Opbrengst aanpassen"
         >
           {yieldLoading ? (
             <span className="text-[11px] text-muted-foreground">…</span>
@@ -260,7 +260,7 @@ function MethodeRow({
         <button
           onClick={() => setHistoryOpen(true)}
           className="p-1.5 rounded-md hover:bg-accent transition-colors flex items-center justify-center"
-          title="Yield-historie"
+          title="Opbrengst-historie"
         >
           <History className="h-3.5 w-3.5 text-muted-foreground" />
         </button>

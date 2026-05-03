@@ -55,7 +55,7 @@ export function YieldHistoryPanel({
   const { data: rows, isLoading } = useYieldHistory(methodeId, open);
 
   return (
-    <NestoPanel open={open} onClose={onClose} title="Yield-historie">
+    <NestoPanel open={open} onClose={onClose} title="Opbrengst-historie">
       {(titleRef) => (
         <div className="px-5 pt-5 pb-6 space-y-5">
           <div>
@@ -63,7 +63,7 @@ export function YieldHistoryPanel({
               ref={titleRef}
               className="text-[18px] font-semibold tracking-tight text-foreground"
             >
-              Yield-historie
+              Opbrengst-historie
             </h2>
             <p className="text-[12px] text-muted-foreground mt-1 truncate">
               {methodeLabel}

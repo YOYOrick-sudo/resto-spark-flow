@@ -77,7 +77,7 @@ export function YieldCorrectionPanel({
     <NestoPanel
       open={open}
       onClose={onClose}
-      title="Yield aanpassen"
+      title="Opbrengst aanpassen"
       footer={
         <div className="flex items-center justify-end gap-2">
           <NestoButton variant="ghost" onClick={onClose}>
@@ -101,7 +101,7 @@ export function YieldCorrectionPanel({
               ref={titleRef}
               className="text-[18px] font-semibold tracking-tight text-foreground"
             >
-              Yield aanpassen
+              Opbrengst aanpassen
             </h2>
             <p className="text-[12px] text-muted-foreground mt-1 truncate">
               {methodeLabel}
@@ -111,7 +111,7 @@ export function YieldCorrectionPanel({
           {/* Huidige waarde */}
           <div className="rounded-xl bg-muted/40 border border-border/40 px-4 py-3">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-              Huidige yield
+              Huidige opbrengst
             </div>
             {current ? (
               <div className="mt-1.5 flex items-center gap-2">
@@ -122,7 +122,7 @@ export function YieldCorrectionPanel({
               </div>
             ) : (
               <div className="mt-1.5 text-sm text-muted-foreground">
-                Geen yield-waarde gevonden
+                Geen opbrengst-waarde gevonden
               </div>
             )}
           </div>
@@ -130,7 +130,7 @@ export function YieldCorrectionPanel({
           {/* Nieuwe waarde */}
           <div className="space-y-1.5">
             <label className="text-[12px] font-medium text-foreground">
-              Nieuwe yield
+              Nieuwe opbrengst
             </label>
             <div className="flex items-center gap-2">
               <NestoInput
@@ -150,7 +150,7 @@ export function YieldCorrectionPanel({
             </div>
             {!pctValid && (
               <p className="text-[11px] text-destructive">
-                Yield moet tussen 1% en 200% liggen.
+                Opbrengst moet tussen 1% en 200% liggen.
               </p>
             )}
           </div>
