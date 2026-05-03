@@ -281,7 +281,7 @@ function MethodeRow({
 
       {/* Expanded detail row */}
       {isExpanded && (
-        <div className="px-3 pb-3 pt-1 pl-[44px]">
+        <div className="px-3 pb-3 pt-1 pl-[44px] space-y-3">
           {type === "Bereiden" ? (
             <NestoSelect
               label="Sub-recept"
@@ -303,6 +303,37 @@ function MethodeRow({
               className="w-full min-h-[60px] rounded-button border-[1.5px] border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:!border-primary focus:outline-none resize-y"
             />
           )}
+
+          {/* Opbrengst — verplaatst uit hoofdregel */}
+          <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Opbrengst</span>
+            <button
+              onClick={() => setCorrectionOpen(true)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent transition-colors text-left"
+              title="Opbrengst aanpassen"
+            >
+              {yieldLoading ? (
+                <span className="text-[11px] text-muted-foreground">…</span>
+              ) : currentYield ? (
+                <>
+                  <span className="text-xs font-medium tabular-nums text-foreground">
+                    {Math.round(currentYield.yield_pct * 100)}%
+                  </span>
+                  <YieldSourcePill source={currentYield.source} size="xs" />
+                </>
+              ) : (
+                <span className="text-[11px] text-muted-foreground">–</span>
+              )}
+            </button>
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="ml-auto p-1.5 rounded-md hover:bg-accent transition-colors flex items-center gap-1.5 text-[11px] text-muted-foreground"
+              title="Opbrengst-historie"
+            >
+              <History className="h-3.5 w-3.5" />
+              Historie
+            </button>
+          </div>
         </div>
       )}
 
