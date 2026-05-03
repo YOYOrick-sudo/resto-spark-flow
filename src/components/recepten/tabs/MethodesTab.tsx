@@ -195,7 +195,6 @@ function MethodeRow({
   const [subReceptId, setSubReceptId] = React.useState(methode.sub_recept_id ?? "");
 
   // Yield panels state
-  const [correctionOpen, setCorrectionOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const { data: currentYield, isLoading: yieldLoading } = useCurrentYield(methode.id);
   const applyYield = useApplyYieldCorrection();
