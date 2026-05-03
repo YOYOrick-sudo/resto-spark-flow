@@ -1,4 +1,7 @@
 // Sprint A.3: Yield-correctie panel (NestoPanel, 460px)
+// Sprint A.7.1: UI-entry-points verwijderd. Component blijft als legacy
+// voor mogelijk toekomstig admin-gebruik. apply_yield_correction RPC wordt
+// nu uitsluitend aangeroepen via output-blur trigger in MethodesTab.tsx.
 // Twee modi: "Vanaf nu" (manual_override) of "Eerdere datum" (correction)
 import * as React from "react";
 import { NestoPanel } from "@/components/polar/NestoPanel";

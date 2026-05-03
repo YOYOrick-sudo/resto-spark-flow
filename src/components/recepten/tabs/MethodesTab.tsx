@@ -6,7 +6,6 @@ import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
 import { Trash2, Plus, ChevronDown, ChevronUp, History } from "lucide-react";
 import { useApplyYieldCorrection, useCurrentYield } from "@/hooks/useYield";
 import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
-import { YieldCorrectionPanel } from "@/components/recepten/yield/YieldCorrectionPanel";
 import { YieldHistoryPanel } from "@/components/recepten/yield/YieldHistoryPanel";
 import {
   bepaalOpbrengst,
@@ -196,7 +195,6 @@ function MethodeRow({
   const [subReceptId, setSubReceptId] = React.useState(methode.sub_recept_id ?? "");
 
   // Yield panels state
-  const [correctionOpen, setCorrectionOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const { data: currentYield, isLoading: yieldLoading } = useCurrentYield(methode.id);
   const applyYield = useApplyYieldCorrection();
@@ -370,6 +368,30 @@ function MethodeRow({
         </button>
       </div>
 
+      {/* A.7.1 — Inline afgeleide opbrengst onder output-cel (tweede-regel pattern) */}
+      {heeftOpbrengst && (
+        <div className="px-3 -mt-1 pb-1 pl-[44px]">
+          <span
+            className="text-[11px] text-muted-foreground tabular-nums inline-flex items-center gap-1.5"
+            title={
+              opbrengst?.opbrengstPct === null
+                ? "Vul ingrediënten en output in om opbrengst te berekenen"
+                : "Afgeleid uit input vs output. Wijzig output om aan te passen."
+            }
+          >
+            <span>
+              · opbrengst{" "}
+              {opbrengst?.opbrengstPct != null
+                ? `${Math.round(opbrengst.opbrengstPct * 100)}%`
+                : "–"}
+            </span>
+            {currentYield && !yieldLoading && (
+              <YieldSourcePill source={currentYield.source} size="xs" />
+            )}
+          </span>
+        </div>
+      )}
+
       {/* D5 — Per-portie regel: alleen voor gerecht, niet voor halffabricaat */}
       {receptType === "gerecht" && portie && (
         <div className="px-3 -mt-1 pb-1 pl-[140px]">
@@ -427,13 +449,10 @@ function MethodeRow({
                 opbrengst={opbrengst}
               />
 
+              {/* A.7.1 — read-only weergave van opgeslagen opbrengst (geen entry-point meer) */}
               <div className="flex items-center gap-2 pt-2 border-t border-border/40">
-                <span className="text-[11px] text-muted-foreground">Huidige opbrengst (audit):</span>
-                <button
-                  onClick={() => setCorrectionOpen(true)}
-                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-accent transition-colors"
-                  title="Opbrengst handmatig aanpassen"
-                >
+                <span className="text-[11px] text-muted-foreground">Opgeslagen opbrengst:</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5">
                   {yieldLoading ? (
                     <span className="text-[11px] text-muted-foreground">…</span>
                   ) : currentYield ? (
@@ -446,23 +465,14 @@ function MethodeRow({
                   ) : (
                     <span className="text-[11px] text-muted-foreground">–</span>
                   )}
-                </button>
+                </div>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Yield panels */}
-      {correctionOpen && (
-        <YieldCorrectionPanel
-          open={correctionOpen}
-          onClose={() => setCorrectionOpen(false)}
-          methodeId={methode.id}
-          methodeLabel={methodeLabel}
-          current={currentYield ?? null}
-        />
-      )}
+      {/* Yield history panel — correctie-paneel verwijderd in A.7.1 */}
       {historyOpen && (
         <YieldHistoryPanel
           open={historyOpen}
