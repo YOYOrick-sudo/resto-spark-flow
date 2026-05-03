@@ -63,6 +63,8 @@ export default function ReceptenDetail() {
     { id: "allergenen", label: "Allergenen" },
   ], []);
 
+  const isGerecht = recept?.type === "gerecht";
+
   const kostprijsPerPortie = recept && recept.porties > 0 && recept.totale_kostprijs != null
     ? recept.totale_kostprijs / recept.porties
     : null;
@@ -73,6 +75,21 @@ export default function ReceptenDetail() {
     primaireMethode?.output_eenheid ?? null,
     recept.porties
   ) : null;
+
+  const outputDisplay = primaireMethode
+    ? `${primaireMethode.output_hoeveelheid} ${primaireMethode.output_eenheid}`
+    : null;
+  const outputInBasisUnit = (() => {
+    if (!primaireMethode) return null;
+    const h = primaireMethode.output_hoeveelheid;
+    const e = primaireMethode.output_eenheid;
+    if (e === "kg") return { qty: h * 1000, unit: "g" };
+    if (e === "L" || e === "l") return { qty: h * 1000, unit: "ml" };
+    return { qty: h, unit: e };
+  })();
+  const kostprijsPerEenheid = recept && outputInBasisUnit && outputInBasisUnit.qty > 0 && recept.totale_kostprijs != null
+    ? recept.totale_kostprijs / outputInBasisUnit.qty
+    : null;
 
   const allergeenPills = useMemo(() => {
     if (!recept?.recept_allergenen) return [];
