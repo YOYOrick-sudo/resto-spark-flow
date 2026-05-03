@@ -39,7 +39,7 @@ const OUTPUT_EENHEID_OPTIONS = [
 // D1 — alleen deze methode-types tonen opbrengst-flow in A.7
 const YIELD_METHODE_TYPES = new Set(["Bereiden", "Snijden"]);
 
-const GRID_COLS = "grid-cols-[32px_1fr_180px_80px_80px_1fr_36px_40px]";
+const GRID_COLS = "grid-cols-[32px_1fr_200px_80px_80px_1fr_40px_40px]";
 
 interface MethodesTabProps {
   recept: ReceptDetail;
