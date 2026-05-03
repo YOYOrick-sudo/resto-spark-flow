@@ -136,6 +136,7 @@ interface MethodeRowProps {
   methode: HalffabricaatMethodeRow;
   index: number;
   porties: number;
+  receptType: string;
   receptNaam: string;
   subReceptOptions: { value: string; label: string }[];
   isExpanded: boolean;
@@ -148,6 +149,7 @@ function MethodeRow({
   methode,
   index,
   porties,
+  receptType,
   receptNaam,
   subReceptOptions,
   isExpanded,
