@@ -15,6 +15,8 @@ export interface ReceptIngredientRow {
     eenheid: string;
     kostprijs: number | null;
     yield_percentage: number;
+    weight_per_piece_g: number | null;
+    is_variable_weight: boolean;
   };
 }
 
@@ -38,6 +40,7 @@ export interface HalffabricaatMethodeRow {
   visuele_eenheid: string;
   output_hoeveelheid: number;
   output_eenheid: string;
+  output_gewicht_per_stuk_g: number | null;
   standaard_duur: number;
   houdbaarheid: number | null;
   instructie: string | null;
@@ -79,7 +82,7 @@ export function useRecept(id: string | null) {
           *,
           recept_ingredienten(
             *,
-            ingredienten(id, naam, eenheid, kostprijs, yield_percentage)
+            ingredienten(id, naam, eenheid, kostprijs, yield_percentage, weight_per_piece_g, is_variable_weight)
           ),
           recept_allergenen(
             *,
