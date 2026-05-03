@@ -20,6 +20,7 @@ import { AllergenenTab } from "@/components/recepten/tabs/AllergenenTab";
 import { ChevronLeft, Archive, Info } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { berekenPortieGrootte, getPrimaireMethode } from "@/utils/portieGrootte";
+import { fmtEuroPrecise } from "@/lib/format";
 import type { TabItem } from "@/components/polar";
 
 const CATEGORIE_OPTIONS = [
