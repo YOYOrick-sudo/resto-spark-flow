@@ -14,7 +14,9 @@ import { KEUKEN_SUBNAV } from "@/lib/moduleSubNav";
 import { Switch } from "@/components/ui/switch";
 import { BookOpen, Plus } from "lucide-react";
 import { useRecepten, filterRecepten, ReceptRow, ReceptenFilters } from "@/hooks/useRecepten";
-import { berekenPortieGrootte, getPrimaireMethode } from "@/utils/portieGrootte";
+import { getPrimaireMethode } from "@/utils/portieGrootte";
+import { berekenOutputMassa } from "@/utils/opbrengstBerekening";
+import { fmtEuro, fmtEuroPrecise } from "@/lib/format";
 import type { DataTableColumn } from "@/components/polar";
 
 const CATEGORIE_FILTER_OPTIONS = [
@@ -54,25 +56,57 @@ export default function Recepten() {
       ),
     },
     {
-      key: "porties",
-      header: "Porties",
-      render: (r) => <span className="text-muted-foreground">{r.porties}</span>,
-    },
-    {
-      key: "perPortie",
-      header: "Per portie",
+      key: "perBereiding",
+      header: "Per bereiding",
       render: (r) => {
-        const methode = getPrimaireMethode(r.halffabricaat_methodes ?? []);
-        const portie = berekenPortieGrootte(methode?.output_hoeveelheid, methode?.output_eenheid, r.porties);
-        return <span className="text-muted-foreground">{portie ? portie.display : "—"}</span>;
+        const methodes = [...(r.halffabricaat_methodes ?? [])].sort(
+          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        );
+        const m = getPrimaireMethode(methodes);
+        if (!m || !m.output_hoeveelheid) return <span className="text-muted-foreground">—</span>;
+        const isStuks = m.output_eenheid === "st" || m.output_eenheid === "stuks";
+        const label =
+          isStuks && m.output_gewicht_per_stuk_g
+            ? `${m.output_hoeveelheid} st × ${m.output_gewicht_per_stuk_g}g`
+            : `${m.output_hoeveelheid} ${m.output_eenheid}`;
+        return <span className="text-muted-foreground tabular-nums">{label}</span>;
       },
     },
     {
-      key: "kostprijs",
-      header: "Kostprijs/portie",
+      key: "kostprijsBereiding",
+      header: "Kostprijs/bereiding",
+      render: (r) => (
+        <span className="font-medium text-foreground tabular-nums">
+          {fmtEuro(r.totale_kostprijs)}
+        </span>
+      ),
+    },
+    {
+      key: "perEenheid",
+      header: "Per eenheid",
       render: (r) => {
-        const kpp = r.porties > 0 ? r.totale_kostprijs / r.porties : 0;
-        return <span className="font-medium text-foreground">€{kpp.toFixed(2)}</span>;
+        const methodes = [...(r.halffabricaat_methodes ?? [])].sort(
+          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        );
+        const m = getPrimaireMethode(methodes);
+        if (!m) return <span className="text-muted-foreground">—</span>;
+        const isStuks = m.output_eenheid === "st" || m.output_eenheid === "stuks";
+        if (isStuks) {
+          if (!m.output_hoeveelheid) return <span className="text-muted-foreground">—</span>;
+          const perStuk = r.totale_kostprijs / m.output_hoeveelheid;
+          return (
+            <span className="text-muted-foreground tabular-nums">
+              {fmtEuroPrecise(perStuk)}/st
+            </span>
+          );
+        }
+        const massaG = berekenOutputMassa(m);
+        if (!massaG || massaG <= 0) return <span className="text-muted-foreground">—</span>;
+        return (
+          <span className="text-muted-foreground tabular-nums">
+            {fmtEuroPrecise(r.totale_kostprijs / massaG)}/g
+          </span>
+        );
       },
     },
     {

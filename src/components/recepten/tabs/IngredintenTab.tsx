@@ -76,7 +76,6 @@ export function IngredintenTab({ recept }: IngredintenTabProps) {
   }, 0);
 
   const totaleKostprijs = totaleIngredientkostprijs + arbeid;
-  const kostprijsPerPortie = recept.porties > 0 ? totaleKostprijs / recept.porties : 0;
 
   const handleArbeidBlur = () => {
     if (arbeid !== recept.arbeidskostprijs) {
@@ -219,10 +218,6 @@ export function IngredintenTab({ recept }: IngredintenTabProps) {
         <div className="border-t border-border/50 pt-2 flex justify-between text-sm">
           <span className="font-medium text-foreground">Totale kostprijs</span>
           <span className="font-semibold text-foreground">€{totaleKostprijs.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Kostprijs per portie</span>
-          <span className="font-medium text-primary">€{kostprijsPerPortie.toFixed(2)}</span>
         </div>
       </div>
 
