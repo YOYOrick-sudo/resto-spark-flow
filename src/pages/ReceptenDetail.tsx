@@ -234,8 +234,8 @@ export default function ReceptenDetail() {
               />
             </div>
 
-            {/* Per portie — auto-berekend */}
-            {portie && (
+            {/* Per portie (gerecht) of Output per bereiding (halffabricaat) */}
+            {isGerecht && portie && (
               <TooltipProvider>
                 <div>
                   <label className="mb-1 block text-xs text-muted-foreground">Per portie</label>
@@ -253,6 +253,12 @@ export default function ReceptenDetail() {
                   </div>
                 </div>
               </TooltipProvider>
+            )}
+            {!isGerecht && outputDisplay && (
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">Output per bereiding</label>
+                <span className="text-sm font-medium">{outputDisplay}</span>
+              </div>
             )}
           </div>
 
