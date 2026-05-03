@@ -87,11 +87,11 @@ export function useApplyYieldCorrection() {
     onSuccess: (_id, vars) => {
       queryClient.invalidateQueries({ queryKey: ["yield", "current", vars.methodeId] });
       queryClient.invalidateQueries({ queryKey: ["yield", "history", vars.methodeId] });
-      nestoToast.success("Yield bijgewerkt", "De wijziging is opgeslagen in de audit-trail.");
+      nestoToast.success("Opbrengst bijgewerkt", "De wijziging is opgeslagen in de audit-trail.");
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : "Onbekende fout";
-      nestoToast.error("Yield bijwerken mislukt", msg);
+      nestoToast.error("Opbrengst bijwerken mislukt", msg);
     },
   });
 }
