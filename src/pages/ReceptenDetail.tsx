@@ -197,17 +197,19 @@ export default function ReceptenDetail() {
               options={CATEGORIE_OPTIONS}
             />
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs text-muted-foreground">Porties</label>
-                <NestoInput
-                  type="number"
-                  min={1}
-                  value={porties}
-                  onChange={(e) => { const v = e.target.value; if (v === "") return; setPorties(Number(v) || 1); }}
-                  onBlur={() => porties !== recept.porties && handleFieldSave("porties", porties)}
-                  className="h-9 text-xs"
-                />
-              </div>
+              {isGerecht && (
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Porties</label>
+                  <NestoInput
+                    type="number"
+                    min={1}
+                    value={porties}
+                    onChange={(e) => { const v = e.target.value; if (v === "") return; setPorties(Number(v) || 1); }}
+                    onBlur={() => porties !== recept.porties && handleFieldSave("porties", porties)}
+                    className="h-9 text-xs"
+                  />
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-xs text-muted-foreground">Actief (min)</label>
                 <NestoInput
