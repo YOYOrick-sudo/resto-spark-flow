@@ -40,6 +40,7 @@ export interface HalffabricaatMethodeRow {
   visuele_eenheid: string;
   output_hoeveelheid: number;
   output_eenheid: string;
+  output_gewicht_per_stuk_g: number | null;
   standaard_duur: number;
   houdbaarheid: number | null;
   instructie: string | null;
