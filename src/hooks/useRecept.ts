@@ -15,6 +15,8 @@ export interface ReceptIngredientRow {
     eenheid: string;
     kostprijs: number | null;
     yield_percentage: number;
+    weight_per_piece_g: number | null;
+    is_variable_weight: boolean;
   };
 }
 
