@@ -104,6 +104,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
               methode={m}
               index={index}
               porties={recept.porties}
+              receptType={recept.type}
               receptNaam={recept.naam}
               subReceptOptions={subReceptOptions}
               isExpanded={expandedRows.has(m.id)}
