@@ -270,8 +270,8 @@ function MethodeRow({
         </button>
       </div>
 
-      {/* Portie-info regel onder hoofdrij */}
-      {portie && (
+      {/* Portie-info regel — alleen voor gerecht (halffabricaten kennen geen porties) */}
+      {receptType === "gerecht" && portie && (
         <div className="px-3 -mt-1 pb-1 pl-[140px]">
           <span className="text-[11px] text-muted-foreground">
             = {portie.display} per portie
