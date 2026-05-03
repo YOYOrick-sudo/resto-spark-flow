@@ -15,6 +15,8 @@ import { Switch } from "@/components/ui/switch";
 import { BookOpen, Plus } from "lucide-react";
 import { useRecepten, filterRecepten, ReceptRow, ReceptenFilters } from "@/hooks/useRecepten";
 import { berekenPortieGrootte, getPrimaireMethode } from "@/utils/portieGrootte";
+import { berekenOutputMassa } from "@/utils/opbrengstBerekening";
+import { fmtEuro, fmtEuroPrecise } from "@/lib/format";
 import type { DataTableColumn } from "@/components/polar";
 
 const CATEGORIE_FILTER_OPTIONS = [
