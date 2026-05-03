@@ -36,9 +36,12 @@ export interface ReceptRow {
   updated_at: string;
   recept_allergenen: ReceptAllergeenRow[];
   halffabricaat_methodes: {
+    id: string;
+    sort_order: number;
     type: string;
     output_hoeveelheid: number;
     output_eenheid: string;
+    output_gewicht_per_stuk_g: number | null;
   }[];
 }
 
