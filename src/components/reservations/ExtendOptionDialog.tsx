@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { NestoInput } from '@/components/polar/NestoInput';
+import { NestoNumericInput } from '@/components/polar/NestoNumericInput';
 import { useExtendOption } from '@/hooks/useExtendOption';
 import { nestoToast } from '@/lib/nestoToast';
 import { format } from 'date-fns';
@@ -59,14 +60,16 @@ export function ExtendOptionDialog({
 
         <div className="space-y-4 py-2">
           <div className="max-w-[200px]">
-            <NestoInput
+            <NestoNumericInput
               label="Verlengen met (uren)"
-              type="number"
               min={1}
               max={168}
               step={1}
+              integer
               value={extraHours}
-              onChange={(e) => { const v = e.target.value; if (v === "") return; setExtraHours(parseInt(v, 10) || 24); }}
+              onValueChange={(v) => setExtraHours(v ?? 24)}
+              allowEmpty={false}
+              fallback={24}
             />
           </div>
 
