@@ -2,7 +2,7 @@ import * as React from "react";
 import { ReceptDetail, ReceptIngredientRow, HalffabricaatMethodeRow } from "@/hooks/useRecept";
 import { useReceptMutations } from "@/hooks/useReceptMutations";
 import { useRecepten } from "@/hooks/useRecepten";
-import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
+import { NestoButton, NestoInput, NestoNumericInput, NestoSelect } from "@/components/polar";
 import { Trash2, Plus, ChevronDown, ChevronUp, History } from "lucide-react";
 import { useApplyYieldCorrection, useCurrentYield } from "@/hooks/useYield";
 import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
@@ -264,11 +264,12 @@ function MethodeRow({
 
         {/* Output: number + eenheid + (optional) × g/stuk */}
         <div className="flex items-center gap-1">
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={0}
             value={outputHoeveelheid}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setOutputHoeveelheid(Number(v)); }}
+            onValueChange={(v) => setOutputHoeveelheid(v ?? 0)}
+            allowEmpty={false}
+            fallback={0}
             onBlur={() => {
               onUpdate({ output_hoeveelheid: outputHoeveelheid });
               triggerYieldUpdateIfNeeded();
@@ -289,14 +290,11 @@ function MethodeRow({
           {isStuksOutput && (
             <>
               <span className="text-[11px] text-muted-foreground">×</span>
-              <NestoInput
-                type="number"
+              <NestoNumericInput
                 min={0}
-                value={outputGewichtPerStuk}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setOutputGewichtPerStuk(v === "" ? "" : Number(v));
-                }}
+                value={outputGewichtPerStuk === "" ? null : outputGewichtPerStuk}
+                onValueChange={(v) => setOutputGewichtPerStuk(v ?? "")}
+                allowEmpty
                 onBlur={() => {
                   onUpdate({
                     output_gewicht_per_stuk_g:
@@ -314,11 +312,13 @@ function MethodeRow({
 
         {/* Duur */}
         <div className="flex items-center gap-1">
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={0}
+            integer
             value={duur}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setDuur(Number(v)); }}
+            onValueChange={(v) => setDuur(v ?? 0)}
+            allowEmpty={false}
+            fallback={0}
             onBlur={() => onUpdate({ standaard_duur: duur })}
             className="h-7 text-xs w-12 tabular-nums"
           />
@@ -327,11 +327,13 @@ function MethodeRow({
 
         {/* Houdbaar */}
         <div className="flex items-center gap-1">
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={0}
+            integer
             value={houdbaarheid}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setHoudbaarheid(Number(v)); }}
+            onValueChange={(v) => setHoudbaarheid(v ?? 0)}
+            allowEmpty={false}
+            fallback={0}
             onBlur={() => onUpdate({ houdbaarheid: houdbaarheid || null })}
             className="h-7 text-xs w-12 tabular-nums"
           />
