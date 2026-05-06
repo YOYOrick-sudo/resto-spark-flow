@@ -3,7 +3,8 @@ import { ReceptDetail, ReceptIngredientRow, HalffabricaatMethodeRow } from "@/ho
 import { useReceptMutations } from "@/hooks/useReceptMutations";
 import { useRecepten } from "@/hooks/useRecepten";
 import { NestoButton, NestoInput, NestoNumericInput, NestoSelect } from "@/components/polar";
-import { Trash2, Plus, ChevronDown, ChevronUp, History } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronUp, History, Clock, Snowflake, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApplyYieldCorrection, useCurrentYield } from "@/hooks/useYield";
 import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
 import { YieldHistoryPanel } from "@/components/recepten/yield/YieldHistoryPanel";
@@ -39,7 +40,7 @@ const OUTPUT_EENHEID_OPTIONS = [
 // D1 — alleen deze methode-types tonen opbrengst-flow in A.7
 const YIELD_METHODE_TYPES = new Set(["Bereiden", "Snijden"]);
 
-const GRID_COLS = "grid-cols-[32px_1fr_200px_80px_80px_1fr_40px_40px]";
+const GRID_COLS = "grid-cols-[32px_1fr_220px_140px_1fr_40px]";
 
 interface MethodesTabProps {
   recept: ReceptDetail;
@@ -100,14 +101,12 @@ export function MethodesTab({ recept }: MethodesTabProps) {
   return (
     <div className="w-full overflow-auto rounded-2xl bg-card shadow-card">
       {/* Header */}
-      <div className={`grid ${GRID_COLS} gap-1 px-3 pt-3 pb-2`}>
+      <div className={`grid ${GRID_COLS} gap-2 px-3 pt-3 pb-2`}>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">#</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Type</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Output</span>
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Duur</span>
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Houdbaar</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tijd · Houdbaar</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Detail</span>
-        <span />
         <span />
       </div>
 
