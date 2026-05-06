@@ -122,6 +122,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
               key={m.id}
               methode={m}
               index={index}
+              receptId={recept.id}
               porties={recept.porties}
               receptType={recept.type}
               receptNaam={recept.naam}
