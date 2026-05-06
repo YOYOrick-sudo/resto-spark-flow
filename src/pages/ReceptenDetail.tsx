@@ -8,6 +8,7 @@ import {
   NestoButton,
   NestoSelect,
   NestoInput,
+  NestoNumericInput,
   NestoBadge,
   Spinner,
   ConfirmDialog,
@@ -200,36 +201,53 @@ export default function ReceptenDetail() {
               {isGerecht && (
                 <div>
                   <label className="mb-1 block text-xs text-muted-foreground">Porties</label>
-                  <NestoInput
-                    type="number"
+                  <NestoNumericInput
                     min={1}
+                    integer
                     value={porties}
-                    onChange={(e) => { const v = e.target.value; if (v === "") return; setPorties(Number(v) || 1); }}
-                    onBlur={() => porties !== recept.porties && handleFieldSave("porties", porties)}
+                    onValueChange={(v) => {
+                      const next = v ?? 1;
+                      setPorties(next);
+                      if (next !== recept.porties) handleFieldSave("porties", next);
+                    }}
+                    allowEmpty={false}
+                    fallback={1}
                     className="h-9 text-xs"
                   />
                 </div>
               )}
               <div>
                 <label className="mb-1 block text-xs text-muted-foreground">Actief (min)</label>
-                <NestoInput
-                  type="number"
+                <NestoNumericInput
                   min={0}
-                  value={actief}
-                  onChange={(e) => { const v = e.target.value; if (v === "") return; setActief(Number(v)); }}
-                  onBlur={() => actief !== (recept.actieve_bereidingstijd ?? 0) && handleFieldSave("actieve_bereidingstijd", actief || null)}
+                  integer
+                  value={actief || null}
+                  onValueChange={(v) => {
+                    const next = v ?? 0;
+                    setActief(next);
+                    if (next !== (recept.actieve_bereidingstijd ?? 0)) {
+                      handleFieldSave("actieve_bereidingstijd", next || null);
+                    }
+                  }}
+                  allowEmpty
                   className="h-9 text-xs"
                 />
               </div>
             </div>
             <div>
               <label className="mb-1 block text-xs text-muted-foreground">Passief (min)</label>
-              <NestoInput
-                type="number"
+              <NestoNumericInput
                 min={0}
-                value={passief}
-                onChange={(e) => { const v = e.target.value; if (v === "") return; setPassief(Number(v)); }}
-                onBlur={() => passief !== (recept.passieve_bereidingstijd ?? 0) && handleFieldSave("passieve_bereidingstijd", passief || null)}
+                integer
+                value={passief || null}
+                onValueChange={(v) => {
+                  const next = v ?? 0;
+                  setPassief(next);
+                  if (next !== (recept.passieve_bereidingstijd ?? 0)) {
+                    handleFieldSave("passieve_bereidingstijd", next || null);
+                  }
+                }}
+                allowEmpty
                 className="h-9 text-xs"
               />
             </div>
