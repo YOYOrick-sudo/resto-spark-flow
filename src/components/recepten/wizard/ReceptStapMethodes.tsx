@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useStepWizard } from "@/components/polar/StepWizard";
-import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
+import { NestoButton, NestoInput, NestoNumericInput, NestoSelect } from "@/components/polar";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { berekenPortieGrootte } from "@/utils/portieGrootte";
 
@@ -112,11 +112,12 @@ export function ReceptStapMethodes() {
 
               {/* Output */}
               <div className="flex items-center gap-1">
-                <NestoInput
-                  type="number"
+                <NestoNumericInput
                   min={0}
                   value={m.outputHoeveelheid}
-                  onChange={(e) => { const v = e.target.value; if (v === "") return; updateItem(i, "outputHoeveelheid", Number(v)); }}
+                  onValueChange={(v) => updateItem(i, "outputHoeveelheid", v ?? 0)}
+                  allowEmpty={false}
+                  fallback={0}
                   className="h-7 text-xs w-12 tabular-nums"
                 />
                 <NestoSelect
@@ -137,11 +138,13 @@ export function ReceptStapMethodes() {
 
               {/* Duur */}
               <div className="flex items-center gap-1">
-                <NestoInput
-                  type="number"
+                <NestoNumericInput
                   min={0}
+                  integer
                   value={m.standaardDuur}
-                  onChange={(e) => { const v = e.target.value; if (v === "") return; updateItem(i, "standaardDuur", Number(v)); }}
+                  onValueChange={(v) => updateItem(i, "standaardDuur", v ?? 0)}
+                  allowEmpty={false}
+                  fallback={0}
                   className="h-7 text-xs w-12 tabular-nums"
                 />
                 <span className="text-[11px] text-muted-foreground">min</span>
@@ -149,11 +152,13 @@ export function ReceptStapMethodes() {
 
               {/* Houdbaar */}
               <div className="flex items-center gap-1">
-                <NestoInput
-                  type="number"
+                <NestoNumericInput
                   min={0}
+                  integer
                   value={m.houdbaarheid}
-                  onChange={(e) => { const v = e.target.value; if (v === "") return; updateItem(i, "houdbaarheid", Number(v)); }}
+                  onValueChange={(v) => updateItem(i, "houdbaarheid", v ?? 0)}
+                  allowEmpty={false}
+                  fallback={0}
                   className="h-7 text-xs w-12 tabular-nums"
                 />
                 <span className="text-[11px] text-muted-foreground">d</span>

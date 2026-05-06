@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { FieldHelp } from "@/components/polar/FieldHelp";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -106,16 +107,16 @@ export function CheckinSettingsCard({ locationId }: CheckinSettingsCardProps) {
       <div className="space-y-6">
         {/* Check-in window */}
         <div className="max-w-xs">
-          <NestoInput
+          <NestoNumericInput
             label="Check-in window (minuten)"
-            type="number"
             min={0}
             max={120}
             step={5}
+            integer
             value={localSettings.checkin_window_minutes}
-            onChange={(e) =>
-              { const v = e.target.value; if (v === "") return; handleNumberChange("checkin_window_minutes", parseInt(v, 10) || 15); }
-            }
+            onValueChange={(v) => handleNumberChange("checkin_window_minutes", v ?? 15)}
+            allowEmpty={false}
+            fallback={15}
           />
           <p className="text-xs text-muted-foreground mt-1">
             Gasten kunnen dit aantal minuten voor hun reserveringstijd inchecken.
@@ -144,16 +145,16 @@ export function CheckinSettingsCard({ locationId }: CheckinSettingsCardProps) {
         {/* No-show after minutes — conditioneel */}
         {localSettings.auto_no_show_enabled && (
           <div className="max-w-xs pl-0">
-            <NestoInput
+            <NestoNumericInput
               label="No-show na (minuten)"
-              type="number"
               min={5}
               max={120}
               step={5}
+              integer
               value={localSettings.no_show_after_minutes}
-              onChange={(e) =>
-                { const v = e.target.value; if (v === "") return; handleNumberChange("no_show_after_minutes", parseInt(v, 10) || 15); }
-              }
+              onValueChange={(v) => handleNumberChange("no_show_after_minutes", v ?? 15)}
+              allowEmpty={false}
+              fallback={15}
             />
             <p className="text-xs text-muted-foreground mt-1">
               Markeer als no-show dit aantal minuten na de reserveringstijd.

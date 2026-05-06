@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, X } from "lucide-react";
 import { useIngredientSearch } from "@/hooks/useIngredientSearch";
@@ -346,16 +347,13 @@ export function WasteModal({ open, onOpenChange }: WasteModalProps) {
             <label className="text-[13px] font-medium text-muted-foreground mb-1.5 block">
               Hoeveel?
             </label>
-            <NestoInput
-              type="number"
+            <NestoNumericInput
               min={selected?.type === "halffabricaat" && eenheid === "portie" ? 1 : 0.01}
               step={selected?.type === "halffabricaat" && eenheid === "portie" ? 1 : 0.1}
               value={hoeveelheid}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "") return;
-                setHoeveelheid(parseFloat(v) || 0);
-              }}
+              onValueChange={(v) => setHoeveelheid(v ?? 0)}
+              allowEmpty={false}
+              fallback={selected?.type === "halffabricaat" && eenheid === "portie" ? 1 : 0.01}
             />
           </div>
           <div>

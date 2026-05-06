@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { useCreateTablesBulk, getNextTableSortOrder } from "@/hooks/useTableMutations";
 import { parseSupabaseError } from "@/lib/supabaseErrors";
@@ -79,39 +80,47 @@ export function BulkTableModal({ open, onOpenChange, areaId }: BulkTableModalPro
         </p>
         
         <div className="grid grid-cols-2 gap-4">
-          <NestoInput
+          <NestoNumericInput
             label="Startnummer"
-            type="number"
             min={1}
+            integer
             value={startNumber}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setStartNumber(parseInt(v, 10) || 1); }}
+            onValueChange={(v) => setStartNumber(v ?? 1)}
+            allowEmpty={false}
+            fallback={1}
           />
-          <NestoInput
+          <NestoNumericInput
             label="Aantal tafels"
-            type="number"
             min={1}
             max={50}
+            integer
             value={count}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setCount(parseInt(v, 10) || 1); }}
+            onValueChange={(v) => setCount(v ?? 1)}
+            allowEmpty={false}
+            fallback={1}
           />
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          <NestoInput
+          <NestoNumericInput
             label="Min. capaciteit"
-            type="number"
             min={1}
             max={50}
+            integer
             value={minCapacity}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setMinCapacity(parseInt(v, 10) || 1); }}
+            onValueChange={(v) => setMinCapacity(v ?? 1)}
+            allowEmpty={false}
+            fallback={1}
           />
-          <NestoInput
+          <NestoNumericInput
             label="Max. capaciteit"
-            type="number"
             min={1}
             max={50}
+            integer
             value={maxCapacity}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setMaxCapacity(parseInt(v, 10) || 1); }}
+            onValueChange={(v) => setMaxCapacity(v ?? 1)}
+            allowEmpty={false}
+            fallback={1}
           />
         </div>
         

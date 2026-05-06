@@ -4,6 +4,7 @@ import { NestoCard } from '@/components/polar/NestoCard';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { NestoNumericInput } from '@/components/polar/NestoNumericInput';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { TitleHelp } from '@/components/polar/TitleHelp';
 import { NestoBadge } from '@/components/polar/NestoBadge';
@@ -94,39 +95,45 @@ export function ReminderSettingsSection() {
         {/* Grid-aligned rows */}
         <div className="grid grid-cols-[1fr_80px_auto] items-center gap-4">
           <Label className="text-sm">1e herinnering na</Label>
-          <Input
-            type="number"
+          <NestoNumericInput
             value={localConfig.first_reminder_hours ?? 24}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; updateField('first_reminder_hours', parseInt(v, 10) || 0); }}
+            onValueChange={(v) => updateField('first_reminder_hours', v ?? 0)}
+            allowEmpty={false}
+            fallback={1}
+            integer
+            min={1}
             className="w-20 h-8 text-sm tabular-nums text-right"
             disabled={!enabled}
-            min={1}
           />
           <span className="text-xs text-muted-foreground w-12">uur</span>
         </div>
 
         <div className="grid grid-cols-[1fr_80px_auto] items-center gap-4">
           <Label className="text-sm">2e herinnering (urgent) na</Label>
-          <Input
-            type="number"
+          <NestoNumericInput
             value={localConfig.urgent_reminder_hours ?? 48}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; updateField('urgent_reminder_hours', parseInt(v, 10) || 0); }}
+            onValueChange={(v) => updateField('urgent_reminder_hours', v ?? 0)}
+            allowEmpty={false}
+            fallback={1}
+            integer
+            min={1}
             className="w-20 h-8 text-sm tabular-nums text-right"
             disabled={!enabled}
-            min={1}
           />
           <span className="text-xs text-muted-foreground w-12">uur</span>
         </div>
 
         <div className="grid grid-cols-[1fr_80px_auto] items-center gap-4">
           <Label className="text-sm">Auto-markering 'geen reactie' na</Label>
-          <Input
-            type="number"
+          <NestoNumericInput
             value={localConfig.no_response_days ?? 7}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; updateField('no_response_days', parseInt(v, 10) || 0); }}
+            onValueChange={(v) => updateField('no_response_days', v ?? 0)}
+            allowEmpty={false}
+            fallback={1}
+            integer
+            min={1}
             className="w-20 h-8 text-sm tabular-nums text-right"
             disabled={!enabled}
-            min={1}
           />
           <span className="text-xs text-muted-foreground w-12">dagen</span>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { FieldHelp } from "@/components/polar/FieldHelp";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -122,16 +123,16 @@ export function OptionSettingsCard({ locationId }: OptionSettingsCardProps) {
 
             {/* Default expiry hours */}
             <div className="max-w-xs">
-              <NestoInput
+              <NestoNumericInput
                 label="Standaard vervaltijd (uren)"
-                type="number"
                 min={1}
                 max={168}
                 step={1}
+                integer
                 value={localSettings.option_default_expiry_hours}
-                onChange={(e) =>
-                  { const v = e.target.value; if (v === "") return; handleNumberChange(parseInt(v, 10) || 24); }
-                }
+                onValueChange={(v) => handleNumberChange(v ?? 24)}
+                allowEmpty={false}
+                fallback={24}
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Na hoeveel uur vervalt een optie automatisch.

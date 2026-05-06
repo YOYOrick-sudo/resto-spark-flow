@@ -2,7 +2,7 @@ import * as React from "react";
 import { ReceptDetail, ReceptIngredientRow, HalffabricaatMethodeRow } from "@/hooks/useRecept";
 import { useReceptMutations } from "@/hooks/useReceptMutations";
 import { useRecepten } from "@/hooks/useRecepten";
-import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
+import { NestoButton, NestoInput, NestoNumericInput, NestoSelect } from "@/components/polar";
 import { Trash2, Plus, ChevronDown, ChevronUp, History } from "lucide-react";
 import { useApplyYieldCorrection, useCurrentYield } from "@/hooks/useYield";
 import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
@@ -264,15 +264,17 @@ function MethodeRow({
 
         {/* Output: number + eenheid + (optional) × g/stuk */}
         <div className="flex items-center gap-1">
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={0}
             value={outputHoeveelheid}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setOutputHoeveelheid(Number(v)); }}
-            onBlur={() => {
-              onUpdate({ output_hoeveelheid: outputHoeveelheid });
+            onValueChange={(v) => {
+              const next = v ?? 0;
+              setOutputHoeveelheid(next);
+              onUpdate({ output_hoeveelheid: next });
               triggerYieldUpdateIfNeeded();
             }}
+            allowEmpty={false}
+            fallback={0}
             className="h-7 text-xs w-16 tabular-nums"
           />
           <NestoSelect
@@ -281,7 +283,6 @@ function MethodeRow({
               setOutputEenheid(v);
               // D3 — bij wisselen weg van 'st' BEHOUDEN we output_gewicht_per_stuk_g (geen NULL).
               onUpdate({ output_eenheid: v });
-              // Pas op volgende blur opnieuw triggeren — value is nu nieuw
             }}
             options={OUTPUT_EENHEID_OPTIONS}
             size="sm"
@@ -289,21 +290,15 @@ function MethodeRow({
           {isStuksOutput && (
             <>
               <span className="text-[11px] text-muted-foreground">×</span>
-              <NestoInput
-                type="number"
+              <NestoNumericInput
                 min={0}
-                value={outputGewichtPerStuk}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setOutputGewichtPerStuk(v === "" ? "" : Number(v));
-                }}
-                onBlur={() => {
-                  onUpdate({
-                    output_gewicht_per_stuk_g:
-                      outputGewichtPerStuk === "" ? null : Number(outputGewichtPerStuk),
-                  });
+                value={outputGewichtPerStuk === "" ? null : outputGewichtPerStuk}
+                onValueChange={(v) => {
+                  setOutputGewichtPerStuk(v ?? "");
+                  onUpdate({ output_gewicht_per_stuk_g: v });
                   triggerYieldUpdateIfNeeded();
                 }}
+                allowEmpty
                 placeholder="g/st"
                 className="h-7 text-xs w-16 tabular-nums"
               />
@@ -314,12 +309,17 @@ function MethodeRow({
 
         {/* Duur */}
         <div className="flex items-center gap-1">
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={0}
+            integer
             value={duur}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setDuur(Number(v)); }}
-            onBlur={() => onUpdate({ standaard_duur: duur })}
+            onValueChange={(v) => {
+              const next = v ?? 0;
+              setDuur(next);
+              onUpdate({ standaard_duur: next });
+            }}
+            allowEmpty={false}
+            fallback={0}
             className="h-7 text-xs w-12 tabular-nums"
           />
           <span className="text-[11px] text-muted-foreground">min</span>
@@ -327,12 +327,17 @@ function MethodeRow({
 
         {/* Houdbaar */}
         <div className="flex items-center gap-1">
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={0}
+            integer
             value={houdbaarheid}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setHoudbaarheid(Number(v)); }}
-            onBlur={() => onUpdate({ houdbaarheid: houdbaarheid || null })}
+            onValueChange={(v) => {
+              const next = v ?? 0;
+              setHoudbaarheid(next);
+              onUpdate({ houdbaarheid: next || null });
+            }}
+            allowEmpty={false}
+            fallback={0}
             className="h-7 text-xs w-12 tabular-nums"
           />
           <span className="text-[11px] text-muted-foreground">d</span>

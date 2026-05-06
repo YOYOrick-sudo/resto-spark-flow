@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { NestoInput } from "@/components/polar";
+import { NestoInput, NestoNumericInput } from "@/components/polar";
 import { NestoSelect } from "@/components/polar";
 import { NestoButton } from "@/components/polar";
 import { ConfirmDialog } from "@/components/polar";
@@ -143,12 +143,14 @@ export function AlgemeenTab({ ingredient }: AlgemeenTabProps) {
           </Tooltip>
         </div>
         <div className="flex">
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={1}
             max={100}
+            integer
             value={yieldPct}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setYieldPct(Number(v)); }}
+            onValueChange={(v) => setYieldPct(v ?? 100)}
+            allowEmpty={false}
+            fallback={100}
             className="rounded-r-none border-r-0"
           />
           <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-r-[var(--radius-button)] border-[1.5px] border-l-0 border-border">

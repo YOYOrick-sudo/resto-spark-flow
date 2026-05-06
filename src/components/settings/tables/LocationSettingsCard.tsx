@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { FieldHelp } from "@/components/polar/FieldHelp";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -153,36 +154,42 @@ export function LocationSettingsCard({ locationId }: LocationSettingsCardProps) 
         {/* Number inputs */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <NestoInput
+            <NestoNumericInput
               label="Standaard reserveringsduur (min)"
-              type="number"
               min={15}
               max={480}
               step={15}
+              integer
               value={localSettings.default_duration_minutes}
-              onChange={(e) => { const v = e.target.value; if (v === "") return; handleNumberChange('default_duration_minutes', parseInt(v, 10) || 120); }}
+              onValueChange={(v) => handleNumberChange('default_duration_minutes', v ?? 120)}
+              allowEmpty={false}
+              fallback={120}
             />
           </div>
           <div>
-            <NestoInput
+            <NestoNumericInput
               label="Min. boekingstijd vooraf (min)"
-              type="number"
               min={0}
               max={1440}
               step={15}
+              integer
               value={localSettings.booking_cutoff_minutes}
-              onChange={(e) => { const v = e.target.value; if (v === "") return; handleNumberChange('booking_cutoff_minutes', parseInt(v, 10) || 0); }}
+              onValueChange={(v) => handleNumberChange('booking_cutoff_minutes', v ?? 0)}
+              allowEmpty={false}
+              fallback={0}
             />
           </div>
           <div>
-            <NestoInput
+            <NestoNumericInput
               label="Buffer tussen reserveringen (min)"
-              type="number"
               min={0}
               max={120}
               step={5}
+              integer
               value={localSettings.default_buffer_minutes}
-              onChange={(e) => { const v = e.target.value; if (v === "") return; handleNumberChange('default_buffer_minutes', parseInt(v, 10) || 0); }}
+              onValueChange={(v) => handleNumberChange('default_buffer_minutes', v ?? 0)}
+              allowEmpty={false}
+              fallback={0}
             />
           </div>
         </div>

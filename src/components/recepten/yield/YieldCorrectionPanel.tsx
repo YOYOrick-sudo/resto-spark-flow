@@ -5,7 +5,7 @@
 // Twee modi: "Vanaf nu" (manual_override) of "Eerdere datum" (correction)
 import * as React from "react";
 import { NestoPanel } from "@/components/polar/NestoPanel";
-import { NestoButton, NestoInput, NestoDatePicker } from "@/components/polar";
+import { NestoButton, NestoInput, NestoNumericInput, NestoDatePicker } from "@/components/polar";
 import { YieldSourcePill, getYieldSourceLabel } from "./YieldSourcePill";
 import { useApplyYieldCorrection, type CurrentYield } from "@/hooks/useYield";
 import { Info } from "lucide-react";
@@ -136,17 +136,15 @@ export function YieldCorrectionPanel({
               Nieuwe opbrengst
             </label>
             <div className="flex items-center gap-2">
-              <NestoInput
-                type="number"
+              <NestoNumericInput
                 min={1}
                 max={200}
                 step={1}
+                integer
                 value={pct}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === "") return;
-                  setPct(Number(v));
-                }}
+                onValueChange={(v) => setPct(v ?? 1)}
+                allowEmpty={false}
+                fallback={1}
                 className="w-24 tabular-nums"
               />
               <span className="text-sm text-muted-foreground">%</span>

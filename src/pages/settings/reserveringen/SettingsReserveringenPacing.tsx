@@ -7,6 +7,7 @@ import {
 } from "@/components/settings/context";
 import { NestoCard } from "@/components/polar/NestoCard";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { TitleHelp, TitleHelpTip } from "@/components/polar/TitleHelp";
 import { FieldHelp } from "@/components/polar/FieldHelp";
@@ -165,18 +166,20 @@ export default function SettingsReserveringenPacing() {
                 Deze limits bepalen de kleurindicatie in de Grid View.
               </p>
             </div>
-            <NestoInput
+            <NestoNumericInput
               label="Standaard pacing (gasten per 15 min)"
-              type="number"
               min={1}
               max={100}
+              integer
               value={settings.defaultLimitPerQuarter}
-              onChange={(e) =>
+              onValueChange={(v) =>
                 setSettings({
                   ...settings,
-                  defaultLimitPerQuarter: (() => { const v = e.target.value; if (v === "") return settings.defaultLimitPerQuarter; return parseInt(v, 10) || 1; })(),
+                  defaultLimitPerQuarter: v ?? settings.defaultLimitPerQuarter,
                 })
               }
+              allowEmpty={false}
+              fallback={settings.defaultLimitPerQuarter}
             />
           </div>
 
@@ -195,31 +198,35 @@ export default function SettingsReserveringenPacing() {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <NestoInput
+              <NestoNumericInput
                 label="Lunch pacing"
-                type="number"
                 min={1}
                 max={100}
+                integer
                 value={settings.lunchLimit}
-                onChange={(e) =>
+                onValueChange={(v) =>
                   setSettings({
                     ...settings,
-                    lunchLimit: (() => { const v = e.target.value; if (v === "") return settings.lunchLimit; return parseInt(v, 10) || 1; })(),
+                    lunchLimit: v ?? settings.lunchLimit,
                   })
                 }
+                allowEmpty={false}
+                fallback={settings.lunchLimit}
               />
-              <NestoInput
+              <NestoNumericInput
                 label="Diner pacing"
-                type="number"
                 min={1}
                 max={100}
+                integer
                 value={settings.dinnerLimit}
-                onChange={(e) =>
+                onValueChange={(v) =>
                   setSettings({
                     ...settings,
-                    dinnerLimit: (() => { const v = e.target.value; if (v === "") return settings.dinnerLimit; return parseInt(v, 10) || 1; })(),
+                    dinnerLimit: v ?? settings.dinnerLimit,
                   })
                 }
+                allowEmpty={false}
+                fallback={settings.dinnerLimit}
               />
             </div>
           </div>

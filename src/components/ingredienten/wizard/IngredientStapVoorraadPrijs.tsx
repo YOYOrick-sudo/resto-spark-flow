@@ -1,5 +1,5 @@
 import * as React from "react";
-import { NestoInput } from "@/components/polar";
+import { NestoInput, NestoNumericInput } from "@/components/polar";
 import { useStepWizard } from "@/components/polar/StepWizard";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
@@ -81,12 +81,14 @@ export function IngredientStapVoorraadPrijs() {
           </Tooltip>
         </div>
         <div className="flex">
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={1}
             max={100}
+            integer
             value={data.yield_percentage ?? 100}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; update("yield_percentage", Number(v)); }}
+            onValueChange={(v) => update("yield_percentage", v ?? 100)}
+            allowEmpty={false}
+            fallback={100}
             className="rounded-r-none border-r-0"
           />
           <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-r-[var(--radius-button)] border-[1.5px] border-l-0 border-border">

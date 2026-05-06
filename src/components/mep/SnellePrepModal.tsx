@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoSelect } from "@/components/polar/NestoSelect";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { PREP_HANDELINGEN, getPrepDefaults } from "@/utils/prepDefaults";
 import { useSnellePrep } from "@/hooks/useSnellePrep";
@@ -86,13 +87,14 @@ export function SnellePrepModal({ open, onOpenChange, ingredient, taskDate }: Sn
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <NestoInput
+          <NestoNumericInput
             label="Hoeveelheid"
-            type="number"
             min={0.1}
             step={0.1}
             value={hoeveelheid}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setHoeveelheid(Number(v)); }}
+            onValueChange={(v) => setHoeveelheid(v ?? 0.1)}
+            allowEmpty={false}
+            fallback={0.1}
           />
           <NestoSelect
             label="Eenheid"
@@ -103,20 +105,24 @@ export function SnellePrepModal({ open, onOpenChange, ingredient, taskDate }: Sn
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <NestoInput
+          <NestoNumericInput
             label="Bruikbaar %"
-            type="number"
             min={1}
             max={100}
+            integer
             value={yieldPct}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setYieldPct(Number(v)); }}
+            onValueChange={(v) => setYieldPct(v ?? 100)}
+            allowEmpty={false}
+            fallback={100}
           />
-          <NestoInput
+          <NestoNumericInput
             label="Duur (min)"
-            type="number"
             min={1}
+            integer
             value={duur}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setDuur(Number(v)); }}
+            onValueChange={(v) => setDuur(v ?? 1)}
+            allowEmpty={false}
+            fallback={1}
           />
         </div>
 

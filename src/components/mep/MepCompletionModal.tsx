@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { useCompleteMepTask } from "@/hooks/useMepMutations";
 import { useMedewerkers, getLastMedewerkerId, setLastMedewerkerId } from "@/hooks/useMedewerkers";
@@ -167,12 +168,14 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
             )}
           </div>
 
-          <NestoInput
+          <NestoNumericInput
             label="Aantal gemaakt"
-            type="number"
             min={1}
+            integer
             value={unitsGemaakt}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setUnitsGemaakt(Number(v)); }}
+            onValueChange={(v) => setUnitsGemaakt(v ?? 1)}
+            allowEmpty={false}
+            fallback={1}
             className="text-lg h-14"
           />
 
