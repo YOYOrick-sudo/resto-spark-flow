@@ -197,8 +197,6 @@ function MethodeRow({
   const [instructie, setInstructie] = React.useState(methode.instructie ?? "");
   const [subReceptId, setSubReceptId] = React.useState(methode.sub_recept_id ?? "");
 
-  // Yield panels state
-  const [historyOpen, setHistoryOpen] = React.useState(false);
   const { data: currentYield, isLoading: yieldLoading } = useCurrentYield(methode.id);
   const applyYield = useApplyYieldCorrection();
 
@@ -206,7 +204,6 @@ function MethodeRow({
   const isStuksOutput = outputEenheid === "st" || outputEenheid === "stuks";
 
   const portie = berekenPortieGrootte(outputHoeveelheid, outputEenheid, porties);
-  const methodeLabel = `${receptNaam} · ${methode.type}`;
 
   // D1+ — Bereken afgeleide opbrengst uit input vs output
   const opbrengst = React.useMemo(() => {
