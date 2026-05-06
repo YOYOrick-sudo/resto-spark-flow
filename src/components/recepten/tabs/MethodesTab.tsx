@@ -431,6 +431,42 @@ function MethodeRow({
             />
           )}
 
+          {/* Duur + Houdbaarheid bewerken */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-[11px] text-muted-foreground">Duur (min)</label>
+              <NestoNumericInput
+                min={0}
+                integer
+                value={duur}
+                onValueChange={(v) => {
+                  const next = v ?? 0;
+                  setDuur(next);
+                  onUpdate({ standaard_duur: next });
+                }}
+                allowEmpty={false}
+                fallback={0}
+                className="h-8 text-xs tabular-nums"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-muted-foreground">Houdbaarheid (dagen)</label>
+              <NestoNumericInput
+                min={0}
+                integer
+                value={houdbaarheid}
+                onValueChange={(v) => {
+                  const next = v ?? 0;
+                  setHoudbaarheid(next);
+                  onUpdate({ houdbaarheid: next || null });
+                }}
+                allowEmpty={false}
+                fallback={0}
+                className="h-8 text-xs tabular-nums"
+              />
+            </div>
+          </div>
+
           {/* Opbrengst-paneel — alleen voor methode-types met opbrengst-flow */}
           {heeftOpbrengst && (
             <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2">
