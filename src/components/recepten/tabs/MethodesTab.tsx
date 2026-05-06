@@ -306,41 +306,22 @@ function MethodeRow({
           )}
         </div>
 
-        {/* Duur */}
-        <div className="flex items-center gap-1">
-          <NestoNumericInput
-            min={0}
-            integer
-            value={duur}
-            onValueChange={(v) => {
-              const next = v ?? 0;
-              setDuur(next);
-              onUpdate({ standaard_duur: next });
-            }}
-            allowEmpty={false}
-            fallback={0}
-            className="h-7 text-xs w-12 tabular-nums"
-          />
-          <span className="text-[11px] text-muted-foreground">min</span>
-        </div>
-
-        {/* Houdbaar */}
-        <div className="flex items-center gap-1">
-          <NestoNumericInput
-            min={0}
-            integer
-            value={houdbaarheid}
-            onValueChange={(v) => {
-              const next = v ?? 0;
-              setHoudbaarheid(next);
-              onUpdate({ houdbaarheid: next || null });
-            }}
-            allowEmpty={false}
-            fallback={0}
-            className="h-7 text-xs w-12 tabular-nums"
-          />
-          <span className="text-[11px] text-muted-foreground">d</span>
-        </div>
+        {/* Tijd · Houdbaar (read-only mini-icons; bewerken in uitklap) */}
+        <button
+          onClick={onToggleExpand}
+          className="flex items-center gap-2 text-[11px] text-muted-foreground tabular-nums hover:text-foreground transition-colors"
+          title="Klik om duur en houdbaarheid te bewerken"
+        >
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {duur ? `${duur}min` : "—"}
+          </span>
+          <span className="text-border">·</span>
+          <span className="inline-flex items-center gap-1">
+            <Snowflake className="h-3 w-3" />
+            {houdbaarheid ? `${houdbaarheid}d` : "—"}
+          </span>
+        </button>
 
         {/* Detail toggle */}
         <button
@@ -370,9 +351,6 @@ function MethodeRow({
         >
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </button>
-
-        {/* Spacer — 8th column to align body with header */}
-        <span />
       </div>
 
       {/* A.7.1 — Inline afgeleide opbrengst onder output-cel (tweede-regel pattern) */}
