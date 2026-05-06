@@ -5,6 +5,7 @@ import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { EmptyState } from '@/components/polar/EmptyState';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { NestoNumericInput } from '@/components/polar/NestoNumericInput';
 import { Switch } from '@/components/ui/switch';
 import { useMarketingFlows, useUpdateMarketingFlow } from '@/hooks/useMarketingFlows';
 import { useMarketingTemplates } from '@/hooks/useMarketingTemplates';
@@ -89,19 +90,20 @@ export default function AutomationFlowsTab({ readOnly }: AutomationFlowsTabProps
                 {/* Timing */}
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1">Vertraging (dagen)</Label>
-                  <Input
-                    type="number"
+                  <NestoNumericInput
                     min={0}
+                    integer
                     value={delayDays}
-                    onChange={(e) => {
+                    onValueChange={(v) => {
                       if (readOnly) return;
-                      const v = e.target.value; if (v === "") return;
-                      const newConfig = { ...triggerConfig, delay_days: parseInt(v, 10) || 0 };
+                      const newConfig = { ...triggerConfig, delay_days: v ?? 0 };
                       updateFlow.mutate(
                         { flowId: flow.id, updates: { trigger_config: newConfig } },
                         { onError: () => nestoToast.error('Wijziging mislukt') }
                       );
                     }}
+                    allowEmpty={false}
+                    fallback={0}
                     className="text-sm h-8"
                     disabled={readOnly}
                   />
@@ -109,20 +111,21 @@ export default function AutomationFlowsTab({ readOnly }: AutomationFlowsTabProps
 
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1">Vertraging (uren)</Label>
-                  <Input
-                    type="number"
+                  <NestoNumericInput
                     min={0}
                     max={23}
+                    integer
                     value={delayHours}
-                    onChange={(e) => {
+                    onValueChange={(v) => {
                       if (readOnly) return;
-                      const v = e.target.value; if (v === "") return;
-                      const newConfig = { ...triggerConfig, delay_hours: parseInt(v, 10) || 0 };
+                      const newConfig = { ...triggerConfig, delay_hours: v ?? 0 };
                       updateFlow.mutate(
                         { flowId: flow.id, updates: { trigger_config: newConfig } },
                         { onError: () => nestoToast.error('Wijziging mislukt') }
                       );
                     }}
+                    allowEmpty={false}
+                    fallback={0}
                     className="text-sm h-8"
                     disabled={readOnly}
                   />

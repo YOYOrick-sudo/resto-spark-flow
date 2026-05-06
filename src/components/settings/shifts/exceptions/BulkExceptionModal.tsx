@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { NestoButton, NestoInput, NestoSelect, NestoModal } from "@/components/polar";
+import { NestoButton, NestoInput, NestoNumericInput, NestoSelect, NestoModal } from "@/components/polar";
 import { useShiftExceptions, useBulkCreateShiftExceptions } from "@/hooks/useShiftExceptions";
 import {
   generateDates,
@@ -471,12 +471,14 @@ export function BulkExceptionModal({
               <div className="flex items-center gap-3">
                 <label className="text-sm font-medium text-muted-foreground">Aantal:</label>
                 <div className="w-24">
-                  <NestoInput
-                    type="number"
+                  <NestoNumericInput
                     min={1}
                     max={500}
+                    integer
                     value={occurrenceCount}
-                    onChange={(e) => { const v = e.target.value; if (v === "") return; setOccurrenceCount(Math.min(500, Math.max(1, parseInt(v, 10) || 1))); }}
+                    onValueChange={(v) => setOccurrenceCount(v ?? 1)}
+                    allowEmpty={false}
+                    fallback={1}
                   />
                 </div>
                 <span className="text-sm text-muted-foreground">keer</span>

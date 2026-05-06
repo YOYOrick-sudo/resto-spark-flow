@@ -5,6 +5,7 @@ import { NestoBadge } from '@/components/polar/NestoBadge';
 import { CardSkeleton } from '@/components/polar/LoadingStates';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { NestoNumericInput } from '@/components/polar/NestoNumericInput';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useUserContext } from '@/contexts/UserContext';
@@ -199,12 +200,14 @@ export function AgentConfigTab() {
           <div>
             <Label className="text-sm mb-1.5">Grote groepen drempel</Label>
             <div className="flex items-center gap-2">
-              <Input
-                type="number"
+              <NestoNumericInput
                 min={2}
                 max={50}
+                integer
                 value={local.large_party_threshold}
-                onChange={(e) => { const v = e.target.value; if (v === "") return; updateField('large_party_threshold', parseInt(v, 10) || 8); }}
+                onValueChange={(v) => updateField('large_party_threshold', v ?? 8)}
+                allowEmpty={false}
+                fallback={8}
                 className="text-sm w-20"
               />
               <span className="text-xs text-muted-foreground">personen</span>
