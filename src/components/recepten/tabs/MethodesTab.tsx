@@ -477,14 +477,14 @@ function MethodeRow({
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Afgeleide opbrengst
                 </span>
-                <button
-                  onClick={() => setHistoryOpen(true)}
+                <Link
+                  to={`/recepten/${receptId}/methodes/${methode.id}/historie/opbrengst`}
                   className="p-1 rounded hover:bg-accent transition-colors flex items-center gap-1.5 text-[11px] text-muted-foreground"
                   title="Opbrengst-historie"
                 >
                   <History className="h-3.5 w-3.5" />
                   Historie
-                </button>
+                </Link>
               </div>
 
               <OpbrengstBreakdown
