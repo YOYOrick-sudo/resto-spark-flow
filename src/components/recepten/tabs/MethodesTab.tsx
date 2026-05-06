@@ -354,28 +354,48 @@ function MethodeRow({
       </div>
 
       {/* A.7.1 — Inline afgeleide opbrengst onder output-cel (tweede-regel pattern) */}
-      {heeftOpbrengst && (
-        <div className="px-3 -mt-1 pb-1 pl-[44px]">
-          <span
-            className="text-[11px] text-muted-foreground tabular-nums inline-flex items-center gap-1.5"
-            title={
-              opbrengst?.opbrengstPct === null
-                ? "Vul ingrediënten en output in om opbrengst te berekenen"
-                : "Afgeleid uit input vs output. Wijzig output om aan te passen."
-            }
-          >
-            <span>
-              · opbrengst{" "}
-              {opbrengst?.opbrengstPct != null
-                ? `${Math.round(opbrengst.opbrengstPct * 100)}%`
-                : "–"}
+      {heeftOpbrengst && (() => {
+        const pct = opbrengst?.opbrengstPct;
+        const pctNum = pct != null ? pct * 100 : null;
+        const isLow = pctNum != null && pctNum < 30;
+        const isHigh = pctNum != null && pctNum > 110;
+        const warn = isLow || isHigh;
+        const warnMsg = isLow
+          ? `Erg lage opbrengst (${Math.round(pctNum!)}%) — controleer of input/output kloppen`
+          : isHigh
+          ? `Onmogelijk hoge opbrengst (${Math.round(pctNum!)}%) — output is groter dan input`
+          : "";
+        return (
+          <div className="px-3 -mt-1 pb-1 pl-[44px]">
+            <span
+              className="text-[11px] text-muted-foreground tabular-nums inline-flex items-center gap-1.5"
+              title={
+                pct === null || pct === undefined
+                  ? "Vul ingrediënten en output in om opbrengst te berekenen"
+                  : "Afgeleid uit input vs output. Wijzig output om aan te passen."
+              }
+            >
+              <span>
+                · opbrengst{" "}
+                {pct != null ? `${Math.round(pct * 100)}%` : "–"}
+              </span>
+              {warn && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex"><AlertTriangle className="h-3 w-3 text-amber-600" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">{warnMsg}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {currentYield && !yieldLoading && (
+                <YieldSourcePill source={currentYield.source} size="xs" />
+              )}
             </span>
-            {currentYield && !yieldLoading && (
-              <YieldSourcePill source={currentYield.source} size="xs" />
-            )}
-          </span>
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* D5 — Per-portie regel: alleen voor gerecht, niet voor halffabricaat */}
       {receptType === "gerecht" && portie && (
