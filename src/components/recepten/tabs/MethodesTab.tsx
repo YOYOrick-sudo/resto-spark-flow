@@ -8,7 +8,7 @@ import { Trash2, Plus, ChevronDown, ChevronUp, History, Clock, Snowflake, AlertT
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApplyYieldCorrection, useCurrentYield } from "@/hooks/useYield";
 import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
-import { YieldHistoryPanel } from "@/components/recepten/yield/YieldHistoryPanel";
+
 import {
   bepaalOpbrengst,
   type IngredientForOpbrengst,
