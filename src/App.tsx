@@ -17,6 +17,7 @@ import MepTaken from "./pages/MepTaken";
 import Recepten from "./pages/Recepten";
 import ReceptenDetail from "./pages/ReceptenDetail";
 import ReceptenNieuw from "./pages/ReceptenNieuw";
+import MethodeHistoriePage from "./pages/MethodeHistoriePage";
 import Ingredienten from "./pages/Ingredienten";
 import IngredientenNieuw from "./pages/IngredientenNieuw";
 import IngredientenDetail from "./pages/IngredientenDetail";
