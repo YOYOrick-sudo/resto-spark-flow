@@ -5,6 +5,9 @@ export type { NestoButtonProps } from "./NestoButton";
 export { NestoInput } from "./NestoInput";
 export type { NestoInputProps } from "./NestoInput";
 
+export { NestoNumericInput } from "./NestoNumericInput";
+export type { NestoNumericInputProps } from "./NestoNumericInput";
+
 export { NestoSelect } from "./NestoSelect";
 export type { NestoSelectProps, SelectOption, SelectGroupOptions } from "./NestoSelect";
 
