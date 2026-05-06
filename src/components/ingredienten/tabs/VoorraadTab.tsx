@@ -1,5 +1,5 @@
 import * as React from "react";
-import { NestoButton, NestoBadge, NestoInput, NestoModal } from "@/components/polar";
+import { NestoButton, NestoBadge, NestoInput, NestoNumericInput, NestoModal } from "@/components/polar";
 import { useVoorraadBewegingen } from "@/hooks/useIngredient";
 import { useIngredientMutations } from "@/hooks/useIngredientMutations";
 import { getVoorraadStatus, type IngredientRow } from "@/hooks/useIngredienten";
@@ -87,11 +87,12 @@ export function VoorraadTab({ ingredient }: VoorraadTabProps) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-2 block text-label text-muted-foreground">Minimum</label>
-          <NestoInput
-            type="number"
+          <NestoNumericInput
             min={0}
             value={minVoorraad}
-            onChange={(e) => { const v = e.target.value; if (v === "") return; setMinVoorraad(Number(v)); }}
+            onValueChange={(v) => setMinVoorraad(v ?? 0)}
+            allowEmpty={false}
+            fallback={0}
           />
         </div>
         <div>
@@ -141,11 +142,12 @@ export function VoorraadTab({ ingredient }: VoorraadTabProps) {
             <label className="mb-2 block text-label text-muted-foreground">
               Nieuwe voorraad ({ingredient.eenheid})
             </label>
-            <NestoInput
-              type="number"
+            <NestoNumericInput
               min={0}
               value={nieuweVoorraad}
-              onChange={(e) => { const v = e.target.value; if (v === "") return; setNieuweVoorraad(Number(v)); }}
+              onValueChange={(v) => setNieuweVoorraad(v ?? 0)}
+              allowEmpty={false}
+              fallback={0}
               autoFocus
             />
           </div>

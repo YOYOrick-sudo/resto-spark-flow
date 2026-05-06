@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { NestoModal } from "@/components/polar/NestoModal";
 import { NestoButton } from "@/components/polar/NestoButton";
 import { NestoInput } from "@/components/polar/NestoInput";
+import { NestoNumericInput } from "@/components/polar/NestoNumericInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search, X, ChevronDown, ChevronRight, Info, Sparkles } from "lucide-react";
@@ -466,11 +467,13 @@ export function PersoneelsmaaltijdModal({ open, onOpenChange }: Personeelsmaalti
             </div>
           ) : (
             <div>
-              <NestoInput
-                type="number"
+              <NestoNumericInput
                 min={1}
+                integer
                 value={aantalPersonen}
-                onChange={(e) => { const v = e.target.value; if (v === "") return; setAantalPersonen(parseInt(v, 10) || 1); }}
+                onValueChange={(v) => setAantalPersonen(v ?? 1)}
+                allowEmpty={false}
+                fallback={1}
                 className="w-32"
               />
               <p className="text-xs text-muted-foreground mt-1">

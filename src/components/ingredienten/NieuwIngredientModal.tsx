@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { NestoPanel } from "@/components/polar/NestoPanel";
-import { NestoButton, NestoInput, NestoSelect } from "@/components/polar";
+import { NestoButton, NestoInput, NestoNumericInput, NestoSelect } from "@/components/polar";
 import { useIngredientMutations } from "@/hooks/useIngredientMutations";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
@@ -210,12 +210,14 @@ export function NieuwIngredientModal({ open, onOpenChange, onCreated }: NieuwIng
                   </Tooltip>
                 </div>
                 <div className="flex">
-                  <NestoInput
-                    type="number"
+                  <NestoNumericInput
                     min={1}
                     max={100}
+                    integer
                     value={yieldPct}
-                    onChange={(e) => { const v = e.target.value; if (v === "") return; setYieldPct(Number(v)); }}
+                    onValueChange={(v) => setYieldPct(v ?? 100)}
+                    allowEmpty={false}
+                    fallback={100}
                     className="rounded-r-none border-r-0"
                   />
                   <span className="flex items-center px-3 bg-secondary text-muted-foreground text-sm rounded-r-[var(--radius-button)] border-[1.5px] border-l-0 border-border">
