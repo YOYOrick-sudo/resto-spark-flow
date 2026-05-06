@@ -517,15 +517,6 @@ function MethodeRow({
         </div>
       )}
 
-      {/* Yield history panel — correctie-paneel verwijderd in A.7.1 */}
-      {historyOpen && (
-        <YieldHistoryPanel
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          methodeId={methode.id}
-          methodeLabel={methodeLabel}
-        />
-      )}
     </div>
   );
 }
