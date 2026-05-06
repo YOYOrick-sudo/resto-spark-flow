@@ -1,0 +1,353 @@
+_seed_default_onboarding_phases	p_location_id uuid	void	DEFINER
+advance_onboarding_phase	_candidate_id uuid, _user_id uuid	jsonb	DEFINER
+apply_yield_correction	p_methode_id uuid, p_new_yield_pct numeric, p_effective_from timestamp with time zone DEFAULT now(), p_correction_reason text DEFAULT NULL::text	uuid	DEFINER
+archive_area	_area_id uuid	jsonb	DEFINER
+assign_best_table	_location_id uuid, _date date, _time text, _party_size integer, _duration_minutes integer, _shift_id uuid, _ticket_id uuid, _reservation_id uuid DEFAULT NULL::uuid, _preferred_area_id uuid DEFAULT NULL::uuid	jsonb	DEFINER
+audit_bestelling_methode_change		trigger	DEFINER
+audit_leverancier_methode_change		trigger	DEFINER
+auto_create_default_ticket		trigger	INVOKER
+auto_deplete_ingredients		trigger	DEFINER
+auto_seed_onboarding_phases		trigger	DEFINER
+cash_dist	money, money	money	INVOKER
+check_group_activation_overlap		trigger	INVOKER
+confirm_goods_receipt	_receipt_id uuid, _user_id uuid, _lines jsonb, _temp_gekoeld numeric DEFAULT NULL::numeric, _temp_vries numeric DEFAULT NULL::numeric, _temp_skip jsonb DEFAULT '{}'::jsonb	jsonb	DEFINER
+count_segment_customers	_location_id uuid, _filter_rules jsonb	integer	DEFINER
+create_application_settings_for_new_location		trigger	DEFINER
+create_default_entitlements		trigger	DEFINER
+create_reservation	_location_id uuid, _customer_id uuid DEFAULT NULL::uuid, _shift_id uuid DEFAULT NULL::uuid, _ticket_id uuid DEFAULT NULL::uuid, _reservation_date date DEFAULT NULL::date, _start_time time without time zone DEFAULT NULL::time without time zone, _party_size integer DEFAULT NULL::integer, _channel reservation_channel DEFAULT 'operator'::reservation_channel, _table_id uuid DEFAULT NULL::uuid, _guest_notes text DEFAULT NULL::text, _internal_notes text DEFAULT NULL::text, _initial_status reservation_status DEFAULT 'confirmed'::reservation_status, _squeeze boolean DEFAULT false, _actor_id uuid DEFAULT NULL::uuid	uuid	DEFINER
+custom_access_token_hook	event jsonb	jsonb	DEFINER
+date_dist	date, date	integer	INVOKER
+default_voorraad_eenheid	p_categorie text	text	INVOKER
+detect_empty_shifts		void	DEFINER
+enforce_single_default_ticket		trigger	INVOKER
+ensure_yield_for_new_methode		trigger	DEFINER
+extend_option	_reservation_id uuid, _extra_hours integer DEFAULT 24, _actor_id uuid DEFAULT NULL::uuid	timestamp with time zone	DEFINER
+float4_dist	real, real	real	INVOKER
+float8_dist	double precision, double precision	double precision	INVOKER
+fn_audit_reservation_update		trigger	DEFINER
+fn_auto_mark_no_shows		integer	DEFINER
+fn_auto_release_options		integer	DEFINER
+fn_calculate_no_show_risk		trigger	DEFINER
+fn_trigger_waitlist_on_cancel		trigger	DEFINER
+fn_update_customer_stats		trigger	DEFINER
+fn_validate_customer_contact		trigger	INVOKER
+fn_validate_payment_status		trigger	INVOKER
+fuzzy_match_ingredient	p_location_id uuid, p_naam text	TABLE(id uuid, naam text, eenheid text, kostprijs numeric, similarity real)	DEFINER
+fuzzy_match_leverancier	p_location_id uuid, p_naam text	TABLE(id uuid, naam text, similarity real)	DEFINER
+gbt_bit_compress	internal	internal	INVOKER
+gbt_bit_consistent	internal, bit, smallint, oid, internal	boolean	INVOKER
+gbt_bit_penalty	internal, internal, internal	internal	INVOKER
+gbt_bit_picksplit	internal, internal	internal	INVOKER
+gbt_bit_same	gbtreekey_var, gbtreekey_var, internal	internal	INVOKER
+gbt_bit_union	internal, internal	gbtreekey_var	INVOKER
+gbt_bool_compress	internal	internal	INVOKER
+gbt_bool_consistent	internal, boolean, smallint, oid, internal	boolean	INVOKER
+gbt_bool_fetch	internal	internal	INVOKER
+gbt_bool_penalty	internal, internal, internal	internal	INVOKER
+gbt_bool_picksplit	internal, internal	internal	INVOKER
+gbt_bool_same	gbtreekey2, gbtreekey2, internal	internal	INVOKER
+gbt_bool_union	internal, internal	gbtreekey2	INVOKER
+gbt_bpchar_compress	internal	internal	INVOKER
+gbt_bpchar_consistent	internal, character, smallint, oid, internal	boolean	INVOKER
+gbt_bytea_compress	internal	internal	INVOKER
+gbt_bytea_consistent	internal, bytea, smallint, oid, internal	boolean	INVOKER
+gbt_bytea_penalty	internal, internal, internal	internal	INVOKER
+gbt_bytea_picksplit	internal, internal	internal	INVOKER
+gbt_bytea_same	gbtreekey_var, gbtreekey_var, internal	internal	INVOKER
+gbt_bytea_union	internal, internal	gbtreekey_var	INVOKER
+gbt_cash_compress	internal	internal	INVOKER
+gbt_cash_consistent	internal, money, smallint, oid, internal	boolean	INVOKER
+gbt_cash_distance	internal, money, smallint, oid, internal	double precision	INVOKER
+gbt_cash_fetch	internal	internal	INVOKER
+gbt_cash_penalty	internal, internal, internal	internal	INVOKER
+gbt_cash_picksplit	internal, internal	internal	INVOKER
+gbt_cash_same	gbtreekey16, gbtreekey16, internal	internal	INVOKER
+gbt_cash_union	internal, internal	gbtreekey16	INVOKER
+gbt_date_compress	internal	internal	INVOKER
+gbt_date_consistent	internal, date, smallint, oid, internal	boolean	INVOKER
+gbt_date_distance	internal, date, smallint, oid, internal	double precision	INVOKER
+gbt_date_fetch	internal	internal	INVOKER
+gbt_date_penalty	internal, internal, internal	internal	INVOKER
+gbt_date_picksplit	internal, internal	internal	INVOKER
+gbt_date_same	gbtreekey8, gbtreekey8, internal	internal	INVOKER
+gbt_date_union	internal, internal	gbtreekey8	INVOKER
+gbt_decompress	internal	internal	INVOKER
+gbt_enum_compress	internal	internal	INVOKER
+gbt_enum_consistent	internal, anyenum, smallint, oid, internal	boolean	INVOKER
+gbt_enum_fetch	internal	internal	INVOKER
+gbt_enum_penalty	internal, internal, internal	internal	INVOKER
+gbt_enum_picksplit	internal, internal	internal	INVOKER
+gbt_enum_same	gbtreekey8, gbtreekey8, internal	internal	INVOKER
+gbt_enum_union	internal, internal	gbtreekey8	INVOKER
+gbt_float4_compress	internal	internal	INVOKER
+gbt_float4_consistent	internal, real, smallint, oid, internal	boolean	INVOKER
+gbt_float4_distance	internal, real, smallint, oid, internal	double precision	INVOKER
+gbt_float4_fetch	internal	internal	INVOKER
+gbt_float4_penalty	internal, internal, internal	internal	INVOKER
+gbt_float4_picksplit	internal, internal	internal	INVOKER
+gbt_float4_same	gbtreekey8, gbtreekey8, internal	internal	INVOKER
+gbt_float4_union	internal, internal	gbtreekey8	INVOKER
+gbt_float8_compress	internal	internal	INVOKER
+gbt_float8_consistent	internal, double precision, smallint, oid, internal	boolean	INVOKER
+gbt_float8_distance	internal, double precision, smallint, oid, internal	double precision	INVOKER
+gbt_float8_fetch	internal	internal	INVOKER
+gbt_float8_penalty	internal, internal, internal	internal	INVOKER
+gbt_float8_picksplit	internal, internal	internal	INVOKER
+gbt_float8_same	gbtreekey16, gbtreekey16, internal	internal	INVOKER
+gbt_float8_union	internal, internal	gbtreekey16	INVOKER
+gbt_inet_compress	internal	internal	INVOKER
+gbt_inet_consistent	internal, inet, smallint, oid, internal	boolean	INVOKER
+gbt_inet_penalty	internal, internal, internal	internal	INVOKER
+gbt_inet_picksplit	internal, internal	internal	INVOKER
+gbt_inet_same	gbtreekey16, gbtreekey16, internal	internal	INVOKER
+gbt_inet_union	internal, internal	gbtreekey16	INVOKER
+gbt_int2_compress	internal	internal	INVOKER
+gbt_int2_consistent	internal, smallint, smallint, oid, internal	boolean	INVOKER
+gbt_int2_distance	internal, smallint, smallint, oid, internal	double precision	INVOKER
+gbt_int2_fetch	internal	internal	INVOKER
+gbt_int2_penalty	internal, internal, internal	internal	INVOKER
+gbt_int2_picksplit	internal, internal	internal	INVOKER
+gbt_int2_same	gbtreekey4, gbtreekey4, internal	internal	INVOKER
+gbt_int2_union	internal, internal	gbtreekey4	INVOKER
+gbt_int4_compress	internal	internal	INVOKER
+gbt_int4_consistent	internal, integer, smallint, oid, internal	boolean	INVOKER
+gbt_int4_distance	internal, integer, smallint, oid, internal	double precision	INVOKER
+gbt_int4_fetch	internal	internal	INVOKER
+gbt_int4_penalty	internal, internal, internal	internal	INVOKER
+gbt_int4_picksplit	internal, internal	internal	INVOKER
+gbt_int4_same	gbtreekey8, gbtreekey8, internal	internal	INVOKER
+gbt_int4_union	internal, internal	gbtreekey8	INVOKER
+gbt_int8_compress	internal	internal	INVOKER
+gbt_int8_consistent	internal, bigint, smallint, oid, internal	boolean	INVOKER
+gbt_int8_distance	internal, bigint, smallint, oid, internal	double precision	INVOKER
+gbt_int8_fetch	internal	internal	INVOKER
+gbt_int8_penalty	internal, internal, internal	internal	INVOKER
+gbt_int8_picksplit	internal, internal	internal	INVOKER
+gbt_int8_same	gbtreekey16, gbtreekey16, internal	internal	INVOKER
+gbt_int8_union	internal, internal	gbtreekey16	INVOKER
+gbt_intv_compress	internal	internal	INVOKER
+gbt_intv_consistent	internal, interval, smallint, oid, internal	boolean	INVOKER
+gbt_intv_decompress	internal	internal	INVOKER
+gbt_intv_distance	internal, interval, smallint, oid, internal	double precision	INVOKER
+gbt_intv_fetch	internal	internal	INVOKER
+gbt_intv_penalty	internal, internal, internal	internal	INVOKER
+gbt_intv_picksplit	internal, internal	internal	INVOKER
+gbt_intv_same	gbtreekey32, gbtreekey32, internal	internal	INVOKER
+gbt_intv_union	internal, internal	gbtreekey32	INVOKER
+gbt_macad8_compress	internal	internal	INVOKER
+gbt_macad8_consistent	internal, macaddr8, smallint, oid, internal	boolean	INVOKER
+gbt_macad8_fetch	internal	internal	INVOKER
+gbt_macad8_penalty	internal, internal, internal	internal	INVOKER
+gbt_macad8_picksplit	internal, internal	internal	INVOKER
+gbt_macad8_same	gbtreekey16, gbtreekey16, internal	internal	INVOKER
+gbt_macad8_union	internal, internal	gbtreekey16	INVOKER
+gbt_macad_compress	internal	internal	INVOKER
+gbt_macad_consistent	internal, macaddr, smallint, oid, internal	boolean	INVOKER
+gbt_macad_fetch	internal	internal	INVOKER
+gbt_macad_penalty	internal, internal, internal	internal	INVOKER
+gbt_macad_picksplit	internal, internal	internal	INVOKER
+gbt_macad_same	gbtreekey16, gbtreekey16, internal	internal	INVOKER
+gbt_macad_union	internal, internal	gbtreekey16	INVOKER
+gbt_numeric_compress	internal	internal	INVOKER
+gbt_numeric_consistent	internal, numeric, smallint, oid, internal	boolean	INVOKER
+gbt_numeric_penalty	internal, internal, internal	internal	INVOKER
+gbt_numeric_picksplit	internal, internal	internal	INVOKER
+gbt_numeric_same	gbtreekey_var, gbtreekey_var, internal	internal	INVOKER
+gbt_numeric_union	internal, internal	gbtreekey_var	INVOKER
+gbt_oid_compress	internal	internal	INVOKER
+gbt_oid_consistent	internal, oid, smallint, oid, internal	boolean	INVOKER
+gbt_oid_distance	internal, oid, smallint, oid, internal	double precision	INVOKER
+gbt_oid_fetch	internal	internal	INVOKER
+gbt_oid_penalty	internal, internal, internal	internal	INVOKER
+gbt_oid_picksplit	internal, internal	internal	INVOKER
+gbt_oid_same	gbtreekey8, gbtreekey8, internal	internal	INVOKER
+gbt_oid_union	internal, internal	gbtreekey8	INVOKER
+gbt_text_compress	internal	internal	INVOKER
+gbt_text_consistent	internal, text, smallint, oid, internal	boolean	INVOKER
+gbt_text_penalty	internal, internal, internal	internal	INVOKER
+gbt_text_picksplit	internal, internal	internal	INVOKER
+gbt_text_same	gbtreekey_var, gbtreekey_var, internal	internal	INVOKER
+gbt_text_union	internal, internal	gbtreekey_var	INVOKER
+gbt_time_compress	internal	internal	INVOKER
+gbt_time_consistent	internal, time without time zone, smallint, oid, internal	boolean	INVOKER
+gbt_time_distance	internal, time without time zone, smallint, oid, internal	double precision	INVOKER
+gbt_time_fetch	internal	internal	INVOKER
+gbt_time_penalty	internal, internal, internal	internal	INVOKER
+gbt_time_picksplit	internal, internal	internal	INVOKER
+gbt_time_same	gbtreekey16, gbtreekey16, internal	internal	INVOKER
+gbt_time_union	internal, internal	gbtreekey16	INVOKER
+gbt_timetz_compress	internal	internal	INVOKER
+gbt_timetz_consistent	internal, time with time zone, smallint, oid, internal	boolean	INVOKER
+gbt_ts_compress	internal	internal	INVOKER
+gbt_ts_consistent	internal, timestamp without time zone, smallint, oid, internal	boolean	INVOKER
+gbt_ts_distance	internal, timestamp without time zone, smallint, oid, internal	double precision	INVOKER
+gbt_ts_fetch	internal	internal	INVOKER
+gbt_ts_penalty	internal, internal, internal	internal	INVOKER
+gbt_ts_picksplit	internal, internal	internal	INVOKER
+gbt_ts_same	gbtreekey16, gbtreekey16, internal	internal	INVOKER
+gbt_ts_union	internal, internal	gbtreekey16	INVOKER
+gbt_tstz_compress	internal	internal	INVOKER
+gbt_tstz_consistent	internal, timestamp with time zone, smallint, oid, internal	boolean	INVOKER
+gbt_tstz_distance	internal, timestamp with time zone, smallint, oid, internal	double precision	INVOKER
+gbt_uuid_compress	internal	internal	INVOKER
+gbt_uuid_consistent	internal, uuid, smallint, oid, internal	boolean	INVOKER
+gbt_uuid_fetch	internal	internal	INVOKER
+gbt_uuid_penalty	internal, internal, internal	internal	INVOKER
+gbt_uuid_picksplit	internal, internal	internal	INVOKER
+gbt_uuid_same	gbtreekey32, gbtreekey32, internal	internal	INVOKER
+gbt_uuid_union	internal, internal	gbtreekey32	INVOKER
+gbt_var_decompress	internal	internal	INVOKER
+gbt_var_fetch	internal	internal	INVOKER
+gbtreekey16_in	cstring	gbtreekey16	INVOKER
+gbtreekey16_out	gbtreekey16	cstring	INVOKER
+gbtreekey2_in	cstring	gbtreekey2	INVOKER
+gbtreekey2_out	gbtreekey2	cstring	INVOKER
+gbtreekey32_in	cstring	gbtreekey32	INVOKER
+gbtreekey32_out	gbtreekey32	cstring	INVOKER
+gbtreekey4_in	cstring	gbtreekey4	INVOKER
+gbtreekey4_out	gbtreekey4	cstring	INVOKER
+gbtreekey8_in	cstring	gbtreekey8	INVOKER
+gbtreekey8_out	gbtreekey8	cstring	INVOKER
+gbtreekey_var_in	cstring	gbtreekey_var	INVOKER
+gbtreekey_var_out	gbtreekey_var	cstring	INVOKER
+generate_batch_nummer	p_location_id uuid	character varying	INVOKER
+generate_bestelnummer	p_location_id uuid	text	DEFINER
+generate_daily_checklist_runs		void	DEFINER
+generate_daily_checklist_runs_for_date	_target_date date	void	DEFINER
+generate_initial_onboarding_tasks		trigger	DEFINER
+generate_table_display_label		trigger	INVOKER
+generate_unique_slug	_base_name text	text	DEFINER
+get_attention_conversations	p_location_id uuid	SETOF conversations	DEFINER
+get_bookable_tickets	_location_id uuid, _date date	TABLE(id uuid, name text, display_title text, description text, short_description text, image_url text, color text, ticket_type text, is_default boolean, is_highlighted boolean, highlight_order integer, sort_order integer, min_party_size integer, max_party_size integer, duration_minutes integer, buffer_minutes integer, policy_set_id uuid, friend_url_token text, tags jsonb, metadata jsonb)	DEFINER
+get_current_yield	p_methode_id uuid, p_effective_at timestamp with time zone DEFAULT now(), p_asserted_at timestamp with time zone DEFAULT now()	TABLE(yield_pct numeric, source text, effective_period tstzrange, assertion_period tstzrange, yield_id uuid)	DEFINER
+get_effective_shift_schedule	_location_id uuid, _date date	TABLE(shift_id uuid, shift_name text, short_name text, start_time time without time zone, end_time time without time zone, arrival_interval_minutes integer, color text, status text, exception_label text, effective_pacing_limit_covers integer, effective_pacing_limit_arrivals integer, effective_max_covers_total integer, effective_online_booking_enabled boolean)	DEFINER
+get_employee_id	_user_id uuid, _location_id uuid	uuid	DEFINER
+get_location_for_area	_area_id uuid	uuid	DEFINER
+get_location_for_table_group	_table_group_id uuid	uuid	DEFINER
+get_next_area_sort_order	_location_id uuid	integer	DEFINER
+get_next_table_sort_order	_area_id uuid	integer	DEFINER
+get_next_ticket_sort_order	_location_id uuid	integer	DEFINER
+get_operating_hours	_location_id uuid, _date date, _service text DEFAULT 'general'::text	TABLE(open_time time without time zone, close_time time without time zone, exception_type text, label text)	DEFINER
+get_operating_schedule	_location_id uuid, _from date, _to date, _service text DEFAULT NULL::text	TABLE(date date, service_type text, open_time time without time zone, close_time time without time zone, is_closed boolean, label text, source text)	DEFINER
+get_overdue_items	tpl_id uuid, today date	jsonb	INVOKER
+get_public_branding	_slug text	TABLE(location_name text, logo_url text, brand_color text, welcome_title text, welcome_text text, available_positions jsonb, show_hours boolean, show_start_date boolean, success_message text)	DEFINER
+get_recent_inbox_conversations	p_location_id uuid	SETOF conversations	DEFINER
+get_shift_ticket_config	_shift_id uuid, _ticket_id uuid	jsonb	DEFINER
+get_ticket_with_policy	_ticket_id uuid	jsonb	DEFINER
+get_user_context	_user_id uuid, _location_id uuid	json	DEFINER
+get_user_location_role	_user_id uuid, _location_id uuid	location_role	DEFINER
+get_user_permissions	_user_id uuid, _location_id uuid	text[]	DEFINER
+get_yield_history	p_methode_id uuid	TABLE(id uuid, yield_pct numeric, source text, effective_period tstzrange, assertion_period tstzrange, correction_reason text, created_at timestamp with time zone, created_by uuid, created_by_name text)	DEFINER
+guard_bestelling_methode_change		trigger	DEFINER
+guard_leverancier_methode_change		trigger	DEFINER
+handle_new_user		trigger	DEFINER
+has_unanswered_inbound	_conversation_id uuid	boolean	DEFINER
+herbereken_gerecht_kostprijs		trigger	INVOKER
+herbereken_gerecht_marge		trigger	INVOKER
+increment_knowledge_hit	question_text text, loc_id uuid	void	DEFINER
+increment_marketing_analytics	p_campaign_id uuid, p_location_id uuid, p_field text	void	DEFINER
+int2_dist	smallint, smallint	smallint	INVOKER
+int4_dist	integer, integer	integer	INVOKER
+int8_dist	bigint, bigint	bigint	INVOKER
+interval_dist	interval, interval	interval	INVOKER
+is_employee_at_location	_user_id uuid, _location_id uuid	boolean	DEFINER
+is_frequentie_due	freq text, config jsonb, check_date date	boolean	INVOKER
+is_location_open	_location_id uuid, _at timestamp with time zone DEFAULT now(), _service text DEFAULT 'general'::text	boolean	DEFINER
+is_platform_admin	_user_id uuid	boolean	DEFINER
+is_platform_user	_user_id uuid	boolean	DEFINER
+koppel_extra_leverancier	p_ingredient_id uuid, p_leverancier_id uuid, p_artikel_naam text, p_artikel_nummer text DEFAULT NULL::text, p_ean_code text DEFAULT NULL::text, p_verpakking_hoeveelheid numeric DEFAULT NULL::numeric, p_verpakking_eenheid text DEFAULT NULL::text, p_prijs_per_verpakking numeric DEFAULT NULL::numeric, p_prijs_per_eenheid numeric DEFAULT NULL::numeric	uuid	DEFINER
+list_segment_customers	_location_id uuid, _filter_rules jsonb DEFAULT NULL::jsonb, _limit integer DEFAULT 100, _offset integer DEFAULT 0	TABLE(id uuid, first_name text, last_name text, email text, phone_number text, total_visits integer, last_visit_at timestamp with time zone, average_spend numeric, total_no_shows integer, total_cancellations integer, birthday date, dietary_preferences text[], tags jsonb, notes text, language text, created_at timestamp with time zone)	DEFINER
+log_ai_correction_on_receipt_line		trigger	DEFINER
+match_ingredienten_by_names	p_location_id uuid, p_leverancier_id uuid, p_namen text[]	TABLE(naam_key text, ingredient_id uuid, artikel_nummer text, tier integer, confidence numeric)	DEFINER
+move_reservation_table	_reservation_id uuid, _new_table_id uuid DEFAULT NULL::uuid, _actor_id uuid DEFAULT NULL::uuid	void	DEFINER
+notify_marketing_on_customer_milestone		trigger	DEFINER
+notify_marketing_on_reservation_change		trigger	DEFINER
+notify_onboarding_agent		trigger	DEFINER
+notify_signal_evaluation		trigger	DEFINER
+oid_dist	oid, oid	oid	INVOKER
+prevent_table_group_overlap		trigger	INVOKER
+process_bestelling_ontvangst		trigger	DEFINER
+process_interne_bestelling		trigger	DEFINER
+process_scheduled_campaigns		void	DEFINER
+process_waste_registratie		trigger	DEFINER
+publish_scheduled_social_posts		void	DEFINER
+recalc_groups_for_table		trigger	INVOKER
+recalc_ingredient_kostprijs		trigger	DEFINER
+recalculate_recept_allergenen		trigger	DEFINER
+record_factuur_correction	p_ingredient_id uuid, p_alias_naam text, p_leverancier_id uuid DEFAULT NULL::uuid, p_artikelnummer text DEFAULT NULL::text	void	DEFINER
+reorder_areas	_location_id uuid, _area_ids uuid[]	jsonb	DEFINER
+reorder_shifts	_location_id uuid, _shift_ids uuid[]	jsonb	DEFINER
+reorder_tables	_area_id uuid, _table_ids uuid[]	jsonb	DEFINER
+reorder_tickets	_location_id uuid, _ticket_ids uuid[]	jsonb	DEFINER
+reset_onboarding_phases	p_location_id uuid	SETOF onboarding_phases	DEFINER
+restore_table	_table_id uuid, _new_display_label text DEFAULT NULL::text	jsonb	DEFINER
+set_bestelmethode_from_leverancier		trigger	DEFINER
+swap_area_sort_order	_area_a_id uuid, _area_b_id uuid	void	DEFINER
+swap_table_sort_order	_table_a_id uuid, _table_b_id uuid	void	DEFINER
+sync_run_with_template	tpl_id uuid, today date DEFAULT CURRENT_DATE	void	DEFINER
+sync_shift_ticket_location		trigger	INVOKER
+sync_table_location_id		trigger	INVOKER
+time_dist	time without time zone, time without time zone	interval	INVOKER
+transition_reservation_status	_reservation_id uuid, _new_status reservation_status, _actor_id uuid DEFAULT NULL::uuid, _reason text DEFAULT NULL::text, _is_override boolean DEFAULT false	uuid	DEFINER
+ts_dist	timestamp without time zone, timestamp without time zone	interval	INVOKER
+tstz_dist	timestamp with time zone, timestamp with time zone	interval	INVOKER
+unaccent	regdictionary, text	text	INVOKER
+unaccent	text	text	INVOKER
+unaccent_init	internal	internal	INVOKER
+unaccent_lexize	internal, internal, internal, internal	internal	INVOKER
+update_checklist_updated_at		trigger	INVOKER
+update_interne_bestelling_updated_at		trigger	INVOKER
+update_mep_tasks_updated_at		trigger	INVOKER
+update_table_group_capacities		trigger	INVOKER
+update_table_group_capacities_on_extra_seats		trigger	INVOKER
+update_updated_at_column		trigger	INVOKER
+user_has_location_access	_user_id uuid, _location_id uuid	boolean	DEFINER
+user_has_permission	_user_id uuid, _location_id uuid, _permission text	boolean	DEFINER
+user_has_role_in_location	_user_id uuid, _location_id uuid, _roles location_role[]	boolean	DEFINER
+user_in_organization	_user_id uuid, _org_id uuid	boolean	DEFINER
+validate_agent_action_status		trigger	INVOKER
+validate_agent_configuration		trigger	INVOKER
+validate_agent_feedback_type		trigger	INVOKER
+validate_ai_parsing_status		trigger	INVOKER
+validate_alias_bron		trigger	INVOKER
+validate_bestellingen		trigger	INVOKER
+validate_checklist_response_type		trigger	INVOKER
+validate_checklist_run		trigger	INVOKER
+validate_checklist_template_type		trigger	INVOKER
+validate_coaching_tip		trigger	INVOKER
+validate_conversation		trigger	INVOKER
+validate_device_status		trigger	INVOKER
+validate_factuur_regels_status		trigger	DEFINER
+validate_factuur_uploads_fields		trigger	INVOKER
+validate_gedeeld_product_type		trigger	INVOKER
+validate_gerecht_component		trigger	INVOKER
+validate_halffabricaat_methodes		trigger	INVOKER
+validate_ingredient_allergenen		trigger	INVOKER
+validate_ingredienten		trigger	INVOKER
+validate_interne_bestelling_status		trigger	INVOKER
+validate_knowledge_base_source		trigger	INVOKER
+validate_learning_stage		trigger	INVOKER
+validate_leverancier_koppeling_type		trigger	INVOKER
+validate_location_role		trigger	INVOKER
+validate_marketing_review		trigger	INVOKER
+validate_mep_tasks		trigger	INVOKER
+validate_message		trigger	INVOKER
+validate_message_template		trigger	INVOKER
+validate_operating_exception		trigger	INVOKER
+validate_parse_method		trigger	INVOKER
+validate_popup_schedule		trigger	INVOKER
+validate_popup_suggestion		trigger	INVOKER
+validate_recept_allergenen_status		trigger	INVOKER
+validate_recepten		trigger	INVOKER
+validate_table_group_member_location		trigger	INVOKER
+validate_temp_registratie_type		trigger	INVOKER
+validate_temperatuur		trigger	INVOKER
+validate_transfer_status		trigger	INVOKER
+validate_voorraad_bewegingen		trigger	INVOKER
+validate_waitlist_entry		trigger	INVOKER
+validate_waitlist_invite		trigger	INVOKER
+validate_waitlist_settings		trigger	INVOKER
+validate_waste_categorie		trigger	INVOKER
+validate_widget_settings_slug		trigger	INVOKER
+validate_widget_settings_unavailable_text		trigger	INVOKER
+validate_widget_style		trigger	INVOKER

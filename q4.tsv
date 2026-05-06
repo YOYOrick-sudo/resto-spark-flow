@@ -1,0 +1,748 @@
+public	agent_actions	Service role inserts agent actions	PERMISSIVE	{public}	INSERT		true
+public	agent_actions	Users see own location agent actions	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	agent_actions	Users update own location agent actions	PERMISSIVE	{authenticated}	UPDATE	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	agent_configurations	Users insert own location agent configs	PERMISSIVE	{authenticated}	INSERT		(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))
+public	agent_configurations	Users see own location agent configs	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	agent_configurations	Users update own location agent configs	PERMISSIVE	{authenticated}	UPDATE	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	agent_feedback	Users insert own location feedback	PERMISSIVE	{authenticated}	INSERT		(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))
+public	agent_feedback	Users see own location feedback	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	ai_cache	Service role manages ai cache	PERMISSIVE	{public}	ALL		true
+public	ai_correction_events	ai_correction_events_select	PERMISSIVE	{authenticated}	SELECT	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	ai_logs	Service role inserts ai logs	PERMISSIVE	{public}	INSERT		true
+public	ai_logs	Users see own location ai logs	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	allergenen	allergenen_select_authenticated	PERMISSIVE	{authenticated}	SELECT	true	
+public	areas	areas_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	areas	areas_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	areas	areas_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	article_cache	ac_all_via_location	PERMISSIVE	{public}	ALL	user_has_location_access(auth.uid(), location_id)	user_has_location_access(auth.uid(), location_id)
+public	audit_log	audit_log_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	bestellingen	bestellingen_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])	
+public	bestellingen	bestellingen_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	bestellingen	bestellingen_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	bestellingen	bestellingen_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])	
+public	bestelregels	bestelregels_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM bestellingen b
+  WHERE ((b.id = bestelregels.bestelling_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), b.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	bestelregels	bestelregels_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM bestellingen b
+  WHERE ((b.id = bestelregels.bestelling_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), b.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	bestelregels	bestelregels_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM bestellingen b
+  WHERE ((b.id = bestelregels.bestelling_id) AND user_has_location_access(( SELECT auth.uid() AS uid), b.location_id))))	
+public	bestelregels	bestelregels_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM bestellingen b
+  WHERE ((b.id = bestelregels.bestelling_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), b.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	checklist_responses	checklist_responses_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM checklist_runs r
+  WHERE ((r.id = checklist_responses.run_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	checklist_responses	checklist_responses_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM checklist_runs r
+  WHERE ((r.id = checklist_responses.run_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	checklist_responses	checklist_responses_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM checklist_runs r
+  WHERE ((r.id = checklist_responses.run_id) AND user_has_location_access(( SELECT auth.uid() AS uid), r.location_id))))	
+public	checklist_responses	checklist_responses_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM checklist_runs r
+  WHERE ((r.id = checklist_responses.run_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	checklist_runs	checklist_runs_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	checklist_runs	checklist_runs_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	checklist_runs	checklist_runs_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	checklist_runs	checklist_runs_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])	
+public	checklist_templates	checklist_templates_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	checklist_templates	checklist_templates_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	checklist_templates	checklist_templates_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	checklist_templates	checklist_templates_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	communication_settings	communication_settings_manage	PERMISSIVE	{public}	ALL	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	communication_settings	communication_settings_select_location	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	communication_settings	communication_settings_select_platform	PERMISSIVE	{public}	SELECT	is_platform_user(auth.uid())	
+public	contracts	contracts_delete	PERMISSIVE	{authenticated}	DELETE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = contracts.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	contracts	contracts_insert	PERMISSIVE	{authenticated}	INSERT		(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = contracts.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))
+public	contracts	contracts_select_manager	PERMISSIVE	{authenticated}	SELECT	(is_platform_user(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = contracts.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	contracts	contracts_select_own	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = contracts.employee_id) AND (e.user_id = auth.uid()))))	
+public	contracts	contracts_update	PERMISSIVE	{authenticated}	UPDATE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = contracts.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	conversations	Service role manages conversations	PERMISSIVE	{public}	ALL	true	true
+public	conversations	Users see own location conversations	PERMISSIVE	{public}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	conversations	Users update own location conversations	PERMISSIVE	{public}	UPDATE	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	credit_note_requests	credit_note_requests_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	credit_note_requests	credit_note_requests_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	credit_note_requests	credit_note_requests_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	cross_module_events	cme_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	cross_module_events	cme_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	cross_module_events	cme_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	customers	customers_all	PERMISSIVE	{public}	ALL	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'service'::location_role])	
+public	customers	customers_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	day_notes	Authenticated users can insert day notes	PERMISSIVE	{authenticated}	INSERT		(auth.uid() IS NOT NULL)
+public	day_notes	Authenticated users can update day notes	PERMISSIVE	{authenticated}	UPDATE	(auth.uid() IS NOT NULL)	
+public	day_notes	Authenticated users can view day notes for their location	PERMISSIVE	{authenticated}	SELECT	true	
+public	document_cache	dc_all_via_location	PERMISSIVE	{public}	ALL	user_has_location_access(auth.uid(), location_id)	user_has_location_access(auth.uid(), location_id)
+public	eenheid_conversies	eenheid_conversies_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = eenheid_conversies.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	eenheid_conversies	eenheid_conversies_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = eenheid_conversies.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))
+public	eenheid_conversies	eenheid_conversies_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM (ingredienten i
+     JOIN user_location_roles ulr ON ((ulr.location_id = i.location_id)))
+  WHERE ((i.id = eenheid_conversies.ingredient_id) AND (ulr.user_id = ( SELECT auth.uid() AS uid)))))	
+public	eenheid_conversies	eenheid_conversies_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = eenheid_conversies.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	employee_invites	employee_invites_delete	PERMISSIVE	{authenticated}	DELETE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = employee_invites.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	employee_invites	employee_invites_insert	PERMISSIVE	{authenticated}	INSERT		(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = employee_invites.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))
+public	employee_invites	employee_invites_select	PERMISSIVE	{authenticated}	SELECT	(is_platform_user(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = employee_invites.employee_id) AND user_has_location_access(auth.uid(), e.location_id)))))	
+public	employee_invites	employee_invites_update	PERMISSIVE	{authenticated}	UPDATE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = employee_invites.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	employees	employees_delete	PERMISSIVE	{authenticated}	DELETE	(is_platform_admin(auth.uid()) OR user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]))	
+public	employees	employees_insert	PERMISSIVE	{authenticated}	INSERT		(is_platform_admin(auth.uid()) OR user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]))
+public	employees	employees_select_location	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	employees	employees_select_own	PERMISSIVE	{authenticated}	SELECT	(user_id = auth.uid())	
+public	employees	employees_select_platform	PERMISSIVE	{authenticated}	SELECT	is_platform_user(auth.uid())	
+public	employees	employees_update	PERMISSIVE	{authenticated}	UPDATE	(is_platform_admin(auth.uid()) OR user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]))	
+public	factuur_regels	factuur_regels_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM factuur_uploads f
+  WHERE ((f.id = factuur_regels.factuur_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), f.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	factuur_regels	factuur_regels_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM factuur_uploads f
+  WHERE ((f.id = factuur_regels.factuur_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), f.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	factuur_regels	factuur_regels_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM factuur_uploads f
+  WHERE ((f.id = factuur_regels.factuur_id) AND user_has_location_access(( SELECT auth.uid() AS uid), f.location_id))))	
+public	factuur_regels	factuur_regels_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM factuur_uploads f
+  WHERE ((f.id = factuur_regels.factuur_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), f.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	factuur_uploads	factuur_uploads_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	factuur_uploads	factuur_uploads_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	factuur_uploads	factuur_uploads_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	factuur_uploads	factuur_uploads_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])	
+public	gedeelde_producten_per_locatie	gedeelde_producten_delete	PERMISSIVE	{authenticated}	DELETE	user_has_location_access(auth.uid(), locatie_id)	
+public	gedeelde_producten_per_locatie	gedeelde_producten_insert	PERMISSIVE	{authenticated}	INSERT		user_has_location_access(auth.uid(), locatie_id)
+public	gedeelde_producten_per_locatie	gedeelde_producten_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(auth.uid(), locatie_id)	
+public	gedeelde_producten_per_locatie	gedeelde_producten_update	PERMISSIVE	{authenticated}	UPDATE	user_has_location_access(auth.uid(), locatie_id)	
+public	gerecht_componenten	gerecht_comp_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM gerechten g
+  WHERE ((g.id = gerecht_componenten.gerecht_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), g.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	gerecht_componenten	gerecht_comp_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM gerechten g
+  WHERE ((g.id = gerecht_componenten.gerecht_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), g.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	gerecht_componenten	gerecht_comp_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM gerechten g
+  WHERE ((g.id = gerecht_componenten.gerecht_id) AND user_has_location_access(( SELECT auth.uid() AS uid), g.location_id))))	
+public	gerecht_componenten	gerecht_comp_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM gerechten g
+  WHERE ((g.id = gerecht_componenten.gerecht_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), g.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	gerechten	gerechten_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	gerechten	gerechten_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	gerechten	gerechten_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	gerechten	gerechten_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])	
+public	goods_receipt_lines	goods_receipt_lines_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM goods_receipts gr
+  WHERE ((gr.id = goods_receipt_lines.goods_receipt_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), gr.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	goods_receipt_lines	goods_receipt_lines_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM goods_receipts gr
+  WHERE ((gr.id = goods_receipt_lines.goods_receipt_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), gr.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	goods_receipt_lines	goods_receipt_lines_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM goods_receipts gr
+  WHERE ((gr.id = goods_receipt_lines.goods_receipt_id) AND user_has_location_access(( SELECT auth.uid() AS uid), gr.location_id))))	
+public	goods_receipt_lines	goods_receipt_lines_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM goods_receipts gr
+  WHERE ((gr.id = goods_receipt_lines.goods_receipt_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), gr.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	(EXISTS ( SELECT 1
+   FROM goods_receipts gr
+  WHERE ((gr.id = goods_receipt_lines.goods_receipt_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), gr.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	goods_receipts	goods_receipts_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	goods_receipts	goods_receipts_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	goods_receipts	goods_receipts_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	goods_receipts	goods_receipts_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	halffabricaat_methodes	halffabricaat_methodes_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = halffabricaat_methodes.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	halffabricaat_methodes	halffabricaat_methodes_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = halffabricaat_methodes.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))
+public	halffabricaat_methodes	halffabricaat_methodes_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = halffabricaat_methodes.recept_id) AND user_has_location_access(( SELECT auth.uid() AS uid), r.location_id))))	
+public	halffabricaat_methodes	halffabricaat_methodes_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = halffabricaat_methodes.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	ingredient_aliassen	ingredient_aliassen_delete	PERMISSIVE	{authenticated}	DELETE	user_has_location_access(auth.uid(), ( SELECT ingredienten.location_id
+   FROM ingredienten
+  WHERE (ingredienten.id = ingredient_aliassen.ingredient_id)))	
+public	ingredient_aliassen	ingredient_aliassen_insert	PERMISSIVE	{authenticated}	INSERT		user_has_location_access(auth.uid(), ( SELECT ingredienten.location_id
+   FROM ingredienten
+  WHERE (ingredienten.id = ingredient_aliassen.ingredient_id)))
+public	ingredient_aliassen	ingredient_aliassen_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(auth.uid(), ( SELECT ingredienten.location_id
+   FROM ingredienten
+  WHERE (ingredienten.id = ingredient_aliassen.ingredient_id)))	
+public	ingredient_aliassen	ingredient_aliassen_update	PERMISSIVE	{authenticated}	UPDATE	user_has_location_access(auth.uid(), ( SELECT ingredienten.location_id
+   FROM ingredienten
+  WHERE (ingredienten.id = ingredient_aliassen.ingredient_id)))	
+public	ingredient_allergenen	ingredient_allergenen_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = ingredient_allergenen.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	ingredient_allergenen	ingredient_allergenen_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = ingredient_allergenen.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))
+public	ingredient_allergenen	ingredient_allergenen_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM (ingredienten i
+     JOIN user_location_roles ulr ON ((ulr.location_id = i.location_id)))
+  WHERE ((i.id = ingredient_allergenen.ingredient_id) AND (ulr.user_id = ( SELECT auth.uid() AS uid)))))	
+public	ingredient_allergenen	ingredient_allergenen_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = ingredient_allergenen.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	ingredient_packagings	ip_delete_via_location_role	PERMISSIVE	{public}	DELETE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = ingredient_packagings.ingredient_id) AND user_has_role_in_location(auth.uid(), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	ingredient_packagings	ip_select_via_location	PERMISSIVE	{public}	SELECT	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = ingredient_packagings.ingredient_id) AND user_has_location_access(auth.uid(), i.location_id))))	
+public	ingredient_packagings	ip_update_via_location_role	PERMISSIVE	{public}	UPDATE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = ingredient_packagings.ingredient_id) AND user_has_role_in_location(auth.uid(), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	ingredient_packagings	ip_write_via_location_role	PERMISSIVE	{public}	INSERT		(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = ingredient_packagings.ingredient_id) AND user_has_role_in_location(auth.uid(), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	ingredienten	ingredienten_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	ingredienten	ingredienten_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	ingredienten	ingredienten_select	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	ingredienten	ingredienten_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	interne_bestellingen	Owners can delete org internal orders	PERMISSIVE	{authenticated}	DELETE	(aangevraagd_door = ( SELECT auth.uid() AS uid))	
+public	interne_bestellingen	Users can create org internal orders	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM org_memberships om
+  WHERE ((om.organization_id = interne_bestellingen.organization_id) AND (om.user_id = ( SELECT auth.uid() AS uid)))))
+public	interne_bestellingen	Users can update org internal orders	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM org_memberships om
+  WHERE ((om.organization_id = interne_bestellingen.organization_id) AND (om.user_id = ( SELECT auth.uid() AS uid)))))	
+public	interne_bestellingen	Users can view org internal orders	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM org_memberships om
+  WHERE ((om.organization_id = interne_bestellingen.organization_id) AND (om.user_id = ( SELECT auth.uid() AS uid)))))	
+public	interne_bestelregels	Users can insert org internal order lines	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM (interne_bestellingen ib
+     JOIN org_memberships om ON ((om.organization_id = ib.organization_id)))
+  WHERE ((ib.id = interne_bestelregels.bestelling_id) AND (om.user_id = ( SELECT auth.uid() AS uid)))))
+public	interne_bestelregels	Users can update org internal order lines	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM (interne_bestellingen ib
+     JOIN org_memberships om ON ((om.organization_id = ib.organization_id)))
+  WHERE ((ib.id = interne_bestelregels.bestelling_id) AND (om.user_id = ( SELECT auth.uid() AS uid)))))	
+public	interne_bestelregels	Users can view org internal order lines	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM (interne_bestellingen ib
+     JOIN org_memberships om ON ((om.organization_id = ib.organization_id)))
+  WHERE ((ib.id = interne_bestelregels.bestelling_id) AND (om.user_id = ( SELECT auth.uid() AS uid)))))	
+public	knowledge_base	Users manage own location knowledge	PERMISSIVE	{authenticated}	ALL	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	knowledge_base	Users see own location knowledge	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	label_templates	label_templates_delete	PERMISSIVE	{authenticated}	DELETE	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	label_templates	label_templates_insert	PERMISSIVE	{authenticated}	INSERT		(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))
+public	label_templates	label_templates_select	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	label_templates	label_templates_update	PERMISSIVE	{authenticated}	UPDATE	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	leverancier_aliassen	leverancier_aliassen_delete	PERMISSIVE	{authenticated}	DELETE	user_has_location_access(auth.uid(), ( SELECT leveranciers.location_id
+   FROM leveranciers
+  WHERE (leveranciers.id = leverancier_aliassen.leverancier_id)))	
+public	leverancier_aliassen	leverancier_aliassen_insert	PERMISSIVE	{authenticated}	INSERT		user_has_location_access(auth.uid(), ( SELECT leveranciers.location_id
+   FROM leveranciers
+  WHERE (leveranciers.id = leverancier_aliassen.leverancier_id)))
+public	leverancier_aliassen	leverancier_aliassen_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(auth.uid(), ( SELECT leveranciers.location_id
+   FROM leveranciers
+  WHERE (leveranciers.id = leverancier_aliassen.leverancier_id)))	
+public	leverancier_aliassen	leverancier_aliassen_update	PERMISSIVE	{authenticated}	UPDATE	user_has_location_access(auth.uid(), ( SELECT leveranciers.location_id
+   FROM leveranciers
+  WHERE (leveranciers.id = leverancier_aliassen.leverancier_id)))	
+public	leverancier_prompt_examples	leverancier_prompt_examples_platform_only	PERMISSIVE	{authenticated}	ALL	is_platform_user(( SELECT auth.uid() AS uid))	is_platform_user(( SELECT auth.uid() AS uid))
+public	leveranciers	leveranciers_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	leveranciers	leveranciers_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	leveranciers	leveranciers_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	leveranciers	leveranciers_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	leveranciers_artikelen	leveranciers_artikelen_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM leveranciers l
+  WHERE ((l.id = leveranciers_artikelen.leverancier_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), l.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	leveranciers_artikelen	leveranciers_artikelen_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM leveranciers l
+  WHERE ((l.id = leveranciers_artikelen.leverancier_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), l.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))
+public	leveranciers_artikelen	leveranciers_artikelen_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM leveranciers l
+  WHERE ((l.id = leveranciers_artikelen.leverancier_id) AND user_has_location_access(( SELECT auth.uid() AS uid), l.location_id))))	
+public	leveranciers_artikelen	leveranciers_artikelen_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM leveranciers l
+  WHERE ((l.id = leveranciers_artikelen.leverancier_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), l.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	location_entitlements	location_entitlements_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	location_entitlements	location_entitlements_select	PERMISSIVE	{authenticated}	SELECT	(is_platform_user(auth.uid()) OR user_has_location_access(auth.uid(), location_id))	
+public	location_operating_exceptions	loe_read	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	location_operating_exceptions	loe_write	PERMISSIVE	{public}	ALL	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	location_operating_hours	loh_read	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	location_operating_hours	loh_write	PERMISSIVE	{public}	ALL	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	location_subscriptions	location_subscriptions_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	location_subscriptions	location_subscriptions_select	PERMISSIVE	{authenticated}	SELECT	(is_platform_user(auth.uid()) OR user_has_location_access(auth.uid(), location_id))	
+public	locations	locations_delete_admin	PERMISSIVE	{authenticated}	DELETE	is_platform_admin(auth.uid())	
+public	locations	locations_insert_admin	PERMISSIVE	{authenticated}	INSERT		is_platform_admin(auth.uid())
+public	locations	locations_insert_owner	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM (user_location_roles ulr
+     JOIN locations l ON ((l.organization_id = locations.organization_id)))
+  WHERE ((ulr.user_id = auth.uid()) AND (ulr.role = 'owner'::location_role))))
+public	locations	locations_select_member	PERMISSIVE	{authenticated}	SELECT	user_in_organization(auth.uid(), organization_id)	
+public	locations	locations_select_platform	PERMISSIVE	{authenticated}	SELECT	is_platform_user(auth.uid())	
+public	locations	locations_update	PERMISSIVE	{authenticated}	UPDATE	(is_platform_admin(auth.uid()) OR user_has_role_in_location(auth.uid(), id, ARRAY['owner'::location_role, 'manager'::location_role]))	
+public	marketing_automation_flows	flows_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_automation_flows	flows_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_automation_flows	flows_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_automation_flows	flows_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_brand_intelligence	bi_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_brand_intelligence	bi_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_brand_intelligence	bi_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_brand_kit	brand_kit_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_brand_kit	brand_kit_manage	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_brand_kit	brand_kit_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_brand_kit	brand_kit_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_campaign_analytics	analytics_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_campaign_analytics	analytics_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_campaign_analytics	analytics_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_campaigns	campaigns_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_campaigns	campaigns_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_campaigns	campaigns_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_campaigns	campaigns_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_coaching_tips	coaching_tips_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_coaching_tips	coaching_tips_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_coaching_tips	coaching_tips_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_coaching_tips	coaching_tips_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_contact_preferences	contact_prefs_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'service'::location_role])
+public	marketing_contact_preferences	contact_prefs_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_contact_preferences	contact_prefs_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'service'::location_role])	
+public	marketing_content_ideas	ideas_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_content_ideas	ideas_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_content_ideas	ideas_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_content_ideas	ideas_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_content_series	content_series_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_content_series	content_series_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_content_series	content_series_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_content_series	content_series_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_email_log	email_log_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_popup_config	popup_config_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_popup_config	popup_config_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_popup_config	popup_config_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_popup_suggestions	popup_suggestions_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_popup_suggestions	popup_suggestions_insert	PERMISSIVE	{public}	INSERT		true
+public	marketing_popup_suggestions	popup_suggestions_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_popup_suggestions	popup_suggestions_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_reviews	reviews_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_reviews	reviews_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_reviews	reviews_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_reviews	reviews_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_segments	segments_delete	PERMISSIVE	{public}	DELETE	(user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]) AND (is_system = false))	
+public	marketing_segments	segments_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_segments	segments_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_segments	segments_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_social_accounts	social_accounts_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_social_accounts	social_accounts_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_social_accounts	social_accounts_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_social_accounts	social_accounts_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_social_posts	social_posts_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_social_posts	social_posts_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	marketing_social_posts	social_posts_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	marketing_social_posts	social_posts_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	marketing_templates	templates_delete	PERMISSIVE	{public}	DELETE	((location_id IS NOT NULL) AND (is_system = false) AND user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]))	
+public	marketing_templates	templates_insert	PERMISSIVE	{public}	INSERT		((location_id IS NOT NULL) AND user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]))
+public	marketing_templates	templates_select	PERMISSIVE	{public}	SELECT	((location_id IS NULL) OR user_has_location_access(auth.uid(), location_id))	
+public	marketing_templates	templates_update	PERMISSIVE	{public}	UPDATE	((location_id IS NOT NULL) AND user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role]))	
+public	medewerkers	medewerkers_delete	PERMISSIVE	{authenticated}	DELETE	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	medewerkers	medewerkers_insert	PERMISSIVE	{authenticated}	INSERT		(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))
+public	medewerkers	medewerkers_select	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	medewerkers	medewerkers_update	PERMISSIVE	{authenticated}	UPDATE	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	mep_favorieten	Users can manage own location favorieten	PERMISSIVE	{authenticated}	ALL	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))
+public	mep_task_completions	mep_task_completions_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM mep_tasks mt
+  WHERE ((mt.id = mep_task_completions.task_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), mt.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	mep_task_completions	mep_task_completions_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM mep_tasks mt
+  WHERE ((mt.id = mep_task_completions.task_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), mt.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	mep_task_completions	mep_task_completions_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM mep_tasks mt
+  WHERE ((mt.id = mep_task_completions.task_id) AND user_has_location_access(( SELECT auth.uid() AS uid), mt.location_id))))	
+public	mep_task_completions	mep_task_completions_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM mep_tasks mt
+  WHERE ((mt.id = mep_task_completions.task_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), mt.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	mep_tasks	mep_tasks_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])	
+public	mep_tasks	mep_tasks_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	mep_tasks	mep_tasks_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	mep_tasks	mep_tasks_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])	
+public	message_templates	Users manage own location templates	PERMISSIVE	{public}	ALL	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	message_templates	Users see own location templates	PERMISSIVE	{public}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	messages	Service role manages messages	PERMISSIVE	{public}	ALL	true	true
+public	messages	Users insert own location messages	PERMISSIVE	{public}	INSERT		(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))
+public	messages	Users see own location messages	PERMISSIVE	{public}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	messaging_config	Users see own location messaging config	PERMISSIVE	{public}	SELECT	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	messaging_config	Users update own location messaging config	PERMISSIVE	{public}	UPDATE	(location_id IN ( SELECT user_location_roles.location_id
+   FROM user_location_roles
+  WHERE (user_location_roles.user_id = auth.uid())))	
+public	mollie_connections	Users can manage own location mollie connections	PERMISSIVE	{authenticated}	ALL	(location_id IN ( SELECT l.id
+   FROM (locations l
+     JOIN org_memberships om ON ((om.organization_id = l.organization_id)))
+  WHERE (om.user_id = auth.uid())))	
+public	mollie_connections	Users can view own location mollie connections	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT l.id
+   FROM (locations l
+     JOIN org_memberships om ON ((om.organization_id = l.organization_id)))
+  WHERE (om.user_id = auth.uid())))	
+public	ob_tasks	ob_tasks_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	ob_tasks	ob_tasks_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	ob_tasks	ob_tasks_select_location	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	ob_tasks	ob_tasks_select_platform	PERMISSIVE	{public}	SELECT	is_platform_user(auth.uid())	
+public	ob_tasks	ob_tasks_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	onboarding_candidates	onboarding_candidates_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	onboarding_candidates	onboarding_candidates_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	onboarding_candidates	onboarding_candidates_select_location	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	onboarding_candidates	onboarding_candidates_select_platform	PERMISSIVE	{public}	SELECT	is_platform_user(auth.uid())	
+public	onboarding_candidates	onboarding_candidates_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	onboarding_events	onboarding_events_insert	PERMISSIVE	{public}	INSERT		user_has_location_access(auth.uid(), location_id)
+public	onboarding_events	onboarding_events_select_location	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	onboarding_events	onboarding_events_select_platform	PERMISSIVE	{public}	SELECT	is_platform_user(auth.uid())	
+public	onboarding_messages	onboarding_messages_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	onboarding_messages	onboarding_messages_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	onboarding_messages	onboarding_messages_select_location	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	onboarding_messages	onboarding_messages_select_platform	PERMISSIVE	{public}	SELECT	is_platform_user(auth.uid())	
+public	onboarding_messages	onboarding_messages_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	onboarding_phase_logs	onboarding_phase_logs_insert	PERMISSIVE	{public}	INSERT		(EXISTS ( SELECT 1
+   FROM onboarding_candidates c
+  WHERE ((c.id = onboarding_phase_logs.candidate_id) AND user_has_role_in_location(auth.uid(), c.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))
+public	onboarding_phase_logs	onboarding_phase_logs_select_location	PERMISSIVE	{public}	SELECT	(EXISTS ( SELECT 1
+   FROM onboarding_candidates c
+  WHERE ((c.id = onboarding_phase_logs.candidate_id) AND user_has_location_access(auth.uid(), c.location_id))))	
+public	onboarding_phase_logs	onboarding_phase_logs_select_platform	PERMISSIVE	{public}	SELECT	is_platform_user(auth.uid())	
+public	onboarding_phase_logs	onboarding_phase_logs_update	PERMISSIVE	{public}	UPDATE	(EXISTS ( SELECT 1
+   FROM onboarding_candidates c
+  WHERE ((c.id = onboarding_phase_logs.candidate_id) AND user_has_role_in_location(auth.uid(), c.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	onboarding_phases	onboarding_phases_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	onboarding_phases	onboarding_phases_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	onboarding_phases	onboarding_phases_select_location	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	onboarding_phases	onboarding_phases_select_platform	PERMISSIVE	{public}	SELECT	is_platform_user(auth.uid())	
+public	onboarding_phases	onboarding_phases_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	onboarding_settings	onboarding_settings_manage	PERMISSIVE	{public}	ALL	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	onboarding_settings	onboarding_settings_select_location	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	onboarding_settings	onboarding_settings_select_platform	PERMISSIVE	{public}	SELECT	is_platform_user(auth.uid())	
+public	onboarding_tasks	onboarding_tasks_delete	PERMISSIVE	{authenticated}	DELETE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = onboarding_tasks.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	onboarding_tasks	onboarding_tasks_insert	PERMISSIVE	{authenticated}	INSERT		(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = onboarding_tasks.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))
+public	onboarding_tasks	onboarding_tasks_select_manager	PERMISSIVE	{authenticated}	SELECT	(is_platform_user(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = onboarding_tasks.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	onboarding_tasks	onboarding_tasks_select_own	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = onboarding_tasks.employee_id) AND (e.user_id = auth.uid()))))	
+public	onboarding_tasks	onboarding_tasks_update_manager	PERMISSIVE	{authenticated}	UPDATE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = onboarding_tasks.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	onboarding_tasks	onboarding_tasks_update_own	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = onboarding_tasks.employee_id) AND (e.user_id = auth.uid()))))	
+public	org_memberships	org_memberships_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	org_memberships	org_memberships_delete_owner	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM (user_location_roles ulr
+     JOIN locations l ON ((l.id = ulr.location_id)))
+  WHERE ((ulr.user_id = auth.uid()) AND (l.organization_id = org_memberships.organization_id) AND (ulr.role = 'owner'::location_role))))	
+public	org_memberships	org_memberships_insert_owner	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM (user_location_roles ulr
+     JOIN locations l ON ((l.id = ulr.location_id)))
+  WHERE ((ulr.user_id = auth.uid()) AND (l.organization_id = org_memberships.organization_id) AND (ulr.role = 'owner'::location_role))))
+public	org_memberships	org_memberships_select_org	PERMISSIVE	{authenticated}	SELECT	user_in_organization(auth.uid(), organization_id)	
+public	org_memberships	org_memberships_select_own	PERMISSIVE	{authenticated}	SELECT	(user_id = auth.uid())	
+public	org_memberships	org_memberships_select_platform	PERMISSIVE	{authenticated}	SELECT	is_platform_user(auth.uid())	
+public	organizations	organizations_delete_admin	PERMISSIVE	{authenticated}	DELETE	is_platform_admin(auth.uid())	
+public	organizations	organizations_insert_admin	PERMISSIVE	{authenticated}	INSERT		is_platform_admin(auth.uid())
+public	organizations	organizations_select_member	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM org_memberships
+  WHERE ((org_memberships.user_id = auth.uid()) AND (org_memberships.organization_id = organizations.id))))	
+public	organizations	organizations_select_platform	PERMISSIVE	{authenticated}	SELECT	is_platform_user(auth.uid())	
+public	organizations	organizations_update_admin	PERMISSIVE	{authenticated}	UPDATE	is_platform_admin(auth.uid())	
+public	pakbon_email_intake	pakbon_email_intake_select	PERMISSIVE	{authenticated}	SELECT	((matched_location_id IS NOT NULL) AND user_has_role_in_location(( SELECT auth.uid() AS uid), matched_location_id, ARRAY['owner'::location_role, 'manager'::location_role]))	
+public	payslips	payslips_delete	PERMISSIVE	{authenticated}	DELETE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = payslips.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	payslips	payslips_insert	PERMISSIVE	{authenticated}	INSERT		(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = payslips.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))
+public	payslips	payslips_select_manager	PERMISSIVE	{authenticated}	SELECT	(is_platform_user(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = payslips.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	payslips	payslips_select_own	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = payslips.employee_id) AND (e.user_id = auth.uid()))))	
+public	payslips	payslips_update	PERMISSIVE	{authenticated}	UPDATE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM employees e
+  WHERE ((e.id = payslips.employee_id) AND user_has_role_in_location(auth.uid(), e.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	permission_set_permissions	permission_set_permissions_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	permission_set_permissions	permission_set_permissions_select_all	PERMISSIVE	{authenticated}	SELECT	true	
+public	permission_sets	permission_sets_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	permission_sets	permission_sets_select_all	PERMISSIVE	{authenticated}	SELECT	true	
+public	permissions	permissions_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	permissions	permissions_select_all	PERMISSIVE	{authenticated}	SELECT	true	
+public	policy_sets	policy_sets_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	policy_sets	policy_sets_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	policy_sets	policy_sets_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	policy_sets	policy_sets_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	print_logs	print_logs_insert	PERMISSIVE	{authenticated}	INSERT		(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))
+public	print_logs	print_logs_select	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	printer_configuraties	printer_config_delete	PERMISSIVE	{authenticated}	DELETE	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	printer_configuraties	printer_config_insert	PERMISSIVE	{authenticated}	INSERT		(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))
+public	printer_configuraties	printer_config_select	PERMISSIVE	{authenticated}	SELECT	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	printer_configuraties	printer_config_update	PERMISSIVE	{authenticated}	UPDATE	(location_id IN ( SELECT ulr.location_id
+   FROM user_location_roles ulr
+  WHERE (ulr.user_id = ( SELECT auth.uid() AS uid))))	
+public	productie_batches	productie_batches_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	productie_batches	productie_batches_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	productie_batches	productie_batches_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	productie_batches	productie_batches_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	profiles	profiles_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	profiles	profiles_select_own	PERMISSIVE	{authenticated}	SELECT	(id = auth.uid())	
+public	profiles	profiles_select_platform	PERMISSIVE	{authenticated}	SELECT	is_platform_user(auth.uid())	
+public	profiles	profiles_update_own	PERMISSIVE	{authenticated}	UPDATE	(id = auth.uid())	((id = auth.uid()) AND ((platform_role IS NULL) OR (platform_role = ( SELECT profiles_1.platform_role
+   FROM profiles profiles_1
+  WHERE (profiles_1.id = auth.uid())))))
+public	public_application_settings	Public can view active settings	PERMISSIVE	{public}	SELECT	(is_active = true)	
+public	public_application_settings	Staff can delete settings	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	public_application_settings	Staff can insert settings	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	public_application_settings	Staff can update settings	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	public_application_settings	Staff can view own location settings	PERMISSIVE	{authenticated}	SELECT	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	public_applications	Staff can delete own location applications	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	public_applications	Staff can update own location applications	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	public_applications	Staff can view own location applications	PERMISSIVE	{authenticated}	SELECT	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	recept_allergenen	recept_allergenen_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = recept_allergenen.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	recept_allergenen	recept_allergenen_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = recept_allergenen.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))
+public	recept_allergenen	recept_allergenen_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = recept_allergenen.recept_id) AND user_has_location_access(( SELECT auth.uid() AS uid), r.location_id))))	
+public	recept_allergenen	recept_allergenen_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = recept_allergenen.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	recept_ingredienten	recept_ingredienten_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = recept_ingredienten.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	recept_ingredienten	recept_ingredienten_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = recept_ingredienten.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))
+public	recept_ingredienten	recept_ingredienten_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = recept_ingredienten.recept_id) AND user_has_location_access(( SELECT auth.uid() AS uid), r.location_id))))	
+public	recept_ingredienten	recept_ingredienten_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM recepten r
+  WHERE ((r.id = recept_ingredienten.recept_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	recepten	recepten_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	recepten	recepten_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	recepten	recepten_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	recepten	recepten_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	recipe_yield	recipe_yield_delete	PERMISSIVE	{public}	DELETE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM (halffabricaat_methodes hm
+     JOIN recepten r ON ((r.id = hm.recept_id)))
+  WHERE ((hm.id = recipe_yield.halffabricaat_methode_id) AND user_has_role_in_location(auth.uid(), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role])))))	
+public	recipe_yield	recipe_yield_insert	PERMISSIVE	{public}	INSERT		(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM (halffabricaat_methodes hm
+     JOIN recepten r ON ((r.id = hm.recept_id)))
+  WHERE ((hm.id = recipe_yield.halffabricaat_methode_id) AND user_has_role_in_location(auth.uid(), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])))))
+public	recipe_yield	recipe_yield_select	PERMISSIVE	{public}	SELECT	(is_platform_user(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM (halffabricaat_methodes hm
+     JOIN recepten r ON ((r.id = hm.recept_id)))
+  WHERE ((hm.id = recipe_yield.halffabricaat_methode_id) AND user_has_location_access(auth.uid(), r.location_id)))))	
+public	recipe_yield	recipe_yield_update	PERMISSIVE	{public}	UPDATE	(is_platform_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM (halffabricaat_methodes hm
+     JOIN recepten r ON ((r.id = hm.recept_id)))
+  WHERE ((hm.id = recipe_yield.halffabricaat_methode_id) AND user_has_role_in_location(auth.uid(), r.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])))))	
+public	reservation_email_templates	Managers can manage templates	PERMISSIVE	{authenticated}	ALL	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	reservation_email_templates	Users can view own location templates	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	reservation_settings	reservation_settings_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	reservation_settings	reservation_settings_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	reservation_settings	reservation_settings_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	reservations	reservations_all	PERMISSIVE	{public}	ALL	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'service'::location_role])	
+public	reservations	reservations_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	role_permission_sets	role_permission_sets_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	role_permission_sets	role_permission_sets_select_all	PERMISSIVE	{authenticated}	SELECT	true	
+public	shift_exceptions	Owners and managers can delete shift exceptions	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	shift_exceptions	Owners and managers can insert shift exceptions	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	shift_exceptions	Owners and managers can update shift exceptions	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	shift_exceptions	Users can view shift exceptions for their locations	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	shift_tickets	shift_tickets_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	shift_tickets	shift_tickets_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	shift_tickets	shift_tickets_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	shift_tickets	shift_tickets_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	shifts	Owners and managers can delete shifts	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	shifts	Owners and managers can insert shifts	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	shifts	Owners and managers can update shifts	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	shifts	Users can view shifts for their locations	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	signal_preferences	Users can delete own signal preferences	PERMISSIVE	{public}	DELETE	(auth.uid() = user_id)	
+public	signal_preferences	Users can insert own signal preferences	PERMISSIVE	{public}	INSERT		(auth.uid() = user_id)
+public	signal_preferences	Users can read own signal preferences	PERMISSIVE	{public}	SELECT	(auth.uid() = user_id)	
+public	signal_preferences	Users can update own signal preferences	PERMISSIVE	{public}	UPDATE	(auth.uid() = user_id)	
+public	signals	Users can dismiss signals at their location	PERMISSIVE	{public}	UPDATE	user_has_location_access(auth.uid(), location_id)	user_has_location_access(auth.uid(), location_id)
+public	signals	Users can view signals for their location with enabled modules	PERMISSIVE	{authenticated}	SELECT	(user_has_location_access(auth.uid(), location_id) AND (EXISTS ( SELECT 1
+   FROM location_entitlements le
+  WHERE ((le.location_id = signals.location_id) AND (le.enabled = true) AND (((signals.module = 'reserveringen'::text) AND (le.module_key = 'reservations'::module_key)) OR ((signals.module = 'keuken'::text) AND (le.module_key = 'kitchen'::module_key)) OR ((signals.module = 'revenue'::text) AND (le.module_key = 'finance'::module_key)) OR ((signals.module = 'onboarding'::text) AND (le.module_key = 'onboarding'::module_key)) OR ((signals.module = 'configuratie'::text) AND (le.module_key = 'settings'::module_key)) OR ((signals.module = 'inkoop'::text) AND (le.module_key = 'inkoop'::module_key)))))) AND ((module <> 'inkoop'::text) OR (EXISTS ( SELECT 1
+   FROM user_location_roles ulr
+  WHERE ((ulr.user_id = auth.uid()) AND (ulr.location_id = signals.location_id) AND (ulr.role = ANY (ARRAY['owner'::location_role, 'manager'::location_role, 'finance'::location_role])))))))	
+public	stock_lots	sl_delete_via_location_role	PERMISSIVE	{public}	DELETE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = stock_lots.ingredient_id) AND user_has_role_in_location(auth.uid(), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	stock_lots	sl_insert_via_location_role	PERMISSIVE	{public}	INSERT		(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = stock_lots.ingredient_id) AND user_has_role_in_location(auth.uid(), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	stock_lots	sl_select_via_location	PERMISSIVE	{public}	SELECT	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = stock_lots.ingredient_id) AND user_has_location_access(auth.uid(), i.location_id))))	
+public	stock_lots	sl_update_via_location_role	PERMISSIVE	{public}	UPDATE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = stock_lots.ingredient_id) AND user_has_role_in_location(auth.uid(), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))	
+public	stock_movements	sm_insert_via_location_role	PERMISSIVE	{public}	INSERT		(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = stock_movements.ingredient_id) AND user_has_role_in_location(auth.uid(), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	stock_movements	sm_select_via_location	PERMISSIVE	{public}	SELECT	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = stock_movements.ingredient_id) AND user_has_location_access(auth.uid(), i.location_id))))	
+public	table_group_members	table_group_members_delete	PERMISSIVE	{public}	DELETE	(user_has_role_in_location(auth.uid(), get_location_for_table_group(table_group_id), ARRAY['owner'::location_role, 'manager'::location_role]) AND (EXISTS ( SELECT 1
+   FROM table_groups tg
+  WHERE ((tg.id = table_group_members.table_group_id) AND (tg.is_active = true) AND (tg.is_system_generated = false)))))	
+public	table_group_members	table_group_members_insert	PERMISSIVE	{public}	INSERT		(user_has_role_in_location(auth.uid(), get_location_for_table_group(table_group_id), ARRAY['owner'::location_role, 'manager'::location_role]) AND (EXISTS ( SELECT 1
+   FROM table_groups tg
+  WHERE ((tg.id = table_group_members.table_group_id) AND (tg.is_active = true) AND (tg.is_system_generated = false)))))
+public	table_group_members	table_group_members_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), get_location_for_table_group(table_group_id))	
+public	table_group_members	table_group_members_update	PERMISSIVE	{public}	UPDATE	(user_has_role_in_location(auth.uid(), get_location_for_table_group(table_group_id), ARRAY['owner'::location_role, 'manager'::location_role]) AND (EXISTS ( SELECT 1
+   FROM table_groups tg
+  WHERE ((tg.id = table_group_members.table_group_id) AND (tg.is_active = true) AND (tg.is_system_generated = false)))))	
+public	table_groups	table_groups_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	table_groups	table_groups_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	table_groups	table_groups_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	tables	tables_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), get_location_for_area(area_id), ARRAY['owner'::location_role, 'manager'::location_role])
+public	tables	tables_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	tables	tables_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), get_location_for_area(area_id), ARRAY['owner'::location_role, 'manager'::location_role])	
+public	temperatuur_registraties	temp_reg_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	temperatuur_registraties	temp_reg_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	temperatuur_registraties	temp_reg_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	temperatuur_registraties	temp_reg_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	template_cache	tc_select_all_authenticated	PERMISSIVE	{authenticated}	SELECT	true	
+public	tickets	tickets_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	tickets	tickets_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	tickets	tickets_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	tickets	tickets_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	user_location_roles	user_location_roles_all_admin	PERMISSIVE	{authenticated}	ALL	is_platform_admin(auth.uid())	
+public	user_location_roles	user_location_roles_delete_owner	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role])	
+public	user_location_roles	user_location_roles_insert_owner	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role])
+public	user_location_roles	user_location_roles_select_location	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	user_location_roles	user_location_roles_select_own	PERMISSIVE	{authenticated}	SELECT	(user_id = auth.uid())	
+public	user_location_roles	user_location_roles_select_platform	PERMISSIVE	{authenticated}	SELECT	is_platform_user(auth.uid())	
+public	user_location_roles	user_location_roles_update_owner	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role])	
+public	voorraad_bewegingen	voorraad_bewegingen_delete	PERMISSIVE	{authenticated}	DELETE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = voorraad_bewegingen.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	voorraad_bewegingen	voorraad_bewegingen_insert	PERMISSIVE	{authenticated}	INSERT		(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = voorraad_bewegingen.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role]))))
+public	voorraad_bewegingen	voorraad_bewegingen_select	PERMISSIVE	{authenticated}	SELECT	(EXISTS ( SELECT 1
+   FROM (ingredienten i
+     JOIN user_location_roles ulr ON ((ulr.location_id = i.location_id)))
+  WHERE ((i.id = voorraad_bewegingen.ingredient_id) AND (ulr.user_id = ( SELECT auth.uid() AS uid)))))	
+public	voorraad_bewegingen	voorraad_bewegingen_update	PERMISSIVE	{authenticated}	UPDATE	(EXISTS ( SELECT 1
+   FROM ingredienten i
+  WHERE ((i.id = voorraad_bewegingen.ingredient_id) AND user_has_role_in_location(( SELECT auth.uid() AS uid), i.location_id, ARRAY['owner'::location_role, 'manager'::location_role]))))	
+public	waitlist_entries	waitlist_entries_delete	PERMISSIVE	{public}	DELETE	user_has_location_access(auth.uid(), location_id)	
+public	waitlist_entries	waitlist_entries_insert	PERMISSIVE	{public}	INSERT		user_has_location_access(auth.uid(), location_id)
+public	waitlist_entries	waitlist_entries_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	waitlist_entries	waitlist_entries_update	PERMISSIVE	{public}	UPDATE	user_has_location_access(auth.uid(), location_id)	
+public	waitlist_invites	waitlist_invites_delete	PERMISSIVE	{public}	DELETE	user_has_location_access(auth.uid(), location_id)	
+public	waitlist_invites	waitlist_invites_insert	PERMISSIVE	{public}	INSERT		user_has_location_access(auth.uid(), location_id)
+public	waitlist_invites	waitlist_invites_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	waitlist_invites	waitlist_invites_update	PERMISSIVE	{public}	UPDATE	user_has_location_access(auth.uid(), location_id)	
+public	waitlist_settings	waitlist_settings_delete	PERMISSIVE	{public}	DELETE	user_has_location_access(auth.uid(), location_id)	
+public	waitlist_settings	waitlist_settings_insert	PERMISSIVE	{public}	INSERT		user_has_location_access(auth.uid(), location_id)
+public	waitlist_settings	waitlist_settings_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	waitlist_settings	waitlist_settings_update	PERMISSIVE	{public}	UPDATE	user_has_location_access(auth.uid(), location_id)	
+public	waste_registraties	waste_delete	PERMISSIVE	{authenticated}	DELETE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	waste_registraties	waste_insert	PERMISSIVE	{authenticated}	INSERT		user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role, 'kitchen'::location_role])
+public	waste_registraties	waste_select	PERMISSIVE	{authenticated}	SELECT	user_has_location_access(( SELECT auth.uid() AS uid), location_id)	
+public	waste_registraties	waste_update	PERMISSIVE	{authenticated}	UPDATE	user_has_role_in_location(( SELECT auth.uid() AS uid), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	widget_settings	widget_settings_delete	PERMISSIVE	{public}	DELETE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	widget_settings	widget_settings_insert	PERMISSIVE	{public}	INSERT		user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])
+public	widget_settings	widget_settings_select	PERMISSIVE	{public}	SELECT	user_has_location_access(auth.uid(), location_id)	
+public	widget_settings	widget_settings_update	PERMISSIVE	{public}	UPDATE	user_has_role_in_location(auth.uid(), location_id, ARRAY['owner'::location_role, 'manager'::location_role])	
+public	workflow_executions	workflow_executions_select_admin	PERMISSIVE	{public}	SELECT	is_platform_admin(auth.uid())	
