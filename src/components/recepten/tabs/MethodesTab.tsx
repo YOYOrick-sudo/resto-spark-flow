@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Link } from "react-router-dom";
 import { ReceptDetail, ReceptIngredientRow, HalffabricaatMethodeRow } from "@/hooks/useRecept";
 import { useReceptMutations } from "@/hooks/useReceptMutations";
 import { useRecepten } from "@/hooks/useRecepten";
@@ -7,7 +8,7 @@ import { Trash2, Plus, ChevronDown, ChevronUp, History, Clock, Snowflake, AlertT
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApplyYieldCorrection, useCurrentYield } from "@/hooks/useYield";
 import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
-import { YieldHistoryPanel } from "@/components/recepten/yield/YieldHistoryPanel";
+
 import {
   bepaalOpbrengst,
   type IngredientForOpbrengst,
@@ -122,6 +123,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
               key={m.id}
               methode={m}
               index={index}
+              receptId={recept.id}
               porties={recept.porties}
               receptType={recept.type}
               receptNaam={recept.naam}
@@ -156,6 +158,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
 interface MethodeRowProps {
   methode: HalffabricaatMethodeRow;
   index: number;
+  receptId: string;
   porties: number;
   receptType: string;
   receptNaam: string;
@@ -171,6 +174,7 @@ interface MethodeRowProps {
 function MethodeRow({
   methode,
   index,
+  receptId,
   porties,
   receptType,
   receptNaam,
@@ -193,8 +197,6 @@ function MethodeRow({
   const [instructie, setInstructie] = React.useState(methode.instructie ?? "");
   const [subReceptId, setSubReceptId] = React.useState(methode.sub_recept_id ?? "");
 
-  // Yield panels state
-  const [historyOpen, setHistoryOpen] = React.useState(false);
   const { data: currentYield, isLoading: yieldLoading } = useCurrentYield(methode.id);
   const applyYield = useApplyYieldCorrection();
 
@@ -202,7 +204,6 @@ function MethodeRow({
   const isStuksOutput = outputEenheid === "st" || outputEenheid === "stuks";
 
   const portie = berekenPortieGrootte(outputHoeveelheid, outputEenheid, porties);
-  const methodeLabel = `${receptNaam} · ${methode.type}`;
 
   // D1+ — Bereken afgeleide opbrengst uit input vs output
   const opbrengst = React.useMemo(() => {
@@ -474,14 +475,14 @@ function MethodeRow({
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Afgeleide opbrengst
                 </span>
-                <button
-                  onClick={() => setHistoryOpen(true)}
+                <Link
+                  to={`/recepten/${receptId}/methodes/${methode.id}/historie/opbrengst`}
                   className="p-1 rounded hover:bg-accent transition-colors flex items-center gap-1.5 text-[11px] text-muted-foreground"
                   title="Opbrengst-historie"
                 >
                   <History className="h-3.5 w-3.5" />
                   Historie
-                </button>
+                </Link>
               </div>
 
               <OpbrengstBreakdown
@@ -513,15 +514,6 @@ function MethodeRow({
         </div>
       )}
 
-      {/* Yield history panel — correctie-paneel verwijderd in A.7.1 */}
-      {historyOpen && (
-        <YieldHistoryPanel
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          methodeId={methode.id}
-          methodeLabel={methodeLabel}
-        />
-      )}
     </div>
   );
 }

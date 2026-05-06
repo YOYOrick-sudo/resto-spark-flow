@@ -17,6 +17,7 @@ import MepTaken from "./pages/MepTaken";
 import Recepten from "./pages/Recepten";
 import ReceptenDetail from "./pages/ReceptenDetail";
 import ReceptenNieuw from "./pages/ReceptenNieuw";
+import MethodeHistoriePage from "./pages/MethodeHistoriePage";
 import Ingredienten from "./pages/Ingredienten";
 import IngredientenNieuw from "./pages/IngredientenNieuw";
 import IngredientenDetail from "./pages/IngredientenDetail";
@@ -197,6 +198,7 @@ const App = () => (
                   <Route path="/recepten" element={<Recepten />} />
                   <Route path="/recepten/nieuw" element={<ReceptenNieuw />} />
                   <Route path="/recepten/:id" element={<ReceptenDetail />} />
+                  <Route path="/recepten/:id/methodes/:methodeId/historie/:type" element={<MethodeHistoriePage />} />
                   <Route path="/voorraad/nieuw" element={<IngredientenNieuw />} />
                   <Route path="/voorraad/:id" element={<IngredientenDetail />} />
                   <Route path="/voorraad" element={<Ingredienten />} />
