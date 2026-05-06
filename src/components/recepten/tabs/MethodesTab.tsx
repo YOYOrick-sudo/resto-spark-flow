@@ -267,13 +267,14 @@ function MethodeRow({
           <NestoNumericInput
             min={0}
             value={outputHoeveelheid}
-            onValueChange={(v) => setOutputHoeveelheid(v ?? 0)}
-            allowEmpty={false}
-            fallback={0}
-            onBlur={() => {
-              onUpdate({ output_hoeveelheid: outputHoeveelheid });
+            onValueChange={(v) => {
+              const next = v ?? 0;
+              setOutputHoeveelheid(next);
+              onUpdate({ output_hoeveelheid: next });
               triggerYieldUpdateIfNeeded();
             }}
+            allowEmpty={false}
+            fallback={0}
             className="h-7 text-xs w-16 tabular-nums"
           />
           <NestoSelect
@@ -282,7 +283,6 @@ function MethodeRow({
               setOutputEenheid(v);
               // D3 — bij wisselen weg van 'st' BEHOUDEN we output_gewicht_per_stuk_g (geen NULL).
               onUpdate({ output_eenheid: v });
-              // Pas op volgende blur opnieuw triggeren — value is nu nieuw
             }}
             options={OUTPUT_EENHEID_OPTIONS}
             size="sm"
@@ -293,15 +293,12 @@ function MethodeRow({
               <NestoNumericInput
                 min={0}
                 value={outputGewichtPerStuk === "" ? null : outputGewichtPerStuk}
-                onValueChange={(v) => setOutputGewichtPerStuk(v ?? "")}
-                allowEmpty
-                onBlur={() => {
-                  onUpdate({
-                    output_gewicht_per_stuk_g:
-                      outputGewichtPerStuk === "" ? null : Number(outputGewichtPerStuk),
-                  });
+                onValueChange={(v) => {
+                  setOutputGewichtPerStuk(v ?? "");
+                  onUpdate({ output_gewicht_per_stuk_g: v });
                   triggerYieldUpdateIfNeeded();
                 }}
+                allowEmpty
                 placeholder="g/st"
                 className="h-7 text-xs w-16 tabular-nums"
               />
@@ -316,10 +313,13 @@ function MethodeRow({
             min={0}
             integer
             value={duur}
-            onValueChange={(v) => setDuur(v ?? 0)}
+            onValueChange={(v) => {
+              const next = v ?? 0;
+              setDuur(next);
+              onUpdate({ standaard_duur: next });
+            }}
             allowEmpty={false}
             fallback={0}
-            onBlur={() => onUpdate({ standaard_duur: duur })}
             className="h-7 text-xs w-12 tabular-nums"
           />
           <span className="text-[11px] text-muted-foreground">min</span>
@@ -331,10 +331,13 @@ function MethodeRow({
             min={0}
             integer
             value={houdbaarheid}
-            onValueChange={(v) => setHoudbaarheid(v ?? 0)}
+            onValueChange={(v) => {
+              const next = v ?? 0;
+              setHoudbaarheid(next);
+              onUpdate({ houdbaarheid: next || null });
+            }}
             allowEmpty={false}
             fallback={0}
-            onBlur={() => onUpdate({ houdbaarheid: houdbaarheid || null })}
             className="h-7 text-xs w-12 tabular-nums"
           />
           <span className="text-[11px] text-muted-foreground">d</span>
