@@ -157,6 +157,7 @@ export function MethodesTab({ recept }: MethodesTabProps) {
 interface MethodeRowProps {
   methode: HalffabricaatMethodeRow;
   index: number;
+  receptId: string;
   porties: number;
   receptType: string;
   receptNaam: string;
@@ -172,6 +173,7 @@ interface MethodeRowProps {
 function MethodeRow({
   methode,
   index,
+  receptId,
   porties,
   receptType,
   receptNaam,
