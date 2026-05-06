@@ -152,7 +152,7 @@ export default function ReceptenDetail() {
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left column — tabs */}
-        <div className={`${activeTab === "methodes" ? "lg:col-span-5" : "lg:col-span-3"} space-y-5`}>
+        <div className="lg:col-span-3 space-y-5">
           <NestoTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
           <NestoTabContent value="ingredienten" activeValue={activeTab}>
@@ -173,7 +173,7 @@ export default function ReceptenDetail() {
         </div>
 
         {/* Right column — sticky sidebar */}
-        <div className={`lg:col-span-2 lg:sticky lg:top-6 lg:self-start space-y-4 ${activeTab === "methodes" ? "hidden lg:hidden" : ""}`}>
+        <div className="lg:col-span-2 lg:sticky lg:top-6 lg:self-start space-y-4">
           {/* Card 1: Basisinfo */}
           <div className="rounded-2xl border border-border/30 bg-card p-5 space-y-4">
             <div>

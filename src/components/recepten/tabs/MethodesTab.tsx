@@ -3,7 +3,8 @@ import { ReceptDetail, ReceptIngredientRow, HalffabricaatMethodeRow } from "@/ho
 import { useReceptMutations } from "@/hooks/useReceptMutations";
 import { useRecepten } from "@/hooks/useRecepten";
 import { NestoButton, NestoInput, NestoNumericInput, NestoSelect } from "@/components/polar";
-import { Trash2, Plus, ChevronDown, ChevronUp, History } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronUp, History, Clock, Snowflake, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApplyYieldCorrection, useCurrentYield } from "@/hooks/useYield";
 import { YieldSourcePill } from "@/components/recepten/yield/YieldSourcePill";
 import { YieldHistoryPanel } from "@/components/recepten/yield/YieldHistoryPanel";
@@ -39,7 +40,7 @@ const OUTPUT_EENHEID_OPTIONS = [
 // D1 — alleen deze methode-types tonen opbrengst-flow in A.7
 const YIELD_METHODE_TYPES = new Set(["Bereiden", "Snijden"]);
 
-const GRID_COLS = "grid-cols-[32px_1fr_200px_80px_80px_1fr_40px_40px]";
+const GRID_COLS = "grid-cols-[32px_1fr_220px_140px_1fr_40px]";
 
 interface MethodesTabProps {
   recept: ReceptDetail;
@@ -100,14 +101,12 @@ export function MethodesTab({ recept }: MethodesTabProps) {
   return (
     <div className="w-full overflow-auto rounded-2xl bg-card shadow-card">
       {/* Header */}
-      <div className={`grid ${GRID_COLS} gap-1 px-3 pt-3 pb-2`}>
+      <div className={`grid ${GRID_COLS} gap-2 px-3 pt-3 pb-2`}>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">#</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Type</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Output</span>
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Duur</span>
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Houdbaar</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tijd · Houdbaar</span>
         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Detail</span>
-        <span />
         <span />
       </div>
 
@@ -307,41 +306,22 @@ function MethodeRow({
           )}
         </div>
 
-        {/* Duur */}
-        <div className="flex items-center gap-1">
-          <NestoNumericInput
-            min={0}
-            integer
-            value={duur}
-            onValueChange={(v) => {
-              const next = v ?? 0;
-              setDuur(next);
-              onUpdate({ standaard_duur: next });
-            }}
-            allowEmpty={false}
-            fallback={0}
-            className="h-7 text-xs w-12 tabular-nums"
-          />
-          <span className="text-[11px] text-muted-foreground">min</span>
-        </div>
-
-        {/* Houdbaar */}
-        <div className="flex items-center gap-1">
-          <NestoNumericInput
-            min={0}
-            integer
-            value={houdbaarheid}
-            onValueChange={(v) => {
-              const next = v ?? 0;
-              setHoudbaarheid(next);
-              onUpdate({ houdbaarheid: next || null });
-            }}
-            allowEmpty={false}
-            fallback={0}
-            className="h-7 text-xs w-12 tabular-nums"
-          />
-          <span className="text-[11px] text-muted-foreground">d</span>
-        </div>
+        {/* Tijd · Houdbaar (read-only mini-icons; bewerken in uitklap) */}
+        <button
+          onClick={onToggleExpand}
+          className="flex items-center gap-2 text-[11px] text-muted-foreground tabular-nums hover:text-foreground transition-colors"
+          title="Klik om duur en houdbaarheid te bewerken"
+        >
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {duur ? `${duur}min` : "—"}
+          </span>
+          <span className="text-border">·</span>
+          <span className="inline-flex items-center gap-1">
+            <Snowflake className="h-3 w-3" />
+            {houdbaarheid ? `${houdbaarheid}d` : "—"}
+          </span>
+        </button>
 
         {/* Detail toggle */}
         <button
@@ -371,34 +351,51 @@ function MethodeRow({
         >
           <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </button>
-
-        {/* Spacer — 8th column to align body with header */}
-        <span />
       </div>
 
       {/* A.7.1 — Inline afgeleide opbrengst onder output-cel (tweede-regel pattern) */}
-      {heeftOpbrengst && (
-        <div className="px-3 -mt-1 pb-1 pl-[44px]">
-          <span
-            className="text-[11px] text-muted-foreground tabular-nums inline-flex items-center gap-1.5"
-            title={
-              opbrengst?.opbrengstPct === null
-                ? "Vul ingrediënten en output in om opbrengst te berekenen"
-                : "Afgeleid uit input vs output. Wijzig output om aan te passen."
-            }
-          >
-            <span>
-              · opbrengst{" "}
-              {opbrengst?.opbrengstPct != null
-                ? `${Math.round(opbrengst.opbrengstPct * 100)}%`
-                : "–"}
+      {heeftOpbrengst && (() => {
+        const pct = opbrengst?.opbrengstPct;
+        const pctNum = pct != null ? pct * 100 : null;
+        const isLow = pctNum != null && pctNum < 30;
+        const isHigh = pctNum != null && pctNum > 110;
+        const warn = isLow || isHigh;
+        const warnMsg = isLow
+          ? `Erg lage opbrengst (${Math.round(pctNum!)}%) — controleer of input/output kloppen`
+          : isHigh
+          ? `Onmogelijk hoge opbrengst (${Math.round(pctNum!)}%) — output is groter dan input`
+          : "";
+        return (
+          <div className="px-3 -mt-1 pb-1 pl-[44px]">
+            <span
+              className="text-[11px] text-muted-foreground tabular-nums inline-flex items-center gap-1.5"
+              title={
+                pct === null || pct === undefined
+                  ? "Vul ingrediënten en output in om opbrengst te berekenen"
+                  : "Afgeleid uit input vs output. Wijzig output om aan te passen."
+              }
+            >
+              <span>
+                · opbrengst{" "}
+                {pct != null ? `${Math.round(pct * 100)}%` : "–"}
+              </span>
+              {warn && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex"><AlertTriangle className="h-3 w-3 text-amber-600" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">{warnMsg}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {currentYield && !yieldLoading && (
+                <YieldSourcePill source={currentYield.source} size="xs" />
+              )}
             </span>
-            {currentYield && !yieldLoading && (
-              <YieldSourcePill source={currentYield.source} size="xs" />
-            )}
-          </span>
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* D5 — Per-portie regel: alleen voor gerecht, niet voor halffabricaat */}
       {receptType === "gerecht" && portie && (
@@ -433,6 +430,42 @@ function MethodeRow({
               className="w-full min-h-[60px] rounded-button border-[1.5px] border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:!border-primary focus:outline-none resize-y"
             />
           )}
+
+          {/* Duur + Houdbaarheid bewerken */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-[11px] text-muted-foreground">Duur (min)</label>
+              <NestoNumericInput
+                min={0}
+                integer
+                value={duur}
+                onValueChange={(v) => {
+                  const next = v ?? 0;
+                  setDuur(next);
+                  onUpdate({ standaard_duur: next });
+                }}
+                allowEmpty={false}
+                fallback={0}
+                className="h-8 text-xs tabular-nums"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-muted-foreground">Houdbaarheid (dagen)</label>
+              <NestoNumericInput
+                min={0}
+                integer
+                value={houdbaarheid}
+                onValueChange={(v) => {
+                  const next = v ?? 0;
+                  setHoudbaarheid(next);
+                  onUpdate({ houdbaarheid: next || null });
+                }}
+                allowEmpty={false}
+                fallback={0}
+                className="h-8 text-xs tabular-nums"
+              />
+            </div>
+          </div>
 
           {/* Opbrengst-paneel — alleen voor methode-types met opbrengst-flow */}
           {heeftOpbrengst && (
