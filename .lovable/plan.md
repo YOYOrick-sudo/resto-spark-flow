@@ -1,55 +1,40 @@
-# Mini-sprint 2C-3 — Sender + PDF-content cross-verificatie leverancier
-
 ## Doel
-Pakbon wordt aan correcte leverancier gekoppeld via combinatie van sender-domein
-whitelist + AI-extractie van leverancier_naam uit PDF. Voorkomt mis-toewijzing
-zoals huidig probleem (Boer & Chef PDF van shouf.ai → toegewezen aan Bidfood).
+Het huidige auto-gegenereerde logo (rommelige dubbele "F" + ongelijke wordmark) vervangen door een verfijnd, **puur typografisch** Foretaste-logo in lowercase, Paper & Ink (zwart op off-white).
 
-## Beslismatrix (definitief, b1/b2/b3 split)
+## Aanpak
 
-| Scenario | Sender-matches | PDF-extractie | Actie | Warning |
-|----------|----------------|---------------|-------|---------|
-| **a**    | 1 match        | bevestigt sender | use sender | nee |
-| **b1**   | 1 match        | match onbekend (PDF naam unmatched) | use sender | nee |
-| **b2**   | 1 match        | matcht ANDERE bekende leverancier (HIGH-CONF) | **use PDF-match** | **JA** |
-| **b3**   | 1 match        | matcht andere maar LOW-CONF | use sender | ja (zwak) |
-| **c**    | meerdere       | matcht één van de kandidaten | use PDF-match | nee |
-| **d**    | meerdere       | matcht geen | use eerste sender-match | ja |
-| **e**    | 0 matches      | matcht bekende leverancier | use PDF-match | ja ("toegewezen via PDF") |
-| **f**    | 0 matches      | matcht geen | reject (huidige fallback) | n.v.t. |
+**Geen iconisch monogram.** Het logo wordt één samenhangend wordmark — Aesop/Apple-stijl. De `NestoLogo`-component houdt z'n drie render-modes (icon-only / wordmark-only / lockup), maar:
 
-## High-confidence threshold (PDF-naam → leverancier)
-HIT wanneer:
-1. Exact normalized match (lowercase + strip "B.V."/"BV"/punct/whitespace), OF
-2. Token-set overlap ≥ 80% (jaccard op woord-tokens), OF
-3. Substring beide kanten (een naam zit in de andere)
+- **Wordmark** → nieuwe verfijnde "foretaste" PNG (dunne moderne sans, ruime letter-spacing, perfect uitgelijnd op baseline, geen rare schreven of dubbele lijnen).
+- **Icon-only** (gebruikt in ingeklapte sidebar) → losse kleine "f" in **dezelfde** letter als de wordmark, zodat het cohesief blijft zonder een apart monogram te verzinnen.
+- **Lockup** → identiek aan de wordmark (geen icoon ervoor, want richting = puur wordmark).
 
-Anders MISS. Hard threshold voorkomt fuzzy-chaos.
+## Stappen
 
-## Logging per pakbon
-```
-[leverancier-decision] receipt=<id> scenario=<a|b1|b2|b3|c|d|e|f>
-  sender_matches=[id1,id2] sender_names=[X,Y]
-  pdf_name="<naam>" pdf_match_id=<id|null> pdf_match_name=<X|null>
-  chosen=<id> chosen_name=<X> warning=<true|false>
-```
+1. **Genereer 3 nieuwe assets** met `imagegen` (premium tier voor scherpe typografie):
+   - `src/assets/foretaste-wordmark.png` — "foretaste" lowercase, dunne moderne sans (Söhne/Inter-achtig), zwart `#0d0d0d`, transparante achtergrond
+   - `src/assets/foretaste-mark.png` — losse kleine "f" in dezelfde letter (voor collapsed sidebar)
+   - `src/assets/foretaste-lockup.png` — dezelfde wordmark (lockup = wordmark bij deze richting)
 
-## Build-volgorde
-1. DB-migration: `pakbon_email_intake.sender_match_leverancier_ids uuid[]`,
-   `goods_receipts.leverancier_warning bool`, `leverancier_warning_reason text`
-2. `receive-pakbon-email`: sender match → array (limit 10), geen hard reject,
-   pass kandidaten door naar parse-pakbon
-3. `parse-pakbon`: helpers + beslismatrix + logging + DB-update
-4. View `goods_receipts_chef_inbox` aanvullen met warning-velden
-5. `useGoodsReceipts` row-type aanvullen
-6. `LeveringCard.tsx`: oranje "⚠ Check leverancier" pill
-7. Detail-page: prominente warning-banner bovenaan
-8. Cleanup-migration receipt 6f1914d6 → Boer & Chef
-9. Deploy beide edge functions
-10. Smoke-test 5 scenarios
+2. **Update `src/components/polar/NestoLogo.tsx`**:
+   - Import `foretaste-mark.png` i.p.v. de oude "F"-icoon
+   - Lockup-mode toont nu enkel wordmark (geen icoon meer ernaast)
+   - Hoogte-maps lichtjes herijken zodat het wordmark optisch even zwaar oogt als het vorige lockup
 
-## Niet in scope (Ronde 3)
-- Concept-status voor scenario (f) ipv hard reject
-- Manager-UI voor warning-pakbonnen review
-- Auto-leerproces (sender_domain toevoegen na bevestigde PDF-match)
-- Bulk-correctie tools
+3. **Oude assets niet verwijderen** — alleen niet meer importeren (veilig, geen broken refs).
+
+## Visuele richtlijn voor de generator
+- Letters: lowercase, dun gewicht (300), royale tracking
+- Baseline strak, geen versierde uiteinden
+- Pure `#0d0d0d` op transparant, geen schaduw/gradient
+- Compositie gecentreerd met ruime marges (geen clipping)
+
+## QA voor "klaar"
+- Screenshot sidebar uitgeklapt (wordmark zichtbaar)
+- Screenshot sidebar ingeklapt (alleen "f"-mark zichtbaar)
+- Visueel checken: geen dubbele lijnen, geen rare uitlopers, letters consistent zwaar
+
+## Out of scope
+- Geen kleur-tokens wijzigen
+- Geen nieuwe `Foretaste`-branding in copy/teksten (alleen logo-assets)
+- Geen wijziging aan `NestoLogo` API/props
