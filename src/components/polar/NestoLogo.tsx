@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
-import shoufIcon from '@/assets/foretaste-icon.png';
-import shoufLockup from '@/assets/foretaste-lockup.png';
+import shoufIcon from '@/assets/foretaste-mark.png';
+import shoufLockup from '@/assets/foretaste-wordmark.png';
 import shoufWordmark from '@/assets/foretaste-wordmark.png';
 
 export interface NestoLogoProps {
