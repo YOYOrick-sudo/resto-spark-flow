@@ -2599,6 +2599,7 @@ export type Database = {
           haccp_strict_temp_max: number | null
           id: string
           is_archived: boolean
+          is_halffabricaat: boolean
           is_variable_weight: boolean
           kostprijs: number | null
           kostprijs_bron: string | null
@@ -2611,6 +2612,7 @@ export type Database = {
           opslag_locatie: string | null
           opslag_type: string | null
           prefer_piece_display: boolean
+          recept_id: string | null
           updated_at: string
           voorraad: number
           weight_per_piece_g: number | null
@@ -2635,6 +2637,7 @@ export type Database = {
           haccp_strict_temp_max?: number | null
           id?: string
           is_archived?: boolean
+          is_halffabricaat?: boolean
           is_variable_weight?: boolean
           kostprijs?: number | null
           kostprijs_bron?: string | null
@@ -2647,6 +2650,7 @@ export type Database = {
           opslag_locatie?: string | null
           opslag_type?: string | null
           prefer_piece_display?: boolean
+          recept_id?: string | null
           updated_at?: string
           voorraad?: number
           weight_per_piece_g?: number | null
@@ -2671,6 +2675,7 @@ export type Database = {
           haccp_strict_temp_max?: number | null
           id?: string
           is_archived?: boolean
+          is_halffabricaat?: boolean
           is_variable_weight?: boolean
           kostprijs?: number | null
           kostprijs_bron?: string | null
@@ -2683,6 +2688,7 @@ export type Database = {
           opslag_locatie?: string | null
           opslag_type?: string | null
           prefer_piece_display?: boolean
+          recept_id?: string | null
           updated_at?: string
           voorraad?: number
           weight_per_piece_g?: number | null
@@ -2696,6 +2702,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredienten_recept_id_fkey"
+            columns: ["recept_id"]
+            isOneToOne: false
+            referencedRelation: "recepten"
             referencedColumns: ["id"]
           },
         ]
