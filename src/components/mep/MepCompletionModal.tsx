@@ -29,15 +29,17 @@ interface MepCompletionModalProps {
 export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionModalProps) {
   const methode = task.methode;
   const defaultUnits = task.units ?? 1;
-  const verwachteGram = methode
+  const verwachteOutput = methode
     ? methode.output_hoeveelheid * defaultUnits
     : undefined;
 
-  const displayEenheid = getDisplayEenheid(task);
+  // Display-eenheid van methode (bv. "L", "g", "st") — geen hardcoded "g"
+  const outputEenheid = methode?.output_eenheid ?? "g";
+  const displayEenheid = getDisplayEenheid(task) ?? outputEenheid;
 
   const [unitsGemaakt, setUnitsGemaakt] = useState(defaultUnits);
-  const [werkelijkeGram, setWerkelijkeGram] = useState<string>(
-    verwachteGram?.toString() ?? ""
+  const [werkelijkeOutput, setWerkelijkeOutput] = useState<string>(
+    verwachteOutput?.toString() ?? ""
   );
   const [temperatuur, setTemperatuur] = useState<string>("");
   const [medewerkerId, setMedewerkerId] = useState<string>("");
@@ -61,8 +63,8 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
   }, [open, medewerkers]);
 
   const calculatedYield =
-    verwachteGram && werkelijkeGram
-      ? Math.round((parseFloat(werkelijkeGram) / verwachteGram) * 100)
+    verwachteOutput && werkelijkeOutput
+      ? Math.round((parseFloat(werkelijkeOutput) / verwachteOutput) * 100)
       : undefined;
 
   const selectedMedewerker = medewerkers.find((m) => m.id === medewerkerId);
@@ -75,8 +77,8 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
         taskId: task.id,
         task,
         unitsGemaakt,
-        werkelijkeGram: werkelijkeGram ? parseFloat(werkelijkeGram) : undefined,
-        yieldPercentage: calculatedYield,
+        werkelijkeOutput: werkelijkeOutput ? parseFloat(werkelijkeOutput) : undefined,
+        werkelijkeOutputUnit: outputEenheid,
         temperatuur: temperatuur ? parseFloat(temperatuur) : undefined,
         kokMedewerkerId: medewerkerId || undefined,
       },
@@ -98,8 +100,9 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
             productie_datum: formatDate(now),
             houdbaar_tot: formatDate(thtDate),
             medewerker: selectedMedewerker?.naam,
-            gewicht: werkelijkeGram ? `${werkelijkeGram}${displayEenheid ?? "g"}` : undefined,
+            gewicht: werkelijkeOutput ? `${werkelijkeOutput} ${outputEenheid}` : undefined,
           };
+
 
           setLabelData(data);
 
