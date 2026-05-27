@@ -182,26 +182,27 @@ export function MepCompletionModal({ task, open, onOpenChange }: MepCompletionMo
             className="text-lg h-14"
           />
 
-          {verwachteGram !== undefined && (
+          {verwachteOutput !== undefined && (
             <div className="bg-muted/30 rounded-lg p-3">
               <p className="text-xs text-muted-foreground mb-1">Verwachte output</p>
               <p className="text-sm font-medium">
                 {(methode!.output_hoeveelheid * unitsGemaakt).toFixed(0)}{" "}
-                {displayEenheid}
+                {outputEenheid}
               </p>
             </div>
           )}
 
           {methode && (
             <NestoInput
-              label={`Werkelijke output (${displayEenheid})`}
+              label={`Werkelijke output (${outputEenheid})`}
               type="number"
               step="0.1"
-              value={werkelijkeGram}
-              onChange={(e) => setWerkelijkeGram(e.target.value)}
+              value={werkelijkeOutput}
+              onChange={(e) => setWerkelijkeOutput(e.target.value)}
               className="text-lg h-14"
             />
           )}
+
 
           {calculatedYield !== undefined && (
             <div className="bg-muted/30 rounded-lg p-3">
