@@ -4765,10 +4765,13 @@ export type Database = {
           kok_medewerker_id: string | null
           medewerker_id: string
           notitie: string | null
+          output_base_unit: string | null
           task_id: string
           temperatuur: number | null
           units_gemaakt: number
+          verwachte_output_base: number | null
           verwachte_output_gram: number | null
+          werkelijke_output_base: number | null
           werkelijke_output_gram: number | null
           yield_percentage: number | null
         }
@@ -4779,10 +4782,13 @@ export type Database = {
           kok_medewerker_id?: string | null
           medewerker_id: string
           notitie?: string | null
+          output_base_unit?: string | null
           task_id: string
           temperatuur?: number | null
           units_gemaakt?: number
+          verwachte_output_base?: number | null
           verwachte_output_gram?: number | null
+          werkelijke_output_base?: number | null
           werkelijke_output_gram?: number | null
           yield_percentage?: number | null
         }
@@ -4793,10 +4799,13 @@ export type Database = {
           kok_medewerker_id?: string | null
           medewerker_id?: string
           notitie?: string | null
+          output_base_unit?: string | null
           task_id?: string
           temperatuur?: number | null
           units_gemaakt?: number
+          verwachte_output_base?: number | null
           verwachte_output_gram?: number | null
+          werkelijke_output_base?: number | null
           werkelijke_output_gram?: number | null
           yield_percentage?: number | null
         }
@@ -6129,6 +6138,7 @@ export type Database = {
           recept_id: string
           status: string
           task_completion_id: string | null
+          unit_cost_eur: number | null
         }
         Insert: {
           batch_nummer: string
@@ -6145,6 +6155,7 @@ export type Database = {
           recept_id: string
           status?: string
           task_completion_id?: string | null
+          unit_cost_eur?: number | null
         }
         Update: {
           batch_nummer?: string
@@ -6161,6 +6172,7 @@ export type Database = {
           recept_id?: string
           status?: string
           task_completion_id?: string | null
+          unit_cost_eur?: number | null
         }
         Relationships: [
           {
@@ -8630,6 +8642,17 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_mep_task: {
+        Args: {
+          _kok_medewerker_id?: string
+          _task_id: string
+          _temperatuur?: number
+          _units_gemaakt: number
+          _werkelijke_output?: number
+          _werkelijke_output_unit?: string
+        }
+        Returns: Json
+      }
       confirm_goods_receipt: {
         Args: {
           _lines: Json
@@ -8640,6 +8663,16 @@ export type Database = {
           _user_id: string
         }
         Returns: Json
+      }
+      convert_qty: {
+        Args: {
+          _density_g_per_ml: number
+          _from_unit: string
+          _qty: number
+          _to_unit: string
+          _weight_per_piece_g: number
+        }
+        Returns: number
       }
       count_segment_customers: {
         Args: { _filter_rules: Json; _location_id: string }
@@ -9071,6 +9104,16 @@ export type Database = {
         Args: { today?: string; tpl_id: string }
         Returns: undefined
       }
+      to_base_unit: {
+        Args: {
+          _density_g_per_ml: number
+          _qty: number
+          _target_base: string
+          _unit: string
+          _weight_per_piece_g: number
+        }
+        Returns: number
+      }
       transition_reservation_status: {
         Args: {
           _actor_id?: string
@@ -9082,6 +9125,13 @@ export type Database = {
         Returns: string
       }
       unaccent: { Args: { "": string }; Returns: string }
+      unit_to_base: {
+        Args: { _unit: string }
+        Returns: {
+          base: string
+          factor: number
+        }[]
+      }
       user_has_location_access: {
         Args: { _location_id: string; _user_id: string }
         Returns: boolean
