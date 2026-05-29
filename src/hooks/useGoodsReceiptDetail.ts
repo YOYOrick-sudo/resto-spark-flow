@@ -167,8 +167,21 @@ function computeFactorContext(
   const la_count = la?.confirmation_count ?? 0;
   const is_weighted = !!(la?.is_weighted || line.ai_is_weighted);
 
-  const display_factor = la_factor ?? ai_factor;
-  const display_eenheid = la_eenheid ?? ai_eenheid;
+  // Identity auto-LA detectie (placeholder: factor=1 + eenheid=stuks, unknown source).
+  // Die LA voegt geen info toe — display moet de AI-eenheid kiezen, niet "1 stuks".
+  const _laUnitN = normalizeUnit(la_eenheid);
+  const isIdentityAutoLaForDisplay =
+    la &&
+    la_source === "unknown" &&
+    la_factor != null && Math.abs(Number(la_factor) - 1) < 0.001 &&
+    (_laUnitN === "stuk" || _laUnitN === "stuks" || _laUnitN === "st");
+
+  const display_factor = isIdentityAutoLaForDisplay
+    ? ai_factor
+    : (la_factor ?? ai_factor);
+  const display_eenheid = isIdentityAutoLaForDisplay
+    ? ai_eenheid
+    : (la_eenheid ?? ai_eenheid);
 
   const verpakking_label = resolveVerpakkingLabel(
     la?.verpakking_label ?? null,
