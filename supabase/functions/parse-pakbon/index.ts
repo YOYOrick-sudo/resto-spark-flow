@@ -1067,17 +1067,21 @@ serve(async (req) => {
   }
 
   console.log(
-    `[parse-pakbon][loop4c-finish] receipt=${receipt.id} fuzzy_hits=${fuzzyHits} auto_created=${autoCreated}`,
+    `[parse-pakbon][loop4c-finish] receipt=${receipt.id} fuzzy_hits=${fuzzyHits} fuzzy_suggestions=${fuzzySuggestions} auto_created=${autoCreated}`,
   );
 
   const lineRows = extractie.regels.map((r, idx) => {
     const hit = matches[idx];
+    const suggestion = suggestionMap.get(idx) ?? null;
     const conf = r.confidence === "hoog" ? 0.95 : r.confidence === "medium" ? 0.7 : 0.4;
     // Resolve verpakking-label: AI > regex > null
     const aiLabel = (r.verpakking_woord ?? "").trim().toLowerCase() || null;
     const regexLabel = aiLabel ? null : detectPackagingLabel(r.product_naam);
     const aiPackageLabel = aiLabel ?? regexLabel;
     const isEmballage = isEmballageLine(r.product_naam);
+    // Twijfelzone-regels (0.50-0.70 fuzzy): suggested_ingredient_id gevuld,
+    // ingredient_id leeg, match_status='needs_confirmation'. Kok bevestigt in UI.
+    const isSuggestion = !hit && !!suggestion && !isEmballage;
     return {
       goods_receipt_id: receipt.id,
       product_naam_herkend: r.product_naam,
@@ -1087,9 +1091,10 @@ serve(async (req) => {
       hoeveelheid_verwacht: r.hoeveelheid_geleverd ?? null,
       eenheid_verwacht: r.verpakking_eenheid ?? null,
       ingredient_id: hit?.ingredient_id ?? null,
-      is_nieuw_ingredient: !hit && !isEmballage,
-      match_status: hit ? "matched" : "unmatched",
-      match_confidence: hit ? hit.confidence : null,
+      suggested_ingredient_id: isSuggestion ? suggestion!.id : null,
+      is_nieuw_ingredient: !hit && !isSuggestion && !isEmballage,
+      match_status: hit ? "matched" : isSuggestion ? "needs_confirmation" : "unmatched",
+      match_confidence: hit ? hit.confidence : isSuggestion ? suggestion!.similarity : null,
       haccp_categorie: r.haccp_categorie ?? null,
       lotnummer: r.lotnummer ?? null,
       tht_datum: r.tht_datum ?? null,
