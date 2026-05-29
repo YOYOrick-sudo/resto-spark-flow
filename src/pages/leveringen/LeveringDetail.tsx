@@ -212,39 +212,38 @@ function LineRow({
           const isPerStuk =
             baseUnit === "st" && (factor === 1 || factor == null);
 
-          // Sprint Pakbon Etappe 4 — Pakbon-eenheid leidend bij weighted/loose.
-          // Toon "5,06 kg" zoals op papier i.p.v. "5,06 stuks" (Peer conference).
-          // Houd "1 kist × 30 stuks" intact wanneer de verpakkings-eenheid al
-          // overeenkomt met de pakbon-eenheid (Komkommer kist 30 stuks).
-          const pakbonQty = line.ai_total_received_quantity;
+          // Sprint Pakbon Etappe 4 — Pakbon-eenheid + aantal leidend.
+          // Toon "5,06 kg" (Peer weighted), "4 stuks" (Granaatappel), "30 stuks"
+          // (Komkommer) — exact zoals op het papieren pakbon. Numeric komt als
+          // string uit PostgREST, dus expliciet via Number() casten voordat we
+          // toLocaleString aanroepen.
+          const pakbonQtyRaw = line.ai_total_received_quantity;
+          const pakbonQty = pakbonQtyRaw != null ? Number(pakbonQtyRaw) : null;
           const pakbonUnit = line.ai_total_received_unit;
-          const factorEenheidMatchesPakbon =
-            !!factorEenheid &&
-            !!pakbonUnit &&
-            factorEenheid.toLowerCase() === pakbonUnit.toLowerCase();
           const usePakbonUnit =
             pakbonQty != null &&
+            !Number.isNaN(pakbonQty) &&
             !!pakbonUnit &&
-            !isPerStuk &&
-            ctx.mode !== "SKIP" &&
-            (!verpakkingLabel || !factorEenheidMatchesPakbon);
+            ctx.mode !== "SKIP";
+
+          const aantalNum = Number(aantal) || 0;
 
           let label: string | null = null;
           if (usePakbonUnit) {
-            const qtyStr = aantal.toLocaleString("nl-NL", {
+            const qtyStr = pakbonQty!.toLocaleString("nl-NL", {
               maximumFractionDigits: 3,
             });
-            label = `${qtyStr} ${pakbonUnit}`;
+            label = `${qtyStr} ${pluralize(pakbonUnit!, pakbonQty!)}`;
           } else if (ctx.mode === "SKIP") {
-            label = `${aantal} ${eenheid}`.trim();
+            label = `${aantalNum} ${eenheid}`.trim();
           } else if (isPerStuk) {
-            label = `${aantal} ${pluralize(eenheid || "stuk", aantal)}`;
+            label = `${aantalNum} ${pluralize(eenheid || "stuk", aantalNum)}`;
           } else if (verpakkingLabel && factor && factorEenheid) {
-            label = `${aantal} ${safeVerpakking(verpakkingLabel, aantal)} × ${factor} ${factorEenheid}`;
+            label = `${aantalNum} ${safeVerpakking(verpakkingLabel, aantalNum)} × ${factor} ${factorEenheid}`;
           } else if (verpakkingLabel) {
-            label = `${aantal} ${safeVerpakking(verpakkingLabel, aantal)}`;
+            label = `${aantalNum} ${safeVerpakking(verpakkingLabel, aantalNum)}`;
           } else {
-            label = `${aantal} ${eenheid}`.trim();
+            label = `${aantalNum} ${eenheid}`.trim();
           }
 
           const isUnconfirmed = ctx.mode === "MANUAL_REQUIRED";
