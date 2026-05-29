@@ -737,6 +737,9 @@ export default function LeveringDetail() {
                   onMarkAfwijking={() => handleMarkAfwijking(line.id)}
                   onResetAkkoord={() => handleResetAkkoord(line.id)}
                   onEditAfwijking={() => handleMarkAfwijking(line.id)}
+                  receiptId={data.id}
+                  leverancierId={data.leverancier_id}
+                  locationId={data.location_id}
                 />
               );
             })}
