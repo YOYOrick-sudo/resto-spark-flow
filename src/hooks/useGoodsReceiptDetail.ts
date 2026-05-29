@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
+import { bridgeUnit, factorsEquivalent, normalizeUnit } from "@/lib/unitBridge";
 
 /**
  * Loop 4: per-line factor-resolutie (CONFIRMED / AI_SUGGESTED / MANUAL_REQUIRED)
