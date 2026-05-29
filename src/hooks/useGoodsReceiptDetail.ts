@@ -210,16 +210,19 @@ function computeFactorContext(
   const hasCompleteAi = ai_factor != null && ai_factor > 0 && !!ai_eenheid;
   const aiUnitKnown = hasCompleteAi && KNOWN_UNITS.has(ai_eenheid!.toLowerCase());
 
+  const productNaam = line.product_naam_herkend ?? "product";
+  const askFactor = `Hoeveel ${productNaam} zitten er in 1 ${verpakking_label}? Dit onthoud ik voortaan.`;
+
   if (!ingredient || !ingredient.base_unit) {
     if (aiUnitKnown) {
       _dbg("AI_SUGGESTED", "no-ingredient + aiUnitKnown", null);
       return { ...baseCtx, mode: "AI_SUGGESTED", manual_reason: null };
     }
-    _dbg("MANUAL_REQUIRED", "no-ingredient + ai-unknown", `Bevestig 1× wat er in een ${verpakking_label} zit`);
+    _dbg("MANUAL_REQUIRED", "no-ingredient + ai-unknown", askFactor);
     return {
       ...baseCtx,
       mode: "MANUAL_REQUIRED",
-      manual_reason: `Bevestig 1× wat er in een ${verpakking_label} zit`,
+      manual_reason: askFactor,
     };
   }
 
@@ -227,14 +230,14 @@ function computeFactorContext(
   if (la && la_factor && la_eenheid) {
     if (!KNOWN_UNITS.has(la_eenheid.toLowerCase())) {
       mode = "MANUAL_REQUIRED";
-      manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
+      manual_reason = askFactor;
       branch = "la-unit-unknown";
     } else if (la_source === "unknown") {
       // Optie A: la-rij is niet-bevestigd (auto-created). Behandel als AI-pad,
       // maar check op conflict tussen la-waarde en ai-waarde.
       if (!aiUnitKnown) {
         mode = "MANUAL_REQUIRED";
-        manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
+        manual_reason = askFactor;
         branch = "la-unknown + ai-unknown";
       } else {
         const sameUnit =
@@ -247,7 +250,7 @@ function computeFactorContext(
           branch = "la-unknown-source-fallback-ai (match)";
         } else {
           mode = "MANUAL_REQUIRED";
-          manual_reason = `Verschil tussen opslag (${la_factor} ${la_eenheid}) en AI (${ai_factor} ${ai_eenheid}) — bevestig`;
+          manual_reason = `Jullie instelling: ${la_factor} ${la_eenheid} per ${verpakking_label}. De pakbon zegt ${ai_factor} ${ai_eenheid}. Welk klopt?`;
           branch = "la-unknown-source-conflict";
         }
       }
@@ -263,7 +266,7 @@ function computeFactorContext(
     branch = "no-la + aiUnitKnown";
   } else {
     mode = "MANUAL_REQUIRED";
-    manual_reason = `Bevestig 1× wat er in een ${verpakking_label} zit`;
+    manual_reason = askFactor;
     branch = "no-la + ai-unknown";
   }
 
