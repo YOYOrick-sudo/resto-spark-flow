@@ -56,6 +56,9 @@ export interface GoodsReceiptLineWithIngredient {
   is_nieuw_ingredient: boolean | null;
   match_confidence: number | null;
   match_status: string | null;
+  /** Twijfelzone-vangnet (Sprint Pakbon Kok-flow): wanneer match_status='needs_confirmation' */
+  suggested_ingredient_id: string | null;
+  suggested_ingredient?: { id: string; naam: string } | null;
   haccp_categorie: string | null;
   lotnummer: string | null;
   tht_datum: string | null;
@@ -299,7 +302,9 @@ export function useGoodsReceiptDetail(id: string | undefined) {
       const { data: lines, error: lErr } = await supabase
         .from("goods_receipt_lines")
         .select(
-          `*, ingredient:ingredienten(id, naam, eenheid, base_unit, haccp_categorie, haccp_strict_temp_max)`,
+          `*,
+           ingredient:ingredienten!goods_receipt_lines_ingredient_id_fkey(id, naam, eenheid, base_unit, haccp_categorie, haccp_strict_temp_max),
+           suggested_ingredient:ingredienten!goods_receipt_lines_suggested_ingredient_id_fkey(id, naam)`,
         )
         .eq("goods_receipt_id", id)
         .order("created_at", { ascending: true });

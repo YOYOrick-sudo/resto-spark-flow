@@ -925,7 +925,17 @@ serve(async (req) => {
     unmatchedFuzzyTargets.push({ idx: i, cleanNaam: clean });
   }
 
+  // Twijfelzone-vangnet (Sprint Pakbon Kok-flow, etappe 2):
+  //   sim >= 0.70                 → auto-link (huidig gedrag)
+  //   0.50 <= sim < 0.70          → bewaar suggestie, GEEN auto-link/auto-create
+  //                                  (kok bevestigt in UI → leerlogica via alias)
+  //   sim < 0.50 of geen kandidaat → auto-create (huidig gedrag)
+  const FUZZY_AUTO_LINK = 0.70;
+  const FUZZY_SUGGEST_MIN = 0.50;
+  const suggestionMap = new Map<number, { id: string; naam: string; similarity: number }>();
+
   let fuzzyHits = 0;
+  let fuzzySuggestions = 0;
   for (const tgt of unmatchedFuzzyTargets) {
     try {
       const { data: cands, error: fzErr } = await supabase.rpc("fuzzy_match_ingredient", {
@@ -937,7 +947,8 @@ serve(async (req) => {
         continue;
       }
       const top = (cands ?? [])[0] as { id: string; naam: string; similarity: number } | undefined;
-      if (top && top.similarity >= 0.7) {
+      if (!top) continue;
+      if (top.similarity >= FUZZY_AUTO_LINK) {
         matches[tgt.idx] = {
           ingredient_id: top.id,
           tier: 4,
@@ -946,6 +957,12 @@ serve(async (req) => {
         fuzzyHits++;
         console.log(
           `[parse-pakbon][fuzzy] "${tgt.cleanNaam}" → ${top.naam} (${top.similarity.toFixed(2)})`,
+        );
+      } else if (top.similarity >= FUZZY_SUGGEST_MIN) {
+        suggestionMap.set(tgt.idx, top);
+        fuzzySuggestions++;
+        console.log(
+          `[parse-pakbon][fuzzy-suggest] "${tgt.cleanNaam}" → ${top.naam} (${top.similarity.toFixed(2)}) — needs_confirmation`,
         );
       }
     } catch (e) {
@@ -958,6 +975,8 @@ serve(async (req) => {
   let autoCreated = 0;
   for (let i = 0; i < extractie.regels.length; i++) {
     if (matches[i]) continue;
+    // Twijfelzone-vangnet: regels met suggestion gaan NIET door auto-create.
+    if (suggestionMap.has(i)) continue;
     const r = extractie.regels[i];
     if (isEmballageLine(r.product_naam)) continue;
 
@@ -1048,17 +1067,21 @@ serve(async (req) => {
   }
 
   console.log(
-    `[parse-pakbon][loop4c-finish] receipt=${receipt.id} fuzzy_hits=${fuzzyHits} auto_created=${autoCreated}`,
+    `[parse-pakbon][loop4c-finish] receipt=${receipt.id} fuzzy_hits=${fuzzyHits} fuzzy_suggestions=${fuzzySuggestions} auto_created=${autoCreated}`,
   );
 
   const lineRows = extractie.regels.map((r, idx) => {
     const hit = matches[idx];
+    const suggestion = suggestionMap.get(idx) ?? null;
     const conf = r.confidence === "hoog" ? 0.95 : r.confidence === "medium" ? 0.7 : 0.4;
     // Resolve verpakking-label: AI > regex > null
     const aiLabel = (r.verpakking_woord ?? "").trim().toLowerCase() || null;
     const regexLabel = aiLabel ? null : detectPackagingLabel(r.product_naam);
     const aiPackageLabel = aiLabel ?? regexLabel;
     const isEmballage = isEmballageLine(r.product_naam);
+    // Twijfelzone-regels (0.50-0.70 fuzzy): suggested_ingredient_id gevuld,
+    // ingredient_id leeg, match_status='needs_confirmation'. Kok bevestigt in UI.
+    const isSuggestion = !hit && !!suggestion && !isEmballage;
     return {
       goods_receipt_id: receipt.id,
       product_naam_herkend: r.product_naam,
@@ -1068,9 +1091,10 @@ serve(async (req) => {
       hoeveelheid_verwacht: r.hoeveelheid_geleverd ?? null,
       eenheid_verwacht: r.verpakking_eenheid ?? null,
       ingredient_id: hit?.ingredient_id ?? null,
-      is_nieuw_ingredient: !hit && !isEmballage,
-      match_status: hit ? "matched" : "unmatched",
-      match_confidence: hit ? hit.confidence : null,
+      suggested_ingredient_id: isSuggestion ? suggestion!.id : null,
+      is_nieuw_ingredient: !hit && !isSuggestion && !isEmballage,
+      match_status: hit ? "matched" : isSuggestion ? "needs_confirmation" : "unmatched",
+      match_confidence: hit ? hit.confidence : isSuggestion ? suggestion!.similarity : null,
       haccp_categorie: r.haccp_categorie ?? null,
       lotnummer: r.lotnummer ?? null,
       tht_datum: r.tht_datum ?? null,

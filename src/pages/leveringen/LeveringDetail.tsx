@@ -41,6 +41,7 @@ import {
   LineFactorPanel,
   type LinePackagingState,
 } from "@/pages/leveringen/components/LineFactorPanel";
+import { LineMatchPanel } from "@/pages/leveringen/components/LineMatchPanel";
 import { LeveringConfirmCard } from "@/pages/leveringen/components/LeveringConfirmCard";
 import { nestoToast } from "@/lib/nestoToast";
 
@@ -88,6 +89,9 @@ function LineRow({
   onMarkAfwijking,
   onResetAkkoord,
   onEditAfwijking,
+  receiptId,
+  leverancierId,
+  locationId,
 }: {
   id?: string;
   line: GoodsReceiptLineWithIngredient;
@@ -97,6 +101,9 @@ function LineRow({
   onMarkAfwijking: () => void;
   onResetAkkoord: () => void;
   onEditAfwijking: () => void;
+  receiptId: string;
+  leverancierId: string | null;
+  locationId: string;
 }) {
   const cat = line.ingredient?.haccp_categorie ?? line.haccp_categorie;
   const isRisk =
@@ -271,6 +278,14 @@ function LineRow({
             </button>
           </div>
         )}
+
+        {/* Sprint Pakbon Kok-flow: match-correctie + suggestie-bevestiging */}
+        <LineMatchPanel
+          line={line}
+          receiptId={receiptId}
+          leverancierId={leverancierId}
+          locationId={locationId}
+        />
 
         {/* Loop 4: inline factor-panel — alleen relevant bij stock-mutatie */}
         <LineFactorPanel
@@ -731,6 +746,9 @@ export default function LeveringDetail() {
                   onMarkAfwijking={() => handleMarkAfwijking(line.id)}
                   onResetAkkoord={() => handleResetAkkoord(line.id)}
                   onEditAfwijking={() => handleMarkAfwijking(line.id)}
+                  receiptId={data.id}
+                  leverancierId={data.leverancier_id}
+                  locationId={data.location_id}
                 />
               );
             })}
