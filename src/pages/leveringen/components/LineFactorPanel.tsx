@@ -177,7 +177,7 @@ export function LineFactorPanel({
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <ManualForm
-        title={ctx.manual_reason ?? `Bevestig 1× wat er in een ${verpakkingLabel} zit`}
+        title={ctx.manual_reason ?? `Hoeveel zitten er in 1 ${verpakkingLabel}? Dit onthoud ik voortaan.`}
         verpakkingLabel={verpakkingLabel}
         draftAmount={draftAmount}
         setDraftAmount={setDraftAmount}
