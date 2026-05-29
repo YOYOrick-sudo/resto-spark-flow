@@ -60,13 +60,55 @@ const PACKAGING_SUFFIX_PATTERNS: RegExp[] = [
   /\s+(?:ds|doos|kist|pak|zak|colli|bak)$/i,
 ];
 
+// ---------------------------------------------------------------------------
+// Sprint Pakbon Etappe 3 — Herkomst- en kwaliteit-tokens strippen.
+//
+// Varianten als "Aubergine Holland klasse 1" of "Paprika rood Spanje" moeten
+// matchen met de basis-ingrediënt ("Aubergine", "Paprika rood"). Herkomst
+// (land) en kwaliteitsklasse veranderen het product zelf niet.
+//
+// KRITIEK — kleur NIET in deze whitelist: "Paprika rood" ≠ "Paprika groen",
+// "Ui geel" ≠ "Ui rood". Strippen van kleur zou valse cross-matches geven.
+//
+// Tokens worden overal in de naam verwijderd (niet alleen suffix), met
+// strikte word-boundaries om sub-string-hits te voorkomen.
+// ---------------------------------------------------------------------------
+const ORIGIN_QUALITY_PATTERNS: RegExp[] = [
+  // Kwaliteit-frases (multi-token): "klasse 1", "klasse II", "klasse AA",
+  // "kl 1", "kl. II".
+  /\bklasse\s+(?:i{1,2}|1|2|a{1,2})\b/gi,
+  /\bkl\.?\s*(?:1|2|i{1,2})\b/gi,
+
+  // Herkomst — landen + bijvoeglijke vormen.
+  /\b(?:holland|hollands|hollandse|nederland|nederlandse)\b/gi,
+  /\b(?:spanje|spaans|spaanse)\b/gi,
+  /\b(?:itali[eë]|italiaans|italiaanse)\b/gi,
+  /\b(?:frankrijk|frans|franse)\b/gi,
+  /\b(?:belgi[eë]|belgisch|belgische)\b/gi,
+  /\b(?:duitsland|duits|duitse)\b/gi,
+  /\b(?:marokko|marokkaans|marokkaanse)\b/gi,
+  /\b(?:turkije|turks|turkse)\b/gi,
+  /\b(?:isra[eë]l|isra[eë]lisch|isra[eë]lische)\b/gi,
+  /\b(?:portugal|portugees|portugese)\b/gi,
+  /\b(?:griekenland|grieks|griekse)\b/gi,
+
+  // Kwaliteit — losse tokens (bio/biologisch/eko + AA-grade).
+  /\b(?:bio|biologisch|biologische|eko|ekologisch)\b/gi,
+  /\b(?:aa|extra)\b/gi,
+];
 
 export function stripPackagingSuffix(name: string | null | undefined): string {
   if (!name) return "";
   let s = name.trim();
-  // Pas één keer per pattern toe in volgorde; stop zodra eentje matcht
-  // (anders kan een tweede pattern de al-gestripte vorm verder afknabbelen
-  // en valse hits geven).
+
+  // STAP 1 — herkomst/kwaliteit tokens verwijderen (overal in de naam).
+  // Doen vóór de suffix-pass: "Aubergine Holland klasse 1" → "Aubergine".
+  for (const re of ORIGIN_QUALITY_PATTERNS) {
+    s = s.replace(re, " ");
+  }
+  s = s.replace(/\s+/g, " ").trim();
+
+  // STAP 2 — verpakkings-suffix (zoals voorheen).
   for (const re of PACKAGING_SUFFIX_PATTERNS) {
     const next = s.replace(re, "");
     if (next !== s) {
