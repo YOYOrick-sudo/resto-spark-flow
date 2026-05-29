@@ -208,17 +208,22 @@ function LineRow({
           const isPerStuk =
             baseUnit === "st" && (factor === 1 || factor == null);
 
-          // Sprint Pakbon Etappe 4 — Pakbon-eenheid leidend.
-          // Toon "5,06 kg" zoals op de papieren pakbon i.p.v. "5,06 stuks".
-          // Alleen overslaan bij per-stuk (daar IS stuks de pakbon-eenheid)
-          // en bij SKIP (geen factor-flow).
+          // Sprint Pakbon Etappe 4 — Pakbon-eenheid leidend bij weighted/loose.
+          // Toon "5,06 kg" zoals op papier i.p.v. "5,06 stuks" (Peer conference).
+          // Houd "1 kist × 30 stuks" intact wanneer de verpakkings-eenheid al
+          // overeenkomt met de pakbon-eenheid (Komkommer kist 30 stuks).
           const pakbonQty = line.ai_total_received_quantity;
           const pakbonUnit = line.ai_total_received_unit;
+          const factorEenheidMatchesPakbon =
+            !!factorEenheid &&
+            !!pakbonUnit &&
+            factorEenheid.toLowerCase() === pakbonUnit.toLowerCase();
           const usePakbonUnit =
             pakbonQty != null &&
-            pakbonUnit &&
+            !!pakbonUnit &&
             !isPerStuk &&
-            ctx.mode !== "SKIP";
+            ctx.mode !== "SKIP" &&
+            (!verpakkingLabel || !factorEenheidMatchesPakbon);
 
           let label: string | null = null;
           if (usePakbonUnit) {
