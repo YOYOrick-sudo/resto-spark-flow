@@ -76,6 +76,9 @@ export interface GoodsReceiptLineWithIngredient {
     naam: string;
     eenheid: string | null;
     base_unit: string | null;
+    weight_per_piece_g: number | null;
+    density_g_per_ml: number | null;
+    prefer_piece_display: boolean | null;
     haccp_categorie: string | null;
     haccp_strict_temp_max: number | null;
   } | null;
