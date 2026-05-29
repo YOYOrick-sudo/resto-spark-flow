@@ -41,6 +41,7 @@ import {
   LineFactorPanel,
   type LinePackagingState,
 } from "@/pages/leveringen/components/LineFactorPanel";
+import { LineMatchPanel } from "@/pages/leveringen/components/LineMatchPanel";
 import { LeveringConfirmCard } from "@/pages/leveringen/components/LeveringConfirmCard";
 import { nestoToast } from "@/lib/nestoToast";
 
