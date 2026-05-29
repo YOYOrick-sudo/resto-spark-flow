@@ -738,7 +738,7 @@ export default function LeveringDetail() {
             </div>
             {data.ai_parse_confidence !== null && (
               <div>
-                <span className="text-muted-foreground">AI-zekerheid</span>{" "}
+                <span className="text-muted-foreground">Herkenning</span>{" "}
                 <span className="text-foreground font-medium">
                   {Math.round((data.ai_parse_confidence ?? 0) * 100)}%
                 </span>
