@@ -255,7 +255,7 @@ function LineRow({
               )}
             >
               {label}
-              {isUnconfirmed && " · factor nog te bevestigen"}
+              {isUnconfirmed && " · moet je nog bevestigen"}
             </p>
           );
         })()}
@@ -557,7 +557,7 @@ export default function LeveringDetail() {
   const helperText: string | null = (() => {
     if (confirmMutation.isPending) return null;
     if (needsConfirmationBlocking)
-      return `${pendingConfirmation.length} regel(s) wachten op jouw bevestiging van de AI-suggestie`;
+      return `${pendingConfirmation.length} regel(s) wachten op jouw bevestiging van de pakbon-suggestie`;
     if (factorBlocking)
       return `${factorBuckets.manualRequired} regel(s) vragen om jouw input vóór bevestigen`;
     if (!risicogroepOK) return "Temperatuur verplicht voor risicogroep-producten — overslaan kan niet";
@@ -738,7 +738,7 @@ export default function LeveringDetail() {
             </div>
             {data.ai_parse_confidence !== null && (
               <div>
-                <span className="text-muted-foreground">AI-zekerheid</span>{" "}
+                <span className="text-muted-foreground">Herkenning</span>{" "}
                 <span className="text-foreground font-medium">
                   {Math.round((data.ai_parse_confidence ?? 0) * 100)}%
                 </span>
@@ -914,7 +914,7 @@ export default function LeveringDetail() {
                 {pendingConfirmation.length} van {totalLines} regel(s) nog te beantwoorden
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Bevestig of wijs de AI-suggestie af. Tik om naar de eerste regel te springen.
+                Bevestig of wijs de pakbon-suggestie af. Tik om naar de eerste regel te springen.
               </p>
             </div>
           </button>
