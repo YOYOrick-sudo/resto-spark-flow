@@ -513,12 +513,20 @@ export default function LeveringDetail() {
 
   const factorBlocking = factorBuckets.manualRequired > 0;
 
+  // Twijfelzone-vangnet (etappe 1+2): regels met match_status='needs_confirmation'
+  // blokkeren confirm. Kok beantwoordt per regel in LineMatchPanel.
+  const pendingConfirmation = stockLines.filter(
+    (l) => l.match_status === "needs_confirmation",
+  );
+  const needsConfirmationBlocking = pendingConfirmation.length > 0;
+
   const canConfirm =
     totalLines > 0 &&
     gekoeldHandled &&
     vriesHandled &&
     risicogroepOK &&
     !factorBlocking &&
+    !needsConfirmationBlocking &&
     !confirmMutation.isPending;
 
   const helperText: string | null = (() => {
