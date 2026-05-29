@@ -1,0 +1,1 @@
+UPDATE locations SET pakbon_slug = 'proeverij' WHERE name = 'Restaurant De Proeverij';
