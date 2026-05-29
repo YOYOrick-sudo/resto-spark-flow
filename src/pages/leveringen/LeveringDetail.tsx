@@ -531,6 +531,8 @@ export default function LeveringDetail() {
 
   const helperText: string | null = (() => {
     if (confirmMutation.isPending) return null;
+    if (needsConfirmationBlocking)
+      return `${pendingConfirmation.length} regel(s) wachten op jouw bevestiging van de AI-suggestie`;
     if (factorBlocking)
       return `${factorBuckets.manualRequired} regel(s) vragen om jouw input vóór bevestigen`;
     if (!risicogroepOK) return "Temperatuur verplicht voor risicogroep-producten — overslaan kan niet";
