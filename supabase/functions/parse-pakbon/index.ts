@@ -975,6 +975,8 @@ serve(async (req) => {
   let autoCreated = 0;
   for (let i = 0; i < extractie.regels.length; i++) {
     if (matches[i]) continue;
+    // Twijfelzone-vangnet: regels met suggestion gaan NIET door auto-create.
+    if (suggestionMap.has(i)) continue;
     const r = extractie.regels[i];
     if (isEmballageLine(r.product_naam)) continue;
 
