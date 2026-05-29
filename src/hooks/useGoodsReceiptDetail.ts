@@ -176,12 +176,17 @@ function computeFactorContext(
     ingredient?.base_unit ?? null,
   );
 
+  const weight_per_piece_g = ingredient?.weight_per_piece_g != null ? Number(ingredient.weight_per_piece_g) : null;
+  const density_g_per_ml = ingredient?.density_g_per_ml != null ? Number(ingredient.density_g_per_ml) : null;
+  const prefer_piece_display = !!ingredient?.prefer_piece_display;
+
   const baseCtx = {
     la_id: la?.id ?? null,
     la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
     ai_factor, ai_eenheid, is_weighted,
     ingredient_base_unit: ingredient?.base_unit ?? null,
     ingredient_eenheid: ingredient?.eenheid ?? null,
+    weight_per_piece_g, density_g_per_ml, prefer_piece_display,
     display_factor, display_eenheid, verpakking_label,
   };
 
