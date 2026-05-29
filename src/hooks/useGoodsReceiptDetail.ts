@@ -56,6 +56,9 @@ export interface GoodsReceiptLineWithIngredient {
   is_nieuw_ingredient: boolean | null;
   match_confidence: number | null;
   match_status: string | null;
+  /** Twijfelzone-vangnet (Sprint Pakbon Kok-flow): wanneer match_status='needs_confirmation' */
+  suggested_ingredient_id: string | null;
+  suggested_ingredient?: { id: string; naam: string } | null;
   haccp_categorie: string | null;
   lotnummer: string | null;
   tht_datum: string | null;
