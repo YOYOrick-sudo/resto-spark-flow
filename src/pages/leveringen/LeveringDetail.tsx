@@ -231,7 +231,7 @@ function LineRow({
 
           let label: string | null = null;
           if (usePakbonUnit) {
-            const qtyStr = pakbonQty!.toLocaleString("nl-NL", {
+            const qtyStr = aantal.toLocaleString("nl-NL", {
               maximumFractionDigits: 3,
             });
             label = `${qtyStr} ${pakbonUnit}`;
