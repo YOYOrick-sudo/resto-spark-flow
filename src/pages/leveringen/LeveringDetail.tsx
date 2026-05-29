@@ -88,6 +88,9 @@ function LineRow({
   onMarkAfwijking,
   onResetAkkoord,
   onEditAfwijking,
+  receiptId,
+  leverancierId,
+  locationId,
 }: {
   id?: string;
   line: GoodsReceiptLineWithIngredient;
@@ -97,6 +100,9 @@ function LineRow({
   onMarkAfwijking: () => void;
   onResetAkkoord: () => void;
   onEditAfwijking: () => void;
+  receiptId: string;
+  leverancierId: string | null;
+  locationId: string;
 }) {
   const cat = line.ingredient?.haccp_categorie ?? line.haccp_categorie;
   const isRisk =
