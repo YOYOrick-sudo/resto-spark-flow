@@ -240,31 +240,60 @@ function computeFactorContext(
   }
 
   let branch = "";
-  if (la && la_factor && la_eenheid) {
-    if (!KNOWN_UNITS.has(la_eenheid.toLowerCase())) {
+
+  // Identity auto-LA filter: een unknown-source LA met factor=1 + eenheid='stuks'
+  // is de placeholder-default uit de pakbon-ingest. Die voegt geen info toe en
+  // zorgt voor valse "1 stuks vs 0.25 kg" conflicten. Negeren → AI-only pad.
+  const isIdentityAutoLa =
+    la &&
+    la_source === "unknown" &&
+    la_factor != null && Math.abs(Number(la_factor) - 1) < 0.001 &&
+    ["stuk", "stuks", "st"].includes(normalizeUnit(la_eenheid));
+  const effectiveLa = isIdentityAutoLa ? null : la;
+  const effectiveLaFactor = isIdentityAutoLa ? null : la_factor;
+  const effectiveLaEenheid = isIdentityAutoLa ? null : la_eenheid;
+
+  if (effectiveLa && effectiveLaFactor && effectiveLaEenheid) {
+    if (!KNOWN_UNITS.has(effectiveLaEenheid.toLowerCase())) {
       mode = "MANUAL_REQUIRED";
       manual_reason = askFactor;
       branch = "la-unit-unknown";
     } else if (la_source === "unknown") {
-      // Optie A: la-rij is niet-bevestigd (auto-created). Behandel als AI-pad,
-      // maar check op conflict tussen la-waarde en ai-waarde.
+      // la-rij is niet-bevestigd (auto-created met echte data).
+      // Conflict-check via stuksgewicht/dichtheid-brug — NULL-veilig.
       if (!aiUnitKnown) {
         mode = "MANUAL_REQUIRED";
         manual_reason = askFactor;
         branch = "la-unknown + ai-unknown";
       } else {
-        const sameUnit =
-          (la_eenheid ?? "").toLowerCase() === (ai_eenheid ?? "").toLowerCase();
-        const sameFactor =
-          la_factor != null && ai_factor != null &&
-          Math.abs(Number(la_factor) - Number(ai_factor)) <= 0.001;
-        if (sameUnit && sameFactor) {
+        const meta = { weight_per_piece_g, density_g_per_ml };
+        const equivalent = factorsEquivalent(
+          Number(effectiveLaFactor),
+          effectiveLaEenheid,
+          Number(ai_factor),
+          ai_eenheid!,
+          meta,
+        );
+        if (equivalent) {
           mode = "AI_SUGGESTED";
-          branch = "la-unknown-source-fallback-ai (match)";
+          branch = "la-unknown-source bridged-match";
         } else {
-          mode = "MANUAL_REQUIRED";
-          manual_reason = `Jullie instelling: ${la_factor} ${la_eenheid} per ${verpakking_label}. De pakbon zegt ${ai_factor} ${ai_eenheid}. Welk klopt?`;
-          branch = "la-unknown-source-conflict";
+          // Échte mismatch — alleen tonen als bridging WERKTE; anders fallback
+          // op AI-pad zonder valse conflict-tekst (NULL-veilig).
+          const bridged = bridgeUnit(
+            Number(effectiveLaFactor),
+            effectiveLaEenheid,
+            ai_eenheid!,
+            meta,
+          );
+          if (bridged.bridged) {
+            mode = "MANUAL_REQUIRED";
+            manual_reason = `Jullie instelling komt neer op ${bridged.value} ${bridged.unit} per ${verpakking_label}. De pakbon zegt ${ai_factor} ${ai_eenheid}. Welk klopt?`;
+            branch = "la-unknown-source bridged-conflict";
+          } else {
+            mode = "AI_SUGGESTED";
+            branch = "la-unknown-source no-bridge-fallback-ai";
+          }
         }
       }
     } else if (la_count >= 3 && (la_source === "user" || la_source === "ai_confirmed")) {
@@ -276,12 +305,13 @@ function computeFactorContext(
     }
   } else if (aiUnitKnown) {
     mode = "AI_SUGGESTED";
-    branch = "no-la + aiUnitKnown";
+    branch = isIdentityAutoLa ? "identity-la-ignored + aiUnitKnown" : "no-la + aiUnitKnown";
   } else {
     mode = "MANUAL_REQUIRED";
     manual_reason = askFactor;
     branch = "no-la + ai-unknown";
   }
+
 
   _dbg(mode, branch, manual_reason);
   return { ...baseCtx, mode, manual_reason };
