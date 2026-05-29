@@ -637,6 +637,17 @@ export default function LeveringDetail() {
           navigate("/leveringen");
         },
         onError: (err: ConfirmError) => {
+          if (err.code === "needs_confirmation_required" && err.details?.lines?.length) {
+            const items = err.details.lines;
+            const first = items[0];
+            const el = document.getElementById(`line-${first.line_id}`);
+            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            nestoToast.warning(
+              `${items.length} regel(s) nog te beantwoorden`,
+              "Bevestig of wijs de suggestie af om de pakbon af te ronden.",
+            );
+            return;
+          }
           if (err.code === "factor_required" && err.details?.lines?.length) {
             const items = err.details.lines;
             const first = items[0];
