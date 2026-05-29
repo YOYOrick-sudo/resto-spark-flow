@@ -28,6 +28,10 @@ export interface LineFactorContext {
   /** Best-effort base unit van ingredient — voor delta-preview */
   ingredient_base_unit: string | null;
   ingredient_eenheid: string | null;
+  /** Conversie-meta voor stuksgewicht/dichtheid-brug (NULL-veilig in UI) */
+  weight_per_piece_g: number | null;
+  density_g_per_ml: number | null;
+  prefer_piece_display: boolean;
   /** Vertoningsfactor + eenheid (eerste niet-null in volgorde la → ai) */
   display_factor: number | null;
   display_eenheid: string | null;
