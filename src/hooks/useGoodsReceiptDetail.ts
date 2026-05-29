@@ -354,7 +354,7 @@ export function useGoodsReceiptDetail(id: string | undefined) {
         .from("goods_receipt_lines")
         .select(
           `*,
-           ingredient:ingredienten!goods_receipt_lines_ingredient_id_fkey(id, naam, eenheid, base_unit, haccp_categorie, haccp_strict_temp_max),
+           ingredient:ingredienten!goods_receipt_lines_ingredient_id_fkey(id, naam, eenheid, base_unit, weight_per_piece_g, density_g_per_ml, prefer_piece_display, haccp_categorie, haccp_strict_temp_max),
            suggested_ingredient:ingredienten!goods_receipt_lines_suggested_ingredient_id_fkey(id, naam)`,
         )
         .eq("goods_receipt_id", id)
