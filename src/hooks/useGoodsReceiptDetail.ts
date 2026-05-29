@@ -52,6 +52,11 @@ export interface GoodsReceiptLineWithIngredient {
   hoeveelheid_verwacht: number | null;
   eenheid_verwacht: string | null;
   hoeveelheid_ontvangen: number | null;
+  /** Sprint Pakbon Etappe 4: totaal ontvangen + eenheid zoals op de papieren pakbon
+      (bv. "5,06 kg" voor weighted dozen). Wordt door parse-pakbon gevuld uit
+      AI-extractie. Voor de kok-weergave: prefereer dit boven de base_unit-conversie. */
+  ai_total_received_quantity: number | null;
+  ai_total_received_unit: string | null;
   ingredient_id: string | null;
   is_nieuw_ingredient: boolean | null;
   match_confidence: number | null;
