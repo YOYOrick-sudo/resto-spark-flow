@@ -869,6 +869,30 @@ export default function LeveringDetail() {
           </section>
         )}
 
+        {/* Twijfelzone-banner (etappe 1+2): gericht aanwijzen welke regels
+            nog beantwoord moeten worden voordat de pakbon afgesloten kan. */}
+        {needsConfirmationBlocking && (
+          <button
+            type="button"
+            onClick={() => {
+              const first = pendingConfirmation[0];
+              const el = document.getElementById(`line-${first.id}`);
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            className="w-full mb-4 flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning/10 px-5 py-4 text-left transition-colors hover:bg-warning/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-small font-medium text-foreground">
+                {pendingConfirmation.length} van {totalLines} regel(s) nog te beantwoorden
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Bevestig of wijs de AI-suggestie af. Tik om naar de eerste regel te springen.
+              </p>
+            </div>
+          </button>
+        )}
+
         {/* Loop 4c-finalize: inline confirm-card als laatste sectie */}
         <LeveringConfirmCard
           state={
