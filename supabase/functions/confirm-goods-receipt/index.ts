@@ -180,6 +180,34 @@ Deno.serve(async (req) => {
     return errorResponse("receipt_not_found", "Pakbon bestaat niet", 404);
   }
 
+  // Twijfelzone-guard (Sprint Pakbon Kok-flow, etappe 2): pakbon kan niet
+  // bevestigd worden zolang er regels met match_status='needs_confirmation'
+  // open staan. De kok moet eerst per open regel "Ja, koppel" / "Andere kiezen"
+  // / "Nieuw aanmaken" beantwoorden in LeveringDetail.
+  const { data: openSuggestions, error: nsErr } = await supabaseAdmin
+    .from("goods_receipt_lines")
+    .select("id, product_naam_herkend")
+    .eq("goods_receipt_id", body.receipt_id)
+    .eq("match_status", "needs_confirmation");
+
+  if (nsErr) {
+    console.error("needs_confirmation lookup failed", nsErr);
+    return errorResponse("internal_error", "Lines pre-check failed", 500);
+  }
+  if (openSuggestions && openSuggestions.length > 0) {
+    return errorResponse(
+      "needs_confirmation_required",
+      `Bevestig of wijs ${openSuggestions.length} suggestie(s) af voordat je de pakbon afsluit.`,
+      422,
+      {
+        lines: openSuggestions.map((l) => ({
+          line_id: l.id,
+          product: l.product_naam_herkend,
+        })),
+      },
+    );
+  }
+
   // Haal alle relevante lines op (met ingredient + bestaande la_id)
   const lineIds = body.lines.map((l) => l.line_id);
   const { data: dbLines, error: lnErr } = await supabaseAdmin
