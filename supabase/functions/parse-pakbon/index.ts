@@ -925,7 +925,17 @@ serve(async (req) => {
     unmatchedFuzzyTargets.push({ idx: i, cleanNaam: clean });
   }
 
+  // Twijfelzone-vangnet (Sprint Pakbon Kok-flow, etappe 2):
+  //   sim >= 0.70                 → auto-link (huidig gedrag)
+  //   0.50 <= sim < 0.70          → bewaar suggestie, GEEN auto-link/auto-create
+  //                                  (kok bevestigt in UI → leerlogica via alias)
+  //   sim < 0.50 of geen kandidaat → auto-create (huidig gedrag)
+  const FUZZY_AUTO_LINK = 0.70;
+  const FUZZY_SUGGEST_MIN = 0.50;
+  const suggestionMap = new Map<number, { id: string; naam: string; similarity: number }>();
+
   let fuzzyHits = 0;
+  let fuzzySuggestions = 0;
   for (const tgt of unmatchedFuzzyTargets) {
     try {
       const { data: cands, error: fzErr } = await supabase.rpc("fuzzy_match_ingredient", {
@@ -937,7 +947,8 @@ serve(async (req) => {
         continue;
       }
       const top = (cands ?? [])[0] as { id: string; naam: string; similarity: number } | undefined;
-      if (top && top.similarity >= 0.7) {
+      if (!top) continue;
+      if (top.similarity >= FUZZY_AUTO_LINK) {
         matches[tgt.idx] = {
           ingredient_id: top.id,
           tier: 4,
@@ -946,6 +957,12 @@ serve(async (req) => {
         fuzzyHits++;
         console.log(
           `[parse-pakbon][fuzzy] "${tgt.cleanNaam}" → ${top.naam} (${top.similarity.toFixed(2)})`,
+        );
+      } else if (top.similarity >= FUZZY_SUGGEST_MIN) {
+        suggestionMap.set(tgt.idx, top);
+        fuzzySuggestions++;
+        console.log(
+          `[parse-pakbon][fuzzy-suggest] "${tgt.cleanNaam}" → ${top.naam} (${top.similarity.toFixed(2)}) — needs_confirmation`,
         );
       }
     } catch (e) {
