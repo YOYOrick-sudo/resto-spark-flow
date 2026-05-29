@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserContext } from "@/contexts/UserContext";
+import { bridgeUnit, factorsEquivalent, normalizeUnit } from "@/lib/unitBridge";
 
 /**
  * Loop 4: per-line factor-resolutie (CONFIRMED / AI_SUGGESTED / MANUAL_REQUIRED)
@@ -27,6 +28,10 @@ export interface LineFactorContext {
   /** Best-effort base unit van ingredient — voor delta-preview */
   ingredient_base_unit: string | null;
   ingredient_eenheid: string | null;
+  /** Conversie-meta voor stuksgewicht/dichtheid-brug (NULL-veilig in UI) */
+  weight_per_piece_g: number | null;
+  density_g_per_ml: number | null;
+  prefer_piece_display: boolean;
   /** Vertoningsfactor + eenheid (eerste niet-null in volgorde la → ai) */
   display_factor: number | null;
   display_eenheid: string | null;
@@ -75,6 +80,9 @@ export interface GoodsReceiptLineWithIngredient {
     naam: string;
     eenheid: string | null;
     base_unit: string | null;
+    weight_per_piece_g: number | null;
+    density_g_per_ml: number | null;
+    prefer_piece_display: boolean | null;
     haccp_categorie: string | null;
     haccp_strict_temp_max: number | null;
   } | null;
@@ -159,8 +167,21 @@ function computeFactorContext(
   const la_count = la?.confirmation_count ?? 0;
   const is_weighted = !!(la?.is_weighted || line.ai_is_weighted);
 
-  const display_factor = la_factor ?? ai_factor;
-  const display_eenheid = la_eenheid ?? ai_eenheid;
+  // Identity auto-LA detectie (placeholder: factor=1 + eenheid=stuks, unknown source).
+  // Die LA voegt geen info toe — display moet de AI-eenheid kiezen, niet "1 stuks".
+  const _laUnitN = normalizeUnit(la_eenheid);
+  const isIdentityAutoLaForDisplay =
+    la &&
+    la_source === "unknown" &&
+    la_factor != null && Math.abs(Number(la_factor) - 1) < 0.001 &&
+    (_laUnitN === "stuk" || _laUnitN === "stuks" || _laUnitN === "st");
+
+  const display_factor = isIdentityAutoLaForDisplay
+    ? ai_factor
+    : (la_factor ?? ai_factor);
+  const display_eenheid = isIdentityAutoLaForDisplay
+    ? ai_eenheid
+    : (la_eenheid ?? ai_eenheid);
 
   const verpakking_label = resolveVerpakkingLabel(
     la?.verpakking_label ?? null,
@@ -168,12 +189,17 @@ function computeFactorContext(
     ingredient?.base_unit ?? null,
   );
 
+  const weight_per_piece_g = ingredient?.weight_per_piece_g != null ? Number(ingredient.weight_per_piece_g) : null;
+  const density_g_per_ml = ingredient?.density_g_per_ml != null ? Number(ingredient.density_g_per_ml) : null;
+  const prefer_piece_display = !!ingredient?.prefer_piece_display;
+
   const baseCtx = {
     la_id: la?.id ?? null,
     la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
     ai_factor, ai_eenheid, is_weighted,
     ingredient_base_unit: ingredient?.base_unit ?? null,
     ingredient_eenheid: ingredient?.eenheid ?? null,
+    weight_per_piece_g, density_g_per_ml, prefer_piece_display,
     display_factor, display_eenheid, verpakking_label,
   };
 
@@ -227,31 +253,60 @@ function computeFactorContext(
   }
 
   let branch = "";
-  if (la && la_factor && la_eenheid) {
-    if (!KNOWN_UNITS.has(la_eenheid.toLowerCase())) {
+
+  // Identity auto-LA filter: een unknown-source LA met factor=1 + eenheid='stuks'
+  // is de placeholder-default uit de pakbon-ingest. Die voegt geen info toe en
+  // zorgt voor valse "1 stuks vs 0.25 kg" conflicten. Negeren → AI-only pad.
+  const isIdentityAutoLa =
+    la &&
+    la_source === "unknown" &&
+    la_factor != null && Math.abs(Number(la_factor) - 1) < 0.001 &&
+    ["stuk", "stuks", "st"].includes(normalizeUnit(la_eenheid));
+  const effectiveLa = isIdentityAutoLa ? null : la;
+  const effectiveLaFactor = isIdentityAutoLa ? null : la_factor;
+  const effectiveLaEenheid = isIdentityAutoLa ? null : la_eenheid;
+
+  if (effectiveLa && effectiveLaFactor && effectiveLaEenheid) {
+    if (!KNOWN_UNITS.has(effectiveLaEenheid.toLowerCase())) {
       mode = "MANUAL_REQUIRED";
       manual_reason = askFactor;
       branch = "la-unit-unknown";
     } else if (la_source === "unknown") {
-      // Optie A: la-rij is niet-bevestigd (auto-created). Behandel als AI-pad,
-      // maar check op conflict tussen la-waarde en ai-waarde.
+      // la-rij is niet-bevestigd (auto-created met echte data).
+      // Conflict-check via stuksgewicht/dichtheid-brug — NULL-veilig.
       if (!aiUnitKnown) {
         mode = "MANUAL_REQUIRED";
         manual_reason = askFactor;
         branch = "la-unknown + ai-unknown";
       } else {
-        const sameUnit =
-          (la_eenheid ?? "").toLowerCase() === (ai_eenheid ?? "").toLowerCase();
-        const sameFactor =
-          la_factor != null && ai_factor != null &&
-          Math.abs(Number(la_factor) - Number(ai_factor)) <= 0.001;
-        if (sameUnit && sameFactor) {
+        const meta = { weight_per_piece_g, density_g_per_ml };
+        const equivalent = factorsEquivalent(
+          Number(effectiveLaFactor),
+          effectiveLaEenheid,
+          Number(ai_factor),
+          ai_eenheid!,
+          meta,
+        );
+        if (equivalent) {
           mode = "AI_SUGGESTED";
-          branch = "la-unknown-source-fallback-ai (match)";
+          branch = "la-unknown-source bridged-match";
         } else {
-          mode = "MANUAL_REQUIRED";
-          manual_reason = `Jullie instelling: ${la_factor} ${la_eenheid} per ${verpakking_label}. De pakbon zegt ${ai_factor} ${ai_eenheid}. Welk klopt?`;
-          branch = "la-unknown-source-conflict";
+          // Échte mismatch — alleen tonen als bridging WERKTE; anders fallback
+          // op AI-pad zonder valse conflict-tekst (NULL-veilig).
+          const bridged = bridgeUnit(
+            Number(effectiveLaFactor),
+            effectiveLaEenheid,
+            ai_eenheid!,
+            meta,
+          );
+          if (bridged.bridged) {
+            mode = "MANUAL_REQUIRED";
+            manual_reason = `Jullie instelling komt neer op ${bridged.value} ${bridged.unit} per ${verpakking_label}. De pakbon zegt ${ai_factor} ${ai_eenheid}. Welk klopt?`;
+            branch = "la-unknown-source bridged-conflict";
+          } else {
+            mode = "AI_SUGGESTED";
+            branch = "la-unknown-source no-bridge-fallback-ai";
+          }
         }
       }
     } else if (la_count >= 3 && (la_source === "user" || la_source === "ai_confirmed")) {
@@ -263,12 +318,13 @@ function computeFactorContext(
     }
   } else if (aiUnitKnown) {
     mode = "AI_SUGGESTED";
-    branch = "no-la + aiUnitKnown";
+    branch = isIdentityAutoLa ? "identity-la-ignored + aiUnitKnown" : "no-la + aiUnitKnown";
   } else {
     mode = "MANUAL_REQUIRED";
     manual_reason = askFactor;
     branch = "no-la + ai-unknown";
   }
+
 
   _dbg(mode, branch, manual_reason);
   return { ...baseCtx, mode, manual_reason };
@@ -311,7 +367,7 @@ export function useGoodsReceiptDetail(id: string | undefined) {
         .from("goods_receipt_lines")
         .select(
           `*,
-           ingredient:ingredienten!goods_receipt_lines_ingredient_id_fkey(id, naam, eenheid, base_unit, haccp_categorie, haccp_strict_temp_max),
+           ingredient:ingredienten!goods_receipt_lines_ingredient_id_fkey(id, naam, eenheid, base_unit, weight_per_piece_g, density_g_per_ml, prefer_piece_display, haccp_categorie, haccp_strict_temp_max),
            suggested_ingredient:ingredienten!goods_receipt_lines_suggested_ingredient_id_fkey(id, naam)`,
         )
         .eq("goods_receipt_id", id)
