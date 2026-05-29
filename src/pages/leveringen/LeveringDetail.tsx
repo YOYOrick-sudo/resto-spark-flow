@@ -513,16 +513,26 @@ export default function LeveringDetail() {
 
   const factorBlocking = factorBuckets.manualRequired > 0;
 
+  // Twijfelzone-vangnet (etappe 1+2): regels met match_status='needs_confirmation'
+  // blokkeren confirm. Kok beantwoordt per regel in LineMatchPanel.
+  const pendingConfirmation = stockLines.filter(
+    (l) => l.match_status === "needs_confirmation",
+  );
+  const needsConfirmationBlocking = pendingConfirmation.length > 0;
+
   const canConfirm =
     totalLines > 0 &&
     gekoeldHandled &&
     vriesHandled &&
     risicogroepOK &&
     !factorBlocking &&
+    !needsConfirmationBlocking &&
     !confirmMutation.isPending;
 
   const helperText: string | null = (() => {
     if (confirmMutation.isPending) return null;
+    if (needsConfirmationBlocking)
+      return `${pendingConfirmation.length} regel(s) wachten op jouw bevestiging van de AI-suggestie`;
     if (factorBlocking)
       return `${factorBuckets.manualRequired} regel(s) vragen om jouw input vóór bevestigen`;
     if (!risicogroepOK) return "Temperatuur verplicht voor risicogroep-producten — overslaan kan niet";
@@ -629,6 +639,17 @@ export default function LeveringDetail() {
           navigate("/leveringen");
         },
         onError: (err: ConfirmError) => {
+          if (err.code === "needs_confirmation_required" && err.details?.lines?.length) {
+            const items = err.details.lines;
+            const first = items[0];
+            const el = document.getElementById(`line-${first.line_id}`);
+            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            nestoToast.warning(
+              `${items.length} regel(s) nog te beantwoorden`,
+              "Bevestig of wijs de suggestie af om de pakbon af te ronden.",
+            );
+            return;
+          }
           if (err.code === "factor_required" && err.details?.lines?.length) {
             const items = err.details.lines;
             const first = items[0];
@@ -848,6 +869,30 @@ export default function LeveringDetail() {
               )}
             </div>
           </section>
+        )}
+
+        {/* Twijfelzone-banner (etappe 1+2): gericht aanwijzen welke regels
+            nog beantwoord moeten worden voordat de pakbon afgesloten kan. */}
+        {needsConfirmationBlocking && (
+          <button
+            type="button"
+            onClick={() => {
+              const first = pendingConfirmation[0];
+              const el = document.getElementById(`line-${first.id}`);
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            className="w-full mb-4 flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning/10 px-5 py-4 text-left transition-colors hover:bg-warning/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-small font-medium text-foreground">
+                {pendingConfirmation.length} van {totalLines} regel(s) nog te beantwoorden
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Bevestig of wijs de AI-suggestie af. Tik om naar de eerste regel te springen.
+              </p>
+            </div>
+          </button>
         )}
 
         {/* Loop 4c-finalize: inline confirm-card als laatste sectie */}
