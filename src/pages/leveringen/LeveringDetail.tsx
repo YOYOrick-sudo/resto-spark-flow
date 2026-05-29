@@ -208,8 +208,25 @@ function LineRow({
           const isPerStuk =
             baseUnit === "st" && (factor === 1 || factor == null);
 
+          // Sprint Pakbon Etappe 4 — Pakbon-eenheid leidend.
+          // Toon "5,06 kg" zoals op de papieren pakbon i.p.v. "5,06 stuks".
+          // Alleen overslaan bij per-stuk (daar IS stuks de pakbon-eenheid)
+          // en bij SKIP (geen factor-flow).
+          const pakbonQty = line.ai_total_received_quantity;
+          const pakbonUnit = line.ai_total_received_unit;
+          const usePakbonUnit =
+            pakbonQty != null &&
+            pakbonUnit &&
+            !isPerStuk &&
+            ctx.mode !== "SKIP";
+
           let label: string | null = null;
-          if (ctx.mode === "SKIP") {
+          if (usePakbonUnit) {
+            const qtyStr = pakbonQty!.toLocaleString("nl-NL", {
+              maximumFractionDigits: 3,
+            });
+            label = `${qtyStr} ${pakbonUnit}`;
+          } else if (ctx.mode === "SKIP") {
             label = `${aantal} ${eenheid}`.trim();
           } else if (isPerStuk) {
             label = `${aantal} ${pluralize(eenheid || "stuk", aantal)}`;
