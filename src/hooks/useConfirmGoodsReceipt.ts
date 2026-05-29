@@ -68,6 +68,7 @@ export type ConfirmErrorCode =
   | "receipt_not_found"
   | "already_confirmed"
   | "factor_required"
+  | "needs_confirmation_required"
   | "unit_mismatch"
   | "internal_error"
   | "network_error";
