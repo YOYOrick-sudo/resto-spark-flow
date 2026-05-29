@@ -278,6 +278,14 @@ function LineRow({
           </div>
         )}
 
+        {/* Sprint Pakbon Kok-flow: match-correctie + suggestie-bevestiging */}
+        <LineMatchPanel
+          line={line}
+          receiptId={receiptId}
+          leverancierId={leverancierId}
+          locationId={locationId}
+        />
+
         {/* Loop 4: inline factor-panel — alleen relevant bij stock-mutatie */}
         <LineFactorPanel
           ctx={line.factor_ctx}
