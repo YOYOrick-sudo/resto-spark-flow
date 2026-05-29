@@ -2117,6 +2117,7 @@ export type Database = {
           match_status: string | null
           product_naam_herkend: string
           status: Database["public"]["Enums"]["goods_receipt_line_status"]
+          suggested_ingredient_id: string | null
           tht_datum: string | null
           updated_at: string
           validation_errors: Json | null
@@ -2157,6 +2158,7 @@ export type Database = {
           match_status?: string | null
           product_naam_herkend: string
           status?: Database["public"]["Enums"]["goods_receipt_line_status"]
+          suggested_ingredient_id?: string | null
           tht_datum?: string | null
           updated_at?: string
           validation_errors?: Json | null
@@ -2197,6 +2199,7 @@ export type Database = {
           match_status?: string | null
           product_naam_herkend?: string
           status?: Database["public"]["Enums"]["goods_receipt_line_status"]
+          suggested_ingredient_id?: string | null
           tht_datum?: string | null
           updated_at?: string
           validation_errors?: Json | null
@@ -2229,6 +2232,13 @@ export type Database = {
             columns: ["leverancier_artikel_id"]
             isOneToOne: false
             referencedRelation: "leveranciers_artikelen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_lines_suggested_ingredient_id_fkey"
+            columns: ["suggested_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredienten"
             referencedColumns: ["id"]
           },
         ]
