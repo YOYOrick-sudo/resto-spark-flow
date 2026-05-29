@@ -197,7 +197,11 @@ function LineRow({
             Dimmed bij MANUAL_REQUIRED (factor nog niet bevestigd). */}
         {(() => {
           const ctx = line.factor_ctx;
-          const aantal = (line.hoeveelheid_ontvangen ?? line.hoeveelheid_verwacht ?? 0) as number;
+          // Bron-volgorde: kok-correctie wint, anders pakbon-aantal, anders besteld.
+          const aantal = (line.hoeveelheid_ontvangen
+            ?? line.ai_total_received_quantity
+            ?? line.hoeveelheid_verwacht
+            ?? 0) as number;
           const eenheid = line.eenheid_verwacht ?? "";
           const verpakkingLabel = ctx.verpakking_label;
           const factor = ctx.display_factor;
