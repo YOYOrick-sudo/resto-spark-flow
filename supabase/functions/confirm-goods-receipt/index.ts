@@ -85,6 +85,23 @@ function errorResponse(code: ErrorCode, message: string, status: number, details
   return jsonResponse(status, { error: code, message, details });
 }
 
+// Sprint Pakbon-boeking: helpers voor 4-takken-prioriteit.
+// Identity-LA = unknown source + factor=1 + stuks-eenheid (placeholder bij ingest).
+// Die voegt geen info toe en mag NIET als bron voor boeking dienen wanneer er
+// een pakbon-totaal beschikbaar is.
+function isIdentityLA(
+  la: { factor_source?: string | null; verpakking_hoeveelheid?: number | string | null; verpakking_eenheid?: string | null } | null | undefined,
+): boolean {
+  if (!la) return false;
+  if (la.factor_source !== "unknown") return false;
+  const f = Number(la.verpakking_hoeveelheid ?? NaN);
+  if (!Number.isFinite(f) || Math.abs(f - 1) > 0.001) return false;
+  const u = String(la.verpakking_eenheid ?? "").trim().toLowerCase().replace(/\.$/, "");
+  return u === "stuk" || u === "stuks" || u === "st";
+}
+
+const FACTOR_CONFLICT_TOLERANCE = 0.02; // sync met src/lib/unitBridge.factorsEquivalent
+
 interface ResolvedLine {
   line_id: string;
   status: string;
