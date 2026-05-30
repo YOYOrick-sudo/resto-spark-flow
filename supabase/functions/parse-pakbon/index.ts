@@ -335,6 +335,7 @@ interface PakbonExtractieRegel {
   confidence?: "hoog" | "medium" | "laag" | null;
   confidence_score?: number | null;
   reasoning?: string | null;
+  is_non_food?: boolean | null;
 }
 
 interface PakbonExtractie {
