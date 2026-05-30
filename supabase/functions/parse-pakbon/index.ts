@@ -985,7 +985,7 @@ serve(async (req) => {
     // Twijfelzone-vangnet: regels met suggestion gaan NIET door auto-create.
     if (suggestionMap.has(i)) continue;
     const r = extractie.regels[i];
-    if (isEmballageLine(r.product_naam)) continue;
+    if (isSkipLine(r)) continue;
 
     // Vereisten: productnaam + ai_package_unit
     const cleanNaam = stripPackagingSuffix(r.product_naam ?? "").trim() ||
