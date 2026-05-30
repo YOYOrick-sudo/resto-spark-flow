@@ -827,7 +827,7 @@ export default function LeveringDetail() {
                         {line.product_naam_herkend}
                       </p>
                       <p className="text-xs text-muted-foreground/70">
-                        emballage — niet meegerekend
+                        niet meegerekend
                       </p>
                     </div>
                   </div>
