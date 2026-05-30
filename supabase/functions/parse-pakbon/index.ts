@@ -885,12 +885,12 @@ serve(async (req) => {
     return LABEL_NORMALISE[raw] ?? raw;
   }
 
-  // Emballage-detect: case-insensitive prefix-match. Universeel — werkt op
-  // alle leveranciers. Productnamen zoals "Emballage groot/klap",
-  // "Emballage paddestoelen tray", "EMBALLAGE BAK 50".
-  function isEmballageLine(productNaam: string): boolean {
-    if (!productNaam) return false;
-    return /^\s*emballage\b/i.test(productNaam);
+  // Non-food / emballage skip-detect. Generiek (geen leveranciersnamen) via
+  // gedeelde helper: AI-flag is_non_food OF word-boundary keyword-match.
+  // Status blijft 'emballage_skip' (semantiek "niet meegerekend" dekt zowel
+  // emballage als andere non-food).
+  function isSkipLine(r: PakbonExtractieRegel): boolean {
+    return isNonFoodLine(r.product_naam, r.is_non_food).isNonFood;
   }
 
   // Normaliseer ai_package_unit naar voorraad base_unit voor auto-create.
