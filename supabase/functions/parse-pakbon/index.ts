@@ -925,7 +925,7 @@ serve(async (req) => {
   for (let i = 0; i < extractie.regels.length; i++) {
     if (matches[i]) continue;
     const r = extractie.regels[i];
-    if (isEmballageLine(r.product_naam)) continue;
+    if (isSkipLine(r)) continue;
     const stripped = stripPackagingSuffix(r.product_naam ?? "").trim();
     const clean = stripped.length >= 3 ? stripped : (r.product_naam ?? "").trim();
     if (clean.length < 3) continue;
