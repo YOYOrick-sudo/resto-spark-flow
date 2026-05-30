@@ -202,6 +202,28 @@ function computeFactorContext(
   const density_g_per_ml = ingredient?.density_g_per_ml != null ? Number(ingredient.density_g_per_ml) : null;
   const prefer_piece_display = !!ingredient?.prefer_piece_display;
 
+  // Sprint Pakbon-boeking: prefill uitsluitend uit echte AI-per-pak-data.
+  // NOOIT afgeleid uit totaal/aantal (zou bij los-gewogen producten als Gember
+  // het totaal als "per verpakking" suggereren — dat is fout).
+  const prefill_amount = line.ai_per_package_quantity != null
+    ? Number(line.ai_per_package_quantity) : null;
+  const prefill_unit = line.ai_package_unit ?? null;
+
+  // Pakbon-totaal-authoritative: edge function boekt via Tak A wanneer er
+  // een pakbon-totaal is én de LA placeholder/identity is. UI moet dan géén
+  // factor-vraag tonen (los-gewogen products: vraag is betekenisloos).
+  const _laUnitN2 = normalizeUnit(la_eenheid);
+  const _isIdentityLaForAuth =
+    la &&
+    la_source === "unknown" &&
+    la_factor != null && Math.abs(Number(la_factor) - 1) < 0.001 &&
+    (_laUnitN2 === "stuk" || _laUnitN2 === "stuks" || _laUnitN2 === "st");
+  const hasPakbonTotal =
+    line.ai_total_received_quantity != null &&
+    Number(line.ai_total_received_quantity) > 0 &&
+    !!line.ai_total_received_unit;
+  const pakbon_total_authoritative = !!(hasPakbonTotal && (!la || _isIdentityLaForAuth));
+
   const baseCtx = {
     la_id: la?.id ?? null,
     la_factor, la_eenheid, la_factor_source: la_source, la_confirmation_count: la_count,
@@ -210,6 +232,7 @@ function computeFactorContext(
     ingredient_eenheid: ingredient?.eenheid ?? null,
     weight_per_piece_g, density_g_per_ml, prefer_piece_display,
     display_factor, display_eenheid, verpakking_label,
+    prefill_amount, prefill_unit, pakbon_total_authoritative,
   };
 
   // DEBUG (issue 1) — verwijder na fix
