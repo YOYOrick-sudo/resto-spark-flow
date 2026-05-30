@@ -89,6 +89,10 @@ const PAKBON_SCHEMA = {
             type: ["string", "null"],
             enum: ["ambient", "gekoeld", "vries", "vis_op_ijs", null],
           },
+          is_non_food: {
+            type: "boolean",
+            description: "true als regel non-food is (wegwerp/schoonmaak/emballage/servies). false voor eten en drinken.",
+          },
           confidence: { type: ["string", "null"], enum: ["hoog", "medium", "laag", null] },
           confidence_score: {
             type: ["number", "null"],
