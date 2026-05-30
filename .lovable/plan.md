@@ -1,62 +1,119 @@
-# Test: automatische pakbon-instroom
+# Sprint: Pakbon-boeking — pakbon-hoeveelheid leidend
 
-Doel: bewijzen of de keten email → intake → AI-parse → goods_receipt → iPad-inbox autonoom werkt voor Pura Vida. Géén fixes, alleen rapportage.
+Status: plan + correctie verwerkt, **wacht op build-mode**.
 
-## Aanpak
+---
 
-### 1. Baseline-snapshot (queries vóór injectie)
-- `pakbon_email_intake` laatste 5 rijen (datum, status, location, goods_receipt_id)
-- `goods_receipts` laatste 5 rijen voor Pura Vida
-- Bevestig dat de keten al ≥30 dagen stil ligt (audit-claim verifiëren)
-- Lookup `pakbon_slug` + `location_id` voor Pura Vida Daily
-- Lookup een bekende leverancier met `email_domains` config (bv. Sligro/Bidfood) of pak `generic`
+## Stap 0 — Bevindingen
 
-### 2. Injectie-methode (realistisch, geen externe afhankelijkheid)
-Twee opties, ik kies A tenzij A niet werkbaar blijkt:
+**0a. Boeking-math** (`supabase/functions/confirm-goods-receipt/index.ts` r. 384–454):
 
-**A. Echte Svix-webhook simuleren naar `receive-pakbon-email`** met een `email.received` payload die:
-- `to: pakbon+{slug}@mail.shouf.ai` (echte slug van Pura Vida)
-- `from: orders@{leverancier-domein}` (matched op `email_domains`)
-- attachment-metadata wijst naar een test-PDF
+```ts
+const aantalVerpakkingen = inputLine.hoeveelheid_ontvangen
+  ?? dbLine.hoeveelheid_verwacht ?? 1;                  // = 3 voor Rucola
+const totalInPackagingUnit =
+  Number(la.verpakking_hoeveelheid) * Number(aantalVerpakkingen);
+const deltaBase = toBaseUnit(totalInPackagingUnit,
+                             la.verpakking_eenheid, ingredient);
+// identity-LA: 1 × 3 → +3 st ❌
+```
 
-Probleem: Svix-signature + Resend Attachments-API call gaan falen → schakel 1 zal struikelen op verificatie/fetch. Dat is op zich al een bewijs (instroom faalt zonder echte mail), maar zegt niets over schakels 2–5.
+Identity-LA komt door dit pad omdat r. 362 alleen blokkeert wanneer chef noch `accept_ai_factor` noch `manual_factor` stuurt. Bij impliciete bevestiging promoot r. 376–382 de LA naar `ai_confirmed` op factor 1 × stuks.
 
-**B. Direct injecteren op intake-niveau (overslaan van schakel 1)** — handmatig een `pakbon_email_intake` rij + een geüploade test-PDF in storage maken, dan `parse-pakbon` invoken met die intake_id. Dit test schakels 2→5 isoleerd.
+**0b. Twijfelzone-interactie** (r. 187–209):
+- Pre-RPC guard blokkeert bevestigen alleen op `match_status='needs_confirmation'` (ingredient-match, Komkommer-koppeling).
+- Er is **geen** factor-conflict-detectie in `confirm-goods-receipt`. Wij dupliceren niets — we voegen factor-conflict toe als nieuwe tak C.
+- Tolerantie: ±2% (sync met `factorsEquivalent` in `src/lib/unitBridge.ts`).
 
-→ Ik voer **beide** uit:
-- A om te zien hoe ver de echte webhook komt (en wáár hij struikelt: Svix, slug-match, Resend-fetch?)
-- B om te bewijzen of de rest van de keten autonoom doorloopt zodra een geldige intake bestaat
+**0c. AI-velden — betrouwbaarheid bevestigd op live data:**
 
-Test-PDF: zoek bestaande in `storage.pakbonnen` van een eerdere echte levering; hergebruik die bytes voor een nieuwe `[TEST]` upload.
+| product | per_pkg_qty | pkg_unit | total_qty | total_unit |
+|---|---|---|---|---|
+| Rucola gewassen 250 gr | 0,25 | kg | 0,75 | kg |
+| Winterpeen kist 20 kg | 20 | kg | 20 | kg |
+| Gember kg | _null_ | kg | 2,38 | kg |
+| Tauge kg | _null_ | kg | 3,14 | kg |
 
-### 3. Per-schakel verificatie
-Voor elke schakel queries draaien en WERKT/KAPOT vaststellen met bewijs (row-counts, status-veld, edge-function logs van `receive-pakbon-email` en `parse-pakbon`):
+→ `ai_total_received_quantity/_unit` is overal gevuld en de canonieke "wat is fysiek geleverd"-bron. `ai_per_package_quantity` alleen als de pakbon dat expliciet meldde.
 
-1. **Email binnen** — HTTP-status van webhook-call + logs
-2. **Intake-rij** — `pakbon_email_intake` row aangemaakt? `ai_parse_status`?
-3. **AI-parse** — parse-pakbon logs: tier-stats, regels herkend, candidate_rows
-4. **goods_receipt** — `goods_receipts` + `goods_receipt_lines` rows; matching-tiers
-5. **Op iPad** — query op view `goods_receipts_chef_inbox` (gebruikt door `useGoodsReceipts`) voor Pura Vida; bevestig dat de test-receipt erin verschijnt
+**0d. UI-prefill bug** (`LineFactorPanel.tsx` r. 72–77): `display_factor` valt terug op `la_factor=1` + `ingredient_base_unit="kg"` → "1 kg" Gember. Tauge: LA factor `null` → display leeg, maar de manual-vraag wordt nog wél getoond.
 
-### 4. Parse-kwaliteit beoordelen
-- Regels herkend vs verwacht (handmatig PDF tellen)
-- Match-tier per regel (Tier-1/2/3/4 of unmatched)
-- Hoeveelheid + eenheid sanity-check
+---
 
-### 5. Compliance-status uit eerdere audit
-Kort hercheck (read-only) van de drie open punten:
-- Schijn-vinkjes (welke?)
-- Hardcoded template-id (in welke functie?)
-- Dubbele runs (idempotency op `resend_message_id`)
+## Plan (4 wijzigingen)
 
-### 6. Cleanup
-- Markeer test-intake: `notities = '[TEST - genegeerd]'` of test-leverancier-flag
-- Markeer test-receipt idem
-- Verwijder test-PDF uit storage (of laat staan onder `/test/` prefix)
-- Géén voorraad-mutaties (chef bevestigt niet) → niets terug te draaien
+### 1. Edge function — 4-takken-boeking
+`supabase/functions/confirm-goods-receipt/index.ts`, tussen 3a (manual_factor) en 3b (la-check).
 
-## Deliverable
-Rapport in het format dat je opgaf: schakel-voor-schakel, parse-kwaliteit, breekpunt, eindoordeel + compliance-status. Geen code-wijzigingen.
+Helpers boven `Deno.serve`:
+```ts
+function isUnconfirmedLA(la): boolean {
+  return !la || la.factor_source === "unknown"
+      || la.verpakking_hoeveelheid == null || !la.verpakking_eenheid;
+}
+const FACTOR_CONFLICT_TOLERANCE = 0.02;
+```
 
-## Wat ik nodig heb om te starten
-GO. Eén open vraag: als A (echte Svix-webhook) struikelt op Svix-signature (verwacht), accepteer je dat als "schakel 1 niet testbaar zonder echte Resend-email" en gaan we door op B? Of wil je dat ik Svix-verify tijdelijk omzeil via een service-role-direct-call op een intern endpoint (zo bestaand)?
+Per-regel logica (vóór bestaande 3d):
+
+| Tak | Conditie | Actie |
+|---|---|---|
+| A | `ai_total_received_quantity` aanwezig **en** `isUnconfirmedLA(la)` **en** niet weighted | `deltaBase = toBaseUnit(ai_total_received_quantity, ai_total_received_unit, ingredient)`. **Geen** LA-promotie. |
+| B | echte LA + pakbon-totaal matcht (±2%) | bestaand path: `la.factor × aantal → toBaseUnit` |
+| C | echte LA + pakbon-totaal botst | `factorErrors.push({ reason: "factor_conflict_pakbon_vs_la" })` → 422 |
+| D | geen pakbon-totaal | bestaand path (ongewijzigd) |
+
+NULL-veiligheid: faalt `toBaseUnit` in tak A op ontbrekende `wpp`/`density`, dan `factor_required` met `missing_conversion` — geen crash, geen stille onderboeking.
+
+### 2. UI-prefill — alleen echte AI-data
+`src/hooks/useGoodsReceiptDetail.ts` `computeFactorContext`:
+
+**Geen totaal/aantal-deling.** Prefill komt uitsluitend uit `ai_per_package_quantity` + `ai_package_unit`:
+```ts
+const prefill_amount = line.ai_per_package_quantity ?? null;
+const prefill_unit   = line.ai_package_unit ?? null;
+```
+
+Nieuwe afgeleide vlag:
+```ts
+const pakbon_total_authoritative =
+  hasPakbonTotal && (la == null || la_source === "unknown");
+```
+
+Mode-aanpassing voor pakbon-authoritative regels:
+- `pakbon_total_authoritative && ai_factor == null` → **mode = CONFIRMED**, géén factor-vraag (Gember, Tauge: pakbon-totaal boekt het, "hoeveel per verpakking" is betekenisloos voor los-gewogen).
+- `pakbon_total_authoritative && ai_factor != null` → mode = AI_SUGGESTED, prefill toont "0,25 kg" (Rucola).
+
+`LineFactorPanel.tsx`: draftAmount/draftUnit initialiseren uit `ctx.prefill_amount`/`ctx.prefill_unit` — **nooit** uit `la_factor` of `ingredient_base_unit`. Leeg als geen prefill bekend is.
+
+### 3. Conflict-banner-tekst
+`src/pages/leveringen/LeveringDetail.tsx` r. 678–687: humaniseer `factor_conflict_pakbon_vs_la` als "Jullie instelling botst met de pakbon. Open de regel en bevestig de juiste factor."
+
+### 4. Type-uitbreiding
+`LineFactorContext` krijgt: `prefill_amount`, `prefill_unit`, `pakbon_total_qty`, `pakbon_total_unit`, `pakbon_total_authoritative`.
+
+---
+
+## Verificatie
+
+| ID | Geval | Verwacht | Bewijs |
+|---|---|---|---|
+| V1 | Rucola, identity-LA, wpp=75, pakbon 0,75 kg | +10 st (tak A), LA niet gepromoot | SQL voor/na `voorraad_bewegingen` + `ingredienten.voorraad` |
+| V2 | Winterpeen, echte LA doos 20 kg, wpp=200 | +100 st (tak B, ongewijzigd) | SQL voor/na |
+| V3 | Komkommer-achtig: LA=36 st/kist, pakbon=30 st | 422 `factor_conflict_pakbon_vs_la` → twijfelvraag | Screenshot |
+| V4 | Identity-LA + kg-pakbon zonder wpp (Dille bos) | `factor_required` `missing_conversion`, geen crash | Screenshot + schone console |
+| V5 | Bevestig-UI | Rucola toont "1 verpakking = 0,25 kg". **Gember/Tauge tonen geen factor-vraag** (mode=CONFIRMED, pakbon-totaal leidend). | Screenshot |
+
+---
+
+## Out-of-scope
+- ❌ Eenheid-migratie van de 12 (kg-display) — fix 3
+- ❌ Non-food filter — fix 2
+- ❌ Uien/Lunchbox-duplicaten
+- ❌ `complete_mep_task` / `process_waste_registratie`
+
+## Security
+- `confirm_goods_receipt` RPC: SECURITY DEFINER + role-check intact.
+- `auth.uid()`-guard intact.
+- Geen nieuwe publieke endpoints.
+- Boeking blijft atomair.
