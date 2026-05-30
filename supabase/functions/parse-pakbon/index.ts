@@ -126,6 +126,7 @@ EXTRACTIE-REGELS PER REGEL:
 - is_weighted: true als pakbon ± / ca. / ~ / ongeveer / circa aanduidt (variabel gewicht)
 - lotnummer / tht_datum: indien vermeld
 - haccp_categorie: "vries" | "gekoeld" | "vis_op_ijs" | "ambient"
+- is_non_food: true voor niet-eetbaar (deksels, bekers, lunchboxen, bakjes, vacuumzakken, servetten, folie, rietjes, schoonmaakmiddelen, fust/emballage/statiegeld/rolcontainer/pallet). false voor alle voedsel & drank.
 - confidence: "hoog" | "medium" | "laag" (text)
 - confidence_score: numeriek 0.0-1.0 (zie rubriek hieronder)
 - reasoning: 1 korte zin over je verpakking-keuze
