@@ -49,6 +49,8 @@ export interface LineFactorContext {
       UI gebruikt dit om de "1 verpakking = ?"-vraag te onderdrukken voor
       los-gewogen producten (Gember, Tauge) waar de vraag betekenisloos is. */
   pakbon_total_authoritative: boolean;
+}
+
 
 export interface GoodsReceiptLineWithIngredient {
   id: string;
