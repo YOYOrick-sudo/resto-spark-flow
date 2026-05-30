@@ -49,6 +49,10 @@ export interface LineFactorContext {
       UI gebruikt dit om de "1 verpakking = ?"-vraag te onderdrukken voor
       los-gewogen producten (Gember, Tauge) waar de vraag betekenisloos is. */
   pakbon_total_authoritative: boolean;
+  /** Pakbon-totaal (uit AI-extractie) — wordt door preview gebruikt wanneer
+      authoritative én er geen bruikbare LA-factor is (Spitskool/Tauge etc.). */
+  pakbon_total_qty: number | null;
+  pakbon_total_unit: string | null;
 }
 
 
