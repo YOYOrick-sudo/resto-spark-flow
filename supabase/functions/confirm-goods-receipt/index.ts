@@ -367,8 +367,22 @@ Deno.serve(async (req) => {
       out.factor_source_to_set = "user";
     }
 
-    // 3b. la moet bestaan en bekend zijn
-    if (!la || !la.verpakking_hoeveelheid || !la.verpakking_eenheid) {
+    // Pakbon-totaal (door AI uit pakbon-tekst geëxtraheerd).
+    // Bron voor "pakbon-authoritative" boeking (Tak A) en conflict-detectie (Tak C).
+    const pakbonTotalQty = dbLine.ai_total_received_quantity != null
+      ? Number(dbLine.ai_total_received_quantity) : null;
+    const pakbonTotalUnit = dbLine.ai_total_received_unit ?? null;
+    const hasPakbonTotal =
+      pakbonTotalQty != null && Number.isFinite(pakbonTotalQty) && pakbonTotalQty > 0 && !!pakbonTotalUnit;
+
+    const placeholderLA = isPlaceholderLA(la);
+    // Tak A komt zo meteen — geen MANUAL_REQUIRED voor placeholder-LA als pakbon-totaal er is,
+    // ook niet zonder expliciete chef-accept (de pakbon-werkelijkheid leidt).
+    const willUseTakA = placeholderLA && hasPakbonTotal;
+
+    // 3b. la moet bestaan en bekend zijn — TENZIJ Tak A overneemt
+    // (placeholder-LA met null factor mag, want pakbon-totaal levert het).
+    if (!willUseTakA && (!la || !la.verpakking_hoeveelheid || !la.verpakking_eenheid)) {
       factorErrors.push({
         line_id: inputLine.line_id,
         reason: la ? "incomplete_packaging" : "no_supplier_article",
@@ -379,22 +393,10 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // Pakbon-totaal (door AI uit pakbon-tekst geëxtraheerd).
-    // Bron voor "pakbon-authoritative" boeking (Tak A) en conflict-detectie (Tak C).
-    const pakbonTotalQty = dbLine.ai_total_received_quantity != null
-      ? Number(dbLine.ai_total_received_quantity) : null;
-    const pakbonTotalUnit = dbLine.ai_total_received_unit ?? null;
-    const hasPakbonTotal =
-      pakbonTotalQty != null && Number.isFinite(pakbonTotalQty) && pakbonTotalQty > 0 && !!pakbonTotalUnit;
-
-    const identityLA = isIdentityLA(la);
-    // Tak A komt zo meteen — geen MANUAL_REQUIRED voor identity-LA als pakbon-totaal er is,
-    // ook niet zonder expliciete chef-accept (de pakbon-werkelijkheid leidt).
-    const willUseTakA = identityLA && hasPakbonTotal;
-
     // factor_source==unknown EN chef heeft niet bevestigd → MANUAL_REQUIRED
-    // (uitgezonderd: Tak A neemt over op identity-LA + pakbon-totaal)
+    // (uitgezonderd: Tak A neemt over op placeholder-LA + pakbon-totaal)
     if (
+      la &&
       la.factor_source === "unknown" &&
       !inputLine.accept_ai_factor &&
       !inputLine.manual_factor &&
@@ -410,24 +412,25 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    out.leverancier_artikel_id = la.id;
+    if (la) out.leverancier_artikel_id = la.id;
 
     // promotion: unknown → ai_confirmed bij eerste accept.
-    // BELANGRIJK: identity-LA mag NIET gepromoot worden — het is een placeholder.
+    // BELANGRIJK: placeholder-LA mag NIET gepromoot worden — het is een placeholder.
     if (
+      la &&
       !out.factor_source_to_set &&
       la.factor_source === "unknown" &&
       inputLine.accept_ai_factor &&
-      !identityLA
+      !placeholderLA
     ) {
       out.factor_source_to_set = "ai_confirmed";
     }
 
-    const isWeighted = !!(la.is_weighted || dbLine.ai_is_weighted);
+    const isWeighted = !!(la?.is_weighted || dbLine.ai_is_weighted);
     const aantalVerpakkingen = inputLine.hoeveelheid_ontvangen ?? dbLine.hoeveelheid_verwacht ?? 1;
 
     // 3c. VARIABLE WEIGHT: chef MOET werkelijk_gewicht_g geven
-    if (isWeighted) {
+    if (isWeighted && !willUseTakA) {
       if (inputLine.werkelijk_gewicht_g == null) {
         factorErrors.push({
           line_id: inputLine.line_id,
@@ -458,8 +461,8 @@ Deno.serve(async (req) => {
     // Sprint Pakbon-boeking: 4-takken-prioriteit (manual_factor skipt deze block
     // en valt door naar 3d — chef-input wint altijd en is al in la verwerkt).
     if (hasPakbonTotal && !inputLine.manual_factor) {
-      // Tak A: identity-LA → pakbon-totaal is leidend, geen LA-promotie.
-      if (identityLA) {
+      // Tak A: placeholder-LA → pakbon-totaal is leidend, geen LA-promotie.
+      if (placeholderLA) {
         if (!isKnownUnit(pakbonTotalUnit)) {
           factorErrors.push({
             line_id: inputLine.line_id,
@@ -479,7 +482,7 @@ Deno.serve(async (req) => {
           out.delta_base = deltaBase;
           out.base_unit = ingredient.base_unit;
           out.factor_status = "confirmed";
-          // GEEN factor_source_to_set: identity-LA blijft placeholder.
+          // GEEN factor_source_to_set: placeholder-LA blijft placeholder.
         } catch (e) {
           if (e instanceof MissingConversionError || e instanceof UnknownUnitError) {
             factorErrors.push({
