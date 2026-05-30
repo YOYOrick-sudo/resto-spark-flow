@@ -679,6 +679,16 @@ export default function LeveringDetail() {
             const items = err.details.lines;
             const first = items[0];
             const more = items.length > 1 ? ` (+${items.length - 1} meer)` : "";
+            const isConflict = items.some((l) => l.reason === "factor_conflict_pakbon_vs_la");
+            if (isConflict) {
+              const el = document.getElementById(`line-${first.line_id}`);
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+              nestoToast.warning(
+                "Pakbon botst met instelling",
+                `${first.product ?? "Regel"}: jullie verpakking-instelling komt niet overeen met wat de pakbon meldt. Open de regel en bevestig de juiste factor.${more}`,
+              );
+              return;
+            }
             nestoToast.error(
               "Verpakking-info nodig",
               `${first.product ?? "Regel"}: ${first.reason}${more}`,
