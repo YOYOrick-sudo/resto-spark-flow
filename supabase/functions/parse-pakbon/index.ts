@@ -1085,10 +1085,10 @@ serve(async (req) => {
     const aiLabel = (r.verpakking_woord ?? "").trim().toLowerCase() || null;
     const regexLabel = aiLabel ? null : detectPackagingLabel(r.product_naam);
     const aiPackageLabel = aiLabel ?? regexLabel;
-    const isEmballage = isEmballageLine(r.product_naam);
+    const isSkip = isSkipLine(r);
     // Twijfelzone-regels (0.50-0.70 fuzzy): suggested_ingredient_id gevuld,
     // ingredient_id leeg, match_status='needs_confirmation'. Kok bevestigt in UI.
-    const isSuggestion = !hit && !!suggestion && !isEmballage;
+    const isSuggestion = !hit && !!suggestion && !isSkip;
     return {
       goods_receipt_id: receipt.id,
       product_naam_herkend: r.product_naam,
@@ -1099,15 +1099,16 @@ serve(async (req) => {
       eenheid_verwacht: r.verpakking_eenheid ?? null,
       ingredient_id: hit?.ingredient_id ?? null,
       suggested_ingredient_id: isSuggestion ? suggestion!.id : null,
-      is_nieuw_ingredient: !hit && !isSuggestion && !isEmballage,
+      is_nieuw_ingredient: !hit && !isSuggestion && !isSkip,
       match_status: hit ? "matched" : isSuggestion ? "needs_confirmation" : "unmatched",
       match_confidence: hit ? hit.confidence : isSuggestion ? suggestion!.similarity : null,
       haccp_categorie: r.haccp_categorie ?? null,
       lotnummer: r.lotnummer ?? null,
       tht_datum: r.tht_datum ?? null,
-      // Loop 4C-FINISH: emballage-regels krijgen aparte status zodat ze
-      // niet in voorraad-mutatie of counter terechtkomen.
-      status: (isEmballage ? "emballage_skip" : "verwacht") as
+      // Non-food/emballage-regels krijgen aparte status zodat ze niet in
+      // voorraad-mutatie of counter terechtkomen — generiek via isNonFoodLine
+      // (AI is_non_food OF keyword-match).
+      status: (isSkip ? "emballage_skip" : "verwacht") as
         | "verwacht"
         | "emballage_skip",
       // Loop 4C ROOT-CAUSE FIX: AI-extractie persist
