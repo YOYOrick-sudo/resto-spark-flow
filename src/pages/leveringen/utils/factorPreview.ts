@@ -61,6 +61,13 @@ export function computeDeltaPreview(
     return previewWithFactor(state.action.hoeveelheid, state.action.eenheid, aantal);
   }
 
+  // Pakbon-totaal-leidend (Tak A): toon de op de pakbon vermelde totale ontvangst
+  // direct — onafhankelijk van factor × aantal. Vangt los-gewogen producten
+  // (Gember/Tauge/Venkel/Spitskool/Peer) en kg-placeholder-LAs (Munt) af.
+  if (ctx.pakbon_total_authoritative && ctx.pakbon_total_qty != null && ctx.pakbon_total_unit) {
+    return previewWithFactor(Number(ctx.pakbon_total_qty), ctx.pakbon_total_unit, 1);
+  }
+
   // Bij MANUAL_REQUIRED zonder chef-input is er geen betrouwbare preview.
   if (ctx.mode === "MANUAL_REQUIRED") return null;
 

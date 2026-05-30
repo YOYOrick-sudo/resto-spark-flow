@@ -49,6 +49,10 @@ export interface LineFactorContext {
       UI gebruikt dit om de "1 verpakking = ?"-vraag te onderdrukken voor
       los-gewogen producten (Gember, Tauge) waar de vraag betekenisloos is. */
   pakbon_total_authoritative: boolean;
+  /** Pakbon-totaal (uit AI-extractie) — wordt door preview gebruikt wanneer
+      authoritative én er geen bruikbare LA-factor is (Spitskool/Tauge etc.). */
+  pakbon_total_qty: number | null;
+  pakbon_total_unit: string | null;
 }
 
 
@@ -176,20 +180,25 @@ function computeFactorContext(
   const la_count = la?.confirmation_count ?? 0;
   const is_weighted = !!(la?.is_weighted || line.ai_is_weighted);
 
-  // Identity auto-LA detectie (placeholder: factor=1 + eenheid=stuks, unknown source).
-  // Die LA voegt geen info toe — display moet de AI-eenheid kiezen, niet "1 stuks".
+  // Onbevestigde "placeholder"-LA: factor_source='unknown' EN één van:
+  //   - verpakking_hoeveelheid is null (Spitskool/Tauge/Venkel/Peer)
+  //   - factor=1 met eenheid stuks of kg (Gember 1 kg, Dille 1 stuk, Munt 1 kg)
+  // Échte LA's (source='user'/'ai_confirmed', óf source='unknown' met factor≠1
+  // zoals Winterpeen 20 kg, Aubergine 5 kg, Sinaasappel 15 kg) blijven leidend.
   const _laUnitN = normalizeUnit(la_eenheid);
-  const isIdentityAutoLaForDisplay =
+  const _laFactorIsOne = la_factor != null && Number.isFinite(la_factor) && Math.abs(la_factor - 1) < 0.001;
+  const _laUnitIsStuksOrKg = _laUnitN === "stuk" || _laUnitN === "stuks" || _laUnitN === "st" || _laUnitN === "kg";
+  const isPlaceholderLa = !!(
     la &&
     la_source === "unknown" &&
-    la_factor != null && Math.abs(Number(la_factor) - 1) < 0.001 &&
-    (_laUnitN === "stuk" || _laUnitN === "stuks" || _laUnitN === "st");
+    (la_factor == null || (_laFactorIsOne && _laUnitIsStuksOrKg))
+  );
 
-  const display_factor = isIdentityAutoLaForDisplay
-    ? ai_factor
+  const display_factor = isPlaceholderLa
+    ? (ai_factor ?? la_factor)
     : (la_factor ?? ai_factor);
-  const display_eenheid = isIdentityAutoLaForDisplay
-    ? ai_eenheid
+  const display_eenheid = isPlaceholderLa
+    ? (ai_eenheid ?? la_eenheid)
     : (la_eenheid ?? ai_eenheid);
 
   const verpakking_label = resolveVerpakkingLabel(
@@ -210,19 +219,13 @@ function computeFactorContext(
   const prefill_unit = line.ai_package_unit ?? null;
 
   // Pakbon-totaal-authoritative: edge function boekt via Tak A wanneer er
-  // een pakbon-totaal is én de LA placeholder/identity is. UI moet dan géén
-  // factor-vraag tonen (los-gewogen products: vraag is betekenisloos).
-  const _laUnitN2 = normalizeUnit(la_eenheid);
-  const _isIdentityLaForAuth =
-    la &&
-    la_source === "unknown" &&
-    la_factor != null && Math.abs(Number(la_factor) - 1) < 0.001 &&
-    (_laUnitN2 === "stuk" || _laUnitN2 === "stuks" || _laUnitN2 === "st");
+  // een pakbon-totaal is én er geen échte LA is (placeholder of niets).
+  const pakbon_total_qty = line.ai_total_received_quantity != null
+    ? Number(line.ai_total_received_quantity) : null;
+  const pakbon_total_unit = line.ai_total_received_unit ?? null;
   const hasPakbonTotal =
-    line.ai_total_received_quantity != null &&
-    Number(line.ai_total_received_quantity) > 0 &&
-    !!line.ai_total_received_unit;
-  const pakbon_total_authoritative = !!(hasPakbonTotal && (!la || _isIdentityLaForAuth));
+    pakbon_total_qty != null && Number.isFinite(pakbon_total_qty) && pakbon_total_qty > 0 && !!pakbon_total_unit;
+  const pakbon_total_authoritative = !!(hasPakbonTotal && (!la || isPlaceholderLa));
 
   const baseCtx = {
     la_id: la?.id ?? null,
@@ -233,6 +236,7 @@ function computeFactorContext(
     weight_per_piece_g, density_g_per_ml, prefer_piece_display,
     display_factor, display_eenheid, verpakking_label,
     prefill_amount, prefill_unit, pakbon_total_authoritative,
+    pakbon_total_qty, pakbon_total_unit,
   };
 
   // DEBUG (issue 1) — verwijder na fix
