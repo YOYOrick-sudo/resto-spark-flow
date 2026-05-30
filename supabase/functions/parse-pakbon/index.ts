@@ -32,6 +32,7 @@ import {
   type MatchableLine,
 } from "../_shared/ingredientMatcher.ts";
 import { extractTextPerPage } from "../_shared/pdf-text.ts";
+import { isNonFoodLine } from "../_shared/nonFoodDetector.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
