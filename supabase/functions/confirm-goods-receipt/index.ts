@@ -86,18 +86,22 @@ function errorResponse(code: ErrorCode, message: string, status: number, details
 }
 
 // Sprint Pakbon-boeking: helpers voor 4-takken-prioriteit.
-// Identity-LA = unknown source + factor=1 + stuks-eenheid (placeholder bij ingest).
-// Die voegt geen info toe en mag NIET als bron voor boeking dienen wanneer er
-// een pakbon-totaal beschikbaar is.
-function isIdentityLA(
+// Placeholder-LA = onbevestigd (factor_source='unknown') EN één van:
+//   - verpakking_hoeveelheid is null (Spitskool/Tauge/Venkel/Peer kg)
+//   - factor=1 met stuks- of kg-eenheid (Gember 1 kg, Dille 1 stuk, Munt 1 kg)
+// Échte LA's (source != 'unknown', óf unknown met factor ≠ 1 zoals
+// Sinaasappel 15 kg, Winterpeen 20 kg) blijven volledig leidend.
+function isPlaceholderLA(
   la: { factor_source?: string | null; verpakking_hoeveelheid?: number | string | null; verpakking_eenheid?: string | null } | null | undefined,
 ): boolean {
   if (!la) return false;
   if (la.factor_source !== "unknown") return false;
-  const f = Number(la.verpakking_hoeveelheid ?? NaN);
-  if (!Number.isFinite(f) || Math.abs(f - 1) > 0.001) return false;
+  if (la.verpakking_hoeveelheid == null) return true;
+  const f = Number(la.verpakking_hoeveelheid);
+  if (!Number.isFinite(f)) return false;
+  if (Math.abs(f - 1) > 0.001) return false;
   const u = String(la.verpakking_eenheid ?? "").trim().toLowerCase().replace(/\.$/, "");
-  return u === "stuk" || u === "stuks" || u === "st";
+  return u === "stuk" || u === "stuks" || u === "st" || u === "kg";
 }
 
 const FACTOR_CONFLICT_TOLERANCE = 0.02; // sync met src/lib/unitBridge.factorsEquivalent
