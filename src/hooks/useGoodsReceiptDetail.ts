@@ -41,7 +41,14 @@ export interface LineFactorContext {
   mode: FactorMode;
   /** Reden bij MANUAL_REQUIRED voor UX-helper */
   manual_reason: string | null;
-}
+  /** Sprint Pakbon-boeking: prefill voor MANUAL_REQUIRED — uitsluitend uit
+      ai_per_package_quantity. Nooit afgeleid uit totaal/aantal. */
+  prefill_amount: number | null;
+  prefill_unit: string | null;
+  /** True wanneer pakbon-totaal de bron voor boeking is (Tak A in edge).
+      UI gebruikt dit om de "1 verpakking = ?"-vraag te onderdrukken voor
+      los-gewogen producten (Gember, Tauge) waar de vraag betekenisloos is. */
+  pakbon_total_authoritative: boolean;
 
 export interface GoodsReceiptLineWithIngredient {
   id: string;
