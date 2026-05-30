@@ -375,8 +375,27 @@ Deno.serve(async (req) => {
       continue;
     }
 
+    // Pakbon-totaal (door AI uit pakbon-tekst geëxtraheerd).
+    // Bron voor "pakbon-authoritative" boeking (Tak A) en conflict-detectie (Tak C).
+    const pakbonTotalQty = dbLine.ai_total_received_quantity != null
+      ? Number(dbLine.ai_total_received_quantity) : null;
+    const pakbonTotalUnit = dbLine.ai_total_received_unit ?? null;
+    const hasPakbonTotal =
+      pakbonTotalQty != null && Number.isFinite(pakbonTotalQty) && pakbonTotalQty > 0 && !!pakbonTotalUnit;
+
+    const identityLA = isIdentityLA(la);
+    // Tak A komt zo meteen — geen MANUAL_REQUIRED voor identity-LA als pakbon-totaal er is,
+    // ook niet zonder expliciete chef-accept (de pakbon-werkelijkheid leidt).
+    const willUseTakA = identityLA && hasPakbonTotal;
+
     // factor_source==unknown EN chef heeft niet bevestigd → MANUAL_REQUIRED
-    if (la.factor_source === "unknown" && !inputLine.accept_ai_factor && !inputLine.manual_factor) {
+    // (uitgezonderd: Tak A neemt over op identity-LA + pakbon-totaal)
+    if (
+      la.factor_source === "unknown" &&
+      !inputLine.accept_ai_factor &&
+      !inputLine.manual_factor &&
+      !willUseTakA
+    ) {
       factorErrors.push({
         line_id: inputLine.line_id,
         reason: "factor_unknown_not_accepted",
@@ -389,11 +408,13 @@ Deno.serve(async (req) => {
 
     out.leverancier_artikel_id = la.id;
 
-    // promotion: unknown → ai_confirmed bij eerste accept
+    // promotion: unknown → ai_confirmed bij eerste accept.
+    // BELANGRIJK: identity-LA mag NIET gepromoot worden — het is een placeholder.
     if (
       !out.factor_source_to_set &&
       la.factor_source === "unknown" &&
-      inputLine.accept_ai_factor
+      inputLine.accept_ai_factor &&
+      !identityLA
     ) {
       out.factor_source_to_set = "ai_confirmed";
     }
@@ -413,8 +434,6 @@ Deno.serve(async (req) => {
         resolved.push(out);
         continue;
       }
-      // delta_base = werkelijk_gewicht_g (per verpakking) * aantal verpakkingen
-      // Convert van g → ingredient.base_unit indien nodig
       try {
         const totalGrams = inputLine.werkelijk_gewicht_g * aantalVerpakkingen;
         const deltaBase = toBaseUnit(totalGrams, "g", ingredient as ConvIngredient);
@@ -432,7 +451,77 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // 3d. NORMAL FACTOR: aantal_verpakkingen * factor convert naar base
+    // Sprint Pakbon-boeking: 4-takken-prioriteit (manual_factor skipt deze block
+    // en valt door naar 3d — chef-input wint altijd en is al in la verwerkt).
+    if (hasPakbonTotal && !inputLine.manual_factor) {
+      // Tak A: identity-LA → pakbon-totaal is leidend, geen LA-promotie.
+      if (identityLA) {
+        if (!isKnownUnit(pakbonTotalUnit)) {
+          factorErrors.push({
+            line_id: inputLine.line_id,
+            reason: `unknown_packaging_unit:${pakbonTotalUnit}`,
+            product: dbLine.product_naam_herkend,
+          });
+          out.factor_status = "manual_required";
+          resolved.push(out);
+          continue;
+        }
+        try {
+          const deltaBase = toBaseUnit(
+            pakbonTotalQty!,
+            pakbonTotalUnit!,
+            ingredient as ConvIngredient,
+          );
+          out.delta_base = deltaBase;
+          out.base_unit = ingredient.base_unit;
+          out.factor_status = "confirmed";
+          // GEEN factor_source_to_set: identity-LA blijft placeholder.
+        } catch (e) {
+          if (e instanceof MissingConversionError || e instanceof UnknownUnitError) {
+            factorErrors.push({
+              line_id: inputLine.line_id,
+              reason: e.message,
+              product: dbLine.product_naam_herkend,
+            });
+            out.factor_status = "manual_required";
+          } else {
+            console.error("Unexpected conversion error (Tak A)", e);
+            return errorResponse("internal_error", "Conversion failure", 500);
+          }
+        }
+        resolved.push(out);
+        continue;
+      }
+
+      // Tak B/C: echte LA + pakbon-totaal — match-check via base_unit-conversie.
+      if (isKnownUnit(la.verpakking_eenheid) && isKnownUnit(pakbonTotalUnit)) {
+        try {
+          const laTotalInPackagingUnit = Number(la.verpakking_hoeveelheid) * Number(aantalVerpakkingen);
+          const laDeltaBase = toBaseUnit(laTotalInPackagingUnit, la.verpakking_eenheid, ingredient as ConvIngredient);
+          const pakbonDeltaBase = toBaseUnit(pakbonTotalQty!, pakbonTotalUnit!, ingredient as ConvIngredient);
+          const scale = Math.max(Math.abs(laDeltaBase), Math.abs(pakbonDeltaBase), 1e-6);
+          const diff = Math.abs(laDeltaBase - pakbonDeltaBase) / scale;
+          if (diff > FACTOR_CONFLICT_TOLERANCE) {
+            // Tak C: conflict — kok moet kiezen via UI.
+            factorErrors.push({
+              line_id: inputLine.line_id,
+              reason: "factor_conflict_pakbon_vs_la",
+              product: dbLine.product_naam_herkend,
+            });
+            out.factor_status = "manual_required";
+            resolved.push(out);
+            continue;
+          }
+          // Tak B: match → bestaand pad gebruikt LA (door naar 3d).
+        } catch {
+          // Bridging faalde → val terug op bestaand 3d-pad; daar wordt
+          // MissingConversionError netjes naar factor_required vertaald.
+        }
+      }
+      // Anders: val door naar 3d (Tak D-achtig — onbekende eenheden worden daar afgehandeld).
+    }
+
+    // 3d. NORMAL FACTOR (Tak B-match, Tak D, of manual_factor): aantal × la-factor → base
     if (!isKnownUnit(la.verpakking_eenheid)) {
       factorErrors.push({
         line_id: inputLine.line_id,
