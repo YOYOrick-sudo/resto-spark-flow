@@ -70,10 +70,10 @@ export function LineFactorPanel({
   const editingFactor = editingFactorProp ?? editingFactorLocal;
   const setEditingFactor = onEditingFactorChange ?? setEditingFactorLocal;
   const [draftAmount, setDraftAmount] = React.useState<string>(
-    ctx.display_factor != null ? String(ctx.display_factor) : "",
+    ctx.prefill_amount != null ? String(ctx.prefill_amount) : "",
   );
   const [draftUnit, setDraftUnit] = React.useState<string>(
-    ctx.display_eenheid ?? ctx.ingredient_base_unit ?? "stuks",
+    ctx.prefill_unit ?? "",
   );
 
   // Effectieve modus: manual override → kort tonen als bevestigd
