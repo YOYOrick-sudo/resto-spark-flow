@@ -258,6 +258,16 @@ function computeFactorContext(
     return { ...baseCtx, mode: "SKIP", manual_reason: null };
   }
 
+  // Sprint Pakbon-boeking: pakbon-totaal is leidend (Tak A in edge).
+  // - Met ai_per_package_quantity (Rucola 0,25 kg): toon AI_SUGGESTED met prefill.
+  // - Zonder per-pak data (Gember, Tauge los-gewogen): CONFIRMED, GEEN factor-vraag.
+  if (pakbon_total_authoritative) {
+    if (prefill_amount != null && prefill_unit) {
+      return { ...baseCtx, mode: "AI_SUGGESTED", manual_reason: null };
+    }
+    return { ...baseCtx, mode: "CONFIRMED", manual_reason: null };
+  }
+
   let mode: FactorMode = "MANUAL_REQUIRED";
   let manual_reason: string | null = null;
 
