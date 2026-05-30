@@ -237,6 +237,7 @@ Deno.serve(async (req) => {
       `id, ingredient_id, product_naam_herkend, hoeveelheid_verwacht, eenheid_verwacht,
        leverancier_artikel_id, ai_package_label,
        ai_per_package_quantity, ai_package_unit, ai_is_weighted,
+       ai_total_received_quantity, ai_total_received_unit,
        ingredient:ingredienten!goods_receipt_lines_ingredient_id_fkey ( id, eenheid, base_unit, weight_per_piece_g, density_g_per_ml )`,
     )
     .in("id", lineIds)
