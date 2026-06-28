@@ -119,9 +119,10 @@ export function NestoSidebar({ onNavigate, onSearchClick, unreadNotifications = 
 
   return (
     <div className={cn(
-      "h-full flex flex-col bg-secondary border-r border-border transition-all duration-200",
-      collapsed ? "w-14" : "w-60"
+      "h-full flex flex-col bg-secondary transition-all duration-200",
+      collapsed ? "w-full" : "w-full"
     )}>
+
       {/* Header */}
       <div className={cn("p-4", collapsed && "px-2 py-4 flex justify-center")}>
         {collapsed ? (
